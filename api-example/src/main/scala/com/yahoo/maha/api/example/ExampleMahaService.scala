@@ -73,7 +73,7 @@ object ExampleMahaService extends Logging {
       """
 
     val rows: List[Seq[Any]] = List(
-      Seq(1, 100, 213, 200, 125, ExampleMahaService.today, "some comment")
+      Seq(1, 100, 213, 200, 125, "2017-10-25", "some comment")
     )
 
     rows.foreach {

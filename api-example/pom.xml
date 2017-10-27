@@ -94,6 +94,11 @@
             <artifactId>log4j-over-slf4j</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.7.5</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-to-slf4j</artifactId>
         </dependency>
@@ -287,6 +292,12 @@
                     <webApp>
                         <contextPath>/mahademo</contextPath>
                     </webApp>
+                    <systemProperties>
+                        <systemProperty>
+                            <name>org.slf4j.simpleLogger.defaultLogLevel</name>
+                            <value>debug</value>
+                        </systemProperty>
+                    </systemProperties>
                 </configuration>
                 <dependencies>
                     <dependency>

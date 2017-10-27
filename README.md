@@ -191,7 +191,7 @@ Once your application context is ready, you are good to launch the war file on t
     
   Curl command : 
   ``` 
-  curl -H "Content-Type: application/json" -H "Accept: application/json" -X POST -d @student.json http://localhost:8080/mahademo/registry/student/schemas/student/query 
+  curl -H "Content-Type: application/json" -H "Accept: application/json" -X POST -d @student.json http://localhost:8080/mahademo/registry/student/schemas/student/query?debug=true 
   ```
 
   Sync Output : 
@@ -271,6 +271,6 @@ Once your application context is ready, you are good to launch the war file on t
 
   Curl : 
 ```
-      curl -H "Content-Type: application/json" -H "Accept: application/json" -X POST -d @wikiticker.json http://localhost:8080/mahademo/registry/wiki/schemas/wiki/query  
+      curl -H "Content-Type: application/json" -H "Accept: application/json" -X POST -d @wikiticker.json http://localhost:8080/mahademo/registry/wiki/schemas/wiki/query?debug=true  
 ```
   

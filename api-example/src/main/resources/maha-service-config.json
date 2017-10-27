@@ -100,7 +100,7 @@
           "timeoutRetryInterval": 100,
           "timeoutThreshold": 9000,
           "degradationConfigName": "TestConfig",
-          "url": "http://localhost:8080",
+          "url": "http://localhost:8082",
           "headers": {
             "key": "value"
           },

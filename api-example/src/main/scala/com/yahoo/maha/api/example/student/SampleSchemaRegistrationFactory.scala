@@ -21,7 +21,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
   }
 
   protected[this] def getMaxDaysLookBack: Map[(RequestType, Grain), Int] = {
-    val result = 30
+    val result = 9999
     Map(
       (SyncRequest, DailyGrain) -> result, (AsyncRequest, DailyGrain) -> result
     )

@@ -30,7 +30,7 @@ class WikiFactRegistrationFactory extends FactRegistrationFactory {
   Retention configuration on the data
    */
   protected[this] def getMaxDaysLookBack: Map[(RequestType, Grain), Int] = {
-    val result = 30
+    val result = 9999
     Map(
       (SyncRequest, DailyGrain) -> result, (AsyncRequest, DailyGrain) -> result
     )
@@ -41,7 +41,7 @@ class WikiFactRegistrationFactory extends FactRegistrationFactory {
     def pubfact: PublicFact = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
         Fact.newFact(
-          "wikiticker_stats_datasource", DailyGrain, DruidEngine, Set(WikiSchema),
+          "wikiticker", DailyGrain, DruidEngine, Set(WikiSchema),
           Set(
             DimCol("channel", StrType())
             , DimCol("cityName", StrType())
