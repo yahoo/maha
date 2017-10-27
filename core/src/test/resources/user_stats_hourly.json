@@ -1,0 +1,42 @@
+{
+  "cube": "u_stats",
+  "selectFields": [
+    {
+      "field": "Advertiser ID"
+    },
+    {
+      "field": "Campaign ID"
+    },
+    {
+      "field": "Ad Group ID"
+    },
+    {
+      "field": "Day"
+    },
+    {
+      "field": "Impressions"
+    },
+    {
+      "field": "Ad Extn Spend"
+    },
+    {
+      "field": "Hour"
+    }
+  ],
+  "filterExpressions": [
+    {
+      "field": "Advertiser ID",
+      "operator": "=",
+      "value": "12345"
+    },
+    { "field": "Day",
+      "operator": "between",
+      "from": "{from_date}",
+      "to": "{to_date}" },
+    {
+      "field": "Gender",
+      "operator": "=",
+      "value": "F"
+    }
+  ]
+}

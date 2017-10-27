@@ -1,0 +1,30 @@
+{
+   "cube": "student_performance",
+   "selectFields": [
+      {
+         "field": "Student ID"
+      },
+      {
+         "field": "Class ID"
+      },
+      {
+         "field": "Section ID"
+      },
+      {
+         "field": "Total Marks"
+      }
+   ],
+   "filterExpressions": [
+      {
+         "field": "Day",
+         "operator": "between",
+         "from": "2017-10-20",
+         "to": "2017-10-25"
+      },
+      {
+         "field": "Student ID",
+         "operator": "=",
+         "value": "213"
+      }
+   ]
+}

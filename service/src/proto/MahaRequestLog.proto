@@ -1,0 +1,86 @@
+package com.yahoo.maha.proto;
+
+option java_outer_classname = "MahaRequestLog";
+
+message MahaRequestProto{
+
+  required string requestId = 1;
+  required bytes json = 2;
+  optional string userId = 3;
+  optional string cube = 4;
+  optional string schema = 5;
+  optional bool isInternal = 6;
+  enum RequestType {
+    SYNC = 0;
+    ASYNC = 1;
+  }
+  optional RequestType requestType = 7;
+  optional string drivingQueryEngine = 8;
+  optional string drivingTable = 9;
+  optional string queryChainType = 10;
+  optional string firstSubsequentQueryEngine = 11;
+  optional string firstSubsequentQueryTable = 12;
+  optional int64 requestStartTime = 13;
+  optional int64 requestEndTime = 14;
+  optional int32 status = 15;
+  optional string errorMessage = 16;
+  optional bool hasFactFilters = 17;
+  optional bool hasNonFKFactFilters = 18;
+  optional bool hasDimFilters = 19;
+  optional bool hasNonFKDimFilters = 20;
+  optional bool hasFactSortBy = 21;
+  optional bool hasDimSortBy = 22;
+  optional bool isFactDriven = 23;
+  optional bool forceDimDriven = 24;
+  optional bool forceFactDriven = 25;
+  optional bool hasNonDrivingDimSortOrFilter = 26;
+  optional bool hasDimAndFactOperations = 27;
+  optional int64 dimCardinalityEstimate = 28;
+  enum Order{
+   ASC =  0;
+   DESC = 1;
+  }
+  message SortByColumnInfo{
+  optional string alias= 1;
+  optional Order order = 2;
+  }
+  repeated SortByColumnInfo requestSortByCols =29;
+  repeated string dimensionsCandidates = 30;
+  enum Engine{
+    Oracle = 0;
+    Druid = 1;
+    Hive = 2;
+  }
+  message FactCost{
+  optional string name = 1;
+  optional Engine engine =2;
+  optional int64 cost=3;
+  }
+  repeated FactCost factCost = 31;
+  optional int64 drivingQueryEngineLatency = 32;
+  optional int64 firstSubsequentQueryEngineLatency = 33;
+  optional int64 reRunEngineQueryLatency = 34;
+  optional Engine reRunEngine = 35;
+  optional int64 jobId = 36;
+  optional string timeGrain = 37;
+  enum AsyncJobStatus {
+  SUBMITTED = 0;
+  RUNNING = 1;
+  FAILED = 2;
+  COMPLETED = 3;
+  }
+  optional AsyncJobStatus asyncJobStatus = 38;
+  optional bool isDryRun = 39;
+  optional string jobResultURL = 40;
+  optional string jobName = 41;
+  optional int64 queueWaitingTime = 42;
+
+  enum QueueType {
+      PULSAR = 0;
+      KAFKA = 1;
+  }
+  optional QueueType queueType = 43;
+  optional int64 cubeRevision = 44;
+  optional string mahaServiceRegistryName = 45;
+  optional string mahaServiceHostname = 46;
+}

@@ -1,0 +1,31 @@
+{
+   "cube": "wikiticker_stats",
+   "selectFields": [
+      {
+         "field": "Wiki Channel"
+      },
+      {
+         "field": "City Name"
+      },
+      {
+         "field": "Country ISO Code"
+      },
+      {
+         "field": "Total Count"
+      },
+      {
+         "field": "Added Count"
+      },
+      {
+         "field": "Deleted Count"
+      }
+   ],
+   "filterExpressions": [
+      {
+         "field": "Day",
+         "operator": "between",
+         "from": "2017-10-20",
+         "to": "2017-10-25"
+      }
+   ]
+}

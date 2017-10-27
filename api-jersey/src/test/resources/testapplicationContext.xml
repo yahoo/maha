@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2017, Yahoo Holdings Inc.
+     Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms. -->
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                        http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="mahaService" class="com.yahoo.maha.api.jersey.example.ExampleMahaService" factory-method="getMahaService">
+        <constructor-arg value="test"/>
+    </bean>
+    <bean id="baseRequest" class="com.yahoo.maha.api.jersey.example.ExampleRequest" factory-method="getRequest"/>
+    <bean id="exceptionHandler" class="com.yahoo.maha.api.jersey.GenericExceptionMapper" scope="singleton" />
+    <import resource="classpath:maha-jersey-context.xml" />
+
+</beans>

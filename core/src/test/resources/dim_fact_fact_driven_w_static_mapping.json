@@ -1,0 +1,20 @@
+{
+  "cube": "k_stats",
+  "selectFields": [
+    {"field": "Campaign ID"},
+    {"field": "Impressions"},
+    {"field": "Ad Group Status"},
+    {"field": "Campaign Status"},
+    {"field": "Pricing Type"}
+  ],
+  "filterExpressions": [
+    {"field": "Advertiser ID", "operator": "=", "value": "213"},
+    {"field": "Day", "operator": "between", "from": "{from_date}", "to": "{to_date}"},
+    {"field": "Pricing Type", "operator": "in", "values": ["CPE", "CPA"]}
+  ],
+  "sortBy": [
+    {"field": "Pricing Type", "order": "Asc"}
+  ],
+  "paginationStartIndex":20,
+  "rowsPerPage":100
+}

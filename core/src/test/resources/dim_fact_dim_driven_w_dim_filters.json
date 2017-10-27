@@ -1,0 +1,18 @@
+{
+  "cube": "k_stats",
+  "fields": [
+    {"field": "Campaign ID"},
+    {"field": "Impressions"}
+  ],
+  "filters": [
+    {"field": "Advertiser ID", "operator": "=", "value": "213"},
+    {"field": "Day", "operator": "between", "from": "{from_date}", "to": "{to_date}"},
+    {"field": "Advertiser Status", "operator": "in", "values": ["ON"]}
+  ],
+  "ordering": [
+    {"field": "Campaign ID", "order": "Asc"}
+  ],
+  "forceDimensionDriven": true,
+  "si":20,
+  "mr":100
+}

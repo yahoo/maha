@@ -1,0 +1,19 @@
+{
+  "cube": "k_stats",
+  "selectFields": [
+    {"field": "Campaign ID"},
+    {"field": "Impressions"},
+    {"field": "Advertiser Status"}
+  ],
+  "filterExpressions": [
+    {"field": "Advertiser ID", "operator": "=", "value": "213"},
+    {"field": "Day", "operator": "between", "from": "{from_date}", "to": "{to_date}"},
+    {"field": "Ad Group Status", "operator": "in", "values": ["ON"]}
+  ],
+  "sortBy": [
+    {"field": "Advertiser Status", "order": "Asc"},
+    {"field": "Impressions", "order": "Asc"}
+  ],
+  "paginationStartIndex":20,
+  "rowsPerPage":100
+}

@@ -1,0 +1,20 @@
+{
+  "cube" : "k_stats",
+  "selectFields" : [
+    { "field" : "Day" },
+    { "field" : "Advertiser ID" },
+    { "field" : "Campaign ID" },
+    { "field" : "Impressions" },
+    { "field" : "Source", "value" : "2", "alias" : "Source"}
+  ],
+  "filterExpressions":[
+    { "field": "Day", "operator": "between", "from": "{from_date}", "to": "{to_date}" },
+    { "field":"Advertiser ID", "operator":"=", "value":"1054776" }
+  ],
+  "sortBy": [
+    { "field": "Impressions", "order": "Asc" }
+  ],
+  "paginationStartIndex":-1,
+  "rowsPerPage":100
+}
+

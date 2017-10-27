@@ -1,0 +1,378 @@
+// Copyright 2017, Yahoo Holdings Inc.
+// Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
+package com.yahoo.maha.core
+
+import com.yahoo.maha.jdbc._
+import org.joda.time.{DateTime, DateTimeZone}
+import org.junit.Assert._
+import org.scalatest.FunSuite
+
+/**
+ * Created by hiral on 4/1/16.
+ */
+class BaseUTCTimeProviderTest extends FunSuite {
+  val baseUTCTimeProvider = new BaseUTCTimeProvider {}
+  
+  test("Case: Timezone: UTC - should pass through") {
+    val timezone = Option("UTC")
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, None, None, timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[Filter], Option[Filter]]]
+
+    assertEquals("2016-03-07", utcDayFilter.from)
+    assertEquals("2016-03-10", utcDayFilter.to)
+    assertFalse(utcHourFilter.isDefined)
+    assertFalse(utcMinuteFilter.isDefined)
+  }
+  test("Case: Timezone: not provided - between filter - one day before and one day after") {
+    val timezone = None
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, None, None, timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[Filter], Option[Filter]]]
+
+    assertEquals("2016-03-06", utcDayFilter.from)
+    assertEquals("2016-03-11", utcDayFilter.to)
+    assertFalse(utcHourFilter.isDefined)
+  }
+  test("Case: Timezone: not provided - between with hour filter should not give one day before and one day after") {
+    val timezone = None
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
+    val localHourFilter = new BetweenFilter("Hour", "01", "05")
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), None, timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[BetweenFilter], Option[Filter]]]
+
+    assertEquals("2016-03-07", utcDayFilter.from)
+    assertEquals("2016-03-10", utcDayFilter.to)
+    assertEquals("01", utcHourFilter.get.from)
+    assertEquals("05", utcHourFilter.get.to)
+    assertFalse(utcMinuteFilter.isDefined)
+  }
+  test("Case: Timezone: not provided - between with hour and minute filter should not give one day before and one day after") {
+    val timezone = None
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
+    val localHourFilter = new BetweenFilter("Hour", "01", "05")
+    val localMinuteFilter = new BetweenFilter("Minute", "10", "20")
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), Some(localMinuteFilter), timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[BetweenFilter], Option[BetweenFilter]]]
+
+    assertEquals("2016-03-07", utcDayFilter.from)
+    assertEquals("2016-03-10", utcDayFilter.to)
+    assertEquals("01", utcHourFilter.get.from)
+    assertEquals("05", utcHourFilter.get.to)
+    assertEquals("10", utcMinuteFilter.get.from)
+    assertEquals("20", utcMinuteFilter.get.to)
+  }
+  test("Case: Timezone: not provided - in filter - one day before and one day after") {
+    val timezone = None
+    val localDayFilter = new InFilter("Day", List("2016-03-07", "2016-03-10", "2016-03-12"))
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, None, None,  timezone, true).asInstanceOf[Tuple3[InFilter, Option[Filter], Option[Filter]]]
+
+    assert(utcDayFilter.values.contains("2016-03-06"))
+    assert(utcDayFilter.values.contains("2016-03-07"))
+    assert(utcDayFilter.values.contains("2016-03-08"))
+    assert(utcDayFilter.values.contains("2016-03-09"))
+    assert(utcDayFilter.values.contains("2016-03-10"))
+    assert(utcDayFilter.values.contains("2016-03-11"))
+    assert(utcDayFilter.values.contains("2016-03-12"))
+    assert(utcDayFilter.values.contains("2016-03-13"))
+    assertFalse(utcHourFilter.isDefined)
+  }
+  test("Case: Timezone: AU, Day - equal, Hour - non-zero") {
+    val timezone = Option("Australia/Melbourne")
+    val localDayFilter = new EqualityFilter("Day", "2016-03-07")
+    val localHourFilter = new EqualityFilter("Hour", "05")
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), None,  timezone, true).asInstanceOf[Tuple3[EqualityFilter, Option[EqualityFilter], Option[EqualityFilter]]]
+
+    assertEquals("2016-03-06", utcDayFilter.value)
+    val expected = if(getOffsetHours("Australia/Melbourne") == 10) "19" else "18";
+    assertEquals(expected, utcHourFilter.get.value)
+  }
+
+  test("Case: Timezone: AU, Day - equal, Hour - non-zero, Minute - non-zero") {
+    val timezone = Option("Australia/Melbourne")
+    val localDayFilter = new EqualityFilter("Day", "2016-03-07")
+    val localHourFilter = new EqualityFilter("Hour", "05")
+    val localMinuteFilter = new EqualityFilter("Minute", "15")
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), Some(localMinuteFilter), timezone, true).asInstanceOf[Tuple3[EqualityFilter, Option[EqualityFilter], Option[EqualityFilter]]]
+
+    assertEquals("2016-03-06", utcDayFilter.value)
+    val expected = if(getOffsetHours("Australia/Melbourne") == 10) "19" else "18";
+    assertEquals(expected, utcHourFilter.get.value)
+    assertEquals("15", utcMinuteFilter.get.value)
+  }
+
+  test("Case: Timezone: AU, Day - between, Hour - between, Minute - between") {
+    val timezone = Option("Australia/Melbourne")
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
+    val localHourFilter = new BetweenFilter("Hour", "01", "05")
+    val localMinuteFilter = new BetweenFilter("Minute", "00", "20")
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), Some(localMinuteFilter), timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[BetweenFilter], Option[BetweenFilter]]]
+    val (from, to) = if (isDST()) ("15", "19") else ("14", "18")
+
+    assertEquals("2016-03-06", utcDayFilter.from)
+    assertEquals("2016-03-09", utcDayFilter.to)
+    assertEquals(from, utcHourFilter.get.from)
+    assertEquals(to, utcHourFilter.get.to)
+    assertEquals("00", utcMinuteFilter.get.from)
+    assertEquals("20", utcMinuteFilter.get.to)
+  }
+
+  test("Case: Timezone: UTC, Day - between, Hour - between, Minute - between") {
+    val timezone = Option("UTC")
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
+    val localHourFilter = new BetweenFilter("Hour", "01", "05")
+    val localMinuteFilter = new BetweenFilter("Minute", "00", "20")
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), Some(localMinuteFilter), timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[BetweenFilter], Option[BetweenFilter]]]
+
+    assertEquals("2016-03-07", utcDayFilter.from)
+    assertEquals("2016-03-10", utcDayFilter.to)
+    assertEquals("01", utcHourFilter.get.from)
+    assertEquals("05", utcHourFilter.get.to)
+    assertEquals("00", utcMinuteFilter.get.from)
+    assertEquals("20", utcMinuteFilter.get.to)
+  }
+
+  test("Case: Timezone: not provided, Day - between, Hour - between, Minute - between") {
+    val timezone = Option("UTC")
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
+    val localHourFilter = new BetweenFilter("Hour", "01", "05")
+    val localMinuteFilter = new BetweenFilter("Minute", "00", "20")
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), Some(localMinuteFilter), timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[BetweenFilter], Option[BetweenFilter]]]
+
+    assertEquals("2016-03-07", utcDayFilter.from)
+    assertEquals("2016-03-10", utcDayFilter.to)
+    assertEquals("01", utcHourFilter.get.from)
+    assertEquals("05", utcHourFilter.get.to)
+    assertEquals("00", utcMinuteFilter.get.from)
+    assertEquals("20", utcMinuteFilter.get.to)
+  }
+
+  test("Case: Timezone: PST, Day - between, Hour - not-specified") {
+    val timezone = Option("America/Los_Angeles")
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, None, None,  timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[Filter], Option[Filter]]]
+
+    assertEquals("2016-03-07", utcDayFilter.from)
+    assertEquals("2016-03-11", utcDayFilter.to)
+    assertFalse(utcHourFilter.isDefined)
+  }
+
+  test("Case: Timezone: PST, Day - between, Hour - not-specified # 2") {
+    val timezone = Option("America/Los_Angeles")
+    val localDayFilter = new BetweenFilter("Day", "2016-06-18", "2016-06-20")
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, None, None,  timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[Filter], Option[Filter]]]
+
+    assertEquals("2016-06-18", utcDayFilter.from)
+    assertEquals("2016-06-21", utcDayFilter.to)
+    assertFalse(utcHourFilter.isDefined)
+  }
+
+  test("Case: Timezone: AU, Day - between, Hour - not-specified") {
+    val timezone = Option("Australia/Melbourne")
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, None, None, timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[Filter], Option[Filter]]]
+
+    assertEquals("2016-03-06", utcDayFilter.from)
+    assertEquals("2016-03-10", utcDayFilter.to)
+    assertFalse(utcHourFilter.isDefined)
+  }
+
+  test("Case: Timezone: PST, Day - between, Hour - zero") {
+    val timezone = Option("America/Los_Angeles")
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
+    val localHourFilter = new EqualityFilter("Hour", "00")
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), None,  timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[EqualityFilter], Option[EqualityFilter]]]
+
+    assertEquals("2016-03-07", utcDayFilter.from)
+    assertEquals("2016-03-10", utcDayFilter.to)
+
+    assertEquals("00", utcHourFilter.get.value)
+  }
+
+
+  test("Case: Timezone: PST, Day - between, Hour - non-zero") {
+    val timezone = Option("America/Los_Angeles")
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
+    val localHourFilter = new EqualityFilter("Hour", "20")
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), None, timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[EqualityFilter], Option[EqualityFilter]]]
+
+    assertEquals("2016-03-07", utcDayFilter.from)
+    assertEquals("2016-03-10", utcDayFilter.to)
+
+    assertEquals("20", utcHourFilter.get.value)
+  }
+
+  test("Case: Timezone: India, Day - between, Hour - non-zero") {
+    val timezone = Option("Asia/Calcutta")
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
+    val localHourFilter = new EqualityFilter("Hour", "02")
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), None, timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[EqualityFilter], Option[EqualityFilter]]]
+
+    assertEquals("2016-03-07", utcDayFilter.from)
+    assertEquals("2016-03-10", utcDayFilter.to)
+    val expected = if (getOffsetHours("Australia/Melbourne") == 10) "21" else "20"
+    assertEquals("02", utcHourFilter.get.value)
+  }
+
+  test("Case: Timezone: AU, Day - between, Hour - non-zero") {
+    val timezone = Option("Australia/Melbourne")
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
+    val localHourFilter = new EqualityFilter("Hour", "03")
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), None,  timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[EqualityFilter], Option[EqualityFilter]]]
+
+    assertEquals("2016-03-07", utcDayFilter.from)
+    assertEquals("2016-03-10", utcDayFilter.to)
+    val expected = if (getOffsetHours("Australia/Melbourne") == 10) "17" else "16"
+    assertEquals("03", utcHourFilter.get.value)
+  }
+
+
+  test("Case: Timezone: AU, Day - equalTo, Hour - between, Result - prev-and-same day") {
+    val timezone = Option("Australia/Melbourne")
+    val localDayFilter = new EqualityFilter("Day", "2016-03-07")
+    val fromHour = "05"
+    val toHour = "20"
+    val localHourFilter = new BetweenFilter("Hour", fromHour, toHour)
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), None, timezone, true).asInstanceOf[Tuple3[EqualityFilter, Option[BetweenFilter], Option[BetweenFilter]]]
+
+    assertEquals("2016-03-07", utcDayFilter.value)
+    //assertEquals("2016-03-08", utcDayFilter.to)
+
+    val expectedFrom = if (getOffsetHours("Australia/Melbourne") == 10) "19" else "18"
+    val expectedTo = if (getOffsetHours("Australia/Melbourne") == 10) "10" else "09"
+    assertEquals("05", utcHourFilter.get.from)
+    assertEquals("20", utcHourFilter.get.to)
+  }
+
+
+  test("Case: Timezone: PST, Day - equalTo, Hour - between, Result - same-and-next day") {
+    val timezone = Option("America/Los_Angeles")
+    val localDayFilter = new EqualityFilter("Day", "2016-03-07")
+    val fromHour = "05"
+    val toHour = "20"
+    val localHourFilter = new BetweenFilter("Hour", fromHour, toHour)
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), None,  timezone, true).asInstanceOf[Tuple3[EqualityFilter, Option[BetweenFilter], Option[BetweenFilter]]]
+
+    assertEquals("2016-03-07", utcDayFilter.value)
+    //assertEquals("2016-03-08", utcDayFilter.to)
+
+    assertEquals("05", utcHourFilter.get.from)
+    assertEquals("20", utcHourFilter.get.to)
+  }
+
+
+  test("Case: Timezone: AU, Day - equalTo, Hour - between, Result - prev day") {
+    val timezone = Option("Australia/Melbourne")
+    val localDayFilter = new EqualityFilter("Day", "2016-03-07")
+    val fromHour = "03"
+    val toHour = "05"
+    val localHourFilter = new BetweenFilter("Hour", fromHour, toHour)
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), None, timezone, true).asInstanceOf[Tuple3[EqualityFilter, Option[BetweenFilter], Option[BetweenFilter]]]
+
+    assertEquals("2016-03-07", utcDayFilter.value)
+
+    val expectedFrom = if (getOffsetHours("Australia/Melbourne") == 10) "17" else "16"
+    val expectedTo = if (getOffsetHours("Australia/Melbourne") == 10) "19" else "18"
+    assertEquals("03", utcHourFilter.get.from)
+    assertEquals("05", utcHourFilter.get.to)
+  }
+
+
+  test("Case: Timezone: PST, Day - equalTo, Hour - between, Result - next day") {
+    val timezone = Option("America/Los_Angeles")
+    val localDayFilter = new EqualityFilter("Day", "2016-03-07")
+    val fromHour = "19"
+    val toHour = "20"
+    val localHourFilter = new BetweenFilter("Hour", fromHour, toHour)
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), None,  timezone, true).asInstanceOf[Tuple3[EqualityFilter, Option[BetweenFilter], Option[BetweenFilter]]]
+
+    assertEquals("2016-03-07", utcDayFilter.value)
+
+    assertEquals("19", utcHourFilter.get.from)
+    assertEquals("20", utcHourFilter.get.to)
+  }
+
+
+  test("Case: Timezone: PST, Day - equalTo, Hour - between, Result - next day zero hour") {
+    val timezone = Option("America/Los_Angeles")
+    val localDayFilter = new EqualityFilter("Day", "2016-03-07")
+    val fromHour = "17"
+    val toHour = "20"
+    val localHourFilter = new BetweenFilter("Hour", fromHour, toHour)
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), None, timezone, true).asInstanceOf[Tuple3[EqualityFilter, Option[BetweenFilter], Option[BetweenFilter]]]
+
+    assertEquals("2016-03-07", utcDayFilter.value)
+
+    assertEquals("17", utcHourFilter.get.from)
+    assertEquals("20", utcHourFilter.get.to)
+  }
+
+
+  test("Case: Timezone: AU, Day - between, Hour - in") {
+    val curOffsetHours = if (isDST()) 10 else 11
+    val timezone = Option("Australia/Melbourne")
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
+    val localHourFilter = new InFilter("Hour", List("02", "06", "09"))
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), None, timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[InFilter], Option[BetweenFilter]]]
+
+    assertEquals("2016-03-07", utcDayFilter.from)
+    assertEquals("2016-03-10", utcDayFilter.to)
+
+    val offsetHours = getOffsetHours("Australia/Melbourne")
+    println("getOffsetHours(\"Australia/Melbourne\"): " + offsetHours)
+    val expectedHours = if (offsetHours == curOffsetHours) List("02", "06", "09") else List("15", "19", "22");
+    expectedHours.foreach { hour => assertTrue(utcHourFilter.get.values.contains(hour)) }
+  }
+
+
+  test("Case: Timezone: PST, Day - in, Hour - between") {
+    val timezone = Option("America/Los_Angeles")
+    val localDayFilter = new InFilter("Day", List("2016-03-07", "2016-03-10", "2016-03-12"))
+    val localHourFilter = new BetweenFilter("Hour", "02", "15")
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter),  None, timezone, true).asInstanceOf[Tuple3[InFilter, Option[BetweenFilter], Option[BetweenFilter]]]
+    val expectedDates = List("2016-03-07", "2016-03-10", "2016-03-12")
+    println("Dates: " + utcDayFilter.values)
+    expectedDates.foreach { date => assertTrue(utcDayFilter.values.contains(date)) }
+  }
+
+  test("Case: Publisher Timezone: AU, Day - between, Hour - non-zero") {
+    val timezone = Option("Australia/Melbourne")
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
+    val localHourFilter = new EqualityFilter("Hour", "03")
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), None, timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[EqualityFilter], Option[BetweenFilter]]]
+
+    assertEquals("2016-03-07", utcDayFilter.from)
+    assertEquals("2016-03-10", utcDayFilter.to)
+
+    val expected = if (getOffsetHours("Australia/Melbourne") == 10) "17" else "16";
+    assertEquals("03", utcHourFilter.get.value)
+  }
+
+  private def getOffsetHours(timezone: String): Int = {
+    Math.abs(Math.ceil(DateTimeZone.forID(timezone).getOffset(null) / (1000 * 60 * 60d)).toInt) // offset in hours to be added to local time to get UTC
+  }
+
+  private def isDST(): Boolean = {
+      //DST (UTC+10) starts on April 2, 3 AM, ends on Oct 1, 2 AM, then UTC+11
+      val DST_START = 40203
+      val DST_END = 100102
+      val today = new DateTime(DateTimeZone.forID("Australia/Melbourne"))
+      val monDayHour = today.hourOfDay().get() + today.dayOfMonth().get() * 100 + today.monthOfYear().get() * 10000
+      monDayHour >= DST_START && monDayHour < DST_END
+  }
+
+}

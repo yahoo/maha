@@ -1,0 +1,158 @@
+// Copyright 2017, Yahoo Holdings Inc.
+// Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
+package com.yahoo.maha.maha_druid_lookups.query.lookup;
+
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Message;
+import com.google.protobuf.Parser;
+import com.metamx.common.logger.Logger;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
+import io.druid.query.lookup.LookupExtractor;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
+
+import javax.annotation.Nullable;
+import javax.validation.constraints.NotNull;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+public class InMemoryDBLookupExtractor extends LookupExtractor
+{
+    private static final Logger LOG = new Logger(InMemoryDBLookupExtractor.class);
+    private static final String CONTROL_A_SEPARATOR = "\u0001";
+    private final Map<String, String> map;
+    private final InMemoryDBExtractionNamespace extractionNamespace;
+    private RocksDBManager rocksDBManager;
+    private LookupService lookupService;
+    private ProtobufSchemaFactory protobufSchemaFactory;
+
+    public InMemoryDBLookupExtractor(InMemoryDBExtractionNamespace extractionNamespace, Map<String, String> map,
+                                     LookupService lookupService, RocksDBManager rocksDBManager,
+                                     ProtobufSchemaFactory protobufSchemaFactory)
+    {
+        this.extractionNamespace = extractionNamespace;
+        this.map = Preconditions.checkNotNull(map, "map");
+        this.rocksDBManager = rocksDBManager;
+        this.lookupService = lookupService;
+        this.protobufSchemaFactory = protobufSchemaFactory;
+    }
+
+    public Map<String, String> getMap()
+    {
+        return ImmutableMap.copyOf(map);
+    }
+
+    @Nullable
+    @Override
+    public String apply(@NotNull String val)
+    {
+        try {
+            if(Strings.isNullOrEmpty(val) || !val.contains(CONTROL_A_SEPARATOR)) {
+                return null;
+            }
+
+            String[] values = val.split(CONTROL_A_SEPARATOR);
+
+            byte[] cacheByteValue = null;
+            if (!extractionNamespace.isCacheEnabled()) {
+                cacheByteValue = lookupService.lookup(new LookupService.LookupData(extractionNamespace,
+                        values[0]));
+            } else {
+                final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
+                if (db == null) {
+                    LOG.error("RocksDB instance is null");
+                    return null;
+                }
+                cacheByteValue = db.get(values[0].getBytes());
+            }
+
+            if (cacheByteValue == null || cacheByteValue.length == 0) {
+                return null;
+            }
+
+            Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
+            Message message = parser.parseFrom(cacheByteValue);
+            Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
+            Descriptors.FieldDescriptor field = descriptor.findFieldByName(values[1]);
+
+            return Strings.emptyToNull(message.getField(field).toString());
+
+        } catch (RocksDBException | InvalidProtocolBufferException e) {
+            LOG.error(e, "Caught exception while lookup");
+            return null;
+        }
+    }
+
+    @Override
+    public List<String> unapply(final String value)
+    {
+        return Lists.newArrayList(Maps.filterKeys(map, new Predicate<String>()
+        {
+            @Override public boolean apply(@Nullable String key)
+            {
+                return map.get(key).equals(Strings.nullToEmpty(value));
+            }
+        }).keySet());
+
+    }
+
+    @Override
+    public byte[] getCacheKey()
+    {
+        try {
+            final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            for (Map.Entry<String, String> entry : map.entrySet()) {
+                final String key = entry.getKey();
+                final String val = entry.getValue();
+                if (!Strings.isNullOrEmpty(key)) {
+                    outputStream.write(key.getBytes());
+                }
+                outputStream.write((byte)0xFF);
+                if (!Strings.isNullOrEmpty(val)) {
+                    outputStream.write(val.getBytes());
+                }
+                outputStream.write((byte)0xFF);
+            }
+            return outputStream.toByteArray();
+        }
+        catch (IOException ex) {
+            // If ByteArrayOutputStream.write has problems, that is a very bad thing
+            throw Throwables.propagate(ex);
+        }
+    }
+
+    @Override
+    public boolean equals(Object o)
+    {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        InMemoryDBLookupExtractor that = (InMemoryDBLookupExtractor) o;
+
+        return map.equals(that.map);
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return map.hashCode();
+    }
+
+}

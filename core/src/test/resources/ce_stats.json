@@ -1,0 +1,31 @@
+{
+  "cube" : "ce_stats",
+    "selectFields" : [
+    { "field" : "Advertiser ID" },
+    { "field" : "Advertiser Name" },
+    { "field" : "Advertiser Status" },
+    { "field" : "Ad Group ID" },
+    { "field" : "Ad Group Name" },
+    { "field" : "Ad Group Status" },
+    { "field" : "Campaign ID" },
+    { "field" : "Campaign Name" },
+    { "field" : "Day" },
+    { "field" : "Caller Name" },
+    { "field" : "Caller Area Code" },
+    { "field" : "Caller Number" },
+    { "field" : "Call Start Time" },
+    { "field" : "Call End Time" },
+    { "field" : "Call Status" },
+    { "field" : "Call Duration" }
+  ],
+    "filterExpressions":[
+    {
+      "field" : "Day",
+      "values" : [ ],
+      "operator" : "between",
+      "from": "{from_date}",
+      "to": "{to_date}"
+    },
+    {"field":"Advertiser ID","operator":"=","value":"12345"}
+  ]
+}
