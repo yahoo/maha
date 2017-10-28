@@ -1,7 +1,7 @@
 # Maha API
 Yahoo's centralised API Engine library on top of multiple data stores to exploit them for what they do best.
 
->  Yahoo runs millions of queries on the multiple data sources for analytics everyday, some of them includes hive, oracle, druid etc. We needed a way to utilize the data stores in our architecture to exploit them for what they do best. This meant we needed to easily tune and identify sets of use cases where each data store fits the best. Our goal became to build a centralized system which was able to make these decisions on the fly at query time and also take care of the end to end query execution. The system needed to take in all the heuristics available, applying any constraints already defined in the system and select the best data store to run the query.  It then would need to generate the underlying queries and pass on all available information to the query execution layer in order to facilitate further optimization at that layer. 
+>  Yahoo runs millions of queries on multiple data sources for analytics everyday, some of them includes hive, oracle, druid etc. We needed a way to utilize the data stores in our architecture to exploit them for what they do best. This meant we needed to easily tune and identify sets of use cases where each data store fits the best. Our goal became to build a centralized system which was able to make these decisions on the fly at query time and also take care of the end to end query execution. The system needed to take in all the heuristics available, applying any constraints already defined in the system and select the best data store to run the query.  It then would need to generate the underlying queries and pass on all available information to the query execution layer in order to facilitate further optimization at that layer. 
 
 # Key Features!
   - One config api service on multiple data sources (oracle, druid, hive)
@@ -13,6 +13,7 @@ Yahoo's centralised API Engine library on top of multiple data stores to exploit
   - Fault tolerant apis: fall back option to other datasource if configured
   - Supports customising and tweaking data source specific executor's config 
   - MahaRequestLog : Kafka logging of API Statistics
+  - Support for high cardinality dimension druid lookups
 
 
 ### Modules in maha
@@ -235,37 +236,31 @@ Once your application context is ready, you are good to launch the war file on t
   
   Request : 
 ``` 
-  {
-        "cube": "wikiticker_stats",
-        "selectFields": [
-           {
-              "field": "Wiki Channel"
-           },
-           {
-              "field": "City Name"
-           },
-           {
-              "field": "Country ISO Code"
-           },
-           {
-              "field": "Total Count"
-           },
-           {
-              "field": "Added Count"
-           },
-           {
-              "field": "Deleted Count"
-           }
-        ],
-        "filterExpressions": [
-           {
-              "field": "Day",
-              "operator": "between",
-              "from": "2017-10-20",
-              "to": "2017-10-25"
-           }
-        ]
-     }     
+{
+   "cube": "wikiticker_stats",
+   "selectFields": [
+      {
+         "field": "Wiki Channel"
+      },
+      {
+         "field": "Total Count"
+      },
+      {
+         "field": "Added Count"
+      },
+      {
+         "field": "Deleted Count"
+      }
+   ],
+   "filterExpressions": [
+      {
+         "field": "Day",
+         "operator": "between",
+         "from": "2015-09-11",
+         "to": "2015-09-13"
+      }
+   ]
+}     
 ```
 
 
@@ -274,3 +269,7 @@ Once your application context is ready, you are good to launch the war file on t
       curl -H "Content-Type: application/json" -H "Accept: application/json" -X POST -d @wikiticker.json http://localhost:8080/mahademo/registry/wiki/schemas/wiki/query?debug=true  
 ```
   
+  Output : 
+```
+{"header":{"cube":"wikiticker_stats","fields":[{"fieldName":"Wiki Channel","fieldType":"FACT"},{"fieldName":"Total Count","fieldType":"FACT"},{"fieldName":"Added Count","fieldType":"FACT"},{"fieldName":"Deleted Count","fieldType":"FACT"}],"maxRows":200},"rows":[["#ar.wikipedia",423,153605,2727],["#be.wikipedia",33,46815,1235],["#bg.wikipedia",75,41674,528],["#ca.wikipedia",478,112482,1651],["#ce.wikipedia",60,83925,135],["#cs.wikipedia",222,132768,1443],["#da.wikipedia",96,44879,1097],["#de.wikipedia",2523,522625,35407],["#el.wikipedia",251,31400,9530],["#en.wikipedia",11549,3045299,176483],["#eo.wikipedia",22,13539,2],["#es.wikipedia",1256,634670,15983],["#et.wikipedia",52,2758,483],["#eu.wikipedia",13,6690,43],["#fa.wikipedia",219,74733,2798],["#fi.wikipedia",244,54810,2590],["#fr.wikipedia",2099,642555,22487],["#gl.wikipedia",65,12483,526],["#he.wikipedia",246,51302,3533],["#hi.wikipedia",19,34977,60],["#hr.wikipedia",22,25956,204],["#hu.wikipedia",289,166101,2077],["#hy.wikipedia",153,39099,4230],["#id.wikipedia",110,119317,2245],["#it.wikipedia",1383,711011,12579],["#ja.wikipedia",749,317242,21380],["#kk.wikipedia",9,1316,31],["#ko.wikipedia",533,66075,6281],["#la.wikipedia",33,4478,1542],["#lt.wikipedia",20,14866,242],["#min.wikipedia",1,2,0],["#ms.wikipedia",11,21686,556],["#nl.wikipedia",445,145634,6557],["#nn.wikipedia",26,33745,0],["#no.wikipedia",169,51385,1146],["#pl.wikipedia",565,138931,8459],["#pt.wikipedia",472,229144,8444],["#ro.wikipedia",76,28892,1224],["#ru.wikipedia",1386,640698,19612],["#sh.wikipedia",14,6935,2],["#simple.wikipedia",39,43018,546],["#sk.wikipedia",33,12188,72],["#sl.wikipedia",21,3624,266],["#sr.wikipedia",168,72992,2349],["#sv.wikipedia",244,42145,3116],["#tr.wikipedia",208,67193,1126],["#uk.wikipedia",263,137420,1959],["#uz.wikipedia",983,13486,8],["#vi.wikipedia",9747,295972,1388],["#war.wikipedia",1,0,0],["#zh.wikipedia",1126,191033,7916]]}
+```
