@@ -3,9 +3,10 @@
 package com.yahoo.maha.api.example.wiki
 
 import com.yahoo.maha.api.example.ExampleSchema.WikiSchema
+import com.yahoo.maha.core.DruidDerivedFunction.DRUID_TIME_FORMAT
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{DimCol, PubCol}
+import com.yahoo.maha.core.dimension.{DruidFuncDimCol, DimCol, PubCol}
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.registry.{DimensionRegistrationFactory, FactRegistrationFactory, RegistryBuilder}
 import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
@@ -59,6 +60,7 @@ class WikiFactRegistrationFactory extends FactRegistrationFactory {
             , DimCol("regionIsoCode", StrType(10))
             , DimCol("regionName", StrType(200))
             , DimCol("user", StrType(200))
+            , DruidFuncDimCol("Day", DateType(), DRUID_TIME_FORMAT("YYYY-MM-dd"))
           ),
           Set(
           FactCol("count", IntType())
@@ -72,6 +74,7 @@ class WikiFactRegistrationFactory extends FactRegistrationFactory {
       }
         .toPublicFact("wikiticker_stats",
           Set(
+            PubCol("Day", "Day", InBetweenEquality),
             PubCol("channel", "Wiki Channel", InNotInEquality),
             PubCol("cityName", "City Name", InNotInEqualityLike),
             PubCol("countryIsoCode", "Country ISO Code", InNotInEqualityLike),

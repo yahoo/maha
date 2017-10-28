@@ -100,9 +100,9 @@
           "timeoutRetryInterval": 100,
           "timeoutThreshold": 9000,
           "degradationConfigName": "TestConfig",
-          "url": "http://localhost:8082",
+          "url": "http://localhost:8082/druid/v2/?pretty",
           "headers": {
-            "key": "value"
+            "Content-Type": "application/json"
           },
           "readTimeout": 10000,
           "requestTimeout": 10000,
