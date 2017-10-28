@@ -1,15 +1,20 @@
 # Maha API
-Yahoo's centralised API Engine library on top of multiple data stores to exploit them for what they do best.
+A centralised library for building reporting APIs on top of multiple data stores to exploit them for what they do best.
 
->  Yahoo runs millions of queries on multiple data sources for analytics everyday, some of them includes hive, oracle, druid etc. We needed a way to utilize the data stores in our architecture to exploit them for what they do best. This meant we needed to easily tune and identify sets of use cases where each data store fits the best. Our goal became to build a centralized system which was able to make these decisions on the fly at query time and also take care of the end to end query execution. The system needed to take in all the heuristics available, applying any constraints already defined in the system and select the best data store to run the query.  It then would need to generate the underlying queries and pass on all available information to the query execution layer in order to facilitate further optimization at that layer. 
+>  We run millions of queries on multiple data sources for analytics every day. They run on hive, oracle, druid etc.  We needed a way to utilize the data stores in our architecture to exploit them for what they do best. This meant we needed to easily tune and identify sets of use cases where each data store fits the best. Our goal became to build a centralized system which was able to make these decisions on the fly at query time and also take care of the end to end query execution. The system needed to take in all the heuristics available, applying any constraints already defined in the system and select the best data store to run the query.  It then would need to generate the underlying queries and pass on all available information to the query execution layer in order to facilitate further optimization at that layer. 
 
 # Key Features!
-  - One config api service on multiple data sources (oracle, druid, hive)
-  - Hosts high performance real time analytics api
-  - Dynamic selection of query data source based on query cost, grain, weight,
-  - Dynamic query generation with support of filter and ordering on every column, pagination, star schema joins, query type etc
-  - One time fact/dim definition api cube config
-  - Can host multiple schemas to maintain isolation of different endpoints
+  - Configuration driven API making it easy to address multiple reporting use cases
+  - Define cubes across multiple data sources (oracle, druid, hive)
+  - Dynamic selection of query data source based on query cost, grain, weight
+  - Dynamic query generation with support for filter and ordering on every column, pagination, star schema joins, query type etc
+  - Pluggable partitioning scheme, and time providers
+  - Access control based on schema/labeling in cube definitions
+  - Define constraints on max lookback, max days window in cube definitions
+  - Provide easily aliasing of physical column names across tables / engines
+  - Query execution for Oracle, Druid out-of-the-box
+  - Support for dim driven queries for entity management alongside metrics
+  - API side joins between Oracle/Druid for fact driven or dim driven queries
   - Fault tolerant apis: fall back option to other datasource if configured
   - Supports customising and tweaking data source specific executor's config 
   - MahaRequestLog : Kafka logging of API Statistics
