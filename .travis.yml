@@ -1,16 +1,12 @@
 language: java
-
 jdk:
-  - oraclejdk8
-
+- oraclejdk8
 after_success:
-  - test "${TRAVIS_PULL_REQUEST}" == "false" && test "${TRAVIS_TAG}" != "" && ./travis/publish_to_bintray.sh
-
+- test "${TRAVIS_PULL_REQUEST}" == "false" && test "${TRAVIS_TAG}" != "" && ./travis/publish_to_bintray.sh
 branches:
   only:
-    - master
-
+  - master
 env:
   global:
-  - secure:
-  - secure: 
+  - secure: AdXwLl5wmtIFjPSm5n2DIpLYv+TKXxUTPpN5iudcl84TbGg4BBW8LTAN4xJuTUCOscRFkwYT+olYFdY6YPvWP9qT8G3LBmsRMEZGYlb+EGlRML6AOYjDBto3E+wEIEAKp8rpFYVUC8pvX+JuBMtco5lQXp7gJTnglm0vEW/YphLuBZBT2AX68Garlj+HNY/I/JDZuDaYOPr6Jdlu+RHjGdGuOt3jbBqQ/zhhRdnUlwuUufXZ8gZMWhCv4Tex3j553ukRmVFXjkeU5nf3M3k0ztMoR59uXqETHCCHQa4kIZthJ3U4ERyeRvYdrB14POsF3dcv4T7RiBAzE/wcwvchdEXIIZXqpmIEJgBUI2Hhp0rOUiYuJHfVrTmzmSYQ8wsUQku7CBjdDqHLaZr3+sxOcEwMBMgreCF4dC//F0Gq8rk2WaHcK12EPhZjqMQWwwIJinZzfbnlR99IHTorRH6fxWfZP+WarqNM6ruCNL1o3xjfzlMbSaKqEIGqvo3nhrMo1U59kdZ221g53Qmdj/K8n2ct5DpNnwBDJx5Xu0l/cbOqG4+9/uj/dbY4oY32g51PN24qSxYII+PlFpYOocnoYubyjGPK2D7qEQ5Nvv88Oev8sFqnDPiEkMtfI08+UrRH0RS6BSvr0I+9cFXGYPrjg7KetxRIQO2ei3pRNumDVKk=
+  - secure: KsoOWqiaXDXJKQCap5cCBZCJfQBaTU8EWJAXAE2x8zi/iYjGvLU7WDQVNsi4KBORRxl2k/XYzlkkGKBQTNVawqeYD+M9oioTVP1PQUJ1gjOSUuuoeIV1u1oTiGIZW5TFA/qFvG1CKB5ukC+ladAotecidJrqquxALbDZMcKN5PWW3ckmKrDwtOdOK/RvREu3xGyUACP0vKygqO74xOUsOzeoW2xSioFknNoOjdHDSzwmupy6ajKDdgVNsx7j6w/rbgU4d9WbjB1Ehznwo3IxZBZ0tQwim7pZDzAC29QO1deNAzyoeJCmCjrAXDH9z2TM835NZotbZJwmLC5s2q1NFv/upeVM1EPNe5D4MNdOyVg5v249+PK7FDiQTXuwIzWrfv9WXG0Xoo8Bl+XsDJellE0BwL6eZZR+6LfJo4twgN+N4Db0V6ak//Ka+/o17WRucT8q4ZKhsLULF+prXvr8pQXzf9A3cDFDEomv8hMTxs7fqxF9s4NZVrzlzYqItPG2gIq/3XdHuZJ91NLJYjJhkQsWxzaUn7ziwZiZDxL0/AyGoZ+28XUmfGC16/osL5LA3mChG0YvxjAcq4owlFShqsqqSizK9/hVARdvpunYZVhj2SLmSd6WQZim7thx9DA2b3uTMG7uazmsnJ62r2BCICUFagYA2Mb3xYGWwYR/OnM=
