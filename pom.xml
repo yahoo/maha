@@ -685,4 +685,10 @@
             </extension>
         </extensions>
     </build>
+  <distributionManagement>
+    <repository>
+      <id>bintray-maha-parent-repo</id>
+      <url>https://api.bintray.com/maven/yahoo/maven/maha-parent/;publish=1</url>
+    </repository>
+  </distributionManagement>
 </project>

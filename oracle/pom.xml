@@ -185,4 +185,11 @@
             </plugin>
         </plugins>
     </build>
+
+  <distributionManagement>
+    <repository>
+      <id>bintray-maha-oracle-executor-repo</id>
+      <url>https://api.bintray.com/maven/yahoo/maven/maha-oracle-executor/;publish=1</url>
+    </repository>
+  </distributionManagement>
 </project>
