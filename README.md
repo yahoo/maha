@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/yahoo/maha.svg?branch=master)](https://travis-ci.org/yahoo/maha)
+
 # Maha API
 A centralised library for building reporting APIs on top of multiple data stores to exploit them for what they do best.
 
