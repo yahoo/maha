@@ -3,7 +3,7 @@ jdk:
 - oraclejdk8
 install: true
 after_success:
-- test "${TRAVIS_PULL_REQUEST}" == "false" && test "${TRAVIS_TAG}" != "" && ./travis/publish_to_bintray.sh
+- ./travis/publish_to_bintray.sh
 branches:
   only:
   - master
