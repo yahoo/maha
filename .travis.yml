@@ -1,6 +1,8 @@
 language: java
 jdk:
 - oraclejdk8
+script:
+- mvn verify
 after_success:
 - test "${TRAVIS_PULL_REQUEST}" == "false" && test "${TRAVIS_TAG}" != "" && ./travis/publish_to_bintray.sh
 branches:
