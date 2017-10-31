@@ -291,6 +291,20 @@ Once your application context is ready, you are good to launch the war file on t
   - Ryan Wagner
   - Raghu Kumar
   - Hao Wang
-  - & team
+  - Surabhi Pandit
+  - Vivek Chauhan
+  - Ravi Chotrani
+  - Huiliang Zhang
  
- 
+### Acknowledgements
+  - Oracle Query Optimizations
+    - Remesh Balakrishnan
+    - Vikas Khanna
+  - Druid Query Optimizations
+    - Eric Tschetter
+    - Himanshu Gupta
+    - Gian Merlino
+    - Fangjin Yang
+  - Hive Query Optimizations
+    - Seshasai Kuchimanchi
+
