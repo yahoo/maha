@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>2.0</version>
+    <version>3.0</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -68,6 +68,19 @@
         <module>api-jersey</module>
         <module>api-example</module>
     </modules>
+
+    <developers>
+        <developer>
+            <name>Yahoo Inc.</name>
+            <url>https://github.com/yahoo</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <developerConnection>scm:git:ssh://git@github.com/yahoo/maha.git</developerConnection>
+        <url>https://github.com/yahoo/maha.git</url>
+        <tag>maha-parent-2.0</tag>
+    </scm>
 
     <dependencyManagement>
         <dependencies>
