@@ -285,7 +285,7 @@ Once your application context is ready, you are good to launch the war file on t
   - Hiral Patel
   - Pavan Arakere Badarinath
   - Pranav Anil Bhole
-  - Shravana Krishnmurthy
+  - Shravana Krishnamurthy
   - Jian Shen
   - Shengyao Qian
   - Ryan Wagner
