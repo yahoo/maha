@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/yahoo/maha.svg?branch=master)](https://travis-ci.org/yahoo/maha)
 
-# Maha API
+# Maha
 A centralised library for building reporting APIs on top of multiple data stores to exploit them for what they do best.
 
 >  We run millions of queries on multiple data sources for analytics every day. They run on hive, oracle, druid etc.  We needed a way to utilize the data stores in our architecture to exploit them for what they do best. This meant we needed to easily tune and identify sets of use cases where each data store fits the best. Our goal became to build a centralized system which was able to make these decisions on the fly at query time and also take care of the end to end query execution. The system needed to take in all the heuristics available, applying any constraints already defined in the system and select the best data store to run the query.  It then would need to generate the underlying queries and pass on all available information to the query execution layer in order to facilitate further optimization at that layer. 
@@ -292,6 +292,8 @@ Once your application context is ready, you are good to launch the war file on t
   - Raghu Kumar
   - Hao Wang
   - Surabhi Pandit
+  - Parveen Kumar
+  - Santhosh Joshi
   - Vivek Chauhan
   - Ravi Chotrani
   - Huiliang Zhang
