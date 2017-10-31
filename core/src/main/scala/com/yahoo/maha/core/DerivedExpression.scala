@@ -24,6 +24,135 @@ trait Expression[T] {
   def /-(that: Expression[T]) : Expression[T]
 }
 
+trait PrestoExpression extends Expression[String] {
+  def render(insideDerived: Boolean) = insideDerived match {
+    case true if hasNumericOperation =>
+      s"($asString)"
+    case _ =>
+      asString
+  }
+}
+
+object PrestoExpression {
+  type PrestoExp = Expression[String]
+
+  trait BasePrestoExpression extends PrestoExpression {
+    def *(that: PrestoExp) : PrestoExp = {
+      val expression = if(that.hasNumericOperation) {
+        s"$asString * (${that.asString})"
+      } else {
+        s"$asString * ${that.asString}"
+      }
+      COL(expression, hasRollupExpression || that.hasRollupExpression, hasNumericOperation = true)
+    }
+
+    def /(that: PrestoExp) : PrestoExp = {
+      val expression = if(that.hasNumericOperation) {
+        s"$asString / (${that.asString})"
+      } else {
+        s"$asString / ${that.asString}"
+      }
+      COL(expression, hasRollupExpression || that.hasRollupExpression, hasNumericOperation = true)
+    }
+
+    def ++(that: PrestoExp) : PrestoExp = {
+      COL(s"$asString + ${that.asString}", hasRollupExpression || that.hasRollupExpression, hasNumericOperation = true)
+    }
+
+    def -(that: PrestoExp) : PrestoExp = {
+      COL(s"$asString - ${that.asString}", hasRollupExpression || that.hasRollupExpression, hasNumericOperation = true)
+    }
+
+    def /-(that: PrestoExp) : PrestoExp = {
+      val safeExpression = if(that.hasNumericOperation) {
+        s"CASE WHEN ${that.asString} = 0 THEN 0.0 ELSE $asString / (${that.asString}) END"
+      } else {
+        s"CASE WHEN ${that.asString} = 0 THEN 0.0 ELSE $asString / ${that.asString} END"
+      }
+      COL(safeExpression, hasRollupExpression || that.hasRollupExpression, hasNumericOperation = true)
+    }
+
+    def isUDF: Boolean = false
+  }
+
+  abstract class UDFPrestoExpression(val udfRegistration: UDFRegistration)(implicit uDFRegistrationFactory: UDFRegistrationFactory) extends BasePrestoExpression {
+    override def isUDF: Boolean = true
+    require(uDFRegistrationFactory.defaultUDFStatements.contains(udfRegistration), s"UDFPrestoExpression ${getClass} is not registered in the UDFRegistrationFactory")
+  }
+
+  case class COL(s: String, hasRollupExpression: Boolean = false, hasNumericOperation: Boolean = false) extends BasePrestoExpression {
+    def asString : String = s
+  }
+
+  case class SUM(s: PrestoExp) extends BasePrestoExpression {
+    val hasRollupExpression = true
+    val hasNumericOperation = true
+    def asString : String = s"SUM(${s.asString})"
+  }
+
+  case class ROUND(s: PrestoExp, format: Int) extends BasePrestoExpression {
+    def hasRollupExpression = s.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation
+    def asString : String = s"ROUND(${s.asString}, $format)"
+  }
+
+  case class MAX(s: PrestoExp) extends BasePrestoExpression {
+    val hasRollupExpression = true
+    val hasNumericOperation = true
+    def asString : String = s"MAX(${s.asString})"
+  }
+
+  case class DAY_OF_WEEK(s: PrestoExp, fmt: String) extends BasePrestoExpression {
+    val hasRollupExpression = s.hasRollupExpression
+    val hasNumericOperation = s.hasNumericOperation
+    def asString : String = s"from_unixtime(unix_timestamp(${s.asString}, '$fmt'), 'EEEE')"
+  }
+
+  case class COALESCE(s: PrestoExp, default: PrestoExp) extends BasePrestoExpression {
+    def hasRollupExpression = s.hasRollupExpression || default.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation || default.hasNumericOperation
+    def asString : String = s"coalesce(${s.asString}, ${default.asString})"
+  }
+
+  case class NVL(s: PrestoExp, default: PrestoExp) extends BasePrestoExpression {
+    def hasRollupExpression = s.hasRollupExpression || default.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation || default.hasNumericOperation
+    def asString : String = s"nvl(${s.asString}, ${default.asString})"
+  }
+
+  case class TRIM(s: PrestoExp) extends BasePrestoExpression {
+    val hasRollupExpression = false
+    val hasNumericOperation = s.hasNumericOperation
+    def asString: String = s"trim(${s.asString})"
+  }
+
+  implicit def from(s: String): PrestoExpression = {
+    COL(s, false)
+  }
+
+  implicit def fromExpression(e: PrestoExp) : PrestoExpression = {
+    e.asInstanceOf[PrestoExpression]
+  }
+
+  implicit class StringHelper(s: String) {
+    def *(s2: String) : PrestoExpression = {
+      COL(s, false) * COL(s2, false)
+    }
+    def ++(s2: String) : PrestoExpression = {
+      COL(s, false) ++ COL(s2, false)
+    }
+    def -(s2: String) : PrestoExpression = {
+      COL(s, false) - COL(s2, false)
+    }
+    def /(s2: String) : PrestoExpression = {
+      COL(s, false) / COL(s2, false)
+    }
+    def /-(s2: String) : PrestoExpression = {
+      COL(s, false) /- COL(s2, false)
+    }
+  }
+}
+
 trait HiveExpression extends Expression[String] {
   def render(insideDerived: Boolean) = insideDerived match {
     case true if hasNumericOperation =>
@@ -480,6 +609,32 @@ object HiveDerivedExpression {
   }
 
   implicit def fromString(s: String)(implicit  cc: ColumnContext) : HiveDerivedExpression = {
+    apply(s)
+  }
+}
+
+case class PrestoDerivedExpression (columnContext: ColumnContext, expression: PrestoExpression) extends DerivedExpression[String] with WithPrestoEngine {
+  type ConcreteType = PrestoDerivedExpression
+  def copyWith(columnContext: ColumnContext) : PrestoDerivedExpression = {
+    this.copy(columnContext = columnContext)
+  }
+}
+
+object PrestoDerivedExpression {
+  import PrestoExpression.PrestoExp
+  def apply(expression: PrestoExpression)(implicit cc: ColumnContext) : PrestoDerivedExpression = {
+    PrestoDerivedExpression(cc, expression)
+  }
+
+  implicit def fromPrestoExpression(expression: PrestoExpression)(implicit  cc: ColumnContext) : PrestoDerivedExpression = {
+    apply(expression)
+  }
+
+  implicit def fromExpression(expression: PrestoExp)(implicit  cc: ColumnContext) : PrestoDerivedExpression = {
+    apply(expression)
+  }
+
+  implicit def fromString(s: String)(implicit  cc: ColumnContext) : PrestoDerivedExpression = {
     apply(s)
   }
 }
