@@ -10,7 +10,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>4.0</version>
+        <version>5.0</version>
     </parent>
 
     <name>maha core</name>
