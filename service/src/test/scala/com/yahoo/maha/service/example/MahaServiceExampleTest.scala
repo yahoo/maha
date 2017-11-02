@@ -420,7 +420,6 @@ class MahaServiceExampleTest extends BaseFactoryTest {
     mahaRequestProcessor.onSuccess(fn)
     mahaRequestProcessor.onFailure((error: GeneralError) => println(error.message))
     val protoBuilder: MahaRequestProto.Builder = mahaRequestProcessor.process()
-    println(protoBuilder)
     assert(protoBuilder.getDrivingTable == "student_grade_sheet")
     assert(protoBuilder.getStatus == 200)
     assert(protoBuilder.getRequestEndTime > System.currentTimeMillis() - 30000)
