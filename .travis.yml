@@ -3,7 +3,7 @@ jdk:
 - oraclejdk8
 install: true
 script:
-- test "${TRAVIS_PULL_REQUEST}" == "false" && mvn -B release:clean release:prepare -Djava.awt.headless=true -Dmaven.test.skip=true -Dscoverage.skip=true -DskipTests -Darguments="-DskipTests -Dscoverage.skip=true"
+- test "${TRAVIS_PULL_REQUEST}" == "false" && ./travis/release_prepare.sh
 - mvn install
 
 after_success:
