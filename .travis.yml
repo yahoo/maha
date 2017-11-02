@@ -3,7 +3,11 @@ jdk:
 - oraclejdk8
 install: true
 script:
+- git config --global user.name "Pranav Bhole"
+- git config --global user.email pranavbhole@gmail.com
+- mvn -B release:clean release:prepare -Djava.awt.headless=true -Dmaven.test.skip=true -Dscoverage.skip=true -DskipTests
 - mvn install
+
 after_success:
 - test "${TRAVIS_PULL_REQUEST}" == "false" && ./travis/publish_to_bintray.sh
 branches:
