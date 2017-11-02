@@ -79,7 +79,7 @@
     <scm>
         <developerConnection>scm:git:ssh://git@github.com/yahoo/maha.git</developerConnection>
         <url>https://github.com/yahoo/maha.git</url>
-        <tag>maha-parent-2.0</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <dependencyManagement>
