@@ -329,4 +329,18 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       }
     }
   }
+
+  test("Column MAX/MIN test") {
+    import HiveExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      FactCol("input_column", IntType())
+      val minCol = HiveDerFactCol("Min Col", IntType(), MIN	("input_column"))
+      val maxCol = HiveDerFactCol("Max Col", IntType(), MAX	("input_column"))
+      minCol.derivedExpression.render(minCol.name) should equal("MIN(input_column)")
+      maxCol.derivedExpression.render(maxCol.name) should equal("MAX(input_column)")
+      println(s"Min Col Name: ${minCol.derivedExpression.render(minCol.name)}")
+      println(s"Max Col Name: ${maxCol.derivedExpression.render(maxCol.name)}")
+    }
+  }
 }
