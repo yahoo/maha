@@ -4,7 +4,7 @@ jdk:
 install: true
 script:
 - test "${TRAVIS_PULL_REQUEST}" == "false" && ./travis/release_prepare.sh
-- mvn install
+- mvn -B install
 
 after_success:
 - test "${TRAVIS_PULL_REQUEST}" == "false" && ./travis/publish_to_bintray.sh
