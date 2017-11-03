@@ -322,7 +322,6 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
     assert(result.contains("ROW_NUMBER"), "Query should have pagination")
     assert(result.contains("ROW_NUMBER >= 21"), "Min position should be 21")
@@ -432,7 +431,6 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
     val expected =
       s"""
         |SELECT *
@@ -503,7 +501,6 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
     val expected =
       s"""
          |SELECT *
@@ -1052,7 +1049,6 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val where = """coalesce(f0."impressions", 1) "Total Impressions", coalesce(f0."impressions", 1) "Impressions""""
-    println(result)
     assert(result.contains(where), result)
   }
 
@@ -1089,7 +1085,6 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
     val expected =
       s"""SELECT *
         |FROM (SELECT to_char(f0.keyword_id) "Keyword ID", t4.value "Keyword Value", co1.campaign_name "Campaign Name", ago2.name "Ad Group Name", ado3.title "Ad Title", coalesce(f0."impressions", 1) "Impressions", ROUND(f0."CTR", 10) "CTR"
@@ -1229,7 +1224,6 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
  |)
        """.stripMargin
-    println(result)
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -1265,7 +1259,6 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
     val expected =
       s"""SELECT *
          |FROM (SELECT to_char(t4.id) "Keyword ID", to_char(ago3.campaign_id) "Campaign ID", ago3.name "Ad Group Name", to_char(t4.parent_id) "Ad Group ID", t4.value "Keyword Value", coalesce(f0."impressions", 1) "Impressions", co2.campaign_name "Campaign Name", ROUND(f0."CTR", 10) "CTR", ao1.name "Advertiser Name"
@@ -1305,7 +1298,6 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
          |)
          |""".stripMargin
-    println(expected)
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -1336,7 +1328,6 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     assert(queryPipelineTry.isSuccess)
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
     val expected = s"""SELECT *
                       |FROM (SELECT to_char(t3.id) "Keyword ID", coalesce(f0."impressions", 1) "Impressions", co1.campaign_name "Campaign Name", ROUND(f0."CTR", 10) "CTR"
                       |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
@@ -1369,7 +1360,6 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |
                       |)
                      |""".stripMargin
-    println(expected)
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -1417,7 +1407,6 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
     val expected =
       s"""SELECT *
          |FROM (SELECT to_char(t4.id) "Keyword ID", to_char(ago3.campaign_id) "Campaign ID", ago3.name "Ad Group Name", to_char(t4.parent_id) "Ad Group ID", to_char(t4.advertiser_id) "Advertiser ID", t4.value "Keyword Value", coalesce(f0."impressions", 1) "Impressions", co2.campaign_name "Campaign Name", ROUND(f0."CTR", 10) "CTR", ao1.name "Advertiser Name"
@@ -1457,7 +1446,6 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
          |)
          |""".stripMargin
-    println(expected)
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -1507,8 +1495,6 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |
                       |) ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
                       |""".stripMargin
-    println(result)
-    println(expected)
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -1546,7 +1532,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+
   }
 
   test("Given a request with parameters in filter and not in requested fields, then the output query should not those parameters in select list") {
@@ -1615,8 +1601,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |
                       |
                       |) ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200""".stripMargin
-    println(result)
-    println(expected)
+
+
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -1687,7 +1673,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                      |               )
                      |
                      |           ) WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
-    println(result)
+
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -1734,7 +1720,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
         |
         |           )
       """.stripMargin
-    println(result)
+
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -1800,7 +1786,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                      |               )
                      |
                      |           )""".stripMargin
-    println(result)
+
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -1882,8 +1868,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |
                       |) ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
                      |""".stripMargin
-    println(result)
-    println(expected)
+
+
     result should equal (expected)(after being whiteSpaceNormalised)
   }
 
@@ -1921,7 +1907,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+
     val expected =
        s"""SELECT *
          |FROM (SELECT to_char(ado3.campaign_id) "Campaign ID", ago2.name "Ad Group Name", to_char(ado3.ad_group_id) "Ad Group ID", coalesce(af0."impressions", 1) "Impressions", co1.campaign_name "Campaign Name", ado3.title "Ad Title", to_char(ado3.id) "Ad ID"
@@ -2021,7 +2007,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+
     val expected =
       s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
          |FROM (SELECT to_char(af0.stats_date, 'YYYY-MM-DD') "Day", ROUND(af0."Average CPC", 10) "Average CPC", ROUND((af0."Average CPC" * 100), 10) "Average CPC Cents", coalesce(ROUND(CASE WHEN ((af0."avg_pos" >= 0.1) AND (af0."avg_pos" <= 500)) THEN af0."avg_pos" ELSE 0.0 END, 10), 0.0) "Average Position", coalesce(af0."impressions", 1) "Impressions", coalesce(ROUND(af0."max_bid", 10), 0.0) "Max Bid", coalesce(ROUND(af0."spend", 10), 0.0) "Spend", ROUND(af0."CTR", 10) "CTR"
@@ -2075,7 +2061,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+
     val expected =
       s"""|SELECT *
          |FROM (SELECT to_char(t1.id) "Keyword ID", ksf0."Month" "Month", to_char(t1.parent_id) "Ad Group ID", ksf0."Week" "Week", to_char(ksf0.stats_date, 'YYYY-MM-DD') "Day", coalesce(ksf0."impressions", 1) "Impressions", coalesce(ksf0."clicks", 0) "Clicks", ROUND(ksf0."CTR", 10) "CTR"
@@ -2096,7 +2082,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
          |)
        """.stripMargin
-    println(expected)
+
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -2129,7 +2115,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+
     val expected =
       s"""SELECT *
          |FROM (SELECT to_char(co1.id) "Campaign ID", coalesce(af0."impressions", 1) "Impressions", co1."Campaign Status" "Campaign Status"
@@ -2150,7 +2136,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
          |)
        """.stripMargin
-    println(expected)
+
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -2187,7 +2173,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+
     val expected =
       s"""|SELECT *
          |FROM (SELECT to_char(ado1.campaign_id) "Campaign ID", to_char(ado1.ad_group_id) "Ad Group ID", coalesce(af0."impressions", 1) "Impressions", ado1.title "Ad Title", to_char(ado1.id) "Ad ID"
@@ -2266,7 +2252,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+
     val expected =
       s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
           |FROM (SELECT to_char(af0.stats_date, 'YYYY-MM-DD') "Day", ROUND((CASE WHEN af0."clicks" = 0 THEN 0.0 ELSE af0."spend" / af0."clicks" END), 10) "Average CPC", coalesce(ROUND(CASE WHEN ((af0."avg_pos" >= 0.1) AND (af0."avg_pos" <= 500)) THEN af0."avg_pos" ELSE 0.0 END, 10), 0.0) "Average Position", coalesce(af0."impressions", 1) "Impressions", coalesce(ROUND(af0."max_bid", 10), 0.0) "Max Bid", coalesce(ROUND(af0."spend", 10), 0.0) "Spend", ROUND(af0."CTR", 10) "CTR"
@@ -2343,7 +2329,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+
     val expected =
       s"""
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
@@ -2470,7 +2456,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+
     val expected = s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
                       |FROM (SELECT to_char(vps0.publisher_id) "Publisher ID", coalesce(ROUND(vps0."spend", 10), 0.0) "Spend"
                       |      FROM (SELECT
@@ -2517,7 +2503,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+
     val expected = s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
                      |FROM (SELECT to_char(vps0.publisher_id) "Publisher ID", coalesce(ROUND(vps0."spend", 10), 0.0) "Spend"
                      |      FROM (SELECT
@@ -2626,8 +2612,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |) WHERE ( "Ad Group ID"   IS NULL) AND ( "Ad Group Status"   = 'ON')
                       |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
                       |""".stripMargin
-    println(result)
-    println(expected)
+
+
     result should equal (expected)(after being whiteSpaceNormalised)
   }
 
@@ -2691,7 +2677,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                      |           )
                      |            WHERE ( "Ad Group ID"   IS NULL) AND ROWNUM >= 1 AND ROWNUM <= 100
                      |           """.stripMargin
-    println(result)
+
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -2735,7 +2721,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+
     val expected =
       s"""
          |SELECT *
@@ -2834,8 +2820,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |) WHERE ( "Ad Group ID"   IS NULL) AND ( "Ad Group Status"   = 'ON')
                       |   ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
                       |""".stripMargin
-    println(result)
-    println(expected)
+
+
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -2934,8 +2920,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
                       |
                       |""".stripMargin
-    println(result)
-    println(expected)
+
+
     result should equal (expected)(after being whiteSpaceNormalised)
   }
 
@@ -3000,8 +2986,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |           )
                       |            WHERE ( "Ad Group ID"   IS NULL) AND ROWNUM >= 1 AND ROWNUM <= 200
                       |""".stripMargin
-    println(result)
-    println(expected)
+
+
     result should equal (expected)(after being whiteSpaceNormalised)
   }
 
@@ -3039,7 +3025,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+
     val expected =
       s"""
          |SELECT *
