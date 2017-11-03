@@ -618,6 +618,9 @@
                     <version>2.5.2</version>
                     <configuration>
                         <useReleaseProfile>false</useReleaseProfile>
+                        <preparationGoals>clean verify -PsetReleaseVersion=true</preparationGoals>
+                        <completionGoals>clean -PsetDevVersion=false</completionGoals>
+                        <pushChanges>false</pushChanges>
                     </configuration>
                 </plugin>
             </plugins>
