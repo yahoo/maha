@@ -575,8 +575,9 @@ b. Dim Driven
         val factCondition: String = if (!isDimOnly) {
           val factCandidate = factOption.get
           val factAlias = queryBuilderContext.getAliasForTable(factCandidate.fact.name)
-          val fk = factCandidate.fact.publicDimToForeignKeyMap(primaryBundle.publicDim.name)
-          s""" ON ($factAlias.$fk = $dimAlias.$pk)"""
+          val fkObj = factCandidate.fact.publicDimToForeignKeyColMap(primaryBundle.publicDim.name)
+          val fkName = fkObj.alias.getOrElse(fkObj.name)
+          s""" ON ($factAlias.$fkName = $dimAlias.$pk)"""
         } else StringUtils.EMPTY
         if (!isDimOnly) {
           sqlBuilder.append( s"""           RIGHT OUTER JOIN""")

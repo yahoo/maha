@@ -3062,4 +3062,53 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
+  test("test using alias to join dimension table") {
+    val jsonString =
+      s"""{
+                          "cube": "performance_stats",
+                          "selectFields": [
+                            {"field": "Address"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Restaurant ID", "operator": "=", "value": "12345"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(result)
+    val expected =
+      s"""|SELECT *
+          |FROM (SELECT ro1.address "Address", coalesce(af0."impressions", 1) "Impressions"
+          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_ad_stats 4) */
+          |                   advertiser_id, SUM(impressions) AS "impressions"
+          |            FROM ad_fact1 FactAlias
+          |            WHERE (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+          |            GROUP BY advertiser_id
+          |
+          |           ) af0
+          |           RIGHT OUTER JOIN
+          |                (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  address, id
+          |            FROM restaurant_oracle
+          |            WHERE (id = 12345)
+          |             ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) ro1
+          |            ON (af0.advertiser_id = ro1.id)
+          |
+          |)
+       """.stripMargin
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
 }

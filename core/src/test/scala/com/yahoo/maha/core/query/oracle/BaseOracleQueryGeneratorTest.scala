@@ -118,6 +118,7 @@ trait BaseOracleQueryGeneratorTest
           , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
           , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
           , DimCol("stats_source", IntType(3))
+          , DimCol("restaurant_id", IntType(), alias = Option("advertiser_id"), annotations = Set(ForeignKey("restaurant")))
           , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
           , DimCol("start_time", IntType())
           , DimCol("stats_date", DateType("YYYY-MM-DD"))
@@ -148,6 +149,7 @@ trait BaseOracleQueryGeneratorTest
           PubCol("ad_group_id", "Ad Group ID", InEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),
           PubCol("advertiser_id", "Advertiser ID", InEquality),
+          PubCol("restaurant_id", "Restaurant ID", InEquality),
           PubCol("stats_source", "Source", Equality),
           PubCol("price_type", "Pricing Type", In),
           PubCol("Month", "Month", Equality),
