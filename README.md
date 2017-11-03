@@ -234,38 +234,33 @@ Once your application context is ready, you are good to launch the war file on t
 
   Sync Output : 
 
-  ``` 
+``` 
 {
-   "header": {
-      "cube": "student_performance",
-      "fields": [
-         {
-            "fieldName": "Student ID",
-            "fieldType": "DIM"
-         },
-         {
-            "fieldName": "Class ID",
-            "fieldType": "DIM"
-         },
-         {
-            "fieldName": "Section ID",
-            "fieldType": "FACT"
-         },
-         {
-            "fieldName": "Total Marks",
-            "fieldType": "FACT"
-         }
-      ],
-      "maxRows": 200
-   },
-   "rows": [
-      [
-         213,
-         200,
-         100,
-         125
-      ]
-   ]
+	"header": {
+		"cube": "student_performance",
+		"fields": [{
+				"fieldName": "Student ID",
+				"fieldType": "DIM"
+			},
+			{
+				"fieldName": "Class ID",
+				"fieldType": "DIM"
+			},
+			{
+				"fieldName": "Section ID",
+				"fieldType": "FACT"
+			},
+			{
+				"fieldName": "Total Marks",
+				"fieldType": "FACT"
+			}
+		],
+		"maxRows": 200
+	},
+	"rows": [
+		[213, 200, 100, 125],
+		[213, 198, 100, 120]
+	]
 }
 ```
   
