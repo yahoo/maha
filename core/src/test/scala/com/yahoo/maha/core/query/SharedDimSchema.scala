@@ -801,6 +801,31 @@ trait SharedDimSchema {
     )
   }
 
+
+  def advertiser_crm_dim: PublicDimension = {
+    val builder : DimensionBuilder = {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        import OracleExpression._
+        Dimension.newDimension("advertiser_crm_oracle", OracleEngine, LevelOne, Set(AdvertiserSchema),
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("sales_region", StrType(1000))
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(OracleAdvertiserHashPartitioning, PKCompositeIndex("AD_ID"))
+        )
+      }
+    }
+
+    builder
+      .toPublicDimension("advertiser_crm","advertiser_crm",
+        Set(
+          PubCol("id", "Account CRM ID", InEquality)
+          , PubCol("sales_region", "Sales Region", InEquality)
+        )
+      )
+  }
+
   override protected[this] def registerDims(registryBuilder : RegistryBuilder): Unit = {
     registryBuilder.register(keyword_dim)
     registryBuilder.register(ad_dim)
@@ -815,6 +840,7 @@ trait SharedDimSchema {
     registryBuilder.register(external_site_dim)
     registryBuilder.register(section_dim)
     registryBuilder.register(publisher_dim)
+    registryBuilder.register(advertiser_crm_dim)
     registryBuilder.build()
   }
 }
