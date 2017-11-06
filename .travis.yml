@@ -8,13 +8,9 @@ install: true
 
 jobs:
    include:
-      - stage: test
-        script:
-        - mvn -B install
-
-stages:
-   - name: test
-     if: type = pull_request
+      - stage: run_tests
+        script: mvn -B install
+        if: type = pull_request
 
 after_success:
 - test "${TRAVIS_PULL_REQUEST}" == "false" && ./travis/publish_to_bintray.sh
