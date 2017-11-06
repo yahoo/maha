@@ -30,9 +30,39 @@ A centralised library for building reporting APIs on top of multiple data stores
   - maha-druid-lookups: Druid Lookup extension for lookup join
   - maha-par-request: Library for Parallel Execution, Blocking and Non Blocking Callables
   - maha-service : One json config for creating different registries using the fact and dim definitions. 
-  - maha-api-jersey : easy war file helper for exposing the api using maha-service module
+  - maha-api-jersey : Easy war file helper library for exposing the api using maha-service module
+  - maha-api-example : End to end example implementation of maha apis
 
 ### Getting Started 
+
+#### Installing Maha API Library 
+
+- We have published the packages in bintry distribution, you can have look at the latest version in https://bintray.com/yahoo/maven/maha-api-jersey/ 
+
+```
+<dependency>
+  <groupId>com.yahoo.maha</groupId>
+  <artifactId>maha-api-jersey</artifactId>
+  <version>5.2</version>
+  <type>pom</type>
+</dependency>
+```
+
+- Make sure you also add yahoo bintray maven repository to your pom
+
+```
+    <repositories>
+        <repository>
+            <id>bintray-yahoo-maven</id>
+            <name>bintray</name>
+            <url>http://yahoo.bintray.com/maven</url>
+        </repository>
+    </repositories>
+```
+
+- maha-api-jersey includes all the dependencies of other modules 
+
+#### Example Implementation of Maha Apis 
 
 - Maha-Service Examples  
     - Druid Wiki Ticker Example   
@@ -204,38 +234,33 @@ Once your application context is ready, you are good to launch the war file on t
 
   Sync Output : 
 
-  ``` 
+``` 
 {
-   "header": {
-      "cube": "student_performance",
-      "fields": [
-         {
-            "fieldName": "Student ID",
-            "fieldType": "DIM"
-         },
-         {
-            "fieldName": "Class ID",
-            "fieldType": "DIM"
-         },
-         {
-            "fieldName": "Section ID",
-            "fieldType": "FACT"
-         },
-         {
-            "fieldName": "Total Marks",
-            "fieldType": "FACT"
-         }
-      ],
-      "maxRows": 200
-   },
-   "rows": [
-      [
-         213,
-         200,
-         100,
-         125
-      ]
-   ]
+	"header": {
+		"cube": "student_performance",
+		"fields": [{
+				"fieldName": "Student ID",
+				"fieldType": "DIM"
+			},
+			{
+				"fieldName": "Class ID",
+				"fieldType": "DIM"
+			},
+			{
+				"fieldName": "Section ID",
+				"fieldType": "FACT"
+			},
+			{
+				"fieldName": "Total Marks",
+				"fieldType": "FACT"
+			}
+		],
+		"maxRows": 200
+	},
+	"rows": [
+		[213, 200, 100, 125],
+		[213, 198, 100, 120]
+	]
 }
 ```
   

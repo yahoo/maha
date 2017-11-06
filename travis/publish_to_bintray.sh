@@ -12,6 +12,6 @@ mvn deploy -Dmaven.test.skip=true -DskipTests -Dscoverage.skip --projects com.ya
 mvn deploy -Dmaven.test.skip=true -DskipTests -Dscoverage.skip --projects com.yahoo.maha:maha-api-jersey --settings travis/settings-maha-api-jersey.xml
 mvn deploy -Dmaven.test.skip=true -DskipTests -Dscoverage.skip --projects com.yahoo.maha:maha-api-example --settings travis/settings-maha-api-example.xml
 
-mvn release:update-versions -DautoVersionSubmodules=true -Djava.awt.headless=true
-git commit -m "preparing for next release" -a
-git push https://github.com/yahoo/maha.git master
+#mvn release:update-versions -DautoVersionSubmodules=true -Djava.awt.headless=true
+#git commit -m "preparing for next release" -a
+#git push https://github.com/yahoo/maha.git master

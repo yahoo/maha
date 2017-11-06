@@ -1708,7 +1708,7 @@ class RequestModelTest extends FunSuite with Matchers {
   }
 
   test("create model should fail when from date is in future") {
-    println("Future Start Date: " + futureFromDate)
+
     val jsonString = s"""{
                           "cube": "publicFact",
                           "selectFields": [
