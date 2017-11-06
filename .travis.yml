@@ -3,7 +3,8 @@ jdk:
 - oraclejdk8
 install: true
 script:
-- test "${TRAVIS_PULL_REQUEST}" == "false" && ./travis/release_prepare.sh
+#- test "${TRAVIS_PULL_REQUEST}" == "false" && ./travis/release_prepare.sh
+if: type IN (pull_request)
 - mvn -B install
 
 after_success:
