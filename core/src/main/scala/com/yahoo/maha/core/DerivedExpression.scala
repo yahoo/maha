@@ -230,6 +230,12 @@ object OracleExpression {
     def asString : String = s"MAX(${s.asString})"
   }
 
+  case class MIN(s: OracleExp) extends BaseOracleExpression {
+    val hasRollupExpression = true
+    val hasNumericOperation = true
+    def asString : String = s"MIN(${s.asString})"
+  }
+
   case class TIMESTAMP_TO_FORMATTED_DATE(s: OracleExp, fmt: String) extends BaseOracleExpression {
     def hasRollupExpression = s.hasRollupExpression
     def hasNumericOperation = s.hasNumericOperation
