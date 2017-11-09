@@ -102,6 +102,12 @@ object HiveExpression {
     def asString : String = s"MAX(${s.asString})"
   }
 
+  case class MIN(s: HiveExp) extends BaseHiveExpression {
+    val hasRollupExpression = true
+    val hasNumericOperation = true
+    def asString : String = s"MIN(${s.asString})"
+  }
+
   case class DAY_OF_WEEK(s: HiveExp, fmt: String) extends BaseHiveExpression {
     val hasRollupExpression = s.hasRollupExpression
     val hasNumericOperation = s.hasNumericOperation
@@ -222,6 +228,12 @@ object OracleExpression {
     val hasRollupExpression = true
     val hasNumericOperation = true
     def asString : String = s"MAX(${s.asString})"
+  }
+
+  case class MIN(s: OracleExp) extends BaseOracleExpression {
+    val hasRollupExpression = true
+    val hasNumericOperation = true
+    def asString : String = s"MIN(${s.asString})"
   }
 
   case class TIMESTAMP_TO_FORMATTED_DATE(s: OracleExp, fmt: String) extends BaseOracleExpression {
