@@ -851,7 +851,7 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
           } else {
             if (factBestCandidateOption.isDefined) {
               val query = getDimFactQuery(bestDimCandidates, factBestCandidateOption.get, requestModel, queryAttributes)
-              val fallbackQueryOption: Option[(Query, RowList)] = {
+              val fallbackQueryOptionTry: Try[Option[(Query, RowList)]] = Try {
                 if (requestModel.bestCandidates.isDefined
                   && requestModel.bestCandidates.get.facts.values.map(_.fact.engine).toSet.size > 1
                   && requestModel.forceQueryEngine.isEmpty) {
@@ -863,7 +863,7 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
                 }
               }
               new QueryPipelineBuilder(
-                SingleEngineQuery(query, fallbackQueryOption)
+                SingleEngineQuery(query, fallbackQueryOptionTry.getOrElse(None))
                 , factBestCandidateOption
                 , bestDimCandidates
               )
