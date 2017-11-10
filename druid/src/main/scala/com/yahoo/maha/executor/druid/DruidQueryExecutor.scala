@@ -3,6 +3,7 @@
 package com.yahoo.maha.executor.druid
 
 import java.io.Closeable
+import java.lang.IllegalStateException
 import java.math.MathContext
 import java.nio.charset.StandardCharsets
 
@@ -10,7 +11,7 @@ import com.google.common.cache.{CacheBuilder, CacheLoader}
 import com.ning.http.client.Response
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.query._
-import com.yahoo.maha.core.query.druid.{GroupByDruidQuery, TimeseriesDruidQuery, TopNDruidQuery}
+import com.yahoo.maha.core.query.druid.{DruidQuery, GroupByDruidQuery, TimeseriesDruidQuery, TopNDruidQuery}
 import grizzled.slf4j.Logging
 import org.joda.time.format.DateTimeFormatter
 import org.json4s.DefaultFormats
@@ -61,6 +62,9 @@ object DruidQueryExecutor extends Logging {
       transformers.foreach(transformer => {
         if (transformer.canTransform(resultAlias, column)) {
           val transformedValue = extractField(resultValue)
+          if(DruidQuery.replaceMissingValueWith.equals(transformedValue)) {
+            throw new IllegalStateException(DruidQuery.replaceMissingValueWith)
+          }
           val tv = transformer.transform(grain, resultAlias, column, transformedValue)
           row.addValue(resultAlias, tv)
         }
@@ -75,6 +79,7 @@ object DruidQueryExecutor extends Logging {
       info("received http response " + jsonString)
     }
     require(response.getStatusCode == 200, s"received status code from druid is ${response.getStatusCode} instead of 200 : $jsonString")
+
     val aliasColumnMap = query.aliasColumnMap
     val ephemeralAliasColumnMap = query.ephemeralAliasColumnMap
     val si: Int = query.queryContext.requestModel.startIndex
@@ -255,7 +260,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
 
   override def close(): Unit = httpUtils.close()
 
-  def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : (T, QueryAttributes) = {
+  def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
     val acquiredQueryAttributes = lifecycleListener.acquired(query, queryAttributes)
     val debugEnabled = query.queryContext.requestModel.isDebugEnabled
     if(!acceptEngine(query.engine)) {
@@ -309,7 +314,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
               if (debugEnabled) {
                 info(s"rowList.size=${irl.size}, rowList.updatedSet=${irl.updatedSize}")
               }
-              (rl, lifecycleListener.completed(query, acquiredQueryAttributes))
+              QueryResult(rl, lifecycleListener.completed(query, acquiredQueryAttributes), QueryResultStatus.SUCCESS)
           }
 
         case rl =>
@@ -327,9 +332,12 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
             case Failure(e) =>
               error(s"Exception occurred while executing druid query", e)
               Try(lifecycleListener.failed(query, acquiredQueryAttributes, e))
-              throw e
+              e match {
+                case ise: IllegalStateException => QueryResult(rl, lifecycleListener.completed(query, acquiredQueryAttributes), QueryResultStatus.FAILURE, ise.getMessage)
+                case _ => throw e
+              }
             case _ =>
-              (rl, lifecycleListener.completed(query, acquiredQueryAttributes))
+              QueryResult(rl, lifecycleListener.completed(query, acquiredQueryAttributes), QueryResultStatus.SUCCESS)
           }
       }
     }

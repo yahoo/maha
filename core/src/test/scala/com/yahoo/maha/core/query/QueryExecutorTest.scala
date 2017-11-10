@@ -22,10 +22,10 @@ class QueryExecutorTest extends FunSuite with Matchers with BaseOracleQueryGener
 
       val lifecycleListener : ExecutionLifecycleListener = new NoopExecutionLifecycleListener
 
-      override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): (T, QueryAttributes) = {
+      override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
         val acquiredQueryAttributes = lifecycleListener.acquired(query, queryAttributes)
         val startedQueryAttributes = lifecycleListener.started(query, acquiredQueryAttributes)
-        (rowList, lifecycleListener.completed(query, queryAttributes))
+        QueryResult(rowList, lifecycleListener.completed(query, queryAttributes), QueryResultStatus.SUCCESS)
       }
 
       override def engine: Engine = OracleEngine
@@ -72,7 +72,7 @@ class QueryExecutorTest extends FunSuite with Matchers with BaseOracleQueryGener
 
       val lifecycleListener : ExecutionLifecycleListener = new NoopExecutionLifecycleListener
 
-      override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): (T, QueryAttributes) = {
+      override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
         val acquiredQueryAttributes = lifecycleListener.acquired(query, queryAttributes)
         val startedQueryAttributes = lifecycleListener.started(query, acquiredQueryAttributes)
         val row = rowList.newRow
@@ -85,7 +85,7 @@ class QueryExecutorTest extends FunSuite with Matchers with BaseOracleQueryGener
         rowList.start()
         rowList.addRow(row)
         rowList.end()
-        (rowList, lifecycleListener.completed(query, queryAttributes))
+        QueryResult(rowList, lifecycleListener.completed(query, queryAttributes), QueryResultStatus.SUCCESS)
       }
 
       override def engine: Engine = OracleEngine

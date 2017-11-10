@@ -193,7 +193,7 @@ object QueryChain {
   val logger : Logger = LoggerFactory.getLogger(classOf[QueryChain])
 }
 
-case class SingleEngineQuery(drivingQuery: Query) extends QueryChain {
+case class SingleEngineQuery(drivingQuery: Query, fallbackQueryOption: Option[(Query, RowList)] = None) extends QueryChain {
   val subsequentQueryList: IndexedSeq[Query] = IndexedSeq.empty
 
   def execute(executorContext: QueryExecutorContext, rowListFn: Query => RowList, queryAttributes: QueryAttributes, engineQueryStats: EngineQueryStats): (RowList, QueryAttributes) = {
@@ -208,7 +208,21 @@ case class SingleEngineQuery(drivingQuery: Query) extends QueryChain {
     val queryStats = EngineQueryStat(drivingQuery.engine, drivingQueryStartTime, drivingQueryEndTime)
     engineQueryStats.addStat(queryStats)
     rowList.end()
-    (result._1, result._2.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+
+    if(result.isFailure && fallbackQueryOption.isDefined) {
+      QueryChain.logger.info(s"running fall back query, driving query failed with message=${result.message}")
+      val (query, rowList) = fallbackQueryOption.get
+      rowList.start()
+      val queryStartTime = System.currentTimeMillis()
+      val executor = executorContext.getExecutor(query.engine).get
+      val newResult = executor.execute(query, rowList, result.queryAttributes)
+      val queryEndTime = System.currentTimeMillis()
+      engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
+      rowList.end()
+      (newResult.rowList, newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+    } else {
+      (result.rowList, result.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+    }
   }
 }
 
@@ -241,16 +255,16 @@ case class MultiEngineQuery(drivingQuery: Query,
     val drivingResult = executorsMap(drivingQuery.engine).execute(drivingQuery, rowList.asInstanceOf[IndexedRowList], queryAttributes)
     val drivingQueryEndTime = System.currentTimeMillis()
     engineQueryStats.addStat(EngineQueryStat(drivingQuery.engine, drivingQueryStartTime, drivingQueryEndTime))
-    val result = if (drivingResult._1.keys.isEmpty) drivingResult else subsequentQueries.foldLeft(drivingResult) {
+    val result = if (drivingResult.rowList.keys.isEmpty) drivingResult else subsequentQueries.foldLeft(drivingResult) {
       (previousResult, subsequentQuery) =>
-        val query = subsequentQuery(previousResult._1, previousResult._2)
+        val query = subsequentQuery(previousResult.rowList, previousResult.queryAttributes)
         query match {
           case NoopQuery =>
             previousResult
           case _ =>
             subQueryList += query
             val queryStartTime = System.currentTimeMillis()
-            val result = executorsMap(query.engine).execute(query, previousResult._1, previousResult._2)
+            val result = executorsMap(query.engine).execute(query, previousResult.rowList, previousResult.queryAttributes)
             val queryEndTime = System.currentTimeMillis()
             engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
             result
@@ -259,19 +273,19 @@ case class MultiEngineQuery(drivingQuery: Query,
     rowList.end()
 
     // result._1.isEmpty returns of the updatedRows.isEmpty
-    if (result._1.isUpdatedRowListEmpty && fallbackQueryOption.isDefined) {
+    if (result.rowList.isUpdatedRowListEmpty && fallbackQueryOption.isDefined) {
       QueryChain.logger.info("No data from driving query, running fall back query")
       val (query, rowList) = fallbackQueryOption.get
       subQueryList += query
       rowList.start()
       val queryStartTime = System.currentTimeMillis()
-      val newResult = executorsMap(query.engine).execute(query, rowList, result._2)
+      val newResult = executorsMap(query.engine).execute(query, rowList, result.queryAttributes)
       val queryEndTime = System.currentTimeMillis()
       engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
       rowList.end()
-      (newResult._1, newResult._2.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+      (newResult.rowList, newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
     } else {
-      (result._1, result._2.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+      (result.rowList, result.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
     }
   }
 }
@@ -313,8 +327,8 @@ case class MultiQuery(unionQueryList: List[Query], fallbackQueryOption: Option[(
 
             val result = {
                 //Step to trigger the use of the next ConstAliasToValueMap out of the list created at init
-               previousResult._1.nextStage()
-               executor.execute(query, previousResult._1, previousResult._2)
+               previousResult.rowList.nextStage()
+               executor.execute(query, previousResult.rowList, previousResult.queryAttributes)
             }
             val subsequentQueryEndTime = System.currentTimeMillis()
             engineQueryStats.addStat(EngineQueryStat(query.engine, subsequentQueryStartTime, subsequentQueryEndTime))
@@ -323,20 +337,20 @@ case class MultiQuery(unionQueryList: List[Query], fallbackQueryOption: Option[(
     }
     rowList.end()
 
-    if (result._1.isEmpty && fallbackQueryOption.isDefined) {
+    if (result.rowList.isEmpty && fallbackQueryOption.isDefined) {
       QueryChain.logger.info("No data from driving query, running fall back query for MultiQuery")
       val (query, rowList) = fallbackQueryOption.get
       rowList.start()
       val queryStartTime = System.currentTimeMillis()
       val executorOption = executorContext.getExecutor(query.engine)
       val executor = executorOption.get
-      val newResult = executor.execute(query, rowList, result._2)
+      val newResult = executor.execute(query, rowList, result.queryAttributes)
       val queryEndTime = System.currentTimeMillis()
       engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
       rowList.end()
-      (newResult._1, newResult._2.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+      (newResult.rowList, newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
     } else {
-      (result._1, result._2.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+      (result.rowList, result.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
     }
   }
 }
@@ -408,7 +422,7 @@ object DefaultQueryPipelineFactory extends Logging {
               // (i)  explicitly enabled through asyncDruidEnabled
               // (ii) request does not have any dim filter/field
               // (iii) explicitly enabled through asyncDruidEnabled and asyncDruidLookupEnabled
-              if (dimEngines.contains(DruidEngine) || !(requestModel.hasDimFilters || requestModel.requestCols.filter(c => c.isInstanceOf[DimColumnInfo]).size > 0)) {
+              if ((dimEngines.contains(DruidEngine) && !forceDisqualifySet(DruidEngine)) || !(requestModel.hasDimFilters || requestModel.requestCols.filter(c => c.isInstanceOf[DimColumnInfo]).size > 0)) {
                 QueryPipeline.asyncDisqualifyingSet ++ forceDisqualifySet -- Set(DruidEngine)
               } else {
                 QueryPipeline.asyncDisqualifyingSet ++ forceDisqualifySet
@@ -837,8 +851,19 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
           } else {
             if (factBestCandidateOption.isDefined) {
               val query = getDimFactQuery(bestDimCandidates, factBestCandidateOption.get, requestModel, queryAttributes)
+              val fallbackQueryOption: Option[(Query, RowList)] = {
+                if (requestModel.bestCandidates.isDefined
+                  && requestModel.bestCandidates.get.facts.values.map(_.fact.engine).toSet.size > 1
+                  && requestModel.forceQueryEngine.isEmpty) {
+                  val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(requestModel, Set(factBestCandidateOption.get.fact.engine))
+                  val query = getDimFactQuery(newBestDimCandidates, newFactBestCandidateOption.get, requestModel, queryAttributes)
+                  Option((query, QueryPipeline.completeRowList(query)))
+                } else {
+                  None
+                }
+              }
               new QueryPipelineBuilder(
-                SingleEngineQuery(query)
+                SingleEngineQuery(query, fallbackQueryOption)
                 , factBestCandidateOption
                 , bestDimCandidates
               )
