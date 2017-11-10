@@ -260,7 +260,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
 
   override def close(): Unit = httpUtils.close()
 
-  def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult = {
+  def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
     val acquiredQueryAttributes = lifecycleListener.acquired(query, queryAttributes)
     val debugEnabled = query.queryContext.requestModel.isDebugEnabled
     if(!acceptEngine(query.engine)) {

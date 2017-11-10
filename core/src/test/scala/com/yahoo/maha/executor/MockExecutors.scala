@@ -11,7 +11,7 @@ import com.yahoo.maha.core.query._
 class MockDruidQueryExecutor(callback: RowList => Unit) extends QueryExecutor {
   override def engine: Engine = DruidEngine
 
-  override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult = {
+  override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
     callback(rowList)
     QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
   }
@@ -20,7 +20,7 @@ class MockDruidQueryExecutor(callback: RowList => Unit) extends QueryExecutor {
 class MockOracleQueryExecutor(callback: RowList => Unit) extends QueryExecutor {
   override def engine: Engine = OracleEngine
 
-  override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult = {
+  override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
     callback(rowList)
     QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
   }
@@ -29,7 +29,7 @@ class MockOracleQueryExecutor(callback: RowList => Unit) extends QueryExecutor {
 class MockHiveQueryExecutor(callback: RowList => Unit) extends QueryExecutor {
   override def engine: Engine = HiveEngine
 
-  override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult = {
+  override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
     callback(rowList)
     QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
   }

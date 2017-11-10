@@ -2,7 +2,7 @@ package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core.query.QueryResultStatus.QueryResultStatus
 
-case class QueryResult(rowList: RowList,
+case class QueryResult[T <: RowList](rowList: T,
                        queryAttributes: QueryAttributes,
                        queryResultStatus: QueryResultStatus,
                        message: String = "") {

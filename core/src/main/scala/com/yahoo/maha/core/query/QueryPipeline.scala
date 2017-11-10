@@ -255,9 +255,9 @@ case class MultiEngineQuery(drivingQuery: Query,
     val drivingResult = executorsMap(drivingQuery.engine).execute(drivingQuery, rowList.asInstanceOf[IndexedRowList], queryAttributes)
     val drivingQueryEndTime = System.currentTimeMillis()
     engineQueryStats.addStat(EngineQueryStat(drivingQuery.engine, drivingQueryStartTime, drivingQueryEndTime))
-    val result = if (drivingResult.rowList.asInstanceOf[IndexedRowList].keys.isEmpty) drivingResult else subsequentQueries.foldLeft(drivingResult) {
+    val result = if (drivingResult.rowList.keys.isEmpty) drivingResult else subsequentQueries.foldLeft(drivingResult) {
       (previousResult, subsequentQuery) =>
-        val query = subsequentQuery(previousResult.rowList.asInstanceOf[IndexedRowList], previousResult.queryAttributes)
+        val query = subsequentQuery(previousResult.rowList, previousResult.queryAttributes)
         query match {
           case NoopQuery =>
             previousResult
@@ -273,7 +273,7 @@ case class MultiEngineQuery(drivingQuery: Query,
     rowList.end()
 
     // result._1.isEmpty returns of the updatedRows.isEmpty
-    if (result.rowList.asInstanceOf[IndexedRowList].isUpdatedRowListEmpty && fallbackQueryOption.isDefined) {
+    if (result.rowList.isUpdatedRowListEmpty && fallbackQueryOption.isDefined) {
       QueryChain.logger.info("No data from driving query, running fall back query")
       val (query, rowList) = fallbackQueryOption.get
       subQueryList += query

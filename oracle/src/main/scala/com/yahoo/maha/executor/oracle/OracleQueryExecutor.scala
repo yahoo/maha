@@ -128,7 +128,7 @@ class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
     }
   }
 
-  def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult = {
+  def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
     val acquiredQueryAttributes = lifecycleListener.acquired(query, queryAttributes)
     val debugEnabled = query.queryContext.requestModel.isDebugEnabled
     if(!acceptEngine(query.engine)) {
