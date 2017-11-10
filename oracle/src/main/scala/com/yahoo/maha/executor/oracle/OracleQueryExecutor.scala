@@ -128,7 +128,7 @@ class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
     }
   }
 
-  def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : (T, QueryAttributes) = {
+  def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult = {
     val acquiredQueryAttributes = lifecycleListener.acquired(query, queryAttributes)
     val debugEnabled = query.queryContext.requestModel.isDebugEnabled
     if(!acceptEngine(query.engine)) {
@@ -219,7 +219,7 @@ class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
               Try(lifecycleListener.failed(query, acquiredQueryAttributes, e))
               throw e
             case _ =>
-              (rl, lifecycleListener.completed(query, acquiredQueryAttributes))
+              QueryResult(rl, lifecycleListener.completed(query, acquiredQueryAttributes), QueryResultStatus.SUCCESS)
           }
         case rl =>
           var metaData : ResultSetMetaData = null
@@ -271,7 +271,7 @@ class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
               Try(lifecycleListener.failed(query, acquiredQueryAttributes, e))
               throw e
             case _ =>
-              (rl, lifecycleListener.completed(query, acquiredQueryAttributes))
+              QueryResult(rl, lifecycleListener.completed(query, acquiredQueryAttributes), QueryResultStatus.SUCCESS)
           }
       }
     }

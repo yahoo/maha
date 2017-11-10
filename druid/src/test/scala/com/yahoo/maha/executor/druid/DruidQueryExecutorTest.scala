@@ -185,7 +185,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
   private[this] def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import DruidExpression._
-    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+    val factBuilder = ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "fact_s_term", DailyGrain, DruidEngine, Set(AdvertiserSchema),
         Set(
@@ -231,7 +231,11 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         annotations = Set()
       )
     }
-      .toPublicFact("k_stats",
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      factBuilder.withAlternativeEngine("fd_fact_s_term", "fact_s_term", OracleEngine, Set.empty, Set.empty)
+    }
+
+    factBuilder.toPublicFact("k_stats",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
           PubCol("id", "Keyword ID", InEquality),
@@ -392,11 +396,11 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val executor = getDruidQueryExecutor("http://localhost:6667/mock/timeseries")
     val rowList= new CompleteRowList(query)
     val result=  executor.execute(query,rowList, QueryAttributes.empty)
-    assert(!result._1.isEmpty)
-    result._1.foreach{
+    assert(!result.rowList.isEmpty)
+    result.rowList.foreach{
       row=> println(s"TimeSeries: row : $row")
     }
-    result._1.foreach{row =>
+    result.rowList.foreach{row =>
       val map = row.aliasMap
       for((key,value)<-map) {
         assert(row.getValue(key) != null)
@@ -470,11 +474,11 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val executor = getDruidQueryExecutor("http://localhost:6667/mock/topn")
     val rowList= new CompleteRowList(query)
     val result=  executor.execute(query, rowList, QueryAttributes.empty)
-    assert(!result._1.isEmpty)
-    result._1.foreach{
+    assert(!result.rowList.isEmpty)
+    result.rowList.foreach{
       row=> println(s"TopN :=> row : $row")
     }
-    result._1.foreach{row =>
+    result.rowList.foreach{row =>
       val map = row.aliasMap
       for((key,value)<-map) {
         assert(row.getValue(key) != null)
@@ -594,11 +598,11 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val executor = getDruidQueryExecutor("http://localhost:6667/mock/groupby")
     val rowList= new CompleteRowList(query)
     val result=  executor.execute(query, rowList, QueryAttributes.empty)
-    assert(!result._1.isEmpty)
+    assert(!result.rowList.isEmpty)
 
     var str: String = ""
     var count: Int = 0
-    result._1.foreach{
+    result.rowList.foreach{
       row => {
         count += 1
         println(s"Groupby => row : $row")
@@ -611,12 +615,109 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     println(s"Actual: $str expected: ${expected}")
     str should equal (expected) (after being whiteSpaceNormalised)
 
-    result._1.foreach{row =>
+    result.rowList.foreach{row =>
       val map = row.aliasMap
       for((key,value)<-map) {
         assert(row.getValue(key)!=null)
       }
     }
+  }
+
+  test("test fallback to oracle when druid fails with empty lookup value") {
+
+    val jsonString =  s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Keyword ID"},
+                            {"field": "Impressions"},
+                            {"field": "Advertiser Status"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "5485"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Asc"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":2
+                        }""".stripMargin
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
+    altQueryGeneratorRegistry.register(OracleEngine, new OracleQueryGenerator(DefaultPartitionColumnRenderer))
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val query =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
+    println(query.asString)
+    val executor = getDruidQueryExecutor("http://localhost:6667/mock/groupby_empty_lookup")
+
+    val oracleExecutor = new MockOracleQueryExecutor(
+      { rl =>
+        println(rl.query.asString)
+        val expected =
+          s"""
+            |SELECT *
+            |FROM (SELECT to_char(ffst0.stats_date, 'YYYYMMdd') "Day", to_char(ffst0.id) "Keyword ID", coalesce(ffst0."impresssions", 1) "Impressions", ao1."Advertiser Status" "Advertiser Status"
+            |      FROM (SELECT
+            |                   advertiser_id, id, stats_date, SUM(impresssions) AS "impresssions"
+            |            FROM fd_fact_s_term FactAlias
+            |            WHERE (advertiser_id = 5485) AND (stats_date IN (to_date('${fromDate}', 'YYYYMMdd'),to_date('${toDate}', 'YYYYMMdd')))
+            |            GROUP BY advertiser_id, id, stats_date
+            |
+            |           ) ffst0
+            |           LEFT OUTER JOIN
+            |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+            |            FROM advertiser_oracle
+            |            WHERE (id = 5485)
+            |             )
+            |           ao1 ON (ffst0.advertiser_id = ao1.id)
+            |
+            |)
+            |   ORDER BY "Impressions" ASC NULLS LAST""".stripMargin
+
+        rl.query.asString should equal (expected) (after being whiteSpaceNormalised)
+
+        rl.foreach(r => println(s"Inside mock: $r"))
+        val row = rl.newRow
+        row.addValue("Keyword ID", 14)
+        row.addValue("Advertiser Status", "ON")
+        row.addValue("Impressions", 10)
+        rl.addRow(row)
+        val row2 = rl.newRow
+        row2.addValue("Keyword ID", 13)
+        row2.addValue("Advertiser Status", "ON")
+        row2.addValue("Impressions", 20)
+        rl.addRow(row2)
+      })
+
+    val queryExecContext: QueryExecutorContext = new QueryExecutorContext
+    queryExecContext.register(executor)
+    queryExecContext.register(oracleExecutor)
+
+    val result = queryPipelineTry.toOption.get.execute(queryExecContext)
+    assert(result.isSuccess)
+
+    var str: String = ""
+    var count: Int = 0
+    result.get._1.foreach{
+      row => {
+        count += 1
+        str= str+s"$row"
+      }
+    }
+
+    assert(count==2)
+    val expected = "Row(Map(Day -> 0, Keyword ID -> 1, Impressions -> 2, Advertiser Status -> 3),ArrayBuffer(null, 14, 10, ON))Row(Map(Day -> 0, Keyword ID -> 1, Impressions -> 2, Advertiser Status -> 3),ArrayBuffer(null, 13, 20, ON))"
+    println(s"Actual: $str expected: ${expected}")
+    str should equal (expected) (after being whiteSpaceNormalised)
   }
 
   test("success case for Bid Modifier and Modified Bid post results") {
@@ -659,11 +760,11 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val executor = getDruidQueryExecutor("http://localhost:6667/mock/groupbybidmod")
     val rowList= new CompleteRowList(query)
     val result=  executor.execute(query, rowList, QueryAttributes.empty)
-    assert(!result._1.isEmpty)
+    assert(!result.rowList.isEmpty)
 
     var str: String = ""
     var count: Int = 0
-    result._1.foreach{
+    result.rowList.foreach{
       row => {
         count += 1
         println(s"Groupby => row : $row")
@@ -676,7 +777,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     println(s"Actual:\n $str\n expected:\n ${expected}")
     str should equal (expected) (after being whiteSpaceNormalised)
 
-    result._1.foreach{row =>
+    result.rowList.foreach{row =>
       val map = row.aliasMap
       for((key,value)<-map) {
         assert(row.getValue(key)!=null)
@@ -723,11 +824,11 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val executor = getDruidQueryExecutor("http://localhost:6667/mock/groupby_start_of_week")
     val rowList= new CompleteRowList(query)
     val result=  executor.execute(query, rowList, QueryAttributes.empty)
-    assert(!result._1.isEmpty)
+    assert(!result.rowList.isEmpty)
 
     var str: String = ""
     var count: Int = 0
-    result._1.foreach{
+    result.rowList.foreach{
       row => {
         count += 1
         println(s"Groupby => row : $row")
@@ -740,7 +841,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     println(s"Actual: $str expected: ${expected}")
     str should equal (expected) (after being whiteSpaceNormalised)
 
-    result._1.foreach{row =>
+    result.rowList.foreach{row =>
       val map = row.aliasMap
       for((key,value)<-map) {
         assert(row.getValue(key)!=null)
@@ -787,11 +888,11 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val executor = getDruidQueryExecutor("http://localhost:6667/mock/groupby_start_of_month")
     val rowList= new CompleteRowList(query)
     val result=  executor.execute(query, rowList, QueryAttributes.empty)
-    assert(!result._1.isEmpty)
+    assert(!result.rowList.isEmpty)
 
     var str: String = ""
     var count: Int = 0
-    result._1.foreach{
+    result.rowList.foreach{
       row => {
         count += 1
         println(s"Groupby => row : $row")
@@ -804,7 +905,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     println(s"Actual: $str expected: ${expected}")
     str should equal (expected) (after being whiteSpaceNormalised)
 
-    result._1.foreach{row =>
+    result.rowList.foreach{row =>
       val map = row.aliasMap
       for((key,value)<-map) {
         assert(row.getValue(key)!=null)
@@ -851,11 +952,11 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val executor = getDruidQueryExecutor("http://localhost:6667/mock/groupby")
     val rowList= new CompleteRowList(query)
     val result=  executor.execute(query, rowList, QueryAttributes.empty)
-    assert(!result._1.isEmpty)
+    assert(!result.rowList.isEmpty)
 
     var str: String = ""
     var count: Int = 0
-    result._1.foreach{
+    result.rowList.foreach{
       row => {
         count += 1
         println(s"Groupby => row : $row")
@@ -867,7 +968,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val expected = "Row(Map(Pricing Type -> 4, Keyword ID -> 1, Average Bid -> 5, Max Bid -> 2, Day -> 0, Impressions -> 7, Min Bid -> 3, Average Position -> 6),ArrayBuffer(2012-01-01, 10, 163, 184, 11, 9, 205, 175))Row(Map(Pricing Type -> 4, Keyword ID -> 1, Average Bid -> 5, Max Bid -> 2, Day -> 0, Impressions -> 7, Min Bid -> 3, Average Position -> 6),ArrayBuffer(2012-01-01, 14, 16, 18, 13, 15, 20, 17))"
     str should equal(expected) (after being whiteSpaceNormalised)
 
-    result._1.foreach{row =>
+    result.rowList.foreach{row =>
       val map = row.aliasMap
       for((key,value)<-map) {
         assert(row.getValue(key)!=null)
@@ -915,12 +1016,12 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val executor = getDruidQueryExecutor("http://localhost:6667/mock/3rowsgroupby")
     val rowList= new CompleteRowList(query)
     val result=  executor.execute(query, rowList, QueryAttributes.empty)
-    assert(!result._1.isEmpty)
+    assert(!result.rowList.isEmpty)
     println(query.asString)
 
     var str: String = ""
     var count: Int = 0
-    result._1.foreach{
+    result.rowList.foreach{
       row => {
         count += 1
         println(s"Groupby => row : $row")
@@ -933,7 +1034,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val expected = "Row(Map(Pricing Type -> 5, Keyword ID -> 1, Average Bid -> 6, Max Bid -> 3, Day -> 0, Impressions -> 8, Min Bid -> 4, Average Position -> 7, Country Name -> 2),ArrayBuffer(2016-01-01, 2, US, 16, 18, 13, 15, 20, 17))Row(Map(Pricing Type -> 5, Keyword ID -> 1, Average Bid -> 6, Max Bid -> 3, Day -> 0, Impressions -> 8, Min Bid -> 4, Average Position -> 7, Country Name -> 2),ArrayBuffer(2016-01-01, 3, US, 160123456, 18, 13, 10, 20.12, 127))"
     str should equal(expected) (after being whiteSpaceNormalised)
 
-    result._1.foreach{row =>
+    result.rowList.foreach{row =>
       val map = row.aliasMap
       for((key,value)<-map) {
         assert(row.getValue(key)!=null)
@@ -1018,11 +1119,11 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
       row=> println(s"Partial TimeSeries => row before : $row")
     }
     val result=  executor.execute(query, rowList, QueryAttributes.empty)
-    assert(!result._1.isEmpty)
-    result._1.foreach{
+    assert(!result.rowList.isEmpty)
+    result.rowList.foreach{
       row=> println(s"Partial TimeSeries => row after: $row")
     }
-    result._1.foreach{row =>
+    result.rowList.foreach{row =>
       val map = row.aliasMap
       for((key,value)<-map) {
         assert(row.getValue(key) != null)
@@ -1311,11 +1412,11 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     row2.addValue("Impressions",null)
     rowList.addRow(row2)
     val result=  executor.execute(query, rowList, QueryAttributes.empty)
-    assert(!result._1.isEmpty)
-    result._1.foreach{
+    assert(!result.rowList.isEmpty)
+    result.rowList.foreach{
       row=> println(s"TopN query with partial result=> row : $row")
     }
-    result._1.foreach{row =>
+    result.rowList.foreach{row =>
       val map = row.aliasMap
       for((key,value)<-map) {
         assert(row.getValue(key) != null)
@@ -1362,7 +1463,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     row2.addValue("Impressions",null)
     rowList.addRow(row2)
     val result=  executor.execute(query, rowList, QueryAttributes.empty)
-    assert(result._1.isEmpty)
+    assert(result.rowList.isEmpty)
   }
 
 

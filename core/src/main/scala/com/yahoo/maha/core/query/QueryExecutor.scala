@@ -16,7 +16,7 @@ import scala.concurrent.Future
 trait QueryExecutor {
   def engine: Engine
   def acceptEngine(engine: Engine) : Boolean = engine == this.engine
-  def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : (T, QueryAttributes)
+  def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult
 }
 
 class QueryExecutorContext {
