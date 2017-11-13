@@ -12,6 +12,7 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.query.druid.{GroupByDruidQuery, TimeseriesDruidQuery, TopNDruidQuery}
 import grizzled.slf4j.Logging
+import org.apache.http.HttpResponse
 import org.joda.time.format.DateTimeFormatter
 import org.json4s.DefaultFormats
 import org.json4s.JsonAST._
@@ -71,6 +72,9 @@ object DruidQueryExecutor extends Logging {
   def parseJsonAndPopulateResultSet[T <: RowList](query:Query,response:Response,rowList: T, getRow: List[JField] => Row, getEphemeralRow: List[JField] => Row,
                                                   transformers: List[ResultSetTransformers]  ) : Unit ={
     val jsonString : String = response.getResponseBody(StandardCharsets.UTF_8.displayName())
+    val responseHeader = response.hasResponseHeaders()
+    println(responseHeader)
+
     if(query.queryContext.requestModel.isDebugEnabled) {
       info("received http response " + jsonString)
     }
@@ -250,6 +254,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
     , config.maxRetry
   )
   val url = config.url
+
   val headers = config.headers
 
 
@@ -270,7 +275,11 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
           val isFactDriven = query.queryContext.requestModel.isFactDriven
           val performJoin = irl.size > 0
           val result = Try {
-            val response = httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
+            val response : Response= httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
+
+            if(response.getHeader("X-Druid-Response-Context").contains("uncoveredIntervals")){
+              throw new IllegalStateException("Druid data missing, identified in uncoveredIntervals")
+            }
 
             DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,rl,(fieldList:List[JField] ) =>{
               val indexName =irl.indexAlias
@@ -315,6 +324,11 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
         case rl =>
           val result = Try {
             val response = httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
+
+            if(response.getHeader("X-Druid-Response-Context").contains("uncoveredIntervals")){
+              throw new IllegalStateException("Druid data missing, identified in uncoveredIntervals")
+            }
+
 
             DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,rl,(fieldList: List[JField]) =>{
               rowList.newRow

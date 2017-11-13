@@ -4,6 +4,7 @@ package com.yahoo.maha.executor.druid
 
 import java.net.InetSocketAddress
 
+import com.metamx.http.client.response.ClientResponse
 import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, InternalSchema, ResellerSchema}
 import com.yahoo.maha.core.DruidDerivedFunction.{DECODE_DIM, GET_INTERVAL_DATE}
 import com.yahoo.maha.core.DruidPostResultFunction.{POST_RESULT_DECODE, START_OF_THE_MONTH, START_OF_THE_WEEK}
@@ -18,6 +19,9 @@ import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.{ReportingRequest, SyncRequest}
 import com.yahoo.maha.executor.MockOracleQueryExecutor
+import org.apache.http.HttpResponse
+import org.apache.http.client.methods.{HttpGet, HttpPost}
+import org.apache.http.impl.client.{CloseableHttpClient, HttpClientBuilder}
 import org.http4s.server.blaze.BlazeBuilder
 import org.json4s.JsonAST._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
@@ -1938,6 +1942,66 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         count+=1
     }
     assert(expectedSet.size == count)
+
+  }
+
+  //Test if there are nonempty uncovered intervals, meaning an IllegalStateException
+  // should be thrown so that response can fallback to Oracle.
+  test("Uncovered Interval response") {
+
+    val jsonString =
+      s"""
+         |{
+         |   "cube":"wg_stats",
+         |   "sortBy":[
+         |      {
+         |         "field":"Spend Usd",
+         |         "order":"DESC"
+         |      }
+         |   ],
+         |   "selectFields":[
+         |      {
+         |         "field":"Day"
+         |      },
+         |      {
+         |        "field":"Hour"
+         |      },
+         |      {
+         |         "field":"Spend Usd"
+         |      }
+         |   ],
+         |   "paginationStartIndex":0,
+         |   "filterExpressions":[
+         |      {
+         |         "operator":"between",
+         |         "field":"Day",
+         |         "from":"$fromDate",
+         |         "to":"$toDate"
+         |      }
+         |   ],
+         |   "rowsPerPage":1000
+         |}
+       """.stripMargin
+    val request: ReportingRequest = getReportingRequestSync(jsonString, InternalSchema)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val druidExecutor = getDruidQueryExecutor("http://localhost:6667/mock/uncoveredNonempty")
+
+    val queryExecContext: QueryExecutorContext = new QueryExecutorContext
+    queryExecContext.register(druidExecutor)
+
+    val result = queryPipelineTry.toOption.get.execute(queryExecContext)
+    println(result.isSuccess)
+    assert(result.isSuccess)
 
   }
 

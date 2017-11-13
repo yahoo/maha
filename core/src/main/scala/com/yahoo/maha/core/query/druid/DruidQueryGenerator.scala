@@ -97,6 +97,8 @@ class SyncDruidQueryOptimizer(maxSingleThreadedDimCardinality: Long = DruidQuery
         context.put(GROUP_BY_STRATEGY, "v2")
       case _ => //do nothing
     }
+
+    context.put("uncoveredIntervalsLimit", 1.asInstanceOf[AnyRef])
   }
 }
 
