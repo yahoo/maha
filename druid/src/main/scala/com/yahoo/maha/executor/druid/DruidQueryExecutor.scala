@@ -282,7 +282,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
           val result = Try {
             val response : Response= httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
 
-            if(response.getHeader("X-Druid-Response-Context").contains("uncoveredIntervals")){
+            if(response.getHeaders().containsKey("X-Druid-Response-Context") && response.getHeader("X-Druid-Response-Context").contains("uncoveredIntervals")){
               throw new IllegalStateException("Druid data missing, identified in uncoveredIntervals")
             }
 
@@ -330,7 +330,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
           val result = Try {
             val response = httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
 
-            if(response.getHeader("X-Druid-Response-Context").contains("uncoveredIntervals")){
+            if(response.getHeaders().containsKey("X-Druid-Response-Context") && response.getHeader("X-Druid-Response-Context").contains("uncoveredIntervals")){
               throw new IllegalStateException("Druid data missing, identified in uncoveredIntervals")
             }
 

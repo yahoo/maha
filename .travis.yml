@@ -2,15 +2,9 @@ language: java
 jdk:
 - oraclejdk8
 install: true
-#script:
-#- test "${TRAVIS_PULL_REQUEST}" == "false" && ./travis/release_prepare.sh
-#- mvn -B install
-
-jobs:
-   include:
-      - stage: run_tests
-        script: mvn -B install
-        if: type = pull_request
+script:
+- test "${TRAVIS_PULL_REQUEST}" == "false" && ./travis/release_prepare.sh
+- mvn -B install
 
 after_success:
 - test "${TRAVIS_PULL_REQUEST}" == "false" && ./travis/publish_to_bintray.sh
