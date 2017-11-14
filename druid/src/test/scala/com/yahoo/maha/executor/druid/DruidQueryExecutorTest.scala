@@ -2053,56 +2053,99 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val jsonString =
       s"""
          |{
-         |   "cube":"wg_stats",
-         |   "sortBy":[
-         |      {
-         |         "field":"Spend Usd",
-         |         "order":"DESC"
-         |      }
-         |   ],
-         |   "selectFields":[
-         |      {
-         |         "field":"Day"
-         |      },
-         |      {
-         |        "field":"Hour"
-         |      },
-         |      {
-         |         "field":"Spend Usd"
-         |      }
-         |   ],
-         |   "paginationStartIndex":0,
-         |   "filterExpressions":[
-         |      {
-         |         "operator":"between",
-         |         "field":"Day",
-         |         "from":"$fromDate",
-         |         "to":"$toDate"
-         |      }
-         |   ],
-         |   "rowsPerPage":1000
+         |   "cube": "k_stats",
+         |                          "selectFields": [
+         |                            {"field": "Day"},
+         |                            {"field": "Keyword ID"},
+         |                            {"field": "Impressions"},
+         |                            {"field": "Advertiser Status"}
+         |                          ],
+         |                          "filterExpressions": [
+         |                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+         |                            {"field": "Advertiser ID", "operator": "=", "value": "5485"}
+         |                          ],
+         |                          "sortBy": [
+         |                            {"field": "Impressions", "order": "Asc"}
+         |                          ],
+         |                          "paginationStartIndex":0,
+         |                          "rowsPerPage":2
          |}
        """.stripMargin
-    val request: ReportingRequest = getReportingRequestSync(jsonString, InternalSchema)
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = getDefaultRegistry()
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
+    altQueryGeneratorRegistry.register(OracleEngine, new OracleQueryGenerator(DefaultPartitionColumnRenderer))
     val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
-
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
-    val druidExecutor = getDruidQueryExecutor("http://localhost:6667/mock/uncoveredNonempty")
+    val query =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
+    println(query.asString)
+    val executor = getDruidQueryExecutor("http://localhost:6667/mock/uncoveredNonempty")
+
+    val oracleExecutor = new MockOracleQueryExecutor(
+      { rl =>
+        println(rl.query.asString)
+        val expected =
+          s"""
+             |SELECT *
+             |FROM (SELECT to_char(ffst0.stats_date, 'YYYYMMdd') "Day", to_char(ffst0.id) "Keyword ID", coalesce(ffst0."impresssions", 1) "Impressions", ao1."Advertiser Status" "Advertiser Status"
+             |      FROM (SELECT
+             |                   advertiser_id, id, stats_date, SUM(impresssions) AS "impresssions"
+             |            FROM fd_fact_s_term FactAlias
+             |            WHERE (advertiser_id = 5485) AND (stats_date IN (to_date('${fromDate}', 'YYYYMMdd'),to_date('${toDate}', 'YYYYMMdd')))
+             |            GROUP BY advertiser_id, id, stats_date
+             |
+            |           ) ffst0
+             |           LEFT OUTER JOIN
+             |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+             |            FROM advertiser_oracle
+             |            WHERE (id = 5485)
+             |             )
+             |           ao1 ON (ffst0.advertiser_id = ao1.id)
+             |
+            |)
+             |   ORDER BY "Impressions" ASC NULLS LAST""".stripMargin
+
+        rl.query.asString should equal (expected) (after being whiteSpaceNormalised)
+
+        rl.foreach(r => println(s"Inside mock: $r"))
+        val row = rl.newRow
+        row.addValue("Keyword ID", 14)
+        row.addValue("Advertiser Status", "ON")
+        row.addValue("Impressions", 10)
+        rl.addRow(row)
+        val row2 = rl.newRow
+        row2.addValue("Keyword ID", 13)
+        row2.addValue("Advertiser Status", "ON")
+        row2.addValue("Impressions", 20)
+        rl.addRow(row2)
+      })
 
     val queryExecContext: QueryExecutorContext = new QueryExecutorContext
-    queryExecContext.register(druidExecutor)
+    queryExecContext.register(executor)
+    queryExecContext.register(oracleExecutor)
 
     val result = queryPipelineTry.toOption.get.execute(queryExecContext)
-    println(result.isSuccess)
     assert(result.isSuccess)
+
+    var str: String = ""
+    var count: Int = 0
+    result.get._1.foreach{
+      row => {
+        count += 1
+        str= str+s"$row"
+      }
+    }
+
+    assert(count==2)
+    val expected = "Row(Map(Day -> 0, Keyword ID -> 1, Impressions -> 2, Advertiser Status -> 3),ArrayBuffer(null, 14, 10, ON))Row(Map(Day -> 0, Keyword ID -> 1, Impressions -> 2, Advertiser Status -> 3),ArrayBuffer(null, 13, 20, ON))"
+    println(s"Actual: $str expected: ${expected}")
+    str should equal (expected) (after being whiteSpaceNormalised)
 
   }
 
