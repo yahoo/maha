@@ -286,7 +286,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
             val response : Response= httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
 
             if(response.getHeaders().containsKey(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT) && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)){
-              throw new IllegalStateException("Druid data missing, identified in uncoveredIntervals")
+              logger.error(s"${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)}", new IllegalStateException("Druid data missing, identified in uncoveredIntervals"))
             }
 
             DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,rl,(fieldList:List[JField] ) =>{
@@ -334,7 +334,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
             val response = httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
 
             if(response.getHeaders().containsKey(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT) && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)){
-              throw new IllegalStateException("Druid data missing, identified in uncoveredIntervals")
+              logger.error(s"${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)}", new IllegalStateException("Druid data missing, identified in uncoveredIntervals"))
             }
 
 
