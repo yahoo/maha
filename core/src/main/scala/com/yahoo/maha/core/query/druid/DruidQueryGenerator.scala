@@ -48,6 +48,7 @@ object DruidQueryOptimizer {
   val QUERY_PRIORITY = "priority"
   val GROUP_BY_STRATEGY = "groupByStrategy"
   val UNCOVERED_INTERVALS_LIMIT = "uncoveredIntervalsLimit"
+  val UNCOVERED_INTERVALS_LIMIT_VALUE = 1.asInstanceOf[AnyRef]
   val APPLY_LIMIT_PUSH_DOWN = "applyLimitPushDown"
   val ASYNC_QUERY_PRIORITY = -1
   val TIMEOUT = "timeout"
@@ -100,7 +101,7 @@ class SyncDruidQueryOptimizer(maxSingleThreadedDimCardinality: Long = DruidQuery
       case _ => //do nothing
     }
 
-    context.put(UNCOVERED_INTERVALS_LIMIT, 1.asInstanceOf[AnyRef])
+    context.put(UNCOVERED_INTERVALS_LIMIT, UNCOVERED_INTERVALS_LIMIT_VALUE)
     context.put(APPLY_LIMIT_PUSH_DOWN, "false")
   }
 }
