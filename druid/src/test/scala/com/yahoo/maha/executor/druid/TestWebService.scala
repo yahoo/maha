@@ -4,7 +4,7 @@ package com.yahoo.maha.executor.druid
 
 import java.util.concurrent.atomic.AtomicBoolean
 
-import org.http4s.HttpService
+import org.http4s.{Header, HttpService}
 import org.http4s.dsl._
 /**
  * Created by vivekch on 4/8/16.
@@ -12,6 +12,90 @@ import org.http4s.dsl._
 trait TestWebService {
   val failFirstBoolean = new AtomicBoolean(false)
   val service = HttpService {
+    case POST -> Root / ("uncoveredEmpty") =>
+      val uncovered =
+        """
+          |  [
+          |  {
+          |    "timestamp" : "2012-01-01T00:00:00.000Z",
+          |    "event" : {
+          |      "Pricing Type" : 11,
+          |      "Keyword ID": "10",
+          |      "Average Bid": 9,
+          |     "Max Bid": 163,
+          |     "Impressions":175,
+          |     "Conversions":15.0,
+          |     "Min Bid":184,
+          |     "Average Position":205,
+          |     "Week":"2017-26",
+          |     "show_sov_flag": "0",
+          |     "Impression Share": 0.4567
+          |    }
+          |  },
+          |  {
+          |    "timestamp" : "2012-01-01T00:00:12.000Z",
+          |    "event" : {
+          |    "Pricing Type" : 13,
+          |     "Keyword ID": "14",
+          |     "Average Bid": 15,
+          |     "Max Bid": 16,
+          |     "Impressions":17,
+          |     "Conversions":2.3,
+          |     "Min Bid":18,
+          |     "Average Position":20,
+          |     "Week":"2017-28",
+          |     "show_sov_flag": "1",
+          |     "Impression Share": 0.0123
+          |    }
+          |  }
+          |  ]
+          |
+          |
+        """.stripMargin
+      Ok(uncovered).putHeaders(Header("X-Druid-Response-Context", "{}"))
+
+    case POST -> Root / ("uncoveredNonempty") =>
+      val uncovered =
+        """
+          |  [
+          |  {
+          |    "timestamp" : "2012-01-01T00:00:00.000Z",
+          |    "event" : {
+          |      "Pricing Type" : 11,
+          |      "Keyword ID": "10",
+          |      "Average Bid": 9,
+          |     "Max Bid": 163,
+          |     "Impressions":175,
+          |     "Conversions":15.0,
+          |     "Min Bid":184,
+          |     "Average Position":205,
+          |     "Week":"2017-26",
+          |     "show_sov_flag": "0",
+          |     "Impression Share": 0.4567
+          |    }
+          |  },
+          |  {
+          |    "timestamp" : "2012-01-01T00:00:12.000Z",
+          |    "event" : {
+          |    "Pricing Type" : 13,
+          |     "Keyword ID": "14",
+          |     "Average Bid": 15,
+          |     "Max Bid": 16,
+          |     "Impressions":17,
+          |     "Conversions":2.3,
+          |     "Min Bid":18,
+          |     "Average Position":20,
+          |     "Week":"2017-28",
+          |     "show_sov_flag": "1",
+          |     "Impression Share": 0.0123
+          |    }
+          |  }
+          |  ]
+          |
+          |
+        """.stripMargin
+      Ok(uncovered).putHeaders(Header("X-Druid-Response-Context", "{\"uncoveredIntervals\":[2017-11-13T21:00:00.000Z/2017-11-14T00:00:00.000Z\"],\"uncoveredIntervalsOverflowed\":false}"))
+
     case POST -> Root /("groupby") =>
       val groupby ="""[
                      |  {

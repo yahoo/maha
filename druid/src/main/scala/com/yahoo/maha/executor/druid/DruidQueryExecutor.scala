@@ -13,6 +13,7 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.query.druid.{DruidQuery, GroupByDruidQuery, TimeseriesDruidQuery, TopNDruidQuery}
 import grizzled.slf4j.Logging
+import org.apache.http.HttpResponse
 import org.joda.time.format.DateTimeFormatter
 import org.json4s.DefaultFormats
 import org.json4s.JsonAST._
@@ -41,6 +42,9 @@ case class DruidQueryExecutorConfig(maxConnectionsPerHost:Int
                                      )
 
 object DruidQueryExecutor extends Logging {
+
+  val DRUID_RESPONSE_CONTEXT = "X-Druid-Response-Context"
+  val UNCOVERED_INTERVAL_VALUE = "uncoveredIntervals"
 
   implicit val formats = DefaultFormats
 
@@ -75,6 +79,7 @@ object DruidQueryExecutor extends Logging {
   def parseJsonAndPopulateResultSet[T <: RowList](query:Query,response:Response,rowList: T, getRow: List[JField] => Row, getEphemeralRow: List[JField] => Row,
                                                   transformers: List[ResultSetTransformers]  ) : Unit ={
     val jsonString : String = response.getResponseBody(StandardCharsets.UTF_8.displayName())
+
     if(query.queryContext.requestModel.isDebugEnabled) {
       info("received http response " + jsonString)
     }
@@ -255,6 +260,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
     , config.maxRetry
   )
   val url = config.url
+
   val headers = config.headers
 
 
@@ -275,7 +281,13 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
           val isFactDriven = query.queryContext.requestModel.isFactDriven
           val performJoin = irl.size > 0
           val result = Try {
-            val response = httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
+            val response : Response= httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
+
+            if(response.getHeaders().containsKey(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT) && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)){
+              val exception = new IllegalStateException("Druid data missing, identified in uncoveredIntervals")
+              logger.error(s"uncoveredIntervals Found: ${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)}")
+              throw exception
+            }
 
             DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,rl,(fieldList:List[JField] ) =>{
               val indexName =irl.indexAlias
@@ -320,6 +332,13 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
         case rl =>
           val result = Try {
             val response = httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
+
+            if(response.getHeaders().containsKey(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT) && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)){
+              val exception = new IllegalStateException("Druid data missing, identified in uncoveredIntervals")
+              logger.error(s"uncoveredIntervals Found: ${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)}")
+              throw exception
+            }
+
 
             DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,rl,(fieldList: List[JField]) =>{
               rowList.newRow
