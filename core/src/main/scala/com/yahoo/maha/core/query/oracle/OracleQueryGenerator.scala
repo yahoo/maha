@@ -56,6 +56,8 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
         generateDimFactQuery(context)
       case FactQueryContext(factBestCandidate, model, indexAliasOption, attributes) =>
         generateDimFactQuery(CombinedQueryContext(SortedSet.empty, factBestCandidate, model, attributes))
+      case context: DimFactOuterGroupByQueryQueryContext =>
+        generateDimFactOuterGroupByQuery(context)
       case a => throw new IllegalArgumentException(s"Unhandled query context : $a")
     }
   }

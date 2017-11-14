@@ -34,6 +34,10 @@ class QueryBuilder(val initSize: Int, val orderBySize: Int) {
    */
   private[this] val groupByExpressions: LinkedHashSet[String] = LinkedHashSet.empty
   /**
+   * The list of GROUP BY clauses for the inner fact SELECT
+   */
+  private[this] val outerGroupByExpressions: LinkedHashSet[String] = LinkedHashSet.empty
+  /**
    * The list of ORDER BY expressions for the outer most query
    */
   private[this] lazy val orderByExpressions: LinkedHashSet[String] = LinkedHashSet.empty
@@ -79,6 +83,14 @@ class QueryBuilder(val initSize: Int, val orderBySize: Int) {
 
   def getGroupByClause: String = {
     if (getGroupByExpressionsList.isEmpty) "" else s"GROUP BY $getGroupByExpression"
+  }
+
+  def getOuterGroupByClause: String = {
+     if (outerGroupByExpressions.isEmpty) "" else s"GROUP BY ${outerGroupByExpressions.mkString(", ")}"
+  }
+
+  def setOuterGroupByExpressions(outerGroupBy: String) {
+     this.outerGroupByExpressions.add(outerGroupBy)
   }
 
   def getOrderByExpressionsList: LinkedHashSet[String] = {

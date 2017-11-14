@@ -544,6 +544,7 @@ object DefaultQueryPipelineFactory extends Logging {
                   , hasNonFKOrForcedFilters = dc.hasNonFKOrForcedFilters
                   , hasNonFKSortBy = dc.hasNonFKSortBy
                   , hasNonPushDownFilters = hasNonPushDownFilters
+                  , hasPKRequested = dc.hasPKRequested
                 )
               }
             }
@@ -590,8 +591,12 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
   private[this] def getDimFactQuery(bestDimCandidates: SortedSet[DimensionBundle],
                                     bestFactCandidate: FactBestCandidate,
                                     requestModel: RequestModel, queryAttributes: QueryAttributes): Query = {
+    val queryType = if (isOuterGroupByQuery(bestDimCandidates, bestFactCandidate, requestModel)) {
+        DimFactOuterGroupByQuery
+    } else DimFactQuery
+
     val dimFactContext = QueryContext
-      .newQueryContext(DimFactQuery, requestModel)
+      .newQueryContext(queryType, requestModel)
       .addDimTable(bestDimCandidates)
       .addFactBestCandidate(bestFactCandidate)
       .setQueryAttributes(queryAttributes)
@@ -600,6 +605,24 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
     require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine)
       , s"No query generator registered for engine ${bestFactCandidate.fact.engine} for fact ${bestFactCandidate.fact.name}")
     queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine).get.generate(dimFactContext)
+  }
+
+  private[this] def isOuterGroupByQuery(bestDimCandidates: SortedSet[DimensionBundle],
+                                        bestFactCandidate: FactBestCandidate,
+                                        requestModel: RequestModel): Boolean = {
+    /*
+OuterGroupBy operation has to be applied only in the following cases
+   1. No Dim col (ID or Non ID) is projected from fact candidate
+   AND
+   2. Dim PKID is not projected
+   AND
+   3. Dim Non PK ID is projected
+   AND
+   4. Request is not dimension driven
+ */
+    val isDimColProjectedFromFact = bestFactCandidate.dimColMapping.map(_._2).filter(requestModel.requestColsSet.contains(_)).nonEmpty
+    val hasOuterGroupBy = !isDimColProjectedFromFact && !bestDimCandidates.exists(_.hasPKRequested) && bestDimCandidates.nonEmpty && !requestModel.isDimDriven
+    hasOuterGroupBy
   }
 
   private[this] def getViewQueryList(bestFactCandidate: FactBestCandidate, requestModel: RequestModel, queryAttributes: QueryAttributes): List[Query] = {

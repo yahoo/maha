@@ -30,6 +30,7 @@ case class DimensionCandidate(dim: PublicDimension
                               , hasNonFKSortBy: Boolean
                               , hasNonFKNonPKSortBy: Boolean
                               , hasLowCardinalityFilter: Boolean
+                              , hasPKRequested : Boolean
                                )
 
 object DimensionCandidate {
@@ -231,6 +232,7 @@ object RequestModel extends Logging {
           val allRequestedDimensionPrimaryKeyAliases = new mutable.TreeSet[String]()
           val allRequestedNonFactAliases = new mutable.TreeSet[String]()
           val allDependentColumns = new mutable.TreeSet[String]()
+          val allProjectedAliases = request.selectFields.map(f=> f.field).toSet
 
           // populate all requested fields into allRequestedAliases
           request.selectFields.view.filter(field => field.value.isEmpty).foreach { field =>
@@ -782,6 +784,7 @@ object RequestModel extends Logging {
                               , hasNonFKSortBy
                               , hasNonFKNonPKSortBy
                               , hasLowCardinalityFilter
+                              , hasPKRequested = allProjectedAliases.contains(publicDim.primaryKeyByAlias)
                             )
 
                         }
@@ -809,6 +812,7 @@ object RequestModel extends Logging {
                       , hasNonFKSortBy
                       , hasNonFKNonPKSortBy
                       , hasLowCardinalityFilter
+                      , hasPKRequested = allProjectedAliases.contains(publicDim.primaryKeyByAlias)
                     )
                     allRequestedDimAliases ++= requestedDimAliases
                     // Adding current dimension to uppper dimension candidates
