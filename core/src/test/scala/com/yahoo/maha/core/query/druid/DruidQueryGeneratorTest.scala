@@ -830,6 +830,7 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     val json = s""""filter":{"type":"and","fields":[{"type":"or","fields":[{"type":"selector","dimension":"__time","value":"$fromDate","extractionFn":{"type":"timeFormat","format":"YYYY-MM-dd","timeZone":"UTC","granularity":{"type":"none"}}},{"type":"selector","dimension":"__time","value":"$toDate","extractionFn":{"type":"timeFormat","format":"YYYY-MM-dd","timeZone":"UTC","granularity":{"type":"none"}}}]}"""
+    println(result)
 
     assert(result.contains(json), result)
   }
@@ -1806,6 +1807,38 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
 
     val json = """\{"queryType":"topN","dataSource":\{"type":"table","name":"fact1"\},"dimension":\{"type":"default","dimension":"id","outputName":"Keyword ID"\},"metric":\{"type":"numeric","metric":"Impressions"\},"threshold":120,"intervals":\{"type":"intervals","intervals":\[".*"\]\},"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\},\{"type":"or","fields":\[\{"type":"selector","dimension":"stats_source","value":"1"\},\{"type":"selector","dimension":"stats_source","value":"2"\}\]\}\]\},"granularity":\{"type":"all"\},"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"doubleSum","name":"_sum_avg_bid","fieldName":"avg_bid"\},\{"type":"count","name":"_count_avg_bid"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Average Bid","fn":"/","fields":\[\{"type":"fieldAccess","name":"_sum_avg_bid","fieldName":"_sum_avg_bid"\},\{"type":"fieldAccess","name":"_count_avg_bid","fieldName":"_count_avg_bid"\}\]\}\],"context":\{"applyLimitPushDown":"false","userId":"someUser","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\},"descending":false\}"""
+
+    result should fullyMatch regex json
+  }
+
+  test("Ensure generated to-date interval does not exceed current UTC time.") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val json =
+      """\{"queryType":"topN","dataSource":\{"type":"table","name":"fact1"\},"dimension":\{"type":"default","dimension":"id","outputName":"Keyword ID"\},"metric":\{"type":"numeric","metric":"Impressions"\},"threshold":120,"intervals":\{"type":"intervals","intervals":\[".*T00:00:00.000Z/.*T00:00:00.000Z",".*T00:00:00.000Z/""" + s"""${toDate}T.*Z"""" + """\]\},"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\}\]\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\}\],"postAggregations":\[\],"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}""".stripMargin
+    println(result)
 
     result should fullyMatch regex json
   }

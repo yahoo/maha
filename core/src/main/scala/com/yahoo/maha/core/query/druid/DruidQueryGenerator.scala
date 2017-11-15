@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query.druid
 
-import java.util.UUID
+import java.util.{Date, UUID}
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include
 import com.google.common.collect.{Lists, Maps}
@@ -33,7 +33,7 @@ import io.druid.query.spec.{MultipleIntervalSegmentSpec, QuerySegmentSpec}
 import io.druid.query.timeseries.TimeseriesResultValue
 import io.druid.query.topn.{InvertedTopNMetricSpec, NumericTopNMetricSpec, TopNQueryBuilder, TopNResultValue}
 import io.druid.query.{Druids, Result}
-import org.joda.time.{DateTime, Interval}
+import org.joda.time.{DateTime, DateTimeZone, Interval}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.{SortedSet, mutable}
@@ -575,10 +575,20 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     }
   }
 
+  private[this] def plusDays(date: DateTime, num: Int): DateTime = {
+    val currentTime = new DateTime(new Date()).withZone(DateTimeZone.UTC)
+    if(date.plusDays(1).isAfterNow()) {
+      currentTime
+    }
+    else {
+      date.plusDays(1)
+    }
+  }
+
   private[this] def getBetweenDates(model: RequestModel): (DateTime, DateTime) = {
     val (dayFrom, dayTo) = {
       val (f, t) = FilterDruid.extractFromAndToDate(model.utcTimeDayFilter, DailyGrain)
-      (f, t.plusDays(1))
+        (f, plusDays(t, 1))
     }
 
     val (dayWithHourFrom, dayWithHourTo) = model.utcTimeHourFilter.fold((dayFrom, dayTo)) {
@@ -598,7 +608,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     val (dayFrom, dayTo) = model.utcTimeDayFilter match {
       case EqualityFilter(_, value, _, _) =>
         val f = DailyGrain.fromFormattedString(value)
-        (f, f.plusDays(1))
+        (f, plusDays(f, 1))
       case any => throw new UnsupportedOperationException(s"Only equality filter supported : $any")
     }
     val (dayWithHourFrom, dayWithHourTo) = model.utcTimeHourFilter.fold((dayFrom, dayTo)) {
@@ -626,7 +636,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         val intervals = values.map {
           d =>
             val f = DailyGrain.fromFormattedString(d)
-            val t = f.plusDays(1)
+            val t = plusDays(f, 1)
             new Interval(f, t)
         }
         new MultipleIntervalSegmentSpec(intervals.asJava)
