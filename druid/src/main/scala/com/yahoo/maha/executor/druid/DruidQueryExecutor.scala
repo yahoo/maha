@@ -294,7 +294,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
           val result = Try {
             val response : Response= httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
 
-            checkUncoveredIntervals(query, response)
+            val temp = checkUncoveredIntervals(query, response)
 
             DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,rl,(fieldList:List[JField] ) =>{
               val indexName =irl.indexAlias
@@ -340,7 +340,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
           val result = Try {
             val response = httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
 
-            checkUncoveredIntervals(query, response)
+            val temp = checkUncoveredIntervals(query, response)
 
             DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,rl,(fieldList: List[JField]) =>{
               rowList.newRow

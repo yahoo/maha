@@ -475,7 +475,9 @@ object FilterDruid {
         g.fromFormattedString(to)
       case InFilter(_, values, _, _) =>
         g.fromFormattedString(values.max)
-      case any => throw new UnsupportedOperationException(s"Only between filter supported : $any")
+      case EqualityFilter(_, from, _, _) =>
+        g.fromFormattedString(from)
+      case any => throw new UnsupportedOperationException(s"Only Between/In/Equality filter supported : $any")
     }
   }
 
