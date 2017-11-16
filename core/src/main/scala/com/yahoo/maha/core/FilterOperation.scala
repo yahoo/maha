@@ -469,6 +469,16 @@ object FilterDruid {
     }
   }
 
+  def getMaxDate(f: Filter, g: Grain) : DateTime = {
+    f match {
+      case BetweenFilter(_, from, to) =>
+        g.fromFormattedString(to)
+      case InFilter(_, values, _, _) =>
+        g.fromFormattedString(values.max)
+      case any => throw new UnsupportedOperationException(s"Only between filter supported : $any")
+    }
+  }
+
   private[this] def processBetweenFilterForDate(fromDate: DateTime, toDate: DateTime, grain: Grain, columnAlias: String, column: Column, columnsByNameMap: Map[String, Column]) : DimFilter = {
     val values: List[String] = {
       val dates = new mutable.HashSet[String]()

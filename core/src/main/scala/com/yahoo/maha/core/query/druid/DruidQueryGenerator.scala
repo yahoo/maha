@@ -575,20 +575,10 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     }
   }
 
-  private[this] def plusDays(date: DateTime, num: Int): DateTime = {
-    val currentTime = new DateTime(new Date()).withZone(DateTimeZone.UTC)
-    if(date.plusDays(1).isAfterNow()) {
-      currentTime
-    }
-    else {
-      date.plusDays(1)
-    }
-  }
-
   private[this] def getBetweenDates(model: RequestModel): (DateTime, DateTime) = {
     val (dayFrom, dayTo) = {
       val (f, t) = FilterDruid.extractFromAndToDate(model.utcTimeDayFilter, DailyGrain)
-        (f, plusDays(t, 1))
+        (f, t.plusDays(1))
     }
 
     val (dayWithHourFrom, dayWithHourTo) = model.utcTimeHourFilter.fold((dayFrom, dayTo)) {
@@ -608,7 +598,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     val (dayFrom, dayTo) = model.utcTimeDayFilter match {
       case EqualityFilter(_, value, _, _) =>
         val f = DailyGrain.fromFormattedString(value)
-        (f, plusDays(f, 1))
+        (f, f.plusDays(1))
       case any => throw new UnsupportedOperationException(s"Only equality filter supported : $any")
     }
     val (dayWithHourFrom, dayWithHourTo) = model.utcTimeHourFilter.fold((dayFrom, dayTo)) {
@@ -636,7 +626,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         val intervals = values.map {
           d =>
             val f = DailyGrain.fromFormattedString(d)
-            val t = plusDays(f, 1)
+            val t = f.plusDays(1)
             new Interval(f, t)
         }
         new MultipleIntervalSegmentSpec(intervals.asJava)
