@@ -269,7 +269,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
 
   def checkUncoveredIntervals(query : Query, response : Response) : Unit = {
     val requestModel = query.queryContext.requestModel
-    val latestDate : DateTime = requestModel.queryGrain.getOrElse(DailyGrain).fromFormattedString(requestModel.getMostRecentRequestedDate())
+    val latestDate : DateTime = FilterDruid.getMaxDate(requestModel.utcTimeDayFilter, DailyGrain)
     if(!latestDate.isAfterNow() && response.getHeaders().containsKey(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT) && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)){
       val exception = new IllegalStateException("Druid data missing, identified in uncoveredIntervals")
       logger.error(s"uncoveredIntervals Found: ${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)}")
