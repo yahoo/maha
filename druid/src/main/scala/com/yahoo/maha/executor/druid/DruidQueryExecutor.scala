@@ -3,7 +3,6 @@
 package com.yahoo.maha.executor.druid
 
 import java.io.Closeable
-import java.lang.IllegalStateException
 import java.math.MathContext
 import java.nio.charset.StandardCharsets
 
@@ -13,7 +12,6 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.query.druid.{DruidQuery, GroupByDruidQuery, TimeseriesDruidQuery, TopNDruidQuery}
 import grizzled.slf4j.Logging
-import org.apache.http.HttpResponse
 import org.joda.time.format.DateTimeFormatter
 import org.json4s.DefaultFormats
 import org.json4s.JsonAST._
@@ -39,6 +37,7 @@ case class DruidQueryExecutorConfig(maxConnectionsPerHost:Int
                                     , enableRetryOn500:Boolean
                                     , retryDelayMillis:Int
                                     , maxRetry: Int
+                                    , enableFallbackOnUncoveredIntervals: Boolean = false
                                      )
 
 object DruidQueryExecutor extends Logging {
@@ -283,7 +282,9 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
           val result = Try {
             val response : Response= httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
 
-            if(response.getHeaders().containsKey(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT) && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)){
+            if (config.enableFallbackOnUncoveredIntervals
+              && response.getHeaders().containsKey(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)
+              && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)) {
               val exception = new IllegalStateException("Druid data missing, identified in uncoveredIntervals")
               logger.error(s"uncoveredIntervals Found: ${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)}")
               throw exception
@@ -333,7 +334,9 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
           val result = Try {
             val response = httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
 
-            if(response.getHeaders().containsKey(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT) && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)){
+            if (config.enableFallbackOnUncoveredIntervals
+                && response.getHeaders().containsKey(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)
+                && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)) {
               val exception = new IllegalStateException("Druid data missing, identified in uncoveredIntervals")
               logger.error(s"uncoveredIntervals Found: ${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)}")
               throw exception
