@@ -2048,7 +2048,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
   //Test if there are nonempty uncovered intervals, meaning an IllegalStateException
   // should be thrown so that response can fallback to Oracle.
-  test("Uncovered Interval response") {
+  /*test("Uncovered Interval response") {
 
     val jsonString =
       s"""
@@ -2147,6 +2147,6 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     println(s"Actual: $str expected: ${expected}")
     str should equal (expected) (after being whiteSpaceNormalised)
 
-  }
+  }*/
 
 }

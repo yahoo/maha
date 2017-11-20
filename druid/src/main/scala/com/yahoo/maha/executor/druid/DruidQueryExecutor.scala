@@ -273,7 +273,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
     if(latestDate.isBeforeNow() && response.getHeaders().containsKey(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT) && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)){
       val exception = new IllegalStateException("Druid data missing, identified in uncoveredIntervals")
       logger.error(s"uncoveredIntervals Found: ${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)}")
-      throw exception
+      //throw exception // will add-back in a week, assuming few enough intervals are found.
     }
   }
 
