@@ -578,7 +578,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
   private[this] def getBetweenDates(model: RequestModel): (DateTime, DateTime) = {
     val (dayFrom, dayTo) = {
       val (f, t) = FilterDruid.extractFromAndToDate(model.utcTimeDayFilter, DailyGrain)
-        (f, t.plusDays(1))
+      (f, t.plusDays(1))
     }
 
     val (dayWithHourFrom, dayWithHourTo) = model.utcTimeHourFilter.fold((dayFrom, dayTo)) {
