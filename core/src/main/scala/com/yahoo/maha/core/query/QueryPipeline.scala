@@ -384,7 +384,7 @@ object DefaultQueryPipelineFactory extends Logging {
     }
   }
 
-  def findBestFactCandidate(requestModel: RequestModel, forceDisqualifySet: Set[Engine] = Set.empty, dimEngines: Set[Engine]): FactBestCandidate = {
+  def findBestFactCandidate(requestModel: RequestModel, forceDisqualifySet: Set[Engine] = Set.empty, dimEngines: Set[Engine], queryGeneratorRegistry: QueryGeneratorRegistry): FactBestCandidate = {
     require(requestModel.bestCandidates.isDefined, s"Cannot create fact best candidate without best candidates : $requestModel")
     //schema specific rules?
     requestModel.schema match {
@@ -435,7 +435,7 @@ object DefaultQueryPipelineFactory extends Logging {
           info(s"disqualifySet = $disqualifySet")
         }
         val result: IndexedSeq[(String, Engine, Long, Int, Int)] = requestModel.factCost.toIndexedSeq.collect {
-          case ((fn, engine), rowcost) if EngineConstraint.canSupportFilter(engine, requestModel.factFilters) && (forceEngine.contains(engine) || (!disqualifySet(engine) && forceEngine.isEmpty)) =>
+          case ((fn, engine), rowcost) if queryGeneratorRegistry.getGenerator(engine).get.validateEngineConstraints(requestModel) && (forceEngine.contains(engine) || (!disqualifySet(engine) && forceEngine.isEmpty)) =>
             val fact = requestModel.bestCandidates.get.facts(fn).fact
             val level = fact.level
             val dimCardinality: Long = requestModel.dimCardinalityEstimate.getOrElse(fact.defaultCardinality)
@@ -629,7 +629,7 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
   }
 
   protected def findBestFactCandidate(requestModel: RequestModel, forceDisqualifySet: Set[Engine] = Set.empty, dimEngines: Set[Engine]): FactBestCandidate = {
-    DefaultQueryPipelineFactory.findBestFactCandidate(requestModel, forceDisqualifySet, dimEngines)
+    DefaultQueryPipelineFactory.findBestFactCandidate(requestModel, forceDisqualifySet, dimEngines, queryGeneratorRegistry)
   }
 
   protected def findBestDimCandidates(requestModel: RequestModel, factEngine: Engine, dimMapping: Map[String, SortedSet[DimensionBundle]]): SortedSet[DimensionBundle] = {
@@ -806,7 +806,7 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
       val dimEngines : Set[Engine] = dimensionCandidatesMapping.flatMap(_._2.map(_.dim.engine)).toSet
       val factBestCandidateOption =
         requestModel.bestCandidates.map(_ => findBestFactCandidate(requestModel, forceDisqualifyEngine, dimEngines))
-      val dimensionCandidates = findBestDimCandidates(requestModel, factBestCandidateOption.map(_.fact.engine).getOrElse(OracleEngine), dimensionCandidatesMapping).filter(db => EngineConstraint.canSupportFilter(db.dim.engine, db.filters))
+      val dimensionCandidates = findBestDimCandidates(requestModel, factBestCandidateOption.map(_.fact.engine).getOrElse(OracleEngine), dimensionCandidatesMapping).filter(db => queryGeneratorRegistry.getGenerator(db.dim.engine).get.validateEngineConstraints(requestModel))
       (factBestCandidateOption, dimensionCandidates)
     }
 
