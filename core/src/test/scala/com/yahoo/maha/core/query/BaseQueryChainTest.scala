@@ -69,14 +69,14 @@ trait BaseQueryChainTest {
   }
 
   def getFactQueryContext(engine: Engine,model: RequestModel, indexOption: Option[String], queryAttributes: QueryAttributes) : FactQueryContext = {
-    val fact = DefaultQueryPipelineFactory.findBestFactCandidate(model, dimEngines = Set(engine))
+    val fact = DefaultQueryPipelineFactory.findBestFactCandidate(model, dimEngines = Set(engine), queryGeneratorRegistry = new QueryGeneratorRegistry)
     FactQueryContext(fact, model, indexOption, queryAttributes)
   }
 
   def getCombinedQueryContext(engine: Engine,model: RequestModel, indexOption: Option[String], queryAttributes: QueryAttributes) : CombinedQueryContext = {
     val dimMapping = DefaultQueryPipelineFactory.findDimCandidatesMapping(model)
     val dims = DefaultQueryPipelineFactory.findBestDimCandidates(engine, model.schema, dimMapping)
-    val fact = DefaultQueryPipelineFactory.findBestFactCandidate(model, dimEngines = Set(engine))
+    val fact = DefaultQueryPipelineFactory.findBestFactCandidate(model, dimEngines = Set(engine), queryGeneratorRegistry = new QueryGeneratorRegistry)
     CombinedQueryContext(dims, fact, model, queryAttributes)
   }
 
