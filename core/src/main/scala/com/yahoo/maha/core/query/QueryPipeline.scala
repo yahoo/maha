@@ -435,7 +435,7 @@ object DefaultQueryPipelineFactory extends Logging {
           info(s"disqualifySet = $disqualifySet")
         }
         val result: IndexedSeq[(String, Engine, Long, Int, Int)] = requestModel.factCost.toIndexedSeq.collect {
-          case ((fn, engine), rowcost) if queryGeneratorRegistry.getGenerator(engine).get.validateEngineConstraints(requestModel) && (forceEngine.contains(engine) || (!disqualifySet(engine) && forceEngine.isEmpty)) =>
+          case ((fn, engine), rowcost) if (!queryGeneratorRegistry.getGenerator(engine).isDefined || queryGeneratorRegistry.getGenerator(engine).get.validateEngineConstraints(requestModel)) && (forceEngine.contains(engine) || (!disqualifySet(engine) && forceEngine.isEmpty)) =>
             val fact = requestModel.bestCandidates.get.facts(fn).fact
             val level = fact.level
             val dimCardinality: Long = requestModel.dimCardinalityEstimate.getOrElse(fact.defaultCardinality)
@@ -806,7 +806,10 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
       val dimEngines : Set[Engine] = dimensionCandidatesMapping.flatMap(_._2.map(_.dim.engine)).toSet
       val factBestCandidateOption =
         requestModel.bestCandidates.map(_ => findBestFactCandidate(requestModel, forceDisqualifyEngine, dimEngines))
-      val dimensionCandidates = findBestDimCandidates(requestModel, factBestCandidateOption.map(_.fact.engine).getOrElse(OracleEngine), dimensionCandidatesMapping).filter(db => queryGeneratorRegistry.getGenerator(db.dim.engine).get.validateEngineConstraints(requestModel))
+      val dimensionCandidates = findBestDimCandidates(requestModel, factBestCandidateOption.map(_.fact.engine).getOrElse(OracleEngine), dimensionCandidatesMapping).filter(db => {
+        val queryGenerator = queryGeneratorRegistry.getGenerator(db.dim.engine)
+        !queryGenerator.isDefined || queryGenerator.get.validateEngineConstraints(requestModel)
+      })
       (factBestCandidateOption, dimensionCandidates)
     }
 
