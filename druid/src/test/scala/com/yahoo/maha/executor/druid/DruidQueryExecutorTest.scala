@@ -2042,9 +2042,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
   }
 
-  //Test if there are nonempty uncovered intervals, meaning an IllegalStateException
-  // should be thrown so that response can fallback to Oracle.
-  test("Uncovered Interval response") {
+  test("Uncovered Interval response: should not fall back") {
 
     val jsonString =
       s"""
@@ -2129,8 +2127,8 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val result = queryPipelineTry.toOption.get.execute(queryExecContext)
     assert(result.isSuccess)
 
-    val expected = List("Row(Map(Day -> 0, Keyword ID -> 1, Impressions -> 2, Advertiser Status -> 3),ArrayBuffer(null, 14, 10, ON))"
-    , "Row(Map(Day -> 0, Keyword ID -> 1, Impressions -> 2, Advertiser Status -> 3),ArrayBuffer(null, 13, 20, ON))")
+    val expected = List("Row(Map(Day -> 0, Keyword ID -> 1, Impressions -> 2, Advertiser Status -> 3),ArrayBuffer(null, 10, 175, null))"
+    , "Row(Map(Day -> 0, Keyword ID -> 1, Impressions -> 2, Advertiser Status -> 3),ArrayBuffer(null, 14, 17, null))")
 
     result.get._1.foreach {
       row =>
