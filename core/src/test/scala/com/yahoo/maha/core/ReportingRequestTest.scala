@@ -7,11 +7,10 @@ import java.nio.charset.StandardCharsets
 import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
 import com.yahoo.maha.core.request.ReportFormatType.{CSVFormat, JsonFormat}
 import com.yahoo.maha.core.request._
+import org.apache.commons.lang3.StringUtils.EMPTY
 import org.joda.time.DateTimeZone
 import org.json4s.scalaz.JsonScalaz
 import org.scalatest.FlatSpec
-import org.apache.commons.lang3.StringUtils.EMPTY
-import org.hamcrest.core.IsNull
 
 import scalaz.{IList, ValidationNel}
 

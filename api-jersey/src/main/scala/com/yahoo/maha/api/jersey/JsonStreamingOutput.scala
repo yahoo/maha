@@ -37,6 +37,7 @@ case class JsonStreamingOutput(requestModel:RequestModel, rowList: RowList) exte
 
     requestedCols.foreach {
       columnInfo => {
+        requestModel.dimColumnAliases
         val isKey: Boolean = {
           if (rowList.query.aliasColumnMap.contains(columnInfo.alias))
             rowList.query.aliasColumnMap(columnInfo.alias).isKey

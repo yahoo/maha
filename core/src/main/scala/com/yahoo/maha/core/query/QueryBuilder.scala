@@ -14,6 +14,10 @@ class QueryBuilder(val initSize: Int, val orderBySize: Int) {
    */
   private[this] val outerSelectColumns: LinkedHashSet[String] = new LinkedHashSet()
   /**
+   * The list of items for the fact + dimension group by view SELECT
+   */
+  private[this] val preOuterSelectColumns: LinkedHashSet[String] = new LinkedHashSet()
+  /**
    * The list of items for the fact view SELECT
    */
   private[this] val factViewColumns: LinkedHashSet[String] = new LinkedHashSet[String]()
@@ -69,6 +73,14 @@ class QueryBuilder(val initSize: Int, val orderBySize: Int) {
     outerSelectColumns.mkString(", ")
   }
 
+  def addPreOuterColumn(col: String) = {
+    preOuterSelectColumns +=col
+  }
+
+  def getPreOuterColumns : String = {
+    preOuterSelectColumns.mkString(", ")
+  }
+
   def addGroupBy(expr: String) {
      groupByExpressions add expr
   }
@@ -89,7 +101,7 @@ class QueryBuilder(val initSize: Int, val orderBySize: Int) {
      if (outerGroupByExpressions.isEmpty) "" else s"GROUP BY ${outerGroupByExpressions.mkString(", ")}"
   }
 
-  def setOuterGroupByExpressions(outerGroupBy: String) {
+  def addOuterGroupByExpressions(outerGroupBy: String) {
      this.outerGroupByExpressions.add(outerGroupBy)
   }
 
