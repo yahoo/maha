@@ -97,7 +97,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     //test with oracle
     {
       val builder = new QueryContextBuilder(FactOnlyQuery, requestModel.get)
-      val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(OracleEngine))
+      val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(OracleEngine), queryGeneratorRegistry = queryGeneratorRegistry)
       builder.addFactBestCandidate(fact)
       val result = getOracleQuery(builder.build()).asString
       println(s"Fact Query Result:\n$result")
@@ -107,7 +107,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     //test with hive
     {
       val builder = new QueryContextBuilder(FactOnlyQuery, requestModel.get)
-      val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(HiveEngine))
+      val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(HiveEngine), queryGeneratorRegistry = queryGeneratorRegistry)
       builder.addFactBestCandidate(fact)
       val result = getHiveQuery(builder.build()).asString
       assert(result.contains("""SELECT CONCAT_WS(",",NVL(mang_day, ''), NVL(advertiser_id, ''), NVL(campaign_id, ''), NVL(ad_group_id, ''), NVL(mang_source, ''), NVL(mang_pricing_type, ''), NVL(mang_destination_url, ''), NVL(mang_impressions, ''), NVL(mang_clicks, ''))"""))
@@ -116,7 +116,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     //test with druid
     {
       val builder = new QueryContextBuilder(FactOnlyQuery, requestModel.get)
-      val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(DruidEngine))
+      val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(DruidEngine), queryGeneratorRegistry = queryGeneratorRegistry)
       builder.addFactBestCandidate(fact)
       val result = getDruidQuery(builder.build()).asString
       assert(result.contains("""{"queryType":"groupBy","dataSource":{"type":"table","name":"fact_druid"},"""))
@@ -210,7 +210,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     //test with oracle only
     {
       val builder = new QueryContextBuilder(DimFactQuery, requestModel.get.copy(additionalParameters = Map(Parameter.QueryEngine -> QueryEngineValue(OracleEngine))))
-      val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(OracleEngine))
+      val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(OracleEngine), queryGeneratorRegistry = queryGeneratorRegistry)
       val dimMapping = DefaultQueryPipelineFactory.findDimCandidatesMapping(requestModel.get)
       val dims = DefaultQueryPipelineFactory.findBestDimCandidates(OracleEngine, requestModel.get.schema, dimMapping)
       builder.addDimTable(dims)
@@ -233,7 +233,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     {
       val model = requestModel.get.copy(additionalParameters = Map(Parameter.QueryEngine -> QueryEngineValue(DruidEngine)))
       val builder = new QueryContextBuilder(FactOnlyQuery, model)
-      val fact = DefaultQueryPipelineFactory.findBestFactCandidate(model, dimEngines = Set(DruidEngine))
+      val fact = DefaultQueryPipelineFactory.findBestFactCandidate(model, dimEngines = Set(DruidEngine), queryGeneratorRegistry = queryGeneratorRegistry)
       builder.addFactBestCandidate(fact)
       val result = getDruidQuery(builder.build()).asString
       assert(result.contains("""{"queryType":"groupBy","dataSource":{"type":"table","name":"fact_druid"},"""))
@@ -277,7 +277,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     //test with oracle only
     {
       val builder = new QueryContextBuilder(DimFactQuery, requestModel.get)
-      val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(OracleEngine))
+      val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(OracleEngine), queryGeneratorRegistry = queryGeneratorRegistry)
       val dimMapping = DefaultQueryPipelineFactory.findDimCandidatesMapping(requestModel.get)
       val dims = DefaultQueryPipelineFactory.findBestDimCandidates(OracleEngine, requestModel.get.schema, dimMapping)
       builder.addDimTable(dims)
@@ -289,7 +289,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     //test with hive only
     {
       val builder = new QueryContextBuilder(DimFactQuery, requestModel.get)
-      val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(HiveEngine))
+      val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(HiveEngine), queryGeneratorRegistry = queryGeneratorRegistry)
       val dimMapping = DefaultQueryPipelineFactory.findDimCandidatesMapping(requestModel.get)
       val dims = DefaultQueryPipelineFactory.findBestDimCandidates(HiveEngine, requestModel.get.schema, dimMapping)
       builder.addDimTable(dims)
@@ -312,7 +312,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     //test with druid fact only
     {
       val builder = new QueryContextBuilder(FactOnlyQuery, requestModel.get)
-      val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(DruidEngine))
+      val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(DruidEngine), queryGeneratorRegistry = queryGeneratorRegistry)
       builder.addFactBestCandidate(fact)
       val result = getDruidQuery(builder.build()).asString
       assert(result.contains("""{"queryType":"groupBy","dataSource":{"type":"table","name":"fact_druid"},"""))
@@ -414,7 +414,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     val builder = new QueryContextBuilder(FactOnlyQuery, requestModel.get)
-    val bestFact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, Set.empty, Set(OracleEngine, DruidEngine))
+    val bestFact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, Set.empty, Set(OracleEngine, DruidEngine), queryGeneratorRegistry = queryGeneratorRegistry)
     builder.addFactBestCandidate(bestFact)
     val queryContext = builder.build()
     require(queryContext.isInstanceOf[FactualQueryContext])

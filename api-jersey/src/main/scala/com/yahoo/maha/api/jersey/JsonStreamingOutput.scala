@@ -35,6 +35,10 @@ case class JsonStreamingOutput(requestModel:RequestModel, rowList: RowList) exte
     jsonGenerator.writeFieldName("fields") // "fields":
     jsonGenerator.writeStartArray() // [
 
+    val dimCols : Set[String]  = if(requestModel.bestCandidates.isDefined) {
+      requestModel.bestCandidates.get.publicFact.dimCols.map(_.alias)
+    } else Set.empty
+
     requestedCols.foreach {
       columnInfo => {
         requestModel.dimColumnAliases
@@ -45,7 +49,7 @@ case class JsonStreamingOutput(requestModel:RequestModel, rowList: RowList) exte
             false
         }
         val columnType: String = {
-          if ((columnInfo.isInstanceOf[DimColumnInfo] && isKey) || (columnInfo.isInstanceOf[FactColumnInfo] && isKey) || "Hour".equals(columnInfo.alias) || "Day".equals(columnInfo.alias))
+          if (columnInfo.isInstanceOf[DimColumnInfo] || dimCols.contains(columnInfo.alias) || "Hour".equals(columnInfo.alias) || "Day".equals(columnInfo.alias))
             "DIM"
           else if (columnInfo.isInstanceOf[FactColumnInfo])
             "FACT"

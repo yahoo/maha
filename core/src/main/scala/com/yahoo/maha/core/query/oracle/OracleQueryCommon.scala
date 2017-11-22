@@ -5,6 +5,7 @@ import com.yahoo.maha.core.dimension.{DimCol, Dimension, OracleAdvertiserHashPar
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query.{BaseQueryGenerator, QueryBuilderContext, QueryContext}
 
+import scala.collection.SortedSet
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -44,6 +45,20 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
   def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], isFactOnlyQuery: Boolean, isDimOnly: Boolean, queryContext: QueryContext): String
 
   protected[this] val factAlias: String = "FactAlias"
+
+  override def validateEngineConstraints(requestModel: RequestModel): Boolean = {
+    val filters: SortedSet[Filter] = requestModel.factFilters ++ requestModel.dimFilters
+    !filters.exists(f => {
+      f match {
+        case pdf@PushDownFilter(filter) => filter match {
+          case inf@InFilter(field,values,_,_) => if(values.size > OracleEngine.MAX_SIZE_IN_FILTER) true else false
+          case _ => false
+        }
+        case inf@InFilter(field,values,_,_) => if(values.size > OracleEngine.MAX_SIZE_IN_FILTER) true else false
+        case _ => false
+      }
+    })
+  }
 
   protected[this] def getFactAlias(name: String, dims: Set[Dimension]): String = {
     // if hash partition supported

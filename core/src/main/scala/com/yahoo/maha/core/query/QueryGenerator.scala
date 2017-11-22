@@ -170,6 +170,7 @@ class QueryBuilderContext {
 trait QueryGenerator[T <: EngineRequirement] {
   def generate(queryContext: QueryContext): Query
   def engine: Engine
+  def validateEngineConstraints(requestModel: RequestModel): Boolean = true
 }
 
 trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {

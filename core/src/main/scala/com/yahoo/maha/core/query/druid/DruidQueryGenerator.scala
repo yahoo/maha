@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query.druid
 
-import java.util.UUID
+import java.util.{Date, UUID}
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include
 import com.google.common.collect.{Lists, Maps}
@@ -33,7 +33,7 @@ import io.druid.query.spec.{MultipleIntervalSegmentSpec, QuerySegmentSpec}
 import io.druid.query.timeseries.TimeseriesResultValue
 import io.druid.query.topn.{InvertedTopNMetricSpec, NumericTopNMetricSpec, TopNQueryBuilder, TopNResultValue}
 import io.druid.query.{Druids, Result}
-import org.joda.time.{DateTime, Interval}
+import org.joda.time.{DateTime, DateTimeZone, Interval}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.{SortedSet, mutable}

@@ -4047,7 +4047,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(!model.hasLowCardinalityDimFilters)
   }
 
-  test("""Fail if the number of 'in' items exceeds 999""") {
+  test("""should succeed even if the number of 'in' items exceeds 999""") {
     val jsonString = s"""{
                          	"selectFields": [
                             {"field": "Keyword ID"},
@@ -4074,8 +4074,7 @@ class RequestModelTest extends FunSuite with Matchers {
                          }"""
 
     val result = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    assert(result.isFailure)
-    assert(result.toString.contains("Too many values"))
+    assert(result.isSuccess)
   }
 
   test("Multiple requestModels are returned from factory for DryRun") {
