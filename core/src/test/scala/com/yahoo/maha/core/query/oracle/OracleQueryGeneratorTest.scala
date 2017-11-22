@@ -3310,7 +3310,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |             )
          |           co2 ON (af0.campaign_id = co2.id)
          |
-         |          GROUP BY "Campaign Name", "Advertiser Currency"
+ |          GROUP BY "Campaign Name", "Advertiser Currency"
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
       """.stripMargin
