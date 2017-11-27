@@ -3146,7 +3146,30 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
 
-    assert(result.contains("GROUP BY co1.campaign_name") && result.contains("""SELECT co1.campaign_name "Campaign Name", SUM(coalesce(ROUND(af0."spend", 10), 0.0)) "Spend""""))
+    val expected =
+      s"""
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "spend" AS "Spend"
+         |FROM (SELECT co1.campaign_name "Campaign Name", SUM(spend) AS spend
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   campaign_id, SUM(spend) AS "spend"
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY campaign_id
+         |
+         |           ) af0
+         |                     LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co1 ON (af0.campaign_id = co1.id)
+         |
+ |          GROUP BY "Campaign Name"
+         |)
+         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+       """.stripMargin
+
+    result should equal (expected)(after being whiteSpaceNormalised)
   }
 
   test("Outer Group by test: 2 dimension non id fields") {
@@ -3187,8 +3210,34 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
 
-    assert(result.contains("GROUP BY co2.campaign_name, ao1.currency") &&
-      result.contains("""SELECT co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", SUM(coalesce(ROUND(af0."spend", 10), 0.0)) "Spend""""))
+    val expected =
+      s"""
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", "spend" AS "Spend"
+         |FROM (SELECT co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", SUM(spend) AS spend
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   advertiser_id, campaign_id, SUM(spend) AS "spend"
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY advertiser_id, campaign_id
+         |
+         |           ) af0
+         |                     LEFT OUTER JOIN
+         |           (SELECT  currency, id
+         |            FROM advertiser_oracle
+         |            WHERE (id = 12345)
+         |             )
+         |           ao1 ON (af0.advertiser_id = ao1.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co2 ON (af0.campaign_id = co2.id)
+         |
+ |          GROUP BY "Campaign Name", "Advertiser Currency"
+         |)
+         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+       """.stripMargin
   }
 
   test("Outer Group by test: 2 dimension non id fields and one fact ID field") {
@@ -3234,8 +3283,35 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
 
-    assert(result.contains("""SELECT co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", to_char(af0.ad_group_id) "Ad Group ID", coalesce(ROUND(af0."spend", 10), 0.0) "Spend""""),
-      "Should not trigger outer group by")
+    val expected =
+      s"""
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS "Average CPC Cents", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", "spend" AS "Spend"
+         |FROM (SELECT co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", SUM(spend) AS spend, SUM(clicks) AS clicks
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   advertiser_id, campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(spend) AS "spend"
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY advertiser_id, campaign_id
+         |
+         |           ) af0
+         |                     LEFT OUTER JOIN
+         |           (SELECT  currency, id
+         |            FROM advertiser_oracle
+         |            WHERE (id = 12345)
+         |             )
+         |           ao1 ON (af0.advertiser_id = ao1.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co2 ON (af0.campaign_id = co2.id)
+         |
+ |          GROUP BY "Campaign Name", "Advertiser Currency"
+         |)
+         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+       """.stripMargin
+
   }
 
   test("Outer Group by test: 2 dimension non id fields and and two fact transitively dependent cols") {
@@ -3270,7 +3346,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            ],
                            "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
-                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
 
@@ -3288,12 +3364,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val expected =
       s"""
+         |
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS "Average CPC Cents", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", "spend" AS "Spend"
          |FROM (SELECT co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", SUM(spend) AS spend, SUM(clicks) AS clicks
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, SUM(spend) AS "spend", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks"
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('2017-11-27', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('2017-11-27', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id
          |
          |           ) af0
@@ -3313,7 +3390,9 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
  |          GROUP BY "Campaign Name", "Advertiser Currency"
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
-      """.stripMargin
+         |
+       """
+       .stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }

@@ -305,13 +305,12 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       for {
         groupedFactCols <- groupedFactCols.get(false)
       } yield {
-        primitiveColsSet++groupedFactCols.toSet
+        primitiveColsSet++=groupedFactCols.toSet
       }
 
       //render non derived columns/primitive cols first
       primitiveColsSet.foreach {
         case (column, alias) =>
-          val renderedAlias = s""""$alias""""
           renderColumnWithAlias(fact, column, alias, Set.empty)
       }
 
@@ -430,7 +429,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       // Render primitive cols
       primitiveInnerAliasColMap.foreach {
         case (alias, col) if !preOuterRenderedColAlias.contains(alias)=>
-          renderPreOuterFactCol(alias, alias, col)
+          renderPreOuterFactCol(col.alias.getOrElse(col.name), alias, col)
         case _=> // ignore as it col is already rendered
       }
 
