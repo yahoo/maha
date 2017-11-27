@@ -3,8 +3,8 @@ jdk:
 - oraclejdk8
 install: true
 script:
-- if [ "${TRAVIS_PULL_REQUEST}" != "false" ]; then ./travis/pull_request.sh; else exit 0; fi
-- if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then ./travis/release_prepare.sh; else exit 0; fi
+- 'if [ "${TRAVIS_PULL_REQUEST}" != "false" ]; then bash ./travis/pull_request.sh; fi'
+- 'if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then bash ./travis/release_prepare.sh; fi'
 - echo "PR ${TRAVIS_PULL_REQUEST} and TAG '${TRAVIS_TAG}' Branch ${TRAVIS_BRANCH}"
 - mvn -B install
 
