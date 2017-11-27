@@ -3,11 +3,11 @@ jdk:
 - oraclejdk8
 install: true
 script:
-- test "${TRAVIS_PULL_REQUEST}" == "false" && ./travis/release_prepare.sh
+- if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then ./travis/release_prepare.sh; fi
 - mvn -B install
 
 after_success:
-- test "${TRAVIS_PULL_REQUEST}" == "false" && ./travis/publish_to_bintray.sh
+- if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then ./travis/publish_to_bintray.sh; fi
 branches:
   only:
   - master
