@@ -3,14 +3,17 @@ jdk:
 - oraclejdk8
 install: true
 script:
-- test "${TRAVIS_PULL_REQUEST}" == "false" && ./travis/release_prepare.sh
+- if [ "${TRAVIS_PULL_REQUEST}" != "false" ]; then ./travis/pull_request.sh; fi
+- if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then ./travis/release_prepare.sh; fi
+- echo "PR ${TRAVIS_PULL_REQUEST} and TAG '${TRAVIS_TAG}' Branch ${TRAVIS_BRANCH}"
 - mvn -B install
 
 after_success:
-- test "${TRAVIS_PULL_REQUEST}" == "false" && ./travis/publish_to_bintray.sh
+- if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then ./travis/publish_to_bintray.sh; fi
 branches:
   only:
   - master
+  - /.*/
 env:
   global:
   - secure: JjGTZFM5w5/dsbrLVQCiPf5p/l9NLICSq0cE6hQA6NjeaaGboJIF2yw6GheSNC0PnuXiE+nu4hGIgrKY33hqf5EE8vVJDl/WLmFhuN+UgcyT+vrTUJFKBvfhSwxDLf1b7FZFO6Z3DL2LirCrb5WVUbir3kAixKn57Ldo6BcMAOGE+EFCVJGt9vHGnz+xDdl/XKNuFydOFjpxzqsBQHzS4KJYaOZLXqAMTBn/L2KND5o+DVtYhdOHF5rjVdkljxpiST08UvA5gzlRRJNGx3pxGkc6o7OHyFzQoouRzOjDLar9LzgEqaM6mZ6CzCzmH7j85nXYwZ706rO2ve9iscZmhGsIo297nP+DdetifSE75VQz0BZ+hkqB3fLDGT+5cmCwQ95yb5/cxM8qBXXHxm7HnIgEAAoz7ZxRnOQnft6PhubXXOV0LXS96vNPU0iKXXbNAsewraAfnNrbHvdAxJgIOHbosUkkxck5U7QVZxgR3Ed5q9BU7/OhJeS6DM3wJy+cqcZMk0nORXoFCBQH9hp/mO++VEs5wZWlAjwynzGEsNtYBwkNC+wuOforusc8vJPeeq3rAS88v5nGCfXNeJp1xInJipzsgvylSX/g4hb6ZJAqb6dqb4IKSEORns37TS3doHPeW3cJ15KFAfFYFOzAiEB9f9b/oIwNDHWMVgya/8Q=
