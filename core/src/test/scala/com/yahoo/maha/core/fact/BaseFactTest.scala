@@ -6,9 +6,9 @@ import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
-import com.yahoo.maha.core.dimension.{DimCol, PubCol}
-import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest, RequestType}
-import org.joda.time.{DateTimeZone, DateTime}
+import com.yahoo.maha.core.dimension._
+import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
+import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.{FunSuite, Matchers}
 
 /**
@@ -161,6 +161,27 @@ trait BaseFactTest extends FunSuite with Matchers {
         Set.empty, None, Map.empty, Set.empty, 0, 0, None, None,
         maxDaysWindow = Option(Map(SyncRequest -> 31, AsyncRequest -> 400)),
         Option(Map(SyncRequest -> 50, AsyncRequest -> 50))
+      )
+    }
+  }
+
+  def factDerivedWithFailingDimCol : FactBuilder = {
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      Fact.newFact(
+        "fact1", DailyGrain, HiveEngine, Set(AdvertiserSchema),
+        Set(
+          DimCol("account_id", IntType(), annotations = Set(ForeignKey("cache_advertiser_metadata")))
+          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("cache_campaign_metadata")))
+          , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("cache_campaign_metadata")))
+          , DimCol("ad_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("stats_source", IntType(3))
+          , DimCol("price_type", IntType(3), annotations = Set(HiveSnapshotTimestamp))
+          , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
+        ),
+        Set(
+          FactCol("impressions", IntType())
+          , FactCol("clicks", IntType())
+        )
       )
     }
   }
