@@ -7,7 +7,7 @@ import com.yahoo.maha.core.FilterOperation.{Equality, In, InEquality}
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
 import com.yahoo.maha.core.dimension.{DimCol, OracleDerDimCol, PubCol}
-import com.yahoo.maha.core.request.{RequestType, SyncRequest}
+import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
 
 /**
  * Created by jians on 10/20/15.
@@ -379,6 +379,15 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
     thrown.getMessage should include("missing fact rollup overrides = List((clicks,HiveCustomRollup(")
   }
 
+  test("withAvailableOnwardsDate: should succeed with override for fact column rollup with engine requirement") {
+    val fact = fact1WithRollupWithEngineRequirement
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        fact.withAvailableOnwardsDate("fact2", "fact1", OracleEngine, overrideFactCols = Set(
+          FactCol("clicks", IntType(), OracleCustomRollup("rollup"))
+        ), availableOnwardsDate = Option("2017-09-30"))
+      }
+  }
+
   test("withAvailableOnwardsDate: should fail if ddl annotation is of a different engine other than the engine of the fact") {
     val fact = fact1
     val thrown = intercept[IllegalArgumentException] {
@@ -422,7 +431,7 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
         overrideDimCols = Set(
             DimCol("price_type", IntType(), annotations = Set.empty)
         )
-        , availableOnwardsDate = Option("2017-09-30"))
+        , availableOnwardsDate = Option("2017-09-30"), maxDaysWindow = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)), maxDaysLookBack = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)))
     }
     val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
     require(bcOption.isDefined, "Failed to get candidates!")

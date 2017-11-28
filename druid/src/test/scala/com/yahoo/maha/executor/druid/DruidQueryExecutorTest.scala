@@ -2136,4 +2136,5 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         assert(expected.contains(row.toString))
     }
   }
+
 }

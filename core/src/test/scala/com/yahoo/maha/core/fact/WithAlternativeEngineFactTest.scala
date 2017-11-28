@@ -4,9 +4,9 @@ package com.yahoo.maha.core.fact
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.CoreSchema._
-import com.yahoo.maha.core.ddl.{HiveDDLAnnotation}
-import com.yahoo.maha.core.dimension.{OracleDerDimCol, DimCol}
-import com.yahoo.maha.core.request.SyncRequest
+import com.yahoo.maha.core.ddl.HiveDDLAnnotation
+import com.yahoo.maha.core.dimension.{DimCol, OracleDerDimCol}
+import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
 
 /**
  * Created by jians on 10/20/15.
@@ -16,7 +16,7 @@ class WithAlternativeEngineFactTest extends BaseFactTest {
   test("withAlternativeEngine should success with new name and new engine") {
     val fact = fact1
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-      fact.withAlternativeEngine("fact2", "fact1", OracleEngine)
+      fact.withAlternativeEngine("fact2", "fact1", OracleEngine, maxDaysWindow = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)), maxDaysLookBack = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)))
     }
     val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
     require(bcOption.isDefined, "Failed to get candidates!")
@@ -181,6 +181,32 @@ class WithAlternativeEngineFactTest extends BaseFactTest {
       }
     }
     thrown.getMessage should startWith ("requirement failed: Override column cannot have static mapping")
+  }
+
+  test("withAlternativeEngine: dim column override failure case") {
+    val fact = factDerivedWithFailingDimCol
+    val thrown = intercept[IllegalArgumentException] {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        fact.withAlternativeEngine("fact2", "fact1", OracleEngine
+          , availableOnwardsDate = Option("2017-09-30"))
+      }
+    }
+    thrown.getMessage should startWith ("requirement failed: name=fact2, from=fact1, engine=Oracle, missing dim overrides = List((price_type,Set(HiveSnapshotTimestamp)))")
+  }
+
+  test("withAvailableOnwardsDate: dim column override success case") {
+    val fact = factDerivedWithFailingDimCol
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      fact.withAlternativeEngine("fact2", "fact1", OracleEngine,
+        overrideDimCols = Set(
+          DimCol("price_type", IntType(), annotations = Set.empty)
+        )
+        , availableOnwardsDate = Option("2017-09-30"), maxDaysWindow = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)), maxDaysLookBack = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)))
+    }
+    val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
+    require(bcOption.isDefined, "Failed to get candidates!")
+    assert(bcOption.get.facts.values.exists( f => f.fact.name == "fact2") === true)
+    assert(bcOption.get.facts.values.find( f => f.fact.name == "fact2").get.fact.forceFilters.isEmpty)
   }
 }
 
