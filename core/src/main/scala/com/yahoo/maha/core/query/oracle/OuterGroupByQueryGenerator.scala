@@ -160,7 +160,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
      Derived columns with dependencies are not rendered in ogb_generateFactViewColumns
      Primitive columns are also rendered in preOuterSelect rendering
       */
-    val primitiveColsSet = new mutable.HashSet[(Column, String)]()
+    val primitiveColsSet = new mutable.LinkedHashSet[(Column, String)]()
 
     def ogb_generateFactViewColumns(): Unit = {
       val factTableAlias = queryBuilderContext.getAliasForTable(queryContext.factBestCandidate.fact.name)
@@ -327,7 +327,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
             }
       */
 
-      def getPrimitiveCols(derivedCols: Set[DerivedColumn], primitiveColsSet:mutable.HashSet[(Column, String)]): Unit = {
+      def getPrimitiveCols(derivedCols: Set[DerivedColumn], primitiveColsSet:mutable.LinkedHashSet[(Column, String)]): Unit = {
         derivedCols.foreach {
           derCol=>
             derCol.derivedExpression.sourceColumns.foreach {
