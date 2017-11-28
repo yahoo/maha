@@ -4,7 +4,6 @@ package com.yahoo.maha.executor.druid
 
 import java.net.InetSocketAddress
 
-import com.metamx.http.client.response.ClientResponse
 import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, InternalSchema, ResellerSchema}
 import com.yahoo.maha.core.DruidDerivedFunction.{DECODE_DIM, GET_INTERVAL_DATE}
 import com.yahoo.maha.core.DruidPostResultFunction.{POST_RESULT_DECODE, START_OF_THE_MONTH, START_OF_THE_WEEK}
@@ -19,9 +18,6 @@ import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.{ReportingRequest, SyncRequest}
 import com.yahoo.maha.executor.MockOracleQueryExecutor
-import org.apache.http.HttpResponse
-import org.apache.http.client.methods.{HttpGet, HttpPost}
-import org.apache.http.impl.client.{CloseableHttpClient, HttpClientBuilder}
 import org.http4s.server.blaze.BlazeBuilder
 import org.json4s.JsonAST._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
@@ -363,9 +359,9 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
   }
 
 
-  private[this] def getDruidQueryExecutor(url: String) : DruidQueryExecutor = {
+  private[this] def getDruidQueryExecutor(url: String, enableFallbackOnUncoveredIntervals: Boolean = false) : DruidQueryExecutor = {
     new DruidQueryExecutor(new DruidQueryExecutorConfig(50,500,5000,5000, 5000,"config",url,None,3000,3000,3000,3000,
-      true, 500, 3), new NoopExecutionLifecycleListener, ResultSetTransformers.DEFAULT_TRANSFORMS)
+      true, 500, 3, enableFallbackOnUncoveredIntervals), new NoopExecutionLifecycleListener, ResultSetTransformers.DEFAULT_TRANSFORMS)
   }
 
   private[this] def getDruidQueryGenerator() : DruidQueryGenerator = {
@@ -2046,4 +2042,98 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
   }
 
+  test("Uncovered Interval response: should not fall back") {
+
+    val jsonString =
+      s"""
+         |{
+         |   "cube": "k_stats",
+         |                          "selectFields": [
+         |                            {"field": "Day"},
+         |                            {"field": "Keyword ID"},
+         |                            {"field": "Impressions"},
+         |                            {"field": "Advertiser Status"}
+         |                          ],
+         |                          "filterExpressions": [
+         |                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+         |                            {"field": "Advertiser ID", "operator": "=", "value": "5485"}
+         |                          ],
+         |                          "sortBy": [
+         |                            {"field": "Impressions", "order": "Asc"}
+         |                          ],
+         |                          "paginationStartIndex":0,
+         |                          "rowsPerPage":2
+         |}
+       """.stripMargin
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
+    altQueryGeneratorRegistry.register(OracleEngine, new OracleQueryGenerator(DefaultPartitionColumnRenderer))
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val query =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
+    println(query.asString)
+    val executor = getDruidQueryExecutor("http://localhost:6667/mock/uncoveredNonempty", true)
+
+    val oracleExecutor = new MockOracleQueryExecutor(
+      { rl =>
+        println(rl.query.asString)
+        val expected =
+          s"""
+             |SELECT *
+             |FROM (SELECT to_char(ffst0.stats_date, 'YYYYMMdd') "Day", to_char(ffst0.id) "Keyword ID", coalesce(ffst0."impresssions", 1) "Impressions", ao1."Advertiser Status" "Advertiser Status"
+             |      FROM (SELECT
+             |                   advertiser_id, id, stats_date, SUM(impresssions) AS "impresssions"
+             |            FROM fd_fact_s_term FactAlias
+             |            WHERE (advertiser_id = 5485) AND (stats_date IN (to_date('${fromDate}', 'YYYYMMdd'),to_date('${toDate}', 'YYYYMMdd')))
+             |            GROUP BY advertiser_id, id, stats_date
+             |
+            |           ) ffst0
+             |           LEFT OUTER JOIN
+             |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+             |            FROM advertiser_oracle
+             |            WHERE (id = 5485)
+             |             )
+             |           ao1 ON (ffst0.advertiser_id = ao1.id)
+             |
+            |)
+             |   ORDER BY "Impressions" ASC NULLS LAST""".stripMargin
+
+        rl.query.asString should equal (expected) (after being whiteSpaceNormalised)
+
+        rl.foreach(r => println(s"Inside mock: $r"))
+        val row = rl.newRow
+        row.addValue("Keyword ID", 14)
+        row.addValue("Advertiser Status", "ON")
+        row.addValue("Impressions", 10)
+        rl.addRow(row)
+        val row2 = rl.newRow
+        row2.addValue("Keyword ID", 13)
+        row2.addValue("Advertiser Status", "ON")
+        row2.addValue("Impressions", 20)
+        rl.addRow(row2)
+      })
+
+    val queryExecContext: QueryExecutorContext = new QueryExecutorContext
+    queryExecContext.register(executor)
+    queryExecContext.register(oracleExecutor)
+
+    val result = queryPipelineTry.toOption.get.execute(queryExecContext)
+    assert(result.isSuccess)
+
+    val expected = List("Row(Map(Day -> 0, Keyword ID -> 1, Impressions -> 2, Advertiser Status -> 3),ArrayBuffer(null, 10, 175, null))"
+    , "Row(Map(Day -> 0, Keyword ID -> 1, Impressions -> 2, Advertiser Status -> 3),ArrayBuffer(null, 14, 17, null))")
+
+    result.get._1.foreach {
+      row =>
+        println(row)
+        assert(expected.contains(row.toString))
+    }
+  }
 }

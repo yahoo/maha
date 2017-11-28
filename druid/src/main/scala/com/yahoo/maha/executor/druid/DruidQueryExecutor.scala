@@ -3,23 +3,19 @@
 package com.yahoo.maha.executor.druid
 
 import java.io.Closeable
-import java.lang.IllegalStateException
 import java.math.MathContext
 import java.nio.charset.StandardCharsets
-
 import com.google.common.cache.{CacheBuilder, CacheLoader}
 import com.ning.http.client.Response
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.query.druid.{DruidQuery, GroupByDruidQuery, TimeseriesDruidQuery, TopNDruidQuery}
 import grizzled.slf4j.Logging
-import org.apache.http.HttpResponse
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormatter
 import org.json4s.DefaultFormats
 import org.json4s.JsonAST._
 import org.json4s.jackson.JsonMethods._
-
 import scala.collection.concurrent.TrieMap
 import scala.util.{Failure, Try}
 
@@ -40,6 +36,7 @@ case class DruidQueryExecutorConfig(maxConnectionsPerHost:Int
                                     , enableRetryOn500:Boolean
                                     , retryDelayMillis:Int
                                     , maxRetry: Int
+                                    , enableFallbackOnUncoveredIntervals: Boolean = false
                                      )
 
 object DruidQueryExecutor extends Logging {
@@ -267,10 +264,13 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
 
   override def close(): Unit = httpUtils.close()
 
-  def checkUncoveredIntervals(query : Query, response : Response) : Unit = {
+  def checkUncoveredIntervals(query : Query, response : Response, config: DruidQueryExecutorConfig) : Unit = {
     val requestModel = query.queryContext.requestModel
     val latestDate : DateTime = FilterDruid.getMaxDate(requestModel.utcTimeDayFilter, DailyGrain)
-    if(latestDate.isBeforeNow() && response.getHeaders().containsKey(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT) && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)){
+    if (config.enableFallbackOnUncoveredIntervals
+      && latestDate.isBeforeNow()
+      && response.getHeaders().containsKey(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)
+      && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)) {
       val exception = new IllegalStateException("Druid data missing, identified in uncoveredIntervals")
       logger.error(s"uncoveredIntervals Found: ${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)}")
       //throw exception // will add-back in a week, assuming few enough intervals are found.
@@ -293,8 +293,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
           val performJoin = irl.size > 0
           val result = Try {
             val response : Response= httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
-
-            val temp = checkUncoveredIntervals(query, response)
+            val temp = checkUncoveredIntervals(query, response, config)
 
             DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,rl,(fieldList:List[JField] ) =>{
               val indexName =irl.indexAlias
@@ -339,8 +338,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
         case rl =>
           val result = Try {
             val response = httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
-
-            val temp = checkUncoveredIntervals(query, response)
+            val temp = checkUncoveredIntervals(query, response, config)
 
             DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,rl,(fieldList: List[JField]) =>{
               rowList.newRow

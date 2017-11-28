@@ -2,15 +2,13 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.factory
 
-import com.yahoo.maha.service.MahaServiceConfig
-import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.druid.DruidQueryExecutorConfig
+import com.yahoo.maha.service.MahaServiceConfig
+import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
 import org.json4s.JValue
-import _root_.scalaz._
-import syntax.applicative._
-import syntax.validation._
-import Validation.FlatMap._
+
+import scalaz.syntax.applicative._
 
 
 /**
@@ -34,7 +32,8 @@ class DefaultDruidQueryExecutorConfigFactory extends DruidQueryExecutorConfigFac
     |"timeoutMaxResponseTimeInMs" : 30000,
     |"enableRetryOn500" : true,
     |"retryDelayMillis" : 1000,
-    |"maxRetry" : 3
+    |"maxRetry" : 3,
+    |"enableFallbackOnUncoveredIntervals" : false
     |}
   """.stripMargin
 
@@ -55,6 +54,7 @@ class DefaultDruidQueryExecutorConfigFactory extends DruidQueryExecutorConfigFac
     val enableRetryOn500Result: MahaServiceConfig.MahaConfigResult[Boolean] = fieldExtended[Boolean]("enableRetryOn500")(configJson)
     val retryDelayMillisResult: MahaServiceConfig.MahaConfigResult[Int] = fieldExtended[Int]("retryDelayMillis")(configJson)
     val maxRetryResult: MahaServiceConfig.MahaConfigResult[Int] = fieldExtended[Int]("maxRetry")(configJson)
+    val enableFallbackOnUncoveredIntervalsResult : MahaServiceConfig.MahaConfigResult[Boolean] = fieldExtended[Boolean]("enableFallbackOnUncoveredIntervals")(configJson)
 
     val tupleLeftResult = (maxConnectionsPerHostResult |@| maxConnectionsResult |@| connectionTimeoutResult |@| timeoutRetryIntervalResult
       |@| timeoutThresholdResult |@| degradationConfigNameResult |@| urlResult |@| headersOptionResult) {
@@ -63,16 +63,16 @@ class DefaultDruidQueryExecutorConfigFactory extends DruidQueryExecutorConfigFac
        , timeoutThreshold, degradationConfigName, url, headersOption)
       }
     val tupleRightResult = (readTimeoutResult |@| requestTimeoutResult |@| pooledConnectionIdleTimeoutResult |@| timeoutMaxResponseTimeInMsResult
-      |@|  enableRetryOn500Result |@| retryDelayMillisResult |@| maxRetryResult) {
+      |@|  enableRetryOn500Result |@| retryDelayMillisResult |@| maxRetryResult |@| enableFallbackOnUncoveredIntervalsResult) {
       (readTimeout, requestTimeout, pooledConnectionIdleTimeout, timeoutMaxResponseTimeInMs,
-       enableRetryOn500, retryDelayMillis, maxRetry) => (readTimeout, requestTimeout, pooledConnectionIdleTimeout, timeoutMaxResponseTimeInMs,
-       enableRetryOn500, retryDelayMillis, maxRetry)
+       enableRetryOn500, retryDelayMillis, maxRetry, enableFallbackOnUncoveredIntervals) => (readTimeout, requestTimeout, pooledConnectionIdleTimeout, timeoutMaxResponseTimeInMs,
+       enableRetryOn500, retryDelayMillis, maxRetry, enableFallbackOnUncoveredIntervals)
       }
 
     (tupleLeftResult |@| tupleRightResult) {
      case ((maxConnectionsPerHost, maxConnections, connectionTimeout, timeoutRetryInterval
        , timeoutThreshold, degradationConfigName, url, headersOption),(readTimeout, requestTimeout, pooledConnectionIdleTimeout, timeoutMaxResponseTimeInMs,
-       enableRetryOn500, retryDelayMillis, maxRetry)) =>
+       enableRetryOn500, retryDelayMillis, maxRetry, enableFallbackOnUncoveredIntervals)) =>
 
      new DruidQueryExecutorConfig(maxConnectionsPerHost,
       maxConnections,
@@ -88,7 +88,7 @@ class DefaultDruidQueryExecutorConfigFactory extends DruidQueryExecutorConfigFac
       timeoutMaxResponseTimeInMs,
       enableRetryOn500,
       retryDelayMillis,
-      maxRetry)
+      maxRetry, enableFallbackOnUncoveredIntervals)
     }
   }
 
