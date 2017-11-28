@@ -3370,7 +3370,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, SUM(spend) AS "spend", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks"
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('2017-11-27', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('2017-11-27', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id
          |
          |           ) af0
@@ -3393,6 +3393,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
        .stripMargin
+    println(expected)
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
