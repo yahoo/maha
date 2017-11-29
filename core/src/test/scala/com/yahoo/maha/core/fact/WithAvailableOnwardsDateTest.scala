@@ -2,8 +2,10 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.fact
 
+import com.yahoo.maha.core.BaseExpressionTest.DECODE
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation.{Equality, In, InEquality}
+import com.yahoo.maha.core.OracleExpression.SUM
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
 import com.yahoo.maha.core.dimension.{DimCol, OracleDerDimCol, PubCol}
@@ -17,7 +19,7 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
   test("withAvailableOnwardsDate: should pass with new engine (Oracle)") {
     val fact = fact1
       ColumnContext.withColumnContext {implicit cc : ColumnContext =>
-        fact.withAvailableOnwardsDate("fact2", "fact1", OracleEngine
+        fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine
           , availableOnwardsDate = Option("2017-09-25")
         )
       }
@@ -31,7 +33,7 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
   test("withAvailableOnwardsDate: should pass with redefined FactCol and DimCol") {
     val fact = fact1
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-      fact.withAvailableOnwardsDate("fact2", "fact1", HiveEngine,
+      fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, HiveEngine,
         overrideDimCols =  Set(
           DimCol("account_id", IntType(), annotations = Set(ForeignKey("cache_advertiser_metadata")))
           , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("cache_campaign_metadata")))
@@ -67,7 +69,7 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
   test("withAvailableOnwardsDate: Should succeed with 2 availableOnwardsDates on the same Engine") {
     val fact = fact1
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-      fact.withAvailableOnwardsDate("fact2", "fact1", OracleEngine,
+      fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine,
         overrideDimCols = Set(
           DimCol("account_id", IntType(), annotations = Set(ForeignKey("cache_advertiser_metadata")))
           , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("cache_campaign_metadata")))
@@ -95,7 +97,7 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
       )
     }
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-      fact.withAvailableOnwardsDate("fact3", "fact1", OracleEngine,
+      fact.withAvailableOnwardsDate("fact3", "fact1", Set.empty, OracleEngine,
         overrideDimCols =  Set(
           DimCol("account_id", IntType(), annotations = Set(ForeignKey("cache_advertiser_metadata")))
           , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("cache_campaign_metadata")))
@@ -133,7 +135,7 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
     val fact = fact1
     val thrown = intercept[IllegalArgumentException] {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-        fact.withAvailableOnwardsDate("fact2", "fact1", OracleEngine,
+        fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine,
           overrideDimCols = Set(
             DimCol("account_id", IntType(), annotations = Set(ForeignKey("cache_advertiser_metadata")))
             , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("cache_campaign_metadata")))
@@ -161,7 +163,7 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
         )
       }
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-        fact.withAvailableOnwardsDate("fact3", "fact1", OracleEngine,
+        fact.withAvailableOnwardsDate("fact3", "fact1", Set.empty, OracleEngine,
           overrideDimCols = Set(
             DimCol("account_id", IntType(), annotations = Set(ForeignKey("cache_advertiser_metadata")))
             , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("cache_campaign_metadata")))
@@ -196,7 +198,7 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
   test("withAvailableOnwardsDate: Should succeed with identical availableOnwardsDates on the different Engines") {
     val fact = fact1
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-      fact.withAvailableOnwardsDate("fact2", "fact1", HiveEngine,
+      fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, HiveEngine,
         overrideDimCols = Set(
           DimCol("account_id", IntType(), annotations = Set(ForeignKey("cache_advertiser_metadata")))
           , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("cache_campaign_metadata")))
@@ -224,7 +226,7 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
       )
     }
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-      fact.withAvailableOnwardsDate("fact3", "fact1", OracleEngine,
+      fact.withAvailableOnwardsDate("fact3", "fact1", Set.empty, OracleEngine,
         overrideDimCols =  Set(
           DimCol("account_id", IntType(), annotations = Set(ForeignKey("cache_advertiser_metadata")))
           , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("cache_campaign_metadata")))
@@ -269,7 +271,7 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
             FactCol("factcol1", StrType())
           ), None, Set.empty, None, Fact.DEFAULT_COST_MULTIPLIER_MAP,Set.empty,10,100,None, None, None, None)
         val fb = new FactBuilder(base_fact, Map(), None)
-        fb.withAvailableOnwardsDate("fact2", "base_fact", OracleEngine
+        fb.withAvailableOnwardsDate("fact2", "base_fact", Set.empty, OracleEngine
           , availableOnwardsDate = Option("2017-09-25")
         )
       }
@@ -281,7 +283,7 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
     val fact = fact1
     val thrown = intercept[IllegalArgumentException] {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-        fact.withAvailableOnwardsDate("fact2", "fact", OracleEngine
+        fact.withAvailableOnwardsDate("fact2", "fact", Set.empty, OracleEngine
           , availableOnwardsDate = Option("2017-09-25")
         )
       }
@@ -293,12 +295,12 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
     val fact = fact1
     val thrown = intercept[IllegalArgumentException] {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-        fact.withAvailableOnwardsDate("fact2", "fact1", OracleEngine
+        fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine
           , availableOnwardsDate = Option("2017-09-25")
         )
       }
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-        fact.withAvailableOnwardsDate("fact2", "fact1", OracleEngine
+        fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine
           , availableOnwardsDate = Option("2017-09-30")
         )
       }
@@ -310,47 +312,99 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
     val fact = fact1
     val thrown = intercept[IllegalArgumentException] {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-        fact.withAvailableOnwardsDate("fact2", "fact1", OracleEngine
+        fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine
         )
       }
     }
     thrown.getMessage should startWith ("requirement failed: availableOnwardsDate parameter must be defined in withAvailableOnwardsDate in fact2")
   }
 
-  test("withAvailableOnwardsDate: should fail if override dim columns have static mapping") {
+  test("withAvailableOnwardsDate: should fail if override dim columns are self referential") {
     val fact = fact1
     val thrown = intercept[IllegalArgumentException] {
       ColumnContext.withColumnContext {implicit cc : ColumnContext =>
         import OracleExpression._
-        fact.withAvailableOnwardsDate("fact2", "fact1", OracleEngine,
+        fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine,
           Set(
             OracleDerDimCol("dimcol1", IntType(3, (Map(1 -> "One"), "NONE")), DECODE_DIM("{dimcol1}", "0", "zero", "{dimcol1}"))
           ), availableOnwardsDate = Option("2017-09-30")
         )
       }
     }
-    thrown.getMessage should startWith ("requirement failed: Override column cannot have static mapping")
+    thrown.getMessage should startWith ("requirement failed: Derived column is referring to itself, this will cause infinite loop :")
   }
 
-  test("withAvailableOnwardsDate: should fail if override fact columns have static mapping") {
+  test("withAvailableOnwardsDate: can't reference a column that does not exist") {
     val fact = fact1
     val thrown = intercept[IllegalArgumentException] {
       ColumnContext.withColumnContext {implicit cc : ColumnContext =>
         import OracleExpression._
-        fact.withAvailableOnwardsDate("fact2", "fact1", OracleEngine,
+        fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine,
           overrideFactCols = Set(
             OracleDerFactCol("factcol1", IntType(3, (Map(1 -> "One"), "NONE")), SUM("{dimcol1}"))
           ), availableOnwardsDate = Option("2017-09-30")
         )
       }
     }
-    thrown.getMessage should startWith ("requirement failed: Override column cannot have static mapping")
+    thrown.getMessage should startWith ("requirement failed: Failed derived expression validation, unknown referenced column in fact=fact2, dimcol1")
+  }
+
+  test("withAvailableOnwardsDate: invalid static mapped Fact") {
+    val fact = fact1
+    val thrown = intercept[IllegalArgumentException] {
+      ColumnContext.withColumnContext {implicit cc : ColumnContext =>
+        import OracleExpression._
+        fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine,
+          overrideFactCols = Set(
+            OracleDerFactCol("clicks", IntType(3, (Map(1 -> "One"), "NONE")), SUM("{impressions}"))
+          ), availableOnwardsDate = Option("2017-09-30")
+        )
+      }
+    }
+    thrown.getMessage should startWith ("requirement failed: Override column cannot have static mapping :")
+  }
+
+  test("withAvailableOnwardsDate: invalid static mapped Dimension") {
+    val fact = fact1
+    val thrown = intercept[IllegalArgumentException] {
+      ColumnContext.withColumnContext {implicit cc : ColumnContext =>
+        fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine,
+          overrideDimCols = Set(
+            DimCol("stats_source", IntType(1, (Map(1->"One"), "NONE")))
+          ),
+          overrideFactCols = Set(
+          ), availableOnwardsDate = Option("2017-09-30")
+        )
+      }
+    }
+    thrown.getMessage should startWith ("requirement failed: Override column cannot have static mapping :")
+  }
+
+  test("withAvailableOnwardsDate: Static Mapped dim/fact success cases") {
+    val fact = factDerivedWithOverridableStaticMaps
+    ColumnContext.withColumnContext {implicit cc : ColumnContext =>
+      import OracleExpression._
+      fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine,
+        overrideDimCols = Set(
+          DimCol("temp", IntType(1, (Map(1->"One"), "NONE")))
+          , DimCol("static_3", IntType(1, (Map(1->"Temp"), "Nothing")), alias = Option("static_1"))
+        ),
+        overrideFactCols = Set(
+          OracleDerFactCol("temp2", IntType(3, (Map(1 -> "One"), "NONE")), SUM("{impressions}"))
+          , FactCol("static_4", IntType(1, (Map(1->"Temp"), "Nothing")), alias = Option("static_2"))
+        ), availableOnwardsDate = Option("2017-09-30")
+      )
+      val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
+      require(bcOption.isDefined, "Failed to get candidates!")
+      assert(bcOption.get.facts.values.exists( f => f.fact.name == "fact2") === true)
+      assert(bcOption.get.facts.values.find( f => f.fact.name == "fact2").get.fact.forceFilters.isEmpty)
+    }
   }
 
   test("withAvailableOnwardsDate: should discard the new table if the availableOnwardsDate > requested date") {
     val fact = fact1
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-      fact.withAvailableOnwardsDate("fact2", "fact1", OracleEngine, availableOnwardsDate = Some(s"$toDate"))
+      fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine, availableOnwardsDate = Some(s"$toDate"))
     }
     val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$fromDate"))
     require(bcOption.isDefined, "Failed to get candidates!")
@@ -361,7 +415,7 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
     val fact = fact1WithAnnotationWithEngineRequirement
     val thrown = intercept[IllegalArgumentException] {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-        fact.withAvailableOnwardsDate("fact2", "fact1", OracleEngine, overrideFactCols = Set(
+        fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine, overrideFactCols = Set(
         ), availableOnwardsDate = Option("2017-09-30"))
       }
     }
@@ -372,7 +426,7 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
     val fact = fact1WithRollupWithEngineRequirement
     val thrown = intercept[IllegalArgumentException] {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-        fact.withAvailableOnwardsDate("fact2", "fact1", OracleEngine, overrideFactCols = Set(
+        fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine, overrideFactCols = Set(
         ), availableOnwardsDate = Option("2017-09-30"))
       }
     }
@@ -382,7 +436,7 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
   test("withAvailableOnwardsDate: should succeed with override for fact column rollup with engine requirement") {
     val fact = fact1WithRollupWithEngineRequirement
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-        fact.withAvailableOnwardsDate("fact2", "fact1", OracleEngine, overrideFactCols = Set(
+        fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine, overrideFactCols = Set(
           FactCol("clicks", IntType(), OracleCustomRollup("rollup"))
         ), availableOnwardsDate = Option("2017-09-30"))
       }
@@ -392,7 +446,7 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
     val fact = fact1
     val thrown = intercept[IllegalArgumentException] {
       ColumnContext.withColumnContext { implicit  cc : ColumnContext =>
-        fact.withAvailableOnwardsDate("fact2", "fact1", OracleEngine, overrideDDLAnnotation = Option(HiveDDLAnnotation()), availableOnwardsDate = Option("2017-09-30"))
+        fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine, overrideDDLAnnotation = Option(HiveDDLAnnotation()), availableOnwardsDate = Option("2017-09-30"))
       }
     }
     thrown.getMessage should startWith ("requirement failed: Failed engine requirement fact=fact2, engine=Oracle, ddlAnnotation=Some(HiveDDLAnnotation(Map(),Vector()))")
@@ -401,7 +455,7 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
   test("withAvailableOnwardsDate: column annotation override success case") {
     val fact = fact1WithAnnotationWithEngineRequirement
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-      fact.withAvailableOnwardsDate("fact2", "fact1", OracleEngine
+      fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine
         , overrideFactCols = Set(
           FactCol("clicks", IntType(), annotations = Set(EscapingRequired))
         )
@@ -417,20 +471,100 @@ class WithAvailableOnwardsDateTest extends BaseFactTest {
     val fact = factDerivedWithFailingDimCol
     val thrown = intercept[IllegalArgumentException] {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-        fact.withAvailableOnwardsDate("fact2", "fact1", OracleEngine
+        fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine
           , availableOnwardsDate = Option("2017-09-30"))
       }
     }
     thrown.getMessage should startWith ("requirement failed: name=fact2, from=fact1, engine=Oracle, missing dim overrides = List((price_type,Set(HiveSnapshotTimestamp)))")
   }
 
+  test("withAvailableOnwardsDate: invalid discard") {
+    val fact = fact1
+    val thrown = intercept[IllegalArgumentException] {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        fact.withAvailableOnwardsDate("fact2", "fact1", Set("fake_col"), OracleEngine
+          , availableOnwardsDate = Option("2017-09-30"))
+      }
+    }
+    thrown.getMessage should startWith ("requirement failed: column fake_col does not exist")
+  }
+
   test("withAvailableOnwardsDate: dim column override success case") {
     val fact = factDerivedWithFailingDimCol
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-      fact.withAvailableOnwardsDate("fact2", "fact1", OracleEngine,
+      fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, OracleEngine,
         overrideDimCols = Set(
             DimCol("price_type", IntType(), annotations = Set.empty)
         )
+        , availableOnwardsDate = Option("2017-09-30"), maxDaysWindow = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)), maxDaysLookBack = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)))
+    }
+    val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
+    require(bcOption.isDefined, "Failed to get candidates!")
+    assert(bcOption.get.facts.values.exists( f => f.fact.name == "fact2") === true)
+    assert(bcOption.get.facts.values.find( f => f.fact.name == "fact2").get.fact.forceFilters.isEmpty)
+  }
+
+
+
+  test("discarding column from old cube, adding in new one") {
+    val fact = factDerivedWithFailingDimCol
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      fact.withAvailableOnwardsDate("fact2", "fact1", discarding = Set(
+        "clicks", "price_type"
+      ), OracleEngine,
+        overrideDimCols = Set(
+          DimCol("price_type", IntType(), annotations = Set.empty)
+          , DimCol("new_type", IntType())
+        ),
+        overrideFactCols = Set(
+          OracleDerFactCol("clicks", IntType(), "{impressions}")
+        )
+        , availableOnwardsDate = Option("2017-09-30"), maxDaysWindow = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)), maxDaysLookBack = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)))
+    }
+    fact.toPublicFact("publicFact",
+      Set(
+        PubCol("account_id", "Advertiser Id", InEquality),
+        PubCol("stats_source", "Source", Equality),
+        PubCol("price_type", "Pricing Type", In),
+        PubCol("landing_page_url", "Destination URL", Set.empty)
+      ),
+      Set(
+        PublicFactCol("impressions", "Impressions", InEquality),
+        PublicFactCol("clicks", "Clicks", In)
+      ),
+      Set.empty,
+      Map(
+          (SyncRequest, DailyGrain) -> 20, (AsyncRequest, DailyGrain) -> 20
+      ),
+      Map(
+        (SyncRequest, DailyGrain) -> 30, (AsyncRequest, DailyGrain) -> 30
+      ))
+    val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions", "Clicks"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
+    require(bcOption.isDefined, "Failed to get candidates!")
+    assert(bcOption.get.facts.values.exists( f => f.fact.name == "fact2") === true)
+    assert(bcOption.get.facts.values.find( f => f.fact.name == "fact2").get.fact.forceFilters.isEmpty)
+  }
+
+  test("withAvailableOnwardsDate: verify overrideDDLAnnotation overrides on new table") {
+    val fact = factDerivedWithFailingDimCol
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      fact.withAvailableOnwardsDate("fact2", "fact1", Set.empty, HiveEngine,
+        overrideDimCols = Set(
+          DimCol("price_type", IntType(), annotations = Set.empty)
+        ), overrideDDLAnnotation = Option(new HiveDDLAnnotation(columnOrdering =
+          IndexedSeq(
+            "account_id",
+            "campaign_id",
+            "ad_group_id",
+            "ad_id",
+            "impressions",
+            "clicks",
+            "engagement_count",
+            "stats_source",
+            "price_type",
+            "landing_page_url",
+            "engagement_type"
+          )))
         , availableOnwardsDate = Option("2017-09-30"), maxDaysWindow = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)), maxDaysLookBack = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)))
     }
     val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
