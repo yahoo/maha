@@ -2,14 +2,12 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.fact
 
-import com.yahoo.maha.core.BaseExpressionTest.DECODE
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation.{Equality, In, InEquality}
-import com.yahoo.maha.core.OracleExpression.SUM
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
 import com.yahoo.maha.core.dimension.{DimCol, OracleDerDimCol, PubCol}
-import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
+import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
 
 /**
  * Created by jians on 10/20/15.

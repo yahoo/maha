@@ -339,7 +339,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
         case rl =>
           val result = Try {
             val response = httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
-            
+
             val temp = checkUncoveredIntervals(query, response, config)
 
             DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,rl,(fieldList: List[JField]) =>{
