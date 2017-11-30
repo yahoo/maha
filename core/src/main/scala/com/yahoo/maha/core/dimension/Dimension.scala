@@ -155,6 +155,63 @@ object HiveDerDimCol {
   }
 }
 
+case class PrestoDimCol(name: String,
+                      dataType: DataType,
+                      columnContext: ColumnContext,
+                      alias: Option[String],
+                      annotations: Set[ColumnAnnotation],
+                      filterOperationOverrides: Set[FilterOperation]) extends BaseDimCol with WithPrestoEngine {
+  override val isDerivedColumn: Boolean = false
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : DimensionColumn = {
+    if(resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias))
+    }
+  }
+}
+
+object PrestoDimCol {
+  def apply(name: String,
+            dataType: DataType,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) : PrestoDimCol = {
+    PrestoDimCol(name, dataType, cc, alias, annotations, filterOperationOverrides)
+  }
+
+}
+
+case class PrestoDerDimCol(name: String,
+                         dataType: DataType,
+                         columnContext: ColumnContext,
+                         derivedExpression: HiveDerivedExpression,
+                         alias: Option[String],
+                         annotations: Set[ColumnAnnotation],
+                         filterOperationOverrides: Set[FilterOperation]) extends BaseDerivedDimCol with WithPrestoEngine {
+  require(derivedExpression != null,
+    s"Derived expression should be defined for a derived column $name")
+  require(!derivedExpression.expression.hasRollupExpression, s"Cannot have rollup expression for dimension column : $name - $derivedExpression")
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : DimensionColumn = {
+    if(resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name), derivedExpression = derivedExpression.copyWith(columnContext))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias), derivedExpression = derivedExpression.copyWith(columnContext))
+    }
+  }
+}
+
+object PrestoDerDimCol {
+  def apply(name: String,
+            dataType: DataType,
+            derivedExpression: HiveDerivedExpression,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) : PrestoDerDimCol = {
+    PrestoDerDimCol(name, dataType, cc, derivedExpression, alias, annotations, filterOperationOverrides)
+  }
+}
+
 case class OracleDerDimCol(name: String,
                      dataType: DataType,
                      columnContext: ColumnContext,
@@ -284,6 +341,33 @@ case class HivePartDimCol(name: String,
                   alias: Option[String],
                   annotations: Set[ColumnAnnotation],
                   partitionLevel: PartitionLevel) extends BaseDimCol with WithHiveEngine with PartitionColumn {
+  override val filterOperationOverrides: Set[FilterOperation] = Set.empty
+  override val isDerivedColumn: Boolean = false
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : DimensionColumn = {
+    if(resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias))
+    }
+  }
+}
+
+object PrestoPartDimCol {
+  def apply(name: String,
+            dataType: DataType,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            partitionLevel: PartitionLevel = NoPartitionLevel)(implicit cc: ColumnContext) : PrestoPartDimCol = {
+    PrestoPartDimCol(name, dataType, cc, alias, annotations, partitionLevel)
+  }
+}
+
+case class PrestoPartDimCol(name: String,
+                          dataType: DataType,
+                          columnContext: ColumnContext,
+                          alias: Option[String],
+                          annotations: Set[ColumnAnnotation],
+                          partitionLevel: PartitionLevel) extends BaseDimCol with WithHiveEngine with PartitionColumn {
   override val filterOperationOverrides: Set[FilterOperation] = Set.empty
   override val isDerivedColumn: Boolean = false
   def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : DimensionColumn = {

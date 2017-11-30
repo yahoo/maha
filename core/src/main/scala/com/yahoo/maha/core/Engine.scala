@@ -18,6 +18,9 @@ case object DruidEngine extends Engine {
   override def toString = "Druid"
   val MAX_ALLOWED_ROWS: Int = 5000
 }
+case object PrestoEngine extends Engine {
+  override def toString = "Presto"
+}
 
 object Engine {
   def from(s: String): Option[Engine] = {
@@ -25,6 +28,7 @@ object Engine {
       case "hive" => Option(HiveEngine)
       case "oracle" => Option(OracleEngine)
       case "druid" => Option(DruidEngine)
+      case "presto" => Option(PrestoEngine)
       case _ => None
     }
   }
@@ -45,4 +49,8 @@ trait WithOracleEngine extends EngineRequirement {
 
 trait WithDruidEngine extends EngineRequirement {
   final val engine: Engine = DruidEngine
+}
+
+trait WithPrestoEngine extends EngineRequirement {
+  final val engine: Engine = PrestoEngine
 }
