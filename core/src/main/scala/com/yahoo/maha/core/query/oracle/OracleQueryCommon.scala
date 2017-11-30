@@ -3,7 +3,7 @@ package com.yahoo.maha.core.query.oracle
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension.{DimCol, Dimension, OracleAdvertiserHashPartitioning, PKCompositeIndex}
 import com.yahoo.maha.core.fact._
-import com.yahoo.maha.core.query.{BaseQueryGenerator, QueryBuilderContext, QueryContext}
+import com.yahoo.maha.core.query._
 
 import scala.collection.SortedSet
 import scala.collection.mutable.ListBuffer
@@ -43,6 +43,7 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
   // Definition Prototypes
   def generateDimensionSql(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext, includePagination: Boolean): DimensionSql
   def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], isFactOnlyQuery: Boolean, isDimOnly: Boolean, queryContext: QueryContext): String
+  def renderColumnWithAlias(fact: Fact, column: Column, alias: String, requiredInnerCols: Set[String], queryBuilder: QueryBuilder, queryBuilderContext: QueryBuilderContext, queryContext: FactualQueryContext): Unit
 
   protected[this] val factAlias: String = "FactAlias"
 
@@ -142,6 +143,31 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
       String.format(PAGINATION_WRAPPER, queryString, stopKeyPredicate, paginationPredicates.toList.mkString(" AND "))
     } else {
       queryString
+    }
+  }
+
+  def renderColumnName(column: Column): String = {
+    //column.alias.fold(column.name)(alias => s"""$alias AS ${column.name}""")
+    column.alias.getOrElse(column.name)
+  }
+
+  def renderStaticMappedDimension(column: Column) : String = {
+    val nameOrAlias = renderColumnName(column)
+    column.dataType match {
+      case IntType(_, sm, _, _, _) if sm.isDefined =>
+        val defaultValue = sm.get.default
+        val whenClauses = sm.get.tToStringMap.map {
+          case (from, to) => s"WHEN (${nameOrAlias} IN ($from)) THEN '$to'"
+        }
+        s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
+      case StrType(_, sm, _) if sm.isDefined =>
+        val defaultValue = sm.get.default
+        val decodeValues = sm.get.tToStringMap.map {
+          case (from, to) => s"'$from', '$to'"
+        }
+        s"""DECODE(${nameOrAlias}, ${decodeValues.mkString(", ")}, '$defaultValue')"""
+      case _ =>
+        nameOrAlias
     }
   }
 

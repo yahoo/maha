@@ -1,8 +1,8 @@
 package com.yahoo.maha.core.query.oracle
 
-import com.yahoo.maha.core.dimension.{DerivedDimensionColumn, OracleDerDimCol, OraclePartDimCol, DimCol}
-import com.yahoo.maha.core.fact.{Fact, OracleDerFactCol, FactCol}
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.dimension.{DerivedDimensionColumn, DimCol, OracleDerDimCol}
+import com.yahoo.maha.core.fact.{FactCol, OracleDerFactCol}
 import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
 import org.apache.commons.lang3.StringUtils
@@ -49,7 +49,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
 
     val factBest = queryContext.factBestCandidate
 
-    def ogb_generateDimJoin(): Unit = {
+    def ogbGenerateDimJoin(): Unit = {
       if (queryContext.dims.nonEmpty) {
         val dsql = generateDimensionSql(queryContext, queryBuilderContext, true)
         queryBuilder.addDimensionJoin(dsql.drivingDimensionSql)
@@ -59,7 +59,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       }
     }
 
-    def ogb_generateOrderBy(): Unit = {
+    def ogbGenerateOrderBy(): Unit = {
       if(requestModel.isDimDriven && requestModel.hasDrivingDimNonFKNonPKSortBy) {
         // In Dim driven case, if driving dimension has orderBy then we do not want to orderBy again in the outer as it mess up the order
       } else {
@@ -70,7 +70,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       }
     }
 
-    def ogb_generateWhereAndHavingClause(): Unit = {
+    def ogbGenerateWhereAndHavingClause(): Unit = {
       // inner fact where clauses
       val fact = queryContext.factBestCandidate.fact
       val publicFact = queryContext.factBestCandidate.publicFact
@@ -157,100 +157,14 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
 
     /*
      Primitive columns are fact cols rendered in inner select which are dependent on the derived columns
-     Derived columns with dependencies are not rendered in ogb_generateFactViewColumns
+     Derived columns with dependencies are not rendered in ogbGenerateFactViewColumns
      Primitive columns are also rendered in preOuterSelect rendering
       */
     val primitiveColsSet = new mutable.LinkedHashSet[(Column, String)]()
 
-    def ogb_generateFactViewColumns(): Unit = {
+    def ogbGenerateFactViewColumns(): Unit = {
       val factTableAlias = queryBuilderContext.getAliasForTable(queryContext.factBestCandidate.fact.name)
       val fact = queryContext.factBestCandidate.fact
-
-      def renderColumnName(column: Column): String = {
-        //column.alias.fold(column.name)(alias => s"""$alias AS ${column.name}""")
-        column.alias.getOrElse(column.name)
-      }
-
-      def renderStaticMappedDimension(column: Column) : String = {
-        val nameOrAlias = renderColumnName(column)
-        column.dataType match {
-          case IntType(_, sm, _, _, _) if sm.isDefined =>
-            val defaultValue = sm.get.default
-            val whenClauses = sm.get.tToStringMap.map {
-              case (from, to) => s"WHEN (${nameOrAlias} IN ($from)) THEN '$to'"
-            }
-            s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
-          case StrType(_, sm, _) if sm.isDefined =>
-            val defaultValue = sm.get.default
-            val decodeValues = sm.get.tToStringMap.map {
-              case (from, to) => s"'$from', '$to'"
-            }
-            s"""DECODE(${nameOrAlias}, ${decodeValues.mkString(", ")}, '$defaultValue')"""
-          case _ =>
-            nameOrAlias
-        }
-      }
-
-      def renderColumnWithAlias(fact: Fact, column: Column, alias: String, requiredInnerCols: Set[String]): Unit = {
-        val name = column.alias.getOrElse(column.name)
-        val exp = column match {
-          case any if queryBuilderContext.containsColByName(name) =>
-            //do nothing, we've already processed it
-            ""
-          case DimCol(_, dt, cc, _, annotations, _) if dt.hasStaticMapping =>
-            queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$name""", column)
-            s"${renderStaticMappedDimension(column)} $name"
-          case DimCol(_, dt, cc, _, annotations, _) =>
-            queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$name""", column)
-            renderColumnName(column)
-          case OraclePartDimCol(_, dt, cc, _, annotations, _) =>
-            queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$name""", column)
-            renderColumnName(column)
-          case OracleDerDimCol(_, dt, cc, de, _, annotations, _) =>
-            val renderedAlias = s""""$alias""""
-            queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$renderedAlias""", column)
-            s"""${de.render(name, Map.empty)} AS $renderedAlias"""
-          case FactCol(_, dt, cc, rollup, _, annotations, _) =>
-            val nameOrAlias = column.alias.getOrElse(name)
-            column.dataType match {
-              case DecType(_, _, Some(default), Some(min), Some(max), _) =>
-                val renderedAlias = s""""$name""""
-                val minMaxClause = s"CASE WHEN (($nameOrAlias >= $min) AND ($nameOrAlias <= $max)) THEN $nameOrAlias ELSE $default END"
-                queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$renderedAlias""", column)
-                s"${renderRollupExpression(nameOrAlias, rollup, Option(minMaxClause))} AS $renderedAlias"
-              case IntType(_, _, Some(default), Some(min), Some(max)) =>
-                val renderedAlias = s""""$name""""
-                val minMaxClause = s"CASE WHEN (($nameOrAlias >= $min) AND ($nameOrAlias <= $max)) THEN $nameOrAlias ELSE $default END"
-                queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$renderedAlias""", column)
-                s"${renderRollupExpression(nameOrAlias, rollup, Option(minMaxClause))} AS $renderedAlias"
-              case _ =>
-                val renderedAlias = s""""$name""""
-                queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$renderedAlias""", column)
-                s"""${renderRollupExpression(nameOrAlias, rollup)} AS $renderedAlias"""
-            }
-          case OracleDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
-            if queryContext.factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name) =>
-            val renderedAlias = s""""$alias""""
-            queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$renderedAlias""", column)
-            s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} AS $renderedAlias"""
-          case OracleDerFactCol(_, _, dt, cc, de, annotations, _, _) =>
-            //means no fact operation on this column, push expression outside
-            de.sourceColumns.foreach {
-              case src if src != name =>
-                val sourceCol = fact.columnsByNameMap(src)
-                renderColumnWithAlias(fact, sourceCol, sourceCol.name, requiredInnerCols)
-              case _ => //do nothing if we reference ourselves
-            }
-            queryBuilderContext.setFactColAlias(alias, s"""(${de.render(name
-              , queryBuilderContext.getColAliasToFactColNameMap
-              , columnPrefix = Option(s"$factTableAlias.")
-              , expandDerivedExpression = false)})""", column)
-            ""
-          case any =>
-            throw new UnsupportedOperationException(s"Found non unhandled column : $any")
-        }
-        queryBuilder.addFactViewColumn(exp)
-      }
 
       val dimCols = queryContext.factBestCandidate.dimColMapping.toList.collect {
         case (dimCol, alias) if queryContext.factBestCandidate.requestCols(dimCol) =>
@@ -266,7 +180,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
             val name = column.name
             val nameOrAlias = column.alias.getOrElse(name)
             if(!factOnlySubqueryFields(alias)) {
-              renderColumnWithAlias(fact, column, alias, Set.empty)
+              renderColumnWithAlias(fact, column, alias, Set.empty, queryBuilder, queryBuilderContext, queryContext)
             }
             if (column.isDerivedColumn) {
               val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
@@ -305,13 +219,16 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       for {
         groupedFactCols <- groupedFactCols.get(false)
       } yield {
-        primitiveColsSet++=groupedFactCols.toSet
+        groupedFactCols.foreach {
+          case(col, alias) =>
+            primitiveColsSet.add((col, col.alias.getOrElse(col.name)))
+        }
       }
 
       //render non derived columns/primitive cols first
       primitiveColsSet.foreach {
         case (column, alias) =>
-          renderColumnWithAlias(fact, column, alias, Set.empty)
+          renderColumnWithAlias(fact, column, alias, Set.empty, queryBuilder, queryBuilderContext, queryContext)
       }
 
       /*
@@ -351,16 +268,28 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
 
     def renderParentOuterDerivedFactCols(projectedAlias:String, column:Column): String = {
       column match {
+        case OracleDerDimCol(_, dt, cc, de, _, annotations, _) =>
+          val renderedAlias = s""""$projectedAlias""""
+          queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+          s"""$renderedAlias"""
+        case DimCol(_, dt, cc, _, annotations, _) =>
+          val renderedAlias = s""""$projectedAlias""""
+          queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+          s"""$renderedAlias"""
+        case FactCol(_, dt, cc, rollup, _, annotations, _) =>
+          val renderedAlias = s""""$projectedAlias""""
+          queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+          s"""$renderedAlias"""
         case OracleDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
           val renderedAlias = s""""$projectedAlias""""
           val name = column.alias.getOrElse(column.name)
           queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
           s"""${de.render(name, Map.empty)} AS $renderedAlias"""
-        case _=> throw new IllegalArgumentException("Unexpected fact derived column found in outer select")
+        case _=> throw new IllegalArgumentException(s"Unexpected fact derived column found in outer select $column")
       }
     }
 
-    def ogb_generateOuterColumns(): Unit = {
+    def ogbGenerateOuterColumns(): Unit = {
       // add requested dim and fact columns, this should include constants
       queryContext.requestModel.requestCols foreach {
         columnInfo =>
@@ -403,7 +332,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
 
     }
 
-    def ogb_generatePreOuterColumns(primitiveInnerAliasColMap: Map[String, Column]): Unit = {
+    def ogbGeneratePreOuterColumns(primitiveInnerAliasColMap: Map[String, Column]): Unit = {
       // add requested dim and fact columns, this should include constants
       val preOuterRenderedColAlias = new mutable.HashSet[String]()
       queryContext.requestModel.requestCols foreach {
@@ -418,6 +347,13 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                 if(primitiveInnerAliasColMap.contains(colInnerAlias)) {
                   val innerSelectCol = queryBuilderContext.getFactColByAlias(colInnerAlias)
                   renderPreOuterFactCol(colInnerAlias, alias, innerSelectCol)
+                }
+              } else {
+                // Condition to handle dimCols mapped to FactColumnInfo in requestModel
+                val colAliasOption = factBest.dimColMapping.map(_ swap).get(alias)
+                if(colAliasOption.isDefined && queryBuilderContext.containsFactAliasToColumnMap(alias)) {
+                  queryBuilder.addPreOuterColumn(renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, isFactOnlyQuery, false, queryContext))
+                  queryBuilder.addOuterGroupByExpressions(s""""$alias"""")
                 }
               }
 
@@ -446,22 +382,22 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
         queryBuilder.addPreOuterColumn(preOuterFactColRendered)
       }
 
-    } //end ogb_generatePreOuterColumns
+    } //end ogbGeneratePreOuterColumns
 
 
     /*
      1. generate query builder
      */
-    ogb_generateFactViewColumns()
-    ogb_generateWhereAndHavingClause()
+    ogbGenerateFactViewColumns()
+    ogbGenerateWhereAndHavingClause()
     //only generate dim if we are not fact only
     if(!isFactOnlyQuery) {
-      ogb_generateDimJoin()
+      ogbGenerateDimJoin()
     }
 
-    ogb_generatePreOuterColumns(primitiveColsSet.map(e=> e._2 -> e._1).toMap)
-    ogb_generateOuterColumns()
-    ogb_generateOrderBy()
+    ogbGeneratePreOuterColumns(primitiveColsSet.map(e=> e._2 -> e._1).toMap)
+    ogbGenerateOuterColumns()
+    ogbGenerateOrderBy()
     /*
      2. query parameters
      */

@@ -130,6 +130,7 @@ case class RequestModel(cube: String
                         , requestedDaysWindow: Int
                         , requestedDaysLookBack: Int
                         , outerFilters: SortedSet[Filter]
+                        , requestedFkAliasToPublicDimensionMap: Map[String, PublicDimension]
   ) {
 
   val requestColsSet: Set[String] = requestCols.map(_.alias).toSet
@@ -269,6 +270,14 @@ object RequestModel extends Logging {
             .filter(field => field.value.isDefined)
             .map(field => field.alias.getOrElse(field.field))
             .toSet
+
+          val allRequestedFkAliasToPublicDimMap =
+            publicFact.foreignKeyAliases.filter(allProjectedAliases.contains(_)).map {
+              case fkAlias =>
+               val dimensionOption = registry.getDimensionByPrimaryKeyAlias(fkAlias, revision)
+                require(dimensionOption.isDefined, s"Can not find the dimension for Foreign Key Alias $fkAlias in public fact ${publicFact.name}")
+                fkAlias -> dimensionOption.get
+            }.toMap
 
           // Check for duplicate aliases/fields
           // User is allowed to ask same column with different alias names
@@ -929,7 +938,8 @@ object RequestModel extends Logging {
             hasLowCardinalityDimFilters = hasLowCardinalityDimFilters,
             requestedDaysLookBack = requestedDaysLookBack,
             requestedDaysWindow = requestedDaysWindow,
-            outerFilters = allOuterFilters
+            outerFilters = allOuterFilters,
+            requestedFkAliasToPublicDimensionMap = allRequestedFkAliasToPublicDimMap
             )
       }
     }

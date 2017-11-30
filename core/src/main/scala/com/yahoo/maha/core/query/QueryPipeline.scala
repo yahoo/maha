@@ -612,16 +612,38 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
                                         requestModel: RequestModel): Boolean = {
     /*
 OuterGroupBy operation has to be applied only in the following cases
-   1. No Dim col (ID or Non ID) is projected from fact candidate
+   1. Highest Dim PKID is not projected and Non PK is requested
+        eg. If Dimension D1 is requested and D1 Non PK is requested and D1 PK is not requested
    AND
-   2. Dim PKID is not projected
+   2. At least one Dim Non PK ID is projected
    AND
-   3. Dim Non PK ID is projected
+   3. Requested PK IDs has lower levels than best dimension candidates max level
    AND
    4. Request is not dimension driven
  */
-    val isDimColProjectedFromFact = bestFactCandidate.dimColMapping.map(_._2).filter(requestModel.requestColsSet.contains(_)).nonEmpty
-    val hasOuterGroupBy = !isDimColProjectedFromFact && !bestDimCandidates.exists(_.hasPKRequested) && bestDimCandidates.nonEmpty && !requestModel.isDimDriven
+    val projectedNonIDCols = requestModel.requestColsSet.filter(!bestFactCandidate.publicFact.foreignKeyAliases.contains(_))
+    val nonKeyRequestedDimCols = bestFactCandidate.dimColMapping.map(_._2).filter(projectedNonIDCols.contains(_))
+    val isHighestDimPkIDRequested = if(bestDimCandidates.nonEmpty) {
+      bestDimCandidates.takeRight(1).head.hasPKRequested
+    } else false
+
+    val foreignKeyToPublicDimMap = bestFactCandidate.fact.publicDimToForeignKeyMap.map(e=> e._2 -> e._1)
+    val isRequstedHigherDimLevelKey:Boolean =  { // check dim level of requested FK which is not one of the dim candidates
+      if(bestDimCandidates.nonEmpty && requestModel.requestedFkAliasToPublicDimensionMap.nonEmpty) {
+        val fkMaxDimLevel = requestModel.requestedFkAliasToPublicDimensionMap.map(e=> e._2.dimLevel.level).max
+        val dimCandidateMaxDimLevel = bestDimCandidates.map(e=> e.dim.dimLevel.level).max
+        if(fkMaxDimLevel >= dimCandidateMaxDimLevel) {
+          true
+        } else false
+      } else false
+    }
+
+    val hasOuterGroupBy = (nonKeyRequestedDimCols.isEmpty
+      && !isRequstedHigherDimLevelKey
+      && !isHighestDimPkIDRequested
+      && bestDimCandidates.nonEmpty
+      && !requestModel.isDimDriven)
+
     hasOuterGroupBy
   }
 
