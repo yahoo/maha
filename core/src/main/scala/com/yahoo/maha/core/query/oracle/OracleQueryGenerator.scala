@@ -59,7 +59,7 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
         case inf@InFilter(field,values,_,_) => if(values.size > OracleEngine.MAX_SIZE_IN_FILTER) true else false
         case _ => false
       }
-    })
+    }) && requestModel.orFilterMeta.isEmpty
   }
 
   override def generate(queryContext: QueryContext): Query = {

@@ -26,6 +26,9 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
       case any => throw new UnsupportedOperationException(s"query context not supported : $any")
     }
   }
+  override def validateEngineConstraints(requestModel: RequestModel): Boolean = {
+    requestModel.orFilterMeta.isEmpty
+  }
   val hiveLiteralMapper = new HiveLiteralMapper()
 
   private[this] def generateQuery(queryContext: CombinedQueryContext) : Query = {
