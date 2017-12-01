@@ -87,7 +87,8 @@
           "timeoutMaxResponseTimeInMs": 30000,
           "enableRetryOn500": true,
           "retryDelayMillis": 1000,
-          "maxRetry": 3
+          "maxRetry": 3,
+          "enableFallbackOnUncoveredIntervals" : true
         },
         "lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
         "lifecycleListenerFactoryConfig": [

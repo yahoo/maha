@@ -104,7 +104,7 @@ class ReportingRequestTest extends FlatSpec {
     val request: ReportingRequest = getReportingRequest(jsonString, AdvertiserSchema)
     assert(request.requestType === AsyncRequest)
     val ser = new String(ReportingRequest.serialize(request), StandardCharsets.UTF_8)
-    println(ser)
+
     assert(request.numDays === 29)
     assert(request.dayFilter.operator === BetweenFilterOperation)
     assert(request.dayFilter.asInstanceOf[BetweenFilter].field === "Day")
@@ -134,7 +134,7 @@ class ReportingRequestTest extends FlatSpec {
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     assert(request.requestType === SyncRequest)
     val ser = new String(ReportingRequest.serialize(request), StandardCharsets.UTF_8)
-    println(ser)
+
   }
 
   "ReportingRequest without filters (except Day)" should "should be extracted from a json object" in {
@@ -157,7 +157,7 @@ class ReportingRequestTest extends FlatSpec {
 
     val request: ReportingRequest = getReportingRequest(jsonString, AdvertiserSchema)
     val ser = new String(ReportingRequest.serialize(request), StandardCharsets.UTF_8)
-    println(ser)
+
   }
 
   "ReportingRequest without ordering" should "should be extracted from a json object" in {
@@ -176,7 +176,7 @@ class ReportingRequestTest extends FlatSpec {
 
     val request: ReportingRequest = getReportingRequest(jsonString, AdvertiserSchema)
     val ser = new String(ReportingRequest.serialize(request), StandardCharsets.UTF_8)
-    println(ser)
+
   }
 
   "ReportingRequest without si" should "should be extracted from a json object" in {
@@ -194,7 +194,7 @@ class ReportingRequestTest extends FlatSpec {
 
     val request: ReportingRequest = getReportingRequest(jsonString, AdvertiserSchema)
     val ser = new String(ReportingRequest.serialize(request), StandardCharsets.UTF_8)
-    println(ser)
+
   }
 
   "ReportingRequest without mr" should "should be extracted from a json object" in {
@@ -211,7 +211,7 @@ class ReportingRequestTest extends FlatSpec {
 
     val request: ReportingRequest = getReportingRequest(jsonString, AdvertiserSchema)
     val ser = new String(ReportingRequest.serialize(request), StandardCharsets.UTF_8)
-    println(ser)
+
   }
 
   "ReportingRequest with invalid fields json" should "fail" in {
@@ -503,7 +503,7 @@ class ReportingRequestTest extends FlatSpec {
                           }"""
 
     val request =  ReportingRequest.deserializeWithAdditionalParameters(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    println(request)
+
     assert(request.isFailure)
   }
 
@@ -533,7 +533,7 @@ class ReportingRequestTest extends FlatSpec {
                           }
                           }"""
     val request =  ReportingRequest.deserializeWithAdditionalParameters(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    println(request)
+
     assert(request.isSuccess)
   }
 
@@ -1416,7 +1416,7 @@ class ReportingRequestTest extends FlatSpec {
     val request: ReportingRequest = getScheduledReportingRequestValidation(jsonString, AdvertiserSchema).toOption.get
     assert(request.requestType === AsyncRequest)
     val ser = new String(ReportingRequest.serialize(request), StandardCharsets.UTF_8)
-    println(ser)
+
     assert(request.numDays === 1)
     assert(request.dayFilter === ReportingRequest.getDefaultDayFilter)
     assert(request.additionalParameters.size === 1)
@@ -1450,7 +1450,7 @@ class ReportingRequestTest extends FlatSpec {
     val request: ReportingRequest = getReportingRequest(jsonString, AdvertiserSchema)
     assert(request.requestType === AsyncRequest)
     val ser = new String(ReportingRequest.serialize(request), StandardCharsets.UTF_8)
-    println(ser)
+
     assert(request.numDays === 29)
     assert(request.dayFilter.operator === BetweenFilterOperation)
     assert(request.dayFilter.asInstanceOf[BetweenFilter].field === "Day")

@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query.druid
 
-import java.util.UUID
+import java.util.{Date, UUID}
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include
 import com.google.common.collect.{Lists, Maps}
@@ -33,7 +33,7 @@ import io.druid.query.spec.{MultipleIntervalSegmentSpec, QuerySegmentSpec}
 import io.druid.query.timeseries.TimeseriesResultValue
 import io.druid.query.topn.{InvertedTopNMetricSpec, NumericTopNMetricSpec, TopNQueryBuilder, TopNResultValue}
 import io.druid.query.{Druids, Result}
-import org.joda.time.{DateTime, Interval}
+import org.joda.time.{DateTime, DateTimeZone, Interval}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.{SortedSet, mutable}
@@ -47,6 +47,9 @@ object DruidQueryOptimizer {
   val CHUNK_PERIOD = "chunkPeriod"
   val QUERY_PRIORITY = "priority"
   val GROUP_BY_STRATEGY = "groupByStrategy"
+  val UNCOVERED_INTERVALS_LIMIT = "uncoveredIntervalsLimit"
+  val UNCOVERED_INTERVALS_LIMIT_VALUE = 1.asInstanceOf[AnyRef]
+  val APPLY_LIMIT_PUSH_DOWN = "applyLimitPushDown"
   val ASYNC_QUERY_PRIORITY = -1
   val TIMEOUT = "timeout"
 
@@ -97,6 +100,9 @@ class SyncDruidQueryOptimizer(maxSingleThreadedDimCardinality: Long = DruidQuery
         context.put(GROUP_BY_STRATEGY, "v2")
       case _ => //do nothing
     }
+
+    context.put(UNCOVERED_INTERVALS_LIMIT, UNCOVERED_INTERVALS_LIMIT_VALUE)
+    context.put(APPLY_LIMIT_PUSH_DOWN, "false")
   }
 }
 
@@ -158,6 +164,7 @@ object DruidQuery {
   def toJson(query: io.druid.query.Query[_]): String = {
     mapper.writeValueAsString(query)
   }
+  val replaceMissingValueWith = "MAHA_LOOKUP_EMPTY"
 }
 
 abstract class DruidQuery[T] extends Query with WithDruidEngine {
@@ -1014,12 +1021,12 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               renderColumnWithAlias(fact, column, alias)
 
             case lookupFunc@LOOKUP(lookupNamespace, valueColumn) =>
-              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, null, false, true, valueColumn, null)
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, regExFn, null), Option.empty)
 
             case lookupFunc@LOOKUP_WITH_DECODE(lookupNamespace, valueColumn, args @ _*) =>
-              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, null, false, true, valueColumn, null)
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null)
               val mapLookup = new MapLookupExtractor(lookupFunc.map.asJava, false)
               val mapExFn = new LookupExtractionFn(mapLookup, false, lookupFunc.default.getOrElse(null), false, true)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
@@ -1027,7 +1034,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                 Option.apply(new ExtractionDimensionSpec(alias, alias, mapExFn, null)))
 
             case lookupFunc@LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE(lookupNamespace, valueColumn, retainMissingValue, injective, args @ _*) =>
-              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, null, false, true, valueColumn, null)
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null)
               val mapLookup = new MapLookupExtractor(lookupFunc.lookupWithDecode.map.asJava, false)
               val mapExFn = new LookupExtractionFn(mapLookup, retainMissingValue, lookupFunc.lookupWithDecode.default.getOrElse(null), injective, true)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
@@ -1040,12 +1047,12 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               decodeConfig.setValueToCheck(valueToCheck)
               decodeConfig.setColumnIfValueMatched(columnIfValueMatched)
               decodeConfig.setColumnIfValueNotMatched(columnIfValueNotMatched)
-              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, null, false, true, null, decodeConfig)
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, null, decodeConfig)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, regExFn, null), Option.empty)
 
             case lookupFunc@LOOKUP_WITH_TIMEFORMATTER(lookupNamespace,valueColumn,inputFormat,resultFormat) =>
-              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, null, false, true, valueColumn, null)
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null)
               val timeFormatFn = new TimeDimExtractionFn(inputFormat,resultFormat)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, regExFn, null),

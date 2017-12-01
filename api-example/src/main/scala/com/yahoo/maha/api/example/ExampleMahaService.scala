@@ -6,7 +6,7 @@ import java.io.File
 import java.util.UUID
 
 import com.yahoo.maha.core.ddl.OracleDDLGenerator
-import com.yahoo.maha.jdbc.{JdbcConnection, List, Seq}
+import com.yahoo.maha.jdbc._
 import com.yahoo.maha.service.{DefaultMahaService, MahaService, MahaServiceConfig}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import grizzled.slf4j.Logging
@@ -73,7 +73,8 @@ object ExampleMahaService extends Logging {
       """
 
     val rows: List[Seq[Any]] = List(
-      Seq(1, 100, 213, 200, 125, "2017-10-25", "some comment")
+      Seq(1, 100, 213, 200, 125, today.toString, "some comment 1"),
+        Seq(2, 100, 213, 198, 120, yesterday.toString, "some comment 2")
     )
 
     rows.foreach {

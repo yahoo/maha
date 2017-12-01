@@ -12,6 +12,7 @@ case object HiveEngine extends Engine {
 }
 case object OracleEngine extends Engine {
   override def toString = "Oracle"
+  val MAX_SIZE_IN_FILTER = 999
 }
 case object DruidEngine extends Engine {
   override def toString = "Druid"
