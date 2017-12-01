@@ -6,7 +6,7 @@ import java.io.File
 import java.util.UUID
 
 import com.yahoo.maha.core.ddl.OracleDDLGenerator
-import com.yahoo.maha.jdbc.{JdbcConnection, List, Seq}
+import com.yahoo.maha.jdbc.{JdbcConnection}
 import com.yahoo.maha.service.{DefaultMahaService, MahaService, MahaServiceConfig}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import grizzled.slf4j.Logging
