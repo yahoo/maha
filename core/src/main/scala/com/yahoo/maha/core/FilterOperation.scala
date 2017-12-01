@@ -245,6 +245,8 @@ object SqlBetweenFilterRenderer extends BetweenFilterRenderer[SqlResult] {
         }
       case HiveEngine =>
         DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
+      case PrestoEngine =>
+        DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
       case _ =>
         throw new IllegalArgumentException(s"Unsupported engine for BetweenFilterRenderer $engine")
     }

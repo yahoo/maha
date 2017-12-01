@@ -241,7 +241,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
             val renderedAlias = renderColumnAlias(alias)
             queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
             name
-          case HiveDerDimCol(_, dt, _, de, _, _, _) =>
+          case PrestoDerDimCol(_, dt, _, de, _, _, _) =>
             val renderedAlias = renderColumnAlias(alias)
             queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
             s"""${de.render(name, Map.empty)} $renderedAlias"""
@@ -262,14 +262,14 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
                 queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
                 s"""${renderRollupExpression(name, rollup)} $name"""
             }
-          case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
+          case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
             if queryContext.factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)
               || de.isDimensionDriven =>
             val renderedAlias = renderColumnAlias(alias)
             queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
             s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} $renderedAlias"""
 
-          case HiveDerFactCol(_, _, dt, cc, de, annotations, _, _) =>
+          case PrestoDerFactCol(_, _, dt, cc, de, annotations, _, _) =>
             //means no fact operation on this column, push expression outside
             de.sourceColumns.foreach {
               case src if src != name =>
@@ -396,7 +396,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
               filter,
               queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
               fact.columnsByNameMap,
-              HiveEngine,
+              PrestoEngine,
               prestoLiteralMapper,
               Option(exp)
             )
@@ -411,12 +411,12 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
         queryContext.requestModel.localTimeDayFilter,
         queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
         fact.columnsByNameMap,
-        HiveEngine,
+        PrestoEngine,
         prestoLiteralMapper).filter
 
       val combinedQueriedFilters = {
         if (hasPartitioningScheme) {
-          val partitionFilterOption = partitionColumnRenderer.renderFact(queryContext, prestoLiteralMapper, HiveEngine)
+          val partitionFilterOption = partitionColumnRenderer.renderFact(queryContext, prestoLiteralMapper, PrestoEngine)
           if(partitionFilterOption.isDefined) {
             whereFilters += partitionFilterOption.get
             AndFilter(whereFilters).toString
@@ -468,7 +468,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
         column match {
           case DimCol(_, dt, _, _, _, _) =>
             name
-          case HiveDerDimCol(_, dt, _, de, _, _, _) =>
+          case PrestoDerDimCol(_, dt, _, de, _, _, _) =>
             s"""${de.render(name, Map.empty)}"""
           case other => throw new IllegalArgumentException(s"Unhandled column type for dimension cols : $other")
         }
@@ -509,7 +509,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
           ).filter
       }
 
-      val partitionFilters = partitionColumnRenderer.renderDim(requestModel, dimBundle, prestoLiteralMapper, HiveEngine)
+      val partitionFilters = partitionColumnRenderer.renderDim(requestModel, dimBundle, prestoLiteralMapper, PrestoEngine)
       val renderedFactFk = renderColumn(fkCol, "")
 
       val dimWhere = s"""WHERE ${AndFilter(wheres + partitionFilters).toString}"""
@@ -544,7 +544,7 @@ factCandidate.dimColMapping.foreach {
       val column = fact.columnsByNameMap(dimCol)
       val finalAlias = renderColumnAlias(alias)
       queryBuilderContext.setFactColAlias(alias, finalAlias, column)
-      if (column.isInstanceOf[HivePartDimCol]) {
+      if (column.isInstanceOf[PrestoPartDimCol]) {
         partitionCols += column
       }
      }
@@ -583,7 +583,7 @@ factCandidate.duplicateAliasMapping.foreach {
               }
             }
             val column = dimBundle.dim.dimensionColumnsByNameMap(name)
-            if (column.isInstanceOf[HivePartDimCol]) {
+            if (column.isInstanceOf[PrestoPartDimCol]) {
               partitionCols += column
             }
             val finalAlias =  {
@@ -635,7 +635,7 @@ factCandidate.duplicateAliasMapping.foreach {
 
     val paramBuilder = new QueryParameterBuilder
 
-    new HiveQuery(
+    new PrestoQuery(
       queryContext,
       parameterizedQuery,
       Option(udfStatements),

@@ -35,6 +35,14 @@ case class HiveQuery(queryContext: QueryContext,
                      aliasColumnMap: Map[String, Column],
                      additionalColumns: IndexedSeq[String]) extends Query with WithHiveEngine
 
+case class PrestoQuery(queryContext: QueryContext,
+                     asString: String,
+                     udfStatements: Option[Set[UDFRegistration]],
+                     parameters: QueryParameters,
+                     columnHeaders: IndexedSeq[String],
+                     aliasColumnMap: Map[String, Column],
+                     additionalColumns: IndexedSeq[String]) extends Query with WithPrestoEngine
+
 object NoopQuery extends Query {
   override def queryContext: QueryContext = throw new UnsupportedOperationException("NoopQuery")
 

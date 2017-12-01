@@ -10,7 +10,7 @@ import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.lookup.LongRangeLookup
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
-import com.yahoo.maha.core.registry.RegistryBuilder
+import com.yahoo.maha.core.registry.{Registry, RegistryBuilder}
 import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
@@ -22,6 +22,13 @@ trait BasePrestoQueryGeneratorTest
 
   override protected def beforeAll(): Unit = {
     PrestoQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestPrestoUDFRegistrationFactory())
+  }
+
+  override protected[this] def getDefaultRegistry(forcedFilters: Set[ForcedFilter] = Set.empty): Registry = {
+    val registryBuilder = new RegistryBuilder
+    registerFacts(forcedFilters, registryBuilder)
+    registerDims(registryBuilder)
+    registryBuilder.build()
   }
 
   override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
