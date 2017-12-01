@@ -38,9 +38,11 @@ class JdbcConnectionTest extends FunSuite with Matchers with BeforeAndAfterAll {
     assert(result.isSuccess && result.toOption.get === false)
     val resultBool : Try[Boolean] = jdbcConnection.execute("CREATE TABLE dummy2 (string VARCHAR2(244), num INT, decimalValue DECIMAL, dt DATE, ts TIMESTAMP)")
     assert(resultBool.isSuccess && resultBool.toOption.get === false)
-    val temp : SqlAndArgs = SqlAndArgs("CREATE TABLE dummy3 (string VARCHAR2(244))", Seq())
+  }
 
-    val interpolatedResult : Try[Boolean] = jdbcConnection.execute(temp)
+  test("create table with interpolated input") {
+    val interpolatedInput : SqlAndArgs = SqlAndArgs("CREATE TABLE dummy3 (string VARCHAR2(244))", Seq())
+    val interpolatedResult : Try[Boolean] = jdbcConnection.execute(interpolatedInput)
     assert(interpolatedResult.isSuccess && interpolatedResult.toOption.get === false)
   }
   
@@ -59,13 +61,12 @@ class JdbcConnectionTest extends FunSuite with Matchers with BeforeAndAfterAll {
 
     val updateSqlAndArgs : SqlAndArgs = SqlAndArgs("INSERT INTO dummy (string, num, decimalValue, dt, ts, lo, bool, fl, by, sh, da) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       Seq(string, num, decimal, dt, ts, lo, bool, fl, by, sh, da))
-
     val result = jdbcConnection.executeUpdate(updateSqlAndArgs)
-
     assert(result.isSuccess && result.toOption.get === 1)
+  }
 
+  test("Update DB with new table") {
     val resultInt : Try[Int] = jdbcConnection.executeUpdate(s"CREATE TABLE student_grade_sheet (total_marks NUMBER(0) NULL, year NUMBER(3) NOT NULL, obtained_marks NUMBER(0) NULL, date DATE NOT NULL, comment VARCHAR2(0 CHAR) NOT NULL, section_id NUMBER(3) NOT NULL, class_id NUMBER(0) NOT NULL, student_id NUMBER(0) NOT NULL)")
-
     assert(resultInt.isSuccess && resultInt.toOption.get === 0)
   }
   
@@ -84,23 +85,33 @@ class JdbcConnectionTest extends FunSuite with Matchers with BeforeAndAfterAll {
         assert(ts.getTime === staticTimestamp)
 
     }
-    val queryableArgs : SqlAndArgs = SqlAndArgs("SELECT * FROM student_grade_sheet",
-      Seq())
+  }
+
+  test("mapSingle on an already limited query") {
     val limitedQueryableArgs : SqlAndArgs = SqlAndArgs("SELECT * FROM student_grade_sheet LIMIT 1",
       Seq())
+    val mappedLimitedRows = jdbcConnection.mapSingle(limitedQueryableArgs)
+    assert(mappedLimitedRows.isSuccess, "Limit 1 already present test condition failure")
+  }
 
-    val queriedList = jdbcConnection.mapQuery(queryableArgs)
-    assert(queriedList.isSuccess, "mapping of query returned false")
-
+  test("query table for a list") {
     val queriedParameterList = jdbcConnection.queryForList("SELECT * FROM student_grade_sheet",
       Seq())
     assert(queriedParameterList.isSuccess, "queried list returned false")
+  }
 
+  test("map a query") {
+    val queryableArgs : SqlAndArgs = SqlAndArgs("SELECT * FROM student_grade_sheet",
+      Seq())
+    val queriedList = jdbcConnection.mapQuery(queryableArgs)
+    assert(queriedList.isSuccess, "mapping of query returned false")
+  }
+
+  test("map a single row") {
+    val queryableArgs : SqlAndArgs = SqlAndArgs("SELECT * FROM student_grade_sheet",
+      Seq())
     val mappedSingle = jdbcConnection.mapSingle(queryableArgs)
     assert(mappedSingle.isSuccess, "Mapped args failed to add LIMIT 1 condition")
-
-    val mappedLimitedRows = jdbcConnection.mapSingle(limitedQueryableArgs)
-    assert(mappedLimitedRows.isSuccess, "Limit 1 already present test condition failure")
   }
 
   test("Get RowData on a query") {
