@@ -48,6 +48,20 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
 
   private[this] val factAlias: String = "FactAlias"
 
+  override def validateEngineConstraints(requestModel: RequestModel): Boolean = {
+    val filters: SortedSet[Filter] = requestModel.factFilters ++ requestModel.dimFilters
+    !filters.exists(f => {
+      f match {
+        case pdf@PushDownFilter(filter) => filter match {
+          case inf@InFilter(field,values,_,_) => if(values.size > OracleEngine.MAX_SIZE_IN_FILTER) true else false
+          case _ => false
+        }
+        case inf@InFilter(field,values,_,_) => if(values.size > OracleEngine.MAX_SIZE_IN_FILTER) true else false
+        case _ => false
+      }
+    })
+  }
+
   override def generate(queryContext: QueryContext): Query = {
     queryContext match {
       case context: DimQueryContext =>
@@ -575,8 +589,9 @@ b. Dim Driven
         val factCondition: String = if (!isDimOnly) {
           val factCandidate = factOption.get
           val factAlias = queryBuilderContext.getAliasForTable(factCandidate.fact.name)
-          val fk = factCandidate.fact.publicDimToForeignKeyMap(primaryBundle.publicDim.name)
-          s""" ON ($factAlias.$fk = $dimAlias.$pk)"""
+          val fkObj = factCandidate.fact.publicDimToForeignKeyColMap(primaryBundle.publicDim.name)
+          val fkName = fkObj.alias.getOrElse(fkObj.name)
+          s""" ON ($factAlias.$fkName = $dimAlias.$pk)"""
         } else StringUtils.EMPTY
         if (!isDimOnly) {
           sqlBuilder.append( s"""           RIGHT OUTER JOIN""")

@@ -25,24 +25,24 @@ trait BaseQueryChainTest {
 
   def getQueryExecutorContext: QueryExecutorContext = {
     val qeOracle = new QueryExecutor {
-      override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : (T, QueryAttributes) = {
+      override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
         updateRowList(rowList)
-        (rowList, queryAttributes)
+        QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
       }
       override def engine: Engine = OracleEngine
     }
 
     val qeHive = new QueryExecutor {
-      override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : (T, QueryAttributes) = {
+      override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
         updateRowList(rowList)
-        (rowList, queryAttributes)
+        QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
       }
       override def engine: Engine = HiveEngine
     }
     val qeDruid = new QueryExecutor {
-      override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : (T, QueryAttributes) = {
+      override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
         updateRowList(rowList)
-        (rowList, queryAttributes)
+        QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
       }
       override def engine: Engine = DruidEngine
     }
@@ -69,14 +69,14 @@ trait BaseQueryChainTest {
   }
 
   def getFactQueryContext(engine: Engine,model: RequestModel, indexOption: Option[String], queryAttributes: QueryAttributes) : FactQueryContext = {
-    val fact = DefaultQueryPipelineFactory.findBestFactCandidate(model, dimEngines = Set(engine))
+    val fact = DefaultQueryPipelineFactory.findBestFactCandidate(model, dimEngines = Set(engine), queryGeneratorRegistry = new QueryGeneratorRegistry)
     FactQueryContext(fact, model, indexOption, queryAttributes)
   }
 
   def getCombinedQueryContext(engine: Engine,model: RequestModel, indexOption: Option[String], queryAttributes: QueryAttributes) : CombinedQueryContext = {
     val dimMapping = DefaultQueryPipelineFactory.findDimCandidatesMapping(model)
     val dims = DefaultQueryPipelineFactory.findBestDimCandidates(engine, model.schema, dimMapping)
-    val fact = DefaultQueryPipelineFactory.findBestFactCandidate(model, dimEngines = Set(engine))
+    val fact = DefaultQueryPipelineFactory.findBestFactCandidate(model, dimEngines = Set(engine), queryGeneratorRegistry = new QueryGeneratorRegistry)
     CombinedQueryContext(dims, fact, model, queryAttributes)
   }
 

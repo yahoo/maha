@@ -101,7 +101,6 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
     jsonGenerator.flush()
     bufferedWriter.close()
     val jsonString = scala.io.Source.fromFile(tmpFile, "UTF-8").getLines().mkString
-    println(jsonString)
     assert(jsonString === """{"header":{"cube":"k_stats","fields":[{"fieldName":"campaign_id","fieldType":"DIM"},{"fieldName":"Impressions","fieldType":"FACT"},{"fieldName":"Campaign Name","fieldType":"DIM"},{"fieldName":"Campaign Status","fieldType":"DIM"},{"fieldName":"CTR","fieldType":"FACT"},{"fieldName":"TotalRows","fieldType":"CONSTANT"}],"maxRows":100},"rows":[[1,2,"\"name\"","o,n",1.11,1]],"debug":{"fields":[{"fieldName":"Campaign ID","dataType":"Number"},{"fieldName":"Campaign Status","dataType":"String"},{"fieldName":"Impressions","dataType":"Number"},{"fieldName":"Campaign Name","dataType":"String"},{"fieldName":"CTR","dataType":"Number"},{"fieldName":"TOTALROWS","dataType":"Number"},{"fieldName":"TotalRows","dataType":"integer"}],"drivingQuery":{"tableName":"campaign_oracle","engine":"Oracle"}}}""")
   }
 
@@ -155,7 +154,6 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
     jsonGenerator.writeEndObject()
     jsonGenerator.flush()
     val jsonString = writer.getBuffer.toString
-    println(jsonString)
     assert(jsonString === """{"header":{"cube":"k_stats","fields":[{"fieldName":"campaign_id","fieldType":"DIM"},{"fieldName":"Impressions","fieldType":"FACT"},{"fieldName":"Campaign Name","fieldType":"DIM"},{"fieldName":"Campaign Status","fieldType":"DIM"},{"fieldName":"CTR","fieldType":"FACT"},{"fieldName":"TotalRows","fieldType":"CONSTANT"}],"maxRows":100},"rows":[[1,2,"name","on",1.11,10]],"debug":{"fields":[{"fieldName":"Campaign ID","dataType":"Number"},{"fieldName":"Campaign Status","dataType":"String"},{"fieldName":"Impressions","dataType":"Number"},{"fieldName":"Campaign Name","dataType":"String"},{"fieldName":"CTR","dataType":"Number"},{"fieldName":"TOTALROWS","dataType":"Number"},{"fieldName":"TotalRows","dataType":"integer"}],"drivingQuery":{"tableName":"campaign_oracle","engine":"Oracle"}}}""")
   }
 
@@ -201,7 +199,6 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
     jsonGenerator.flush()
     bufferedWriter.close()
     val jsonString = scala.io.Source.fromFile(tmpFile, "UTF-8").getLines().mkString
-    println(jsonString)
     assert(jsonString === """{"header":{"cube":"k_stats","fields":[{"fieldName":"campaign_id","fieldType":"DIM"},{"fieldName":"Impressions","fieldType":"FACT"},{"fieldName":"Campaign Name","fieldType":"DIM"},{"fieldName":"Campaign Status","fieldType":"DIM"},{"fieldName":"CTR","fieldType":"FACT"},{"fieldName":"TotalRows","fieldType":"CONSTANT"}],"maxRows":100},"fields":[{"fieldName":"campaign_id","fieldType":"DIM"},{"fieldName":"Impressions","fieldType":"FACT"},{"fieldName":"Campaign Name","fieldType":"DIM"},{"fieldName":"Campaign Status","fieldType":"DIM"},{"fieldName":"CTR","fieldType":"FACT"},{"fieldName":"TotalRows","fieldType":"CONSTANT"}],"rows":[[1,2,"\"name\"","o,n",1.11,1]],"debug":{"fields":[{"fieldName":"Campaign ID","dataType":"Number"},{"fieldName":"Campaign Status","dataType":"String"},{"fieldName":"Impressions","dataType":"Number"},{"fieldName":"Campaign Name","dataType":"String"},{"fieldName":"CTR","dataType":"Number"},{"fieldName":"TOTALROWS","dataType":"Number"},{"fieldName":"TotalRows","dataType":"integer"}],"drivingQuery":{"tableName":"campaign_oracle","engine":"Oracle"}}}""")
   }
 
@@ -348,7 +345,6 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
     jsonGenerator2.writeEndObject()
     jsonGenerator2.flush()
     val jsonString2 = writer2.getBuffer.toString
-    println(jsonString2)
     assert(jsonString2 === """{"header":{"cube":"k_stats","fields":[{"fieldName":"campaign_id","fieldType":"DIM"},{"fieldName":"Impressions","fieldType":"FACT"},{"fieldName":"Campaign Name","fieldType":"DIM"},{"fieldName":"Campaign Status","fieldType":"DIM"},{"fieldName":"CTR","fieldType":"FACT"}]},"fields":[{"fieldName":"campaign_id","fieldType":"DIM"},{"fieldName":"Impressions","fieldType":"FACT"},{"fieldName":"Campaign Name","fieldType":"DIM"},{"fieldName":"Campaign Status","fieldType":"DIM"},{"fieldName":"CTR","fieldType":"FACT"}],"rows":[[1,2,"name","on",1.11]],"rowCount":1,"debug":{"fields":[{"fieldName":"Campaign ID","dataType":"Number"},{"fieldName":"Campaign Status","dataType":"String"},{"fieldName":"Impressions","dataType":"Number"},{"fieldName":"Campaign Name","dataType":"String"},{"fieldName":"CTR","dataType":"Number"}],"drivingQuery":{"tableName":"fact_table_keywords","engine":"Oracle"}}}""")
   }
 

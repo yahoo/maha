@@ -15,10 +15,10 @@ class QueryExecutorContextTest extends FunSuite with Matchers {
       
       val lifecycleListener : ExecutionLifecycleListener = new NoopExecutionLifecycleListener
       
-      override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): (T, QueryAttributes) = {
+      override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
         val acquiredQueryAttributes = lifecycleListener.acquired(query, queryAttributes)
         val startedQueryAttributes = lifecycleListener.started(query, acquiredQueryAttributes)
-        (rowList, lifecycleListener.completed(query, queryAttributes))
+        QueryResult(rowList, lifecycleListener.completed(query, queryAttributes), QueryResultStatus.SUCCESS)
       }
 
       override def engine: Engine = OracleEngine

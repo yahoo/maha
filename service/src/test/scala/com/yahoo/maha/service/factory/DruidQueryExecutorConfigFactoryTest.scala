@@ -4,7 +4,6 @@ package com.yahoo.maha.service.factory
 
 import com.yahoo.maha.executor.druid.DruidQueryExecutorConfig
 import org.json4s.jackson.JsonMethods._
-import org.scalatest.{FunSuite, Matchers}
 
 /**
  * Created by pranavbhole on 01/06/17.
@@ -27,7 +26,8 @@ class DruidQueryExecutorConfigFactoryTest extends BaseFactoryTest {
                          |"timeoutMaxResponseTimeInMs" : 30000,
                          |"enableRetryOn500" : true,
                          |"retryDelayMillis" : 1000,
-                         |"maxRetry" : 3
+                         |"maxRetry" : 3,
+                         |"enableFallbackOnUncoveredIntervals" : false
                          |}
                        """.stripMargin
 

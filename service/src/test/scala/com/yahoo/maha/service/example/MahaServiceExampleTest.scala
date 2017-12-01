@@ -128,7 +128,8 @@ class MahaServiceExampleTest extends BaseFactoryTest {
                        |               "timeoutMaxResponseTimeInMs": 30000,
                        |               "enableRetryOn500": true,
                        |               "retryDelayMillis": 1000,
-                       |               "maxRetry": 3
+                       |               "maxRetry": 3,
+                       |               "enableFallbackOnUncoveredIntervals" : true
                        |            },
                        |            "lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
                        |            "lifecycleListenerFactoryConfig": [
@@ -420,7 +421,6 @@ class MahaServiceExampleTest extends BaseFactoryTest {
     mahaRequestProcessor.onSuccess(fn)
     mahaRequestProcessor.onFailure((error: GeneralError) => println(error.message))
     val protoBuilder: MahaRequestProto.Builder = mahaRequestProcessor.process()
-    println(protoBuilder)
     assert(protoBuilder.getDrivingTable == "student_grade_sheet")
     assert(protoBuilder.getStatus == 200)
     assert(protoBuilder.getRequestEndTime > System.currentTimeMillis() - 30000)

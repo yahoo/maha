@@ -5,7 +5,6 @@ package com.yahoo.maha.core.query.hive
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.ReportingRequest
-import org.scalatest.exceptions.TestFailedException
 
 /**
  * Created by shengyao on 12/21/15.
@@ -36,7 +35,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
 
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
+
   }
 
   test("user stats hourly") {
@@ -54,7 +53,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.toOption.get.factBestCandidate.get.filters.contains(sourceForceFilter), requestModel.errorMessage("Building request model failed"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
+
   }
 
   test("Date type columns should be rendered with getFormattedDate udf in outer select") {
@@ -163,7 +162,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
+
     assert(result.contains("COALESCE(a1.mang_advertiser_status, \"NA\") mang_advertiser_status"), "Should support “NA” for NULL string")
   }
 
@@ -211,7 +210,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
     assert(result.contains("GROUP BY landing_page_url, stats_date\n"), "Group by should only include dim columns")
-    println(result)
+
   }
 
   test("Hive multi dimensional query") {
@@ -226,7 +225,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
+
   }
 
   test("DateTime type columns should be rendered with getDateTimeFromEpoch udf in outer select") {
@@ -271,8 +270,8 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
           |)
           |
         """.stripMargin
-    println(result)
-    println(expected)
+
+
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -290,7 +289,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
+
     assert(result.contains("ssf0\nJOIN ("))
   }
 
@@ -308,7 +307,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
+
     assert(result.contains("LEFT OUTER JOIN"))
   }
 
@@ -324,7 +323,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(s"ActualQuery: $result")
+
     assert(result.contains("(lower(campaign_name) LIKE lower('%yahoo%'))"))
     val expected = s"""
                      |SELECT CONCAT_WS(",",NVL(mang_day, ''), NVL(advertiser_id, ''), NVL(campaign_id, ''), NVL(mang_campaign_name, ''), NVL(ad_group_id, ''), NVL(keyword_id, ''), NVL(mang_keyword, ''), NVL(mang_search_term, ''), NVL(mang_delivered_match_type, ''), NVL(mang_impressions, ''), NVL(mang_average_cpc_cents, ''), NVL(mang_average_cpc, ''))
@@ -341,7 +340,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
                      |SELECT campaign_name AS mang_campaign_name, id c1_id
                      |FROM campaing_hive
                      |""".stripMargin
-    println(expected)
+
     whiteSpaceNormalised.normalized(result) should startWith(whiteSpaceNormalised.normalized(expected))
   }
 
@@ -357,7 +356,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
+
     assert(result.contains("(lower(campaign_name) LIKE lower('%Server Log Avoidance\t #alert(1) #alert(1) # alert(1) Shortest PoC\t $ while:; do echo \"alert(1)\" | nc -lp80; done%')"))
   }
 
@@ -413,7 +412,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
+
 
     assert(result.contains("GROUP BY modified_bid, CASE WHEN (bid_strategy IN (1)) THEN 'Max Click' WHEN (bid_strategy IN (2)) THEN 'Inflection Point' ELSE 'NONE' END, ad_group_id, account_id, campaign_id, current_bid, (modified_bid - current_bid) / current_bid * 100"))
   }
@@ -499,7 +498,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
+
     val expected =
       s"""
          |SELECT CONCAT_WS(",",NVL(device_id, ''), NVL(advertiser_id, ''), NVL(mang_impressions, ''), NVL(mang_pricing_type, ''), NVL(network_id, ''))
@@ -546,7 +545,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
       val queryPipelineTry = generatePipeline(requestModel.toOption.get)
       assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
       val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-      println(result)
+
       val expected =
         s"""
          |SELECT CONCAT_WS(",",NVL(device_id, ''), NVL(advertiser_id, ''), NVL(mang_impressions, ''), NVL(mang_pricing_type, ''), NVL(network_id, ''))

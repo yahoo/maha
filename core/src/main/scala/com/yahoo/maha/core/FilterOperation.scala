@@ -478,6 +478,18 @@ object FilterDruid {
     }
   }
 
+  def getMaxDate(f: Filter, g: Grain) : DateTime = {
+    f match {
+      case BetweenFilter(_, from, to) =>
+        g.fromFormattedString(to)
+      case InFilter(_, values, _, _) =>
+        g.fromFormattedString(values.max)
+      case EqualityFilter(_, from, _, _) =>
+        g.fromFormattedString(from)
+      case any => throw new UnsupportedOperationException(s"Only Between/In/Equality filter supported : $any")
+    }
+  }
+
   private[this] def processBetweenFilterForDate(fromDate: DateTime, toDate: DateTime, grain: Grain, columnAlias: String, column: Column, columnsByNameMap: Map[String, Column]) : DimFilter = {
     val values: List[String] = {
       val dates = new mutable.HashSet[String]()
@@ -855,8 +867,6 @@ object Filter {
   import _root_.scalaz.Validation
   import Validation.FlatMap._
 
-  val MAX_SIZE_IN_FILTER = 999 // Maximum number of values allowed in IN filter
-
   def compare(a: Filter, b:Filter): Int = Filter.baseEquality.compare(a,b)
   val baseEquality: BaseEquality[Filter] = BaseEquality.from[Filter]{
     (a,b) =>
@@ -995,14 +1005,10 @@ object Filter {
               val filter = InFilter.applyJSON(field[String]("field"), stringListField("values"), booleanFalse, booleanFalse)(json)
               filter.flatMap {
                 f =>
-                  if (f.values.size > MAX_SIZE_IN_FILTER) {
-                    Fail.apply(filter.toOption.get.field, s"Too many values in IN filter, Max allowed: $MAX_SIZE_IN_FILTER")
-                  } else {
                     import _root_.scalaz.Scalaz._
                     val listCheckResult: JsonScalaz.Result[List[Boolean]] =
                       f.values.map(nonEmptyString(_, f.field, "values")).sequence[JsonScalaz.Result, Boolean]
                     (nonEmptyList(f.values, f.field, "values") |@| listCheckResult)((a, b) => f)
-                  }
               }
             case "not in" =>
               val filter = NotInFilter.applyJSON(field[String]("field"), stringListField("values"), booleanFalse, booleanFalse)(json)

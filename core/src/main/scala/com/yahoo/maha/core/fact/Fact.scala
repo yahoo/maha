@@ -523,7 +523,7 @@ case class FactTable private[fact](name: String
                 factCols.filterNot(_.isDerivedColumn).foreach {
                   c =>
                     val nameOrAlias = c.alias.getOrElse(c.name)
-                    require(columnOrderingSet(c.name) || columnOrderingSet.contains(c.name), s"Fact column: ${c.name} is not present in column order set : nameOrAlias = $nameOrAlias , fact = $name")
+                    require(columnOrderingSet(nameOrAlias) || columnOrderingSet.contains(c.name), s"Fact column: ${c.name} is not present in column order set : nameOrAlias = $nameOrAlias , fact = $name")
                 }
               case any => /* Do nothing */
             }
@@ -666,6 +666,15 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
     require(from != to, "from should not be equal to to")
     require(tableMap.contains(from), "from table does not exist")
     require(!tableMap.contains(to), "to table should not exist")
+  }
+
+  private[this] def dateValidate(to: String, date: String, engine: Engine): Unit = {
+    tableMap.foreach{ case (name, fact) =>
+      if(name != to) {
+        //either the base table has no availableOnwardsDate, the current engine is different from the new one, or (if both engines the same) different dates
+        require(!fact.availableOnwardsDate.isDefined || engine != fact.engine || date != fact.availableOnwardsDate.get, s"Base date $date in fact $to is already defined in $name")
+      }
+    }
   }
 
   def withNewGrain(name: String
@@ -835,19 +844,25 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
     // override non engine specific columns or add new columns
     overrideDimCols foreach {
       d =>
-        if(!isFromTableView) {
-          require(!d.dataType.hasStaticMapping,
+        if(!isFromTableView && fromTable.dimColMap.contains(d.name)) {
+          val baseDimCol = fromTable.dimColMap(d.name)
+          require((!d.dataType.hasStaticMapping) || //If new has no map, we don't care about old.
+            (d.dataType.hasStaticMapping &&
+              (baseDimCol.dataType.reverseStaticMapping == d.dataType.reverseStaticMapping)),//If old has a map, it must match new map
             s"Override column cannot have static mapping : name=$name, from=$from, engine=$engine col=$d")
-        }
+        }                                                                                     // If no old col, don't care
         dimColMap += (d.name -> d)
     }
 
     overrideFactCols foreach {
       f =>
-        if(!isFromTableView) {
-          require(!f.dataType.hasStaticMapping,
+        if(!isFromTableView && fromTable.factColMap.contains(f.name)) {
+          val baseFactCol = fromTable.factColMap(f.name)
+          require((!f.dataType.hasStaticMapping) || //If new has no map, we don't care about old.
+            (f.dataType.hasStaticMapping &&
+              (baseFactCol.dataType.reverseStaticMapping == f.dataType.reverseStaticMapping)),//If old has a map, it must match new map
             s"Override column cannot have static mapping : name=$name, from=$from, engine=$engine col=$f")
-        }
+        }                                                                                     // If no old col, don't care
         factColMap += (f.name -> f)
     }
 
@@ -906,6 +921,156 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                  , if (maxDaysLookBack.isDefined) maxDaysLookBack else fromTable.maxDaysLookBack
                  , availableOnwardsDate
                ))
+
+    this
+  }
+
+  def withAvailableOnwardsDate(name: String
+                            , from: String
+                            , discarding: Set[String] = Set.empty
+                            , engine: Engine
+                            , overrideDimCols: Set[DimensionColumn] = Set.empty
+                            , overrideFactCols: Set[FactColumn] = Set.empty
+                            , schemas: Option[Set[Schema]] = None
+                            , overrideAnnotations: Set[FactAnnotation] = Set.empty
+                            , overrideDDLAnnotation: Option[DDLAnnotation] = None
+                            , costMultiplierMap: Map[RequestType, CostMultiplier] = Fact.DEFAULT_COST_MULTIPLIER_MAP
+                            , columnAliasMap : Map[String, String] = Map.empty
+                            , forceFilters: Set[ForceFilter] = Set.empty
+                            , grain: Option[Grain] = None
+                            , defaultCardinality:Int = 10
+                            , defaultRowCount:Int = 100
+                            , maxDaysWindow: Option[Map[RequestType, Int]] = None
+                            , maxDaysLookBack: Option[Map[RequestType, Int]] = None
+                            , availableOnwardsDate : Option[String] = None)(implicit cc: ColumnContext) : FactBuilder = {
+
+    require(!tableMap.contains(name), s"should not export with existing table name $name")
+    require(tableMap.nonEmpty, "no tables found")
+    require(tableMap.contains(from), s"from table not found : $from")
+    require(availableOnwardsDate.isDefined, s"availableOnwardsDate parameter must be defined in withAvailableOnwardsDate in $name")
+    dateValidate(name, availableOnwardsDate.get, engine)
+
+    val fromTable = tableMap(from)
+
+    discarding foreach {
+      d =>
+        require(fromTable.factCols.map(_.name).contains(d) || fromTable.dimCols.map(_.name).contains(d), s"column $d does not exist")
+    }
+
+    //override dim cols by name
+    val overrideDimColsByName: Set[String] = overrideDimCols.map(_.name)
+    //override fact cols by name
+    val overrideFactColsByName: Set[String] = overrideFactCols.map(_.name)
+
+    // non engine specific columns (engine specific columns not needed) and filter out overrides
+    var dimColMap = fromTable
+      .dimCols
+      .filter(dim => !discarding.contains(dim.name))
+      .filter(c => !c.hasEngineRequirement && !overrideDimColsByName(c.name))
+      .map(d => d.name -> d.copyWith(cc, columnAliasMap, true))
+      .toMap
+    var factColMap = fromTable
+      .factCols
+      .filter(fact => !discarding.contains(fact.name))
+      .filter(c => !c.hasEngineRequirement && !overrideFactColsByName(c.name))
+      .map(f => f.name -> f.copyWith(cc, columnAliasMap, true))
+      .toMap
+
+    val isFromTableView = fromTable.isInstanceOf[FactView]
+    // override non engine specific columns or add new columns
+    overrideDimCols foreach {
+      d =>
+        if(!isFromTableView && fromTable.dimColMap.contains(d.name)) {
+          val baseDimCol = fromTable.dimColMap(d.name)
+          require((!d.dataType.hasStaticMapping) || //If new has no map, we don't care about old.
+            (d.dataType.hasStaticMapping &&
+              (baseDimCol.dataType.reverseStaticMapping == d.dataType.reverseStaticMapping)),//If old has a map, it must match new map
+            s"Override column cannot have static mapping : name=$name, from=$from, engine=$engine col=$d")
+        }                                                                                     // If no old col, don't care
+        dimColMap += (d.name -> d)
+    }
+
+    overrideFactCols foreach {
+      f =>
+        if(!isFromTableView && fromTable.factColMap.contains(f.name)) {
+          val baseFactCol = fromTable.factColMap(f.name)
+          require((!f.dataType.hasStaticMapping) || //If new has no map, we don't care about old.
+            (f.dataType.hasStaticMapping &&
+              (baseFactCol.dataType.reverseStaticMapping == f.dataType.reverseStaticMapping)),//If old has a map, it must match new map
+            s"Override column cannot have static mapping : name=$name, from=$from, engine=$engine col=$f")
+        }                                                                                     // If no old col, don't care
+        factColMap += (f.name -> f)
+    }
+
+
+    val dimsWithAnnotationsWithEngineRequirement = dimColMap
+      .values
+      .filter(_.hasAnnotationsWithEngineRequirement)
+
+    val missingDimOverrides = dimsWithAnnotationsWithEngineRequirement
+      .map(c => (c.name, c.annotationsWithEngineRequirement.map(_.asInstanceOf[EngineRequirement]).filterNot(_.acceptEngine(engine))))
+      .filter(_._2.nonEmpty)
+
+    val factsWithAnnotationsWithEngineRequirement = factColMap
+      .values
+      .filter(c => c.hasAnnotationsWithEngineRequirement)
+
+    val missingFactAnnotationOverrides = factsWithAnnotationsWithEngineRequirement
+      .map(c => (c.name, c.annotationsWithEngineRequirement.map(_.asInstanceOf[EngineRequirement]).filterNot(_.acceptEngine(engine))))
+      .filter(_._2.nonEmpty)
+
+    val factsWithRollupWithEngineRequirement = factColMap
+      .values
+      .filter(c => c.hasRollupWithEngineRequirement)
+
+    val missingFactRollupOverrides = factsWithRollupWithEngineRequirement
+      .filterNot(c => c.rollupExpression.asInstanceOf[EngineRequirement].acceptEngine(engine))
+      .map(c => (c.name, c.rollupExpression))
+
+    val nonEngineFactAnnotations = fromTable.annotations.filterNot(_.isInstanceOf[EngineRequirement])
+    val newGrain = grain.getOrElse(fromTable.grain)
+
+    require(missingDimOverrides.isEmpty && missingFactAnnotationOverrides.isEmpty && missingFactRollupOverrides.isEmpty,
+      s"""name=$name, from=$from, engine=$engine, missing dim overrides = $missingDimOverrides ,
+         |missing fact annotation overrides = $missingFactAnnotationOverrides,
+         |missing fact rollup overrides = $missingFactRollupOverrides""".stripMargin)
+
+
+    val newDDLAnnotation = engine match {
+      case HiveEngine =>
+        if (overrideDDLAnnotation.isDefined) {
+          val hiveAnnotation = overrideDDLAnnotation.get.asInstanceOf[HiveDDLAnnotation]
+          val newColOrder = hiveAnnotation.columnOrdering.filter(c => !discarding.contains(c))
+          val newHiveDDLAnnotation = new HiveDDLAnnotation(hiveAnnotation.annotations, newColOrder)
+          Option(newHiveDDLAnnotation.asInstanceOf[DDLAnnotation])
+        } else {
+          fromTable.ddlAnnotation
+        }
+      case _ =>
+        overrideDDLAnnotation
+    }
+
+    tableMap = tableMap +
+      (name -> new FactTable(
+        name
+        , fromTable.level
+        , newGrain
+        , engine
+        , schemas.getOrElse(fromTable.schemas)
+        , dimColMap.values.toSet
+        , factColMap.values.toSet
+        , Option(fromTable)
+        , annotations = nonEngineFactAnnotations ++ overrideAnnotations
+        , ddlAnnotation = newDDLAnnotation
+        , costMultiplierMap = costMultiplierMap
+        , forceFilters = forceFilters
+        , defaultCardinality = defaultCardinality
+        , defaultRowCount=defaultRowCount
+        , fromTable.viewBaseTable
+        , if (maxDaysWindow.isDefined) maxDaysWindow else fromTable.maxDaysWindow
+        , if (maxDaysLookBack.isDefined) maxDaysLookBack else fromTable.maxDaysLookBack
+        , availableOnwardsDate
+      ))
 
     this
   }
