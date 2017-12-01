@@ -814,7 +814,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       d =>
         if(!isFromTableView && fromTable.dimColMap.contains(d.name)) {
           val baseDimCol = fromTable.dimColMap(d.name)
-          require((!baseDimCol.dataType.hasStaticMapping && !d.dataType.hasStaticMapping) || //If old has no map, new can't have a map
+          require((!d.dataType.hasStaticMapping) || //If new has no map, we don't care about old.
             (d.dataType.hasStaticMapping &&
               (baseDimCol.dataType.reverseStaticMapping == d.dataType.reverseStaticMapping)),//If old has a map, it must match new map
             s"Override column cannot have static mapping : name=$name, from=$from, engine=$engine col=$d")
@@ -826,7 +826,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       f =>
         if(!isFromTableView && fromTable.factColMap.contains(f.name)) {
           val baseFactCol = fromTable.factColMap(f.name)
-          require((!baseFactCol.dataType.hasStaticMapping && !f.dataType.hasStaticMapping) || //If old has no map, new can't have a map
+          require((!f.dataType.hasStaticMapping) || //If new has no map, we don't care about old.
             (f.dataType.hasStaticMapping &&
               (baseFactCol.dataType.reverseStaticMapping == f.dataType.reverseStaticMapping)),//If old has a map, it must match new map
             s"Override column cannot have static mapping : name=$name, from=$from, engine=$engine col=$f")
@@ -950,7 +950,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       d =>
         if(!isFromTableView && fromTable.dimColMap.contains(d.name)) {
           val baseDimCol = fromTable.dimColMap(d.name)
-          require((!baseDimCol.dataType.hasStaticMapping && !d.dataType.hasStaticMapping) || //If old has no map, new can't have a map
+          require((!d.dataType.hasStaticMapping) || //If new has no map, we don't care about old.
             (d.dataType.hasStaticMapping &&
               (baseDimCol.dataType.reverseStaticMapping == d.dataType.reverseStaticMapping)),//If old has a map, it must match new map
             s"Override column cannot have static mapping : name=$name, from=$from, engine=$engine col=$d")
@@ -962,7 +962,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       f =>
         if(!isFromTableView && fromTable.factColMap.contains(f.name)) {
           val baseFactCol = fromTable.factColMap(f.name)
-          require((!baseFactCol.dataType.hasStaticMapping && !f.dataType.hasStaticMapping) || //If old has no map, new can't have a map
+          require((!f.dataType.hasStaticMapping) || //If new has no map, we don't care about old.
             (f.dataType.hasStaticMapping &&
               (baseFactCol.dataType.reverseStaticMapping == f.dataType.reverseStaticMapping)),//If old has a map, it must match new map
             s"Override column cannot have static mapping : name=$name, from=$from, engine=$engine col=$f")
