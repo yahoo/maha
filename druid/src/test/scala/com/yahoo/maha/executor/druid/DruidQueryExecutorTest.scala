@@ -4,7 +4,6 @@ package com.yahoo.maha.executor.druid
 
 import java.net.InetSocketAddress
 
-import com.metamx.http.client.response.ClientResponse
 import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, InternalSchema, ResellerSchema}
 import com.yahoo.maha.core.DruidDerivedFunction.{DECODE_DIM, GET_INTERVAL_DATE}
 import com.yahoo.maha.core.DruidPostResultFunction.{POST_RESULT_DECODE, START_OF_THE_MONTH, START_OF_THE_WEEK}
@@ -19,9 +18,6 @@ import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.{ReportingRequest, SyncRequest}
 import com.yahoo.maha.executor.MockOracleQueryExecutor
-import org.apache.http.HttpResponse
-import org.apache.http.client.methods.{HttpGet, HttpPost}
-import org.apache.http.impl.client.{CloseableHttpClient, HttpClientBuilder}
 import org.http4s.server.blaze.BlazeBuilder
 import org.json4s.JsonAST._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
@@ -363,9 +359,9 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
   }
 
 
-  private[this] def getDruidQueryExecutor(url: String) : DruidQueryExecutor = {
+  private[this] def getDruidQueryExecutor(url: String, enableFallbackOnUncoveredIntervals: Boolean = false) : DruidQueryExecutor = {
     new DruidQueryExecutor(new DruidQueryExecutorConfig(50,500,5000,5000, 5000,"config",url,None,3000,3000,3000,3000,
-      true, 500, 3), new NoopExecutionLifecycleListener, ResultSetTransformers.DEFAULT_TRANSFORMS)
+      true, 500, 3, enableFallbackOnUncoveredIntervals), new NoopExecutionLifecycleListener, ResultSetTransformers.DEFAULT_TRANSFORMS)
   }
 
   private[this] def getDruidQueryGenerator() : DruidQueryGenerator = {
@@ -2046,9 +2042,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
   }
 
-  //Test if there are nonempty uncovered intervals, meaning an IllegalStateException
-  // should be thrown so that response can fallback to Oracle.
-  test("Uncovered Interval response") {
+  test("Uncovered Interval response: should not fall back") {
 
     val jsonString =
       s"""
@@ -2085,7 +2079,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
     val query =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
     println(query.asString)
-    val executor = getDruidQueryExecutor("http://localhost:6667/mock/uncoveredNonempty")
+    val executor = getDruidQueryExecutor("http://localhost:6667/mock/uncoveredNonempty", true)
 
     val oracleExecutor = new MockOracleQueryExecutor(
       { rl =>
@@ -2133,20 +2127,14 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val result = queryPipelineTry.toOption.get.execute(queryExecContext)
     assert(result.isSuccess)
 
-    var str: String = ""
-    var count: Int = 0
-    result.get._1.foreach{
-      row => {
-        count += 1
-        str= str+s"$row"
-      }
+    val expected = List("Row(Map(Day -> 0, Keyword ID -> 1, Impressions -> 2, Advertiser Status -> 3),ArrayBuffer(null, 10, 175, null))"
+    , "Row(Map(Day -> 0, Keyword ID -> 1, Impressions -> 2, Advertiser Status -> 3),ArrayBuffer(null, 14, 17, null))")
+
+    result.get._1.foreach {
+      row =>
+        println(row)
+        assert(expected.contains(row.toString))
     }
-
-    assert(count==2)
-    val expected = "Row(Map(Day -> 0, Keyword ID -> 1, Impressions -> 2, Advertiser Status -> 3),ArrayBuffer(null, 14, 10, ON))Row(Map(Day -> 0, Keyword ID -> 1, Impressions -> 2, Advertiser Status -> 3),ArrayBuffer(null, 13, 20, ON))"
-    println(s"Actual: $str expected: ${expected}")
-    str should equal (expected) (after being whiteSpaceNormalised)
-
   }
 
 }
