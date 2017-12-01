@@ -185,7 +185,7 @@ object PrestoDimCol {
 case class PrestoDerDimCol(name: String,
                          dataType: DataType,
                          columnContext: ColumnContext,
-                         derivedExpression: HiveDerivedExpression,
+                         derivedExpression: PrestoDerivedExpression,
                          alias: Option[String],
                          annotations: Set[ColumnAnnotation],
                          filterOperationOverrides: Set[FilterOperation]) extends BaseDerivedDimCol with WithPrestoEngine {
@@ -204,7 +204,7 @@ case class PrestoDerDimCol(name: String,
 object PrestoDerDimCol {
   def apply(name: String,
             dataType: DataType,
-            derivedExpression: HiveDerivedExpression,
+            derivedExpression: PrestoDerivedExpression,
             alias: Option[String] = None,
             annotations: Set[ColumnAnnotation] = Set.empty,
             filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) : PrestoDerDimCol = {
@@ -367,7 +367,7 @@ case class PrestoPartDimCol(name: String,
                           columnContext: ColumnContext,
                           alias: Option[String],
                           annotations: Set[ColumnAnnotation],
-                          partitionLevel: PartitionLevel) extends BaseDimCol with WithHiveEngine with PartitionColumn {
+                          partitionLevel: PartitionLevel) extends BaseDimCol with WithPrestoEngine with PartitionColumn {
   override val filterOperationOverrides: Set[FilterOperation] = Set.empty
   override val isDerivedColumn: Boolean = false
   def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : DimensionColumn = {

@@ -26,6 +26,13 @@ case object HiveShardingExpression {
   val instance: ColumnAnnotation = HiveShardingExpression(null)
 }
 
+case class PrestoShardingExpression(expression: PrestoDerivedExpression) extends ColumnAnnotationInstance with WithPrestoEngine {
+  def instance: ColumnAnnotation = PrestoShardingExpression.instance
+}
+case object PrestoShardingExpression {
+  val instance: ColumnAnnotation = PrestoShardingExpression(null)
+}
+
 case object PrimaryKey extends ColumnAnnotation
 case object EscapingRequired extends ColumnAnnotation
 case object HiveSnapshotTimestamp extends ColumnAnnotation with SingletonColumn with WithHiveEngine

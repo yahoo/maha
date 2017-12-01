@@ -327,6 +327,13 @@ object SqlEqualityFilterRenderer extends EqualityFilterRenderer[SqlResult] {
           case _ =>
             DefaultResult(s"""$name = $renderedValue""")
         }
+      case PrestoEngine =>
+        column.dataType match {
+          case StrType(_, _, _) if column.caseInSensitive =>
+            DefaultResult(s"""lower($name) = lower($renderedValue)""")
+          case _ =>
+            DefaultResult(s"""$name = $renderedValue""")
+        }
       case _ =>
         throw new IllegalArgumentException(s"Unsupported engine for EqualityFilterRenderer $engine")
     }
