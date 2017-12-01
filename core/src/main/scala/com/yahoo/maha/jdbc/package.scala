@@ -27,10 +27,7 @@ package object jdbc {
     }
   }
 
-  //
-  // SqlInterpolation
-  //
-
+  // SQL Interpolation
   case class SqlAndArgs(sql: String, args: Seq[Any]) {
     def +(that: SqlAndArgs): SqlAndArgs = {
       SqlAndArgs(sql + " " + that.sql, args ++ that.args)
