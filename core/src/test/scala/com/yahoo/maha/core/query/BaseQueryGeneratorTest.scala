@@ -73,9 +73,7 @@ trait BaseQueryGeneratorTest {
   }
 
   protected[this] def getBaseDir : String = {
-    //val userDir = System.getProperty("user.dir")
-    val userDir = "/Users/surabhip/maha/"
-    System.out.println(s"User Dir: $userDir")
+    val userDir = System.getProperty("user.dir")
     if(userDir.endsWith("core")) {
       s"$userDir/src/test/resources/"
     } else {

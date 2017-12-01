@@ -2,9 +2,9 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
-import com.yahoo.maha.core.BaseExpressionTest.{FACT_HIVE_EXPRESSION, TIMESTAMP_TO_FORMATTED_DATE}
+import com.yahoo.maha.core.BaseExpressionTest.{FACT_HIVE_EXPRESSION, PRESTO_TIMESTAMP_TO_FORMATTED_DATE, TIMESTAMP_TO_FORMATTED_DATE}
 import com.yahoo.maha.core.dimension._
-import com.yahoo.maha.core.fact.{DruidDerFactCol, FactCol, HiveDerFactCol, OracleDerFactCol}
+import com.yahoo.maha.core.fact._
 import io.druid.jackson.DefaultObjectMapper
 import org.scalatest.{FunSuite, Matchers}
 
@@ -322,11 +322,72 @@ class DerivedExpressionTest extends FunSuite with Matchers {
             val col = OracleDerDimCol(s"$input", DateType(), GET_INTERVAL_DATE("{stats_date}", s"$input"))
             col.derivedExpression.render(col.name) should equal(s"TO_CHAR(stats_date, '$input')")
           }
-
-
         }
-
       }
     }
   }
+
+  /* Presto Expression tests */
+
+  test("successfully derive dependent columns from PrestoDerivedExpression") {
+    import PrestoExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      DimCol("created_date", IntType())
+      val col = PrestoDerDimCol("Keyword Date Created", StrType(), PRESTO_TIMESTAMP_TO_FORMATTED_DATE("{created_date}", "YYYY-MM-dd"), annotations = Set())
+      col.derivedExpression.sourceColumns.contains("created_date") should equal(true)
+      col.derivedExpression.render(col.name) should equal("getDateFromEpoch(created_date, 'YYYY-MM-dd')")
+    }
+  }
+
+  test("successfully derive dependent columns from PrestoShardingExpression") {
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent columns
+      DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+      PrestoPartDimCol("shard", StrType(), annotations = Set())
+
+      val col = PrestoShardingExpression("{shard} = PMOD({advertiser_id}, 31)")
+      col.expression.sourceColumns.contains("shard") should equal(true)
+      col.expression.sourceColumns.contains("advertiser_id") should equal(true)
+      col.expression.render(col.expression.toString) should equal("shard = PMOD(advertiser_id, 31)")
+    }
+  }
+
+  test("successfully derive dependent columns from PrestoDerivedExpressions when expandDerivedExpression is true and false") {
+    import PrestoExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      DimCol("clicks", IntType())
+      DimCol("impressions", IntType())
+      PrestoDerFactCol("De 1", DecType(), "{clicks}" * "1000")
+      PrestoDerFactCol("De 2", DecType(), "{impressions}" * "1000")
+      val col = PrestoDerFactCol("De 3", DecType(), "{De 1}" /- "{De 2}")
+      col.derivedExpression.sourceColumns.contains("De 1") should equal(true)
+      col.derivedExpression.sourceColumns.contains("De 2") should equal(true)
+      col.derivedExpression.render(col.name, columnPrefix = Option("tableAlias."), expandDerivedExpression = false) should equal(
+        """CASE WHEN tableAlias."De 2" = 0 THEN 0.0 ELSE tableAlias."De 1" / tableAlias."De 2" END"""
+      )
+      col.derivedExpression.render(col.name, columnPrefix = Option("tableAlias."), expandDerivedExpression = true) should equal(
+        """CASE WHEN (tableAlias."impressions" * 1000) = 0 THEN 0.0 ELSE (tableAlias."clicks" * 1000) / (tableAlias."impressions" * 1000) END"""
+      )
+
+      val renderedColumnAliasMap : scala.collection.Map[String, String] = Map("De 1" -> """mang_de1""", "De 2" -> """mang_de2""")
+      col.derivedExpression.render(col.name, renderedColumnAliasMap, expandDerivedExpression = false) should equal(
+        """CASE WHEN mang_de2 = 0 THEN 0.0 ELSE mang_de1 / mang_de2 END"""
+      )
+      col.derivedExpression.render(col.name, renderedColumnAliasMap, expandDerivedExpression = true) should equal(
+        """CASE WHEN (impressions * 1000) = 0 THEN 0.0 ELSE (clicks * 1000) / (impressions * 1000) END"""
+      )
+    }
+  }
+
+  test("Presto DAY_OF_WEEK test") {
+    import PrestoExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      DimCol("stats_date", DateType())
+      val col = PrestoDerDimCol("Day of Week", StrType(), DAY_OF_WEEK	("stats_date", "yyyyMMdd"))
+      col.derivedExpression.render(col.name) should equal("from_unixtime(unix_timestamp(stats_date, 'yyyyMMdd'), 'EEEE')")
+    }
+  }
+
 }

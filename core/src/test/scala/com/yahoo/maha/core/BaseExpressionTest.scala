@@ -4,6 +4,7 @@ package com.yahoo.maha.core
 
 import com.yahoo.maha.core.BaseExpressionTest._
 import com.yahoo.maha.core.HiveExpression._
+import com.yahoo.maha.core.PrestoExpression.{PrestoExp, UDFPrestoExpression}
 
 /**
  * Created by pranavbhole on 07/07/17.
@@ -68,7 +69,6 @@ object BaseExpressionTest {
 
     def asString: String = s"dim_hive_expression($argStrs)"
   }
-
 
   case object GET_INTERVAL_DATE_REG extends UDF {
     val statement: String = "CREATE TEMPORARY FUNCTION fact_hive_expression as 'com.yahoo.maha.test.udf.TestUDF';"
@@ -180,4 +180,14 @@ object BaseExpressionTest {
 
     def asString: String = s"getDateFromEpoch(${argStrs}, '$fmt')"
   }
+
+  // Presto classes
+  case class PRESTO_TIMESTAMP_TO_FORMATTED_DATE(args: PrestoExp , fmt: String) extends UDFPrestoExpression(TIMESTAMP_TO_FORMATTED_DATE_REG)(uDFRegistrationFactory) {
+    def hasRollupExpression = args.hasRollupExpression
+    def hasNumericOperation = args.hasNumericOperation
+    val argStrs = args.asString
+
+    def asString: String = s"getDateFromEpoch(${argStrs}, '$fmt')"
+  }
+
 }

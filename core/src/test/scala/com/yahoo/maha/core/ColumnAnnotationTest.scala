@@ -22,4 +22,10 @@ class ColumnAnnotationTest extends FunSuite with Matchers {
     val set: Set[ColumnAnnotation] = Set(DayColumn("YYYYMMDD"))
     set.contains(DayColumn.instance) === true
   }
+
+  test("successfully find PrestoShardingExpression with instance") {
+    val set: Set[ColumnAnnotation] = Set(PrestoShardingExpression(null))
+    set.contains(PrestoShardingExpression.instance) === true
+  }
+
 }
