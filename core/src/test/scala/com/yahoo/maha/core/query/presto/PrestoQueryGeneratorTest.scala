@@ -6,9 +6,6 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.ReportingRequest
 
-/**
- * Created by shengyao on 12/21/15.
- */
 class PrestoQueryGeneratorTest extends BasePrestoQueryGeneratorTest {
 
   test("registering Presto query generation multiple times should fail") {
