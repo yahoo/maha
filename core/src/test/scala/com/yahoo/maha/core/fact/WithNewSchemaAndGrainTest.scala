@@ -31,6 +31,17 @@ class WithNewSchemaAndGrainTest extends BaseFactTest {
     assert(bcOption.get.facts.values.find( f => f.fact.name == "fact2").get.fact.forceFilters.nonEmpty)
   }
 
+  test("withNewSchemaAndGrain should succeed with new grain and new schema and override force filters") {
+    val fact = fact1WithForceFilters(Set(ForceFilter(InFilter("Pricing Type", List("1"), isForceFilter = true))))
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      fact.withNewSchemaAndGrain("fact2", "fact1", Set(ResellerSchema), HourlyGrain, forceFilters = Set(ForceFilter(InFilter("Pricing Type", List("1"), isForceFilter = true))))
+    }
+    val bcOption = publicFact(fact).getCandidatesFor(ResellerSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
+    require(bcOption.isDefined, "Failed to get candidates!")
+    assert(bcOption.get.facts.values.exists( f => f.fact.name == "fact2") === true)
+    assert(bcOption.get.facts.values.find( f => f.fact.name == "fact2").get.fact.forceFilters.nonEmpty)
+  }
+
   test("withNewSchemaAndGrain should fail given the same schema") {
     val fact = fact1
     intercept[IllegalArgumentException] {
