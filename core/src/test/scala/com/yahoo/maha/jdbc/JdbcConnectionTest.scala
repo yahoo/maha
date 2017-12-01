@@ -2,14 +2,10 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.jdbc
 
-import java.io.{InputStream, Reader}
-import java.net.URL
-import java.sql.{Blob, Clob, Date, NClob, Ref, ResultSet, ResultSetMetaData, RowId, SQLWarning, SQLXML, Statement, Time, Timestamp}
-import java.{sql, util}
-import java.util.{Calendar, UUID}
+import java.sql.{Date, ResultSet, Timestamp}
+import java.util.UUID
 
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
-import org.h2.jdbc.JdbcSQLException
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 import scala.util.Try
