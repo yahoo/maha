@@ -3112,7 +3112,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
-  test("Outer Group by Tests") {
+  test("Successfully generated Outer Group By Query with dim non id field and fact field") {
     val jsonString = s"""{
                            "cube": "performance_stats",
                            "selectFields": [
@@ -3172,7 +3172,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     result should equal (expected)(after being whiteSpaceNormalised)
   }
 
-  test("Outer Group by test: 2 dimension non id fields") {
+  test("Successfully generated Outer Group By Query with 2 dimension non id fields") {
     val jsonString = s"""{
                            "cube": "performance_stats",
                            "selectFields": [
@@ -3240,7 +3240,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
        """.stripMargin
   }
 
-  test("Outer Group by test: 2 dimension non id fields and one fact ID field") {
+  test("Successfully generated Outer Group By Query with 2 dimension non id fields and one fact ID field") {
     val jsonString = s"""{
                            "cube": "performance_stats",
                            "selectFields": [
@@ -3314,7 +3314,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
   }
 
-  test("Outer Group by test: 2 dimension non id fields and and two fact transitively dependent cols") {
+  test("Successfully generated Outer Group By Query with 2 dimension non id fields and and two fact transitively dependent cols") {
     val jsonString = s"""{
                            "cube": "performance_stats",
                            "selectFields": [
@@ -3398,7 +3398,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     result should equal (expected)(after being whiteSpaceNormalised)
   }
 
-  test("OuterGroupBy Lowest level FK col is requested, should generate OGB query") {
+  test("Successfully generated Outer Group By Query with Lowest level FK col is requested") {
     val jsonString = s"""{
                            "cube": "performance_stats",
                            "selectFields": [
@@ -3475,7 +3475,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     result should equal (expected)(after being whiteSpaceNormalised)
   }
 
-  test("OuterGroupBy Should generate correct query if fk col one level less than Highest dim candidate level is requested") {
+  test("Successfully generated Outer Group By Query if fk col one level less than Highest dim candidate level is requested") {
     val jsonString = s"""{
                            "cube": "performance_stats",
                            "selectFields": [

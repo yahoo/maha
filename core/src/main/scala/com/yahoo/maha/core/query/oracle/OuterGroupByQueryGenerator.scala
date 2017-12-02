@@ -172,7 +172,6 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
           (column, alias)
       }
 
-      //render derived columns last
       val groupDimCols = dimCols.groupBy(_._1.isDerivedColumn)
       groupDimCols.toList.sortBy(_._1).foreach {
         case (_, list) => list.foreach {
@@ -230,19 +229,6 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
         case (column, alias) =>
           renderColumnWithAlias(fact, column, alias, Set.empty, queryBuilder, queryBuilderContext, queryContext)
       }
-
-      /*
-            //render derived columns last
-            groupedFactCols.get(true).foreach { derivedCols =>
-              val requiredInnerCols: Set[String] =
-                derivedCols.view.map(_._1.asInstanceOf[DerivedColumn]).flatMap(dc => dc.derivedExpression.sourceColumns).toSet
-              derivedCols.foreach {
-                case (column, alias) =>
-                  val renderedAlias = s""""$alias""""
-                  renderColumnWithAlias(fact, column, alias, requiredInnerCols)
-              }
-            }
-      */
 
       def getPrimitiveCols(derivedCols: Set[DerivedColumn], primitiveColsSet:mutable.LinkedHashSet[(Column, String)]): Unit = {
         derivedCols.foreach {
@@ -360,6 +346,9 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
             case DimColumnInfo(alias) =>
               queryBuilder.addPreOuterColumn(renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, isFactOnlyQuery, false, queryContext))
               queryBuilder.addOuterGroupByExpressions(s""""$alias"""")
+            case ConstantColumnInfo(alias, value) =>
+              // rendering constant columns only in outer columns
+            case _ => throw new UnsupportedOperationException("Unsupported Column Type")
           }
       }
       // Render primitive cols
@@ -390,11 +379,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
      */
     ogbGenerateFactViewColumns()
     ogbGenerateWhereAndHavingClause()
-    //only generate dim if we are not fact only
-    if(!isFactOnlyQuery) {
-      ogbGenerateDimJoin()
-    }
-
+    ogbGenerateDimJoin()
     ogbGeneratePreOuterColumns(primitiveColsSet.map(e=> e._2 -> e._1).toMap)
     ogbGenerateOuterColumns()
     ogbGenerateOrderBy()
