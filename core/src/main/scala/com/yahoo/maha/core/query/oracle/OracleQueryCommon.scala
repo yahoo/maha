@@ -58,7 +58,7 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
         case inf@InFilter(field,values,_,_) => if(values.size > OracleEngine.MAX_SIZE_IN_FILTER) true else false
         case _ => false
       }
-    })
+    }) && requestModel.orFilterMeta.isEmpty
   }
 
   protected[this] def getFactAlias(name: String, dims: Set[Dimension]): String = {
