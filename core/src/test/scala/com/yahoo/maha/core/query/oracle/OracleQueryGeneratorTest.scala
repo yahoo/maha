@@ -3240,7 +3240,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
        """.stripMargin
   }
 
-  test("Successfully generated Outer Group By Query with 2 dimension non id fields and one fact ID field") {
+  test("Should not generate Outer Group By Query contest with 2 dimension non id fields and one fact higher level ID field than best dims") {
     val jsonString = s"""{
                            "cube": "performance_stats",
                            "selectFields": [
@@ -3285,16 +3285,16 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val expected =
       s"""
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS "Average CPC Cents", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", "spend" AS "Spend"
-         |FROM (SELECT co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", SUM(spend) AS spend, SUM(clicks) AS clicks
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+         |FROM (SELECT co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", to_char(af0.ad_group_id) "Ad Group ID", coalesce(ROUND(af0."spend", 10), 0.0) "Spend"
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   advertiser_id, campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(spend) AS "spend"
+         |                   advertiser_id, campaign_id, ad_group_id, SUM(spend) AS "spend"
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY advertiser_id, campaign_id
+         |            GROUP BY advertiser_id, campaign_id, ad_group_id
          |
          |           ) af0
-         |                     LEFT OUTER JOIN
+         |           LEFT OUTER JOIN
          |           (SELECT  currency, id
          |            FROM advertiser_oracle
          |            WHERE (id = 12345)
@@ -3307,11 +3307,11 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |             )
          |           co2 ON (af0.campaign_id = co2.id)
          |
- |          GROUP BY "Campaign Name", "Advertiser Currency"
-         |)
+ |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |
        """.stripMargin
-
+    result should equal (expected)(after being whiteSpaceNormalised)
   }
 
   test("Successfully generated Outer Group By Query with 2 dimension non id fields and and two fact transitively dependent cols") {
