@@ -4464,5 +4464,148 @@ class RequestModelTest extends FunSuite with Matchers {
     res.failed.get.getMessage should startWith ("requirement failed: OuterFilter Ad Group ID is not in selected column list")
   }
 
+  test("create model should fail when using or with empty filters") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Advertiser Status"},
+                              {"field": "Impressions"},
+                              {"field": "Ad Group Start Date Full"}
+                          ],
+                          "filterExpressions": [
+                             {"operator": "or", "filterExpressions": []
+                             },
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    intercept[IllegalArgumentException] {
+      val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    }
+  }
+
+  test("create model should fail when using or filters with fact and dim filter combination") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Advertiser Status"},
+                              {"field": "Impressions"},
+                              {"field": "Ad Group Start Date Full"}
+                          ],
+                          "filterExpressions": [
+                             {"operator": "or", "filterExpressions": [
+                                  {"field": "Campaign ID", "operator": "=", "value":"1"},
+                                  {"field": "Impressions", "operator": "=", "value":"1"}
+                                  ]
+                             },
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isFailure)
+    res.failed.get.getMessage should startWith ("requirement failed: Or filter cannot have combination of fact and dim filters, factFilters=Some(List(EqualityFilter(Impressions,1,false,false))) dimFilters=Some(List(EqualityFilter(Campaign ID,1,false,false)))")
+  }
+
+  test("create model should succeed when using or filters with fact filters combination") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Advertiser Status"},
+                              {"field": "Impressions"},
+                              {"field": "Ad Group Start Date Full"}
+                          ],
+                          "filterExpressions": [
+                             {"operator": "or", "filterExpressions": [
+                                  {"field": "Clicks", "operator": "=", "value":"1"},
+                                  {"field": "Impressions", "operator": "=", "value":"1"}
+                                  ]
+                             },
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess)
+    assert(!res.get.orFilterMeta.isEmpty)
+    assert(res.get.orFilterMeta.head.isFactFilters == true)
+    assert(res.get.orFilterMeta.head.orFliter.filters.size == 2)
+    assert(res.get.orFilterMeta.head.orFliter.operator == OrFilterOperation)
+    assert(res.get.orFilterMeta.head.orFliter.field == "or")
+    assert(res.get.orFilterMeta.head.orFliter.filters(0).operator == EqualityFilterOperation)
+    assert(res.get.orFilterMeta.head.orFliter.filters(0).field == "Clicks")
+    assert(res.get.orFilterMeta.head.orFliter.filters(0).asValues == "1")
+    assert(res.get.orFilterMeta.head.orFliter.filters(1).operator == EqualityFilterOperation)
+    assert(res.get.orFilterMeta.head.orFliter.filters(1).field == "Impressions")
+    assert(res.get.orFilterMeta.head.orFliter.filters(1).asValues == "1")
+  }
+
+  test("create model should succeed when using or filters with dim filters combination") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Advertiser Status"},
+                              {"field": "Impressions"},
+                              {"field": "Ad Group Start Date Full"}
+                          ],
+                          "filterExpressions": [
+                             {"operator": "or", "filterExpressions": [
+                                  {"field": "Campaign ID", "operator": "=", "value":"1"},
+                                  {"field": "Advertiser Status", "operator": "=", "value":"ON"}
+                                  ]
+                             },
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess)
+    assert(!res.get.orFilterMeta.isEmpty)
+    assert(res.get.orFilterMeta.head.isFactFilters == false)
+    assert(res.get.orFilterMeta.head.orFliter.filters.size == 2)
+    assert(res.get.orFilterMeta.head.orFliter.operator == OrFilterOperation)
+    assert(res.get.orFilterMeta.head.orFliter.field == "or")
+    assert(res.get.orFilterMeta.head.orFliter.filters(0).operator == EqualityFilterOperation)
+    assert(res.get.orFilterMeta.head.orFliter.filters(0).field == "Campaign ID")
+    assert(res.get.orFilterMeta.head.orFliter.filters(0).asValues == "1")
+    assert(res.get.orFilterMeta.head.orFliter.filters(1).operator == EqualityFilterOperation)
+    assert(res.get.orFilterMeta.head.orFliter.filters(1).field == "Advertiser Status")
+    assert(res.get.orFilterMeta.head.orFliter.filters(1).asValues == "ON")
+  }
+
 }
 

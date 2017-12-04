@@ -1810,4 +1810,80 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
     result should fullyMatch regex json
   }
 
+  test("Or filter expression with dimension filters") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Source"},
+                            {"field": "Clicks"},
+                            {"field": "CTR"},
+                            {"field": "Reblogs"},
+                            {"field": "Reblog Rate"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"operator": "or", "filterExpressions": [{"field": "Source", "operator": "in", "values": ["1","2"]}, {"field": "Keyword ID", "operator": "=", "value": "2"}]}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    println(result)
+    val filterjson = s""""filter":{"type":"and","fields":[{"type":"selector","dimension":"statsDate","value":"${fromDate.replace("-","")}"},{"type":"selector","dimension":"advertiser_id","value":"12345"},{"type":"or","fields":[{"type":"or","fields":[{"type":"selector","dimension":"stats_source","value":"1"},{"type":"selector","dimension":"stats_source","value":"2"}]},{"type":"selector","dimension":"id","value":"2"}]}]}"""
+
+    assert(result.contains(filterjson), result)
+  }
+
+  test("Or filter expression with fact filters") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Source"},
+                            {"field": "Clicks"},
+                            {"field": "CTR"},
+                            {"field": "Reblogs"},
+                            {"field": "Reblog Rate"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"operator": "or", "filterExpressions": [{"field": "Clicks", "operator": "in", "values": ["1","2"]}, {"field": "Impressions", "operator": "=", "value": "2"}]}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    println(result)
+    val filterjson = s""""filter":{"type":"and","fields":[{"type":"selector","dimension":"statsDate","value":"${fromDate.replace("-","")}"},{"type":"selector","dimension":"advertiser_id","value":"12345"}]}"""
+    val havingJson = s""""having":{"type":"and","havingSpecs":[{"type":"or","havingSpecs":[{"type":"or","havingSpecs":[{"type":"equalTo","aggregation":"Clicks","value":1},{"type":"equalTo","aggregation":"Clicks","value":2}]},{"type":"equalTo","aggregation":"Impressions","value":2}]}]}"""
+
+    assert(result.contains(filterjson), result)
+    assert(result.contains(havingJson), result)
+  }
+
 }
