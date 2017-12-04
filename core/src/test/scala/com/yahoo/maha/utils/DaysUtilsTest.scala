@@ -10,6 +10,61 @@ import org.scalatest.{FunSuite, Matchers}
  * Created by pranavbhole on 18/04/16.
  */
 class DaysUtilsTest extends FunSuite with Matchers {
+  test("fake truncated hour, followed by real hour") {
+    val catcher = intercept[IllegalArgumentException] {
+      val truncated = DaysUtils.truncateHourFromGivenHourString(20171101)
+    }
+    assert(catcher.getMessage.contains("is too short"), "Illegal dates not caught")
+    val new_trunc = DaysUtils.truncateHourFromGivenHourString(2017110123)
+    assert(new_trunc == "20171101", "Incorrect truncated date returned")
+  }
+
+  test("Attempt to refactor a filter success cases") {
+    val betweenFilter = BetweenFilter("Day", "2017-12-01", "2017-12-02")
+    val betweenList = DaysUtils.refactorFilter(betweenFilter)
+    val inFilter = InFilter("Day", List("2017-12-01", "2017-12-02"))
+    val inList = DaysUtils.refactorFilter(inFilter)
+    val eqFilter = EqualityFilter("Day", "2017-12-01")
+    val eqList = DaysUtils.refactorFilter(eqFilter)
+    assert(betweenList == BetweenFilter("Day","20171201","20171202"), "Between Filter refactor failure")
+    assert(inList == InFilter("Day", List("20171201", "20171202")), "In Filter refactor failure")
+    assert(eqList == EqualityFilter("Day", "20171201"), "Equality Filter refactor failure")
+  }
+
+  test("Attempt to refactor a filter failure cases") {
+    val betweenCatcher = intercept[Exception] {
+      val betweenFilter = BetweenFilter("Day", "2017-12-01a", "2017-12-02")
+      val betweenList = DaysUtils.refactorFilter(betweenFilter)
+    }
+    assert(betweenCatcher.getMessage.contains("is malformed at"), "Illegal dates not caught")
+
+    val inCatcher = intercept[Exception] {
+      val inFilter = InFilter("Day", List("2017-12-01a", "2017-12-02"))
+      val inList = DaysUtils.refactorFilter(inFilter)
+    }
+    assert(inCatcher.getMessage.contains("is malformed at"), "Illegal dates not caught")
+
+    val equalityCatcher = intercept[Exception] {
+      val equalityFilter = EqualityFilter("Day", "2017-12-01a")
+      val equalityList = DaysUtils.refactorFilter(equalityFilter)
+    }
+    assert(equalityCatcher.getMessage.contains("is malformed at"), "Illegal dates not caught")
+
+    val otherCatcher = intercept[Exception] {
+      val notEqFilter = NotEqualToFilter("Day", "2017-12-01a")
+      val equalityList = DaysUtils.refactorFilter(notEqFilter)
+    }
+    assert(otherCatcher.getMessage.contains("Filter operation not supported. Day filter can be"), "Illegal dates not caught")
+  }
+
+  test("Invalid from, to") {
+    val catcher = intercept[IllegalArgumentException] {
+      val dayFilter = BetweenFilter("Day", "2017-12-02", "2017-12-01")
+      val list = DaysUtils.getDaysBetweenIntoLongList(dayFilter.from, dayFilter.to)
+    }
+    assert(catcher.getMessage.contains("cannot be after To date"), "Illegal dates not caught")
+  }
+
   test("Test long list for days") {
     val dayFiltter = BetweenFilter("Day", "2015-12-24", "2016-01-04")
     val list = DaysUtils.getDaysBetweenIntoLongList(dayFiltter.from, dayFiltter.to)
@@ -50,6 +105,20 @@ class DaysUtilsTest extends FunSuite with Matchers {
 
   test("Test long list getHourBetweenFilters") {
     val list = DaysUtils.getHourBetweenFilters("utc_time", List(2015122401, 2015122402, 2015122405, 2015122406),OracleEngine)
+    println(list)
+    list should be equals List(
+      BetweenFilter("utc_time","2015-12-24 01","2015-12-24 02"),
+      BetweenFilter("utc_time","2015-12-24 05","2015-12-24 06"))
+  }
+
+  test("Test long list getDayBetweenFilters In Hive") {
+    val list = DaysUtils.getDayBetweenFilters("utc_time", List(20151224, 20151225, 20151226, 20151227),HiveEngine)
+    println(list)
+    list should be equals List(BetweenFilter("utc_time","2015-12-24","2015-12-27"))
+  }
+
+  test("Test long list getHourBetweenFilters In Hive") {
+    val list = DaysUtils.getHourBetweenFilters("utc_time", List(2015122401, 2015122402, 2015122405, 2015122406),HiveEngine)
     println(list)
     list should be equals List(
       BetweenFilter("utc_time","2015-12-24 01","2015-12-24 02"),
