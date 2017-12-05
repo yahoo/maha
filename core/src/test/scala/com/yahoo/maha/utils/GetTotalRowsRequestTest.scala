@@ -72,7 +72,7 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val pipeline = queryPipelineTry.toOption.get
 
-    val totalRowRequest = GetTotalRowsRequest.getTotalRows(request, pipeline, registry)
+    val totalRowRequest = GetTotalRowsRequest.getTotalRows(requestModel.get, pipeline, registry)
     assert(totalRowRequest.isSuccess, "Total Row Request Failed!")
   }
 
@@ -86,11 +86,11 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val pipeline = queryPipelineTry.toOption.get
 
-    val totalRowRequest = GetTotalRowsRequest.getTotalRows(request, pipeline, registry)
+    val totalRowRequest = GetTotalRowsRequest.getTotalRows(requestModel.get, pipeline, registry)
     assert(totalRowRequest.isSuccess, "Total Row Request Failed!")
   }
 
-  test("Forcing query to Druid engine should cause failure"){
+  test("Forcing query to Druid engine should succeed if Oracle is available"){
     val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestSync(inputValidJSON))
     val registry = getDefaultRegistry()
     val requestModel = RequestModel.from(request, registry)
@@ -100,11 +100,11 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val pipeline = queryPipelineTry.toOption.get
 
-    val totalRowRequest = GetTotalRowsRequest.getTotalRows(request, pipeline, registry)
-    assert(!totalRowRequest.isSuccess, "Requests outside of Oracle should fail to generate TOTALROWS column")
+    val totalRowRequest = GetTotalRowsRequest.getTotalRows(requestModel.get, pipeline, registry)
+    assert(totalRowRequest.isSuccess, "Requests outside of Oracle should trace back into Oracle, if applicable")
   }
 
-  test("Forcing query to Hive engine should cause failure"){
+  test("Forcing query to Hive engine should succeed if Oracle is available"){
     val request: ReportingRequest = ReportingRequest.forceHive(getReportingRequestAsync(inputValidJSON))
     val registry = getDefaultRegistry()
     val requestModel = RequestModel.from(request, registry)
@@ -114,11 +114,11 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val pipeline = queryPipelineTry.toOption.get
 
-    val totalRowRequest = GetTotalRowsRequest.getTotalRows(request, pipeline, registry)
-    assert(!totalRowRequest.isSuccess, "Requests outside of Oracle should fail to generate TOTALROWS column")
+    val totalRowRequest = GetTotalRowsRequest.getTotalRows(requestModel.get, pipeline, registry)
+    assert(totalRowRequest.isSuccess, "Requests outside of Oracle should trace back into Oracle, if applicable")
   }
 
-  test("Attempting too many rows in request should fail"){
+  test("Attempting too many rows in request should cause failure"){
     val request: ReportingRequest = ReportingRequest.forceOracle(getReportingRequestSync(overMaxRowsJSON))
     val registry = getDefaultRegistry()
     val requestModel = RequestModel.from(request, registry)
@@ -128,7 +128,7 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val pipeline = queryPipelineTry.toOption.get
 
-    val totalRowRequest = GetTotalRowsRequest.getTotalRows(request, pipeline, registry)
+    val totalRowRequest = GetTotalRowsRequest.getTotalRows(requestModel.get, pipeline, registry)
     assert(!totalRowRequest.isSuccess, "requested total tows should be less than the default max.")
   }
 }

@@ -6,13 +6,14 @@ import com.yahoo.maha.core.query.druid.DruidQueryGenerator
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.request.{Field, ReportingRequest}
+import grizzled.slf4j.Logging
 
 import scala.util.Try
 
-object GetTotalRowsRequest {
+object GetTotalRowsRequest extends Logging {
+
   def updateRowList(rowList: RowList) : Unit = {
     val row = rowList.newRow
-    println(rowList.columnNames)
     rowList.columnNames.foreach {
       col =>
         row.addValue(col, s"$col-value")
@@ -72,21 +73,25 @@ object GetTotalRowsRequest {
     }
   }
 
-  def getTotalRows(request: ReportingRequest, sourcePipeline: QueryPipeline, registry: Registry) : Try[Int] = {
+  def getTotalRows(request: RequestModel, sourcePipeline: QueryPipeline, registry: Registry)(implicit queryGeneratorRegistry: QueryGeneratorRegistry) : Try[Int] = {
     Try {
-      val totalRowsRequest: ReportingRequest = getTotalRowsRequest(request, sourcePipeline).get
+      val totalRowsRequest: ReportingRequest = getTotalRowsRequest(request.reportingRequest, sourcePipeline).get
       val model: RequestModel = RequestModel.from(totalRowsRequest, registry).get
       val maxRows: Int = DruidQueryGenerator.defaultMaximumMaxRows
       assert(model.maxRows <= maxRows, throw new Exception(s"Value of ${model.maxRows} exceeds posted limit of $maxRows"))
       val queryContext: QueryExecutorContext = getQueryExecutorContext
 
-      val rowListAttempt = sourcePipeline.execute(queryContext)
+      val queryPipelineFactory = new DefaultQueryPipelineFactory()
+
+      val requestPipelineTry = queryPipelineFactory.from(model, QueryAttributes.empty)
+      val rowListAttempt = requestPipelineTry.toOption.get.execute(queryContext)
       assert(rowListAttempt.isSuccess, "Failed to get valid executor and row list")
 
       //Can fail back in getValue exception.
       var result = 0
       rowListAttempt.get._1.foreach(input => {
         result += input.aliasMap(OracleQueryGenerator.ROW_COUNT_ALIAS).toString.toInt
+        logger.debug(s"Rows Returned so far: $result")
       })
 
       result
