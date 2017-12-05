@@ -3,13 +3,13 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator}
+import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator, SyncDruidQueryOptimizer}
 import com.yahoo.maha.core.query.hive.HiveQueryGenerator
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.core.{EqualityFilter, BetweenFilter, DefaultPartitionColumnRenderer, RequestModel}
-import com.yahoo.maha.executor.{MockHiveQueryExecutor, MockOracleQueryExecutor, MockDruidQueryExecutor}
-import org.scalatest.{BeforeAndAfterAll, Matchers, FunSuite}
+import com.yahoo.maha.core.{BetweenFilter, DefaultPartitionColumnRenderer, EqualityFilter, RequestModel}
+import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockHiveQueryExecutor, MockOracleQueryExecutor}
+import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 import scala.util.Try
 
@@ -44,200 +44,28 @@ object QueryPipelineWithFallbackTest {
 }
 
 class QueryPipelineWithFallbackTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema with BaseQueryContextTest {
-  val factRequestWithNoSort = s"""{
-                          "cube": "k_stats",
-                          "selectFields": [
-                              {"field": "Advertiser ID"},
-                              {"field": "Ad Group Status"},
-                              {"field": "Ad Group ID"},
-                              {"field": "Source"},
-                              {"field": "Pricing Type"},
-                              {"field": "Destination URL"},
-                              {"field": "Spend"},
-                              {"field": "Impressions"},
-                              {"field": "Clicks"}
-                          ],
-                          "filterExpressions": [
-                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
-                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
-                          ],
-                          "sortBy": [],
-                          "includeRowCount" : false,
-                          "forceDimensionDriven": false,
-                          "paginationStartIndex":0,
-                          "rowsPerPage":100
-                          }"""
-  val factRequestWithMetricSort = s"""{
-                          "cube": "k_stats",
-                          "selectFields": [
-                              {"field": "Advertiser ID"},
-                              {"field": "Ad Group Status"},
-                              {"field": "Ad Group ID"},
-                              {"field": "Source"},
-                              {"field": "Pricing Type"},
-                              {"field": "Destination URL"},
-                              {"field": "Spend"},
-                              {"field": "Impressions"},
-                              {"field": "Clicks"}
-                          ],
-                          "filterExpressions": [
-                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
-                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
-                          ],
-                          "sortBy": [
-                              {"field": "Spend", "order": "DESC"},
-                              {"field": "Ad Group ID", "order": "DESC"}
-                          ],
-                          "includeRowCount" : false,
-                          "forceDimensionDriven": false,
-                          "paginationStartIndex":0,
-                          "rowsPerPage":100
-                          }"""
-  val requestWithMetricSort = s"""{
-                          "cube": "k_stats",
-                          "selectFields": [
-                              {"field": "Advertiser ID"},
-                              {"field": "Ad Group Status"},
-                              {"field": "Ad Group ID"},
-                              {"field": "Source"},
-                              {"field": "Pricing Type"},
-                              {"field": "Destination URL"},
-                              {"field": "Impressions"},
-                              {"field": "Clicks"}
-                          ],
-                          "filterExpressions": [
-                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
-                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
-                          ],
-                          "sortBy": [
-                              {"field": "Impressions", "order": "ASC"}
-                          ],
-                          "includeRowCount" : true,
-                          "forceDimensionDriven": true,
-                          "paginationStartIndex":0,
-                          "rowsPerPage":100
-                          }"""
-  val factRequestWithMetricSortNoDimensionIds = s"""{
-                          "cube": "k_stats",
-                          "selectFields": [
-                              {"field": "Advertiser ID"},
-                              {"field": "Ad Group Status"},
-                              {"field": "Source"},
-                              {"field": "Pricing Type"},
-                              {"field": "Destination URL"},
-                              {"field": "Impressions"},
-                              {"field": "Clicks"}
-                          ],
-                          "filterExpressions": [
-                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
-                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
-                          ],
-                          "sortBy": [
-                              {"field": "Impressions", "order": "ASC"}
-                          ],
-                          "includeRowCount" : true,
-                          "forceDimensionDriven": false,
-                          "paginationStartIndex":0,
-                          "rowsPerPage":100
-                          }"""
+  private[this] def getDruidQueryGenerator() : DruidQueryGenerator = {
+    new DruidQueryGenerator(new SyncDruidQueryOptimizer(), 40000)
+  }
 
-  val requestWithIdSort = s"""{
-                          "cube": "k_stats",
-                          "selectFields": [
-                              {"field": "Advertiser ID"},
-                              {"field": "Ad Group Status"},
-                              {"field": "Ad Group ID"},
-                              {"field": "Source"},
-                              {"field": "Pricing Type"},
-                              {"field": "Destination URL"},
-                              {"field": "Impressions"},
-                              {"field": "Clicks"}
-                          ],
-                          "filterExpressions": [
-                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
-                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
-                          ],
-                          "sortBy": [
-                              {"field": "Ad Group ID", "order": "ASC"}
-                          ],
-                          "includeRowCount" : true,
-                          "forceDimensionDriven": true,
-                          "paginationStartIndex":0,
-                          "rowsPerPage":100
-                          }"""
-
-  val requestWithMetricSortAndDay = s"""{
-                          "cube": "k_stats",
-                          "selectFields": [
-                              {"field": "Day"},
-                              {"field": "Advertiser ID"},
-                              {"field": "Ad Group Status"},
-                              {"field": "Ad Group ID"},
-                              {"field": "Source"},
-                              {"field": "Pricing Type"},
-                              {"field": "Destination URL"},
-                              {"field": "Impressions"},
-                              {"field": "Clicks"}
-                          ],
-                          "filterExpressions": [
-                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
-                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
-                          ],
-                          "sortBy": [
-                              {"field": "Impressions", "order": "DESC"}
-                          ],
-                          "includeRowCount" : true,
-                          "forceDimensionDriven": true,
-                          "paginationStartIndex":0,
-                          "rowsPerPage":100
-                          }"""
-
-  val requestWithDruidFactAndDim = s"""{
-                          "cube": "k_stats",
-                          "selectFields": [
-                              {"field": "Day"},
-                              {"field": "Advertiser ID"},
-                              {"field": "Country Name"},
-                              {"field": "Impressions"},
-                              {"field": "Clicks"}
-                          ],
-                          "filterExpressions": [
-                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
-                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
-                          ],
-                          "sortBy": [
-                              {"field": "Impressions", "order": "DESC"}
-                          ],
-                          "includeRowCount" : true,
-                          "forceDimensionDriven": true,
-                          "paginationStartIndex":0,
-                          "rowsPerPage":100
-                          }"""
-
-  val requestWithOutOfRangeDruidDim = s"""{
-                          "cube": "k_stats",
-                          "selectFields": [
-                              {"field": "Day"},
-                              {"field": "Advertiser ID"},
-                              {"field": "Impressions"},
-                              {"field": "Clicks"}
-                          ],
-                          "filterExpressions": [
-                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
-                              {"field": "Day", "operator": "between", "from": "$fromDateMinus10", "to": "$toDateMinus10"}
-                          ],
-                          "sortBy": [
-                              {"field": "Impressions", "order": "DESC"}
-                          ],
-                          "includeRowCount" : true,
-                          "forceDimensionDriven": true,
-                          "paginationStartIndex":0,
-                          "rowsPerPage":100
-                          }"""
+  private[this] def getDruidQueryExecutor() : MockDruidQueryExecutor = {
+    new MockDruidQueryExecutor({
+      rl =>
+        val row = rl.newRow
+        row.addValue("Advertiser ID", 14)
+        row.addValue("Advertiser Status", "ON")
+        row.addValue("Impressions", 10)
+        rl.addRow(row)
+        val row2 = rl.newRow
+        row2.addValue("Advertiser ID", 13)
+        row2.addValue("Advertiser Status", "ON")
+        row2.addValue("Impressions", 20)
+        rl.addRow(row2)
+    })
+  }
 
   implicit private[this] val queryExecutionContext = new QueryExecutorContext
 
-  import QueryPipelineWithFallbackTest._
   override protected def beforeAll(): Unit = {
     OracleQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer)
     DruidQueryGenerator.register(queryGeneratorRegistry)
@@ -246,7 +74,8 @@ class QueryPipelineWithFallbackTest extends FunSuite with Matchers with BeforeAn
 
   test("successfully generate Druid single engine query with Dim lookup") {
 
-    val requestWithMetricSort = s"""{
+    val jsonRequest =
+      s"""{
                           "cube": "k_stats",
                           "selectFields": [
                               {"field": "Advertiser ID"},
@@ -267,38 +96,75 @@ class QueryPipelineWithFallbackTest extends FunSuite with Matchers with BeforeAn
                           "rowsPerPage":100
                           }"""
 
-    val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestSync(requestWithMetricSort))
+    val request: ReportingRequest = getReportingRequestAsync(jsonRequest)
     val registry = getDefaultRegistry()
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get, QueryAttributes.empty)
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
+    altQueryGeneratorRegistry.register(OracleEngine, new OracleQueryGenerator(DefaultPartitionColumnRenderer))
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-    val pipeline = queryPipelineTry.toOption.get
 
-    assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
-    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
+    val oracleExecutor = new MockOracleQueryExecutor(
+      { rl =>
+        println(rl.query.asString)
+        val expected =
+          s"""
+             |SELECT *
+             |FROM (SELECT to_char(ffst0.stats_date, 'YYYYMMdd') "Day", to_char(ffst0.id) "Keyword ID", coalesce(ffst0."impresssions", 1) "Impressions", ao1."Advertiser Status" "Advertiser Status"
+             |      FROM (SELECT
+             |                   advertiser_id, id, stats_date, SUM(impresssions) AS "impresssions"
+             |            FROM fd_fact_s_term FactAlias
+             |            WHERE (advertiser_id = 5485) AND (stats_date IN (to_date('${fromDate}', 'YYYYMMdd'),to_date('${toDate}', 'YYYYMMdd')))
+             |            GROUP BY advertiser_id, id, stats_date
+             |
+            |           ) ffst0
+             |           LEFT OUTER JOIN
+             |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+             |            FROM advertiser_oracle
+             |            WHERE (id = 5485)
+             |             )
+             |           ao1 ON (ffst0.advertiser_id = ao1.id)
+             |
+            |)
+             |   ORDER BY "Impressions" ASC NULLS LAST""".stripMargin
 
-    val result = pipeline.withDruidCallback {
-      rl =>
+        rl.query.asString should equal (expected) (after being whiteSpaceNormalised)
+
+        rl.foreach(r => println(s"Inside mock: $r"))
         val row = rl.newRow
-        row.addValue("Advertiser ID", 1)
+        row.addValue("Keyword ID", 14)
         row.addValue("Advertiser Status", "ON")
-        row.addValue("Impressions", 100)
-        row.addValue("Clicks", 1)
+        row.addValue("Impressions", 10)
         rl.addRow(row)
-    }.run()
+        val row2 = rl.newRow
+        row2.addValue("Keyword ID", 13)
+        row2.addValue("Advertiser Status", "ON")
+        row2.addValue("Impressions", 20)
+        rl.addRow(row2)
+      })
 
-    assert(result.isSuccess, result)
+    val queryExecContext: QueryExecutorContext = new QueryExecutorContext
+    queryExecContext.register(getDruidQueryExecutor())
+    queryExecContext.register(oracleExecutor)
 
-    val fallbackQuery : Option[(Query, RowList)] = Option{(pipeline.queryChain.drivingQuery, result.get._1)}
+    val queryChain = queryPipelineTry.toOption.get.queryChain
+    val factBest = queryPipelineTry.toOption.get.factBestCandidate
+    val dimBest = queryPipelineTry.toOption.get.bestDimCandidates
+    val newPipelineBuilder = new QueryPipelineBuilder(queryChain, factBest, dimBest).withFallbackQueryChain(queryPipelineTry.toOption.get.queryChain)
+    val newQuery = newPipelineBuilder.build()
 
-    result.toOption.get._1.foreach {
-      row =>
-        assert(row.getValue("Advertiser ID") === 1)
-        assert(row.getValue("Advertiser Status") === "ON")
-        assert(row.getValue("Impressions") === 100)
-        assert(row.getValue("Clicks") === 1)
-    }
+    val result = newQuery.execute(queryExecContext)
+    val secondResult = newQuery.execute(queryExecContext, QueryAttributes.empty)
+    assert(result.isSuccess, "Query execution failed")
+    assert(secondResult.isSuccess, "Second query execution failed")
+    assert(!newQuery.execute(new QueryExecutorContext).isSuccess, "Empty context should return a failure")
+    assert(!newQuery.execute(new QueryExecutorContext, QueryAttributes.empty).isSuccess, "Empty context should return a failure")
+
+
   }
 }

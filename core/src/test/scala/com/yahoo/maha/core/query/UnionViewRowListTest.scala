@@ -59,7 +59,7 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
   }
 
   test("successfully construct partial row list") {
-    val rowList : UnionViewRowList = new UnionViewRowList(Set("Advertiser ID", "Day"), query, Map("Impressions" -> DecType(), "Spend" -> DecType()), List(Map.empty, Map.empty))
+    val rowList : UnionViewRowList = new UnionViewRowList(Set("Advertiser ID", "Day"), query, Map("Impressions" -> DecType(), "Spend" -> DecType()), List(Map("Day" -> "2016-10-10"), Map("Advertiser ID" -> "12345")))
     assert(rowList.columnNames === IndexedSeq("Advertiser ID", "Day", "Impressions", "Spend"))
     assert(rowList.isEmpty)
 
