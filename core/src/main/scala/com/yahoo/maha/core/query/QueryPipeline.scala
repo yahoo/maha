@@ -404,8 +404,6 @@ object DefaultQueryPipelineFactory extends Logging {
               val hasIndexInOutput = requestModel.dimensionsCandidates.forall(d => requestModel.requestColsSet(d.dim.primaryKeyByAlias))
 
               if ((requestModel.hasLowCardinalityDimFilters && requestModel.forceDimDriven && requestModel.hasDimAndFactOperations)
-                || (requestModel.startIndex + requestModel.maxRows) > DruidEngine.MAX_ALLOWED_ROWS
-                || (requestModel.hasNonFKDimFilters && (requestModel.startIndex + 2 * requestModel.maxRows) > DruidEngine.MAX_ALLOWED_ROWS)
                 || (!requestModel.forceDimDriven && requestModel.isFactDriven && !hasIndexInOutput && !dimEngines.contains(DruidEngine)) //this does not apply if druid is the only dim candidate
               ) {
                 QueryPipeline.syncNonDruidDisqualifyingSet
