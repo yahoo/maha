@@ -16,7 +16,6 @@ case object OracleEngine extends Engine {
 }
 case object DruidEngine extends Engine {
   override def toString = "Druid"
-  val MAX_ALLOWED_ROWS: Int = 5000
 }
 
 object Engine {
