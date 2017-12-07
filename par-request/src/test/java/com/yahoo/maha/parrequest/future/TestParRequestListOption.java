@@ -52,7 +52,7 @@ public class TestParRequestListOption {
     @BeforeClass
     public void setUp() throws Exception {
         executor = new ParallelServiceExecutor();
-        executor.setDefaultTimeoutMillis(10000);
+        executor.setDefaultTimeoutMillis(20000);
         executor.setPoolName("test-par-request-list");
         executor.setQueueSize(20);
         executor.setThreadPoolSize(10);
