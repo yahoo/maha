@@ -37,21 +37,25 @@ object GetTotalRowsRequest extends Logging {
 
   def getTotalRows(request: RequestModel, sourcePipeline: QueryPipeline, registry: Registry, queryContext: QueryExecutorContext)(implicit queryGeneratorRegistry: QueryGeneratorRegistry) : Try[Int] = {
     Try {
-      val totalRowsRequest: ReportingRequest = getTotalRowsRequest(request.reportingRequest, sourcePipeline).get
-      val model: RequestModel = RequestModel.from(totalRowsRequest, registry).get
+      val totalRowsRequest: Try[ReportingRequest] = getTotalRowsRequest(request.reportingRequest, sourcePipeline)
+      assert(totalRowsRequest.isSuccess, "Failed to get valid totalRowsRequest")
+      val modelTry: Try[RequestModel] = RequestModel.from(totalRowsRequest.get, registry)
+      require(modelTry.isSuccess, "Failed to get valid request model")
+      val model = modelTry.get
       val maxRows: Int = DruidQueryGenerator.defaultMaximumMaxRows
-      assert(model.maxRows <= maxRows, throw new Exception(s"Value of ${model.maxRows} exceeds posted limit of $maxRows"))
+      require(model.maxRows <= maxRows, throw new Exception(s"Value of ${model.maxRows} exceeds posted limit of $maxRows"))
 
       val queryPipelineFactory = new DefaultQueryPipelineFactory()
 
       val requestPipelineTry = queryPipelineFactory.from(model, QueryAttributes.empty)
+      require(requestPipelineTry.isSuccess, "Failed to get the query pipeline")
       val rowListAttempt = requestPipelineTry.toOption.get.execute(queryContext)
-      assert(rowListAttempt.isSuccess, "Failed to get valid executor and row list")
+      require(rowListAttempt.isSuccess, "Failed to get valid executor and row list")
 
       //Can fail back in getValue exception.
       var result = 0
       rowListAttempt.get._1.foreach(input => {
-        assert(input.aliasMap.contains(OracleQueryGenerator.ROW_COUNT_ALIAS), "TOTALROWS not defined in alias map, only valid in Oracle Queries")
+        require(input.aliasMap.contains(OracleQueryGenerator.ROW_COUNT_ALIAS), "TOTALROWS not defined in alias map, only valid in Oracle Queries")
         val current_totalrows = input.aliasMap(OracleQueryGenerator.ROW_COUNT_ALIAS).toString.toInt
         logger.debug(s"Rows Returned so far: $current_totalrows")
         result += current_totalrows
