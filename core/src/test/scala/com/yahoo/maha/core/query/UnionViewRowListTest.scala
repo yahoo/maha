@@ -106,5 +106,12 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
     assert(Try{rowList.nextStage()}.isSuccess, "Next stage should not throw an error")
     assert(rowList.subQuery.isEmpty, "No valid subqueries to return")
     assert(Try{rowList.end()}.isSuccess, "The end of a union view row list should be reachable")
+
+    //Attempt to index public members and add subQueries
+    rowList.addSubQuery(rowList.query)
+    assert(!rowList.subQuery.isEmpty, "Copy of current query should be added as rowList's subQuery")
+    assert(rowList.keys.head == Set("2016-10-10"), "Head of rowList keys should be the Day value")
+    assert(rowList.updatedSize == 1, "rowSet's updated size should be 1")
+    assert(!rowList.isUpdatedRowListEmpty, "The updated list should not be empty")
   }
 }
