@@ -3,9 +3,11 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core.{DecType, RequestModel}
-import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, DruidQuery}
+import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator}
 import com.yahoo.maha.core.query.oracle.BaseOracleQueryGeneratorTest
 import com.yahoo.maha.core.request.ReportingRequest
+
+import scala.util.Try
 
 /**
  * Created by pranavbhole on 18/11/16.
@@ -36,6 +38,13 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
          |         "value": "12345"
          |      },
          |      {
+         |         "field": "Impressions",
+         |         "operator": "In",
+         |         "values": [
+         |            "1"
+         |         ]
+         |      },
+         |      {
          |         "field": "Day",
          |         "operator": "Between",
          |         "from": "$fromDate",
@@ -59,7 +68,7 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
   }
 
   test("successfully construct partial row list") {
-    val rowList : UnionViewRowList = new UnionViewRowList(Set("Advertiser ID", "Day"), query, Map("Impressions" -> DecType(), "Spend" -> DecType()), List(Map("Day" -> "2016-10-10"), Map("Advertiser ID" -> "12345")))
+    val rowList : UnionViewRowList = new UnionViewRowList(Set("Advertiser ID", "Day"), query, Map("Impressions" -> DecType(), "Spend" -> DecType()), List(Map("Advertiser ID" -> "2016-10-10", "Impressions" -> "1"), Map("Advertiser ID" -> "12345")))
     assert(rowList.columnNames === IndexedSeq("Advertiser ID", "Day", "Impressions", "Spend"))
     assert(rowList.isEmpty)
 
@@ -79,7 +88,7 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
     rowList.foreach(r => assert(r === row))
     rowList.map(r => assert(r === row))
 
-    val lookupExisting =  rowList.getRowByIndexSet(Set("1", "2016-10-10"))
+    val lookupExisting =  rowList.getRowByIndexSet(Set("2016-10-10"))
     assert(lookupExisting.contains(row))
 
     val row2 = rowList.newRow
@@ -90,8 +99,12 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
 
     rowList.addRow(row2)
 
-    val groupedByRow =  rowList.getRowByIndexSet(Set("1", "2016-10-10")).head
-    assert(groupedByRow.getValue("Impressions") == 2.2)
+    val groupedByRow =  rowList.getRowByIndexSet(Set("2016-10-10")).head
+    assert(groupedByRow.getValue("Impressions") == 2.0)
     assert(groupedByRow.getValue("Spend") == 1.7)
+
+    assert(Try{rowList.nextStage()}.isSuccess, "Next stage should not throw an error")
+    assert(rowList.subQuery.isEmpty, "No valid subqueries to return")
+    assert(Try{rowList.end()}.isSuccess, "The end of a union view row list should be reachable")
   }
 }
