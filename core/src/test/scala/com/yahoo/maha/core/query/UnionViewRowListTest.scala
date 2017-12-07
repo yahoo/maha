@@ -7,6 +7,7 @@ import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator}
 import com.yahoo.maha.core.query.oracle.BaseOracleQueryGeneratorTest
 import com.yahoo.maha.core.request.ReportingRequest
 
+import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
 
 /**
@@ -68,9 +69,14 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
   }
 
   test("successfully construct partial row list") {
-    val rowList : UnionViewRowList = new UnionViewRowList(Set("Advertiser ID", "Day"), query, Map("Impressions" -> DecType(), "Spend" -> DecType()), List(Map("Advertiser ID" -> "2016-10-10", "Impressions" -> "1"), Map("Advertiser ID" -> "12345")))
-    assert(rowList.columnNames === IndexedSeq("Advertiser ID", "Day", "Impressions", "Spend"))
-    assert(rowList.isEmpty)
+    val rowList : UnionViewRowList = new
+        UnionViewRowList(
+          Set("Advertiser ID", "Day"),
+          query,
+          Map("Impressions" -> DecType(), "Spend" -> DecType()),
+          constAliasToValueMapList = List(Map("Advertiser ID" -> "12345"), Map("Advertiser ID" -> "12345", "Impressions" -> "1.0")))
+    assert(rowList.columnNames === IndexedSeq("Advertiser ID", "Day", "Impressions", "Spend"), "Expected columns and produced columns do not match")
+    assert(rowList.isEmpty, "No rows have yet been added")
 
     val row = rowList.newRow
 
@@ -81,14 +87,14 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
 
     rowList.addRow(row)
 
-    assert(rowList.isEmpty == false)
-    assert(rowList.size == 1)
+    assert(!rowList.isEmpty, "row should be added to rowList")
+    assert(rowList.size == 1, "Exactly one row should have been added")
 
 
     rowList.foreach(r => assert(r === row))
     rowList.map(r => assert(r === row))
 
-    val lookupExisting =  rowList.getRowByIndexSet(Set("2016-10-10"))
+    val lookupExisting =  rowList.getRowByIndexSet(Set("12345", "2016-10-10"))
     assert(lookupExisting.contains(row))
 
     val row2 = rowList.newRow
@@ -99,9 +105,12 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
 
     rowList.addRow(row2)
 
-    val groupedByRow =  rowList.getRowByIndexSet(Set("2016-10-10")).head
-    assert(groupedByRow.getValue("Impressions") == 2.0)
+    val groupedByRow =  rowList.getRowByIndexSet(Set("12345", "2016-10-10")).head
+    assert(groupedByRow.getValue("Impressions") == 2.2)
     assert(groupedByRow.getValue("Spend") == 1.7)
+
+    val invalidGroupedByRow = rowList.getRowByIndexSet(Set("12345"))
+    assert(invalidGroupedByRow.isEmpty, "Invalid row keys should return nothing")
 
     assert(Try{rowList.nextStage()}.isSuccess, "Next stage should not throw an error")
     assert(rowList.subQuery.isEmpty, "No valid subqueries to return")
@@ -110,7 +119,7 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
     //Attempt to index public members and add subQueries
     rowList.addSubQuery(rowList.query)
     assert(!rowList.subQuery.isEmpty, "Copy of current query should be added as rowList's subQuery")
-    assert(rowList.keys.head == Set("2016-10-10"), "Head of rowList keys should be the Day value")
+    assert(rowList.keys.head == Set("12345", "2016-10-10"), "Head of rowList keys should be the Day value")
     assert(rowList.updatedSize == 1, "rowSet's updated size should be 1")
     assert(!rowList.isUpdatedRowListEmpty, "The updated list should not be empty")
   }
