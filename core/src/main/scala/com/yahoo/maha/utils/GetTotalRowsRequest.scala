@@ -42,8 +42,6 @@ object GetTotalRowsRequest extends Logging {
       val modelTry: Try[RequestModel] = RequestModel.from(totalRowsRequest.get, registry)
       require(modelTry.isSuccess, "Failed to get valid request model")
       val model = modelTry.get
-      val maxRows: Int = DruidQueryGenerator.defaultMaximumMaxRows
-      require(model.maxRows <= maxRows, throw new Exception(s"Value of ${model.maxRows} exceeds posted limit of $maxRows"))
 
       val queryPipelineFactory = new DefaultQueryPipelineFactory()
 
