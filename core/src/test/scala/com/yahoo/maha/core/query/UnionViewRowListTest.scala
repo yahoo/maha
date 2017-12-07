@@ -75,6 +75,8 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
           query,
           Map("Impressions" -> DecType(), "Spend" -> DecType()),
           constAliasToValueMapList = List(Map("Advertiser ID" -> "12345"), Map("Advertiser ID" -> "12345", "Impressions" -> "1.0")))
+
+    //Base rowList tests
     assert(rowList.columnNames === IndexedSeq("Advertiser ID", "Day", "Impressions", "Spend"), "Expected columns and produced columns do not match")
     assert(rowList.isEmpty, "No rows have yet been added")
 
@@ -87,6 +89,7 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
 
     rowList.addRow(row)
 
+    //Adding a row
     assert(!rowList.isEmpty, "row should be added to rowList")
     assert(rowList.size == 1, "Exactly one row should have been added")
 
@@ -94,6 +97,7 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
     rowList.foreach(r => assert(r === row))
     rowList.map(r => assert(r === row))
 
+    //reference added row
     val lookupExisting =  rowList.getRowByIndexSet(Set("12345", "2016-10-10"))
     assert(lookupExisting.contains(row))
 
@@ -105,6 +109,7 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
 
     rowList.addRow(row2)
 
+    //check summation on rows works, and row reference must be correct
     val groupedByRow =  rowList.getRowByIndexSet(Set("12345", "2016-10-10")).head
     assert(groupedByRow.getValue("Impressions") == 2.2)
     assert(groupedByRow.getValue("Spend") == 1.7)
@@ -112,6 +117,7 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
     val invalidGroupedByRow = rowList.getRowByIndexSet(Set("12345"))
     assert(invalidGroupedByRow.isEmpty, "Invalid row keys should return nothing")
 
+    //Verify public variables are accessible and basic functions work
     assert(Try{rowList.nextStage()}.isSuccess, "Next stage should not throw an error")
     assert(rowList.subQuery.isEmpty, "No valid subqueries to return")
     assert(Try{rowList.end()}.isSuccess, "The end of a union view row list should be reachable")
