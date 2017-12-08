@@ -303,7 +303,36 @@ trait BaseQueryContextTest {
       Set.empty,
       getMaxDaysWindow, getMaxDaysLookBack
     )
+
+    val cubeV1 = builder.toPublicFact("k_stats",
+      Set(
+        PubCol("stats_date", "Day", InBetweenEquality),
+        PubCol("ad_group_id", "Ad Group ID", InEquality),
+        PubCol("campaign_id", "Campaign ID", InEquality),
+        PubCol("advertiser_id", "Advertiser ID", InEquality),
+        PubCol("country_woeid", "Country WOEID", InEquality),
+        PubCol("stats_source", "Source", Equality),
+        PubCol("price_type", "Pricing Type", In),
+        PubCol("landing_page_url", "Destination URL", Set.empty),
+        PubCol("column_id", "Column ID", Equality),
+        PubCol("column2_id", "Column2 ID", Equality)
+        //PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality)
+      ),
+      Set(
+        PublicFactCol("impressions", "Impressions", InBetweenEquality),
+        PublicFactCol("clicks", "Clicks", InBetweenEquality),
+        PublicFactCol("spend", "Spend", Set.empty),
+        PublicFactCol("avg_pos", "Average Position", Set.empty),
+        PublicFactCol("max_bid", "Max Bid", Set.empty),
+        PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
+        PublicFactCol("CTR", "CTR", InBetweenEquality)
+      ),
+      Set.empty,
+      getMaxDaysWindow, getMaxDaysLookBack, revision = 1
+    )
     registryBuilder.register(cube)
     registryBuilder.register(pubfactAdjustmentStatsView())
+    registryBuilder.register(cubeV1)
   }
+
 }

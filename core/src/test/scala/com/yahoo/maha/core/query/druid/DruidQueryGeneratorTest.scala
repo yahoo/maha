@@ -485,38 +485,6 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
     assert(!result.contains("chunkPeriod"))
   }
 
-  test("queryPipeline should fail when maxRows is greater than 5000") {
-    val jsonString = s"""{
-                          "cube": "k_stats",
-                          "selectFields": [
-                            {"field": "Keyword ID"},
-                            {"field": "Keyword Value"},
-                            {"field": "Pricing Type"},
-                            {"field": "Max Bid"},
-                            {"field": "Min Bid"},
-                            {"field": "Average Bid"},
-                            {"field": "Average Position"},
-                            {"field": "Impressions"}
-                          ],
-                          "filterExpressions": [
-                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
-                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
-                          ],
-                          "sortBy": [
-                            {"field": "Impressions", "order": "Asc"}
-                          ],
-                          "paginationStartIndex":20,
-                          "rowsPerPage":5001
-                        }"""
-
-    val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-    assert(queryPipelineTry.checkFailureMessage("requirement failed: Failed to find best candidate, forceEngine=None, engine disqualifyingSet=Set(Druid, Hive), candidates=Set((fact1,Druid))"))
-
-  }
-
   test("metric should be set to inverted when order is Desc and queryType is topN") {
     val jsonString = s"""{
                           "cube": "k_stats",
@@ -953,38 +921,6 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
     val json = """"""
 
     assert(result.contains(json), result)
-  }
-
-  test("queryPipeline should fail when maxRows + startIndex greater than 5000") {
-    val jsonString = s"""{
-                          "cube": "k_stats",
-                          "selectFields": [
-                            {"field": "Keyword ID"},
-                            {"field": "Keyword Value"},
-                            {"field": "Pricing Type"},
-                            {"field": "Max Bid"},
-                            {"field": "Min Bid"},
-                            {"field": "Average Bid"},
-                            {"field": "Average Position"},
-                            {"field": "Impressions"}
-                          ],
-                          "filterExpressions": [
-                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
-                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
-                          ],
-                          "sortBy": [
-                            {"field": "Impressions", "order": "Asc"}
-                          ],
-                          "paginationStartIndex":20,
-                          "rowsPerPage":4990
-                        }"""
-
-    val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-    assert(queryPipelineTry.checkFailureMessage("requirement failed: Failed to find best candidate, forceEngine=None, engine disqualifyingSet=Set(Druid, Hive), candidates=Set((fact1,Druid))"))
-
   }
 
   test("startIndex greater than maximumMaxRows should throw error") {
