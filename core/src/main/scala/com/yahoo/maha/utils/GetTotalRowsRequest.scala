@@ -55,7 +55,10 @@ object GetTotalRowsRequest extends Logging {
       rowListAttempt.get._1.foreach(input => {
         require(input.aliasMap.contains(OracleQueryGenerator.ROW_COUNT_ALIAS), "TOTALROWS not defined in alias map, only valid in Oracle Queries")
         val current_totalrows = input.aliasMap(OracleQueryGenerator.ROW_COUNT_ALIAS).toString.toInt
-        logger.debug(s"Rows Returned: $current_totalrows")
+        if(model.isDebugEnabled) {
+          logger.info(s"Rows Returned: $current_totalrows")
+        }
+        
         result += current_totalrows
       })
 
