@@ -58,7 +58,7 @@ object GetTotalRowsRequest extends Logging {
         if(model.isDebugEnabled) {
           logger.info(s"Rows Returned: $current_totalrows")
         }
-        
+
         result += current_totalrows
       })
 
