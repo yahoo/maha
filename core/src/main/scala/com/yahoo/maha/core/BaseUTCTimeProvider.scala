@@ -112,7 +112,7 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
       case EqualityFilter(field, day, _, _) =>
         new EqualityFilter(field, oneDayBefore(day))
       case a =>
-        throw new IllegalArgumentException(s"Filter operation not supported. Day filter can be 'between', 'in' or 'equality' : $a")
+        throw new UnsupportedOperationException(s"Filter operation not supported. Day filter can be 'between', 'in' or 'equality' : $a")
     }
   }
 
@@ -136,7 +136,7 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
       case EqualityFilter(field, day, _ , _) =>
         new BetweenFilter(field, oneDayBefore(day), day)
       case a =>
-        throw new IllegalArgumentException(s"Filter operation not supported. Day filter can be 'between', 'in' or 'equality' : $a")
+        throw new UnsupportedOperationException(s"Filter operation not supported. Day filter can be 'between', 'in' or 'equality' : $a")
     }
   }
 

@@ -85,6 +85,30 @@ class BaseUTCTimeProviderTest extends FunSuite {
     assertEquals(expected, utcHourFilter.get.value)
   }
 
+  test("Case: Timezone: AU, Day - In, Hour - non-zero") {
+    val timezone = Option("Australia/Melbourne")
+    val localDayFilter = new InFilter("Day", List("2016-03-07", "2016-03-08"))
+    val localHourFilter = new InFilter("Hour", List("05", "05"))
+
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), None,  timezone, true).asInstanceOf[Tuple3[InFilter, Option[InFilter], Option[InFilter]]]
+
+    assertEquals("2016-03-06,2016-03-07,2016-03-08", utcDayFilter.asValues)
+    val expected = if(getOffsetHours("Australia/Melbourne") == 10) "19,19" else "18,18";
+    assertEquals(expected, utcHourFilter.get.asValues)
+  }
+
+  test("Case: Timezone: AU, Day - NotIn, Hour - non-zero (intentional exception)") {
+    val thrown = intercept[UnsupportedOperationException] {
+      val timezone = Option("Australia/Melbourne")
+      val localDayFilter = new NotInFilter("Day", List("2016-03-07", "2016-03-08"))
+      //val localHourFilter = new NotInFilter("Hour", List("05", "05"))
+
+      val (utcDayFilter, utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, None, None, timezone, true).asInstanceOf[Tuple3[EqualityFilter, Option[EqualityFilter], Option[EqualityFilter]]]
+
+    }
+    assert(thrown.getMessage.startsWith("Filter operation not supported. Day filter can be"), "Unsupported operations should throw properly.")
+  }
+
   test("Case: Timezone: AU, Day - equal, Hour - non-zero, Minute - non-zero") {
     val timezone = Option("Australia/Melbourne")
     val localDayFilter = new EqualityFilter("Day", "2016-03-07")
@@ -360,6 +384,27 @@ class BaseUTCTimeProviderTest extends FunSuite {
 
     val expected = if (getOffsetHours("Australia/Melbourne") == 10) "17" else "16";
     assertEquals("03", utcHourFilter.get.value)
+  }
+
+  test("Case: Shift UtcDay forward by 1 day") {
+    val timezone = Option("America/Los_Angeles")
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-08")
+    val localHourFilter = new BetweenFilter("Hour", "16", "16")
+    val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter),  None, timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[BetweenFilter], Option[BetweenFilter]]]
+    assertEquals("2016-03-08-2016-03-09", utcDayFilter.asValues)
+
+    assertEquals("00-00", utcHourFilter.get.asValues)
+  }
+
+  test("Case: Invalid Filter Operation (InFilter)") {
+    val throwable = intercept[UnsupportedOperationException] {
+      val timezone = Option("America/Los_Angeles")
+      val localDayFilter = new InFilter("Day", List("2016-03-07", "2016-03-08"))
+      val localHourFilter = new InFilter("Hour", List("16", "16"))
+      val localMinuteFilter = new InFilter("Minute", List("00", "20"))
+      val (utcDayFilter, utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), Some(localMinuteFilter), timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[BetweenFilter], Option[BetweenFilter]]]
+    }
+    assert(throwable.getMessage.startsWith("Unsupported filter type when hour and minute filters present :"), "Must throw exception on unsupported filter op")
   }
 
   private def getOffsetHours(timezone: String): Int = {
