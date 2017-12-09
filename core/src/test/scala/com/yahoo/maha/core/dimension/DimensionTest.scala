@@ -5,6 +5,7 @@ package com.yahoo.maha.core.dimension
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.CoreSchema._
+import com.yahoo.maha.core.DruidPostResultFunction.START_OF_THE_WEEK
 import com.yahoo.maha.core.ddl.{HiveDDLAnnotation, OracleDDLAnnotation}
 import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
 import org.scalatest.{FunSuite, Matchers}
@@ -30,6 +31,81 @@ class DimensionTest extends FunSuite with Matchers {
       }
     }
     thrown.getMessage should startWith  ("requirement failed: Each dimension must have 1 primary key :")
+  }
+
+  test("Copy a Hive dimension with resetAliasIfNotPresent") {
+    val dim : DimensionBuilder = {
+      ColumnContext.withColumnContext { implicit cc =>
+        import HiveExpression._
+        Dimension.newDimension("dim1", HiveEngine, LevelOne, Set(AdvertiserSchema),
+          Set(
+            DimCol("start_time", StrType(), annotations = Set(PrimaryKey))
+            , DimCol("end_time", StrType(), annotations = Set(EscapingRequired))
+            , HiveDerDimCol("clicks", DecType(), "start_time")
+            , HiveDimCol("new_clicks", DecType())
+            , HivePartDimCol("newest_clicks", DecType())
+
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+        )
+      }
+    }
+
+    val dim2 : DimensionBuilder = {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        dim.createSubset("dim1_subset", "dim1", Set("end_time"), Set.empty, Set.empty, None, Map.empty, resetAliasIfNotPresent = true)
+      }
+    }
+  }
+
+  test("Copy a Druid dimension with resetAliasIfNotPresent") {
+    val dim : DimensionBuilder = {
+      ColumnContext.withColumnContext { implicit cc =>
+        import com.yahoo.maha.core.DruidDerivedFunction._
+
+        Dimension.newDimension("dim1", DruidEngine, LevelOne, Set(AdvertiserSchema),
+          Set(
+            DimCol("stats_date", DateType("YYYY-MM-dd"), annotations = Set(PrimaryKey))
+            , DimCol("decodable", IntType(), annotations = Set(EscapingRequired))
+            , DimCol("discard", IntType())
+            , DruidFuncDimCol("clicks", DecType(), DECODE_DIM("{decodable}", "7", "6"))
+            , DruidPostResultFuncDimCol("test_col", IntType(), postResultFunction = START_OF_THE_WEEK("stats_date"))
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+        )
+      }
+    }
+
+    val dim2 : DimensionBuilder = {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        dim.createSubset("dim1_subset", "dim1", Set("discard"), Set.empty, Set.empty, None, Map.empty, resetAliasIfNotPresent = true)
+      }
+    }
+  }
+
+  test("Copy an Oracle dimension with resetAliasIfNotPresent") {
+    val dim : DimensionBuilder = {
+      ColumnContext.withColumnContext { implicit cc =>
+        import OracleExpression._
+
+        Dimension.newDimension("dim1", OracleEngine, LevelOne, Set(AdvertiserSchema),
+          Set(
+            DimCol("stats_date", DateType("YYYY-MM-dd"), annotations = Set(PrimaryKey))
+            , DimCol("decodable", IntType(), annotations = Set(EscapingRequired))
+            , DimCol("discard", IntType())
+            , OracleDerDimCol("clicks", StrType(), DECODE_DIM("{decodable}", "7", "6"))
+            , OraclePartDimCol("test_col", IntType())
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+        )
+      }
+    }
+
+    val dim2 : DimensionBuilder = {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        dim.createSubset("dim1_subset", "dim1", Set("discard"), Set.empty, Set.empty, None, Map.empty, resetAliasIfNotPresent = true)
+      }
+    }
   }
 
   test("newDimension should fail with derived expression with unknown referenced fields") {
@@ -247,7 +323,7 @@ class DimensionTest extends FunSuite with Matchers {
   def dimBuilder : DimensionBuilder = {
     ColumnContext.withColumnContext { implicit cc =>
       import HiveExpression._
-      import com.yahoo.maha.core.BaseExpressionTest._
+      import com.yahoo.maha.core.BaseExpressionTest.DECODE_DIM
       Dimension.newDimension("dim", HiveEngine, LevelOne, Set(AdvertiserSchema),
         Set(
           DimCol("id", IntType(), annotations = Set(PrimaryKey))
