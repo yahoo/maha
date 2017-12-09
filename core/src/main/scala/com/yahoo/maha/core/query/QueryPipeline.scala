@@ -625,8 +625,7 @@ OuterGroupBy operation has to be applied only in the following cases
       bestDimCandidates.takeRight(1).head.hasPKRequested
     } else false
 
-    val foreignKeyToPublicDimMap = bestFactCandidate.fact.publicDimToForeignKeyMap.map(e=> e._2 -> e._1)
-    val isRequstedHigherDimLevelKey:Boolean =  { // check dim level of requested FK which is not one of the dim candidates
+    val isRequestedHigherDimLevelKey:Boolean =  { // check dim level of requested FK which is not one of the dim candidates
       if(bestDimCandidates.nonEmpty && requestModel.requestedFkAliasToPublicDimensionMap.nonEmpty) {
         val fkMaxDimLevel = requestModel.requestedFkAliasToPublicDimensionMap.map(e=> e._2.dimLevel.level).max
         val dimCandidateMaxDimLevel = bestDimCandidates.map(e=> e.dim.dimLevel.level).max
@@ -637,10 +636,11 @@ OuterGroupBy operation has to be applied only in the following cases
     }
 
     val hasOuterGroupBy = (nonKeyRequestedDimCols.isEmpty
-      && !isRequstedHigherDimLevelKey
+      && !isRequestedHigherDimLevelKey
       && !isHighestDimPkIDRequested
       && bestDimCandidates.nonEmpty
-      && !requestModel.isDimDriven)
+      && !requestModel.isDimDriven
+      && bestFactCandidate.fact.engine == OracleEngine) // Group by Feature is only implemented for oracle engine right now
 
     hasOuterGroupBy
   }

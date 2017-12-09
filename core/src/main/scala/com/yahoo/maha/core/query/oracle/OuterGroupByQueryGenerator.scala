@@ -2,7 +2,7 @@ package com.yahoo.maha.core.query.oracle
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension.{DerivedDimensionColumn, DimCol, OracleDerDimCol}
-import com.yahoo.maha.core.fact.{FactCol, OracleDerFactCol}
+import com.yahoo.maha.core.fact.{FactCol, OracleCustomRollup, OracleDerFactCol}
 import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
 import org.apache.commons.lang3.StringUtils
@@ -203,11 +203,38 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
 
       val groupedFactCols = factCols.groupBy(_._1.isDerivedColumn)
 
-      // Find out all primitive cols recursively
+      // Findout if there is any customRollup fact/primitive column
+      val customRollupColsOption = for {
+        groupedFactCols <- groupedFactCols.get(false)
+      } yield {
+          val customRollupSet = new mutable.LinkedHashSet[(Column, String)]
+        groupedFactCols.foreach {
+          case (f:FactCol, colAlias: String) if f.rollupExpression.isInstanceOf[OracleCustomRollup] =>
+            customRollupSet.add((f,colAlias))
+            queryBuilderContext.setFactColAlias(f.alias.getOrElse(f.name), colAlias, f)
+          case _=> // ignore for all the other cases as they are handled
+        }
+          customRollupSet
+      }
+
+      val (customRollupAliasSet, customRollupColSet) = if (customRollupColsOption.isDefined) {
+        (customRollupColsOption.get.map(_._2).toSet[String], customRollupColsOption.get.map(_._1).toSet)
+      } else (Set.empty[String], Set.empty[Column])
+
+
+
+      // Find out all primitive cols recursively in non derived CustomRollup cols
+      if(customRollupColSet.nonEmpty) {
+        getPrimitiveCols(customRollupColSet, primitiveColsSet)
+      }
+
+      // Find out all primitive cols recursively in derived cols
       for {
         groupedFactDerCols <- groupedFactCols.get(true)
-      } yield {
-        getPrimitiveCols(groupedFactDerCols.map(_._1.asInstanceOf[DerivedColumn]).toSet, primitiveColsSet)
+      } {
+        val derivedColsSet = groupedFactDerCols.map(_._1).toSet
+
+        getPrimitiveCols(derivedColsSet, primitiveColsSet)
         // Set all Derived Fact Cols in context
         groupedFactDerCols.foreach {
           case (column, alias) =>
@@ -217,10 +244,12 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
 
       for {
         groupedFactCols <- groupedFactCols.get(false)
-      } yield {
+      } {
         groupedFactCols.foreach {
           case(col, alias) =>
-            primitiveColsSet.add((col, col.alias.getOrElse(col.name)))
+            if (!customRollupAliasSet.contains(alias)) {
+              primitiveColsSet.add((col, col.alias.getOrElse(col.name)))
+            }
         }
       }
 
@@ -230,9 +259,9 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
           renderColumnWithAlias(fact, column, alias, Set.empty, queryBuilder, queryBuilderContext, queryContext)
       }
 
-      def getPrimitiveCols(derivedCols: Set[DerivedColumn], primitiveColsSet:mutable.LinkedHashSet[(Column, String)]): Unit = {
+      def getPrimitiveCols(derivedCols: Set[Column], primitiveColsSet:mutable.LinkedHashSet[(Column, String)]): Unit = {
         derivedCols.foreach {
-          derCol=>
+          case derCol:DerivedColumn =>
             derCol.derivedExpression.sourceColumns.foreach {
               sourceCol =>
                 val colOption = fact.columnsByNameMap.get(sourceCol)
@@ -244,6 +273,23 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                   primitiveColsSet.add((col, col.alias.getOrElse(col.name)))
                 }
             }
+          case derCol : FactCol =>
+            require(derCol.rollupExpression.isInstanceOf[OracleCustomRollup], s"Unexpected Rollup expression ${derCol.rollupExpression} in finding primitive cols")
+            val customRollup = derCol.rollupExpression.asInstanceOf[OracleCustomRollup]
+            customRollup.expression.sourceColumns.foreach {
+              sourceCol =>
+                val colOption = fact.columnsByNameMap.get(sourceCol)
+                require(colOption.isDefined, s"Failed to find the sourceColumn $sourceCol in fact ${fact.name}")
+                val col = colOption.get
+                if(col.isDerivedColumn) {
+                  getPrimitiveCols(Set(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
+                } else {
+                  primitiveColsSet.add((col, col.alias.getOrElse(col.name)))
+                }
+            }
+
+          case e =>
+            throw new IllegalArgumentException(s"Unexpected column case found in the getPrimitiveCols $e")
         }
       }
 
@@ -265,7 +311,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
         case FactCol(_, dt, cc, rollup, _, annotations, _) =>
           val renderedAlias = s""""$projectedAlias""""
           queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-          s"""$renderedAlias"""
+            s"""$renderedAlias"""
         case OracleDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
           val renderedAlias = s""""$projectedAlias""""
           val name = column.alias.getOrElse(column.name)
@@ -292,13 +338,21 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
             case FactColumnInfo(alias) if queryBuilderContext.containsPreOuterAlias(alias) =>
               val preOuterAliasOption = queryBuilderContext.getPreOuterFinalAliasToAliasMap(alias)
               if(preOuterAliasOption.isDefined) {
-                val preOuterAlias = s""""${preOuterAliasOption.get}""""
-                s"""$preOuterAlias AS "$alias""""
+                val preOuterAlias = preOuterAliasOption.get
+                  s"""$preOuterAlias AS "$alias""""
               } else {
                 s""""$alias"""
               }
             case FactColumnInfo(alias) =>
-              val column = queryBuilderContext.getFactColByAlias(alias)
+              val column  = if(queryBuilderContext.containsFactAliasToColumnMap(alias)) {
+                queryBuilderContext.getFactColByAlias(alias)
+              } else {
+                // Case to handle CustomRollup Columns
+                val aliasToColNameMap = factBest.factColMapping.map(m=> m._2-> m._1)
+                require(aliasToColNameMap.contains(alias), s"Can not find the alias $alias in aliasToColNameMap")
+                val colName = aliasToColNameMap.get(alias).get
+                queryBuilderContext.getFactColByAlias(colName)
+              }
               renderParentOuterDerivedFactCols(alias, column)
             case DimColumnInfo(alias) => s""""$alias""""
             case ConstantColumnInfo(alias, value) =>
@@ -333,19 +387,27 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                 if(primitiveInnerAliasColMap.contains(colInnerAlias)) {
                   val innerSelectCol = queryBuilderContext.getFactColByAlias(colInnerAlias)
                   renderPreOuterFactCol(colInnerAlias, alias, innerSelectCol)
+                } else {
+                  require(queryBuilderContext.containsFactAliasToColumnMap(colInnerAlias), s"Failed to find preOuter col $colInnerAlias in factColMap")
+                  val col = queryBuilderContext.getFactColByAlias(colInnerAlias)
+                  if(col.isInstanceOf[FactCol] && col.asInstanceOf[FactCol].rollupExpression.isInstanceOf[OracleCustomRollup]) {
+                    renderPreOuterFactCol(colInnerAlias, alias, col)
+                  }
                 }
               } else {
                 // Condition to handle dimCols mapped to FactColumnInfo in requestModel
                 val colAliasOption = factBest.dimColMapping.map(_ swap).get(alias)
                 if(colAliasOption.isDefined && queryBuilderContext.containsFactAliasToColumnMap(alias)) {
-                  queryBuilder.addPreOuterColumn(renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, isFactOnlyQuery, false, queryContext))
-                  queryBuilder.addOuterGroupByExpressions(s""""$alias"""")
+                  val (renderedCol, renderedAlias) = renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, isFactOnlyQuery, false, queryContext)
+                  queryBuilder.addPreOuterColumn(concat(renderedCol, renderedAlias))
+                  queryBuilder.addOuterGroupByExpressions(renderedCol)
                 }
               }
 
             case DimColumnInfo(alias) =>
-              queryBuilder.addPreOuterColumn(renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, isFactOnlyQuery, false, queryContext))
-              queryBuilder.addOuterGroupByExpressions(s""""$alias"""")
+              val (renderedCol, renderedAlias) = renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, isFactOnlyQuery, false, queryContext)
+              queryBuilder.addPreOuterColumn(concat(renderedCol, renderedAlias))
+              queryBuilder.addOuterGroupByExpressions(renderedCol)
             case ConstantColumnInfo(alias, value) =>
               // rendering constant columns only in outer columns
             case _ => throw new UnsupportedOperationException("Unsupported Column Type")
@@ -363,11 +425,15 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
           case FactCol(_, dt, cc, rollup, _, annotations, _) =>
             s"""${renderRollupExpression(colInnerAlias, rollup)} AS $colInnerAlias"""
           case OracleDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-            s"""${renderRollupExpression(de.render(colInnerAlias, Map.empty), rollup)} AS $colInnerAlias"""
+            s"""${renderRollupExpression(de.render(colInnerAlias, Map.empty), rollup)} AS "$colInnerAlias""""
           case _=> throw new IllegalArgumentException(s"Unexpected Col $innerSelectCol found in FactColumnInfo ")
         }
-        preOuterRenderedColAlias += colInnerAlias
-        queryBuilderContext.setPreOuterAliasToColumnMap(colInnerAlias, finalAlias, innerSelectCol)
+        val colInnerAliasQuoted = if(innerSelectCol.isDerivedColumn) {
+          s""""$colInnerAlias""""
+        } else colInnerAlias
+
+        preOuterRenderedColAlias += colInnerAliasQuoted
+        queryBuilderContext.setPreOuterAliasToColumnMap(colInnerAliasQuoted, finalAlias, innerSelectCol)
         queryBuilder.addPreOuterColumn(preOuterFactColRendered)
       }
 

@@ -42,7 +42,7 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
 
   // Definition Prototypes
   def generateDimensionSql(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext, includePagination: Boolean): DimensionSql
-  def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], isFactOnlyQuery: Boolean, isDimOnly: Boolean, queryContext: QueryContext): String
+  def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], isFactOnlyQuery: Boolean, isDimOnly: Boolean, queryContext: QueryContext): (String, String)
   def renderColumnWithAlias(fact: Fact, column: Column, alias: String, requiredInnerCols: Set[String], queryBuilder: QueryBuilder, queryBuilderContext: QueryBuilderContext, queryContext: FactualQueryContext): Unit
 
   protected[this] val factAlias: String = "FactAlias"
@@ -95,6 +95,10 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
     } else {
       IndexedSeq.empty[String]
     }
+  }
+
+  protected[this] def concat(tuple: (String, String)): String = {
+    s"""${tuple._1} "${tuple._2}""""
   }
 
   protected[this] def renderSortByColumn(columnInfo: SortByColumnInfo, queryBuilderContext: QueryBuilderContext): String = {
