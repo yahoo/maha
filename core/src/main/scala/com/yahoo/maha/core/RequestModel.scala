@@ -30,6 +30,7 @@ case class DimensionCandidate(dim: PublicDimension
                               , hasNonFKSortBy: Boolean
                               , hasNonFKNonPKSortBy: Boolean
                               , hasLowCardinalityFilter: Boolean
+                              , hasPKRequested : Boolean
                                )
 
 object DimensionCandidate {
@@ -129,6 +130,7 @@ case class RequestModel(cube: String
                         , requestedDaysWindow: Int
                         , requestedDaysLookBack: Int
                         , outerFilters: SortedSet[Filter]
+                        , requestedFkAliasToPublicDimensionMap: Map[String, PublicDimension]
                         , orFilterMeta: Set[OrFilterMeta]
   ) {
 
@@ -232,6 +234,7 @@ object RequestModel extends Logging {
           val allRequestedDimensionPrimaryKeyAliases = new mutable.TreeSet[String]()
           val allRequestedNonFactAliases = new mutable.TreeSet[String]()
           val allDependentColumns = new mutable.TreeSet[String]()
+          val allProjectedAliases = request.selectFields.map(f=> f.field).toSet
 
           // populate all requested fields into allRequestedAliases
           request.selectFields.view.filter(field => field.value.isEmpty).foreach { field =>
@@ -268,6 +271,14 @@ object RequestModel extends Logging {
             .filter(field => field.value.isDefined)
             .map(field => field.alias.getOrElse(field.field))
             .toSet
+
+          val allRequestedFkAliasToPublicDimMap =
+            publicFact.foreignKeyAliases.filter(allProjectedAliases.contains(_)).map {
+              case fkAlias =>
+               val dimensionOption = registry.getDimensionByPrimaryKeyAlias(fkAlias, revision)
+                require(dimensionOption.isDefined, s"Can not find the dimension for Foreign Key Alias $fkAlias in public fact ${publicFact.name}")
+                fkAlias -> dimensionOption.get
+            }.toMap
 
           // Check for duplicate aliases/fields
           // User is allowed to ask same column with different alias names
@@ -790,6 +801,7 @@ object RequestModel extends Logging {
                               , hasNonFKSortBy
                               , hasNonFKNonPKSortBy
                               , hasLowCardinalityFilter
+                              , hasPKRequested = allProjectedAliases.contains(publicDim.primaryKeyByAlias)
                             )
 
                         }
@@ -817,6 +829,7 @@ object RequestModel extends Logging {
                       , hasNonFKSortBy
                       , hasNonFKNonPKSortBy
                       , hasLowCardinalityFilter
+                      , hasPKRequested = allProjectedAliases.contains(publicDim.primaryKeyByAlias)
                     )
                     allRequestedDimAliases ++= requestedDimAliases
                     // Adding current dimension to uppper dimension candidates
@@ -934,6 +947,7 @@ object RequestModel extends Logging {
             requestedDaysLookBack = requestedDaysLookBack,
             requestedDaysWindow = requestedDaysWindow,
             outerFilters = allOuterFilters,
+            requestedFkAliasToPublicDimensionMap = allRequestedFkAliasToPublicDimMap,
             orFilterMeta = allOrFilterMeta.toSet
             )
       }
