@@ -640,7 +640,8 @@ OuterGroupBy operation has to be applied only in the following cases
       && !isHighestDimPkIDRequested
       && bestDimCandidates.nonEmpty
       && !requestModel.isDimDriven
-      && bestFactCandidate.fact.engine == OracleEngine) // Group by Feature is only implemented for oracle engine right now
+      && bestFactCandidate.fact.engine == OracleEngine
+      && bestDimCandidates.forall(_.dim.engine == OracleEngine)) // Group by Feature is only implemented for oracle engine right now
 
     hasOuterGroupBy
   }
