@@ -4,7 +4,7 @@ package com.yahoo.maha.core
 
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelected, BucketSelector}
 import com.yahoo.maha.core.dimension.PublicDimension
-import com.yahoo.maha.core.fact.BestCandidates
+import com.yahoo.maha.core.fact.{BestCandidates, PublicFactCol}
 import com.yahoo.maha.core.registry.{FactRowsCostEstimate, Registry}
 import com.yahoo.maha.core.request.Parameter.Distinct
 import com.yahoo.maha.core.request._
@@ -30,6 +30,7 @@ case class DimensionCandidate(dim: PublicDimension
                               , hasNonFKSortBy: Boolean
                               , hasNonFKNonPKSortBy: Boolean
                               , hasLowCardinalityFilter: Boolean
+                              , hasPKRequested : Boolean
                                )
 
 object DimensionCandidate {
@@ -129,6 +130,8 @@ case class RequestModel(cube: String
                         , requestedDaysWindow: Int
                         , requestedDaysLookBack: Int
                         , outerFilters: SortedSet[Filter]
+                        , requestedFkAliasToPublicDimensionMap: Map[String, PublicDimension]
+                        , orFilterMeta: Set[OrFilterMeta]
   ) {
 
   val requestColsSet: Set[String] = requestCols.map(_.alias).toSet
@@ -231,6 +234,7 @@ object RequestModel extends Logging {
           val allRequestedDimensionPrimaryKeyAliases = new mutable.TreeSet[String]()
           val allRequestedNonFactAliases = new mutable.TreeSet[String]()
           val allDependentColumns = new mutable.TreeSet[String]()
+          val allProjectedAliases = request.selectFields.map(f=> f.field).toSet
 
           // populate all requested fields into allRequestedAliases
           request.selectFields.view.filter(field => field.value.isEmpty).foreach { field =>
@@ -267,6 +271,14 @@ object RequestModel extends Logging {
             .filter(field => field.value.isDefined)
             .map(field => field.alias.getOrElse(field.field))
             .toSet
+
+          val allRequestedFkAliasToPublicDimMap =
+            publicFact.foreignKeyAliases.filter(allProjectedAliases.contains(_)).map {
+              case fkAlias =>
+               val dimensionOption = registry.getDimensionByPrimaryKeyAlias(fkAlias, revision)
+                require(dimensionOption.isDefined, s"Can not find the dimension for Foreign Key Alias $fkAlias in public fact ${publicFact.name}")
+                fkAlias -> dimensionOption.get
+            }.toMap
 
           // Check for duplicate aliases/fields
           // User is allowed to ask same column with different alias names
@@ -380,6 +392,7 @@ object RequestModel extends Logging {
           val allFactFilters = new mutable.TreeSet[Filter]()
           val allNonFactFilterAliases = new mutable.TreeSet[String]()
           val allOuterFilters = mutable.TreeSet[Filter]()
+          val allOrFilterMeta = mutable.Set[OrFilterMeta]()
 
           // populate all filters into allFilterAliases
           request.filterExpressions.foreach { filter =>
@@ -387,7 +400,13 @@ object RequestModel extends Logging {
               val outerFilters = filter.asInstanceOf[OuterFilter].filters.to[mutable.TreeSet]
               outerFilters.foreach( of => require(allRequestedAliases.contains(of.field) == true, s"OuterFilter ${of.field} is not in selected column list"))
               allOuterFilters ++= outerFilters
-            } else {
+            } else if (filter.isInstanceOf[OrFliter]) {
+              val orFilter = filter.asInstanceOf[OrFliter]
+              val orFilterMap : Map[Boolean, List[Filter]] = orFilter.filters.groupBy(f => publicFact.columnsByAliasMap.contains(f.field) && publicFact.columnsByAliasMap(f.field).isInstanceOf[PublicFactCol])
+              require(orFilterMap.size == 1, s"Or filter cannot have combination of fact and dim filters, factFilters=${orFilterMap.get(true)} dimFilters=${orFilterMap.get(false)}")
+              allOrFilterMeta += OrFilterMeta(orFilter, orFilterMap.head._1)
+            }
+            else {
               allFilterAliases+=filter.field
               if(publicFact.aliasToReverseStaticMapping.contains(filter.field)) {
                 val reverseMapping = publicFact.aliasToReverseStaticMapping(filter.field)
@@ -782,6 +801,7 @@ object RequestModel extends Logging {
                               , hasNonFKSortBy
                               , hasNonFKNonPKSortBy
                               , hasLowCardinalityFilter
+                              , hasPKRequested = allProjectedAliases.contains(publicDim.primaryKeyByAlias)
                             )
 
                         }
@@ -809,6 +829,7 @@ object RequestModel extends Logging {
                       , hasNonFKSortBy
                       , hasNonFKNonPKSortBy
                       , hasLowCardinalityFilter
+                      , hasPKRequested = allProjectedAliases.contains(publicDim.primaryKeyByAlias)
                     )
                     allRequestedDimAliases ++= requestedDimAliases
                     // Adding current dimension to uppper dimension candidates
@@ -925,7 +946,9 @@ object RequestModel extends Logging {
             hasLowCardinalityDimFilters = hasLowCardinalityDimFilters,
             requestedDaysLookBack = requestedDaysLookBack,
             requestedDaysWindow = requestedDaysWindow,
-            outerFilters = allOuterFilters
+            outerFilters = allOuterFilters,
+            requestedFkAliasToPublicDimensionMap = allRequestedFkAliasToPublicDimMap,
+            orFilterMeta = allOrFilterMeta.toSet
             )
       }
     }

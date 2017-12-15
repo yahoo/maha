@@ -14,6 +14,10 @@ class QueryBuilder(val initSize: Int, val orderBySize: Int) {
    */
   private[this] val outerSelectColumns: LinkedHashSet[String] = new LinkedHashSet()
   /**
+   * The list of items for the fact + dimension group by view SELECT
+   */
+  private[this] val preOuterSelectColumns: LinkedHashSet[String] = new LinkedHashSet()
+  /**
    * The list of items for the fact view SELECT
    */
   private[this] val factViewColumns: LinkedHashSet[String] = new LinkedHashSet[String]()
@@ -33,6 +37,10 @@ class QueryBuilder(val initSize: Int, val orderBySize: Int) {
    * The list of GROUP BY clauses for the inner fact SELECT
    */
   private[this] val groupByExpressions: LinkedHashSet[String] = LinkedHashSet.empty
+  /**
+   * The list of GROUP BY clauses for the inner fact SELECT
+   */
+  private[this] val outerGroupByExpressions: LinkedHashSet[String] = LinkedHashSet.empty
   /**
    * The list of ORDER BY expressions for the outer most query
    */
@@ -65,6 +73,14 @@ class QueryBuilder(val initSize: Int, val orderBySize: Int) {
     outerSelectColumns.mkString(", ")
   }
 
+  def addPreOuterColumn(col: String) = {
+    preOuterSelectColumns +=col
+  }
+
+  def getPreOuterColumns : String = {
+    preOuterSelectColumns.mkString(", ")
+  }
+
   def addGroupBy(expr: String) {
      groupByExpressions add expr
   }
@@ -79,6 +95,14 @@ class QueryBuilder(val initSize: Int, val orderBySize: Int) {
 
   def getGroupByClause: String = {
     if (getGroupByExpressionsList.isEmpty) "" else s"GROUP BY $getGroupByExpression"
+  }
+
+  def getOuterGroupByClause: String = {
+     if (outerGroupByExpressions.isEmpty) "" else s"GROUP BY ${outerGroupByExpressions.mkString(", ")}"
+  }
+
+  def addOuterGroupByExpressions(outerGroupBy: String) {
+     this.outerGroupByExpressions.add(outerGroupBy)
   }
 
   def getOrderByExpressionsList: LinkedHashSet[String] = {

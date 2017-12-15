@@ -2,10 +2,10 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query
 
+import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.DruidDerivedFunction.{LOOKUP, LOOKUP_WITH_DECODE, LOOKUP_WITH_DECODE_ON_OTHER_COLUMN, LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE}
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.registry.RegistryBuilder
@@ -342,6 +342,7 @@ trait SharedDimSchema {
             , DimCol("name", StrType())
             , DimCol("status", StrType())
             , DimCol("managed_by", IntType())
+            , DimCol("currency", StrType())
             , DimCol("device_id", IntType(3, (Map(1 -> "Desktop", 2 -> "Tablet", 3 -> "SmartPhone", -1 -> "UNKNOWN"), "UNKNOWN")))
             , OracleDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
           )
@@ -362,6 +363,7 @@ trait SharedDimSchema {
             , DimCol("name", StrType())
             , DimCol("status", StrType())
             , DimCol("managed_by", IntType())
+            , DimCol("currency", StrType())
             , HiveDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
             , HivePartDimCol("load_time", StrType())
             , HivePartDimCol("shard", StrType(10, default="all"))
@@ -412,6 +414,7 @@ trait SharedDimSchema {
           , PubCol("managed_by", "Reseller ID", InEquality)
           , PubCol("name", "Advertiser Name", Equality)
           , PubCol("Advertiser Status", "Advertiser Status", InEquality)
+          , PubCol("currency", "Advertiser Currency", InEquality)
           , PubCol("device_id", "Advertiser Device ID", InEquality)
         ), highCardinalityFilters = Set(NotInFilter("Advertiser Status", List("DELETED")))
       )
@@ -861,7 +864,6 @@ trait SharedDimSchema {
   def restaurant_dim: PublicDimension = {
     val builder : DimensionBuilder = {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-        import OracleExpression._
         Dimension.newDimension("restaurant_oracle", OracleEngine, LevelOne, Set(AdvertiserSchema),
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))

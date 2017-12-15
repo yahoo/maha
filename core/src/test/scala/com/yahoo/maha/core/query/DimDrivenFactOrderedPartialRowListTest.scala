@@ -87,9 +87,16 @@ class DimDrivenFactOrderedPartialRowListTest extends BaseOracleQueryGeneratorTes
     row2.addValue("Impressions",java.lang.Integer.valueOf(2))
 
     rowList.addRow(row2)
+    rowList.updateRow(row2)
 
-    rowList.foreach(r => assert(r === row))
-    rowList.map(r => assert(r === row))
+    val row3 = rowList.newRow
+    row3.addValue("Campaign ID", java.lang.Integer.valueOf(10))
+    row3.addValue("Impressions",java.lang.Integer.valueOf(2))
+    rowList.updateRow(row3)
+
+    //Should have two unique rows
+    val lookupExistingSecondRow =  rowList.getRowByIndex(java.lang.Integer.valueOf(10))
+    assert(lookupExistingSecondRow.contains(row3))
 
     assert(row.getValue("Campaign ID") === 1)
     assert(row.getValue("Impressions") === 2)
@@ -97,6 +104,7 @@ class DimDrivenFactOrderedPartialRowListTest extends BaseOracleQueryGeneratorTes
     assert(row.getValue("Campaign Status") === "on")
     assert(row.getValue("CTR") === 1.11D)
     assert(row.getValue("TOTALROWS") === 1)
+    assert(rowList.updatedSize == 2, "Should have two rows")
   }
 
   test("successfully construct DimDrivenFactOrderedPartialRowListTest partial row list") {

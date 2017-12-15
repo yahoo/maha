@@ -3111,4 +3111,649 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
        """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
+
+  test("Successfully generated Outer Group By Query with dim non id field and fact field") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request.toOption.get, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    queryPipelineTry.get.bestDimCandidates.foreach{db=> assert(db.hasPKRequested == false)}
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", spend AS "Spend"
+         |FROM (SELECT co1.campaign_name "Campaign Name", SUM(spend) AS spend
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   campaign_id, SUM(spend) AS spend
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY campaign_id
+         |
+         |           ) af0
+         |                     LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co1 ON (af0.campaign_id = co1.id)
+         |
+ |          GROUP BY co1.campaign_name
+         |)
+         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+       """.stripMargin
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Successfully generated Outer Group By Query with 2 dimension non id fields") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Advertiser Currency",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request.toOption.get, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    queryPipelineTry.get.bestDimCandidates.foreach{db=> assert(db.hasPKRequested == false)}
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", "spend" AS "Spend"
+         |FROM (SELECT co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", SUM(spend) AS spend
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   advertiser_id, campaign_id, SUM(spend) AS "spend"
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY advertiser_id, campaign_id
+         |
+         |           ) af0
+         |                     LEFT OUTER JOIN
+         |           (SELECT  currency, id
+         |            FROM advertiser_oracle
+         |            WHERE (id = 12345)
+         |             )
+         |           ao1 ON (af0.advertiser_id = ao1.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co2 ON (af0.campaign_id = co2.id)
+         |
+ |          GROUP BY "Campaign Name", "Advertiser Currency"
+         |)
+         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+       """.stripMargin
+  }
+
+  test("Should not generate Outer Group By Query contest with 2 dimension non id fields and one fact higher level ID field than best dims") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Advertiser Currency",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Ad Group ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request.toOption.get, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    queryPipelineTry.get.bestDimCandidates.filter(_.dim.name=="adgroup").foreach{db=> assert(db.hasPKRequested == true, "Should not trigger outer group by")}
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+         |FROM (SELECT co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", to_char(af0.ad_group_id) "Ad Group ID", coalesce(ROUND(af0."spend", 10), 0.0) "Spend"
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   advertiser_id, campaign_id, ad_group_id, SUM(spend) AS "spend"
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY advertiser_id, campaign_id, ad_group_id
+         |
+         |           ) af0
+         |           LEFT OUTER JOIN
+         |           (SELECT  currency, id
+         |            FROM advertiser_oracle
+         |            WHERE (id = 12345)
+         |             )
+         |           ao1 ON (af0.advertiser_id = ao1.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co2 ON (af0.campaign_id = co2.id)
+         |
+ |)
+         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |
+       """.stripMargin
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Successfully generated Outer Group By Query with 2 dimension non id fields and and two fact transitively dependent cols") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Advertiser Currency",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Average CPC Cents",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Average CPC",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request.toOption.get, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    queryPipelineTry.get.bestDimCandidates.foreach{db=> assert(db.hasPKRequested == false)}
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(result)
+
+    val expected =
+      s"""
+         |
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS "Average CPC Cents", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend"
+         |FROM (SELECT co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", SUM(spend) AS spend, SUM(clicks) AS clicks
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   advertiser_id, campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY advertiser_id, campaign_id
+         |
+         |           ) af0
+         |                     LEFT OUTER JOIN
+         |           (SELECT  currency, id
+         |            FROM advertiser_oracle
+         |            WHERE (id = 12345)
+         |             )
+         |           ao1 ON (af0.advertiser_id = ao1.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co2 ON (af0.campaign_id = co2.id)
+         |
+ |          GROUP BY co2.campaign_name, ao1.currency
+         |)
+         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |
+       """
+       .stripMargin
+    println(expected)
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Successfully generated Outer Group By Query with Lowest level FK col is requested") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Status",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Advertiser Name"
+                             },
+                             {
+                               "field": "Advertiser ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request.toOption.get, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(result)
+
+    val expected =
+      s"""
+         |
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Status", "Advertiser Name", "Advertiser ID", spend AS "Spend"
+         |FROM (SELECT co2."Campaign Status" "Campaign Status", ao1.name "Advertiser Name", to_char(co2.advertiser_id) "Advertiser ID", SUM(spend) AS spend
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   advertiser_id, campaign_id, SUM(spend) AS spend
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY advertiser_id, campaign_id
+         |
+         |           ) af0
+         |                     LEFT OUTER JOIN
+         |           (SELECT  name, id
+         |            FROM advertiser_oracle
+         |            WHERE (id = 12345)
+         |             )
+         |           ao1 ON (af0.advertiser_id = ao1.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ advertiser_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Campaign Status", id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co2 ON (af0.campaign_id = co2.id)
+         |
+ |          GROUP BY co2."Campaign Status", ao1.name, to_char(co2.advertiser_id)
+         |)
+         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |
+         |
+       """
+        .stripMargin
+    println(expected)
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Successfully generated Outer Group By Query if fk col one level less than Highest dim candidate level is requested") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Ad Status",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Campaign Name"
+                             },
+                             {
+                               "field": "Campaign ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request.toOption.get, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(result)
+
+    val expected =
+      s"""
+         |
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Ad Status", "Campaign Name", "Campaign ID", spend AS "Spend"
+         |FROM (SELECT ado2."Ad Status" "Ad Status", co1.campaign_name "Campaign Name", to_char(ado2.campaign_id) "Campaign ID", SUM(spend) AS spend
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   campaign_id, ad_id, SUM(spend) AS spend
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY campaign_id, ad_id
+         |
+         |           ) af0
+         |                     LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co1 ON (af0.campaign_id = co1.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT  campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Status", id, advertiser_id
+         |            FROM ad_dim_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           ado2 ON (af0.ad_id = ado2.id)
+         |
+ |          GROUP BY ado2."Ad Status", co1.campaign_name, to_char(ado2.campaign_id)
+         |)
+         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |
+       """
+        .stripMargin
+    println(expected)
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Successfully generated Outer Group By Query if OracleCustomRollup col is requested") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name"
+                             },
+                             {
+                               "field": "Average CPC",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                              "field": "Spend",
+                              "alias": null,
+                              "value": null
+                              }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request.toOption.get, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(result)
+
+
+    val expected =
+      s"""
+         |
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend"
+         |FROM (SELECT co1.campaign_name "Campaign Name", SUM(spend) AS spend, SUM(clicks) AS clicks
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY campaign_id
+         |
+         |           ) af0
+         |                     LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co1 ON (af0.campaign_id = co1.id)
+         |
+ |          GROUP BY co1.campaign_name
+         |)
+         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |
+         |
+       """
+        .stripMargin
+    println(expected)
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Successfully generated Outer Group By Query if OracleCustomRollup col with Derived Expression having rollups is requested") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name"
+                             },
+                             {
+                               "field": "Average Position",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                              "field": "Spend",
+                              "alias": null,
+                              "value": null
+                              }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request.toOption.get, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(result)
+
+
+    val expected =
+      s"""
+         |
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", avg_pos AS "Average Position", spend AS "Spend"
+         |FROM (SELECT co1.campaign_name "Campaign Name", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(impressions) AS impressions
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   campaign_id, SUM(impressions) AS impressions, SUM(spend) AS spend
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY campaign_id
+         |
+         |           ) af0
+         |                     LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co1 ON (af0.campaign_id = co1.id)
+         |
+ |          GROUP BY co1.campaign_name
+         |)
+         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |
+         |
+         |
+       """
+        .stripMargin
+    println(expected)
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Successfully generated Outer Group By Query if OracleCustomRollup col with Derived Expression having CustomRollup and DerCol are requested") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name"
+                             },
+                             {
+                               "field": "Average Position",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Average CPC"
+                             },
+                             {
+                              "field": "Spend",
+                              "alias": null,
+                              "value": null
+                              }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request.toOption.get, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(result)
+
+
+    val expected =
+      s"""
+         |
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", avg_pos AS "Average Position", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend"
+         |FROM (SELECT co1.campaign_name "Campaign Name", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(impressions) AS impressions, SUM(clicks) AS clicks
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   campaign_id, SUM(impressions) AS impressions, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY campaign_id
+         |
+         |           ) af0
+         |                     LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co1 ON (af0.campaign_id = co1.id)
+         |
+ |          GROUP BY co1.campaign_name
+         |)
+         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |
+         |
+       """
+        .stripMargin
+    println(expected)
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
 }

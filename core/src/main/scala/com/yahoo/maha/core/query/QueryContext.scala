@@ -3,7 +3,7 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core.dimension.{Dimension, PublicDimension}
-import com.yahoo.maha.core.fact.{Fact, FactBestCandidate}
+import com.yahoo.maha.core.fact.FactBestCandidate
 import com.yahoo.maha.core.{Filter, RequestModel}
 
 import scala.collection.SortedSet
@@ -32,6 +32,7 @@ trait QueryType
 case object DimOnlyQuery extends QueryType
 case object FactOnlyQuery extends QueryType
 case object DimFactQuery extends QueryType
+case object DimFactOuterGroupByQuery extends QueryType
 
 case class DimQueryContext private[query](dims: SortedSet[DimensionBundle],
                            requestModel: RequestModel,
@@ -55,6 +56,14 @@ case class CombinedQueryContext private[query](dims: SortedSet[DimensionBundle],
   }
 }
 
+case class DimFactOuterGroupByQueryQueryContext(dims: SortedSet[DimensionBundle],
+                                                factBestCandidate: FactBestCandidate,
+                                                requestModel: RequestModel,
+                                                queryAttributes: QueryAttributes) extends DimensionQueryContext with FactualQueryContext {
+  override def indexAliasOption: Option[String] = None
+  override def primaryTableName: String = factBestCandidate.fact.name
+}
+
 case class DimensionBundle(dim: Dimension
                            , publicDim: PublicDimension
                            , fields: Set[String]
@@ -67,6 +76,7 @@ case class DimensionBundle(dim: Dimension
                            , hasNonFKOrForcedFilters: Boolean
                            , hasNonFKSortBy: Boolean
                            , hasNonPushDownFilters: Boolean
+                           , hasPKRequested: Boolean
                             ) {
   def debugString : String = {
     s"""
@@ -78,6 +88,8 @@ case class DimensionBundle(dim: Dimension
        lowerCandidates=${lowerCandidates.map(_.name)}
        hasNonFKOrForcedFilters=$hasNonFKOrForcedFilters
        hasNonFKSortBy=$hasNonFKSortBy
+       hasNonPushDownFilters=$hasNonPushDownFilters
+       hasPKRequested=$hasPKRequested
      """
   }
   
@@ -135,6 +147,10 @@ class QueryContextBuilder(queryType: QueryType, requestModel: RequestModel) {
       case DimFactQuery =>
         require(factBestCandidate.isDefined, "dim fact query should have fact defined")
         CombinedQueryContext(dims, factBestCandidate.get, requestModel, queryAttributes)
+      case DimFactOuterGroupByQuery =>
+        require(factBestCandidate.isDefined, "dim fact outer group by query should have fact defined")
+        require(dims.nonEmpty, "dim fact outer group by query should not have dimension empty")
+        DimFactOuterGroupByQueryQueryContext(dims, factBestCandidate.get, requestModel, queryAttributes)
     }
   }
 }

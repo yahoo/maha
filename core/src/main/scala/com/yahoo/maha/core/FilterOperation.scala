@@ -29,6 +29,7 @@ case object NotEqualToFilterOperation extends FilterOperation { override def toS
 case object IsNullFilterOperation extends FilterOperation { override def toString = "IsNull" }
 case object IsNotNullFilterOperation extends FilterOperation { override def toString = "IsNotNull" }
 case object OuterFilterOperation extends FilterOperation { override def toString = "Outer" }
+case object OrFilterOperation extends FilterOperation { override def toString = "Or" }
 
 object FilterOperation {
   val In : Set[FilterOperation] = Set(InFilterOperation)
@@ -93,6 +94,12 @@ case class PushDownFilter(f: Filter) extends Filter {
 case class OuterFilter(filters: List[Filter]) extends Filter {
   override def operator: FilterOperation = OuterFilterOperation
   override def field: String = "outer"
+  val asValues: String = filters.map(_.asValues).mkString(",")
+}
+
+case class OrFliter(filters: List[Filter]) extends Filter {
+  override def operator: FilterOperation = OrFilterOperation
+  override def field: String = "or"
   val asValues: String = filters.map(_.asValues).mkString(",")
 }
 
@@ -192,6 +199,8 @@ sealed trait SqlResult {
 }
 
 case class DefaultResult(filter: String, escaped: Boolean = false) extends SqlResult
+
+case class OrFilterMeta(orFliter: OrFliter, isFactFilters: Boolean)
 
 object SqlBetweenFilterRenderer extends BetweenFilterRenderer[SqlResult] {
   def render(name: String,
@@ -582,6 +591,30 @@ object FilterDruid {
 
     }
     dimFilters
+  }
+
+  def renderOrDimFilters(filters: List[Filter],
+                         aliasToNameMapFull: Map[String, String],
+                         columnsByNameMap: Map[String, Column],
+                         grainOption: Option[Grain],
+                         forOuterQuery: Boolean = false): DimFilter = {
+    val selectorList : List[DimFilter] = filters.map {
+      filter => {
+        renderFilterDim(filter, aliasToNameMapFull, columnsByNameMap, grainOption, forOuterQuery)
+      }
+    }
+    new OrDimFilter(selectorList.asJava)
+  }
+
+  def renderOrFactFilters(filters: List[Filter],
+                          aliasToNameMapFull: Map[String, String],
+                          columnsByNameMap: Map[String, Column]) : HavingSpec = {
+    val list: List[HavingSpec] = filters.map {
+      filter => {
+        renderFilterFact(filter, aliasToNameMapFull, columnsByNameMap)
+      }
+    }
+    new OrHavingSpec(list.asJava)
   }
 
   def renderFilterDim(filter: Filter,
@@ -983,6 +1016,15 @@ object Filter {
     }
   }
 
+  def orFilter(orFliter: OrFliter) : JsonScalaz.Result[Boolean] = {
+    import _root_.scalaz.syntax.validation._
+    if(orFliter.filters.isEmpty) {
+      Fail.apply(orFliter.field, s"filter cannot have empty list")
+    } else {
+      true.successNel
+    }
+  }
+
 
   implicit def filterJSONR: JSONR[Filter] = new JSONR[Filter] {
     override def read(json: JValue): JsonScalaz.Result[Filter] = {
@@ -995,6 +1037,12 @@ object Filter {
                   f =>
                      outerFilter(f).map( _ => f)
                 }
+            case "or" =>
+              val fil = OrFliter.applyJSON(fieldExtended[List[Filter]]("filterExpressions"))(json)
+              fil.flatMap {
+                f =>
+                  orFilter(f).map( _ => f)
+              }
             case "between" =>
               val filter = BetweenFilter.applyJSON(field[String]("field"), stringField("from"), stringField("to"))(json)
               filter.flatMap {

@@ -16,51 +16,10 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 /**
  * Created by hiral on 11/13/15.
  */
-case class WhereClause(filters: CombiningFilter) {
-  override def toString: String = {
-    if (filters.isEmpty) {
-      ""
-    } else {
-      s"WHERE ${filters.toString}"
-    }
-  }
-}
 
-case class RenderedDimension(dimAlias: String, sql: String, onCondition: Option[String], supportingRenderedDimension: Option[RenderedDimension] = None, hasPagination: Boolean, hasTotalRows: Boolean)
-
-case class DimensionSql(drivingDimensionSql: String, multiDimensionJoinSql: Option[String], hasPagination: Boolean, hasTotalRows: Boolean)
-
-class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, literalMapper: OracleLiteralMapper = new OracleLiteralMapper) extends BaseQueryGenerator[WithOracleEngine] with Logging {
+class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, literalMapper: OracleLiteralMapper = new OracleLiteralMapper) extends OuterGroupByQueryGenerator(partitionColumnRenderer, literalMapper) with Logging {
 
   override val engine: Engine = OracleEngine
-
-  final private[this] val MAX_SNAPSHOT_TS_ALIAS: String = "max_snapshot_ts_"
-  final private[this] val ADDITIONAL_PAGINATION_COLUMN: IndexedSeq[String] = IndexedSeq(OracleQueryGenerator.ROW_COUNT_ALIAS)
-  final private[this] val PAGINATION_ROW_COUNT: String = s"""Count(*) OVER() ${OracleQueryGenerator.ROW_COUNT_ALIAS}"""
-  final private[this] val supportingDimPostfix: String = "_indexed"
-  final private[this] val PAGINATION_WRAPPER: String = "SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (%s) %s) D ) WHERE %s"
-  final private[this] val OUTER_PAGINATION_WRAPPER: String = "%s WHERE %s"
-  final private[this] val OUTER_PAGINATION_WRAPPER_WITH_FILTERS: String = "%s AND %s"
-  final private[this] val PAGINATION_WRAPPER_UNION: String = "SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (%s) D )"
-  final private[this] val PAGINATION_ROW_COUNT_COL = ColumnContext.withColumnContext { implicit cc =>
-    DimCol(OracleQueryGenerator.ROW_COUNT_ALIAS, IntType())
-  }
-
-  private[this] val factAlias: String = "FactAlias"
-
-  override def validateEngineConstraints(requestModel: RequestModel): Boolean = {
-    val filters: SortedSet[Filter] = requestModel.factFilters ++ requestModel.dimFilters
-    !filters.exists(f => {
-      f match {
-        case pdf@PushDownFilter(filter) => filter match {
-          case inf@InFilter(field,values,_,_) => if(values.size > OracleEngine.MAX_SIZE_IN_FILTER) true else false
-          case _ => false
-        }
-        case inf@InFilter(field,values,_,_) => if(values.size > OracleEngine.MAX_SIZE_IN_FILTER) true else false
-        case _ => false
-      }
-    })
-  }
 
   override def generate(queryContext: QueryContext): Query = {
     queryContext match {
@@ -70,14 +29,17 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
         generateDimFactQuery(context)
       case FactQueryContext(factBestCandidate, model, indexAliasOption, attributes) =>
         generateDimFactQuery(CombinedQueryContext(SortedSet.empty, factBestCandidate, model, attributes))
+      case context: DimFactOuterGroupByQueryQueryContext =>
+        generateDimFactOuterGroupByQuery(context)
       case a => throw new IllegalArgumentException(s"Unhandled query context : $a")
     }
   }
 
-  private[this] def generateDimensionSql(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext, includePagination: Boolean): DimensionSql = {
+  override def generateDimensionSql(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext, includePagination: Boolean): DimensionSql = {
     queryContext match {
       case DimQueryContext(dims, requestModel, indexAliasOption, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, true, None, includePagination)
       case CombinedQueryContext(dims, fact, requestModel, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, false, Option(fact), includePagination)
+      case DimFactOuterGroupByQueryQueryContext(dims, fact, requestModel, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, false, Option(fact), includePagination)
       case any => throw new UnsupportedOperationException(s"query context not supported : ${any.getClass.getSimpleName}")
     }
   }
@@ -652,24 +614,6 @@ b. Dim Driven
     s"MAX($snapshotColumnName) OVER (PARTITION BY $pkName)"
   }
 
-  private[this] def addPaginationWrapper(queryString: String, mr: Int, si: Int, includePagination: Boolean): String = {
-    if(includePagination) {
-      val paginationPredicates: ListBuffer[String] = new ListBuffer[String]()
-      val minPosition: Int = if (si < 0) 1 else si + 1
-      paginationPredicates += ("ROW_NUMBER >= " + minPosition)
-      val stopKeyPredicate: String =  {
-        if (mr > 0) {
-          val maxPosition: Int = if (si <= 0) mr else minPosition - 1 + mr
-          paginationPredicates += ("ROW_NUMBER <= " + maxPosition)
-          s"WHERE ROWNUM <= $maxPosition"
-        } else  s""
-      }
-      String.format(PAGINATION_WRAPPER, queryString, stopKeyPredicate, paginationPredicates.toList.mkString(" AND "))
-    } else {
-      queryString
-    }
-  }
-
   private[this] def addOuterPaginationWrapper(queryString: String, mr: Int, si: Int, includePagination: Boolean, outerFiltersPresent: Boolean): String = {
     if(includePagination) {
       val paginationPredicates: ListBuffer[String] = new ListBuffer[String]()
@@ -686,10 +630,6 @@ b. Dim Driven
     } else {
       queryString
     }
-  }
-
-  private[this] def toComment(hint: String): String = {
-    s"/*+ $hint */"
   }
 
   private[this] def getDimensionOptionalHint(dimension: Dimension): Option[String] = {
@@ -719,18 +659,6 @@ b. Dim Driven
           }
         }
     }
-  }
-
-  private[this] def generateOuterWhereClause(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext) : WhereClause = {
-    val outerFilters = new mutable.LinkedHashSet[String]
-    val requestModel =  queryContext.requestModel
-    requestModel.outerFilters.foreach {
-      filter =>
-          val f = FilterSql.renderOuterFilter(filter, queryBuilderContext.aliasColumnMap, OracleEngine, literalMapper)
-          outerFilters += f.filter
-    }
-
-    WhereClause(AndFilter(outerFilters))
   }
 
   private[this] def generateDimOnlyQuery(queryContext: QueryContext): Query = {
@@ -799,9 +727,9 @@ b. Dim Driven
         ci =>
           if (aliasColumnMap.contains(ci.alias)) {
             aliasColumnMapOfRequestCols += (ci.alias -> aliasColumnMap(ci.alias))
-            outerColumns += renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext)
+            outerColumns += concat(renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext))
           } else if (ci.isInstanceOf[ConstantColumnInfo]) {
-            outerColumns += renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext)
+            outerColumns += concat(renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext))
           }
       }
 
@@ -844,9 +772,9 @@ b. Dim Driven
         ci =>
           if (aliasColumnMap.contains(ci.alias)) {
             aliasColumnMapOfRequestCols += (ci.alias -> aliasColumnMap(ci.alias))
-            outerColumns += renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext)
+            outerColumns += concat(renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext))
           } else if (ci.isInstanceOf[ConstantColumnInfo]) {
-            outerColumns += renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext)
+            outerColumns += concat(renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext))
           }
       }
 
@@ -855,7 +783,7 @@ b. Dim Driven
           if((!aliasColumnMapOfRequestCols.contains(alias)) && queryContext.indexAliasOption.contains(alias)) {
             val ci = DimColumnInfo(alias)
             aliasColumnMapOfRequestCols += (ci.alias -> aliasColumnMap(ci.alias))
-            outerColumns += renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext)
+            outerColumns += concat(renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext))
           }
       }
       val outerWhereClause = generateOuterWhereClause(queryContext, queryBuilderContext)
@@ -931,14 +859,77 @@ b. Dim Driven
     }
   }
 
-  private[this] def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], isFactOnlyQuery: Boolean, isDimOnly: Boolean, queryContext: QueryContext): String = {
+  override def renderColumnWithAlias(fact: Fact, column: Column, alias: String, requiredInnerCols: Set[String], queryBuilder: QueryBuilder, queryBuilderContext: QueryBuilderContext, queryContext: FactualQueryContext): Unit = {
+    val factTableAlias = queryBuilderContext.getAliasForTable(fact.name)
+    val name = column.alias.getOrElse(column.name)
+    val isOgbQuery = queryContext.isInstanceOf[DimFactOuterGroupByQueryQueryContext]
+    val exp = column match {
+      case any if queryBuilderContext.containsColByName(name) =>
+        //do nothing, we've already processed it
+        ""
+      case DimCol(_, dt, cc, _, annotations, _) if dt.hasStaticMapping =>
+        queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$name""", column)
+        s"${renderStaticMappedDimension(column)} $name"
+      case DimCol(_, dt, cc, _, annotations, _) =>
+        queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$name""", column)
+        renderColumnName(column)
+      case OraclePartDimCol(_, dt, cc, _, annotations, _) =>
+        queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$name""", column)
+        renderColumnName(column)
+      case OracleDerDimCol(_, dt, cc, de, _, annotations, _) =>
+        val renderedAlias = s""""$alias""""
+        queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$renderedAlias""", column)
+        s"""${de.render(name, Map.empty)} AS $renderedAlias"""
+      case FactCol(_, dt, cc, rollup, _, annotations, _) =>
+        val nameOrAlias = column.alias.getOrElse(name)
+        column.dataType match {
+          case DecType(_, _, Some(default), Some(min), Some(max), _) =>
+            val renderedAlias = if (isOgbQuery) s"$name" else s""""$name""""
+            val minMaxClause = s"CASE WHEN (($nameOrAlias >= $min) AND ($nameOrAlias <= $max)) THEN $nameOrAlias ELSE $default END"
+            queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$renderedAlias""", column)
+            s"${renderRollupExpression(nameOrAlias, rollup, Option(minMaxClause))} AS $renderedAlias"
+          case IntType(_, _, Some(default), Some(min), Some(max)) =>
+            val renderedAlias = if (isOgbQuery) s"$name" else s""""$name""""
+            val minMaxClause = s"CASE WHEN (($nameOrAlias >= $min) AND ($nameOrAlias <= $max)) THEN $nameOrAlias ELSE $default END"
+            queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$renderedAlias""", column)
+            s"${renderRollupExpression(nameOrAlias, rollup, Option(minMaxClause))} AS $renderedAlias"
+          case _ =>
+            val renderedAlias = if (isOgbQuery) s"$name" else s""""$name""""
+            queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$renderedAlias""", column)
+            s"""${renderRollupExpression(nameOrAlias, rollup)} AS $renderedAlias"""
+        }
+      case OracleDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
+        if queryContext.factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name) =>
+        val renderedAlias = if (isOgbQuery) s"$name" else s""""$name""""
+        queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$renderedAlias""", column)
+        s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} AS $renderedAlias"""
+      case OracleDerFactCol(_, _, dt, cc, de, annotations, _, _) =>
+        //means no fact operation on this column, push expression outside
+        de.sourceColumns.foreach {
+          case src if src != name =>
+            val sourceCol = fact.columnsByNameMap(src)
+            renderColumnWithAlias(fact, sourceCol, sourceCol.name, requiredInnerCols, queryBuilder, queryBuilderContext, queryContext)
+          case _ => //do nothing if we reference ourselves
+        }
+        queryBuilderContext.setFactColAlias(alias, s"""(${de.render(name
+          , queryBuilderContext.getColAliasToFactColNameMap
+          , columnPrefix = Option(s"$factTableAlias.")
+          , expandDerivedExpression = false)})""", column)
+        ""
+      case any =>
+        throw new UnsupportedOperationException(s"Found non unhandled column : $any")
+    }
+    queryBuilder.addFactViewColumn(exp)
+  }
 
-    def renderFactCol(alias: String, finalAlias: String, col: Column): String = {
+  override def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], isFactOnlyQuery: Boolean, isDimOnly: Boolean, queryContext: QueryContext): (String, String) = {
+
+    def renderFactCol(alias: String, finalAlias: String, col: Column): (String, String) = {
       val postFilterAlias = applyDataTypeCleanup(finalAlias, col, queryContext)
-      s"""$postFilterAlias "$alias""""
+      (postFilterAlias,alias)
     }
 
-    def handleFactColumn(alias: String) : String = {
+    def handleFactColumn(alias: String) : (String, String) = {
       if (queryBuilderContext.containsFactColNameForAlias(alias)) {
         val col = queryBuilderContext.getFactColByAlias(alias)
         val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)
@@ -964,7 +955,7 @@ b. Dim Driven
         val col = queryBuilderContext.getDimensionColByAlias(alias)
         val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
         val postFilterAlias = applyDataTypeCleanup(finalAlias, col, queryContext)
-        s"""$postFilterAlias "$alias""""
+        (postFilterAlias, alias)
       case FactColumnInfo(alias) =>
         handleFactColumn(alias)
       case DimColumnInfo(alias) if isFactOnlyQuery =>
@@ -973,38 +964,10 @@ b. Dim Driven
         val col = queryBuilderContext.getDimensionColByAlias(alias)
         val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
         val postFilterAlias = applyDataTypeCleanup(finalAlias, col, queryContext)
-        s"""$postFilterAlias "$alias""""
+        (postFilterAlias, alias)
       case ConstantColumnInfo(alias, value) =>
-        s"""'$value' AS "$alias""""
+        (s"""'$value' AS "$alias"""","")
       case _ => throw new UnsupportedOperationException("Unsupported Column Type")
-    }
-  }
-
-
-  private[this] def renderSortByColumn(columnInfo: SortByColumnInfo, queryBuilderContext: QueryBuilderContext): String = {
-    columnInfo match {
-      case FactSortByColumnInfo(alias, order) =>
-        s""""${columnInfo.alias}" ${columnInfo.order.toString} NULLS LAST"""
-      case DimSortByColumnInfo(alias, order) =>
-        val column = queryBuilderContext.getDimensionColByAlias(alias)
-        if (column.isKey) {
-          s""""${columnInfo.alias}" ${columnInfo.order.toString}"""
-        } else {
-          s""""${columnInfo.alias}" ${columnInfo.order.toString} NULLS LAST"""
-        }
-      case _ => throw new UnsupportedOperationException("Unsupported Sort By Column Type")
-    }
-  }
-
-  private[this] def renderRollupExpression(expression: String, rollupExpression: RollupExpression, renderedColExp: Option[String] = None): String = {
-    rollupExpression match {
-      case SumRollup => s"SUM(${renderedColExp.getOrElse(expression)})"
-      case MaxRollup => s"MAX(${renderedColExp.getOrElse(expression)})"
-      case MinRollup => s"MIN(${renderedColExp.getOrElse(expression)})"
-      case AverageRollup => s"AVG(${renderedColExp.getOrElse(expression)})"
-      case OracleCustomRollup(exp) => s"(${exp.render(expression, Map.empty, renderedColExp)})"
-      case NoopRollup => s"(${renderedColExp.getOrElse(expression)})"
-      case any => throw new UnsupportedOperationException(s"Unhandled rollup expression : $any")
     }
   }
 
@@ -1171,92 +1134,6 @@ b. Dim Driven
       val factTableAlias = queryBuilderContext.getAliasForTable(queryContext.factBestCandidate.fact.name)
       val fact = queryContext.factBestCandidate.fact
 
-      def renderColumnName(column: Column): String = {
-        //column.alias.fold(column.name)(alias => s"""$alias AS ${column.name}""")
-        column.alias.getOrElse(column.name)
-      }
-
-      def renderStaticMappedDimension(column: Column) : String = {
-        val nameOrAlias = renderColumnName(column)
-        column.dataType match {
-          case IntType(_, sm, _, _, _) if sm.isDefined =>
-            val defaultValue = sm.get.default
-            val whenClauses = sm.get.tToStringMap.map {
-              case (from, to) => s"WHEN (${nameOrAlias} IN ($from)) THEN '$to'"
-            }
-            s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
-          case StrType(_, sm, _) if sm.isDefined =>
-            val defaultValue = sm.get.default
-            val decodeValues = sm.get.tToStringMap.map {
-              case (from, to) => s"'$from', '$to'"
-            }
-            s"""DECODE(${nameOrAlias}, ${decodeValues.mkString(", ")}, '$defaultValue')"""
-          case _ =>
-            nameOrAlias
-        }
-      }
-
-      def renderColumnWithAlias(fact: Fact, column: Column, alias: String, requiredInnerCols: Set[String]): Unit = {
-        val name = column.alias.getOrElse(column.name)
-        val exp = column match {
-          case any if queryBuilderContext.containsColByName(name) =>
-            //do nothing, we've already processed it
-            ""
-          case DimCol(_, dt, cc, _, annotations, _) if dt.hasStaticMapping =>
-            queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$name""", column)
-            s"${renderStaticMappedDimension(column)} $name"
-          case DimCol(_, dt, cc, _, annotations, _) =>
-            queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$name""", column)
-            renderColumnName(column)
-          case OraclePartDimCol(_, dt, cc, _, annotations, _) =>
-            queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$name""", column)
-            renderColumnName(column)
-          case OracleDerDimCol(_, dt, cc, de, _, annotations, _) =>
-            val renderedAlias = s""""$alias""""
-            queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$renderedAlias""", column)
-            s"""${de.render(name, Map.empty)} AS $renderedAlias"""
-          case FactCol(_, dt, cc, rollup, _, annotations, _) =>
-            val nameOrAlias = column.alias.getOrElse(name)
-            column.dataType match {
-              case DecType(_, _, Some(default), Some(min), Some(max), _) =>
-                val renderedAlias = s""""$name""""
-                val minMaxClause = s"CASE WHEN (($nameOrAlias >= $min) AND ($nameOrAlias <= $max)) THEN $nameOrAlias ELSE $default END"
-                queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$renderedAlias""", column)
-                s"${renderRollupExpression(nameOrAlias, rollup, Option(minMaxClause))} AS $renderedAlias"
-              case IntType(_, _, Some(default), Some(min), Some(max)) =>
-                val renderedAlias = s""""$name""""
-                val minMaxClause = s"CASE WHEN (($nameOrAlias >= $min) AND ($nameOrAlias <= $max)) THEN $nameOrAlias ELSE $default END"
-                queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$renderedAlias""", column)
-                s"${renderRollupExpression(nameOrAlias, rollup, Option(minMaxClause))} AS $renderedAlias"
-              case _ =>
-                val renderedAlias = s""""$name""""
-                queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$renderedAlias""", column)
-                s"""${renderRollupExpression(nameOrAlias, rollup)} AS $renderedAlias"""
-            }
-          case OracleDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
-            if queryContext.factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name) =>
-            val renderedAlias = s""""$alias""""
-            queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$renderedAlias""", column)
-            s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} AS $renderedAlias"""
-          case OracleDerFactCol(_, _, dt, cc, de, annotations, _, _) =>
-            //means no fact operation on this column, push expression outside
-            de.sourceColumns.foreach {
-              case src if src != name =>
-                val sourceCol = fact.columnsByNameMap(src)
-                renderColumnWithAlias(fact, sourceCol, sourceCol.name, requiredInnerCols)
-              case _ => //do nothing if we reference ourselves
-            }
-            queryBuilderContext.setFactColAlias(alias, s"""(${de.render(name
-              , queryBuilderContext.getColAliasToFactColNameMap
-              , columnPrefix = Option(s"$factTableAlias.")
-              , expandDerivedExpression = false)})""", column)
-            ""
-          case any =>
-            throw new UnsupportedOperationException(s"Found non unhandled column : $any")
-        }
-        queryBuilder.addFactViewColumn(exp)
-      }
-
       val dimCols = queryContext.factBestCandidate.dimColMapping.toList.collect {
         case (dimCol, alias) if queryContext.factBestCandidate.requestCols(dimCol) =>
           val column = fact.columnsByNameMap(dimCol)
@@ -1271,7 +1148,7 @@ b. Dim Driven
             val name = column.name
             val nameOrAlias = column.alias.getOrElse(name)
             if(!factOnlySubqueryFields(alias)) {
-              renderColumnWithAlias(fact, column, alias, Set.empty)
+              renderColumnWithAlias(fact, column, alias, Set.empty, queryBuilder, queryBuilderContext, queryContext)
             }
             if (column.isDerivedColumn) {
               val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
@@ -1299,7 +1176,7 @@ b. Dim Driven
         nonDerivedCols.foreach {
           case (column, alias) =>
             val renderedAlias = s""""$alias""""
-            renderColumnWithAlias(fact, column, alias, Set.empty)
+            renderColumnWithAlias(fact, column, alias, Set.empty, queryBuilder, queryBuilderContext, queryContext)
         }
       }
 
@@ -1310,7 +1187,7 @@ b. Dim Driven
         derivedCols.foreach {
           case (column, alias) =>
             val renderedAlias = s""""$alias""""
-            renderColumnWithAlias(fact, column, alias, requiredInnerCols)
+            renderColumnWithAlias(fact, column, alias, requiredInnerCols, queryBuilder, queryBuilderContext, queryContext)
         }
       }
 
@@ -1332,7 +1209,7 @@ b. Dim Driven
               , s"Failed to find source column for duplicate alias mapping : ${queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)}")
             aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.aliasColumnMap(sourceAlias.get))
           }
-            queryBuilder.addOuterColumn(renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, isFactOnlyQuery, false, queryContext))
+            queryBuilder.addOuterColumn(concat(renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, isFactOnlyQuery, false, queryContext)))
       }
 
       if (queryContext.requestModel.includeRowCount) {
@@ -1395,42 +1272,6 @@ ${queryBuilder.getJoinExpressions}
       aliasColumnMapOfRequestCols.toMap,
       additionalColumns(queryContext)
     )
-  }
-
-  private[this] def getFactAlias(name: String, dims: Set[Dimension]): String = {
-    // if hash partition supported
-    if (dims.exists(_.annotations.contains(OracleAdvertiserHashPartitioning))) {
-      s"$name $factAlias"
-    } else {
-      s"$name"
-    }
-  }
-
-  private[this] def getDimOptionalPkIndex(dim: Dimension): Option[PKCompositeIndex] = {
-    dim.annotations.find(_.isInstanceOf[PKCompositeIndex]).map(_.asInstanceOf[PKCompositeIndex])
-  }
-
-  private[this] def getFactOptionalHint(fact: Fact, requestModel: RequestModel): Option[String] = {
-    fact.annotations.foldLeft(Option.empty[String]) {
-      (optionalHint, annotation) =>
-        if (annotation.isInstanceOf[OracleFactDimDrivenHint] && requestModel.isDimDriven) {
-          Option(annotation.asInstanceOf[OracleFactDimDrivenHint].hint)
-        } else {
-          if (annotation.isInstanceOf[OracleFactStaticHint] && optionalHint.isEmpty) {
-            Option(annotation.asInstanceOf[OracleFactStaticHint].hint)
-          } else {
-            optionalHint
-          }
-        }
-    }
-  }
-
-  private[this] def additionalColumns(queryContext: QueryContext): IndexedSeq[String] = {
-    if (queryContext.requestModel.includeRowCount) {
-      ADDITIONAL_PAGINATION_COLUMN
-    } else {
-      IndexedSeq.empty[String]
-    }
   }
 }
 

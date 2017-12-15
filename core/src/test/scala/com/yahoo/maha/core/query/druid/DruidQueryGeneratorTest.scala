@@ -485,38 +485,6 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
     assert(!result.contains("chunkPeriod"))
   }
 
-  test("queryPipeline should fail when maxRows is greater than 5000") {
-    val jsonString = s"""{
-                          "cube": "k_stats",
-                          "selectFields": [
-                            {"field": "Keyword ID"},
-                            {"field": "Keyword Value"},
-                            {"field": "Pricing Type"},
-                            {"field": "Max Bid"},
-                            {"field": "Min Bid"},
-                            {"field": "Average Bid"},
-                            {"field": "Average Position"},
-                            {"field": "Impressions"}
-                          ],
-                          "filterExpressions": [
-                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
-                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
-                          ],
-                          "sortBy": [
-                            {"field": "Impressions", "order": "Asc"}
-                          ],
-                          "paginationStartIndex":20,
-                          "rowsPerPage":5001
-                        }"""
-
-    val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-    assert(queryPipelineTry.checkFailureMessage("requirement failed: Failed to find best candidate, forceEngine=None, engine disqualifyingSet=Set(Druid, Hive), candidates=Set((fact1,Druid))"))
-
-  }
-
   test("metric should be set to inverted when order is Desc and queryType is topN") {
     val jsonString = s"""{
                           "cube": "k_stats",
@@ -953,38 +921,6 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
     val json = """"""
 
     assert(result.contains(json), result)
-  }
-
-  test("queryPipeline should fail when maxRows + startIndex greater than 5000") {
-    val jsonString = s"""{
-                          "cube": "k_stats",
-                          "selectFields": [
-                            {"field": "Keyword ID"},
-                            {"field": "Keyword Value"},
-                            {"field": "Pricing Type"},
-                            {"field": "Max Bid"},
-                            {"field": "Min Bid"},
-                            {"field": "Average Bid"},
-                            {"field": "Average Position"},
-                            {"field": "Impressions"}
-                          ],
-                          "filterExpressions": [
-                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
-                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
-                          ],
-                          "sortBy": [
-                            {"field": "Impressions", "order": "Asc"}
-                          ],
-                          "paginationStartIndex":20,
-                          "rowsPerPage":4990
-                        }"""
-
-    val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-    assert(queryPipelineTry.checkFailureMessage("requirement failed: Failed to find best candidate, forceEngine=None, engine disqualifyingSet=Set(Druid, Hive), candidates=Set((fact1,Druid))"))
-
   }
 
   test("startIndex greater than maximumMaxRows should throw error") {
@@ -1808,6 +1744,82 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
     val json = """\{"queryType":"topN","dataSource":\{"type":"table","name":"fact1"\},"dimension":\{"type":"default","dimension":"id","outputName":"Keyword ID"\},"metric":\{"type":"numeric","metric":"Impressions"\},"threshold":120,"intervals":\{"type":"intervals","intervals":\[".*"\]\},"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\},\{"type":"or","fields":\[\{"type":"selector","dimension":"stats_source","value":"1"\},\{"type":"selector","dimension":"stats_source","value":"2"\}\]\}\]\},"granularity":\{"type":"all"\},"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"doubleSum","name":"_sum_avg_bid","fieldName":"avg_bid"\},\{"type":"count","name":"_count_avg_bid"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Average Bid","fn":"/","fields":\[\{"type":"fieldAccess","name":"_sum_avg_bid","fieldName":"_sum_avg_bid"\},\{"type":"fieldAccess","name":"_count_avg_bid","fieldName":"_count_avg_bid"\}\]\}\],"context":\{"applyLimitPushDown":"false","userId":"someUser","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\},"descending":false\}"""
 
     result should fullyMatch regex json
+  }
+
+  test("Or filter expression with dimension filters") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Source"},
+                            {"field": "Clicks"},
+                            {"field": "CTR"},
+                            {"field": "Reblogs"},
+                            {"field": "Reblog Rate"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"operator": "or", "filterExpressions": [{"field": "Source", "operator": "in", "values": ["1","2"]}, {"field": "Keyword ID", "operator": "=", "value": "2"}]}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    println(result)
+    val filterjson = s""""filter":{"type":"and","fields":[{"type":"selector","dimension":"statsDate","value":"${fromDate.replace("-","")}"},{"type":"selector","dimension":"advertiser_id","value":"12345"},{"type":"or","fields":[{"type":"or","fields":[{"type":"selector","dimension":"stats_source","value":"1"},{"type":"selector","dimension":"stats_source","value":"2"}]},{"type":"selector","dimension":"id","value":"2"}]}]}"""
+
+    assert(result.contains(filterjson), result)
+  }
+
+  test("Or filter expression with fact filters") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Source"},
+                            {"field": "Clicks"},
+                            {"field": "CTR"},
+                            {"field": "Reblogs"},
+                            {"field": "Reblog Rate"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"operator": "or", "filterExpressions": [{"field": "Clicks", "operator": "in", "values": ["1","2"]}, {"field": "Impressions", "operator": "=", "value": "2"}]}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    println(result)
+    val filterjson = s""""filter":{"type":"and","fields":[{"type":"selector","dimension":"statsDate","value":"${fromDate.replace("-","")}"},{"type":"selector","dimension":"advertiser_id","value":"12345"}]}"""
+    val havingJson = s""""having":{"type":"and","havingSpecs":[{"type":"or","havingSpecs":[{"type":"or","havingSpecs":[{"type":"equalTo","aggregation":"Clicks","value":1},{"type":"equalTo","aggregation":"Clicks","value":2}]},{"type":"equalTo","aggregation":"Impressions","value":2}]}]}"""
+
+    assert(result.contains(filterjson), result)
+    assert(result.contains(havingJson), result)
   }
 
 }

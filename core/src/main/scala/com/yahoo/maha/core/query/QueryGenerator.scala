@@ -4,10 +4,8 @@ package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
-import com.yahoo.maha.core.fact.{OracleFactStaticHint, FactBestCandidate, Fact}
 
-import scala.collection.mutable.ListBuffer
-import scala.collection.{SortedSet, mutable}
+import scala.collection.mutable
 
 /**
  * Created by jians on 10/20/15.
@@ -25,6 +23,9 @@ class QueryBuilderContext {
 
   private[this] val factAliasToColumnMap = new mutable.HashMap[String, Column]()
   private[this] val dimensionAliasToColumnMap = new mutable.HashMap[String, DimensionColumn]()
+
+  private[this] val preOuterAliasToColumnMap = new mutable.HashMap[String, Column]()
+  private[this] val preOuterFinalAliasToAliasMap = new mutable.HashMap[String, String]()
 
   private[this] val publicDimensionAliasTupleToFinalAlias = new mutable.HashMap[(PublicDimension,String), String]()
 
@@ -134,8 +135,29 @@ class QueryBuilderContext {
     colAliasToFactColExpressionMap.getOrElse(alias,colAliasToFactColNameMap(alias))
   }
 
+  def setPreOuterAliasToColumnMap(alias:String, finalAlias: String, column: Column): Unit = {
+    preOuterAliasToColumnMap.put(finalAlias, column)
+    preOuterFinalAliasToAliasMap.put(finalAlias, alias)
+  }
+
+  def getPreOuterFinalAliasToAliasMap(alias :String): Option[String] = {
+    preOuterFinalAliasToAliasMap.get(alias)
+  }
+
+  def getPreOuterAliasToColumnMap(alias: String): Option[Column] = {
+    preOuterAliasToColumnMap.get(alias)
+  }
+
+  def containsPreOuterAlias(alias: String): Boolean = {
+    preOuterAliasToColumnMap.contains(alias)
+  }
+
   def containsFactColNameForAlias(alias: String): Boolean = {
     colAliasToFactColNameMap.contains(alias)
+  }
+
+  def containsFactAliasToColumnMap(alias :String) : Boolean = {
+    factAliasToColumnMap.contains(alias)
   }
   
   def containsColByName(name: String) : Boolean = columnNames.contains(name)
