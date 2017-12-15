@@ -900,7 +900,7 @@ b. Dim Driven
         }
       case OracleDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
         if queryContext.factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name) =>
-        val renderedAlias = if (isOgbQuery) s"$name" else s""""$name""""
+        val renderedAlias = if (isOgbQuery) s"$name" else s""""$alias""""
         queryBuilderContext.setFactColAlias(alias, s"""$factTableAlias.$renderedAlias""", column)
         s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} AS $renderedAlias"""
       case OracleDerFactCol(_, _, dt, cc, de, annotations, _, _) =>

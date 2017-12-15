@@ -98,7 +98,11 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
   }
 
   protected[this] def concat(tuple: (String, String)): String = {
-    s"""${tuple._1} "${tuple._2}""""
+    if (tuple._2.isEmpty) {
+      s"""${tuple._1}"""
+    } else {
+      s"""${tuple._1} "${tuple._2}""""
+    }
   }
 
   protected[this] def renderSortByColumn(columnInfo: SortByColumnInfo, queryBuilderContext: QueryBuilderContext): String = {
