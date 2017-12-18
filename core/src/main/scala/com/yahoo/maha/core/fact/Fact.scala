@@ -78,6 +78,8 @@ case class FactCol(name: String,
           columnContext.render(filter.field, Map.empty)
         }
       case DruidThetaSketchRollup =>
+      case PrestoCustomRollup(de) =>
+        de.sourceColumns.foreach((name: String) => columnContext.render(name, Map.empty))
       case customRollup: CustomRollup =>
         //error, we missed a check on custom rollup
         throw new IllegalArgumentException(s"Need a check on custom rollup")
@@ -156,6 +158,36 @@ object HiveDerFactCol {
             rollupExpression: RollupExpression = SumRollup,
             filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) : HiveDerFactCol = {
     HiveDerFactCol(name, alias, dataType, cc, derivedExpression, annotations, rollupExpression, filterOperationOverrides)
+  }
+}
+
+case class PrestoDerFactCol(name: String,
+                          alias: Option[String],
+                          dataType: DataType,
+                          columnContext: ColumnContext,
+                          derivedExpression: PrestoDerivedExpression,
+                          annotations: Set[ColumnAnnotation],
+                          rollupExpression: RollupExpression,
+                          filterOperationOverrides: Set[FilterOperation]
+                         ) extends BaseDerivedFactCol with WithPrestoEngine {
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : FactColumn = {
+    if(resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name), derivedExpression = derivedExpression.copyWith(columnContext))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias), derivedExpression = derivedExpression.copyWith(columnContext))
+    }
+  }
+}
+
+object PrestoDerFactCol {
+  def apply(name: String,
+            dataType: DataType,
+            derivedExpression: PrestoDerivedExpression,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            rollupExpression: RollupExpression = SumRollup,
+            filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) : PrestoDerFactCol = {
+    PrestoDerFactCol(name, alias, dataType, cc, derivedExpression, annotations, rollupExpression, filterOperationOverrides)
   }
 }
 

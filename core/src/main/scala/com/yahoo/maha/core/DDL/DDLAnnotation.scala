@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.ddl
 
-import com.yahoo.maha.core.{WithHiveEngine, WithOracleEngine}
+import com.yahoo.maha.core.{WithHiveEngine, WithOracleEngine, WithPrestoEngine}
 
 /**
  * Created by shengyao on 1/28/16.
@@ -14,3 +14,6 @@ case class OracleDDLAnnotation(pks: Set[String] = Set.empty,
 
 case class HiveDDLAnnotation(annotations: Map[String, String] = Map.empty,
                              columnOrdering: IndexedSeq[String] = IndexedSeq.empty) extends DDLAnnotation with WithHiveEngine
+
+case class PrestoDDLAnnotation(annotations: Map[String, String] = Map.empty,
+                             columnOrdering: IndexedSeq[String] = IndexedSeq.empty) extends DDLAnnotation with WithPrestoEngine

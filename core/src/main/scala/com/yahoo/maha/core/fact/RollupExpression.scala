@@ -21,6 +21,7 @@ sealed trait CustomRollup extends RollupExpression
  * Please do not use this for simple rollup expressions
  */
 case class HiveCustomRollup(expression: HiveDerivedExpression) extends CustomRollup with WithHiveEngine
+case class PrestoCustomRollup(expression: PrestoDerivedExpression) extends CustomRollup with WithPrestoEngine
 case class OracleCustomRollup(expression: OracleDerivedExpression) extends CustomRollup with WithOracleEngine
 case class DruidCustomRollup(expression: DruidDerivedExpression) extends CustomRollup with WithDruidEngine
 case class DruidFilteredRollup(filter: Filter, factCol: DruidExpression.FieldAccess,

@@ -254,6 +254,8 @@ object SqlBetweenFilterRenderer extends BetweenFilterRenderer[SqlResult] {
         }
       case HiveEngine =>
         DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
+      case PrestoEngine =>
+        DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
       case _ =>
         throw new IllegalArgumentException(s"Unsupported engine for BetweenFilterRenderer $engine")
     }
@@ -330,6 +332,13 @@ object SqlEqualityFilterRenderer extends EqualityFilterRenderer[SqlResult] {
             DefaultResult(s"""$name = $renderedValue""")
         }
       case HiveEngine =>
+        column.dataType match {
+          case StrType(_, _, _) if column.caseInSensitive =>
+            DefaultResult(s"""lower($name) = lower($renderedValue)""")
+          case _ =>
+            DefaultResult(s"""$name = $renderedValue""")
+        }
+      case PrestoEngine =>
         column.dataType match {
           case StrType(_, _, _) if column.caseInSensitive =>
             DefaultResult(s"""lower($name) = lower($renderedValue)""")
