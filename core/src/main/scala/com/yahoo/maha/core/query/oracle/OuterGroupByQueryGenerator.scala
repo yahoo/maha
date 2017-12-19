@@ -340,8 +340,8 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       // add requested dim and fact columns, this should include constants
       queryContext.requestModel.requestCols foreach {
         columnInfo =>
-          if (!columnInfo.isInstanceOf[ConstantColumnInfo] && queryBuilderContext.containsPreOuterAlias(columnInfo.alias)) {
-            aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.getPreOuterAliasToColumnMap(columnInfo.alias).get)
+          if (!columnInfo.isInstanceOf[ConstantColumnInfo] && queryBuilderContext.containsFactAliasToColumnMap(columnInfo.alias)) {
+            aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.getFactColByAlias(columnInfo.alias))
           } else if (queryContext.factBestCandidate.duplicateAliasMapping.contains(columnInfo.alias)) {
             val sourceAliases = queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)
             val sourceAlias = sourceAliases.find(queryBuilderContext.aliasColumnMap.contains)
@@ -350,6 +350,8 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
             aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.aliasColumnMap(sourceAlias.get))
           } else if (queryBuilderContext.isDimensionCol(columnInfo.alias)) {
             aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.getDimensionColByAlias(columnInfo.alias))
+          } else if (queryBuilderContext.containsPreOuterAlias(columnInfo.alias)) {
+            aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.getPreOuterAliasToColumnMap(columnInfo.alias).get)
           }
 
           val renderedCol = columnInfo match {

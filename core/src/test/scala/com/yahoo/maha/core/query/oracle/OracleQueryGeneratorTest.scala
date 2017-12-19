@@ -2,14 +2,13 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query.oracle
 
+import java.nio.charset.StandardCharsets
+
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.fact.Fact.ViewTable
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request._
-import java.nio.charset.StandardCharsets
-
-import scala.collection.GenSet
 
 
 /**
@@ -3148,7 +3147,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet.diff(GenSet("Spend", "Campaign Name")).isEmpty)
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Campaign Name"))
 
 
     val expected =
@@ -3215,7 +3214,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet.diff(GenSet("Spend", "Advertiser Currency", "Campaign Name")).isEmpty)
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Advertiser Currency", "Campaign Name"))
 
 
     val expected =
@@ -3291,7 +3290,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet.diff(GenSet("Spend", "Advertiser Currency", "Ad Group ID", "Campaign Name")).isEmpty)
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Advertiser Currency", "Ad Group ID", "Campaign Name"))
 
 
     val expected =
@@ -3374,7 +3373,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     println(result)
 
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet.diff(GenSet("Spend","Advertiser Currency", "Average CPC Cents", "Average CPC", "Campaign Name")).isEmpty)
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend","Advertiser Currency", "Average CPC Cents", "Average CPC", "Campaign Name"))
 
 
     val expected =
@@ -3453,7 +3452,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet.diff(GenSet("Spend", "Advertiser ID", "Advertiser Name", "Campaign Status")).isEmpty)
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Advertiser ID", "Advertiser Name", "Campaign Status"))
 
 
     val expected =
@@ -3533,7 +3532,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet.diff(GenSet("Spend", "Campaign ID", "Ad Status", "Campaign Name")).isEmpty)
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Campaign ID", "Ad Status", "Campaign Name"))
 
 
     val expected =
@@ -3607,7 +3606,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet.diff(GenSet("Spend", "Average CPC", "Campaign Name")).isEmpty)
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Average CPC", "Campaign Name"))
 
 
 
@@ -3677,7 +3676,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery]
     val queryCols = query.aliasColumnMap.map(_._1).toSet
 
-    assert(queryCols.diff(GenSet("Spend", "Average Position", "Campaign Name")).isEmpty)
+    assert(queryCols == Set("Spend", "Average Position", "Campaign Name"))
 
     val result = query.asString
     println(result)
@@ -3753,7 +3752,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet.diff(GenSet("Spend", "Average Position", "Average CPC", "Campaign Name")).isEmpty)
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Average Position", "Average CPC", "Campaign Name"))
 
     val expected =
       s"""
@@ -3823,7 +3822,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
-
+    val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Advertiser ID", "N Average CPC", "Campaign Name", "Spend"))
 
     val expected =
       s"""
