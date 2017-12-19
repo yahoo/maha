@@ -217,6 +217,27 @@ trait SharedDimSchema {
         )
       }
     }
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        import PrestoExpression._
+        import com.yahoo.maha.core.BasePrestoExpressionTest._
+        builder.withAlternateEngine("ad_group_presto", "ad_group_hive", PrestoEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType(), annotations = Set(EscapingRequired, CaseInsensitive))
+            , DimCol("device_id", IntType(3, (Map(1 -> "Desktop", 2 -> "Tablet", 3 -> "SmartPhone", -1 -> "UNKNOWN"), "UNKNOWN")))
+            , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+            , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+            , DimCol("status", StrType())
+            , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
+            , PrestoDerDimCol("Ad Group Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
+            , PrestoPartDimCol("load_time", StrType())
+            , PrestoPartDimCol("shard", StrType(10, default="all"))
+          )
+        )
+      }
+    }
       
     builder
       .toPublicDimension("ad_group","ad_group",
@@ -263,6 +284,24 @@ trait SharedDimSchema {
             , HiveDerDimCol("Campaign Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
             , HivePartDimCol("load_time", StrType())
             , HivePartDimCol("shard", StrType(10, default="all"))
+          )
+        )
+      }
+    }
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        import PrestoExpression._
+        import com.yahoo.maha.core.BasePrestoExpressionTest._
+        builder.withAlternateEngine("campaing_presto", "campaing_hive", PrestoEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+            , DimCol("campaign_name", StrType(), annotations = Set(EscapingRequired, CaseInsensitive))
+            , DimCol("status", StrType())
+            , PrestoDerDimCol("Campaign Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
+            , PrestoPartDimCol("load_time", StrType())
+            , PrestoPartDimCol("shard", StrType(10, default="all"))
           )
         )
       }
@@ -328,6 +367,24 @@ trait SharedDimSchema {
             , HiveDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
             , HivePartDimCol("load_time", StrType())
             , HivePartDimCol("shard", StrType(10, default="all"))
+          )
+        )
+      }
+    }
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        import PrestoExpression._
+        import com.yahoo.maha.core.BasePrestoExpressionTest._
+        builder.withAlternateEngine("advertiser_presto", "advertiser_hive", PrestoEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType())
+            , DimCol("status", StrType())
+            , DimCol("managed_by", IntType())
+            , PrestoDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
+            , PrestoPartDimCol("load_time", StrType())
+            , PrestoPartDimCol("shard", StrType(10, default="all"))
           )
         )
       }

@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.dimension
 
+import com.yahoo.maha.core.BaseExpressionTest.PRESTO_TIMESTAMP_TO_FORMATTED_DATE
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.CoreSchema._
@@ -334,6 +335,21 @@ class DimensionTest extends FunSuite with Matchers {
     assert(dim != null)
   }
 
+  test("newDimension with PrestoEngine should succeed with no duplicate columns") {
+    val dim : DimensionBuilder = {
+      ColumnContext.withColumnContext { implicit cc =>
+        Dimension.newDimension("dim1", PrestoEngine, LevelOne, Set(AdvertiserSchema),
+          Set(
+            DimCol("dimcol1", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("dimcol2", IntType())
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+        )
+      }
+    }
+    assert(dim != null)
+  }
+
   test("newDimension should fail if ddl annotation is of a different engine other than the engine of the dim") {
     val thrown = intercept[IllegalArgumentException] {
       val fact : DimensionBuilder = {
@@ -654,6 +670,22 @@ class DimensionTest extends FunSuite with Matchers {
           , DimCol("end_time", StrType(), annotations = Set(EscapingRequired))
           , DimCol("some_type", IntType(), annotations = Set(EscapingRequired))
           , DruidFuncDimCol("druid_derived_col", StrType(), DECODE_DIM("{end_time}", "'ON'", "'ON'", "'OFF'"))
+        )
+      )
+    }
+  }
+
+  test("withAlternateEngine presto should succeed, covering Presto dervied expressions") {
+    val dim1 = dimBuilder
+    import com.yahoo.maha.core._
+    import PrestoExpression._
+    import com.yahoo.maha.core.DruidDerivedFunction.DECODE_DIM
+    ColumnContext.withColumnContext { implicit  cc : ColumnContext =>
+      dim1.withAlternateEngine("dim2", "dim", PrestoEngine,
+        Set(
+          DimCol("id", IntType(), annotations = Set(PrimaryKey))
+          , DimCol("created_date", StrType(), annotations = Set(EscapingRequired))
+          , PrestoDerDimCol("presto_derived_col", StrType(), PRESTO_TIMESTAMP_TO_FORMATTED_DATE("{created_date}", "YYYY-MM-dd"), annotations = Set())
         )
       )
     }
