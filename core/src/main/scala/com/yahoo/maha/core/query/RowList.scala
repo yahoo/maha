@@ -2,9 +2,8 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query
 
-import com.yahoo.maha.parrequest.future.ParFunction
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.fact.PostResultDerivedFactColumn
+import com.yahoo.maha.parrequest.future.ParFunction
 import com.yahoo.maha.report.RowCSVWriter
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -50,6 +49,17 @@ case class Row(aliasMap: Map[String, Int], cols: collection.mutable.ArrayBuffer[
     cols(index)
   }
   def getColumns : Iterable[Any] = cols
+
+  def pretty : String = {
+    val list = new mutable.LinkedHashSet[String]
+    Try {
+      aliasMap.map(e=> e._2 -> e._1).toList.sortBy(_._1).foreach {
+        case (index, alias) =>
+          list.add(s"$alias = ${cols(index)}")
+      }
+    }
+    s"(${list.mkString(", ")})"
+  }
 }
 
 sealed trait RowListLifeCycle {

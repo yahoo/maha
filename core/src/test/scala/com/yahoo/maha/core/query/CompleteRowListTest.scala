@@ -195,6 +195,8 @@ class CompleteRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListT
     assert(row.getValue(4) === 1.11D)
     assert(row.getValue(5) === 1)
 
+    println(row.pretty)
+
     rowList.addRow(row)
     
     assert(!rowList.isEmpty)

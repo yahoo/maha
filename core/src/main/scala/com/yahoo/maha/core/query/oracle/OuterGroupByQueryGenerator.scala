@@ -1,7 +1,7 @@
 package com.yahoo.maha.core.query.oracle
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{DerivedDimensionColumn, DimCol, OracleDerDimCol}
+import com.yahoo.maha.core.dimension.{DimensionColumn, DerivedDimensionColumn, DimCol, OracleDerDimCol}
 import com.yahoo.maha.core.fact.{FactCol, OracleCustomRollup, OracleDerFactCol}
 import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
@@ -256,6 +256,21 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       //render non derived columns/primitive cols first
       primitiveColsSet.foreach {
         case (column, alias) =>
+          val nameOrAlias = column.alias.getOrElse(column.name)
+          column match {
+            case col: DimCol =>
+              if (column.isDerivedColumn) {
+                val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(column.name, Map.empty).asInstanceOf[String]
+                queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
+              } else {
+                if(column.dataType.hasStaticMapping) {
+                  queryBuilder.addGroupBy(renderStaticMappedDimension(column))
+                } else {
+                  queryBuilder.addGroupBy(nameOrAlias)
+                }
+              }
+            case _ => // no action on the all other types of cols
+          }
           renderColumnWithAlias(fact, column, alias, Set.empty, queryBuilder, queryBuilderContext, queryContext)
       }
 
@@ -325,8 +340,8 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       // add requested dim and fact columns, this should include constants
       queryContext.requestModel.requestCols foreach {
         columnInfo =>
-          if (!columnInfo.isInstanceOf[ConstantColumnInfo] && queryBuilderContext.containsPreOuterAlias(columnInfo.alias)) {
-            aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.getPreOuterAliasToColumnMap(columnInfo.alias).get)
+          if (!columnInfo.isInstanceOf[ConstantColumnInfo] && queryBuilderContext.containsFactAliasToColumnMap(columnInfo.alias)) {
+            aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.getFactColByAlias(columnInfo.alias))
           } else if (queryContext.factBestCandidate.duplicateAliasMapping.contains(columnInfo.alias)) {
             val sourceAliases = queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)
             val sourceAlias = sourceAliases.find(queryBuilderContext.aliasColumnMap.contains)
@@ -335,6 +350,8 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
             aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.aliasColumnMap(sourceAlias.get))
           } else if (queryBuilderContext.isDimensionCol(columnInfo.alias)) {
             aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.getDimensionColByAlias(columnInfo.alias))
+          } else if (queryBuilderContext.containsPreOuterAlias(columnInfo.alias)) {
+            aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.getPreOuterAliasToColumnMap(columnInfo.alias).get)
           }
 
           val renderedCol = columnInfo match {
@@ -418,8 +435,16 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       }
       // Render primitive cols
       primitiveInnerAliasColMap.foreach {
-        case (alias, col) if !preOuterRenderedColAlias.contains(alias)=>
-          renderPreOuterFactCol(col.alias.getOrElse(col.name), alias, col)
+        case (alias, col) if !preOuterRenderedColAlias.contains(alias) =>
+          col match {
+            case dimCol:DimensionColumn =>
+            //dim col which are dependent upon the DerFact cols
+              val (renderedCol, renderedAlias) = renderOuterColumn(FactColumnInfo(alias), queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, isFactOnlyQuery, false, queryContext)
+              queryBuilder.addPreOuterColumn(concat(s"$renderedCol $renderedAlias",""))
+              queryBuilder.addOuterGroupByExpressions(renderedCol)
+            case _=>
+              renderPreOuterFactCol(col.alias.getOrElse(col.name), alias, col)
+          }
         case _=> // ignore as it col is already rendered
       }
 

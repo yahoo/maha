@@ -2,14 +2,13 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query.oracle
 
+import java.nio.charset.StandardCharsets
+
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.fact.Fact.ViewTable
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request._
-import java.nio.charset.StandardCharsets
-
-import scala.collection.GenSet
 
 
 /**
@@ -3148,7 +3147,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet.diff(GenSet("Spend", "Campaign Name")).isEmpty)
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Campaign Name"))
 
 
     val expected =
@@ -3215,7 +3214,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet.diff(GenSet("Spend", "Advertiser Currency", "Campaign Name")).isEmpty)
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Advertiser Currency", "Campaign Name"))
 
 
     val expected =
@@ -3291,7 +3290,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet.diff(GenSet("Spend", "Advertiser Currency", "Ad Group ID", "Campaign Name")).isEmpty)
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Advertiser Currency", "Ad Group ID", "Campaign Name"))
 
 
     val expected =
@@ -3374,7 +3373,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     println(result)
 
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet.diff(GenSet("Spend","Advertiser Currency", "Average CPC Cents", "Average CPC", "Campaign Name")).isEmpty)
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend","Advertiser Currency", "Average CPC Cents", "Average CPC", "Campaign Name"))
 
 
     val expected =
@@ -3453,7 +3452,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet.diff(GenSet("Spend", "Advertiser ID", "Advertiser Name", "Campaign Status")).isEmpty)
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Advertiser ID", "Advertiser Name", "Campaign Status"))
 
 
     val expected =
@@ -3533,7 +3532,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet.diff(GenSet("Spend", "Campaign ID", "Ad Status", "Campaign Name")).isEmpty)
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Campaign ID", "Ad Status", "Campaign Name"))
 
 
     val expected =
@@ -3607,7 +3606,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet.diff(GenSet("Spend", "Average CPC", "Campaign Name")).isEmpty)
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Average CPC", "Campaign Name"))
 
 
 
@@ -3677,7 +3676,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery]
     val queryCols = query.aliasColumnMap.map(_._1).toSet
 
-    assert(queryCols.diff(GenSet("Spend", "Average Position", "Campaign Name")).isEmpty)
+    assert(queryCols == Set("Spend", "Average Position", "Campaign Name"))
 
     val result = query.asString
     println(result)
@@ -3753,7 +3752,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet.diff(GenSet("Spend", "Average Position", "Average CPC", "Campaign Name")).isEmpty)
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Average Position", "Average CPC", "Campaign Name"))
 
     val expected =
       s"""
@@ -3778,6 +3777,76 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
          |
+         |
+       """
+        .stripMargin
+    println(expected)
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Successfully generated Outer Group By Query if column is derived from dim column") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name"
+                             },
+                             {
+                               "field": "Advertiser ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "N Average CPC"
+                             },
+                             {
+                              "field": "Spend",
+                              "alias": null,
+                              "value": null
+                              }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request.toOption.get, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(result)
+    val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Advertiser ID", "N Average CPC", "Campaign Name", "Spend"))
+
+    val expected =
+      s"""
+         |
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser ID", CASE WHEN DECODE(stats_source, 1, clicks, 0.0) = 0 THEN 0.0 ELSE DECODE(stats_source, 1, spend, 0.0) / DECODE(stats_source, 1, clicks, 0.0) END AS "N Average CPC", spend AS "Spend"
+         |FROM (SELECT co1.campaign_name "Campaign Name", to_char(co1.advertiser_id) "Advertiser ID", SUM(spend) AS spend, to_char(af0.stats_source) stats_source, SUM(clicks) AS clicks
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   advertiser_id, campaign_id, stats_source, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY advertiser_id, campaign_id, stats_source
+         |
+         |           ) af0
+         |                     LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co1 ON (af0.campaign_id = co1.id)
+         |
+ |          GROUP BY co1.campaign_name, to_char(co1.advertiser_id), to_char(af0.stats_source)
+         |)
+         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
          |
        """
         .stripMargin

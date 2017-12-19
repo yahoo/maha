@@ -134,6 +134,9 @@ trait BaseOracleQueryGeneratorTest
           , FactCol("CTR", DecType(), OracleCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , OracleDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}")
           , OracleDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100")
+          , OracleDerFactCol("N Spend", DecType(), DECODE("{stats_source}", "1", "{spend}", "0.0"))
+          , OracleDerFactCol("N Clicks", DecType(), DECODE("{stats_source}", "1", "{clicks}", "0.0"))
+          , OracleDerFactCol("N Average CPC", DecType(), "{N Spend}" /- "{N Clicks}")
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), OracleCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
         ),
         annotations = Set(
@@ -164,7 +167,10 @@ trait BaseOracleQueryGeneratorTest
           PublicFactCol("max_bid", "Max Bid", Set.empty),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
-          PublicFactCol("CTR", "CTR", InBetweenEquality)
+          PublicFactCol("CTR", "CTR", InBetweenEquality),
+          PublicFactCol("N Spend", "N Spend", InBetweenEquality),
+          PublicFactCol("N Clicks", "N Clicks", InBetweenEquality),
+          PublicFactCol("N Average CPC", "N Average CPC", InBetweenEquality)
         ),
         forcedFilters,
         getMaxDaysWindow, getMaxDaysLookBack
