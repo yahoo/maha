@@ -50,6 +50,8 @@ object GetTotalRowsRequest extends Logging {
       val rowListAttempt = requestPipelineTry.toOption.get.execute(queryContext)
       require(rowListAttempt.isSuccess, "Failed to get valid executor and row list\n" + rowListAttempt)
 
+      var rowCount = 0
+
       rowListAttempt.get._1.foreach(input => {
         require(input.aliasMap.contains(OracleQueryGenerator.ROW_COUNT_ALIAS), "TOTALROWS not defined in alias map, only valid in Oracle Queries")
         val totalrow_col_num = input.aliasMap(OracleQueryGenerator.ROW_COUNT_ALIAS)
@@ -58,10 +60,10 @@ object GetTotalRowsRequest extends Logging {
           logger.info(s"Rows Returned: $current_totalrows")
         }
 
-        current_totalrows
+        rowCount = current_totalrows
       })
 
-      0
+      rowCount
     }
   }
 
