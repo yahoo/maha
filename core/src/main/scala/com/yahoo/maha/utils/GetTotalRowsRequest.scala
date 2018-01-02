@@ -38,20 +38,18 @@ object GetTotalRowsRequest extends Logging {
   def getTotalRows(request: RequestModel, sourcePipeline: QueryPipeline, registry: Registry, queryContext: QueryExecutorContext)(implicit queryGeneratorRegistry: QueryGeneratorRegistry) : Try[Int] = {
     Try {
       val totalRowsRequest: Try[ReportingRequest] = getTotalRowsRequest(request.reportingRequest, sourcePipeline)
-      require(totalRowsRequest.isSuccess, "Failed to get valid totalRowsRequest")
+      require(totalRowsRequest.isSuccess, "Failed to get valid totalRowsRequest\n" + totalRowsRequest)
       val modelTry: Try[RequestModel] = RequestModel.from(totalRowsRequest.get, registry)
-      require(modelTry.isSuccess, "Failed to get valid request model")
+      require(modelTry.isSuccess, "Failed to get valid request model\n" + modelTry)
       val model = modelTry.get
 
       val queryPipelineFactory = new DefaultQueryPipelineFactory()
 
       val requestPipelineTry = queryPipelineFactory.from(model, QueryAttributes.empty)
-      require(requestPipelineTry.isSuccess, "Failed to get the query pipeline")
+      require(requestPipelineTry.isSuccess, "Failed to get the query pipeline\n" + requestPipelineTry)
       val rowListAttempt = requestPipelineTry.toOption.get.execute(queryContext)
-      require(rowListAttempt.isSuccess, "Failed to get valid executor and row list")
+      require(rowListAttempt.isSuccess, "Failed to get valid executor and row list\n" + rowListAttempt)
 
-      //Can fail back in getValue exception.
-      var result = 0
       rowListAttempt.get._1.foreach(input => {
         require(input.aliasMap.contains(OracleQueryGenerator.ROW_COUNT_ALIAS), "TOTALROWS not defined in alias map, only valid in Oracle Queries")
         val totalrow_col_num = input.aliasMap(OracleQueryGenerator.ROW_COUNT_ALIAS)
@@ -60,10 +58,10 @@ object GetTotalRowsRequest extends Logging {
           logger.info(s"Rows Returned: $current_totalrows")
         }
 
-        result = current_totalrows
+        current_totalrows
       })
 
-      result
+      0
     }
   }
 
