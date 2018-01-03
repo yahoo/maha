@@ -13,8 +13,10 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
   def updateRowList(rowList: RowList) : Unit = {
     val row = rowList.newRow
     rowList.columnNames.foreach {
-      col =>
-        row.addValue(col, s"$col-value")
+      col => col match {
+        case "TOTALROWS" => row.addValue("TOTALROWS", 42)
+        case otherwise => row.addValue (otherwise, s"$otherwise-value")
+      }
     }
     rowList.addRow(row)
   }
