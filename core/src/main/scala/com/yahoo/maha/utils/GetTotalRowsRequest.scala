@@ -51,7 +51,10 @@ object GetTotalRowsRequest extends Logging {
       require(rowListAttempt.isSuccess, "Failed to get valid executor and row list\n" + rowListAttempt)
 
       val rowCount = rowListAttempt.get._1.getTotalRowCount
-      logger.info(s"Rows Returned: $rowCount")
+      if(model.isDebugEnabled) {
+        logger.info(s"Rows Returned: $rowCount")
+      }
+      
       rowCount
     }
   }
