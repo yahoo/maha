@@ -186,7 +186,7 @@ trait InMemRowList extends RowList {
     }
 
     if(!listAttempt.isSuccess){
-      logger.warn("listAttempt failed\n" + listAttempt)
+      logger.warn("Failed to get total row count.\n" + listAttempt)
     }
 
     total_count
