@@ -44,7 +44,6 @@ object GetTotalRowsRequest extends Logging {
       val model = modelTry.get
 
       val queryPipelineFactory = new DefaultQueryPipelineFactory()
-
       val requestPipelineTry = queryPipelineFactory.from(model, QueryAttributes.empty)
       require(requestPipelineTry.isSuccess, "Failed to get the query pipeline\n" + requestPipelineTry)
       val rowListAttempt = requestPipelineTry.toOption.get.execute(queryContext)
@@ -54,7 +53,7 @@ object GetTotalRowsRequest extends Logging {
       if(model.isDebugEnabled) {
         logger.info(s"Rows Returned: $rowCount")
       }
-      
+
       rowCount
     }
   }
