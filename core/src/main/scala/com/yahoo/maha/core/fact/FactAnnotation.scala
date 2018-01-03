@@ -26,6 +26,7 @@ case class OracleFactDimDrivenHint(hint: String) extends FactDimDrivenHint with 
 
 case class OraclePartitioningScheme(schemeName:String) extends PartitioningScheme  with FactAnnotationInstance with WithOracleEngine
 case class DruidQueryPriority(priority: Int) extends FactAnnotationInstance with WithDruidEngine
+case object DruidGroupByStrategyV1 extends FactAnnotationInstance with WithDruidEngine
 case object DruidGroupByStrategyV2 extends FactAnnotationInstance with WithDruidEngine
 
 
