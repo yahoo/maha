@@ -69,6 +69,8 @@ sealed trait RowListLifeCycle {
 }
 
 trait RowList extends RowListLifeCycle {
+  val ROW_COUNT_ALIAS: String = "TOTALROWS"
+
   def query: Query
 
   def subQuery: IndexedSeq[Query] = IndexedSeq.empty
@@ -126,6 +128,10 @@ trait RowList extends RowListLifeCycle {
     //do nothing
   }
 
+  def getTotalRowCount : Int = {
+    0
+  }
+
   def postResultRowOperation(row:Row, ephemeralRowOption:Option[Row]) : Unit = {
 
     postResultColumnMap.foreach {
@@ -139,6 +145,8 @@ trait RowList extends RowListLifeCycle {
 }
 
 trait InMemRowList extends RowList {
+
+  private val logger = LoggerFactory.getLogger(classOf[InMemRowList])
 
   protected[this] val list: collection.mutable.ArrayBuffer[Row] = {
     if(query.queryContext.requestModel.maxRows > 0) {
@@ -165,6 +173,25 @@ trait InMemRowList extends RowList {
   def size: Int = list.size
 
   //def javaForeach(fn: ParCallable)
+  override def getTotalRowCount: Int = {
+    var total_count = 0
+    val listAttempt = Try {
+      val firstRow = list.head
+
+      require(firstRow.aliasMap.contains(ROW_COUNT_ALIAS), "TOTALROWS not defined in alias map, only valid in Oracle Queries")
+      val totalrow_col_num = firstRow.aliasMap(ROW_COUNT_ALIAS)
+      val current_totalrows = firstRow.cols(totalrow_col_num).toString.toInt
+
+      total_count = current_totalrows
+    }
+
+    if(!listAttempt.isSuccess){
+      logger.warn("listAttempt failed\n" + listAttempt)
+    }
+
+    total_count
+  }
+
 }
 
 case class CompleteRowList(query: Query) extends InMemRowList
