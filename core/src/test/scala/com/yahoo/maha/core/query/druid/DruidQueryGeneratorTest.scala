@@ -303,7 +303,7 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
   }
 
   private[this] def pubfact_start_time(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
-    factBuilder2(Set.empty)
+    factBuilder2(Set(DruidGroupByStrategyV1))
       .toPublicFact("k_stats_start_time",
         Set(
           PubCol("Day", "Day", InBetweenEquality),
@@ -1709,6 +1709,8 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
 
     assert(result.contains(json_date_filter_case_1) || result.contains(json_date_filter_case_2), result)
     assert(result.contains(json_hour_filter), result)
+
+    assert(result.contains(""""groupByStrategy":"v1""""), result)
 
   }
 

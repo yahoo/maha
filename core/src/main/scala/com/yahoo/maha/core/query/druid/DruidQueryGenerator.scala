@@ -98,6 +98,8 @@ class SyncDruidQueryOptimizer(maxSingleThreadedDimCardinality: Long = DruidQuery
         context.put(QUERY_PRIORITY, priority.asInstanceOf[AnyRef])
       case DruidGroupByStrategyV2 =>
         context.put(GROUP_BY_STRATEGY, "v2")
+      case DruidGroupByStrategyV1 =>
+        context.put(GROUP_BY_STRATEGY, "v1")
       case _ => //do nothing
     }
 
