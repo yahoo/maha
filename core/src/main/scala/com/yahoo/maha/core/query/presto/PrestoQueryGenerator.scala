@@ -86,7 +86,8 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
           val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)
           s"""NVL($finalAlias, '')"""
       }
-      "CONCAT_WS(\",\"," + (renderedConcateColumns).mkString(", ") + ")"
+      //"CONCAT_WS(\",\"," + (renderedConcateColumns).mkString(", ") + ")"
+      "(" + (renderedConcateColumns).mkString(", ") + ")"
     }
 
     // render outercols with column expression
@@ -173,13 +174,18 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
       val renderedCol = column.dataType match {
         case DecType(_, _, Some(default), Some(min), Some(max), _) =>
           val minMaxClause = s"CASE WHEN (($finalAlias >= ${min}) AND ($finalAlias <= ${max})) THEN $finalAlias ELSE ${default} END"
-          s"""CAST(ROUND(COALESCE($minMaxClause, ${default}), 10) as STRING)"""
+          s"""CAST(ROUND(COALESCE($minMaxClause, ${default}), 10) as VARCHAR)"""
         case DecType(_, _, Some(default), _, _, _) =>
-          s"""CAST(ROUND(COALESCE($finalAlias, ${default}), 10) as STRING)"""
+          s"""CAST(ROUND(COALESCE($finalAlias, ${default}), 10) as VARCHAR)"""
         case DecType(_, _, _, _, _, _) =>
-          s"""CAST(ROUND(COALESCE($finalAlias, 0), 10) as STRING)"""
+          s"""CAST(ROUND(COALESCE($finalAlias, 0), 10) as VARCHAR)"""
         case IntType(_,sm,_,_,_) =>
-          s"""CAST(COALESCE($finalAlias, 0) as STRING)"""
+          if (sm.isDefined) {
+            s"""CAST(COALESCE($finalAlias, 'NA') as VARCHAR)"""
+          } else {
+            s"""CAST(COALESCE($finalAlias, 0) as VARCHAR)"""
+          }
+
         case DateType(_) => s"""getFormattedDate($finalAlias)"""
         case StrType(_, sm, df) =>
           val defaultValue = df.getOrElse("NA")
@@ -187,7 +193,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
         case _ => s"""COALESCE($finalAlias, 'NA')"""
       }
       if (column.annotations.contains(EscapingRequired)) {
-        s"""getCsvEscapedString(CAST(COALESCE($finalAlias, '') AS STRING))"""
+        s"""getCsvEscapedString(CAST(COALESCE($finalAlias, '') AS VARCHAR))"""
       } else {
         renderedCol
       }
