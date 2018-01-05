@@ -137,8 +137,9 @@ class PrestoQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
             var count = 1
             while (count <= metaData.getColumnCount) {
               //get alias
-              val alias = metaData.getColumnLabel(count)
+              val alias = metaData.getColumnLabel(count).toLowerCase
               columnIndexMap += alias -> count
+              info(s"metaData index=$count label=$alias")
               if (debugEnabled) {
                 info(s"metaData index=$count label=$alias")
               }
@@ -158,7 +159,7 @@ class PrestoQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
             } {
               val index = columnIndexMap(alias)
               val value = getColumnValue(index, column, resultSet)
-              row.addValue(alias, value)
+              row.addValue(index-1, value)
             }
             rowList.addRow(row)
             rowCount += 1

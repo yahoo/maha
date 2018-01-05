@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.executor.presto
 
+import java.io.{BufferedWriter, FileWriter, OutputStreamWriter}
 import java.sql.{Date, Timestamp}
 import java.util.UUID
 
@@ -17,6 +18,7 @@ import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.MockDruidQueryExecutor
 import com.yahoo.maha.jdbc._
+import com.yahoo.maha.report.RowCSVWriter
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
@@ -518,45 +520,9 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-    
-    val queryPipeline = queryPipelineTry.toOption.get
+    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty).get.build()
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(sqlQuery)
-
-
-    /*val query = s"""SELECT (NVL(mang_day, ''), NVL(campaign_id, ''), NVL(ad_group_id, ''), NVL(ad_id, ''), NVL(mang_ad_title, ''), NVL(mang_ad_status, ''), NVL(mang_ad_date_created, ''), NVL(mang_ad_date_modified, ''), NVL(mang_ad_date_modified_timestamp, ''), NVL(mang_pricing_type, ''), NVL(mang_impressions, ''), NVL(max_bid, ''), NVL(mang_average_cpc, ''), NVL(mang_spend, ''), NVL(mang_ctr_percentage, ''), NVL(mang_ctr, ''))
-                   |FROM(
-                   |SELECT getFormattedDate(stats_date) mang_day, CAST(COALESCE(campaign_id, 0) as VARCHAR) campaign_id, CAST(COALESCE(ad_group_id, 0) as VARCHAR) ad_group_id, CAST(COALESCE(asp0.ad_id, 0) as VARCHAR) ad_id, getCsvEscapedString(CAST(COALESCE(a1.mang_ad_title, '') AS VARCHAR)) mang_ad_title, COALESCE(a1.mang_ad_status, 'NA') mang_ad_status, COALESCE(a1.mang_ad_date_created, 'NA') mang_ad_date_created, COALESCE(a1.mang_ad_date_modified, 'NA') mang_ad_date_modified, COALESCE(a1.mang_ad_date_modified_timestamp, 'NA') mang_ad_date_modified_timestamp, CAST(COALESCE(price_type, 'NA') as VARCHAR) mang_pricing_type, CAST(COALESCE(impressions, 0) as VARCHAR) mang_impressions, CAST(ROUND(COALESCE(max_bid, 0.0), 10) as VARCHAR) max_bid, CAST(ROUND(COALESCE((spend / clicks), 0), 10) as VARCHAR) mang_average_cpc, CAST(ROUND(COALESCE(spend, 0.0), 10) as VARCHAR) mang_spend, CAST(ROUND(COALESCE((CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END * 100), 0), 10) as VARCHAR) mang_ctr_percentage, CAST(ROUND(COALESCE(CTR, 0), 10) as VARCHAR) mang_ctr
-                   |FROM(SELECT stats_date, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, ad_group_id, ad_id, campaign_id, SUM(impressions) impressions, SUM(spend) spend, MAX(max_bid) max_bid, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) CTR, SUM(clicks) clicks
-                   |FROM ad_stats_presto
-                   |WHERE (advertiser_id = 1) AND (price_type IN (1,2)) AND (stats_source = 2) AND (stats_date >= '2017-12-28' AND stats_date <= '2018-01-04')
-                   |GROUP BY stats_date, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, ad_group_id, ad_id, campaign_id
-                   |
- |       )
-                   |asp0
-                   |LEFT OUTER JOIN (
-                   |SELECT title AS mang_ad_title, id a1_id, format_datetime(created_date, 'YYYY-MM-DD') AS mang_ad_date_created, functionIF(status = 'ON', 'ON', 'OFF') AS mang_ad_status, last_updated AS mang_ad_date_modified_timestamp, format_datetime(last_updated, 'YYYY-MM-DD') AS mang_ad_date_modified
-                   |FROM ad_presto
-                   |WHERE ((load_time = '2018' )) AND (advertiser_id = 1)
-                   |)
-                   |a1
-                   |ON
-                   |asp0.ad_id = a1.a1_id
-                   |       )
-                   |
-""".stripMargin
-    //val query = s"""SELECT FORMAT_DATETIME(created_date, 'YYYY-MM-DD') AS mang_ad_date_created FROM ad_presto WHERE ((load_time = '2018' )) AND (advertiser_id = 1)"""
-    //val query = s"""SELECT created_date AS mang_ad_date_created FROM ad_presto WHERE ((load_time = '2018' )) AND (advertiser_id = 1)"""
-    //val query = s"""SELECT DUMMY(created_date) FROM ad_presto"""
-    val stmt = dataSource.get.getConnection.createStatement()
-    val res = stmt.executeQuery(query)
-    while(res.next()) {
-      println(res.getObject(1))
-    }
-    */
-
 
     val result = queryPipeline.execute(queryExecutorContext)
 
@@ -565,7 +531,6 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
         inmem.foreach(println)
         assert(!inmem.isEmpty)
       case any =>
-        any.failed.get.printStackTrace()
         throw new UnsupportedOperationException(s"unexpected row list : $any")
     }
 
