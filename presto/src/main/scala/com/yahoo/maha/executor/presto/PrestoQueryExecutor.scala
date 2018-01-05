@@ -35,10 +35,7 @@ class PrestoQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
   })
   
   private[this] def getBigDecimalSafely(resultSet: ResultSet, index: Int) : BigDecimal = {
-    val result: java.math.BigDecimal = resultSet.getBigDecimal(index)
-    if(result == null)
-      return null
-    result
+    resultSet.getBigDecimal(index)
   }
   
   private[this] def getLongSafely(resultSet: ResultSet, index: Int) : Long = {
@@ -97,8 +94,7 @@ class PrestoQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
         } else {
           val date = resultSet.getDate(index)
           if (date != null) {
-            val dateTime = new DateTime(date)
-            dateTime.toString(PrestoQueryExecutor.DATE_FORMATTER)
+              new DateTime(date).toString(PrestoQueryExecutor.DATE_FORMATTER)
           } else {
             null
           }
@@ -139,7 +135,6 @@ class PrestoQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
               //get alias
               val alias = metaData.getColumnLabel(count).toLowerCase
               columnIndexMap += alias -> count
-              info(s"metaData index=$count label=$alias")
               if (debugEnabled) {
                 info(s"metaData index=$count label=$alias")
               }
@@ -174,6 +169,9 @@ class PrestoQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
           Try(lifecycleListener.failed(query, acquiredQueryAttributes, e))
           throw e
         case _ =>
+          if (debugEnabled) {
+            info(s"Successfully retrieved results from Presto: $rowCount")
+          }
           QueryResult(rowList, lifecycleListener.completed(query, acquiredQueryAttributes), QueryResultStatus.SUCCESS)
       }
     }

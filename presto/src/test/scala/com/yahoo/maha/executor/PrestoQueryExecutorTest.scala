@@ -76,11 +76,11 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
             , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
             , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
             , DimCol("status", StrType())
-            , DimCol("created_date", TimestampType())
+            , DimCol("created_date", DateType())
             , DimCol("last_updated", TimestampType())
             , PrestoDerDimCol("Ad Status", StrType(), PrestoDerivedExpression("functionIF(status = 'ON', 'ON', 'OFF')"))
-            , PrestoDerDimCol("Ad Date Created", StrType(), PrestoDerivedExpression("format_datetime(created_date, 'YYYY-MM-DD')"), annotations = Set.empty)
             , PrestoDerDimCol("Ad Date Modified", StrType(),PrestoDerivedExpression("format_datetime(last_updated, 'YYYY-MM-DD')"), annotations = Set.empty)
+            , PrestoDerDimCol("Ad Date Created", StrType(),PrestoDerivedExpression("format_datetime(last_updated, 'YYYY-MM-DD')"), annotations = Set.empty)
             , PrestoPartDimCol("load_time", StrType(10, default="2018"), partitionLevel = FirstPartitionLevel)
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
@@ -99,6 +99,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           , PubCol("ad_group_id", "Ad Group ID", InEquality)
           , PubCol("Ad Status", "Ad Status", InEquality)
           , PubCol("Ad Date Created", "Ad Date Created", InBetweenEquality)
+          , PubCol("created_date", "Ad Creation Date", InBetweenEquality)
           , PubCol("Ad Date Modified", "Ad Date Modified", InBetweenEquality)
           , PubCol("last_updated", "Ad Date Modified Timestamp", Set.empty)
         ), highCardinalityFilters = Set(NotInFilter("Ad Status", List("DELETED"), isForceFilter = true), InFilter("Ad Status", List("ON"), isForceFilter = true), EqualityFilter("Ad Status", "ON", isForceFilter = true))
@@ -418,6 +419,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     )
 
     insertRows(insertSqlAdGroup, rowsAdGroups, "SELECT * FROM ad_group_presto")
+    val sd = new Date(System.currentTimeMillis())
 
     val insertSqlAds =
       """
@@ -425,14 +427,14 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       """
     val rowsAds: List[Seq[Any]] = List(
-      Seq(1000, "adtitle1000", 1, 10, 100, "ON", staticTimestamp, staticTimestamp2, 2018)
-      , Seq(1001, "adtitle1001", 1, 10, 100, "ON", staticTimestamp, staticTimestamp2, 2018)
-      , Seq(1002, "adtitle1002", 1, 10, 101, "ON", staticTimestamp, staticTimestamp2, 2018)
-      , Seq(1003, "adtitle1003", 1, 10, 101, "ON", staticTimestamp, staticTimestamp2, 2018)
-      , Seq(1004, "adtitle1004", 1, 11, 102, "ON", staticTimestamp, staticTimestamp2, 2018)
-      , Seq(1005, "adtitle1005", 1, 11, 102, "ON", staticTimestamp, staticTimestamp2, 2018)
-      , Seq(1006, "adtitle1006", 1, 11, 103, "ON", staticTimestamp, staticTimestamp2, 2018)
-      , Seq(1007, "adtitle1007", 1, 11, 103, "ON", staticTimestamp, staticTimestamp2, 2018)
+      Seq(1000, "adtitle1000", 1, 10, 100, "ON", sd, staticTimestamp2, 2018)
+      , Seq(1001, "adtitle1001", 1, 10, 100, "ON", sd, staticTimestamp2, 2018)
+      , Seq(1002, "adtitle1002", 1, 10, 101, "ON", sd, staticTimestamp2, 2018)
+      , Seq(1003, "adtitle1003", 1, 10, 101, "ON", sd, staticTimestamp2, 2018)
+      , Seq(1004, "adtitle1004", 1, 11, 102, "ON", sd, staticTimestamp2, 2018)
+      , Seq(1005, "adtitle1005", 1, 11, 102, "ON", sd, staticTimestamp2, 2018)
+      , Seq(1006, "adtitle1006", 1, 11, 103, "ON", sd, staticTimestamp2, 2018)
+      , Seq(1007, "adtitle1007", 1, 11, 103, "ON", sd, staticTimestamp2, 2018)
     )
 
     insertRows(insertSqlAds, rowsAds, "SELECT * FROM ad_presto")
@@ -443,7 +445,6 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
         (stats_date, ad_id, ad_group_id, campaign_id, advertiser_id, stats_source, price_type, impressions, clicks, spend, max_bid)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       """
-    val sd = new Date(System.currentTimeMillis())
     val rowsAdsStats: List[Seq[Any]] = List(
       Seq(sd, 1000, 100, 10, 1, 1, 1, 1002, 2, 2.10, 0.21)
       , Seq(sd, 1000, 100, 10, 1, 1, 2, 1003, 3, 3.10, 0.31)
@@ -515,7 +516,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                           "rowsPerPage":100
                         }"""
 
-    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
     val registry = getDefaultRegistry()
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
@@ -531,7 +532,46 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
         inmem.foreach(println)
         assert(!inmem.isEmpty)
       case any =>
+        any.failed.get.printStackTrace()
         throw new UnsupportedOperationException(s"unexpected row list : $any")
+    }
+
+  }
+
+  test("test invalid result") {
+    val jsonString = s"""{
+                          "cube": "ad_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Ad ID"},
+                            {"field": "Ad Creation Date"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "1"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty).get.build()
+    val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(sqlQuery)
+
+    val result = queryPipeline.execute(queryExecutorContext)
+
+    result match {
+      case scala.util.Success((inmem: InMemRowList, _)) =>
+        fail("Expected to fail")
+      case any =>
+        assert(any.isFailure)
+        any.failed.get.printStackTrace()
     }
 
   }
