@@ -77,20 +77,13 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
     def generateConcatenatedCols(): String = {
       val renderedConcateColumns = queryContext.requestModel.requestCols.map {
         case ConstantColumnInfo(alias, _) =>
-          val finalAlias = getConstantColAlias(alias)
-          //s"""COALESCE($finalAlias, '')"""
-          s"""$finalAlias"""
+          getConstantColAlias(alias)
         case DimColumnInfo(alias) =>
-          val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
-          //s"""COALESCE($finalAlias, '')"""
-          s"""$finalAlias"""
+          queryBuilderContext.getDimensionColNameForAlias(alias)
         case FactColumnInfo(alias)=>
-          val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)
-          //s"""COALESCE($finalAlias, '')"""
-          s"""$finalAlias"""
+          queryBuilderContext.getFactColNameForAlias(alias)
       }
-      //"CONCAT_WS(\",\"," + (renderedConcateColumns).mkString(", ") + ")"
-      (renderedConcateColumns).mkString(", ")
+      renderedConcateColumns.mkString(", ")
     }
 
     // render outercols with column expression
