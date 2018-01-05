@@ -28,7 +28,6 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
 
   private[this] def generateQuery(queryContext: CombinedQueryContext) : Query = {
 
-    //init vars
     val queryBuilderContext = new QueryBuilderContext
     val queryBuilder: QueryBuilder = new QueryBuilder(
       queryContext.requestModel.requestCols.size + 5
@@ -43,8 +42,6 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
     val partitionCols = new mutable.HashSet[Column]()
     val requestedCols = queryContext.requestModel.requestCols
     val columnAliasToColMap = new mutable.HashMap[String, Column]()
-    //val constantColumnsMap = new mutable.HashMap[String, String]()
-
 
     def renderRollupExpression(expression: String, rollupExpression: RollupExpression, renderedColExp: Option[String] = None) : String = {
       rollupExpression match {
@@ -331,7 +328,6 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
         }
       }
 
-
       val hasPartitioningScheme = fact.annotations.contains(PrestoQueryGenerator.ANY_PARTITIONING_SCHEME)
 
       val factFilters = queryContext.factBestCandidate.filters
@@ -508,7 +504,6 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
        """.stripMargin
 
     }
-
 
     val factQueryFragment = generateFactQueryFragment()
 
