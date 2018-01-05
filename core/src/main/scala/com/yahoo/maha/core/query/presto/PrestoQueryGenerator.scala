@@ -103,17 +103,6 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
       }
       queryBuilder.getOuterColumns
 
-      /*
-      val outerColumns = columnAliasToColMap map {
-        case (alias, column) =>
-          renderNormalOuterColumn(column, alias) + " " + alias
-      }
-      val outerConstantCols = constantColumnsMap map {
-        case (renderedAlias, value) =>
-          s"""'$value' $renderedAlias"""
-      }
-      (outerColumns ++ outerConstantCols).mkString(", ")
-      */
     }
 
     def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], factCandidate: FactBestCandidate): String = {
@@ -345,20 +334,6 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
 
       val hasPartitioningScheme = fact.annotations.contains(PrestoQueryGenerator.ANY_PARTITIONING_SCHEME)
 
-      /*
-      val factViewName = fact.fact.name
-      val factColNameToAliasMap = fact.
-      val factViewCols = requestModel.requestCols.factColMapping map {
-        case (name, alias) =>
-          val column = fact.fact.columnsByNameMap(name)
-          val finalAlias : String = queryBuilderContext.getFactColNameForAlias(alias)
-          val renderedCol = renderColumn(column)
-          if( !column.isInstanceOf[FactColumn] ) {
-            queryBuilder.addGroupBy(renderedCol)
-          }
-          renderedCol
-      }*/
-
       val factFilters = queryContext.factBestCandidate.filters
       val factForcedFilters = queryContext.factBestCandidate.publicFact.forcedFilters
       val aliasToNameMapFull = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap
@@ -535,42 +510,6 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
     }
 
 
-    /**
-      * Final Query
-      */
-
-    /*
-factCandidate.dimColMapping.foreach {
-  case (dimCol, alias) =>
-    if (factCandidate.requestCols(dimCol)) {
-      val column = fact.columnsByNameMap(dimCol)
-      val finalAlias = renderColumnAlias(alias)
-      queryBuilderContext.setFactColAlias(alias, finalAlias, column)
-      if (column.isInstanceOf[PrestoPartDimCol]) {
-        partitionCols += column
-      }
-     }
-}
-
-factCandidate.factColMapping.foreach {
-  case (factCol, alias) =>
-    if (factCandidate.requestCols(factCol)) {
-      val column = fact.columnsByNameMap(factCol)
-      val finalAlias = renderColumnAlias(alias)
-      queryBuilderContext.setFactColAlias(alias, finalAlias, column)
-    }
-}
-
-factCandidate.duplicateAliasMapping.foreach {
-  case(alias, aliasesSet) =>
-    val name = factCandidate.publicFact.aliasToNameColumnMap(alias)
-    if(factCandidate.requestCols(name)) {
-      val column = fact.columnsByNameMap(name)
-      val finalAlias = renderColumnAlias(alias)
-      queryBuilderContext.setFactColAlias(alias, finalAlias, column)
-    }
-}
-*/
     val factQueryFragment = generateFactQueryFragment()
 
     dims.foreach {
