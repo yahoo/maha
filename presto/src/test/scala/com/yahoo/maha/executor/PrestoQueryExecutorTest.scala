@@ -573,7 +573,5 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
         assert(any.isFailure)
         any.failed.get.printStackTrace()
     }
-
   }
-
 }
