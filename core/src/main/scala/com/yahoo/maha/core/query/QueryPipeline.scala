@@ -473,7 +473,7 @@ object DefaultQueryPipelineFactory extends Logging {
   def findDimCandidatesMapping(requestModel: RequestModel): Map[String, SortedSet[DimensionBundle]] = {
     val dimCandidates = requestModel.dimensionsCandidates
     val schema = requestModel.schema
-    val engineSet: Set[Engine] = Set(DruidEngine, OracleEngine, HiveEngine)
+    val engineSet: Set[Engine] = Set(DruidEngine, OracleEngine, HiveEngine, PrestoEngine)
 
     val publicDimToConcreteDimMap: Map[(String, Engine), Dimension] = {
       val dimMap = new mutable.HashMap[(String, Engine), Dimension]

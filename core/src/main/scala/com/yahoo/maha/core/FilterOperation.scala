@@ -278,7 +278,7 @@ object SqlInFilterRenderer extends InFilterRenderer[SqlResult] {
           case _ =>
             DefaultResult(s"""$name IN (${renderedValues.mkString(",")})""")
         }
-      case HiveEngine =>
+      case HiveEngine | PrestoEngine =>
         column.dataType match {
           case StrType(_, _, _) if column.caseInSensitive =>
             DefaultResult(s"""lower($name) IN (${renderedValues.map(l => s"lower($l)").mkString(",")})""")

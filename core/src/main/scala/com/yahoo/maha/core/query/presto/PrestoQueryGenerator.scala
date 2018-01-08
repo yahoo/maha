@@ -28,7 +28,6 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
 
   private[this] def generateQuery(queryContext: CombinedQueryContext) : Query = {
 
-    //init vars
     val queryBuilderContext = new QueryBuilderContext
     val queryBuilder: QueryBuilder = new QueryBuilder(
       queryContext.requestModel.requestCols.size + 5
@@ -43,8 +42,6 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
     val partitionCols = new mutable.HashSet[Column]()
     val requestedCols = queryContext.requestModel.requestCols
     val columnAliasToColMap = new mutable.HashMap[String, Column]()
-    //val constantColumnsMap = new mutable.HashMap[String, String]()
-
 
     def renderRollupExpression(expression: String, rollupExpression: RollupExpression, renderedColExp: Option[String] = None) : String = {
       rollupExpression match {
@@ -77,16 +74,13 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
     def generateConcatenatedCols(): String = {
       val renderedConcateColumns = queryContext.requestModel.requestCols.map {
         case ConstantColumnInfo(alias, _) =>
-          val finalAlias = getConstantColAlias(alias)
-          s"""NVL($finalAlias, '')"""
+          getConstantColAlias(alias)
         case DimColumnInfo(alias) =>
-          val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
-          s"""NVL($finalAlias, '')"""
+          queryBuilderContext.getDimensionColNameForAlias(alias)
         case FactColumnInfo(alias)=>
-          val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)
-          s"""NVL($finalAlias, '')"""
+          queryBuilderContext.getFactColNameForAlias(alias)
       }
-      "CONCAT_WS(\",\"," + (renderedConcateColumns).mkString(", ") + ")"
+      renderedConcateColumns.mkString(", ")
     }
 
     // render outercols with column expression
@@ -106,17 +100,6 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
       }
       queryBuilder.getOuterColumns
 
-      /*
-      val outerColumns = columnAliasToColMap map {
-        case (alias, column) =>
-          renderNormalOuterColumn(column, alias) + " " + alias
-      }
-      val outerConstantCols = constantColumnsMap map {
-        case (renderedAlias, value) =>
-          s"""'$value' $renderedAlias"""
-      }
-      (outerColumns ++ outerConstantCols).mkString(", ")
-      */
     }
 
     def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], factCandidate: FactBestCandidate): String = {
@@ -173,13 +156,18 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
       val renderedCol = column.dataType match {
         case DecType(_, _, Some(default), Some(min), Some(max), _) =>
           val minMaxClause = s"CASE WHEN (($finalAlias >= ${min}) AND ($finalAlias <= ${max})) THEN $finalAlias ELSE ${default} END"
-          s"""CAST(ROUND(COALESCE($minMaxClause, ${default}), 10) as STRING)"""
+          s"""CAST(ROUND(COALESCE($minMaxClause, ${default}), 10) as VARCHAR)"""
         case DecType(_, _, Some(default), _, _, _) =>
-          s"""CAST(ROUND(COALESCE($finalAlias, ${default}), 10) as STRING)"""
+          s"""CAST(ROUND(COALESCE($finalAlias, ${default}), 10) as VARCHAR)"""
         case DecType(_, _, _, _, _, _) =>
-          s"""CAST(ROUND(COALESCE($finalAlias, 0), 10) as STRING)"""
+          s"""CAST(ROUND(COALESCE($finalAlias, 0), 10) as VARCHAR)"""
         case IntType(_,sm,_,_,_) =>
-          s"""CAST(COALESCE($finalAlias, 0) as STRING)"""
+          if (sm.isDefined) {
+            s"""CAST(COALESCE($finalAlias, 'NA') as VARCHAR)"""
+          } else {
+            s"""CAST(COALESCE($finalAlias, 0) as VARCHAR)"""
+          }
+
         case DateType(_) => s"""getFormattedDate($finalAlias)"""
         case StrType(_, sm, df) =>
           val defaultValue = df.getOrElse("NA")
@@ -187,7 +175,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
         case _ => s"""COALESCE($finalAlias, 'NA')"""
       }
       if (column.annotations.contains(EscapingRequired)) {
-        s"""getCsvEscapedString(CAST(COALESCE($finalAlias, '') AS STRING))"""
+        s"""getCsvEscapedString(CAST(COALESCE($finalAlias, '') AS VARCHAR))"""
       } else {
         renderedCol
       }
@@ -340,22 +328,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
         }
       }
 
-
       val hasPartitioningScheme = fact.annotations.contains(PrestoQueryGenerator.ANY_PARTITIONING_SCHEME)
-
-      /*
-      val factViewName = fact.fact.name
-      val factColNameToAliasMap = fact.
-      val factViewCols = requestModel.requestCols.factColMapping map {
-        case (name, alias) =>
-          val column = fact.fact.columnsByNameMap(name)
-          val finalAlias : String = queryBuilderContext.getFactColNameForAlias(alias)
-          val renderedCol = renderColumn(column)
-          if( !column.isInstanceOf[FactColumn] ) {
-            queryBuilder.addGroupBy(renderedCol)
-          }
-          renderedCol
-      }*/
 
       val factFilters = queryContext.factBestCandidate.filters
       val factForcedFilters = queryContext.factBestCandidate.publicFact.forcedFilters
@@ -532,43 +505,6 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
 
     }
 
-
-    /**
-      * Final Query
-      */
-
-    /*
-factCandidate.dimColMapping.foreach {
-  case (dimCol, alias) =>
-    if (factCandidate.requestCols(dimCol)) {
-      val column = fact.columnsByNameMap(dimCol)
-      val finalAlias = renderColumnAlias(alias)
-      queryBuilderContext.setFactColAlias(alias, finalAlias, column)
-      if (column.isInstanceOf[PrestoPartDimCol]) {
-        partitionCols += column
-      }
-     }
-}
-
-factCandidate.factColMapping.foreach {
-  case (factCol, alias) =>
-    if (factCandidate.requestCols(factCol)) {
-      val column = fact.columnsByNameMap(factCol)
-      val finalAlias = renderColumnAlias(alias)
-      queryBuilderContext.setFactColAlias(alias, finalAlias, column)
-    }
-}
-
-factCandidate.duplicateAliasMapping.foreach {
-  case(alias, aliasesSet) =>
-    val name = factCandidate.publicFact.aliasToNameColumnMap(alias)
-    if(factCandidate.requestCols(name)) {
-      val column = fact.columnsByNameMap(name)
-      val finalAlias = renderColumnAlias(alias)
-      queryBuilderContext.setFactColAlias(alias, finalAlias, column)
-    }
-}
-*/
     val factQueryFragment = generateFactQueryFragment()
 
     dims.foreach {
