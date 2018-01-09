@@ -1053,7 +1053,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(result.contains(where), result)
   }
 
-  test("Fact Driven Multidimensional query with dim sortBy ") {
+  test("Fact Driven Multidimensional query with dim sortBy") {
     val jsonString = s"""{
                           "cube": "k_stats",
                           "selectFields": [
@@ -1125,6 +1125,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
         |
         |) ORDER BY "Campaign Name" ASC NULLS LAST
         |""".stripMargin
+    println(result)
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 

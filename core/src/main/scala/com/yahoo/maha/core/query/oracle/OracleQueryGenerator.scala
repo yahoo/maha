@@ -148,7 +148,7 @@ b. Dim Driven
 
       val shouldSelfJoinWithSupportingDrivingDim = {
         if (!requestModel.isFactDriven && requestModel.hasFactSortBy == false
-          && requestModel.dimSortByMap.size == 1 && dimBundle.isDrivingDimension && dimBundle.publicDim.partitionColumn.nonEmpty
+          && requestModel.dimSortByMap.size == 1 && dimBundle.isDrivingDimension && dimBundle.publicDim.partitionColumnAliases.nonEmpty
           && dimBundle.hasNonFKOrForcedFilters == false) {
           if (requestModel.dimSortByMap.contains(dimBundle.publicDim.primaryKeyByAlias)) {
             true
@@ -167,7 +167,7 @@ b. Dim Driven
 
         if (shouldSelfJoinWithSupportingDrivingDim && dimPKIndex.isDefined) {
           val innerFields = dimBundle.fields.filter(f => f.equals(dimBundle.publicDim.primaryKeyByAlias) ||
-            dimBundle.publicDim.partitionColumn.contains(f))
+            dimBundle.publicDim.partitionColumnAliases.contains(f))
           // Rewriting dimension candidate for supporting dimension
           val supportingDim = dimBundle.publicDim.forColumns(OracleEngine,requestModel.schema, innerFields)
           require(supportingDim.isDefined,s"Failed to find Supporting Dimension for $innerFields")
@@ -462,6 +462,17 @@ b. Dim Driven
             val renderedDim = renderedDimensions(dimBundle.dim.name)
             hasPagination = hasPagination || renderedDim.hasPagination
             hasTotalRows = hasTotalRows ||  renderedDim.hasTotalRows
+
+            /*
+              Add more join conditions with fact based on the partitioned cols
+             */
+            val moreJoinConditions = new mutable.LinkedHashSet[String]
+            dimBundle.dim.partitionColumns.foreach {
+              partCol =>
+                val pubColOption = dimBundle.publicDim.partitionColumns.filter(_.name.equals(partCol.name)).headOption
+                require(pubColOption.isDefined, s"Failed to find the public column for PartitionCol ${partCol.name}")
+            }
+
             /*
           1. joinType {} dimAlias ON (factAlias.fk = dimAlias.pk)
            */
