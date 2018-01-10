@@ -40,6 +40,14 @@ trait BaseFactTest extends FunSuite with Matchers {
     fact1WithForceFilters(Set.empty)
   }
 
+  def facto : FactBuilder = {
+    factOWithOracle()
+  }
+
+  def factd : FactBuilder = {
+    factDWithDruid()
+  }
+
   //create a new fact builder for each call
   def fact1WithForceFilters(forceFilters: Set[ForceFilter]) : FactBuilder = {
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
@@ -61,6 +69,7 @@ trait BaseFactTest extends FunSuite with Matchers {
           FactCol("impressions", IntType())
           , FactCol("clicks", IntType())
           , FactCol("engagement_count", IntType(0, 0))
+          , ConstFactCol("constant_count", IntType(), "1")
           , HiveDerFactCol("Video Starts", IntType(), SUM(DECODE("{engagement_type}", "5", "{engagement_count}", "0")))
         )
         , forceFilters = forceFilters
@@ -76,8 +85,63 @@ trait BaseFactTest extends FunSuite with Matchers {
             "stats_source",
             "price_type",
             "landing_page_url",
-            "engagement_type"
+            "engagement_type",
+            "constant_count"
           )))
+      )
+    }
+  }
+
+  def factOWithOracle(forceFilters: Set[ForceFilter] = Set.empty) : FactBuilder = {
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      import com.yahoo.maha.core.OracleExpression._
+      import com.yahoo.maha.core.BaseExpressionTest._
+      Fact.newFact(
+        "facto", DailyGrain, OracleEngine, Set(AdvertiserSchema),
+        Set(
+          DimCol("account_id", IntType(), annotations = Set(ForeignKey("cache_advertiser_metadata")))
+          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("cache_campaign_metadata")))
+          , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("cache_campaign_metadata")))
+          , DimCol("ad_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("stats_source", IntType(3))
+          , DimCol("price_type", IntType(3))
+          , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
+          , DimCol("engagement_type", IntType(3))
+        ),
+        Set(
+          FactCol("impressions", IntType())
+          , FactCol("clicks", IntType())
+          , FactCol("engagement_count", IntType(0, 0))
+          , ConstFactCol("constant_count", IntType(), "1")
+          , OracleDerFactCol("Video Starts", IntType(), SUM("{engagement_count}"))
+        )
+        , forceFilters = forceFilters
+      )
+    }
+  }
+
+  def factDWithDruid(forceFilters: Set[ForceFilter] = Set.empty) : FactBuilder = {
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      Fact.newFact(
+        "factd", DailyGrain, DruidEngine, Set(AdvertiserSchema),
+        Set(
+          DimCol("account_id", IntType(), annotations = Set(ForeignKey("cache_advertiser_metadata")))
+          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("cache_campaign_metadata")))
+          , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("cache_campaign_metadata")))
+          , DimCol("ad_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("stats_source", IntType(3))
+          , DimCol("price_type", IntType(3))
+          , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
+          , DimCol("engagement_type", IntType(3))
+        ),
+        Set(
+          FactCol("impressions", IntType())
+          , FactCol("clicks", IntType())
+          , FactCol("engagement_count", IntType(0, 0))
+          , ConstFactCol("constant_count", IntType(), "1")
+          , DruidDerFactCol("Video Starts", IntType(), ("{engagement_count}"))
+        )
+        , forceFilters = forceFilters
       )
     }
   }

@@ -219,6 +219,23 @@ class NewFactTest extends BaseFactTest {
     thrown.getMessage should startWith ("requirement failed: Column doesn't exist: dimcol3")
   }
 
+  test("Validation on FactCol with DruidFilteredListRollup should fail if filter refers to invalid dimension column") {
+
+    val thrown = intercept[IllegalArgumentException] {
+      ColumnContext.withColumnContext { implicit cc =>
+        new FactTable("base_fact", 9999, DailyGrain, DruidEngine, Set(AdvertiserSchema),
+          Set(
+            DimCol("dimcol1", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("dimcol2", IntType())),
+          Set(
+            FactCol("factcol1", StrType()),
+            FactCol("factcol2", StrType(), DruidFilteredListRollup(List(EqualityFilter("dimcol3", "1")), "factcol1", SumRollup))
+          ), None, Set.empty, None, Fact.DEFAULT_COST_MULTIPLIER_MAP,Set.empty, 10,100, None, None, None, None)
+      }
+    }
+    thrown.getMessage should startWith ("requirement failed: Column doesn't exist: dimcol3")
+  }
+
   test("Validation on FactCol with DruidFilteredRollup should fail if it refers to non-existent fact column") {
 
     val thrown = intercept[IllegalArgumentException] {

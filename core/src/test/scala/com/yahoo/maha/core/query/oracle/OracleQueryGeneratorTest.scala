@@ -15,7 +15,6 @@ import com.yahoo.maha.core.request._
  * Created by jians on 11/12/15.
  */
 class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
-
   test("registering Oracle query generation multiple times should fail") {
     intercept[IllegalArgumentException] {
       val dummyQueryGenerator = new QueryGenerator[WithOracleEngine] {
