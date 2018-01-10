@@ -37,7 +37,6 @@ public class LookupService {
 
     private static final Logger LOG = new Logger(LookupService.class);
     private static final int TIMEOUT = 5000;
-    private static final int HISTORICAL_PORT = 4080;
     private CloseableHttpClient httpclient;
     private static final int MAX_CONNECTIONS = 200;
     private final Properties lookupServiceProperties = new Properties();
@@ -46,12 +45,16 @@ public class LookupService {
     private final String[] serviceNodeList;
     private AtomicInteger currentHost = new AtomicInteger(0);
     private static final Random RANDOM = new Random(0);
+    private String serviceScheme = "http";
+    private String servicePort = "4080";
 
     @Inject
     public LookupService(@Named("lookupServiceProperties") final Properties lookupServiceProperties) {
         this.lookupServiceProperties.putAll(lookupServiceProperties);
         try {
 
+            serviceScheme = lookupServiceProperties.getProperty("service_scheme", "http");
+            servicePort = lookupServiceProperties.getProperty("service_port", "4080");
             serviceNodeList = lookupServiceProperties.getProperty("service_nodes").split(",");
 
             currentHost.set(RANDOM.nextInt(serviceNodeList.length));
@@ -105,9 +108,9 @@ public class LookupService {
 
         HttpGet httpGet = new HttpGet();
         httpGet.setURI(new URIBuilder()
-                .setScheme("http")
+                .setScheme(serviceScheme)
                 .setHost(getHost())
-                .setPort(HISTORICAL_PORT)
+                .setPort(Integer.valueOf(servicePort))
                 .setPath("/druid/v1/namespaces/" + lookupData.extractionNamespace.getLookupName())
                 .addParameter("namespaceclass", lookupData.extractionNamespace.getClass().getName())
                 .addParameter("key", lookupData.key)
@@ -122,9 +125,9 @@ public class LookupService {
         try {
             HttpGet httpGet = new HttpGet();
             httpGet.setURI(new URIBuilder()
-                    .setScheme("http")
+                    .setScheme(serviceScheme)
                     .setHost(getHost())
-                    .setPort(HISTORICAL_PORT)
+                    .setPort(Integer.valueOf(servicePort))
                     .setPath(String.format("/druid/v1/namespaces/%s/lastUpdatedTime", lookupData.extractionNamespace.getLookupName()))
                     .addParameter("namespaceclass", lookupData.extractionNamespace.getClass().getName())
                     .build());
