@@ -415,7 +415,7 @@ trait Dimension extends BaseTable {
   def isDerivedDimension: Boolean
   def viewBaseTable: Option[String]
   def maxDaysLookBack: Option[Map[RequestType, Int]]
-  def dataSourceName: Option[String]
+  def underlyingTableName: Option[String]
 }
 
 object Dimension {
@@ -433,9 +433,9 @@ object Dimension {
                     , ddlAnnotation: Option[DDLAnnotation] = None
                     , viewBaseTable : Option[String] = None
                     , isDerivedDimension: Boolean = false
-                    , dataSourceName : Option[String] = None
+                    , underlyingTableName : Option[String] = None
                     ) : DimensionBuilder = {
-    val baseFact = new DimTable(name, 9999, engine, dimLevel, schemas, columns, None, schemaColMap, annotations, ddlAnnotation, isDerivedDimension, viewBaseTable, maxDaysLookBack, dataSourceName)
+    val baseFact = new DimTable(name, 9999, engine, dimLevel, schemas, columns, None, schemaColMap, annotations, ddlAnnotation, isDerivedDimension, viewBaseTable, maxDaysLookBack, underlyingTableName)
     val map = Map(baseFact.name -> baseFact)
     DimensionBuilder(baseFact, map)
   }
@@ -454,7 +454,7 @@ case class DimTable private[dimension](name: String
                                        , isDerivedDimension: Boolean
                                        , viewBaseTable: Option[String]
                                        , maxDaysLookBack: Option[Map[RequestType, Int]]
-                                       , dataSourceName: Option[String]
+                                       , underlyingTableName: Option[String]
                                       ) extends Dimension {
 
   val primaryKey: String = {
@@ -622,7 +622,7 @@ case class DimensionBuilder private[dimension](private val baseDim: Dimension, p
                           , annotations: Set[DimensionAnnotation] = Set.empty
                           , ddlAnnotation: Option[DDLAnnotation] = None
                           , schemas:Set[Schema] = Set.empty
-                          , dataSourceName: Option[String] = None)  : DimensionBuilder = {
+                          , underlyingTableName: Option[String] = None)  : DimensionBuilder = {
     require(!tableMap.contains(name), "should not export with existing table name")
     require(tableMap.nonEmpty, "no tables found")
     require(tableMap.contains(from), s"from table not found : $from")
@@ -648,7 +648,7 @@ case class DimensionBuilder private[dimension](private val baseDim: Dimension, p
       , fromTable.isDerivedDimension
       , fromTable.viewBaseTable
       , maxDaysLookBack
-      , dataSourceName
+      , underlyingTableName
     )
     tableMap += newAltDim.name -> newAltDim
     this
@@ -703,7 +703,7 @@ case class DimensionBuilder private[dimension](private val baseDim: Dimension, p
         , fromTable.isDerivedDimension
         , fromTable.viewBaseTable
         , fromTable.maxDaysLookBack
-        , fromTable.dataSourceName
+        , fromTable.underlyingTableName
       )
       tableMap += newAltDim.name -> newAltDim
     }
