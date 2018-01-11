@@ -37,4 +37,24 @@ class PrestoQueryGeneratorTest extends BasePrestoQueryGeneratorTest {
     assert(result != null && result.length > 0)
   }
 
+  test("Attempt an outer column render.") {
+    val jsonString = scala.io.Source.fromFile(getBaseDir + "presto_query_generator_test_with_outer_dims.json")
+      .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(result)
+    assert(result != null && result.length > 0)
+
+  }
+
 }

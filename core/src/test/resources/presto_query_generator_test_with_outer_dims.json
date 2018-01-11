@@ -1,0 +1,24 @@
+{
+  "cube" : "bid_reco",
+  "selectFields" : [
+    { "field" : "Day" },
+    { "field" : "Advertiser ID" },
+    { "field" : "Campaign ID" },
+    { "field" : "Ad Group ID" },
+    { "field" : "Bid Strategy" },
+    { "field" : "Advertiser Name" },
+    { "field" : "Forecasted Spend" },
+    { "field" : "Bid Modifier" },
+    { "field" : "Impressions" }
+  ],
+  "filterExpressions":[
+    { "field": "Day", "operator": "between", "from": "{from_date}", "to": "{to_date}" },
+    { "field":"Advertiser ID", "operator":"=", "value":"12345" }
+  ],
+  "sortBy": [
+    { "field": "Impressions", "order": "Asc" }
+  ],
+  "paginationStartIndex":0,
+  "rowsPerPage":100
+}
+
