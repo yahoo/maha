@@ -618,7 +618,8 @@ case class DimensionBuilder private[dimension](private val baseDim: Dimension, p
                           , maxDaysLookBack: Option[Map[RequestType, Int]]
                           , annotations: Set[DimensionAnnotation] = Set.empty
                           , ddlAnnotation: Option[DDLAnnotation] = None
-                          , schemas:Set[Schema] = Set.empty)  : DimensionBuilder = {
+                          , schemas:Set[Schema] = Set.empty
+                          , dataSourceName: Option[String] = None)  : DimensionBuilder = {
     require(!tableMap.contains(name), "should not export with existing table name")
     require(tableMap.nonEmpty, "no tables found")
     require(tableMap.contains(from), s"from table not found : $from")
