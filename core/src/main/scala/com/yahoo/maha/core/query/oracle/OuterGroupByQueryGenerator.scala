@@ -322,7 +322,6 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
               //ignore all dim cols cases
             }
         }
-
         def parseCustomRollup(expression: OracleDerivedExpression, col : Column, alias : String): Unit = {
           expression.sourceColumns.foreach {
             case sourceColName =>
@@ -336,7 +335,6 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
               }
           }
         }
-
         /*
            Pick up the root of the NoopRollup dependent column
          */
