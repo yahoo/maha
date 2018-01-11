@@ -415,6 +415,7 @@ trait Dimension extends BaseTable {
   def isDerivedDimension: Boolean
   def viewBaseTable: Option[String]
   def maxDaysLookBack: Option[Map[RequestType, Int]]
+  def dataSourceName: Option[String]
 }
 
 object Dimension {
@@ -432,8 +433,9 @@ object Dimension {
                     , ddlAnnotation: Option[DDLAnnotation] = None
                     , viewBaseTable : Option[String] = None
                     , isDerivedDimension: Boolean = false
+                    , dataSourceName : Option[String] = None
                     ) : DimensionBuilder = {
-    val baseFact = new DimTable(name, 9999, engine, dimLevel, schemas, columns, None, schemaColMap, annotations, ddlAnnotation, isDerivedDimension, viewBaseTable, maxDaysLookBack)
+    val baseFact = new DimTable(name, 9999, engine, dimLevel, schemas, columns, None, schemaColMap, annotations, ddlAnnotation, isDerivedDimension, viewBaseTable, maxDaysLookBack, dataSourceName)
     val map = Map(baseFact.name -> baseFact)
     DimensionBuilder(baseFact, map)
   }
@@ -452,6 +454,7 @@ case class DimTable private[dimension](name: String
                                        , isDerivedDimension: Boolean
                                        , viewBaseTable: Option[String]
                                        , maxDaysLookBack: Option[Map[RequestType, Int]]
+                                       , dataSourceName: Option[String]
                                       ) extends Dimension {
 
   val primaryKey: String = {
@@ -645,6 +648,7 @@ case class DimensionBuilder private[dimension](private val baseDim: Dimension, p
       , fromTable.isDerivedDimension
       , fromTable.viewBaseTable
       , maxDaysLookBack
+      , dataSourceName
     )
     tableMap += newAltDim.name -> newAltDim
     this
@@ -699,6 +703,7 @@ case class DimensionBuilder private[dimension](private val baseDim: Dimension, p
         , fromTable.isDerivedDimension
         , fromTable.viewBaseTable
         , fromTable.maxDaysLookBack
+        , fromTable.dataSourceName
       )
       tableMap += newAltDim.name -> newAltDim
     }
