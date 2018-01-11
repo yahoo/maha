@@ -290,6 +290,11 @@ class NewFactTest extends BaseFactTest {
     }
     thrown.getMessage should startWith ("requirement failed: Column doesn't exist: dimcol3")
   }
+
+  test("set and check requestCol") {
+    val p = toSetRequestCol("dimcol1")
+    assert(p.hashCode.isInstanceOf[Int] && p.equals(null) == false && p.equals(p) == true && p.equals("inexistent") == false, s"All attributes for setRequestCol not as expected:\nhashCode: ${p.hashCode}\tequals null:${p.equals(null)}\tequals itself:${p.equals(p)}\tequals string:${p.equals("s")}")
+  }
 }
 
 

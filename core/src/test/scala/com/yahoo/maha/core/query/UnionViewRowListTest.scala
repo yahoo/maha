@@ -128,5 +128,7 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
     assert(rowList.keys.head == Set("12345", "2016-10-10"), "Head of rowList keys should be the Day value")
     assert(rowList.updatedSize == 1, "rowSet's updated size should be 1")
     assert(!rowList.isUpdatedRowListEmpty, "The updated list should not be empty")
+
+    val temp = QueryPipeline.unionViewPartialRowList(List(query, query, query))
   }
 }

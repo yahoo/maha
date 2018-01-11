@@ -111,6 +111,23 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
   }
 
+  test("dim fact async fact driven query with dim filters should use INNER JOIN and use new partitioning scheme") {
+    val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_w_dim_filters_new_part.json")
+      .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    assert(result.contains("INNER JOIN"), "Query should use INNER JOIN if requested dim filters")
+
+  }
+
   test("dim fact async fact driven query without dim filters should use LEFT OUTER JOIN") {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_wo_dim_filters.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
