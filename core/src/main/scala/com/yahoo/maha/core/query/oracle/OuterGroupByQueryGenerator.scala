@@ -161,6 +161,10 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
      Primitive columns are also rendered in preOuterSelect rendering
       */
     val primitiveColsSet = new mutable.LinkedHashSet[(Column, String)]()
+
+    /*
+     Nooprollup parent cols storage set used by preOuter column renderer
+    */
     val noopRollupColSet = new mutable.LinkedHashSet[(Column, String)]()
 
     def ogbGenerateFactViewColumns(): Unit = {
@@ -228,7 +232,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       }
 
       // Find out all the NoopRollup cols recursively
-      dfsNoopRollupCols(factCols.toSet, List.empty)
+      dfsNoopRollupCols(factCols.toSet, List.empty, noopRollupColSet)
 
       // Find out all primitive cols recursively in derived cols
       for {
@@ -281,57 +285,24 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
        whose dependent source columns is/are NoopRollup column.
        All such parent noop rollup columns has to be rendered at OuterGroupBy layer
        */
-      def dfsNoopRollupCols(cols: Set[(Column, String)], parentList: List[(Column, String)]): Unit = {
+      def dfsNoopRollupCols(cols: Set[(Column, String)], parentList: List[(Column, String)], noopRollupColSet: mutable.LinkedHashSet[(Column, String)]): Unit = {
         cols.foreach {
           case (col, alias)=>
             col match {
               case factCol@FactCol(_, dt, cc, rollup, _, annotations, _) =>
                 rollup match {
                   case OracleCustomRollup(e) =>
-                    e.sourceColumns.foreach {
-                      case sourceColName =>
-                        val colOption = fact.columnsByNameMap.get(sourceColName)
-                        require(colOption.isDefined, s"Failed to find the sourceColumn $sourceColName in fact ${fact.name}")
-                        val sourceCol = colOption.get
-                        val sourceColAlias = sourceCol.alias.getOrElse(sourceCol.name)
-                        if (col.alias.getOrElse(col.name) != sourceColAlias) {
-                          // avoid adding self dependent columns
-                          dfsNoopRollupCols(Set((sourceCol, sourceColAlias)), parentList++List((col, alias)))
-                        }
-                    }
+                   parseCustomRollup(e, col, alias)
                   case NoopRollup =>
-                    /*
-                      pick up the root of the NoopRollup dependent column
-                     */
-                    val parentCol =  parentList.headOption
-                    if(parentCol.isDefined) {
-                      noopRollupColSet.add(parentCol.get._1, parentCol.get._2)
-                    } else {
-                      noopRollupColSet.add(col, alias)
-                    }
+                    pickupLeaf(col, alias)
                   case _=> //ignore all other rollup cases
                 }
               case derCol@OracleDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
                 rollup match {
                   case OracleCustomRollup(e) =>
-                    e.sourceColumns.foreach {
-                      case sourceColName =>
-                        val colOption = fact.columnsByNameMap.get(sourceColName)
-                        require(colOption.isDefined, s"Failed to find the sourceColumn $sourceColName in fact ${fact.name}")
-                        val sourceCol = colOption.get
-                        val sourceColAlias = sourceCol.alias.getOrElse(sourceCol.name)
-                        if (col.alias.getOrElse(col.name) != sourceColAlias) {
-                          // avoid adding self dependent columns
-                          dfsNoopRollupCols(Set((sourceCol, sourceColAlias)), parentList++List((col, alias)))
-                        }
-                    }
+                    parseCustomRollup(e, col, alias)
                   case NoopRollup =>
-                    val parentCol =  parentList.headOption
-                    if(parentCol.isDefined) {
-                      noopRollupColSet.add(parentCol.get._1, parentCol.get._2)
-                    } else {
-                      noopRollupColSet.add(col, alias)
-                    }
+                    pickupLeaf(col, alias)
                   case _=> //ignore all other rollup cases
                 }
                 if (rollup != NoopRollup) {
@@ -343,13 +314,39 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                       val sourceColAlias = sourceCol.alias.getOrElse(sourceCol.name)
                       if (col.alias.getOrElse(col.name) != sourceColAlias) {
                         // avoid adding self dependent columns
-                        dfsNoopRollupCols(Set((sourceCol, sourceColAlias)), parentList++List((col, alias)))
+                        dfsNoopRollupCols(Set((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
                       }
                   }
                 }
               case _=>
               //ignore all dim cols cases
             }
+        }
+
+        def parseCustomRollup(expression: OracleDerivedExpression, col : Column, alias : String): Unit = {
+          expression.sourceColumns.foreach {
+            case sourceColName =>
+              val colOption = fact.columnsByNameMap.get(sourceColName)
+              require(colOption.isDefined, s"Failed to find the sourceColumn $sourceColName in fact ${fact.name}")
+              val sourceCol = colOption.get
+              val sourceColAlias = sourceCol.alias.getOrElse(sourceCol.name)
+              if (col.alias.getOrElse(col.name) != sourceColAlias) {
+                // avoid adding self dependent columns
+                dfsNoopRollupCols(Set((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
+              }
+          }
+        }
+
+        /*
+           Pick up the root of the NoopRollup dependent column
+         */
+        def pickupLeaf(col : Column, alias : String): Unit = {
+          val parentCol =  parentList.reverse.headOption
+          if(parentCol.isDefined) {
+            noopRollupColSet.add(parentCol.get._1, parentCol.get._2)
+          } else {
+            noopRollupColSet.add(col, alias)
+          }
         }
       }
 
