@@ -538,6 +538,61 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
   }
 
+  test("PrestoQueryExecutor: test various invalid query cases") {
+    val jsonString = s"""{
+                          "cube": "ad_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Campaign ID"},
+                            {"field": "Ad Group ID"},
+                            {"field": "Ad ID"},
+                            {"field": "Ad Title"},
+                            {"field": "Ad Status"},
+                            {"field": "Ad Date Created"},
+                            {"field": "Ad Date Modified"},
+                            {"field": "Ad Date Modified Timestamp"},
+                            {"field": "Pricing Type"},
+                            {"field": "Impressions"},
+                            {"field": "Max Bid"},
+                            {"field": "Average CPC"},
+                            {"field": "Spend"},
+                            {"field": "CTR Percentage"},
+                            {"field": "CTR"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "1"},
+                            {"field": "Pricing Type", "operator": "in", "values": ["CPC","CPA"] }
+                          ],
+                          "sortBy": [
+                            {"field": "Ad Title", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty).get.build()
+    val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(sqlQuery)
+
+    val result = queryPipeline.execute(queryExecutorContext)
+
+    result match {
+      case scala.util.Success((inmem: InMemRowList, _)) =>
+        inmem.foreach(println)
+        assert(!inmem.isEmpty)
+      case any =>
+        any.failed.get.printStackTrace()
+        throw new UnsupportedOperationException(s"unexpected row list : $any")
+    }
+
+  }
+
   test("test invalid result") {
     val jsonString = s"""{
                           "cube": "ad_stats",

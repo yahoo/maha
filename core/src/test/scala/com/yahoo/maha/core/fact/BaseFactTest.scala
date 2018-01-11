@@ -274,4 +274,79 @@ trait BaseFactTest extends FunSuite with Matchers {
     }
   }
 
+  def factForViewCampaignAdjustments = {
+    import com.yahoo.maha.core.OracleExpression._
+    ColumnContext.withColumnContext {
+      implicit dc: ColumnContext =>
+        Fact.newFactForView(
+          "campaign_adjustments", DailyGrain, OracleEngine, Set(AdvertiserSchema, ResellerSchema),
+          Set(
+            DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+            , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+            , DimCol("stats_date", DateType("YYYY-MM-DD"))
+            , OracleDerDimCol("Month", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
+            , OracleDerDimCol("Week", DateType(), GET_INTERVAL_DATE("{stats_date}", "w"))
+          ),
+          Set(
+            FactCol("impressions", IntType(3, 1))
+            , FactCol("clicks", IntType(3, 0, 1, 800))
+            , FactCol("spend", DecType(0, "0.0"))
+          )
+        )
+    }
+  }
+
+  def factForViewCampaignStats = {
+      import com.yahoo.maha.core.OracleExpression._
+      ColumnContext.withColumnContext {
+        implicit dc: ColumnContext =>
+          Fact.newFactForView(
+            "campaign_stats", DailyGrain, OracleEngine, Set(AdvertiserSchema, ResellerSchema),
+            Set(
+              DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+              , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+              , DimCol("stats_date", DateType("YYYY-MM-DD"))
+              , OracleDerDimCol("Month", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
+              , OracleDerDimCol("Week", DateType(), GET_INTERVAL_DATE("{stats_date}", "w"))
+            ),
+            Set(
+              FactCol("impressions", IntType(3, 1))
+              , FactCol("clicks", IntType(3, 0, 1, 800))
+              , FactCol("spend", DecType(0, "0.0"))
+            )
+          )
+      }
+  }
+
+  val accountStatsView = factForViewCampaignStats.copyWith("account_stats", Set("campaign_id"), Map.empty)
+  val accountAdjustmentView = factForViewCampaignAdjustments.copyWith("account_adjustment", Set("campaign_id"), Map.empty)
+  val newStatsView = factForViewCampaignAdjustments.copyWith("new_stats", Set("Month"), Map.empty)
+  val newAdjustmentView = factForViewCampaignAdjustments.copyWith("new_adjustment", Set("Month"), Map.empty)
+
+  val unionViewCampaign = UnionView("campaign_adjustment_view", Seq(factForViewCampaignStats, factForViewCampaignAdjustments))
+  val unionViewAccount = UnionView("account_adjustment_view", Seq(accountStatsView, accountAdjustmentView))
+  val newUnionToMerge = UnionView("new_stats_view", Seq(newStatsView, newAdjustmentView))
+
+  val unionViewRollupBuilder = {
+    ColumnContext.withColumnContext {
+      import com.yahoo.maha.core.OracleExpression._
+      implicit dc: ColumnContext =>
+        Fact.newUnionView(unionViewCampaign, DailyGrain, OracleEngine, Set(AdvertiserSchema, ResellerSchema),
+          Set(
+            DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+            , DimCol("stats_date", DateType("YYYY-MM-DD"))
+            , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+            , OracleDerDimCol("Month", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
+            , OracleDerDimCol("Week", DateType(), GET_INTERVAL_DATE("{stats_date}", "w"))
+          ),
+          Set(
+            FactCol("impressions", IntType(3, 1))
+            , FactCol("clicks", IntType(3, 0, 1, 800))
+            , FactCol("spend", DecType(0, "0.0"))
+          )
+        )
+    }
+      .newViewTableRollUp(unionViewAccount, "campaign_adjustment_view", Set("campaign_id"))
+  }
+
 }
