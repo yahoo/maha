@@ -1,8 +1,8 @@
 package com.yahoo.maha.core.query.oracle
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{DimensionColumn, DerivedDimensionColumn, DimCol, OracleDerDimCol}
-import com.yahoo.maha.core.fact.{FactCol, OracleCustomRollup, OracleDerFactCol}
+import com.yahoo.maha.core.dimension.{DerivedDimensionColumn, DimCol, DimensionColumn, OracleDerDimCol}
+import com.yahoo.maha.core.fact.{NoopRollup, FactCol, OracleCustomRollup, OracleDerFactCol}
 import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
 import org.apache.commons.lang3.StringUtils
@@ -160,7 +160,12 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
      Derived columns with dependencies are not rendered in ogbGenerateFactViewColumns
      Primitive columns are also rendered in preOuterSelect rendering
       */
-    val primitiveColsSet = new mutable.LinkedHashSet[(Column, String)]()
+    val primitiveColsSet = new mutable.LinkedHashSet[(String, Column)]()
+
+    /*
+     Nooprollup parent cols storage set used by preOuter column renderer
+    */
+    val noopRollupColSet = new mutable.LinkedHashSet[(String, Column)]()
 
     def ogbGenerateFactViewColumns(): Unit = {
       val factTableAlias = queryBuilderContext.getAliasForTable(queryContext.factBestCandidate.fact.name)
@@ -208,12 +213,12 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
         groupedFactCols <- groupedFactCols.get(false)
       } yield {
           val customRollupSet = new mutable.LinkedHashSet[(Column, String)]
-        groupedFactCols.foreach {
-          case (f:FactCol, colAlias: String) if f.rollupExpression.isInstanceOf[OracleCustomRollup] =>
-            customRollupSet.add((f,colAlias))
-            queryBuilderContext.setFactColAlias(f.alias.getOrElse(f.name), colAlias, f)
-          case _=> // ignore for all the other cases as they are handled
-        }
+          groupedFactCols.foreach {
+            case (f:FactCol, colAlias: String) if f.rollupExpression.isInstanceOf[OracleCustomRollup] =>
+              customRollupSet.add((f,colAlias))
+              queryBuilderContext.setFactColAlias(f.alias.getOrElse(f.name), colAlias, f)
+            case _=> // ignore for all the other cases as they are handled
+          }
           customRollupSet
       }
 
@@ -221,12 +226,13 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
         (customRollupColsOption.get.map(_._2).toSet[String], customRollupColsOption.get.map(_._1).toSet)
       } else (Set.empty[String], Set.empty[Column])
 
-
-
       // Find out all primitive cols recursively in non derived CustomRollup cols
       if(customRollupColSet.nonEmpty) {
-        getPrimitiveCols(customRollupColSet, primitiveColsSet)
+        dfsGetPrimitiveCols(customRollupColSet, primitiveColsSet)
       }
+
+      // Find out all the NoopRollup cols recursively
+      dfsNoopRollupCols(factCols.toSet, List.empty, noopRollupColSet)
 
       // Find out all primitive cols recursively in derived cols
       for {
@@ -234,7 +240,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       } {
         val derivedColsSet = groupedFactDerCols.map(_._1).toSet
 
-        getPrimitiveCols(derivedColsSet, primitiveColsSet)
+        dfsGetPrimitiveCols(derivedColsSet, primitiveColsSet)
         // Set all Derived Fact Cols in context
         groupedFactDerCols.foreach {
           case (column, alias) =>
@@ -248,14 +254,14 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
         groupedFactCols.foreach {
           case(col, alias) =>
             if (!customRollupAliasSet.contains(alias)) {
-              primitiveColsSet.add((col, col.alias.getOrElse(col.name)))
+              primitiveColsSet.add((col.alias.getOrElse(col.name), col))
             }
         }
       }
 
       //render non derived columns/primitive cols first
       primitiveColsSet.foreach {
-        case (column, alias) =>
+        case (alias, column) =>
           val nameOrAlias = column.alias.getOrElse(column.name)
           column match {
             case col: DimCol =>
@@ -274,7 +280,75 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
           renderColumnWithAlias(fact, column, alias, Set.empty, queryBuilder, queryBuilderContext, queryContext)
       }
 
-      def getPrimitiveCols(derivedCols: Set[Column], primitiveColsSet:mutable.LinkedHashSet[(Column, String)]): Unit = {
+      /*
+      method to crawl the NoopRollup fact cols recursively and fill up the parent column
+       whose dependent source columns is/are NoopRollup column.
+       All such parent noop rollup columns has to be rendered at OuterGroupBy layer
+       */
+      def dfsNoopRollupCols(cols: Set[(Column, String)], parentList: List[(Column, String)], noopRollupColSet: mutable.LinkedHashSet[(String, Column)]): Unit = {
+        cols.foreach {
+          case (col, alias)=>
+            col match {
+              case factCol@FactCol(_, dt, cc, rollup, _, annotations, _) =>
+                rollup match {
+                  case OracleCustomRollup(e) =>
+                   parseCustomRollup(e, col, alias)
+                  case NoopRollup =>
+                    pickupLeaf(col, alias)
+                  case _=> //ignore all other rollup cases
+                }
+              case derCol@OracleDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
+                rollup match {
+                  case OracleCustomRollup(e) =>
+                    parseCustomRollup(e, col, alias)
+                  case NoopRollup =>
+                    pickupLeaf(col, alias)
+                  case _=> //ignore all other rollup cases
+                }
+                if (rollup != NoopRollup) {
+                  de.sourceColumns.foreach {
+                    sourceColName =>
+                      val colOption = fact.columnsByNameMap.get(sourceColName)
+                      require(colOption.isDefined, s"Failed to find the sourceColumn $sourceColName in fact ${fact.name}")
+                      val sourceCol = colOption.get
+                      val sourceColAlias = sourceCol.alias.getOrElse(sourceCol.name)
+                      if (col.alias.getOrElse(col.name) != sourceColAlias) {
+                        // avoid adding self dependent columns
+                        dfsNoopRollupCols(Set((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
+                      }
+                  }
+                }
+              case _=>
+              //ignore all dim cols cases
+            }
+        }
+        def parseCustomRollup(expression: OracleDerivedExpression, col : Column, alias : String): Unit = {
+          expression.sourceColumns.foreach {
+            case sourceColName =>
+              val colOption = fact.columnsByNameMap.get(sourceColName)
+              require(colOption.isDefined, s"Failed to find the sourceColumn $sourceColName in fact ${fact.name}")
+              val sourceCol = colOption.get
+              val sourceColAlias = sourceCol.alias.getOrElse(sourceCol.name)
+              if (col.alias.getOrElse(col.name) != sourceColAlias) {
+                // avoid adding self dependent columns
+                dfsNoopRollupCols(Set((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
+              }
+          }
+        }
+        /*
+           Pick up the root of the NoopRollup dependent column
+         */
+        def pickupLeaf(col : Column, alias : String): Unit = {
+          val parentCol =  parentList.reverse.headOption
+          if(parentCol.isDefined) {
+            noopRollupColSet.add(parentCol.get._2, parentCol.get._1)
+          } else {
+            noopRollupColSet.add(alias, col)
+          }
+        }
+      }
+
+      def dfsGetPrimitiveCols(derivedCols: Set[Column], primitiveColsSet:mutable.LinkedHashSet[(String, Column)]): Unit = {
         derivedCols.foreach {
           case derCol:DerivedColumn =>
             derCol.derivedExpression.sourceColumns.foreach {
@@ -283,9 +357,9 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                 require(colOption.isDefined, s"Failed to find the sourceColumn $sourceCol in fact ${fact.name}")
                 val col = colOption.get
                 if(col.isDerivedColumn) {
-                  getPrimitiveCols(Set(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
+                  dfsGetPrimitiveCols(Set(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
                 } else {
-                  primitiveColsSet.add((col, col.alias.getOrElse(col.name)))
+                  primitiveColsSet.add((col.alias.getOrElse(col.name), col))
                 }
             }
           case derCol : FactCol =>
@@ -297,14 +371,14 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                 require(colOption.isDefined, s"Failed to find the sourceColumn $sourceCol in fact ${fact.name}")
                 val col = colOption.get
                 if(col.isDerivedColumn) {
-                  getPrimitiveCols(Set(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
+                  dfsGetPrimitiveCols(Set(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
                 } else {
-                  primitiveColsSet.add((col, col.alias.getOrElse(col.name)))
+                  primitiveColsSet.add((col.alias.getOrElse(col.name), col))
                 }
             }
 
           case e =>
-            throw new IllegalArgumentException(s"Unexpected column case found in the getPrimitiveCols $e")
+            throw new IllegalArgumentException(s"Unexpected column case found in the dfsGetPrimitiveCols $e")
         }
       }
 
@@ -392,7 +466,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
 
     }
 
-    def ogbGeneratePreOuterColumns(primitiveInnerAliasColMap: Map[String, Column]): Unit = {
+    def ogbGeneratePreOuterColumns(primitiveInnerAliasColMap: Map[String, Column], noopRollupColsMap: Map[String, Column]): Unit = {
       // add requested dim and fact columns, this should include constants
       val preOuterRenderedColAlias = new mutable.HashSet[String]()
       queryContext.requestModel.requestCols foreach {
@@ -401,6 +475,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
           columnInfo match {
             case FactColumnInfo(alias) =>
               val colAliasOption = factBest.factColMapping.map(_ swap).get(alias)
+
               // Check if alias is rendered in inner selection or not
               if(colAliasOption.isDefined && queryBuilderContext.containsFactAliasToColumnMap(colAliasOption.get)) {
                 val colInnerAlias = colAliasOption.get
@@ -448,6 +523,13 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
         case _=> // ignore as it col is already rendered
       }
 
+      // Render NoopRollup cols
+      noopRollupColsMap.foreach {
+        case (alias, col) if !preOuterRenderedColAlias.contains(alias) =>
+          renderPreOuterFactCol(col.alias.getOrElse(col.name), alias, col)
+        case _=> // ignore as it col is already rendered
+      }
+
       def renderPreOuterFactCol(colInnerAlias: String, finalAlias: String, innerSelectCol: Column): Unit = {
         val preOuterFactColRendered = innerSelectCol match {
           case FactCol(_, dt, cc, rollup, _, annotations, _) =>
@@ -474,7 +556,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
     ogbGenerateFactViewColumns()
     ogbGenerateWhereAndHavingClause()
     ogbGenerateDimJoin()
-    ogbGeneratePreOuterColumns(primitiveColsSet.map(e=> e._2 -> e._1).toMap)
+    ogbGeneratePreOuterColumns(primitiveColsSet.toMap, noopRollupColSet.toMap)
     ogbGenerateOuterColumns()
     ogbGenerateOrderBy()
     /*

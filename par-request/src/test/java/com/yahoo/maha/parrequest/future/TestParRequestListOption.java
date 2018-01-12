@@ -113,7 +113,7 @@ public class TestParRequestListOption {
     public void testParRequestListOptionResultMapFailureInFirstParCallableAllMustSucceed() {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
         builder.addParCallable(stringSleep1000Failure);
-        for (int i = 1; i < 10; i++) {
+        for (int i = 1; i < 8; i++) {
             builder.addParCallable(stringSleep1000);
         }
         builder.allMustSucceed(true);

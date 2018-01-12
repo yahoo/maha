@@ -124,11 +124,13 @@ trait BaseOracleQueryGeneratorTest
           , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
           , DimCol("start_time", IntType())
           , DimCol("stats_date", DateType("YYYY-MM-DD"))
+          , DimCol("show_flag", IntType())
           , OracleDerDimCol("Month", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
           , OracleDerDimCol("Week", DateType(), GET_INTERVAL_DATE("{stats_date}", "W"))
         ),
         Set(
           FactCol("impressions", IntType(3, 1))
+          , FactCol("s_impressions", IntType(3, 1))
           , FactCol("clicks", IntType(3, 0, 1, 800))
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
@@ -140,6 +142,8 @@ trait BaseOracleQueryGeneratorTest
           , OracleDerFactCol("N Clicks", DecType(), DECODE("{stats_source}", "1", "{clicks}", "0.0"))
           , OracleDerFactCol("N Average CPC", DecType(), "{N Spend}" /- "{N Clicks}")
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), OracleCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
+          , OracleDerFactCol("impression_share", IntType(), DECODE(MAX("{show_flag}"), "1", ROUND(SUM("{impressions}") /- SUM("{s_impressions}"), 4), "NULL"), rollupExpression = NoopRollup)
+          , OracleDerFactCol("impression_share_rounded", IntType(), ROUND("{impression_share}", 5), rollupExpression = NoopRollup)
         ),
         annotations = Set(
           OracleFactStaticHint("PARALLEL_INDEX(cb_ad_stats 4)"),
@@ -172,7 +176,8 @@ trait BaseOracleQueryGeneratorTest
           PublicFactCol("CTR", "CTR", InBetweenEquality),
           PublicFactCol("N Spend", "N Spend", InBetweenEquality),
           PublicFactCol("N Clicks", "N Clicks", InBetweenEquality),
-          PublicFactCol("N Average CPC", "N Average CPC", InBetweenEquality)
+          PublicFactCol("N Average CPC", "N Average CPC", InBetweenEquality),
+          PublicFactCol("impression_share_rounded", "Impression Share", InBetweenEquality)
         ),
         forcedFilters,
         getMaxDaysWindow, getMaxDaysLookBack
