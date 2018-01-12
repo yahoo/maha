@@ -34,15 +34,13 @@ class PrestoQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
     }
   })
   
-  private[this] def getBigDecimalSafely(resultSet: ResultSet, index: Int) : BigDecimal = {
-    resultSet.getBigDecimal(index)
+  def getBigDecimalSafely(resultSet: ResultSet, index: Int) : BigDecimal = {
+    Try[BigDecimal](resultSet.getBigDecimal(index)).getOrElse(0.0)
   }
   
-  private[this] def getLongSafely(resultSet: ResultSet, index: Int) : Long = {
+  def getLongSafely(resultSet: ResultSet, index: Int) : Long = {
     val result = getBigDecimalSafely(resultSet, index)
-    if(result == null)
-      return 0L
-    result.longValue()
+    Try[Long](result.longValue()).getOrElse(0L)
   }
 
   def getColumnValue(index: Int, column: Column, resultSet: ResultSet) : Any = {

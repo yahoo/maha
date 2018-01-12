@@ -307,7 +307,7 @@ object SqlNotInFilterRenderer extends NotInFilterRenderer[SqlResult] {
           case _ =>
             DefaultResult(s"""$name NOT IN (${renderedValues.mkString(",")})""")
         }
-      case HiveEngine =>
+      case HiveEngine | PrestoEngine =>
         DefaultResult(s"""$name NOT IN (${renderedValues.mkString(",")})""")
       case _ =>
         throw new IllegalArgumentException(s"Unsupported engine for NotInFilterRenderer $engine")
