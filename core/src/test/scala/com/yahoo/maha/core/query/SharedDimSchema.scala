@@ -293,7 +293,7 @@ trait SharedDimSchema {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
         import PrestoExpression._
         import com.yahoo.maha.core.BasePrestoExpressionTest._
-        builder.withAlternateEngine("campaing_presto", "campaing_hive", PrestoEngine,
+        builder.withAlternateEngine("campaign_presto", "campaing_hive", PrestoEngine,
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
@@ -302,7 +302,7 @@ trait SharedDimSchema {
             , PrestoDerDimCol("Campaign Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
             , PrestoPartDimCol("load_time", StrType())
             , PrestoPartDimCol("shard", StrType(10, default="all"))
-          )
+          ), None, Set.empty, None, Set.empty, Some("campaign_presto_underlying")
         )
       }
     }
