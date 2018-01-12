@@ -160,12 +160,12 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
      Derived columns with dependencies are not rendered in ogbGenerateFactViewColumns
      Primitive columns are also rendered in preOuterSelect rendering
       */
-    val primitiveColsSet = new mutable.LinkedHashSet[(Column, String)]()
+    val primitiveColsSet = new mutable.LinkedHashSet[(String, Column)]()
 
     /*
      Nooprollup parent cols storage set used by preOuter column renderer
     */
-    val noopRollupColSet = new mutable.LinkedHashSet[(Column, String)]()
+    val noopRollupColSet = new mutable.LinkedHashSet[(String, Column)]()
 
     def ogbGenerateFactViewColumns(): Unit = {
       val factTableAlias = queryBuilderContext.getAliasForTable(queryContext.factBestCandidate.fact.name)
@@ -254,14 +254,14 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
         groupedFactCols.foreach {
           case(col, alias) =>
             if (!customRollupAliasSet.contains(alias)) {
-              primitiveColsSet.add((col, col.alias.getOrElse(col.name)))
+              primitiveColsSet.add((col.alias.getOrElse(col.name), col))
             }
         }
       }
 
       //render non derived columns/primitive cols first
       primitiveColsSet.foreach {
-        case (column, alias) =>
+        case (alias, column) =>
           val nameOrAlias = column.alias.getOrElse(column.name)
           column match {
             case col: DimCol =>
@@ -285,7 +285,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
        whose dependent source columns is/are NoopRollup column.
        All such parent noop rollup columns has to be rendered at OuterGroupBy layer
        */
-      def dfsNoopRollupCols(cols: Set[(Column, String)], parentList: List[(Column, String)], noopRollupColSet: mutable.LinkedHashSet[(Column, String)]): Unit = {
+      def dfsNoopRollupCols(cols: Set[(Column, String)], parentList: List[(Column, String)], noopRollupColSet: mutable.LinkedHashSet[(String, Column)]): Unit = {
         cols.foreach {
           case (col, alias)=>
             col match {
@@ -341,14 +341,14 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
         def pickupLeaf(col : Column, alias : String): Unit = {
           val parentCol =  parentList.reverse.headOption
           if(parentCol.isDefined) {
-            noopRollupColSet.add(parentCol.get._1, parentCol.get._2)
+            noopRollupColSet.add(parentCol.get._2, parentCol.get._1)
           } else {
-            noopRollupColSet.add(col, alias)
+            noopRollupColSet.add(alias, col)
           }
         }
       }
 
-      def dfsGetPrimitiveCols(derivedCols: Set[Column], primitiveColsSet:mutable.LinkedHashSet[(Column, String)]): Unit = {
+      def dfsGetPrimitiveCols(derivedCols: Set[Column], primitiveColsSet:mutable.LinkedHashSet[(String, Column)]): Unit = {
         derivedCols.foreach {
           case derCol:DerivedColumn =>
             derCol.derivedExpression.sourceColumns.foreach {
@@ -359,7 +359,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                 if(col.isDerivedColumn) {
                   dfsGetPrimitiveCols(Set(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
                 } else {
-                  primitiveColsSet.add((col, col.alias.getOrElse(col.name)))
+                  primitiveColsSet.add((col.alias.getOrElse(col.name), col))
                 }
             }
           case derCol : FactCol =>
@@ -373,7 +373,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                 if(col.isDerivedColumn) {
                   dfsGetPrimitiveCols(Set(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
                 } else {
-                  primitiveColsSet.add((col, col.alias.getOrElse(col.name)))
+                  primitiveColsSet.add((col.alias.getOrElse(col.name), col))
                 }
             }
 
@@ -556,7 +556,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
     ogbGenerateFactViewColumns()
     ogbGenerateWhereAndHavingClause()
     ogbGenerateDimJoin()
-    ogbGeneratePreOuterColumns(primitiveColsSet.map(e=> e._2 -> e._1).toMap, noopRollupColSet.map(e=> e._2 -> e._1).toMap)
+    ogbGeneratePreOuterColumns(primitiveColsSet.toMap, noopRollupColSet.toMap)
     ogbGenerateOuterColumns()
     ogbGenerateOrderBy()
     /*
