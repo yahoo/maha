@@ -163,16 +163,15 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
           s"""CAST(ROUND(COALESCE($finalAlias, 0), 10) as VARCHAR)"""
         case IntType(_,sm,_,_,_) =>
           if (sm.isDefined) {
-            s"""CAST(COALESCE($finalAlias, 'NA') as VARCHAR)"""
+            s"""COALESCE(CAST($finalAlias as varchar), 'NA')"""
           } else {
             s"""CAST(COALESCE($finalAlias, 0) as VARCHAR)"""
           }
-
         case DateType(_) => s"""getFormattedDate($finalAlias)"""
         case StrType(_, sm, df) =>
           val defaultValue = df.getOrElse("NA")
-          s"""COALESCE($finalAlias, '$defaultValue')"""
-        case _ => s"""COALESCE($finalAlias, 'NA')"""
+          s"""COALESCE(CAST($finalAlias as VARCHAR), '$defaultValue')"""
+        case _ => s"""COALESCE(cast($finalAlias as VARCHAR), 'NA')"""
       }
       if (column.annotations.contains(EscapingRequired)) {
         s"""getCsvEscapedString(CAST(COALESCE($finalAlias, '') AS VARCHAR))"""
