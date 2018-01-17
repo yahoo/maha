@@ -10,8 +10,12 @@ import com.metamx.emitter.service.ServiceEmitter;
 import com.metamx.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaExtractionCacheManager;
+import io.druid.server.security.Access;
+import io.druid.server.security.AuthConfig;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.Collection;
@@ -35,8 +39,9 @@ public class MahaNamespacesCacheResource
 
     @GET
     @Produces({ MediaType.APPLICATION_JSON, SmileMediaTypes.APPLICATION_JACKSON_SMILE})
-    public Response getNamespaces(){
+    public Response getNamespaces(@Context final HttpServletRequest request){
         try{
+            request.setAttribute(AuthConfig.DRUID_AUTHORIZATION_CHECKED, Access.OK.isAllowed());
             Collection<String> namespaces = mahaExtractionCacheManager.getKnownIDs();
             Map<String, Integer> response = new HashMap<String, Integer>();
             for(String namespace: namespaces) {
@@ -55,8 +60,9 @@ public class MahaNamespacesCacheResource
     public Response getCacheValue(@PathParam("namespace") String namespace,
                                   @QueryParam("namespaceclass") String extractionNamespaceClass,
                                   @QueryParam("key") String key,
-                                  @QueryParam("debug") boolean debug) {
+                                  @QueryParam("debug") boolean debug, @Context final HttpServletRequest request) {
         try {
+            request.setAttribute(AuthConfig.DRUID_AUTHORIZATION_CHECKED, Access.OK.isAllowed());
             byte[] response;
             Optional<ExtractionNamespace> extractionNamespace = mahaExtractionCacheManager.getExtractionNamespace(namespace);
             if(!extractionNamespace.isPresent()) {
@@ -96,9 +102,9 @@ public class MahaNamespacesCacheResource
     @Produces({ MediaType.APPLICATION_JSON, SmileMediaTypes.APPLICATION_JACKSON_SMILE})
     @Path("{namespace}/lastUpdatedTime")
     public Response getLastUpdatedTime(@PathParam("namespace") String namespace,
-                                  @QueryParam("namespaceclass") String extractionNamespaceClass) {
+                                  @QueryParam("namespaceclass") String extractionNamespaceClass, @Context final HttpServletRequest request) {
         try {
-
+            request.setAttribute(AuthConfig.DRUID_AUTHORIZATION_CHECKED, Access.OK.isAllowed());
             log.info("Fetching lastUpdatedTime namespace [%s]", namespace);
 
             Optional<ExtractionNamespace> extractionNamespace = mahaExtractionCacheManager.getExtractionNamespace(namespace);
