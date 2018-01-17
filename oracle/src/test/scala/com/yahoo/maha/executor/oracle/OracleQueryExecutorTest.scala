@@ -222,7 +222,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
           , DimCol("stats_source", IntType(3))
           , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
-          , DimCol("stats_date", DateType("YYYY-MM-DD"))
+          , DimCol("stats_date", DateType())
           , OracleDerDimCol("Year", StrType(), GET_INTERVAL_DATE("{stats_date}", "YR"))
           , OracleDerDimCol("Hour", DateType("YYYY-MM-DD HH24"), "concat({stats_date},' 00')")
         ),

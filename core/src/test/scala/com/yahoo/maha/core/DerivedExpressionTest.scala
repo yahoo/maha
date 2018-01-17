@@ -3,6 +3,7 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.core.BaseExpressionTest.{FACT_HIVE_EXPRESSION, PRESTO_TIMESTAMP_TO_FORMATTED_DATE, TIMESTAMP_TO_FORMATTED_DATE}
+import com.yahoo.maha.core.DruidPostResultFunction.POST_RESULT_DECODE
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import io.druid.jackson.DefaultObjectMapper
@@ -85,6 +86,12 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       val json = om.writeValueAsString(col.derivedExpression.render(col.name)("BLAH", Map("clicks"->"Clicks")))
       println(json)
       json should equal("""{"type":"arithmetic","name":"BLAH","fn":"+","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}],"ordering":null}""")
+
+      val cc = new ColumnContext
+      val cc2 = new ColumnContext
+      val postResultCol = DruidPostResultDerivedFactCol("copyWithTest", IntType(), "{clicks}" ++ "{impressions}", postResultFunction = POST_RESULT_DECODE("{impressions}", "0", "N/A"))
+      val postResultCopy = postResultCol.copyWith(cc, Map("copyWithTest" -> "copyWithResult"), true)
+      val postResultCopyNoReset = postResultCol.copyWith(cc2, Map("copyWithTest" -> "copyWithResult"), false)
     }
   }
 

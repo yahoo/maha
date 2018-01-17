@@ -14,7 +14,35 @@ class WithNewGrainFactTest extends BaseFactTest {
   test("withNewGrain should be successful given a different grain") {
     val fact = fact1
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-      fact.withNewGrain("fact2", "fact1", HourlyGrain)
+      fact.withNewGrain("fact2", "fact1", HourlyGrain, resetAliasIfNotPresent = true)
+    }
+    val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
+    require(bcOption.isDefined, "Failed to get candidates!")
+    assert(bcOption.get.facts.values.exists( f => f.fact.name == "fact2") === true)
+
+  }
+
+  test("withNewGrain should be successful given a different grain on Oracle") {
+    val fact = facto
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      fact.withNewGrain("fact2", "facto", HourlyGrain, resetAliasIfNotPresent = true)
+    }
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      fact.withNewGrain("fact3", "facto", HourlyGrain, resetAliasIfNotPresent = false)
+    }
+    val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
+    require(bcOption.isDefined, "Failed to get candidates!")
+    assert(bcOption.get.facts.values.exists( f => f.fact.name == "fact2") === true)
+
+  }
+
+  test("withNewGrain should be successful given a different grain on Druid") {
+    val fact = factd
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      fact.withNewGrain("fact2", "factd", HourlyGrain, resetAliasIfNotPresent = true)
+    }
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      fact.withNewGrain("fact3", "factd", HourlyGrain, resetAliasIfNotPresent = false)
     }
     val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
     require(bcOption.isDefined, "Failed to get candidates!")

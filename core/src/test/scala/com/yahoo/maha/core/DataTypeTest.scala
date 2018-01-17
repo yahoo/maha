@@ -91,6 +91,7 @@ class DataTypeTest extends FunSuite with Matchers {
       DecType(-1, 0, "0.0", "2.0", "3.0")
     }
     thrown6.getMessage should startWith ("requirement failed: DecType(length, scale, default, min, max) : invalid argument : length > 0")
+
   }
 
   test("DecType should not have negative scale") {
@@ -98,6 +99,11 @@ class DataTypeTest extends FunSuite with Matchers {
       DecType(1, -1)
     }
     thrown.getMessage should startWith ("requirement failed: DecType(length, scale) : invalid argument : scale >= 0")
+
+    val thrown2 = intercept[IllegalArgumentException] {
+      DecType(1, -1, "4.4")
+    }
+    thrown2.getMessage should startWith ("requirement failed: DecType(length, scale, default) : invalid argument : scale >= 0")
   }
 
   test("DecType should not have scale that's larger than the length") {
@@ -117,6 +123,27 @@ class DataTypeTest extends FunSuite with Matchers {
       val date = DateType("XXXX-YY-ZZ")
     }
     thrown.getMessage should startWith ("requirement failed: Invalid format for DateType(XXXX-YY-ZZ)")
+  }
+
+  test("DecType success cases") {
+    val validLength = DecType(1)
+    assert (validLength.length == 1, "Length value for declared DecType should be 1, but found " + validLength.length)
+
+    val validLengthWithScaleAndDefault = DecType(1, 1, "5")
+    assert (validLengthWithScaleAndDefault.default == Some(5), "Default value for declared DecType should be Some(5), but found " + validLengthWithScaleAndDefault.default)
+
+    val validLengthWithScaleDefaultMinMax = DecType(1, 1, "5", "0", "9")
+    assert (validLengthWithScaleDefaultMinMax.min == Some(0), "Min value for declared DecType should be Some(0), but found " + validLengthWithScaleDefaultMinMax.min)
+    assert (validLengthWithScaleDefaultMinMax.max == Some(9), "Max value for declared DecType should be Some(9), but found " + validLengthWithScaleDefaultMinMax.max)
+  }
+
+  test("TimestampType test for valid/invalid format") {
+    val thrown = intercept[IllegalArgumentException] {
+      TimestampType("")
+    }
+    assert(thrown.getMessage.contains("invalid argument : format cannot be null or empty"), "Should throw an empty formatting error")
+    val validTimestamp = TimestampType("MM")
+    println(validTimestamp)
   }
 
 }

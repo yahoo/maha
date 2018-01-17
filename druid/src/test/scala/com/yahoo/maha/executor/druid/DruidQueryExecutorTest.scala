@@ -16,7 +16,7 @@ import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator, SyncDruidQueryOptimizer}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.registry.RegistryBuilder
-import com.yahoo.maha.core.request.{ReportingRequest, SyncRequest}
+import com.yahoo.maha.core.request.{DebugValue, Parameter, ReportingRequest, SyncRequest}
 import com.yahoo.maha.executor.MockOracleQueryExecutor
 import org.http4s.server.blaze.BlazeBuilder
 import org.json4s.JsonAST._
@@ -394,6 +394,47 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val query =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
     val executor = getDruidQueryExecutor("http://localhost:6667/mock/timeseries")
+    val rowList= new CompleteRowList(query)
+    val result=  executor.execute(query,rowList, QueryAttributes.empty)
+    assert(!result.rowList.isEmpty)
+    result.rowList.foreach{
+      row=> println(s"TimeSeries: row : $row")
+    }
+    result.rowList.foreach{row =>
+      val map = row.aliasMap
+      for((key,value)<-map) {
+        assert(row.getValue(key) != null)
+      }
+    }
+  }
+
+  test("success case for TimeSeries query with debugging"){
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "213"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100,
+                          "debug": true
+                        }"""
+    val request: ReportingRequest = getReportingRequestSync(jsonString).copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val query =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
+    val executor = getDruidQueryExecutor("http://localhost:6667/mock/timeseries_debug")
     val rowList= new CompleteRowList(query)
     val result=  executor.execute(query,rowList, QueryAttributes.empty)
     assert(!result.rowList.isEmpty)
