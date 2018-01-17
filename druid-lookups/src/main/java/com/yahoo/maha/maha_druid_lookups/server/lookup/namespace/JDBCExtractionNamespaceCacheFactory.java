@@ -9,7 +9,6 @@ import com.metamx.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.RowMapper;
-import io.druid.common.utils.JodaUtils;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.tweak.HandleCallback;
@@ -47,7 +46,7 @@ public class JDBCExtractionNamespaceCacheFactory
             final Map<String, String> cache
     )
     {
-        final long lastCheck = lastVersion == null ? JodaUtils.MIN_INSTANT : Long.parseLong(lastVersion);
+        final long lastCheck = lastVersion == null ? Long.MIN_VALUE/2 : Long.parseLong(lastVersion);
         if (!extractionNamespace.isCacheEnabled()) {
             return new Callable<String>() {
                 @Override

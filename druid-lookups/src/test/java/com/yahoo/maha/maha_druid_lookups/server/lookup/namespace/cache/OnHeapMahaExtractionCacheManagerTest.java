@@ -18,27 +18,5 @@ import java.util.Properties;
 
 public class OnHeapMahaExtractionCacheManagerTest
 {
-    //@Test
-    public void testInjection()
-    {
-        final Injector injector = Initialization.makeInjectorWithModules(
-                GuiceInjectors.makeStartupInjector(),
-                ImmutableList.of(
-                        new Module()
-                        {
-                            @Override
-                            public void configure(Binder binder)
-                            {
-                                JsonConfigProvider.bindInstance(
-                                        binder, Key.get(DruidNode.class, Self.class), new DruidNode("test-inject", null, null)
-                                );
-                            }
-                        }
-                )
-        );
-        final Properties properties = injector.getInstance(Properties.class);
-        properties.clear();
-        final MahaExtractionCacheManager manager = injector.getInstance(MahaExtractionCacheManager.class);
-        Assert.assertEquals(OnHeapMahaExtractionCacheManager.class, manager.getClass());
-    }
+
 }
