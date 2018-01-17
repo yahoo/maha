@@ -5,7 +5,7 @@ package com.yahoo.maha.core.fact
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
-import com.yahoo.maha.core.dimension.{DimCol, OracleDerDimCol}
+import com.yahoo.maha.core.dimension.DimCol
 import com.yahoo.maha.core.request.{RequestType, SyncRequest}
 
 /**

@@ -3,10 +3,8 @@
 package com.yahoo.maha.core.fact
 
 import com.yahoo.maha.core.CoreSchema._
-import com.yahoo.maha.core.FilterOperation._
-import com.yahoo.maha.core.OracleExpression.SUM
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol, OracleDerDimCol, PubCol}
+import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol, OracleDerDimCol}
 import com.yahoo.maha.core.lookup.LongRangeLookup
 import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
 import org.scalatest.{FunSuite, Matchers}

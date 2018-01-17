@@ -95,7 +95,6 @@ trait BaseFactTest extends FunSuite with Matchers {
   def factOWithOracle(forceFilters: Set[ForceFilter] = Set.empty) : FactBuilder = {
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
       import com.yahoo.maha.core.OracleExpression._
-      import com.yahoo.maha.core.BaseExpressionTest._
       Fact.newFact(
         "facto", DailyGrain, OracleEngine, Set(AdvertiserSchema),
         Set(

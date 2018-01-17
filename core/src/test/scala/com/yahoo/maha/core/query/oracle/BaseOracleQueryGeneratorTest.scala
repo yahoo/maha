@@ -4,7 +4,7 @@ package com.yahoo.maha.core.query.oracle
 
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
-import com.yahoo.maha.core.{fact, _}
+import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
