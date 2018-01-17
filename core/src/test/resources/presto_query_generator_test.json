@@ -4,6 +4,7 @@
     { "field" : "Day" },
     { "field" : "Advertiser ID" },
     { "field" : "Campaign ID" },
+    { "field" : "Campaign Name" },
     { "field" : "Ad Group ID" },
     { "field" : "Keyword ID" },
     { "field" : "Keyword" },

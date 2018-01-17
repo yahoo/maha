@@ -45,7 +45,7 @@ trait BasePrestoQueryGeneratorTest
       Fact.newFact(
         "s_stats_fact", DailyGrain, PrestoEngine, Set(AdvertiserSchema),
         Set(
-          DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+          DimCol("campaign_id", StrType(), annotations = Set(ForeignKey("campaign")))
           , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
           , DimCol("account_id", IntType(), annotations = Set(ForeignKey("advertiser")))
           , DimCol("keyword_id", IntType())
