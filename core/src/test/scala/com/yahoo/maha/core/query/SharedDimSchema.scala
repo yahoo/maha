@@ -300,8 +300,8 @@ trait SharedDimSchema {
             , DimCol("campaign_name", StrType(), annotations = Set(EscapingRequired, CaseInsensitive))
             , DimCol("status", StrType())
             , PrestoDerDimCol("Campaign Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
-            , PrestoPartDimCol("load_time", StrType())
-            , PrestoPartDimCol("shard", StrType(10, default="all"))
+            , PrestoPartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
+            , PrestoPartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
           ), None, Set.empty, None, Set.empty, Some("campaign_presto_underlying")
         )
       }

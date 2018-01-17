@@ -50,7 +50,7 @@ class PrestoQueryGeneratorTest extends BasePrestoQueryGeneratorTest {
         LEFT OUTER JOIN (
         SELECT campaign_name AS mang_campaign_name, id c1_id
         FROM campaign_presto_underlying
-        WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (advertiser_id = 12345)
+        WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
         )
         c1
         ON
