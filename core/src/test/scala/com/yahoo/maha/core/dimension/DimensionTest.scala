@@ -383,6 +383,7 @@ class DimensionTest extends FunSuite with Matchers {
             , true
             , None
             , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+            , None
           )
         }
       }
@@ -406,6 +407,7 @@ class DimensionTest extends FunSuite with Matchers {
             , true
             , None
             , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+            , None
           )
         }
       }

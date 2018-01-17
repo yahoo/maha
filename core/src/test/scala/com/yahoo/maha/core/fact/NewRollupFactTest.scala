@@ -216,6 +216,48 @@ class NewRollupFactTest extends BaseFactTest {
     require(bcOption.isDefined, "Failed to get candidates!")
     assert(bcOption.get.facts.keys.exists(_ == "fact2") === false, "should discard best candidate of new rollup based on the availableOnwardsDate")
   }
+
+  test("newViewTableRollUp: Creating a rollup with invalid from table should fail.") {
+    val thrown = intercept[IllegalArgumentException] {
+      unionViewRollupBuilder.newViewTableRollUp(unionViewCampaign, "this_does_not_exist", Set.empty)
+    }
+    assert(thrown.getMessage.contains("from table not valid this_does_not_exist"), "Invalid from-table should not be accepted")
+  }
+
+  test("newViewTableRollUp: Can't duplicate an existing view.") {
+    val thrown = intercept[IllegalArgumentException] {
+      unionViewRollupBuilder.newViewTableRollUp(unionViewCampaign, "campaign_adjustment_view", Set.empty)
+    }
+    assert(thrown.getMessage.contains("table campaign_adjustment_view already exists"), "Duplication of a table should not be possible.")
+  }
+
+  test("newViewTableRollUp: New rollup must have discardings and should fail otherwise.") {
+    val thrown = intercept[IllegalArgumentException] {
+      unionViewRollupBuilder.newViewTableRollUp(newUnionToMerge, "account_adjustment_view", Set.empty)
+    }
+    assert(thrown.getMessage.contains("discardings should never be empty in rollup"), "Something must be discarded for a rollup.")
+  }
+
+  test("newViewTableRollUp: Fail to discard required fact with foreign keys.") {
+    val thrown = intercept[IllegalArgumentException] {
+      unionViewRollupBuilder.newViewTableRollUp(newUnionToMerge, "account_adjustment_view", Set("advertiser_id"))
+    }
+    assert(thrown.getMessage.contains("Fact has no foreign keys after discarding Set(advertiser_id)"), "Discarding foreign key should fail.")
+  }
+
+  test("newViewTableRollUp: Fail to discard required fact.") {
+    val thrown = intercept[IllegalArgumentException] {
+      unionViewRollupBuilder.newViewTableRollUp(newUnionToMerge, "account_adjustment_view", Set("impressions"))
+    }
+    assert(thrown.getMessage.contains("Cannot discard fact column impressions with newRollup"), "Discarding necessary fact should fail.")
+  }
+
+  test("newViewTableRollUp: Fail to discard fake dim.") {
+    val thrown = intercept[IllegalArgumentException] {
+      unionViewRollupBuilder.newViewTableRollUp(newUnionToMerge, "account_adjustment_view", Set("fake_dim"))
+    }
+    assert(thrown.getMessage.contains("dim column fake_dim does not exist"), "Inexistent dim should throw an error.")
+  }
 }
 
 

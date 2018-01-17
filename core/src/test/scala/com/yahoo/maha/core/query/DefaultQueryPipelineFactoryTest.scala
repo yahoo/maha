@@ -243,7 +243,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     DruidQueryGenerator.register(queryGeneratorRegistry)
     HiveQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
   }
-  
+
   test("successfully generate sync single engine query") {
 
     val request: ReportingRequest = ReportingRequest.forceOracle(getReportingRequestSync(requestWithMetricSort))

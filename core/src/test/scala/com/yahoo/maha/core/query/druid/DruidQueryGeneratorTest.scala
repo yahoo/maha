@@ -32,6 +32,7 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
     registryBuilder.register(pubfact3(forcedFilters))
     registryBuilder.register(pubfact4(forcedFilters))
     registryBuilder.register(pubfact_start_time(forcedFilters))
+    registryBuilder.register(pubfact_minute_grain(forcedFilters))
   }
 
   private[this] def factBuilder(annotations: Set[FactAnnotation]): FactBuilder = {
@@ -52,6 +53,7 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
           , DruidFuncDimCol("Derived Pricing Type", IntType(3), DECODE_DIM("{price_type}", "7", "6"))
           , DimCol("start_time", DateType("yyyyMMddHH"))
           , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
+          , DimCol("Landing URL Translation", StrType(100, (Map("Valid"->"Something"), "Empty")), alias = Option("landing_page_url"))
           , DimCol("stats_date", DateType("yyyyMMdd"), Some("statsDate"))
           , DimCol("engagement_type", StrType(3))
           , DruidPostResultFuncDimCol("Month", DateType(), postResultFunction = START_OF_THE_MONTH("{stats_date}"))
@@ -77,6 +79,10 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
           , DruidDerFactCol("CTR", DecType(), "{clicks}" /- "{impressions}")
           , DruidDerFactCol("derived_avg_pos", DecType(3, "0.0", "0.1", "500"), "{avg_pos_times_impressions}" /- "{impressions}")
           , FactCol("Reblogs", IntType(), DruidFilteredRollup(EqualityFilter("engagement_type", "1"), "engagement_count", SumRollup))
+          , FactCol("Click Rate", DecType(), rollupExpression = DruidFilteredListRollup(List(EqualityFilter("engagement_type", "1")), "clicks", SumRollup))
+          , FactCol("Click Rate Success Case", DecType(10), rollupExpression = DruidFilteredListRollup(List(
+            EqualityFilter("engagement_type", "1"),
+            EqualityFilter("campaign_id", "1")), "clicks", SumRollup))
           , DruidDerFactCol("Reblog Rate", DecType(), "{Reblogs}" /- "{impressions}" * "100")
           , DruidPostResultDerivedFactCol("impression_share", StrType(), "{impressions}" /- "{sov_impressions}", postResultFunction = POST_RESULT_DECODE("{show_sov_flag}", "0", "N/A"))
         ),
@@ -110,7 +116,56 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
           , DimCol("show_sov_flag", IntType())
           , DruidFuncDimCol("Day", DateType("YYYYMMdd"), DATETIME_FORMATTER("{start_time}", 0, 8))
           , DruidFuncDimCol("Hour", DateType("HH"), DATETIME_FORMATTER("{start_time}", 8, 2))
+        ),
+        Set(
+          FactCol("impressions", IntType(3, 1))
+          , FactCol("sov_impressions", IntType())
+          , FactCol("clicks", IntType(3, 0, 1, 800))
+          , FactCol("spend", DecType(0, "0.0"))
+          , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
+          , FactCol("min_bid", DecType(0, "0.0"), MinRollup)
+          , FactCol("avg_bid", DecType(0, "0.0"), AverageRollup)
+          , FactCol("avg_pos_times_impressions", DecType(0, "0.0"), MaxRollup)
+          , FactCol("engagement_count", IntType(0,0))
+          , DruidDerFactCol("Average CPC", DecType(), "{spend}" / "{clicks}")
+          , DruidDerFactCol("CTR", DecType(), "{clicks}" /- "{impressions}")
+          , DruidDerFactCol("derived_avg_pos", DecType(3, "0.0", "0.1", "500"), "{avg_pos_times_impressions}" /- "{impressions}")
+          , FactCol("Reblogs", IntType(), DruidFilteredRollup(EqualityFilter("engagement_type", "1"), "engagement_count", SumRollup))
+          , DruidDerFactCol("Reblog Rate", DecType(), "{Reblogs}" /- "{impressions}" * "100")
+          , DruidPostResultDerivedFactCol("impression_share", StrType(), "{impressions}" /- "{sov_impressions}", postResultFunction = POST_RESULT_DECODE("{show_sov_flag}", "0", "N/A"))
+        ),
+        annotations = annotations
+      )
+    }
+  }
 
+  private[this] def factBuilder3(annotations: Set[FactAnnotation]): FactBuilder = {
+    import DruidExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      Fact.newFact(
+        "fact1", MinuteGrain, DruidEngine, Set(AdvertiserSchema),
+        Set(
+          DimCol("id", IntType(), annotations = Set(ForeignKey("keyword")))
+          , DimCol("ad_id", IntType(), annotations = Set(ForeignKey("ad")))
+          , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
+          , DimCol("campaign_id", IntType(), alias = Option("campaign_id_alias"), annotations = Set(ForeignKey("campaign")))
+          , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("external_id", IntType(), annotations = Set(ForeignKey("site_externals")))
+          , DimCol("stats_source", IntType(3))
+          , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
+          , DruidFuncDimCol("Derived Pricing Type", IntType(3), DECODE_DIM("{price_type}", "7", "6"))
+          , DimCol("start_time", DateType("yyyyMMddHH"))
+          , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
+          , DimCol("stats_date", DateType("yyyyMMdd"), Some("statsDate"))
+          , DimCol("engagement_type", StrType(3))
+          , DruidFuncDimCol("Week", DateType(), GET_INTERVAL_DATE("{stats_date}", "w"))
+          , DruidFuncDimCol("Day of Week", DateType(), DAY_OF_WEEK("{stats_date}"))
+          , DruidFuncDimCol("My Date", DateType(), DRUID_TIME_FORMAT("YYYY-MM-dd"))
+          , DimCol("show_sov_flag", IntType())
+          , DruidFuncDimCol("Day", DateType("YYYYMMdd"), DATETIME_FORMATTER("{start_time}", 0, 8))
+          , DruidFuncDimCol("Hour", DateType("HH"), DATETIME_FORMATTER("{start_time}", 8, 2))
+          //, DruidFuncDimCol("Minute", DateType("mm"), DATETIME_FORMATTER("{start_time}", 8, 2))
+          , DruidFuncDimCol("Minute", DateType("mm"), DRUID_TIME_FORMAT("mm"))
         ),
         Set(
           FactCol("impressions", IntType(3, 1))
@@ -151,6 +206,7 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
           PubCol("price_type", "Pricing Type", In),
           PubCol("Derived Pricing Type", "Derived Pricing Type", InEquality),
           PubCol("landing_page_url", "Destination URL", Set.empty),
+          PubCol("Landing URL Translation", "Landing URL Translation", Set.empty),
           PubCol("Week", "Week", InBetweenEquality),
           PubCol("Month", "Month", InBetweenEquality),
           PubCol("My Date", "My Date", Equality),
@@ -170,6 +226,8 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("Reblogs", "Reblogs", InBetweenEquality),
           PublicFactCol("Reblog Rate", "Reblog Rate", InBetweenEquality),
+          PublicFactCol("Click Rate", "Click Rate", InBetweenEquality),
+          PublicFactCol("Click Rate Success Case", "Click Rate Success Case", InBetweenEquality),
           PublicFactCol("CTR", "CTR", InBetweenEquality)
         ),
         //Set(EqualityFilter("Source", "2")),
@@ -209,6 +267,8 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("Reblogs", "Reblogs", InBetweenEquality),
           PublicFactCol("Reblog Rate", "Reblog Rate", InBetweenEquality),
+          PublicFactCol("Click Rate", "Click Rate", InBetweenEquality),
+          PublicFactCol("Click Rate Success Case", "Click Rate Success Case", InBetweenEquality),
           PublicFactCol("CTR", "CTR", InBetweenEquality)
         ),
         //Set(EqualityFilter("Source", "2")),
@@ -246,6 +306,8 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("Reblogs", "Reblogs", InBetweenEquality),
           PublicFactCol("Reblog Rate", "Reblog Rate", InBetweenEquality),
+          PublicFactCol("Click Rate", "Click Rate", InBetweenEquality),
+          PublicFactCol("Click Rate Success Case", "Click Rate Success Case", InBetweenEquality),
           PublicFactCol("CTR", "CTR", InBetweenEquality)
         ),
         //Set(EqualityFilter("Source", "2")),
@@ -271,6 +333,8 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
           PublicFactCol("Reblogs", "Reblogs", InBetweenEquality),
           PublicFactCol("Reblog Rate", "Reblog Rate", InBetweenEquality),
+          PublicFactCol("Click Rate", "Click Rate", InBetweenEquality),
+          PublicFactCol("Click Rate Success Case", "Click Rate Success Case", InBetweenEquality),
           PublicFactCol("CTR", "CTR", InBetweenEquality)
         ),
         Set(),
@@ -295,6 +359,8 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
           PublicFactCol("Reblogs", "Reblogs", InBetweenEquality),
           PublicFactCol("Reblog Rate", "Reblog Rate", InBetweenEquality),
+          PublicFactCol("Click Rate", "Click Rate", InBetweenEquality),
+          PublicFactCol("Click Rate Success Case", "Click Rate Success Case", InBetweenEquality),
           PublicFactCol("CTR", "CTR", InBetweenEquality)
         ),
         Set(),
@@ -321,6 +387,47 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
           PubCol("Week", "Week", InBetweenEquality),
           PubCol("My Date", "My Date", Equality),
           PubCol("Day of Week", "Day of Week", Equality)
+          //PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality)
+        ),
+        Set(
+          PublicFactCol("impressions", "Impressions", InBetweenEquality),
+          PublicFactCol("clicks", "Clicks", InBetweenEquality),
+          PublicFactCol("spend", "Spend", Set.empty),
+          PublicFactCol("derived_avg_pos", "Average Position", Set.empty),
+          PublicFactCol("max_bid", "Max Bid", Set.empty),
+          PublicFactCol("min_bid", "Min Bid", Set.empty),
+          PublicFactCol("avg_bid", "Average Bid", Set.empty),
+          PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
+          PublicFactCol("Reblogs", "Reblogs", InBetweenEquality),
+          PublicFactCol("Reblog Rate", "Reblog Rate", InBetweenEquality),
+          PublicFactCol("CTR", "CTR", InBetweenEquality)
+        ),
+        //Set(EqualityFilter("Source", "2")),
+        Set(),
+        getMaxDaysWindow, getMaxDaysLookBack, renderLocalTimeFilter = true
+      )
+  }
+
+  private[this] def pubfact_minute_grain(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    factBuilder3(Set(DruidGroupByStrategyV1))
+      .toPublicFact("k_stats_minute_grain",
+        Set(
+          PubCol("Day", "Day", InBetweenEquality),
+          PubCol("Hour", "Hour", InBetweenEquality),
+          PubCol("engagement_type", "engagement_type", Equality),
+          PubCol("id", "Keyword ID", InEquality),
+          PubCol("ad_id", "Ad ID", InEquality),
+          PubCol("ad_group_id", "Ad Group ID", InEquality),
+          PubCol("campaign_id", "Campaign ID", InEquality),
+          PubCol("advertiser_id", "Advertiser ID", InEquality),
+          PubCol("stats_source", "Source", Equality),
+          PubCol("price_type", "Pricing Type", In),
+          PubCol("Derived Pricing Type", "Derived Pricing Type", InEquality),
+          PubCol("landing_page_url", "Destination URL", Set.empty),
+          PubCol("Week", "Week", InBetweenEquality),
+          PubCol("My Date", "My Date", Equality),
+          PubCol("Day of Week", "Day of Week", Equality),
+          PubCol("Minute", "Minute", InBetweenEquality)
           //PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality)
         ),
         Set(
@@ -420,6 +527,76 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
     val json = """limit":1020"""
 
     assert(result.contains(json), result)
+  }
+
+  test("DruidQueryGenerator: getAggregatorFactory should succeed on DruidFilteredListRollup with filter list size of 2") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Pricing Type"},
+                            {"field": "Derived Pricing Type"},
+                            {"field": "Max Bid"},
+                            {"field": "Min Bid"},
+                            {"field": "Average Bid"},
+                            {"field": "Average Position"},
+                            {"field": "Impressions"},
+                            {"field": "Click Rate Success Case"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Asc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":0
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val json = """limit":1020"""
+
+    assert(result.contains(json), result)
+  }
+
+  test("DruidQueryGenerator: getAggregatorFactory should fail on DruidFilteredListRollup with only 1 list element") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Pricing Type"},
+                            {"field": "Derived Pricing Type"},
+                            {"field": "Max Bid"},
+                            {"field": "Min Bid"},
+                            {"field": "Average Bid"},
+                            {"field": "Average Position"},
+                            {"field": "Impressions"},
+                            {"field": "Click Rate"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Asc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":0
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(!queryPipelineTry.isSuccess && queryPipelineTry.errorMessage("").contains("ToUse FilteredListAggregator filterList must have 2 or more filters"), "Query pipeline should have failed, but didn't" + queryPipelineTry.errorMessage(""))
   }
 
   test("limit should be set to defaultMaxRowsAsync when request is Async") {
@@ -543,6 +720,38 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
 
     val json = """\{"queryType":"topN","dataSource":\{"type":"table","name":"fact1"\},"dimension":\{"type":"default","dimension":"id","outputName":"Keyword ID"\},"metric":\{"type":"numeric","metric":"Impressions"\},"threshold":120,"intervals":\{"type":"intervals","intervals":\[".*"\]\},"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"doubleSum","name":"_sum_avg_bid","fieldName":"avg_bid"\},\{"type":"count","name":"_count_avg_bid"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Average Bid","fn":"/","fields":\[\{"type":"fieldAccess","name":"_sum_avg_bid","fieldName":"_sum_avg_bid"\},\{"type":"fieldAccess","name":"_count_avg_bid","fieldName":"_count_avg_bid"\}\]\}\],"context":\{"applyLimitPushDown":"false","userId":"someUser","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\},"descending":false\}"""
+
+    result should fullyMatch regex json
+  }
+
+  test("DruidQueryGenerator: arbitrary static mapping should succeed") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Landing URL Translation"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", "someUser"))
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+
+    val json = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"statsDate","value":"[0-9]{8}"\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"extraction","dimension":"landing_page_url","outputName":"Landing URL Translation","extractionFn":\{"type":"lookup","lookup":\{"type":"map","map":\{"Valid":"Something"\},"isOneToOne":false\},"retainMissingValue":false,"replaceMissingValueWith":"Empty","injective":false,"optimize":true\}\},\{"type":"default","dimension":"id","outputName":"Keyword ID"\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Impressions","direction":"descending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":120\},"context":\{"applyLimitPushDown":"false","userId":"someUser","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\},"descending":false\}"""
 
     result should fullyMatch regex json
   }
@@ -1331,7 +1540,7 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
                             {"field": "Impressions"},
                             {"field": "Advertiser Status"},
                             {"field": "Campaign Name"}
-                          ],
+                            ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
                             {"field": "Advertiser ID", "operator": "=", "value": "12345"},
@@ -1370,7 +1579,8 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
                             {"field": "Average Position"},
                             {"field": "Advertiser Status"},
                             {"field": "Reseller ID"},
-                            {"field": "Reblogs"}
+                            {"field": "Reblogs"},
+                            {"field": "Click Rate Success Case"}
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
@@ -1394,7 +1604,7 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    val json = """\{"queryType":"groupBy","dataSource":\{"type":"query","query":\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\}\]\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"advertiser_id","outputName":"Advertiser ID"\},\{"type":"default","dimension":"statsDate","outputName":"Day"\},\{"type":"extraction","dimension":"advertiser_id","outputName":"Advertiser Status","extractionFn":\{"type":"mahaRegisteredLookup","lookup":"advertiser_lookup","retainMissingValue":false,"replaceMissingValueWith":"MAHA_LOOKUP_EMPTY","injective":false,"optimize":true,"valueColumn":"status"\}\},\{"type":"extraction","dimension":"advertiser_id","outputName":"Reseller ID","extractionFn":\{"type":"mahaRegisteredLookup","lookup":"advertiser_lookup","retainMissingValue":false,"replaceMissingValueWith":"MAHA_LOOKUP_EMPTY","injective":false,"optimize":true,"valueColumn":"managed_by"\}\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"filtered","aggregator":\{"type":"longSum","name":"Reblogs","fieldName":"engagement_count"\},"filter":\{"type":"selector","dimension":"engagement_type","value":"1"\},"name":"Reblogs"\},\{"type":"doubleSum","name":"_sum_avg_bid","fieldName":"avg_bid"\},\{"type":"count","name":"_count_avg_bid"\},\{"type":"doubleMax","name":"avg_pos_times_impressions","fieldName":"avg_pos_times_impressions"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Average Bid","fn":"/","fields":\[\{"type":"fieldAccess","name":"_sum_avg_bid","fieldName":"_sum_avg_bid"\},\{"type":"fieldAccess","name":"_count_avg_bid","fieldName":"_count_avg_bid"\}\]\},\{"type":"arithmetic","name":"Average Position","fn":"/","fields":\[\{"type":"fieldAccess","name":"avg_pos_times_impressions","fieldName":"avg_pos_times_impressions"\},\{"type":"fieldAccess","name":"impressions","fieldName":"Impressions"\}\]\}\],"limitSpec":\{"type":"default","columns":\[\],"limit":220\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\},"descending":false\}\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"Advertiser Status","value":"ON"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"Day","outputName":"Day"\},\{"type":"extraction","dimension":"Advertiser Status","outputName":"Advertiser Status","extractionFn":\{"type":"lookup","lookup":\{"type":"map","map":\{"ON":"ON"\},"isOneToOne":false\},"retainMissingValue":false,"replaceMissingValueWith":"OFF","injective":false,"optimize":true\}\},\{"type":"default","dimension":"Reseller ID","outputName":"Reseller ID"\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"Impressions"\},\{"type":"longSum","name":"Reblogs","fieldName":"Reblogs"\},\{"type":"doubleSum","name":"_sum_avg_bid","fieldName":"_sum_avg_bid"\},\{"type":"count","name":"_count_avg_bid"\},\{"type":"doubleMax","name":"avg_pos_times_impressions","fieldName":"avg_pos_times_impressions"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Average Bid","fn":"/","fields":\[\{"type":"fieldAccess","name":"_sum_avg_bid","fieldName":"_sum_avg_bid"\},\{"type":"fieldAccess","name":"_count_avg_bid","fieldName":"_count_avg_bid"\}\]\},\{"type":"arithmetic","name":"Average Position","fn":"/","fields":\[\{"type":"fieldAccess","name":"avg_pos_times_impressions","fieldName":"avg_pos_times_impressions"\},\{"type":"fieldAccess","name":"impressions","fieldName":"Impressions"\}\]\}\],"limitSpec":\{"type":"default","columns":\[\],"limit":220\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\},"descending":false\}"""
+    val json = """\{"queryType":"groupBy","dataSource":\{"type":"query","query":\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"statsDate","value":"[0-9]{8}"\},\{"type":"selector","dimension":"statsDate","value":"[0-9]{8}"\},\{"type":"selector","dimension":"statsDate","value":"[0-9]{8}"\},\{"type":"selector","dimension":"statsDate","value":"[0-9]{8}"\},\{"type":"selector","dimension":"statsDate","value":"[0-9]{8}"\},\{"type":"selector","dimension":"statsDate","value":"[0-9]{8}"\},\{"type":"selector","dimension":"statsDate","value":"[0-9]{8}"\},\{"type":"selector","dimension":"statsDate","value":"[0-9]{8}"\}\]\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"advertiser_id","outputName":"Advertiser ID"\},\{"type":"default","dimension":"statsDate","outputName":"Day"\},\{"type":"extraction","dimension":"advertiser_id","outputName":"Advertiser Status","extractionFn":\{"type":"mahaRegisteredLookup","lookup":"advertiser_lookup","retainMissingValue":false,"replaceMissingValueWith":"MAHA_LOOKUP_EMPTY","injective":false,"optimize":true,"valueColumn":"status"\}\},\{"type":"extraction","dimension":"advertiser_id","outputName":"Reseller ID","extractionFn":\{"type":"mahaRegisteredLookup","lookup":"advertiser_lookup","retainMissingValue":false,"replaceMissingValueWith":"MAHA_LOOKUP_EMPTY","injective":false,"optimize":true,"valueColumn":"managed_by"\}\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"filtered","aggregator":\{"type":"doubleSum","name":"Click Rate Success Case","fieldName":"clicks"\},"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"engagement_type","value":"1"\},\{"type":"selector","dimension":"campaign_id_alias","value":"1"\}\]\},"name":"Click Rate Success Case"\},\{"type":"filtered","aggregator":\{"type":"longSum","name":"Reblogs","fieldName":"engagement_count"\},"filter":\{"type":"selector","dimension":"engagement_type","value":"1"\},"name":"Reblogs"\},\{"type":"doubleSum","name":"_sum_avg_bid","fieldName":"avg_bid"\},\{"type":"count","name":"_count_avg_bid"\},\{"type":"doubleMax","name":"avg_pos_times_impressions","fieldName":"avg_pos_times_impressions"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Average Bid","fn":"/","fields":\[\{"type":"fieldAccess","name":"_sum_avg_bid","fieldName":"_sum_avg_bid"\},\{"type":"fieldAccess","name":"_count_avg_bid","fieldName":"_count_avg_bid"\}\]\},\{"type":"arithmetic","name":"Average Position","fn":"/","fields":\[\{"type":"fieldAccess","name":"avg_pos_times_impressions","fieldName":"avg_pos_times_impressions"\},\{"type":"fieldAccess","name":"impressions","fieldName":"Impressions"\}\]\}\],"limitSpec":\{"type":"default","columns":\[\],"limit":220\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\},"descending":false\}\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"Advertiser Status","value":"ON"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"Day","outputName":"Day"\},\{"type":"extraction","dimension":"Advertiser Status","outputName":"Advertiser Status","extractionFn":\{"type":"lookup","lookup":\{"type":"map","map":\{"ON":"ON"\},"isOneToOne":false\},"retainMissingValue":false,"replaceMissingValueWith":"OFF","injective":false,"optimize":true\}\},\{"type":"default","dimension":"Reseller ID","outputName":"Reseller ID"\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"Impressions"\},\{"type":"doubleSum","name":"Click Rate Success Case","fieldName":"Click Rate Success Case"\},\{"type":"longSum","name":"Reblogs","fieldName":"Reblogs"\},\{"type":"doubleSum","name":"_sum_avg_bid","fieldName":"_sum_avg_bid"\},\{"type":"count","name":"_count_avg_bid"\},\{"type":"doubleMax","name":"avg_pos_times_impressions","fieldName":"avg_pos_times_impressions"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Average Bid","fn":"/","fields":\[\{"type":"fieldAccess","name":"_sum_avg_bid","fieldName":"_sum_avg_bid"\},\{"type":"fieldAccess","name":"_count_avg_bid","fieldName":"_count_avg_bid"\}\]\},\{"type":"arithmetic","name":"Average Position","fn":"/","fields":\[\{"type":"fieldAccess","name":"avg_pos_times_impressions","fieldName":"avg_pos_times_impressions"\},\{"type":"fieldAccess","name":"impressions","fieldName":"Impressions"\}\]\}\],"limitSpec":\{"type":"default","columns":\[\],"limit":220\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\},"descending":false\}"""
 
 
     result should fullyMatch regex json
@@ -1822,6 +2032,44 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
 
     assert(result.contains(filterjson), result)
     assert(result.contains(havingJson), result)
+  }
+
+  test("Generate a valid query at minute grain") {
+    val fromMinute = "00"
+    val toMinute = "60"
+
+    val jsonString = s"""{
+                          "cube": "k_stats_minute_grain",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Source"},
+                            {"field": "Clicks"},
+                            {"field": "CTR"},
+                            {"field": "Reblogs"},
+                            {"field": "Reblog Rate"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$toDateMinusOne", "to": "$toDate"},
+                            {"field": "Hour", "operator": "between", "from": "02", "to": "05"},
+                            {"field": "Minute", "operator": "between", "from": "59", "to": "03"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    assert(requestModel.isSuccess, requestModel.errorMessage("Failed to get request model"))
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    println(result)
   }
 
 }
