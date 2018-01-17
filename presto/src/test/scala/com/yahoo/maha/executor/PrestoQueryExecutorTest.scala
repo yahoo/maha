@@ -34,6 +34,9 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
   private val queryExecutorContext : QueryExecutorContext = new QueryExecutorContext
   private val staticTimestamp = new Timestamp(System.currentTimeMillis())
   private val staticTimestamp2 = new Timestamp(System.currentTimeMillis() + 1)
+  private val prestoQueryTemplate = new PrestoQueryTemplate {
+    override def buildFinalQuery(query: String, queryContext: QueryContext, queryAttributes: QueryAttributes): String = query
+  }
 
   override protected def beforeAll(): Unit = {
     val config = new HikariConfig()
@@ -45,7 +48,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     PrestoQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, Set.empty)
     dataSource = Option(new HikariDataSource(config))
     jdbcConnection = dataSource.map(new JdbcConnection(_))
-    prestoQueryExecutor = jdbcConnection.map(new PrestoQueryExecutor(_, new NoopExecutionLifecycleListener))
+    prestoQueryExecutor = jdbcConnection.map(new PrestoQueryExecutor(_, prestoQueryTemplate, new NoopExecutionLifecycleListener))
     prestoQueryExecutor.foreach(queryExecutorContext.register(_))
     initDdlsAndData()
     createUDFs()
