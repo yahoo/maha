@@ -20,11 +20,15 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.ssl.SSLContexts;
 
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Properties;
@@ -59,9 +63,15 @@ public class LookupService {
 
             currentHost.set(RANDOM.nextInt(serviceNodeList.length));
 
+            SSLContext sslContext = SSLContexts.createDefault();
+            SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext,
+                    new String[]{"TLSv1.2"},
+                    null,
+                    new NoopHostnameVerifier());
+
             PoolingHttpClientConnectionManager connMgr =
                     new PoolingHttpClientConnectionManager(RegistryBuilder.<ConnectionSocketFactory>create()
-                            .register("http", PlainConnectionSocketFactory.getSocketFactory()).build());
+                            .register(serviceScheme, sslsf).build());
             connMgr.setMaxTotal((int)lookupServiceProperties.getOrDefault("max_connections", MAX_CONNECTIONS));
             connMgr.setDefaultMaxPerRoute((int)lookupServiceProperties.getOrDefault("max_connections", MAX_CONNECTIONS));
 
@@ -73,7 +83,7 @@ public class LookupService {
                             .build();
 
             httpclient =
-                    HttpClients.custom().setConnectionManager(connMgr)
+                    HttpClients.custom().setSSLSocketFactory(sslsf).setConnectionManager(connMgr)
                             .setDefaultRequestConfig(requestConfig).build();
 
             CacheLoader<LookupData, byte[]> loader;
@@ -107,6 +117,7 @@ public class LookupService {
     private String callService(LookupData lookupData) throws URISyntaxException, IOException {
 
         HttpGet httpGet = new HttpGet();
+        httpGet.setHeader("content-type", "application/json");
         httpGet.setURI(new URIBuilder()
                 .setScheme(serviceScheme)
                 .setHost(getHost())
@@ -124,6 +135,7 @@ public class LookupService {
         Long lastUpdatedTime = -1L;
         try {
             HttpGet httpGet = new HttpGet();
+            httpGet.setHeader("content-type", "application/json");
             httpGet.setURI(new URIBuilder()
                     .setScheme(serviceScheme)
                     .setHost(getHost())
