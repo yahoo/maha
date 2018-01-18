@@ -494,6 +494,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
 
       // Columns on which join is done must be of the same type. Add explicit CAST otherwise.
       val joinCondition = {
+        require(dimBundle.dim.columnsByNameMap.contains(pkColName), s"Dim: ${dimBundle.dim.name} does not contain $pkColName")
         if (fkCol.dataType.getClass.equals(dimBundle.dim.columnsByNameMap(pkColName).dataType.getClass)) {
           s"$factViewAlias.$renderedFactFk = $dimAlias.${dimAlias}_$pkColName"
         } else {
