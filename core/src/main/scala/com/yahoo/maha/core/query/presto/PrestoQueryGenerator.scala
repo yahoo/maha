@@ -12,7 +12,7 @@ import grizzled.slf4j.Logging
 import scala.collection.{SortedSet, mutable}
 
 
-class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends BaseQueryGenerator[WithPrestoEngine] {
+class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends BaseQueryGenerator[WithPrestoEngine] with Logging {
 
   override val engine: Engine = PrestoEngine
   override def generate(queryContext: QueryContext): Query = {
@@ -491,7 +491,17 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
       } else {
         "LEFT OUTER JOIN"
       }
-      // pkColName ?? alias ?? cc3_id
+
+      // Columns on which join is done must be of the same type. Add explicit CAST otherwise.
+      val joinCondition = {
+        require(dimBundle.dim.columnsByNameMap.contains(pkColName), s"Dim: ${dimBundle.dim.name} does not contain $pkColName")
+        if (fkCol.dataType.getClass.equals(dimBundle.dim.columnsByNameMap(pkColName).dataType.getClass)) {
+          s"$factViewAlias.$renderedFactFk = $dimAlias.${dimAlias}_$pkColName"
+        } else {
+          s"CAST($factViewAlias.$renderedFactFk AS VARCHAR) = CAST($dimAlias.${dimAlias}_$pkColName AS VARCHAR)"
+        }
+      }
+
       s"""$joinType (
          |SELECT ${dimCols.mkString(", ")}
          |FROM $dimTableName
@@ -499,7 +509,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
          |)
          |$dimAlias
          |ON
-         |$factViewAlias.$renderedFactFk = $dimAlias.${dimAlias}_$pkColName
+         |$joinCondition
        """.stripMargin
 
     }
