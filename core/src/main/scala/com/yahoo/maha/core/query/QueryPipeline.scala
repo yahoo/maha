@@ -406,6 +406,10 @@ object DefaultQueryPipelineFactory extends Logging {
               if ((requestModel.hasLowCardinalityDimFilters && requestModel.forceDimDriven && requestModel.hasDimAndFactOperations)
                 || (!requestModel.forceDimDriven && requestModel.isFactDriven && !hasIndexInOutput && !dimEngines.contains(DruidEngine)) //this does not apply if druid is the only dim candidate
               ) {
+                if(requestModel.isDebugEnabled) {
+                  info(s"hasLowCardinalityDimFilters=${requestModel.hasLowCardinalityDimFilters} forceDimDriven=${requestModel.forceDimDriven} hasDimAndFactOperations=${requestModel.hasDimAndFactOperations}")
+                  info(s"isFactDriven=${requestModel.isFactDriven} hasIndexInOutput=$hasIndexInOutput dimEngines=$dimEngines dimCandidates=${requestModel.dimensionsCandidates.map(_.dim.name)}")
+                }
                 QueryPipeline.syncNonDruidDisqualifyingSet
               } else if (requestModel.hasFactSortBy
                 || (requestModel.hasDimSortBy && !requestModel.hasNonFKFactFilters)
@@ -421,6 +425,10 @@ object DefaultQueryPipelineFactory extends Logging {
               // (ii) request does not have any dim filter/field
               // (iii) explicitly enabled through asyncDruidEnabled and asyncDruidLookupEnabled
               if ((dimEngines.contains(DruidEngine) && !forceDisqualifySet(DruidEngine)) || !(requestModel.hasDimFilters || requestModel.requestCols.filter(c => c.isInstanceOf[DimColumnInfo]).size > 0)) {
+                if(requestModel.isDebugEnabled) {
+                  info(s"isFactDriven=${requestModel.isFactDriven} forceDisqualifySet=$forceDisqualifySet dimEngines=$dimEngines")
+                  info(s"hasDimFilters=${requestModel.hasDimFilters} requestCols=${requestModel.requestCols.filter(c => c.isInstanceOf[DimColumnInfo])}")
+                }
                 QueryPipeline.asyncDisqualifyingSet ++ forceDisqualifySet -- Set(DruidEngine)
               } else {
                 QueryPipeline.asyncDisqualifyingSet ++ forceDisqualifySet
