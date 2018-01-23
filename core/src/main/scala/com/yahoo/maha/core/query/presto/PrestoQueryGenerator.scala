@@ -12,7 +12,7 @@ import grizzled.slf4j.Logging
 import scala.collection.{SortedSet, mutable}
 
 
-class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends BaseQueryGenerator[WithPrestoEngine] {
+class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends BaseQueryGenerator[WithPrestoEngine] with Logging {
 
   override val engine: Engine = PrestoEngine
   override def generate(queryContext: QueryContext): Query = {
@@ -163,16 +163,15 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
           s"""CAST(ROUND(COALESCE($finalAlias, 0), 10) as VARCHAR)"""
         case IntType(_,sm,_,_,_) =>
           if (sm.isDefined) {
-            s"""CAST(COALESCE($finalAlias, 'NA') as VARCHAR)"""
+            s"""COALESCE(CAST($finalAlias as varchar), 'NA')"""
           } else {
             s"""CAST(COALESCE($finalAlias, 0) as VARCHAR)"""
           }
-
         case DateType(_) => s"""getFormattedDate($finalAlias)"""
         case StrType(_, sm, df) =>
           val defaultValue = df.getOrElse("NA")
-          s"""COALESCE($finalAlias, '$defaultValue')"""
-        case _ => s"""COALESCE($finalAlias, 'NA')"""
+          s"""COALESCE(CAST($finalAlias as VARCHAR), '$defaultValue')"""
+        case _ => s"""COALESCE(cast($finalAlias as VARCHAR), 'NA')"""
       }
       if (column.annotations.contains(EscapingRequired)) {
         s"""getCsvEscapedString(CAST(COALESCE($finalAlias, '') AS VARCHAR))"""
@@ -449,7 +448,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
 
       val requestDimCols = dimBundle.fields
       val publicDimName = dimBundle.publicDim.name
-      val dimTableName = dimBundle.dim.name
+      val dimTableName = dimBundle.dim.underlyingTableName.getOrElse(dimBundle.dim.name)
       val dimFilters = dimBundle.filters
       val fkColName = fact.publicDimToForeignKeyMap(publicDimName)
       val fkCol = fact.columnsByNameMap(fkColName)
@@ -492,7 +491,17 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
       } else {
         "LEFT OUTER JOIN"
       }
-      // pkColName ?? alias ?? cc3_id
+
+      // Columns on which join is done must be of the same type. Add explicit CAST otherwise.
+      val joinCondition = {
+        require(dimBundle.dim.columnsByNameMap.contains(pkColName), s"Dim: ${dimBundle.dim.name} does not contain $pkColName")
+        if (fkCol.dataType.getClass.equals(dimBundle.dim.columnsByNameMap(pkColName).dataType.getClass)) {
+          s"$factViewAlias.$renderedFactFk = $dimAlias.${dimAlias}_$pkColName"
+        } else {
+          s"CAST($factViewAlias.$renderedFactFk AS VARCHAR) = CAST($dimAlias.${dimAlias}_$pkColName AS VARCHAR)"
+        }
+      }
+
       s"""$joinType (
          |SELECT ${dimCols.mkString(", ")}
          |FROM $dimTableName
@@ -500,7 +509,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
          |)
          |$dimAlias
          |ON
-         |$factViewAlias.$renderedFactFk = $dimAlias.${dimAlias}_$pkColName
+         |$joinCondition
        """.stripMargin
 
     }

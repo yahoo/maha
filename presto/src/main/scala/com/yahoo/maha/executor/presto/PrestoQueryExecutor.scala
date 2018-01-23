@@ -16,12 +16,16 @@ import org.joda.time.{DateTime, DateTimeZone}
 import scala.math.BigDecimal.RoundingMode
 import scala.util.{Failure, Try}
 
+trait PrestoQueryTemplate {
+  def buildFinalQuery(query: String,  queryContext: QueryContext, queryAttributes: QueryAttributes): String
+}
+
 object PrestoQueryExecutor {
   final val DATE_TIME_FORMATTER = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
   final val DATE_FORMATTER = DateTimeFormat.forPattern("yyyy-MM-dd")
 }
 
-class PrestoQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: ExecutionLifecycleListener) extends QueryExecutor with Logging {
+class PrestoQueryExecutor(jdbcConnection: JdbcConnection, prestoQueryTemplate: PrestoQueryTemplate, lifecycleListener: ExecutionLifecycleListener) extends QueryExecutor with Logging {
   val engine: Engine = PrestoEngine
 
   val mathContextCache = CacheBuilder
@@ -34,15 +38,13 @@ class PrestoQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
     }
   })
   
-  private[this] def getBigDecimalSafely(resultSet: ResultSet, index: Int) : BigDecimal = {
-    resultSet.getBigDecimal(index)
+  def getBigDecimalSafely(resultSet: ResultSet, index: Int) : BigDecimal = {
+    Try[BigDecimal](resultSet.getBigDecimal(index)).getOrElse(0.0)
   }
   
-  private[this] def getLongSafely(resultSet: ResultSet, index: Int) : Long = {
+  def getLongSafely(resultSet: ResultSet, index: Int) : Long = {
     val result = getBigDecimalSafely(resultSet, index)
-    if(result == null)
-      return 0L
-    result.longValue()
+    Try[Long](result.longValue()).getOrElse(0L)
   }
 
   def getColumnValue(index: Int, column: Column, resultSet: ResultSet) : Any = {
@@ -123,10 +125,11 @@ class PrestoQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
       var metaData: ResultSetMetaData = null
       val columnIndexMap = new collection.mutable.HashMap[String, Int]
       val aliasColumnMap = query.aliasColumnMap
+      val finalQuery = prestoQueryTemplate.buildFinalQuery(query.asString, query.queryContext, queryAttributes)
       if (debugEnabled) {
-        info(s"Running query : ${query.asString}")
+        info(s"Running query : $finalQuery")
       }
-      val result: Try[Unit] = jdbcConnection.queryForObject(query.asString) { resultSet =>
+      val result: Try[Unit] = jdbcConnection.queryForObject(finalQuery) { resultSet =>
         if (resultSet.next()) {
           if (metaData == null) {
             metaData = resultSet.getMetaData

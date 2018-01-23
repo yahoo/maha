@@ -1,15 +1,14 @@
 {
-  "cube" : "s_stats",
+  "cube" : "bid_reco",
   "selectFields" : [
     { "field" : "Day" },
     { "field" : "Advertiser ID" },
     { "field" : "Campaign ID" },
-    { "field" : "Campaign Name" },
     { "field" : "Ad Group ID" },
-    { "field" : "Keyword ID" },
-    { "field" : "Keyword" },
-    { "field" : "Search Term" },
-    { "field" : "Delivered Match Type" },
+    { "field" : "Bid Strategy" },
+    { "field" : "Advertiser Name" },
+    { "field" : "Forecasted Spend" },
+    { "field" : "Bid Modifier" },
     { "field" : "Impressions" }
   ],
   "filterExpressions":[

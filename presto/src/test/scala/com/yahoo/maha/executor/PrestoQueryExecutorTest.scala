@@ -3,8 +3,9 @@
 package com.yahoo.maha.executor.presto
 
 import java.io.{BufferedWriter, FileWriter, OutputStreamWriter}
-import java.sql.{Date, Timestamp}
+import java.sql.{Date, ResultSet, Timestamp}
 import java.util.UUID
+
 
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
@@ -20,6 +21,9 @@ import com.yahoo.maha.executor.MockDruidQueryExecutor
 import com.yahoo.maha.jdbc._
 import com.yahoo.maha.report.RowCSVWriter
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
+import org.h2.jdbc.JdbcResultSet
+import org.mockito.Mockito
+import org.mockito.Matchers._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest {
@@ -30,6 +34,9 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
   private val queryExecutorContext : QueryExecutorContext = new QueryExecutorContext
   private val staticTimestamp = new Timestamp(System.currentTimeMillis())
   private val staticTimestamp2 = new Timestamp(System.currentTimeMillis() + 1)
+  private val prestoQueryTemplate = new PrestoQueryTemplate {
+    override def buildFinalQuery(query: String, queryContext: QueryContext, queryAttributes: QueryAttributes): String = query
+  }
 
   override protected def beforeAll(): Unit = {
     val config = new HikariConfig()
@@ -41,7 +48,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     PrestoQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, Set.empty)
     dataSource = Option(new HikariDataSource(config))
     jdbcConnection = dataSource.map(new JdbcConnection(_))
-    prestoQueryExecutor = jdbcConnection.map(new PrestoQueryExecutor(_, new NoopExecutionLifecycleListener))
+    prestoQueryExecutor = jdbcConnection.map(new PrestoQueryExecutor(_, prestoQueryTemplate, new NoopExecutionLifecycleListener))
     prestoQueryExecutor.foreach(queryExecutorContext.register(_))
     initDdlsAndData()
     createUDFs()
@@ -573,5 +580,44 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
         assert(any.isFailure)
         any.failed.get.printStackTrace()
     }
+  }
+
+  test("test null result") {
+    var resultSet: ResultSet = null
+    val today = new Date(1515794890000L)
+    jdbcConnection.get.queryForList("select * from ad_stats_presto where ad_id=1000 limit 1") {
+      rs => {
+        resultSet = Mockito.spy(rs)
+        Mockito.doNothing().when(resultSet).close()
+        Mockito.doReturn(null).when(resultSet).getBigDecimal(anyInt())
+        Mockito.doReturn(null).when(resultSet).getDate(1)
+        Mockito.doReturn(today).when(resultSet).getDate(2)
+        Mockito.doReturn(null).when(resultSet).getTimestamp(anyInt())
+      }
+    }
+
+    assert(prestoQueryExecutor.get.getBigDecimalSafely(resultSet, 1) == 0.0)
+
+    abstract class TestCol extends Column {
+      override def alias: Option[String] = None
+      override def filterOperationOverrides: Set[FilterOperation] = Set.empty
+      override def isDerivedColumn: Boolean = false
+      override def name: String = "test"
+      override def annotations: Set[ColumnAnnotation] = Set.empty
+      override def columnContext: ColumnContext = null
+      override def dataType: DataType = ???
+    }
+
+    val dateCol = new TestCol {
+      override def dataType: DataType = DateType()
+    }
+    assert(prestoQueryExecutor.get.getColumnValue(1, dateCol, resultSet) == null)
+    assert(prestoQueryExecutor.get.getColumnValue(2, dateCol, resultSet) == "2018-01-12")
+
+    val timestampCol = new TestCol {
+      override def dataType: DataType = TimestampType()
+    }
+    assert(prestoQueryExecutor.get.getColumnValue(1, timestampCol, resultSet) == null)
+
   }
 }

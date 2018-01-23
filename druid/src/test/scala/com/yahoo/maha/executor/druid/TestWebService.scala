@@ -420,6 +420,25 @@ trait TestWebService {
           |]""".stripMargin
       Ok(timeSeries)
 
+    case POST -> Root / ("timeseries_debug") =>
+
+      val timeSeries =
+        """[
+          |  {
+          |    "timestamp": "2012-01-01T00:00:00.000Z",
+          |    "result": { "Impressions": 15,"Day": "20160111", "Intentions": 55 }
+          |  },
+          |  {
+          |   "timestamp": "2012-01-02T00:00:00.000Z",
+          |   "result": { "Impressions": 16 ,"Day": "20160112"}
+          |  },
+          |  {
+          |    "timestamp": "2012-01-03T00:00:00.000Z",
+          |    "result": { "Impressions": 17,"Day":"20160113" }
+          |  }
+          |]""".stripMargin
+      Ok(timeSeries)
+
     case POST -> Root/("faultytimeseries") =>
 
       val timeSeries =
