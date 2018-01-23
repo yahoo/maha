@@ -63,6 +63,10 @@ class QueryBuilderContext {
     dimensionAliasToColumnMap.contains(alias)
   }
 
+  def containsDimensionAliasToColumnMap(alias: String) : Boolean = {
+    dimensionAliasToColumnMap.contains(alias)
+  }
+
   def getFactColByAlias(alias: String) : Column = {
     factAliasToColumnMap(alias)
   }

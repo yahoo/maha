@@ -463,30 +463,48 @@ b. Dim Driven
             hasPagination = hasPagination || renderedDim.hasPagination
             hasTotalRows = hasTotalRows ||  renderedDim.hasTotalRows
 
+            val dimAlias = renderedDim.dimAlias
+
+            val joinConditions = new mutable.LinkedHashSet[String]
+
             /*
-              Add more join conditions with fact based on the partitioned cols
+              Find and Add more join conditions with fact based on the partitioned cols
+              This step is optional, it will generate the join condition only if partition col is requested by both fact and dim
              */
-            val moreJoinConditions = new mutable.LinkedHashSet[String]
             dimBundle.dim.partitionColumns.foreach {
               partCol =>
-                val pubColOption = dimBundle.publicDim.partitionColumns.filter(_.name.equals(partCol.name)).headOption
-                require(pubColOption.isDefined, s"Failed to find the public column for PartitionCol ${partCol.name}")
+                val partColName = partCol.alias.getOrElse(partCol.name)
+                val pubColOption = dimBundle.publicDim.partitionColumns.filter(_.name.equals(partColName)).headOption
+                // If Partition column is not exposed, skip
+                if (!pubColOption.isDefined) {
+                  warn(s"Failed to find the public column for PartitionCol ${partCol.name}")
+                }
+                if (pubColOption.isDefined) {
+                  val pubColAlias = pubColOption.get.alias
+                  val isPartColRequested = queryBuilderContext.containsDimensionAliasToColumnMap(pubColAlias)
+                  if(queryBuilderContext.containsFactAliasToColumnMap(pubColAlias) && isPartColRequested) {
+                    val factCol = queryBuilderContext.getFactColByAlias(pubColAlias)
+                    joinConditions.add(s" $factAlias.${factCol.alias.getOrElse(factCol.name)} = $dimAlias.${partCol.alias.getOrElse(partCol.name)}")
+                  }
+                }
             }
 
             /*
+            Add Default Join condition
           1. joinType {} dimAlias ON (factAlias.fk = dimAlias.pk)
            */
-            val dimAlias = renderedDim.dimAlias
             val fkCol = factCandidate.fact.publicDimToForeignKeyColMap(dimBundle.publicDim.name)
             val fk = fkCol.alias.getOrElse(fkCol.name)
 
             val pk = dimBundle.dim.primaryKey
             val joinType = defaultJoinType.getOrElse(getJoinType(dimBundle))
 
+            joinConditions.add(s"$factAlias.$fk = $dimAlias.$pk")
+
             sqlBuilder.append(
               s"""           $joinType
            (${renderedDim.sql})
-           $dimAlias ON ($factAlias.$fk = $dimAlias.$pk)""")
+           $dimAlias ON (${joinConditions.mkString(" AND ")})""")
             sqlBuilder.append("\n")
 
         }

@@ -1864,7 +1864,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |            FROM campaign_oracle
                       |
                       |             )
-                      |           co2 ON (af0.campaign_id = co2.id)
+                      |           co2 ON ( af0.advertiser_id = co2.advertiser_id AND af0.campaign_id = co2.id)
                       |
                       |
                       |
@@ -2603,13 +2603,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |            FROM campaign_oracle
                       |
                       |             )
-                      |           co2 ON (af0.campaign_id = co2.id)
+                      |           co2 ON ( af0.advertiser_id = co2.advertiser_id AND af0.campaign_id = co2.id)
                       |           LEFT OUTER JOIN
                       |           (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
                       |            FROM ad_group_oracle
                       |
                       |             )
-                      |           ago3 ON (af0.ad_group_id = ago3.id)
+                      |           ago3 ON ( af0.advertiser_id = ago3.advertiser_id AND af0.ad_group_id = ago3.id)
                       |
                       |) WHERE ( "Ad Group ID"   IS NULL) AND ( "Ad Group Status"   = 'ON')
                       |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
@@ -2910,13 +2910,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |            FROM campaign_oracle
                       |
                       |             )
-                      |           co2 ON (af0.campaign_id = co2.id)
+                      |           co2 ON ( af0.advertiser_id = co2.advertiser_id AND af0.campaign_id = co2.id)
                       |           LEFT OUTER JOIN
                       |           (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
                       |            FROM ad_group_oracle
                       |
                       |             )
-                      |           ago3 ON (af0.ad_group_id = ago3.id)
+                      |           ago3 ON ( af0.advertiser_id = ago3.advertiser_id AND af0.ad_group_id = ago3.id)
                       |
                       |) WHERE ( "Ad Group ID"   IS NULL) AND ( "Ad Group Status"   = 'ON')
                       |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
@@ -3316,7 +3316,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           co2 ON (af0.campaign_id = co2.id)
+         |           co2 ON ( af0.advertiser_id = co2.advertiser_id AND af0.campaign_id = co2.id)
          |
  |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
@@ -3400,7 +3400,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           co2 ON (af0.campaign_id = co2.id)
+         |           co2 ON ( af0.advertiser_id = co2.advertiser_id AND af0.campaign_id = co2.id)
          |
  |          GROUP BY co2.campaign_name, ao1.currency
          |)
@@ -3479,7 +3479,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           co2 ON (af0.campaign_id = co2.id)
+         |           co2 ON ( af0.advertiser_id = co2.advertiser_id AND af0.campaign_id = co2.id)
          |
  |          GROUP BY co2."Campaign Status", ao1.name, to_char(co2.advertiser_id)
          |)
@@ -3843,7 +3843,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           co1 ON (af0.campaign_id = co1.id)
+         |           co1 ON ( af0.advertiser_id = co1.advertiser_id AND af0.campaign_id = co1.id)
          |
  |          GROUP BY co1.campaign_name, to_char(co1.advertiser_id), to_char(af0.stats_source)
          |)
