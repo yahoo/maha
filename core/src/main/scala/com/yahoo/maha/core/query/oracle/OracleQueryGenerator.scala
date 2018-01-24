@@ -469,7 +469,8 @@ b. Dim Driven
 
             /*
               Find and Add more join conditions with fact based on the partitioned cols
-              This step is optional, it will generate the join condition only if partition col is requested by both fact and dim
+              Partition Columns are always added to fact select list as part of foreign key aliases
+              thus it will generate the join condition on partition column
              */
             dimBundle.partitionColAliasToColMap.foreach {
               case (alias, partCol) =>
