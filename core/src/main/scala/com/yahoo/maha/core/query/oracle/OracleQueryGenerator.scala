@@ -471,21 +471,12 @@ b. Dim Driven
               Find and Add more join conditions with fact based on the partitioned cols
               This step is optional, it will generate the join condition only if partition col is requested by both fact and dim
              */
-            dimBundle.dim.partitionColumns.foreach {
-              partCol =>
+            dimBundle.partitionColAliasToColMap.foreach {
+              case (alias, partCol) =>
                 val partColName = partCol.alias.getOrElse(partCol.name)
-                val pubColOption = dimBundle.publicDim.partitionColumns.filter(_.name.equals(partColName)).headOption
-                // If Partition column is not exposed, skip
-                if (!pubColOption.isDefined) {
-                  warn(s"Failed to find the public column for PartitionCol ${partCol.name}")
-                }
-                if (pubColOption.isDefined) {
-                  val pubColAlias = pubColOption.get.alias
-                  val isPartColRequested = queryBuilderContext.containsDimensionAliasToColumnMap(pubColAlias)
-                  if(queryBuilderContext.containsFactAliasToColumnMap(pubColAlias) && isPartColRequested) {
-                    val factCol = queryBuilderContext.getFactColByAlias(pubColAlias)
-                    joinConditions.add(s" $factAlias.${factCol.alias.getOrElse(factCol.name)} = $dimAlias.${partCol.alias.getOrElse(partCol.name)}")
-                  }
+                if(queryBuilderContext.containsFactAliasToColumnMap(alias)) {
+                  val factCol = queryBuilderContext.getFactColByAlias(alias)
+                  joinConditions.add(s" $factAlias.${factCol.alias.getOrElse(factCol.name)} = $dimAlias.$partColName")
                 }
             }
 

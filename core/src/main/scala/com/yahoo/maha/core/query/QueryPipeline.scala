@@ -537,8 +537,9 @@ object DefaultQueryPipelineFactory extends Logging {
                 val publicUpperCandidatesMap = dc.upperCandidates.map(pd => publicDimToConcreteDimMapWhichCanSupportAllDim((pd.name, upper_dim_engine)).name -> pd).toMap
                 val publicLowerCandidatesMap = dc.lowerCandidates.map(pd => publicDimToConcreteDimMapWhichCanSupportAllDim((pd.name, lower_dim_engine)).name -> pd).toMap
                 val hasNonPushDownFilters = dc.filters.exists(filter => !filter.isPushDown)
+                val concreteDimension = publicDimToConcreteDimMapWhichCanSupportAllDim((dc.dim.name, engine))
                 bestDimCandidatesMapping(dc.dim.name) += DimensionBundle(
-                  publicDimToConcreteDimMapWhichCanSupportAllDim((dc.dim.name, engine))
+                    concreteDimension
                   , dc.dim
                   , dc.fields
                   , dc.filters
@@ -546,6 +547,7 @@ object DefaultQueryPipelineFactory extends Logging {
                   , publicUpperCandidatesMap
                   , lowerCandidates
                   , publicLowerCandidatesMap
+                  , dc.dim.partitionColumns.map(pubCol => pubCol.alias -> concreteDimension.dimensionColumnsByNameMap(pubCol.name)).toMap
                   , isDrivingDimension = dc.isDrivingDimension
                   , hasNonFKOrForcedFilters = dc.hasNonFKOrForcedFilters
                   , hasNonFKSortBy = dc.hasNonFKSortBy

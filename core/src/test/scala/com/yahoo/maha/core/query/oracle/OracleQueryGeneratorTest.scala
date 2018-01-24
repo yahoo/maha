@@ -1891,6 +1891,162 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     result should equal (expected)(after being whiteSpaceNormalised)
   }
 
+  test("successfully generate dim join conditions on partition col if partition col is not requested for reseller case") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                              "field": "Day",
+                              "alias": null,
+                              "value": null
+                             },
+                             {
+                               "field": "Advertiser Status",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Impressions",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "CTR",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Reseller ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ],
+                           "forceDimensionDriven": false
+                         }"""
+
+    val request: ReportingRequest = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), ResellerSchema).toOption.get
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(result)
+    val expected = s"""
+                      |
+                      |SELECT *
+                      |FROM (SELECT to_char(af0.stats_date, 'YYYY-MM-DD') "Day", ao1."Advertiser Status" "Advertiser Status", co2.campaign_name "Campaign Name", coalesce(af0."impressions", 1) "Impressions", ROUND(af0."CTR", 10) "CTR"
+                      |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+                      |                   advertiser_id, campaign_id, stats_date, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
+                      |            FROM ad_fact1 FactAlias
+                      |            WHERE (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+                      |            GROUP BY advertiser_id, campaign_id, stats_date
+                      |
+                      |           ) af0
+                      |           INNER JOIN
+                      |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+                      |            FROM advertiser_oracle
+                      |            WHERE (managed_by = 12345)
+                      |             )
+                      |           ao1 ON (af0.advertiser_id = ao1.id)
+                      |           INNER JOIN
+                      |           (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
+                      |            FROM campaign_oracle
+                      |
+                      |             )
+                      |           co2 ON ( af0.advertiser_id = co2.advertiser_id AND af0.campaign_id = co2.id)
+                      |
+                      |)
+                      |""".stripMargin
+
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("successfully generate dim join conditions on partition col if partition col is not requested") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                              "field": "Day",
+                              "alias": null,
+                              "value": null
+                             },
+                             {
+                               "field": "Advertiser Status",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Impressions",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "CTR",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ],
+                           "forceDimensionDriven": false
+                         }"""
+
+    val request: ReportingRequest = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(result)
+    val expected = s"""
+                      |
+                      |SELECT *
+                      |FROM (SELECT to_char(af0.stats_date, 'YYYY-MM-DD') "Day", ao1."Advertiser Status" "Advertiser Status", co2.campaign_name "Campaign Name", coalesce(af0."impressions", 1) "Impressions", ROUND(af0."CTR", 10) "CTR"
+                      |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+                      |                   advertiser_id, campaign_id, stats_date, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
+                      |            FROM ad_fact1 FactAlias
+                      |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+                      |            GROUP BY advertiser_id, campaign_id, stats_date
+                      |
+                      |           ) af0
+                      |           LEFT OUTER JOIN
+                      |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+                      |            FROM advertiser_oracle
+                      |            WHERE (id = 12345)
+                      |             )
+                      |           ao1 ON (af0.advertiser_id = ao1.id)
+                      |           LEFT OUTER JOIN
+                      |           (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
+                      |            FROM campaign_oracle
+                      |            WHERE (advertiser_id = 12345)
+                      |             )
+                      |           co2 ON ( af0.advertiser_id = co2.advertiser_id AND af0.campaign_id = co2.id)
+                      |
+                      |)
+                      |""".stripMargin
+
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
   test("AD Page default: Supporting dim test") {
     val jsonString =
       s"""{
