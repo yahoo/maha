@@ -104,7 +104,6 @@ case class DimensionBundle(dim: Dimension
        hasPKRequested=$hasPKRequested
      """
   }
-
  }
 
 object DimensionBundle {
