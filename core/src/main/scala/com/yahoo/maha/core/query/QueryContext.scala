@@ -104,7 +104,8 @@ case class DimensionBundle(dim: Dimension
        hasPKRequested=$hasPKRequested
      """
   }
- }
+
+}
 
 object DimensionBundle {
   implicit val ordering: Ordering[DimensionBundle] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.dim.name}")
