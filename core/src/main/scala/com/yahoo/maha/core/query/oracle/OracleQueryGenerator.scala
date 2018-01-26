@@ -19,7 +19,7 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, literalMapper: OracleLiteralMapper = new OracleLiteralMapper) extends OuterGroupByQueryGenerator(partitionColumnRenderer, literalMapper) with Logging {
 
-  override val engine: Engine = OracleEngine
+  override implicit val engine: Engine = OracleEngine
 
   override def generate(queryContext: QueryContext): Query = {
     queryContext match {
@@ -462,7 +462,7 @@ b. Dim Driven
             joinConditions.add(s"$factAlias.$fk = $dimAlias.$pk")
 
             sqlBuilder.append(
-              s"""           ${joinType.joinStr}
+              s"""           ${joinTypeHelper.getJoinString(joinType)}
            (${renderedDim.sql})
            $dimAlias ON (${joinConditions.mkString(" AND ")})""")
             sqlBuilder.append("\n")
