@@ -4,7 +4,8 @@ package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core.dimension.{Dimension, PublicDimension}
 import com.yahoo.maha.core.fact.FactBestCandidate
-import com.yahoo.maha.core.{Column, Filter, RequestModel}
+import com.yahoo.maha.core._
+import grizzled.slf4j.Logging
 
 import scala.collection.SortedSet
 
@@ -16,6 +17,7 @@ sealed trait QueryContext {
   def requestModel: RequestModel
   def indexAliasOption: Option[String]
   def primaryTableName: String
+  def joinTypeHelper : JoinTypeHelper
 }
 
 sealed trait DimensionQueryContext extends QueryContext {
@@ -37,11 +39,17 @@ case object DimFactOuterGroupByQuery extends QueryType
 case class DimQueryContext private[query](dims: SortedSet[DimensionBundle],
                            requestModel: RequestModel,
                            indexAliasOption: Option[String],
-                           queryAttributes: QueryAttributes= QueryAttributes.empty) extends DimensionQueryContext
+                           queryAttributes: QueryAttributes= QueryAttributes.empty) extends DimensionQueryContext {
+  override def joinTypeHelper: JoinTypeHelper = NoopJoinTypeHelper
+}
+
 case class FactQueryContext private[query](factBestCandidate: FactBestCandidate,
                             requestModel: RequestModel,
                             indexAliasOption: Option[String],
-                            queryAttributes: QueryAttributes) extends FactualQueryContext
+                            queryAttributes: QueryAttributes) extends FactualQueryContext {
+  override def joinTypeHelper: JoinTypeHelper = NoopJoinTypeHelper
+}
+
 case class CombinedQueryContext private[query](dims: SortedSet[DimensionBundle],
                                 factBestCandidate: FactBestCandidate,
                                 requestModel: RequestModel,
@@ -54,6 +62,8 @@ case class CombinedQueryContext private[query](dims: SortedSet[DimensionBundle],
       factBestCandidate.fact.name
     }
   }
+
+  override def joinTypeHelper: JoinTypeHelper = DimFactJoinTypeHelper(factBestCandidate, requestModel)
 }
 
 case class DimFactOuterGroupByQueryQueryContext(dims: SortedSet[DimensionBundle],
@@ -62,6 +72,7 @@ case class DimFactOuterGroupByQueryQueryContext(dims: SortedSet[DimensionBundle]
                                                 queryAttributes: QueryAttributes) extends DimensionQueryContext with FactualQueryContext {
   override def indexAliasOption: Option[String] = None
   override def primaryTableName: String = factBestCandidate.fact.name
+  override def joinTypeHelper: JoinTypeHelper = DimFactJoinTypeHelper(factBestCandidate, requestModel)
 }
 
 case class DimensionBundle(dim: Dimension
@@ -93,8 +104,8 @@ case class DimensionBundle(dim: Dimension
        hasPKRequested=$hasPKRequested
      """
   }
-  
-}
+
+ }
 
 object DimensionBundle {
   implicit val ordering: Ordering[DimensionBundle] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.dim.name}")
@@ -160,4 +171,53 @@ object QueryContext {
   def newQueryContext( queryType: QueryType, requestModel: RequestModel): QueryContextBuilder = {
     new QueryContextBuilder(queryType, requestModel)
   }
+}
+
+trait JoinTypeHelper {
+  def defaultJoinType : Option[JoinType]
+}
+
+object NoopJoinTypeHelper extends JoinTypeHelper {
+  override def defaultJoinType: Option[JoinType] = None
+}
+
+case class DimFactJoinTypeHelper(factBest: FactBestCandidate, requestModel: RequestModel) extends JoinTypeHelper with Logging {
+
+  val factHasSchemaRequiredFields: Boolean = factBest.schemaRequiredAliases.forall(factBest.publicFact.columnsByAlias.apply)
+  val hasAllDimsNonFKNonForceFilterAsync = requestModel.isAsyncRequest && requestModel.hasAllDimsNonFKNonForceFilter
+
+  val defaultJoinType: Option[JoinType] = {
+    if (requestModel.forceDimDriven) {
+      Some(RightOuterJoin)
+    } else {
+      if (hasAllDimsNonFKNonForceFilterAsync) {
+        Some(InnerJoin)
+      } else
+      if (factHasSchemaRequiredFields) {
+        Some(LeftOuterJoin)
+      } else {
+        None
+      }
+    }
+  }
+
+  def getJoinType(dimBundle: DimensionBundle): JoinType = {
+    if (factBest.schemaRequiredAliases.forall(dimBundle.publicDim.columnsByAlias)) {
+      if (requestModel.isDebugEnabled) {
+        info(s"dimBundle.dim.isDerivedDimension: ${dimBundle.dim.name} ${dimBundle.dim.isDerivedDimension} hasNonPushDownFilters: ${dimBundle.hasNonPushDownFilters}")
+      }
+      if (dimBundle.dim.isDerivedDimension) {
+        if (dimBundle.hasNonPushDownFilters) { // If derived dim has filter, then use inner join, otherwise use left outer join
+          InnerJoin
+        } else {
+          LeftOuterJoin
+        }
+      } else {
+        RightOuterJoin
+      }
+    } else {
+      LeftOuterJoin
+    }
+  }
+
 }

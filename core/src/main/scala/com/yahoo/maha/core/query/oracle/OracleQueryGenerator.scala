@@ -37,9 +37,9 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
 
   override def generateDimensionSql(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext, includePagination: Boolean): DimensionSql = {
     queryContext match {
-      case DimQueryContext(dims, requestModel, indexAliasOption, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, true, None, includePagination)
-      case CombinedQueryContext(dims, fact, requestModel, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, false, Option(fact), includePagination)
-      case DimFactOuterGroupByQueryQueryContext(dims, fact, requestModel, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, false, Option(fact), includePagination)
+      case DimQueryContext(dims, requestModel, indexAliasOption, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, queryContext, true, None, includePagination)
+      case CombinedQueryContext(dims, fact, requestModel, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, queryContext, false, Option(fact), includePagination)
+      case DimFactOuterGroupByQueryQueryContext(dims, fact, requestModel, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, queryContext, false, Option(fact), includePagination)
       case any => throw new UnsupportedOperationException(s"query context not supported : ${any.getClass.getSimpleName}")
     }
   }
@@ -70,6 +70,7 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
   private[this] def generateDimensionSql(dims: SortedSet[DimensionBundle]
                                          , requestModel: RequestModel
                                          , queryBuilderContext: QueryBuilderContext
+                                         , queryContext: QueryContext
                                          , isDimOnly: Boolean
                                          , factOption: Option[FactBestCandidate]
                                          , includePagination: Boolean
@@ -414,45 +415,11 @@ b. Dim Driven
             dimBundle.dim.name -> generateRenderedDimension(dimBundle, Set.empty, requestModel, false, isDimOnly)
         }.toMap
 
-        def getJoinType(dimBundle: DimensionBundle): String = {
-          if (factCandidate.schemaRequiredAliases.forall(dimBundle.publicDim.columnsByAlias)) {
-            if (requestModel.isDebugEnabled) {
-              info(s"dimBundle.dim.isDerivedDimension: ${dimBundle.dim.name} ${dimBundle.dim.isDerivedDimension} hasNonPushDownFilters: ${dimBundle.hasNonPushDownFilters}")
-            }
-            if (dimBundle.dim.isDerivedDimension) {
-              if (dimBundle.hasNonPushDownFilters) { // If derived dim has filter, then use inner join, otherwise use left outer join
-                "INNER JOIN"
-              } else {
-                "LEFT OUTER JOIN"
-              }
-            } else {
-              "RIGHT OUTER JOIN"
-            }
-          } else {
-            "LEFT OUTER JOIN"
-          }
-        }
-
         val factHasSchemaRequiredFields: Boolean = factCandidate
           .schemaRequiredAliases.forall(factCandidate.publicFact.columnsByAlias.apply)
 
-        val hasAllDimsNonFKNonForceFilterAsync = requestModel.isAsyncRequest && requestModel.hasAllDimsNonFKNonForceFilter
-
-
-        val defaultJoinType: Option[String] = {
-          if (requestModel.forceDimDriven) {
-            Option("RIGHT OUTER JOIN")
-          } else {
-            if (hasAllDimsNonFKNonForceFilterAsync) {
-              Option("INNER JOIN")
-            } else
-            if (factHasSchemaRequiredFields) {
-              Option("LEFT OUTER JOIN")
-            } else {
-              None
-            }
-          }
-        }
+        require(queryContext.joinTypeHelper.isInstanceOf[DimFactJoinTypeHelper], "Should have DimFact join type helper")
+        val joinTypeHelper : DimFactJoinTypeHelper = queryContext.joinTypeHelper.asInstanceOf[DimFactJoinTypeHelper]
 
         val sqlBuilder = new StringBuilder
         var hasPagination = false
@@ -489,12 +456,13 @@ b. Dim Driven
             val fk = fkCol.alias.getOrElse(fkCol.name)
 
             val pk = dimBundle.dim.primaryKey
-            val joinType = defaultJoinType.getOrElse(getJoinType(dimBundle))
+
+            val joinType : JoinType = joinTypeHelper.defaultJoinType.getOrElse(joinTypeHelper.getJoinType(dimBundle))
 
             joinConditions.add(s"$factAlias.$fk = $dimAlias.$pk")
 
             sqlBuilder.append(
-              s"""           $joinType
+              s"""           ${joinType.joinStr}
            (${renderedDim.sql})
            $dimAlias ON (${joinConditions.mkString(" AND ")})""")
             sqlBuilder.append("\n")
