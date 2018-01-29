@@ -4,8 +4,7 @@ package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core.dimension.{Dimension, PublicDimension}
 import com.yahoo.maha.core.fact.FactBestCandidate
-import com.yahoo.maha.core._
-import grizzled.slf4j.Logging
+import com.yahoo.maha.core.{Column, Filter, RequestModel}
 
 import scala.collection.SortedSet
 
@@ -17,7 +16,6 @@ sealed trait QueryContext {
   def requestModel: RequestModel
   def indexAliasOption: Option[String]
   def primaryTableName: String
-  def joinTypeHelper : JoinTypeHelper
 }
 
 sealed trait DimensionQueryContext extends QueryContext {
@@ -39,17 +37,11 @@ case object DimFactOuterGroupByQuery extends QueryType
 case class DimQueryContext private[query](dims: SortedSet[DimensionBundle],
                            requestModel: RequestModel,
                            indexAliasOption: Option[String],
-                           queryAttributes: QueryAttributes= QueryAttributes.empty) extends DimensionQueryContext {
-  override def joinTypeHelper: JoinTypeHelper = NoopJoinTypeHelper
-}
-
+                           queryAttributes: QueryAttributes= QueryAttributes.empty) extends DimensionQueryContext
 case class FactQueryContext private[query](factBestCandidate: FactBestCandidate,
                             requestModel: RequestModel,
                             indexAliasOption: Option[String],
-                            queryAttributes: QueryAttributes) extends FactualQueryContext {
-  override def joinTypeHelper: JoinTypeHelper = NoopJoinTypeHelper
-}
-
+                            queryAttributes: QueryAttributes) extends FactualQueryContext
 case class CombinedQueryContext private[query](dims: SortedSet[DimensionBundle],
                                 factBestCandidate: FactBestCandidate,
                                 requestModel: RequestModel,
@@ -62,8 +54,6 @@ case class CombinedQueryContext private[query](dims: SortedSet[DimensionBundle],
       factBestCandidate.fact.name
     }
   }
-
-  override def joinTypeHelper: JoinTypeHelper = DimFactJoinTypeHelper(factBestCandidate, requestModel)
 }
 
 case class DimFactOuterGroupByQueryQueryContext(dims: SortedSet[DimensionBundle],
@@ -72,7 +62,6 @@ case class DimFactOuterGroupByQueryQueryContext(dims: SortedSet[DimensionBundle]
                                                 queryAttributes: QueryAttributes) extends DimensionQueryContext with FactualQueryContext {
   override def indexAliasOption: Option[String] = None
   override def primaryTableName: String = factBestCandidate.fact.name
-  override def joinTypeHelper: JoinTypeHelper = DimFactJoinTypeHelper(factBestCandidate, requestModel)
 }
 
 case class DimensionBundle(dim: Dimension
@@ -104,7 +93,7 @@ case class DimensionBundle(dim: Dimension
        hasPKRequested=$hasPKRequested
      """
   }
-
+  
 }
 
 object DimensionBundle {

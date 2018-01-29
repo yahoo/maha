@@ -3,12 +3,13 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelected, BucketSelector}
-import com.yahoo.maha.core.dimension.PublicDimension
+import com.yahoo.maha.core.dimension.{Dimension, PublicDimension}
 import com.yahoo.maha.core.fact.{BestCandidates, PublicFactCol}
 import com.yahoo.maha.core.registry.{FactRowsCostEstimate, Registry}
 import com.yahoo.maha.core.request.Parameter.Distinct
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.core.error._
+import com.yahoo.maha.core.query.DimensionBundle
 import com.yahoo.maha.utils.DaysUtils
 import grizzled.slf4j.Logging
 
@@ -31,7 +32,8 @@ case class DimensionCandidate(dim: PublicDimension
                               , hasNonFKNonPKSortBy: Boolean
                               , hasLowCardinalityFilter: Boolean
                               , hasPKRequested : Boolean
-                               )
+                              , hasNonPushDownFilters : Boolean
+                             )
 
 object DimensionCandidate {
   implicit val ordering: Ordering[DimensionCandidate] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.dim.name}")
@@ -120,7 +122,7 @@ case class RequestModel(cube: String
                         , startIndex: Int
                         , maxRows: Int
                         , includeRowCount: Boolean
-                        , isDebugEnabled: Boolean
+                        , override val isDebugEnabled: Boolean
                         , additionalParameters : Map[Parameter, Any]
                         , factSchemaRequiredAliasesMap: Map[String, Set[String]]
                         , reportingRequest: ReportingRequest
@@ -132,7 +134,7 @@ case class RequestModel(cube: String
                         , outerFilters: SortedSet[Filter]
                         , requestedFkAliasToPublicDimensionMap: Map[String, PublicDimension]
                         , orFilterMeta: Set[OrFilterMeta]
-  ) {
+  ) extends Logging {
 
   val requestColsSet: Set[String] = requestCols.map(_.alias).toSet
   lazy val dimFilters: SortedSet[Filter] = dimensionsCandidates.flatMap(_.filters)
@@ -143,6 +145,59 @@ case class RequestModel(cube: String
   def isAsyncRequest : Boolean = requestType == AsyncRequest
   def isSyncRequest : Boolean = requestType == SyncRequest
   def forceQueryEngine: Option[Engine] = additionalParameters.get(Parameter.QueryEngine).map(_.asInstanceOf[QueryEngineValue].value)
+
+  val schemaRequiredAliases = factSchemaRequiredAliasesMap.map(_._2).flatten.toSet
+
+  val defaultJoinType: Option[JoinType] =  if(bestCandidates.isDefined && dimensionsCandidates.nonEmpty) {
+    val factHasSchemaRequiredFields: Boolean = schemaRequiredAliases.forall(bestCandidates.get.publicFact.columnsByAlias.apply)
+    val hasAllDimsNonFKNonForceFilterAsync = isAsyncRequest && hasAllDimsNonFKNonForceFilter
+
+    val joinType: Option[JoinType] = {
+      if (forceDimDriven) {
+        Some(RightOuterJoin)
+      } else {
+        if (hasAllDimsNonFKNonForceFilterAsync) {
+          Some(InnerJoin)
+        } else
+        if (factHasSchemaRequiredFields) {
+          Some(LeftOuterJoin)
+        } else {
+          None
+        }
+      }
+    }
+    joinType
+  } else None
+
+  val dimensionNameToJoinTypeMap : Map[String, JoinType]  = dimensionsCandidates.map {
+      dc =>
+        dc.dim.dimList.map{
+          dimension =>
+            (dimension.name -> getJoinType(dimension, dc))
+        }.toMap
+    }.flatten.toMap
+
+
+
+  def getJoinType(dim: Dimension, dc : DimensionCandidate): JoinType = {
+    val publicDimension: PublicDimension = dc.dim
+    if (schemaRequiredAliases.forall(publicDimension.columnsByAlias)) {
+      if (isDebugEnabled) {
+        info(s"dimBundle.dim.isDerivedDimension: ${dim.name} ${dim.isDerivedDimension} hasNonPushDownFilters: ${dc.hasNonPushDownFilters}")
+      }
+      if (dim.isDerivedDimension) {
+        if (dc.hasNonPushDownFilters) { // If derived dim has filter, then use inner join, otherwise use left outer join
+          InnerJoin
+        } else {
+          LeftOuterJoin
+        }
+      } else {
+        RightOuterJoin
+      }
+    } else {
+      LeftOuterJoin
+    }
+  }
 
   utcTimeDayFilter match {
     case BetweenFilter(field, from, to) =>
@@ -802,6 +857,7 @@ object RequestModel extends Logging {
                               , hasNonFKNonPKSortBy
                               , hasLowCardinalityFilter
                               , hasPKRequested = allProjectedAliases.contains(publicDim.primaryKeyByAlias)
+                              , hasNonPushDownFilters = injectFilters.exists(filter => !filter.isPushDown)
                             )
 
                         }
@@ -830,6 +886,7 @@ object RequestModel extends Logging {
                       , hasNonFKNonPKSortBy
                       , hasLowCardinalityFilter
                       , hasPKRequested = allProjectedAliases.contains(publicDim.primaryKeyByAlias)
+                      , hasNonPushDownFilters = filters.exists(filter => !filter.isPushDown)
                     )
                     allRequestedDimAliases ++= requestedDimAliases
                     // Adding current dimension to uppper dimension candidates

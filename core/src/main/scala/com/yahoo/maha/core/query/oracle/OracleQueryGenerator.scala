@@ -19,7 +19,7 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, literalMapper: OracleLiteralMapper = new OracleLiteralMapper) extends OuterGroupByQueryGenerator(partitionColumnRenderer, literalMapper) with Logging {
 
-  override implicit val engine: Engine = OracleEngine
+  override val engine: Engine = OracleEngine
 
   override def generate(queryContext: QueryContext): Query = {
     queryContext match {
@@ -37,9 +37,9 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
 
   override def generateDimensionSql(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext, includePagination: Boolean): DimensionSql = {
     queryContext match {
-      case DimQueryContext(dims, requestModel, indexAliasOption, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, queryContext, true, None, includePagination)
-      case CombinedQueryContext(dims, fact, requestModel, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, queryContext, false, Option(fact), includePagination)
-      case DimFactOuterGroupByQueryQueryContext(dims, fact, requestModel, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, queryContext, false, Option(fact), includePagination)
+      case DimQueryContext(dims, requestModel, indexAliasOption, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, true, None, includePagination)
+      case CombinedQueryContext(dims, fact, requestModel, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, false, Option(fact), includePagination)
+      case DimFactOuterGroupByQueryQueryContext(dims, fact, requestModel, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, false, Option(fact), includePagination)
       case any => throw new UnsupportedOperationException(s"query context not supported : ${any.getClass.getSimpleName}")
     }
   }
@@ -70,7 +70,6 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
   private[this] def generateDimensionSql(dims: SortedSet[DimensionBundle]
                                          , requestModel: RequestModel
                                          , queryBuilderContext: QueryBuilderContext
-                                         , queryContext: QueryContext
                                          , isDimOnly: Boolean
                                          , factOption: Option[FactBestCandidate]
                                          , includePagination: Boolean
@@ -418,9 +417,6 @@ b. Dim Driven
         val factHasSchemaRequiredFields: Boolean = factCandidate
           .schemaRequiredAliases.forall(factCandidate.publicFact.columnsByAlias.apply)
 
-        require(queryContext.joinTypeHelper.isInstanceOf[DimFactJoinTypeHelper], "Should have DimFact join type helper")
-        val joinTypeHelper : DimFactJoinTypeHelper = queryContext.joinTypeHelper.asInstanceOf[DimFactJoinTypeHelper]
-
         val sqlBuilder = new StringBuilder
         var hasPagination = false
         var hasTotalRows = false
@@ -457,12 +453,12 @@ b. Dim Driven
 
             val pk = dimBundle.dim.primaryKey
 
-            val joinType : JoinType = joinTypeHelper.defaultJoinType.getOrElse(joinTypeHelper.getJoinType(dimBundle))
+            val joinType : JoinType = requestModel.defaultJoinType.getOrElse(requestModel.dimensionNameToJoinTypeMap(dimBundle.dim.name))
 
             joinConditions.add(s"$factAlias.$fk = $dimAlias.$pk")
 
             sqlBuilder.append(
-              s"""           ${joinTypeHelper.getJoinString(joinType)}
+              s"""           ${JoinTypeHelper.getJoinString(joinType, engine)}
            (${renderedDim.sql})
            $dimAlias ON (${joinConditions.mkString(" AND ")})""")
             sqlBuilder.append("\n")
