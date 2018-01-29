@@ -148,6 +148,9 @@ case class RequestModel(cube: String
 
   val schemaRequiredAliases = factSchemaRequiredAliasesMap.map(_._2).flatten.toSet
 
+  /*
+  defaultJoinType is the join type associated with fact to join the dimensions.
+   */
   val defaultJoinType: Option[JoinType] =  if(bestCandidates.isDefined && dimensionsCandidates.nonEmpty) {
     val factHasSchemaRequiredFields: Boolean = schemaRequiredAliases.forall(bestCandidates.get.publicFact.columnsByAlias.apply)
     val hasAllDimsNonFKNonForceFilterAsync = isAsyncRequest && hasAllDimsNonFKNonForceFilter
@@ -169,6 +172,10 @@ case class RequestModel(cube: String
     joinType
   } else None
 
+  /*
+  Map to store the dimension name to JoinType associated with the given dimension based on the different constraints.
+  defaultJoinType has higher preference than the joinType associated with the dimensions.
+   */
   val dimensionNameToJoinTypeMap : Map[String, JoinType]  = dimensionsCandidates.map {
       dc =>
         dc.dim.dimList.map{
@@ -176,8 +183,6 @@ case class RequestModel(cube: String
             (dimension.name -> getJoinType(dimension, dc))
         }.toMap
     }.flatten.toMap
-
-
 
   def getJoinType(dim: Dimension, dc : DimensionCandidate): JoinType = {
     val publicDimension: PublicDimension = dc.dim
