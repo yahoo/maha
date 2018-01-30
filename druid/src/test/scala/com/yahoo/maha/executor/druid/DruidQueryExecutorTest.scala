@@ -4,7 +4,7 @@ package com.yahoo.maha.executor.druid
 
 import java.net.InetSocketAddress
 
-import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, InternalSchema, ResellerSchema}
+import com.yahoo.maha.core.CoreSchema.{AdvertiserLowLatencySchema, AdvertiserSchema, InternalSchema, ResellerSchema}
 import com.yahoo.maha.core.DruidDerivedFunction.{DECODE_DIM, GET_INTERVAL_DATE}
 import com.yahoo.maha.core.DruidPostResultFunction.{POST_RESULT_DECODE, START_OF_THE_MONTH, START_OF_THE_WEEK}
 import com.yahoo.maha.core.FilterOperation._
@@ -187,7 +187,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     import DruidExpression._
     val factBuilder = ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
-        "fact_s_term", DailyGrain, DruidEngine, Set(AdvertiserSchema),
+        "fact_s_term", DailyGrain, DruidEngine, Set(AdvertiserSchema,  AdvertiserLowLatencySchema),
         Set(
           DimCol("id", IntType(), annotations = Set(ForeignKey("keyword")))
           , DimCol("ad_id", IntType(), annotations = Set(ForeignKey("ad")))
@@ -232,7 +232,8 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
       )
     }
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-      factBuilder.withAlternativeEngine("fd_fact_s_term", "fact_s_term", OracleEngine, Set.empty, Set.empty)
+      factBuilder.withAlternativeEngine("fd_fact_s_term", "fact_s_term", OracleEngine, Set.empty, Set.empty,
+        schemas = Some(Set(AdvertiserSchema)))
     }
 
     factBuilder.toPublicFact("k_stats",
@@ -2176,6 +2177,111 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         println(row)
         assert(expected.contains(row.toString))
     }
+  }
+
+  test("successfully generate the dim only INNER JOIN query if request has hasNonDrivingDimNonFKNonPKFilter in MultiEngine Case")
+  {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Ad Group ID"},
+                            {"field": "Campaign ID"},
+                            {"field": "Impressions"},
+                            {"field": "Campaign Name"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                            {"field": "Ad Group Status", "operator": "not in", "values": ["DELETED"]},
+                            {"field": "Campaign Status", "operator": "not in", "values": ["DELETED"]}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100,
+                          "isDimDriven" : true
+                        }"""
+    val request: ReportingRequest = getReportingRequestSync(jsonString, AdvertiserLowLatencySchema)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
+    altQueryGeneratorRegistry.register(OracleEngine, new OracleQueryGenerator(DefaultPartitionColumnRenderer))
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val query =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
+    println(query)
+    val druidExecutor =  getDruidQueryExecutor("http://localhost:6667/mock/topnUiQuery")
+    val oracleExecutor = new MockOracleQueryExecutor(
+      { rl =>
+        rl.foreach(r => println(s"Inside mock: $r"))
+        val row = rl.newRow
+        row.addValue("Ad Group ID", 114)
+        row.addValue("Campaign ID", 14)
+        row.addValue("Campaign Name", "Fourteen")
+        rl.addRow(row)
+        val row2 = rl.newRow
+        row2.addValue("Ad Group ID", 113)
+        row2.addValue("Campaign ID", 13)
+        row2.addValue("Campaign Name", "Thirteen")
+        rl.addRow(row2)
+      })
+    val queryExecContext: QueryExecutorContext = new QueryExecutorContext
+    queryExecContext.register(druidExecutor)
+    queryExecContext.register(oracleExecutor)
+
+    val result = queryPipelineTry.toOption.get.execute(queryExecContext)
+    assert(result.isSuccess)
+
+    result.toOption.get._1.foreach(println)
+    //var result = oracleExecutor.execute(oraclQuery.head, rowList, QueryAttributes.empty)
+    val oracleQuery = queryPipelineTry.toOption.get.queryChain.subsequentQueryList.head
+    //require(result._1, "Failed to execute MultiEngine Query")
+    println(oracleQuery.asString)
+    val expected =
+      """
+        |
+        | (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
+        |      FROM (SELECT to_char(ago1.id) "Ad Group ID", to_char(co0.id) "Campaign ID", co0.campaign_name "Campaign Name"
+        |            FROM
+        |               ( (SELECT  campaign_id, id, advertiser_id
+        |            FROM ad_group_oracle
+        |            WHERE (advertiser_id = 213) AND (id IN (113,114)) AND (DECODE(status, 'ON', 'ON', 'OFF') NOT IN ('DELETED'))
+        |             ) ago1
+        |          INNER JOIN
+        |            (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+        |            FROM campaign_oracle
+        |            WHERE (advertiser_id = 213) AND (DECODE(status, 'ON', 'ON', 'OFF') NOT IN ('DELETED'))
+        |             ) co0
+        |              ON( ago1.advertiser_id = co0.advertiser_id AND ago1.campaign_id = co0.id )
+        |               )
+        |
+        |           )
+        |            ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+        |      FROM (SELECT to_char(ago1.id) "Ad Group ID", to_char(co0.id) "Campaign ID", co0.campaign_name "Campaign Name"
+        |            FROM
+        |               ( (SELECT  campaign_id, id, advertiser_id
+        |            FROM ad_group_oracle
+        |            WHERE (advertiser_id = 213) AND (id NOT IN (113,114)) AND (DECODE(status, 'ON', 'ON', 'OFF') NOT IN ('DELETED'))
+        |             ) ago1
+        |          INNER JOIN
+        |            (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+        |            FROM campaign_oracle
+        |            WHERE (advertiser_id = 213) AND (DECODE(status, 'ON', 'ON', 'OFF') NOT IN ('DELETED'))
+        |             ) co0
+        |              ON( ago1.advertiser_id = co0.advertiser_id AND ago1.campaign_id = co0.id )
+        |               )
+        |
+        |           )
+        |            ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100)
+        |  """.stripMargin
+
+    oracleQuery.asString should equal (expected) (after being whiteSpaceNormalised)
+
   }
 
 }

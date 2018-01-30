@@ -180,7 +180,7 @@ trait SharedDimSchema {
     val builder : DimensionBuilder = {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
         import OracleExpression._
-        Dimension.newDimension("ad_group_oracle", OracleEngine, LevelThree, Set(AdvertiserSchema, ResellerSchema),
+        Dimension.newDimension("ad_group_oracle", OracleEngine, LevelThree, Set(AdvertiserSchema, ResellerSchema, AdvertiserLowLatencySchema),
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("name", StrType(), annotations = Set(EscapingRequired, CaseInsensitive))
@@ -246,7 +246,7 @@ trait SharedDimSchema {
           , PubCol("name","Ad Group Name", InEqualityLike)
           , PubCol("advertiser_id", "Advertiser ID", InEquality)
           , PubCol("campaign_id", "Campaign ID", InEquality)
-          , PubCol("Ad Group Status", "Ad Group Status", InEquality)
+          , PubCol("Ad Group Status", "Ad Group Status", InNotInEquality)
           , PubCol("column2_id", "Column2 ID", InEquality)
         ), highCardinalityFilters = Set(NotInFilter("Ad Group Status", List("DELETED")), InFilter("Ad Group Status", List("ON")), EqualityFilter("Ad Group Status", "ON"))
       )
@@ -256,7 +256,7 @@ trait SharedDimSchema {
     val builder : DimensionBuilder = {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
         import OracleExpression._
-        Dimension.newDimension("campaign_oracle", OracleEngine, LevelTwo, Set(AdvertiserSchema, ResellerSchema),
+        Dimension.newDimension("campaign_oracle", OracleEngine, LevelTwo, Set(AdvertiserSchema, ResellerSchema, AdvertiserLowLatencySchema),
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , OraclePartDimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))

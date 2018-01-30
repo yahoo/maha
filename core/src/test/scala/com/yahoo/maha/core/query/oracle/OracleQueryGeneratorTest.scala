@@ -1676,13 +1676,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                      |            FROM ad_group_oracle
                      |            WHERE (advertiser_id = 12345)
                      |             ) ago2
-                     |          RIGHT OUTER JOIN
+                     |          INNER JOIN
                      |            (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
                      |            FROM campaign_oracle
                      |            WHERE (advertiser_id = 12345)
                      |             ) co1
                      |              ON( ago2.advertiser_id = co1.advertiser_id AND ago2.campaign_id = co1.id )
-                     |               RIGHT OUTER JOIN
+                     |               INNER JOIN
                      |            (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
                      |            FROM advertiser_oracle
                      |            WHERE (id = 12345) AND (DECODE(status, 'ON', 'ON', 'OFF') IN ('ON'))
@@ -2834,13 +2834,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                      |            FROM ad_group_oracle
                      |            WHERE (advertiser_id = 12345)
                      |            ORDER BY 1 ASC  ) ago2
-                     |          RIGHT OUTER JOIN
+                     |          INNER JOIN
                      |            (SELECT /*+ CampaignHint */ id, advertiser_id, campaign_name
                      |            FROM campaign_oracle
                      |            WHERE (advertiser_id = 12345)
                      |             ) co1
                      |              ON( ago2.advertiser_id = co1.advertiser_id AND ago2.campaign_id = co1.id )
-                     |               RIGHT OUTER JOIN
+                     |               INNER JOIN
                      |            (SELECT  id
                      |            FROM advertiser_oracle
                      |            WHERE (id = 12345) AND (DECODE(status, 'ON', 'ON', 'OFF') = 'ON')
@@ -3149,7 +3149,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |            FROM ad_group_oracle
                       |            WHERE (advertiser_id = 12345)
                       |             ) ago1
-                      |          RIGHT OUTER JOIN
+                      |          INNER JOIN
                       |            (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
                       |            FROM campaign_oracle
                       |            WHERE (advertiser_id = 12345) AND (DECODE(status, 'ON', 'ON', 'OFF') = 'ON')

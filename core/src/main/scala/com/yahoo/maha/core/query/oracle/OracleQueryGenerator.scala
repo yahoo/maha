@@ -501,6 +501,9 @@ b. Dim Driven
         }
         val parentJoinsLOJBuilder = new StringBuilder
         val parentJoinType = {
+          if(isDimOnly && requestModel.hasNonDrivingDimNonFKNonPKFilter) {
+            "INNER JOIN"
+          } else
           if(requestModel.hasNonDrivingDimNonFKNonPKFilter) {
             "RIGHT OUTER JOIN"
           } else  {
