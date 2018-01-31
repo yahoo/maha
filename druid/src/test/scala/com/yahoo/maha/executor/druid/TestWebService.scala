@@ -472,6 +472,29 @@ trait TestWebService {
                    |}]""".stripMargin
       Ok(topN)
 
+    case POST -> Root /  ("topnUiQuery") =>
+      val groupby ="""[
+                     |  {
+                     |    "timestamp" : "2013-08-31T00:00:00.000Z",
+                     |    "event" : {
+                     |       "Advertiser ID": 1,
+                     |		   "Ad Group ID": 114,
+                     |       "Campaign ID": 14,
+                     |		   "Impressions": 1106
+                     |    }
+                     |  },
+                     |  {
+                     |    "timestamp" : "2013-08-31T00:00:00.000Z",
+                     |    "event" : {
+                     |      "Advertiser ID": 1,
+                     |	  	"Ad Group ID": 113,
+                     |      "Campaign ID": 13,
+                     |	  	"Impressions": 106
+                     |    }
+                     |  }
+                     |  ]""".stripMargin
+      Ok(groupby)
+
     case POST -> Root /("topnWithNull") =>
       val topN = """[{
                    |	"timestamp": "2013-08-31T00:00:00.000Z",
