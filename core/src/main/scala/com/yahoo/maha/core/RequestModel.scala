@@ -9,9 +9,10 @@ import com.yahoo.maha.core.registry.{FactRowsCostEstimate, Registry}
 import com.yahoo.maha.core.request.Parameter.Distinct
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.core.error._
-import com.yahoo.maha.core.query.DimensionBundle
+import com.yahoo.maha.core.query.{InnerJoin, JoinType, LeftOuterJoin, RightOuterJoin}
 import com.yahoo.maha.utils.DaysUtils
 import grizzled.slf4j.Logging
+import org.slf4j.LoggerFactory
 
 import scala.collection.{SortedSet, mutable}
 import scala.util.{Failure, Success, Try}
@@ -19,7 +20,9 @@ import scala.util.{Failure, Success, Try}
 /**
  * Created by jians on 10/5/15.
  */
-
+object RmLogger {
+  val logger = LoggerFactory.getLogger(classOf[RequestModel])
+}
 case class DimensionCandidate(dim: PublicDimension
                               , fields: Set[String]
                               , filters: SortedSet[Filter]
@@ -122,7 +125,7 @@ case class RequestModel(cube: String
                         , startIndex: Int
                         , maxRows: Int
                         , includeRowCount: Boolean
-                        , override val isDebugEnabled: Boolean
+                        , isDebugEnabled: Boolean
                         , additionalParameters : Map[Parameter, Any]
                         , factSchemaRequiredAliasesMap: Map[String, Set[String]]
                         , reportingRequest: ReportingRequest
@@ -134,7 +137,7 @@ case class RequestModel(cube: String
                         , outerFilters: SortedSet[Filter]
                         , requestedFkAliasToPublicDimensionMap: Map[String, PublicDimension]
                         , orFilterMeta: Set[OrFilterMeta]
-  ) extends Logging {
+  ) {
 
   val requestColsSet: Set[String] = requestCols.map(_.alias).toSet
   lazy val dimFilters: SortedSet[Filter] = dimensionsCandidates.flatMap(_.filters)
@@ -180,7 +183,7 @@ case class RequestModel(cube: String
       dc =>
         dc.dim.dimList.map{
           dimension =>
-            (dimension.name -> getJoinType(dimension, dc))
+            (dimension.name -> defaultJoinType.getOrElse(getJoinType(dimension, dc)))
         }.toMap
     }.flatten.toMap
 
@@ -188,7 +191,7 @@ case class RequestModel(cube: String
     val publicDimension: PublicDimension = dc.dim
     if (schemaRequiredAliases.forall(publicDimension.columnsByAlias)) {
       if (isDebugEnabled) {
-        info(s"dimBundle.dim.isDerivedDimension: ${dim.name} ${dim.isDerivedDimension} hasNonPushDownFilters: ${dc.hasNonPushDownFilters}")
+        RmLogger.logger.info(s"dimBundle.dim.isDerivedDimension: ${dim.name} ${dim.isDerivedDimension}, hasNonPushDownFilters: ${dc.hasNonPushDownFilters}")
       }
       if (dim.isDerivedDimension) {
         if (dc.hasNonPushDownFilters) { // If derived dim has filter, then use inner join, otherwise use left outer join

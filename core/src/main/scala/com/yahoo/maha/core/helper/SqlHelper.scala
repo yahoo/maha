@@ -1,11 +1,9 @@
-package com.yahoo.maha.core
+package com.yahoo.maha.core.helper
 
-trait JoinType
-case object LeftOuterJoin extends JoinType
-case object RightOuterJoin extends JoinType
-case object InnerJoin extends JoinType
+import com.yahoo.maha.core.query.{InnerJoin, JoinType, LeftOuterJoin, RightOuterJoin}
+import com.yahoo.maha.core.{Engine, HiveEngine, OracleEngine, PrestoEngine}
 
-object JoinTypeHelper {
+object SqlHelper {
   def getJoinString(joinType: JoinType, engine : Engine): String = {
     engine match {
       case OracleEngine => getJoinSqlString(joinType)

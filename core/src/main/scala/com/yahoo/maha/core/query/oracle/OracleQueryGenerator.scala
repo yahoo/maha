@@ -4,13 +4,13 @@ package com.yahoo.maha.core.query.oracle
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
-
 import com.yahoo.maha.core.fact._
+import com.yahoo.maha.core.helper.SqlHelper
 import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
 import org.apache.commons.lang3.StringUtils
 
-import scala.collection.{mutable, SortedSet}
+import scala.collection.{SortedSet, mutable}
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 /**
@@ -453,12 +453,12 @@ b. Dim Driven
 
             val pk = dimBundle.dim.primaryKey
 
-            val joinType : JoinType = requestModel.defaultJoinType.getOrElse(requestModel.dimensionNameToJoinTypeMap(dimBundle.dim.name))
+            val joinType : JoinType = requestModel.dimensionNameToJoinTypeMap(dimBundle.dim.name)
 
             joinConditions.add(s"$factAlias.$fk = $dimAlias.$pk")
 
             sqlBuilder.append(
-              s"""           ${JoinTypeHelper.getJoinString(joinType, engine)}
+              s"""           ${SqlHelper.getJoinString(joinType, engine)}
            (${renderedDim.sql})
            $dimAlias ON (${joinConditions.mkString(" AND ")})""")
             sqlBuilder.append("\n")
