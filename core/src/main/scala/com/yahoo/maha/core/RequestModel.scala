@@ -186,7 +186,7 @@ case class RequestModel(cube: String
     val publicDimension: PublicDimension = dc.dim
     if (schemaRequiredAliases.forall(publicDimension.columnsByAlias)) {
       if (isDebugEnabled) {
-        RequestModel.info(s"dimBundle.dim.isDerivedDimension: ${dim.name} ${dim.isDerivedDimension}, hasNonPushDownFilters: ${dc.hasNonPushDownFilters}")
+        RequestModel.Logger.info(s"dimBundle.dim.isDerivedDimension: ${dim.name} ${dim.isDerivedDimension}, hasNonPushDownFilters: ${dc.hasNonPushDownFilters}")
       }
       if (dim.isDerivedDimension) {
         if (dc.hasNonPushDownFilters) { // If derived dim has filter, then use inner join, otherwise use left outer join
@@ -277,6 +277,7 @@ case class RequestModel(cube: String
 }
 
 object RequestModel extends Logging {
+  val Logger = LoggerFactory.getLogger(classOf[RequestModel])
 
   def from(request: ReportingRequest, registry: Registry, utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider, revision: Option[Int] = None) : Try[RequestModel] = {
     Try {
@@ -1055,6 +1056,7 @@ object RequestModel extends Logging {
 case class RequestModelResult(model: RequestModel, dryRunModelTry: Option[Try[RequestModel]])
 
 object RequestModelFactory extends Logging {
+
   // If no revision is specified, return a Tuple of RequestModels 1-To serve the response 2-Optional dryrun to test new fact revisions
   def fromBucketSelector(request: ReportingRequest, bucketParams: BucketParams, registry: Registry, bucketSelector: BucketSelector, utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider) : Try[RequestModelResult] = {
     val selectedBucketsTry: Try[BucketSelected] = bucketSelector.selectBuckets(request.cube, bucketParams)
