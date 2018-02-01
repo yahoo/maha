@@ -1056,7 +1056,6 @@ object RequestModel extends Logging {
 case class RequestModelResult(model: RequestModel, dryRunModelTry: Option[Try[RequestModel]])
 
 object RequestModelFactory extends Logging {
-
   // If no revision is specified, return a Tuple of RequestModels 1-To serve the response 2-Optional dryrun to test new fact revisions
   def fromBucketSelector(request: ReportingRequest, bucketParams: BucketParams, registry: Registry, bucketSelector: BucketSelector, utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider) : Try[RequestModelResult] = {
     val selectedBucketsTry: Try[BucketSelected] = bucketSelector.selectBuckets(request.cube, bucketParams)
