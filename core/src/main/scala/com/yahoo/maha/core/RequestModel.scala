@@ -3,14 +3,16 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelected, BucketSelector}
-import com.yahoo.maha.core.dimension.PublicDimension
+import com.yahoo.maha.core.dimension.{Dimension, PublicDimension}
 import com.yahoo.maha.core.fact.{BestCandidates, PublicFactCol}
 import com.yahoo.maha.core.registry.{FactRowsCostEstimate, Registry}
 import com.yahoo.maha.core.request.Parameter.Distinct
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.core.error._
+import com.yahoo.maha.core.query.{InnerJoin, JoinType, LeftOuterJoin, RightOuterJoin}
 import com.yahoo.maha.utils.DaysUtils
 import grizzled.slf4j.Logging
+import org.slf4j.LoggerFactory
 
 import scala.collection.{SortedSet, mutable}
 import scala.util.{Failure, Success, Try}
@@ -18,7 +20,6 @@ import scala.util.{Failure, Success, Try}
 /**
  * Created by jians on 10/5/15.
  */
-
 case class DimensionCandidate(dim: PublicDimension
                               , fields: Set[String]
                               , filters: SortedSet[Filter]
@@ -31,7 +32,8 @@ case class DimensionCandidate(dim: PublicDimension
                               , hasNonFKNonPKSortBy: Boolean
                               , hasLowCardinalityFilter: Boolean
                               , hasPKRequested : Boolean
-                               )
+                              , hasNonPushDownFilters : Boolean
+                             )
 
 object DimensionCandidate {
   implicit val ordering: Ordering[DimensionCandidate] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.dim.name}")
@@ -144,6 +146,62 @@ case class RequestModel(cube: String
   def isSyncRequest : Boolean = requestType == SyncRequest
   def forceQueryEngine: Option[Engine] = additionalParameters.get(Parameter.QueryEngine).map(_.asInstanceOf[QueryEngineValue].value)
 
+  /*
+  Map to store the dimension name to JoinType associated with the given dimension based on the different constraints.
+  defaultJoinType has higher preference than the joinType associated with the dimensions.
+   */
+  val dimensionNameToJoinTypeMap : Map[String, JoinType]  = {
+    val schemaRequiredAliases = factSchemaRequiredAliasesMap.map(_._2).flatten.toSet
+    val defaultJoinType: Option[JoinType] =  if(bestCandidates.isDefined && dimensionsCandidates.nonEmpty) {
+      val factHasSchemaRequiredFields: Boolean = schemaRequiredAliases.forall(bestCandidates.get.publicFact.columnsByAlias.apply)
+      val hasAllDimsNonFKNonForceFilterAsync = isAsyncRequest && hasAllDimsNonFKNonForceFilter
+
+      val joinType: Option[JoinType] = {
+        if (forceDimDriven) {
+          Some(RightOuterJoin)
+        } else {
+          if (hasAllDimsNonFKNonForceFilterAsync) {
+            Some(InnerJoin)
+          } else
+          if (factHasSchemaRequiredFields) {
+            Some(LeftOuterJoin)
+          } else {
+            None
+          }
+        }
+      }
+      joinType
+    } else None
+
+    dimensionsCandidates.map {
+      dc =>
+        dc.dim.dimList.map{
+          dimension =>
+            (dimension.name -> defaultJoinType.getOrElse(getJoinType(dimension, dc, schemaRequiredAliases)))
+        }.toMap
+    }.flatten.toMap
+  }
+
+  private def getJoinType(dim: Dimension, dc : DimensionCandidate, schemaRequiredAliases: Set[String]): JoinType = {
+    val publicDimension: PublicDimension = dc.dim
+    if (schemaRequiredAliases.forall(publicDimension.columnsByAlias)) {
+      if (isDebugEnabled) {
+        RequestModel.Logger.info(s"dimBundle.dim.isDerivedDimension: ${dim.name} ${dim.isDerivedDimension}, hasNonPushDownFilters: ${dc.hasNonPushDownFilters}")
+      }
+      if (dim.isDerivedDimension) {
+        if (dc.hasNonPushDownFilters) { // If derived dim has filter, then use inner join, otherwise use left outer join
+          InnerJoin
+        } else {
+          LeftOuterJoin
+        }
+      } else {
+        RightOuterJoin
+      }
+    } else {
+      LeftOuterJoin
+    }
+  }
+
   utcTimeDayFilter match {
     case BetweenFilter(field, from, to) =>
       require(!DaysUtils.isFutureDate(from), FutureDateNotSupportedError(from))
@@ -219,6 +277,7 @@ case class RequestModel(cube: String
 }
 
 object RequestModel extends Logging {
+  val Logger = LoggerFactory.getLogger(classOf[RequestModel])
 
   def from(request: ReportingRequest, registry: Registry, utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider, revision: Option[Int] = None) : Try[RequestModel] = {
     Try {
@@ -802,6 +861,7 @@ object RequestModel extends Logging {
                               , hasNonFKNonPKSortBy
                               , hasLowCardinalityFilter
                               , hasPKRequested = allProjectedAliases.contains(publicDim.primaryKeyByAlias)
+                              , hasNonPushDownFilters = injectFilters.exists(filter => !filter.isPushDown)
                             )
 
                         }
@@ -830,6 +890,7 @@ object RequestModel extends Logging {
                       , hasNonFKNonPKSortBy
                       , hasLowCardinalityFilter
                       , hasPKRequested = allProjectedAliases.contains(publicDim.primaryKeyByAlias)
+                      , hasNonPushDownFilters = filters.exists(filter => !filter.isPushDown)
                     )
                     allRequestedDimAliases ++= requestedDimAliases
                     // Adding current dimension to uppper dimension candidates

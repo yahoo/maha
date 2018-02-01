@@ -4,13 +4,13 @@ package com.yahoo.maha.core.query.oracle
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
-
 import com.yahoo.maha.core.fact._
+import com.yahoo.maha.core.helper.SqlHelper
 import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
 import org.apache.commons.lang3.StringUtils
 
-import scala.collection.{mutable, SortedSet}
+import scala.collection.{SortedSet, mutable}
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 /**
@@ -148,7 +148,7 @@ b. Dim Driven
 
       val shouldSelfJoinWithSupportingDrivingDim = {
         if (!requestModel.isFactDriven && requestModel.hasFactSortBy == false
-          && requestModel.dimSortByMap.size == 1 && dimBundle.isDrivingDimension && dimBundle.publicDim.partitionColumn.nonEmpty
+          && requestModel.dimSortByMap.size == 1 && dimBundle.isDrivingDimension && dimBundle.publicDim.partitionColumnAliases.nonEmpty
           && dimBundle.hasNonFKOrForcedFilters == false) {
           if (requestModel.dimSortByMap.contains(dimBundle.publicDim.primaryKeyByAlias)) {
             true
@@ -167,7 +167,7 @@ b. Dim Driven
 
         if (shouldSelfJoinWithSupportingDrivingDim && dimPKIndex.isDefined) {
           val innerFields = dimBundle.fields.filter(f => f.equals(dimBundle.publicDim.primaryKeyByAlias) ||
-            dimBundle.publicDim.partitionColumn.contains(f))
+            dimBundle.publicDim.partitionColumnAliases.contains(f))
           // Rewriting dimension candidate for supporting dimension
           val supportingDim = dimBundle.publicDim.forColumns(OracleEngine,requestModel.schema, innerFields)
           require(supportingDim.isDefined,s"Failed to find Supporting Dimension for $innerFields")
@@ -414,45 +414,8 @@ b. Dim Driven
             dimBundle.dim.name -> generateRenderedDimension(dimBundle, Set.empty, requestModel, false, isDimOnly)
         }.toMap
 
-        def getJoinType(dimBundle: DimensionBundle): String = {
-          if (factCandidate.schemaRequiredAliases.forall(dimBundle.publicDim.columnsByAlias)) {
-            if (requestModel.isDebugEnabled) {
-              info(s"dimBundle.dim.isDerivedDimension: ${dimBundle.dim.name} ${dimBundle.dim.isDerivedDimension} hasNonPushDownFilters: ${dimBundle.hasNonPushDownFilters}")
-            }
-            if (dimBundle.dim.isDerivedDimension) {
-              if (dimBundle.hasNonPushDownFilters) { // If derived dim has filter, then use inner join, otherwise use left outer join
-                "INNER JOIN"
-              } else {
-                "LEFT OUTER JOIN"
-              }
-            } else {
-              "RIGHT OUTER JOIN"
-            }
-          } else {
-            "LEFT OUTER JOIN"
-          }
-        }
-
         val factHasSchemaRequiredFields: Boolean = factCandidate
           .schemaRequiredAliases.forall(factCandidate.publicFact.columnsByAlias.apply)
-
-        val hasAllDimsNonFKNonForceFilterAsync = requestModel.isAsyncRequest && requestModel.hasAllDimsNonFKNonForceFilter
-
-
-        val defaultJoinType: Option[String] = {
-          if (requestModel.forceDimDriven) {
-            Option("RIGHT OUTER JOIN")
-          } else {
-            if (hasAllDimsNonFKNonForceFilterAsync) {
-              Option("INNER JOIN")
-            } else
-            if (factHasSchemaRequiredFields) {
-              Option("LEFT OUTER JOIN")
-            } else {
-              None
-            }
-          }
-        }
 
         val sqlBuilder = new StringBuilder
         var hasPagination = false
@@ -462,20 +425,42 @@ b. Dim Driven
             val renderedDim = renderedDimensions(dimBundle.dim.name)
             hasPagination = hasPagination || renderedDim.hasPagination
             hasTotalRows = hasTotalRows ||  renderedDim.hasTotalRows
+
+            val dimAlias = renderedDim.dimAlias
+
+            val joinConditions = new mutable.LinkedHashSet[String]
+
             /*
+              Find and Add more join conditions with fact based on the partitioned cols
+              Partition Columns are always added to fact select list as part of foreign key aliases
+              thus it will generate the join condition on partition column
+             */
+            dimBundle.partitionColAliasToColMap.foreach {
+              case (alias, partCol) =>
+                val partColName = partCol.alias.getOrElse(partCol.name)
+                if(queryBuilderContext.containsFactAliasToColumnMap(alias)) {
+                  val factCol = queryBuilderContext.getFactColByAlias(alias)
+                  joinConditions.add(s" $factAlias.${factCol.alias.getOrElse(factCol.name)} = $dimAlias.$partColName")
+                }
+            }
+
+            /*
+            Add Default Join condition
           1. joinType {} dimAlias ON (factAlias.fk = dimAlias.pk)
            */
-            val dimAlias = renderedDim.dimAlias
             val fkCol = factCandidate.fact.publicDimToForeignKeyColMap(dimBundle.publicDim.name)
             val fk = fkCol.alias.getOrElse(fkCol.name)
 
             val pk = dimBundle.dim.primaryKey
-            val joinType = defaultJoinType.getOrElse(getJoinType(dimBundle))
+
+            val joinType : JoinType = requestModel.dimensionNameToJoinTypeMap(dimBundle.dim.name)
+
+            joinConditions.add(s"$factAlias.$fk = $dimAlias.$pk")
 
             sqlBuilder.append(
-              s"""           $joinType
+              s"""           ${SqlHelper.getJoinString(joinType, engine)}
            (${renderedDim.sql})
-           $dimAlias ON ($factAlias.$fk = $dimAlias.$pk)""")
+           $dimAlias ON (${joinConditions.mkString(" AND ")})""")
             sqlBuilder.append("\n")
 
         }

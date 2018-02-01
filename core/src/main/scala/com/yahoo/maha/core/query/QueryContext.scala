@@ -4,7 +4,7 @@ package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core.dimension.{Dimension, PublicDimension}
 import com.yahoo.maha.core.fact.FactBestCandidate
-import com.yahoo.maha.core.{Filter, RequestModel}
+import com.yahoo.maha.core.{Column, Filter, RequestModel}
 
 import scala.collection.SortedSet
 
@@ -72,6 +72,7 @@ case class DimensionBundle(dim: Dimension
                            , publicUpperCandidatesMap: Map[String, PublicDimension]
                            , lowerCandidates: List[Dimension]
                            , publicLowerCandidatesMap: Map[String, PublicDimension]
+                           , partitionColAliasToColMap: Map[String, Column]
                            , isDrivingDimension: Boolean
                            , hasNonFKOrForcedFilters: Boolean
                            , hasNonFKSortBy: Boolean

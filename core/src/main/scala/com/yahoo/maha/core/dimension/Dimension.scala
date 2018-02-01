@@ -780,7 +780,9 @@ trait PublicDimension extends PublicTable {
 
   def foreignKeySources: Set[String]
 
-  def partitionColumn: Set[String]
+  def partitionColumnAliases: Set[String]
+
+  def partitionColumns : Set[PublicDimColumn]
 
   def foreignKeyByAlias: Set[String]
 
@@ -850,9 +852,12 @@ case class PublicDim (name: String
     dims.values.map(_.columns.map(_.getForeignKeySource).flatten).flatten.toSet
   }
 
-  val partitionColumn: Set[String] = {
+  val partitionColumnAliases: Set[String] = {
     columns.filter(col => dims.values.flatMap(_.columns).filter(_.isInstanceOf[PartitionColumn]).map(_.name).toSet.contains(col.name)).map(_.alias)
   }
+
+  val partitionColumns :Set[PublicDimColumn] =
+    columns.filter(col => dims.values.flatMap(_.columns).filter(_.isInstanceOf[PartitionColumn]).map(_.name).toSet.contains(col.name))
 
   val foreignKeyByAlias = 
     columns.filter(col => dims.values.flatMap(_.columns).filter(_.isForeignKey).map(_.name).toSet.contains(col.name)).map(_.alias)
