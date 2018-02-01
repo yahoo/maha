@@ -20,9 +20,6 @@ import scala.util.{Failure, Success, Try}
 /**
  * Created by jians on 10/5/15.
  */
-object RmLogger {
-  val logger = LoggerFactory.getLogger(classOf[RequestModel])
-}
 case class DimensionCandidate(dim: PublicDimension
                               , fields: Set[String]
                               , filters: SortedSet[Filter]
@@ -189,7 +186,7 @@ case class RequestModel(cube: String
     val publicDimension: PublicDimension = dc.dim
     if (schemaRequiredAliases.forall(publicDimension.columnsByAlias)) {
       if (isDebugEnabled) {
-        RmLogger.logger.info(s"dimBundle.dim.isDerivedDimension: ${dim.name} ${dim.isDerivedDimension}, hasNonPushDownFilters: ${dc.hasNonPushDownFilters}")
+        RequestModel.info(s"dimBundle.dim.isDerivedDimension: ${dim.name} ${dim.isDerivedDimension}, hasNonPushDownFilters: ${dc.hasNonPushDownFilters}")
       }
       if (dim.isDerivedDimension) {
         if (dc.hasNonPushDownFilters) { // If derived dim has filter, then use inner join, otherwise use left outer join
