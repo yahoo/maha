@@ -149,45 +149,43 @@ case class RequestModel(cube: String
   def isSyncRequest : Boolean = requestType == SyncRequest
   def forceQueryEngine: Option[Engine] = additionalParameters.get(Parameter.QueryEngine).map(_.asInstanceOf[QueryEngineValue].value)
 
-  val schemaRequiredAliases = factSchemaRequiredAliasesMap.map(_._2).flatten.toSet
-
-  /*
-  defaultJoinType is the join type associated with fact to join the dimensions.
-   */
-  val defaultJoinType: Option[JoinType] =  if(bestCandidates.isDefined && dimensionsCandidates.nonEmpty) {
-    val factHasSchemaRequiredFields: Boolean = schemaRequiredAliases.forall(bestCandidates.get.publicFact.columnsByAlias.apply)
-    val hasAllDimsNonFKNonForceFilterAsync = isAsyncRequest && hasAllDimsNonFKNonForceFilter
-
-    val joinType: Option[JoinType] = {
-      if (forceDimDriven) {
-        Some(RightOuterJoin)
-      } else {
-        if (hasAllDimsNonFKNonForceFilterAsync) {
-          Some(InnerJoin)
-        } else
-        if (factHasSchemaRequiredFields) {
-          Some(LeftOuterJoin)
-        } else {
-          None
-        }
-      }
-    }
-    joinType
-  } else None
-
   /*
   Map to store the dimension name to JoinType associated with the given dimension based on the different constraints.
   defaultJoinType has higher preference than the joinType associated with the dimensions.
    */
-  val dimensionNameToJoinTypeMap : Map[String, JoinType]  = dimensionsCandidates.map {
+  val dimensionNameToJoinTypeMap : Map[String, JoinType]  = {
+    val schemaRequiredAliases = factSchemaRequiredAliasesMap.map(_._2).flatten.toSet
+    val defaultJoinType: Option[JoinType] =  if(bestCandidates.isDefined && dimensionsCandidates.nonEmpty) {
+      val factHasSchemaRequiredFields: Boolean = schemaRequiredAliases.forall(bestCandidates.get.publicFact.columnsByAlias.apply)
+      val hasAllDimsNonFKNonForceFilterAsync = isAsyncRequest && hasAllDimsNonFKNonForceFilter
+
+      val joinType: Option[JoinType] = {
+        if (forceDimDriven) {
+          Some(RightOuterJoin)
+        } else {
+          if (hasAllDimsNonFKNonForceFilterAsync) {
+            Some(InnerJoin)
+          } else
+          if (factHasSchemaRequiredFields) {
+            Some(LeftOuterJoin)
+          } else {
+            None
+          }
+        }
+      }
+      joinType
+    } else None
+
+    dimensionsCandidates.map {
       dc =>
         dc.dim.dimList.map{
           dimension =>
-            (dimension.name -> defaultJoinType.getOrElse(getJoinType(dimension, dc)))
+            (dimension.name -> defaultJoinType.getOrElse(getJoinType(dimension, dc, schemaRequiredAliases)))
         }.toMap
     }.flatten.toMap
+  }
 
-  def getJoinType(dim: Dimension, dc : DimensionCandidate): JoinType = {
+  private def getJoinType(dim: Dimension, dc : DimensionCandidate, schemaRequiredAliases: Set[String]): JoinType = {
     val publicDimension: PublicDimension = dc.dim
     if (schemaRequiredAliases.forall(publicDimension.columnsByAlias)) {
       if (isDebugEnabled) {
