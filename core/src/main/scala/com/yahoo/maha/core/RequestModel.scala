@@ -173,6 +173,15 @@ case class RequestModel(cube: String
       joinType
     } else None
 
+    //dim driven query
+    //1. fact ROJ driving dim (filter or no filter)
+    //2. fact ROJ driving dim IJ parent dim IJ parent dim
+    //fact driven query
+    //1. fact LOJ driving dim (no filter)
+    //2. fact LOJ driving dim (no filter) LOJ parent dim (no filter) LOJ parent dim (no filter)
+    //3. fact IJ driving dim (filter on anything)
+    //4. fact IJ driving dim IJ parent dim IJ parent dim
+
     dimensionsCandidates.map {
       dc =>
         dc.dim.dimList.map{
