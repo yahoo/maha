@@ -154,13 +154,13 @@ case class RequestModel(cube: String
     val schemaRequiredAliases = factSchemaRequiredAliasesMap.map(_._2).flatten.toSet
     val defaultJoinType: Option[JoinType] =  if(bestCandidates.isDefined && dimensionsCandidates.nonEmpty) {
       val factHasSchemaRequiredFields: Boolean = schemaRequiredAliases.forall(bestCandidates.get.publicFact.columnsByAlias.apply)
-      val hasAllDimsNonFKNonForceFilterAsync = isAsyncRequest && hasAllDimsNonFKNonForceFilter
 
       val joinType: Option[JoinType] = {
         if (forceDimDriven) {
           Some(RightOuterJoin)
+           //TO_DO parent inner join for all parent dims
         } else {
-          if (hasAllDimsNonFKNonForceFilterAsync) {
+          if (hasAllDimsNonFKNonForceFilter) {
             Some(InnerJoin)
           } else
           if (factHasSchemaRequiredFields) {
