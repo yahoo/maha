@@ -1892,7 +1892,7 @@ class RequestModelTest extends FunSuite with Matchers {
       .exists(ci => ci.alias === "Report Type" && ci.value === "MyType"))
     assert(res.toOption.get.factFilters.size === 1)
     assert(res.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
-    assert(res.get.dimensionNameToJoinTypeMap("campaign_dim") == InnerJoin, "Should RightOuterJoin as request is filtering on dim")
+    assert(res.get.dimensionNameToJoinTypeMap("campaign_dim") == InnerJoin, "Should InnerJoin as request is filtering on dim")
 
   }
 
@@ -1931,7 +1931,7 @@ class RequestModelTest extends FunSuite with Matchers {
       .exists(ci => ci.alias === "Report Type" && ci.value === "MyType"))
     assert(res.toOption.get.factFilters.size === 1)
     assert(res.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
-    assert(res.get.dimensionNameToJoinTypeMap("campaign_dim") == InnerJoin, "Should RightOuterJoin as request is filtering on dim")
+    assert(res.get.dimensionNameToJoinTypeMap("campaign_dim") == InnerJoin, "Should InnerJoin as request is filtering on dim")
 
   }
 
@@ -2109,7 +2109,7 @@ class RequestModelTest extends FunSuite with Matchers {
       s"${model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields}")
     assert(model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields.exists(_ === "Advertiser Status") === true,
       s"${model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields}")
-    assert(res.get.dimensionNameToJoinTypeMap("advertiser_dim") == LeftOuterJoin, "Should RightOuterJoin as request is fact driven and async")
+    assert(res.get.dimensionNameToJoinTypeMap("advertiser_dim") == LeftOuterJoin, "Should LeftOuterJoin as request is fact driven and async")
 
   }
 
