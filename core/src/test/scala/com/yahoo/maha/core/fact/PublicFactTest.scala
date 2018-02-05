@@ -68,7 +68,7 @@ class PublicFactTest extends FunSuite with Matchers {
           , Set(
             FactCol("impressions", IntType())
             , FactCol("clicks", IntType())
-          ), None, Set.empty, None, Fact.DEFAULT_COST_MULTIPLIER_MAP, Set.empty,10,100,None, None, None, None), Map(), None)
+          ), None, Set.empty, None, Fact.DEFAULT_COST_MULTIPLIER_MAP, Set.empty,10,100,None, None, None, None, None), Map(), None)
       }
     }
 
