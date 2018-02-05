@@ -97,6 +97,7 @@ case class ViewBaseTable private[fact](name: String
                                    , maxDaysWindow: Option[Map[RequestType, Int]]
                                    , maxDaysLookBack: Option[Map[RequestType, Int]]
                                    , availableOnwardsDate: Option[String]
+                                   , underlyingTableName: Option[String]
                                     ) extends FactView {
   validate()
 
@@ -202,7 +203,8 @@ case class ViewBaseTable private[fact](name: String
         this.viewBaseTable,
         this.maxDaysWindow,
         this.maxDaysLookBack,
-        this.availableOnwardsDate)
+        this.availableOnwardsDate,
+        this.underlyingTableName)
     }
   }
 
