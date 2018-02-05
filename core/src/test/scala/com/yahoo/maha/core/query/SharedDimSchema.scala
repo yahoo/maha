@@ -628,7 +628,7 @@ trait SharedDimSchema {
             DimCol("rtb_section_group_mobile", StrType(),annotations = Set(EscapingRequired)),
             DimCol("rtb_section_group_tablet", StrType(),annotations = Set(EscapingRequired))
             // DimCol("partition_id", IntType())  // Oracle Partition Derived ID Column
-            // annotations('oracle.partitionColumn','oracle.virtual.column','derivedExpression': "partitionIdFor(:snapshot_ts)
+            // annotations('oracle.partitionColumnAliases','oracle.virtual.column','derivedExpression': "partitionIdFor(:snapshot_ts)
           )
           , None
           , annotations = Set(OracleAdvertiserHashPartitioning)
@@ -710,7 +710,7 @@ trait SharedDimSchema {
             DimCol("rev_share", DecType(12,8)),
             DimCol("source_type", StrType())
             //DimCol("partition_id", IntType())  // Oracle Partition Derived ID Column
-            // annotations('oracle.partitionColumn','oracle.virtual.column','derivedExpression': "partitionIdFor(:snapshot_ts)
+            // annotations('oracle.partitionColumnAliases','oracle.virtual.column','derivedExpression': "partitionIdFor(:snapshot_ts)
           )
           , None
           , annotations = Set(OracleAdvertiserHashPartitioning)
@@ -788,7 +788,7 @@ trait SharedDimSchema {
             DimCol("last_update_ts", IntType()),
             DimCol("platform", StrType(), annotations = Set(EscapingRequired))
             // DimCol("partition_id", IntType())  // Oracle Partition Derived ID Column
-            // annotations('oracle.partitionColumn','oracle.virtual.column','derivedExpression': "partitionIdFor(:snapshot_ts)
+            // annotations('oracle.partitionColumnAliases','oracle.virtual.column','derivedExpression': "partitionIdFor(:snapshot_ts)
           )
           , None
           , annotations = Set(OracleAdvertiserHashPartitioning)
