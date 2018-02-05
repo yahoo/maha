@@ -213,7 +213,7 @@ class NewFactTest extends BaseFactTest {
           Set(
             FactCol("factcol1", StrType()),
             FactCol("factcol2", StrType(), DruidFilteredRollup(EqualityFilter("dimcol3", "1"), "factcol1", SumRollup))
-          ), None, Set.empty, None, Fact.DEFAULT_COST_MULTIPLIER_MAP,Set.empty, 10,100, None, None, None, None)
+          ), None, Set.empty, None, Fact.DEFAULT_COST_MULTIPLIER_MAP,Set.empty, 10,100, None, None, None, None, None)
       }
     }
     thrown.getMessage should startWith ("requirement failed: Column doesn't exist: dimcol3")
@@ -230,7 +230,7 @@ class NewFactTest extends BaseFactTest {
           Set(
             FactCol("factcol1", StrType()),
             FactCol("factcol2", StrType(), DruidFilteredListRollup(List(EqualityFilter("dimcol3", "1")), "factcol1", SumRollup))
-          ), None, Set.empty, None, Fact.DEFAULT_COST_MULTIPLIER_MAP,Set.empty, 10,100, None, None, None, None)
+          ), None, Set.empty, None, Fact.DEFAULT_COST_MULTIPLIER_MAP,Set.empty, 10,100, None, None, None, None, None)
       }
     }
     thrown.getMessage should startWith ("requirement failed: Column doesn't exist: dimcol3")
@@ -247,7 +247,7 @@ class NewFactTest extends BaseFactTest {
           Set(
             FactCol("factcol1", StrType()),
             FactCol("factcol2", StrType(), DruidFilteredRollup(EqualityFilter("dimcol2", "1"), "nonfactcol", SumRollup))
-          ), None, Set.empty, None, Fact.DEFAULT_COST_MULTIPLIER_MAP,Set.empty,10,100,None, None, None, None)
+          ), None, Set.empty, None, Fact.DEFAULT_COST_MULTIPLIER_MAP,Set.empty,10,100,None, None, None, None, None)
       }
     }
     thrown.getMessage should startWith ("requirement failed: Column doesn't exist: nonfactcol")
@@ -265,7 +265,7 @@ class NewFactTest extends BaseFactTest {
           Set(
             FactCol("factcol1", StrType()),
             FactCol("factcol2", StrType())
-          ), None, Set.empty, None, Fact.DEFAULT_COST_MULTIPLIER_MAP,Set.empty,10,100,None, None, None, None)
+          ), None, Set.empty, None, Fact.DEFAULT_COST_MULTIPLIER_MAP,Set.empty,10,100,None, None, None, None, None)
       }
     }
     thrown.getMessage should startWith ("requirement failed: Column doesn't exist: dimcol3")
@@ -285,7 +285,7 @@ class NewFactTest extends BaseFactTest {
             FactCol("factcol1", StrType()),
             FactCol("factcol2", StrType()),
             DruidPostResultDerivedFactCol("factcol3", StrType(), "{factcol1}" /- "{factcol2}", postResultFunction = POST_RESULT_DECODE("{dimcol3}", "0", "N/A"))
-          ), None, Set.empty, None, Fact.DEFAULT_COST_MULTIPLIER_MAP,Set.empty,10,100,None, None, None, None)
+          ), None, Set.empty, None, Fact.DEFAULT_COST_MULTIPLIER_MAP,Set.empty,10,100,None, None, None, None, None)
       }
     }
     thrown.getMessage should startWith ("requirement failed: Column doesn't exist: dimcol3")

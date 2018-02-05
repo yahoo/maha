@@ -324,6 +324,7 @@ trait Fact extends BaseTable {
   def maxDaysWindow: Option[Map[RequestType, Int]]
   def maxDaysLookBack: Option[Map[RequestType, Int]]
   def availableOnwardsDate: Option[String] // Local Date
+  def underlyingTableName: Option[String]
 }
 
 trait FactView extends Fact {
@@ -352,9 +353,10 @@ object Fact {
     viewBaseTable : Option[String] = None,
     maxDaysWindow: Option[Map[RequestType, Int]] = None,
     maxDaysLookBack: Option[Map[RequestType, Int]] = None,
-    availableOnwardsDate: Option[String] = None //Local Date
+    availableOnwardsDate: Option[String] = None, //Local Date,\
+    underlyingTableName: Option[String] = None
     ): FactBuilder = {
-    val baseFact = new FactTable(name, 9999, grain, engine, schemas, dimCols, factCols, None, annotations, ddlAnnotation, costMultiplierMap, forceFilters, defaultCardinality, defaultRowCount, viewBaseTable, maxDaysWindow, maxDaysLookBack, availableOnwardsDate)
+    val baseFact = new FactTable(name, 9999, grain, engine, schemas, dimCols, factCols, None, annotations, ddlAnnotation, costMultiplierMap, forceFilters, defaultCardinality, defaultRowCount, viewBaseTable, maxDaysWindow, maxDaysLookBack, availableOnwardsDate, underlyingTableName)
     val tableMap = Map(baseFact.name -> baseFact)
     FactBuilder(baseFact, tableMap, dimCardinalityLookup)
   }
@@ -377,6 +379,7 @@ object Fact {
                                      , maxDaysWindow: Option[Map[RequestType, Int]]
                                      , maxDaysLookBack: Option[Map[RequestType, Int]]
                                      , availableOnwardsDate: Option[String]
+                                     , underlyingTableName: Option[String]
                                       ) extends FactView {
 
     View.validateView(view, dimCols, factCols)
@@ -430,8 +433,9 @@ object Fact {
                       viewBaseTable : Option[String] = None,
                       maxDaysWindow: Option[Map[RequestType, Int]] = None,
                       maxDaysLookBack: Option[Map[RequestType, Int]] = None,
-                      availableOnwardsDate: Option[String] = None) : FactBuilder = {
-    val baseView = new ViewTable(view, 9999, grain, engine, schemas, dimCols, factCols, None, annotations, ddlAnnotation, costMultiplierMap,forceFilters,defaultCardinality,defaultRowCount, viewBaseTable, maxDaysWindow, maxDaysLookBack, availableOnwardsDate)
+                      availableOnwardsDate: Option[String] = None,
+                      underlyingTableName: Option[String] = None) : FactBuilder = {
+    val baseView = new ViewTable(view, 9999, grain, engine, schemas, dimCols, factCols, None, annotations, ddlAnnotation, costMultiplierMap,forceFilters,defaultCardinality,defaultRowCount, viewBaseTable, maxDaysWindow, maxDaysLookBack, availableOnwardsDate, underlyingTableName)
     val tableMap = Map(view.viewName -> baseView)
     FactBuilder(baseView, tableMap, dimCardinalityLookup)
   }
@@ -446,7 +450,7 @@ object Fact {
                annotations: Set[FactAnnotation] = Set.empty,
                forceFilters: Set[ForceFilter] = Set.empty,
                costMultiplierMap: Map[RequestType, CostMultiplier] = DEFAULT_COST_MULTIPLIER_MAP): ViewBaseTable = {
-    new ViewBaseTable(name, 9999, grain, engine, schemas, dimCols, factCols, None, annotations, None, costMultiplierMap, forceFilters,DEFAULT_CARDINALITY,DEFAULT_ROWCOUNT, None, None, None, None)
+    new ViewBaseTable(name, 9999, grain, engine, schemas, dimCols, factCols, None, annotations, None, costMultiplierMap, forceFilters,DEFAULT_CARDINALITY,DEFAULT_ROWCOUNT, None, None, None, None, None)
   }
 }
 
@@ -468,6 +472,7 @@ case class FactTable private[fact](name: String
                                    , maxDaysWindow: Option[Map[RequestType, Int]]
                                    , maxDaysLookBack: Option[Map[RequestType, Int]]
                                    , availableOnwardsDate: Option[String]
+                                   , underlyingTableName: Option[String]
                                     ) extends Fact {
   validate()
 
@@ -683,7 +688,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , columnAliasMap : Map[String, String] = Map.empty
                    , forceFilters: Set[ForceFilter] = Set.empty
                    , resetAliasIfNotPresent: Boolean = false
-                   , availableOnwardsDate : Option[String] = None ) : FactBuilder= {
+                   , availableOnwardsDate : Option[String] = None
+                   , underlyingTableName: Option[String] = None) : FactBuilder= {
     baseValidate(from, name)
     ColumnContext.withColumnContext { columnContext =>
       val fromTable = tableMap.get(from).get
@@ -712,6 +718,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
         , fromTable.maxDaysWindow
         , fromTable.maxDaysLookBack
         , availableOnwardsDate
+        , underlyingTableName
       )
       this
     }
@@ -723,7 +730,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                     , columnAliasMap : Map[String, String] = Map.empty
                     , forceFilters: Set[ForceFilter] = Set.empty
                     , resetAliasIfNotPresent: Boolean = false
-                    , availableOnwardsDate : Option[String] = None) : FactBuilder = {
+                    , availableOnwardsDate : Option[String] = None
+                    , underlyingTableName: Option[String] = None) : FactBuilder = {
     baseValidate(from, name)
     ColumnContext.withColumnContext { columnContext =>
       val fromTable = tableMap.get(from).get
@@ -752,6 +760,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
         , fromTable.maxDaysWindow
         , fromTable.maxDaysLookBack
         , availableOnwardsDate
+        , underlyingTableName
       )
       this
     }
@@ -764,7 +773,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                             , columnAliasMap : Map[String, String] = Map.empty
                             , forceFilters: Set[ForceFilter] = Set.empty
                             , resetAliasIfNotPresent: Boolean = false
-                            , availableOnwardsDate : Option[String] = None) : FactBuilder = {
+                            , availableOnwardsDate : Option[String] = None
+                            , underlyingTableName: Option[String] = None) : FactBuilder = {
     baseValidate(from, name)
     ColumnContext.withColumnContext { columnContext =>
       val fromTable = tableMap.get(from).get
@@ -794,6 +804,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
         , fromTable.maxDaysWindow
         , fromTable.maxDaysLookBack
         , availableOnwardsDate
+        , underlyingTableName
       )
       this
     }
@@ -815,7 +826,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                             , defaultRowCount:Int = 100
                             , maxDaysWindow: Option[Map[RequestType, Int]] = None
                             , maxDaysLookBack: Option[Map[RequestType, Int]] = None
-                            , availableOnwardsDate : Option[String] = None)(implicit cc: ColumnContext) : FactBuilder = {
+                            , availableOnwardsDate : Option[String] = None
+                            , underlyingTableName: Option[String] = None)(implicit cc: ColumnContext) : FactBuilder = {
 
     require(!tableMap.contains(name), "should not export with existing table name")
     require(tableMap.nonEmpty, "no tables found")
@@ -920,6 +932,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                  , if (maxDaysWindow.isDefined) maxDaysWindow else fromTable.maxDaysWindow
                  , if (maxDaysLookBack.isDefined) maxDaysLookBack else fromTable.maxDaysLookBack
                  , availableOnwardsDate
+                 , underlyingTableName
                ))
 
     this
@@ -942,7 +955,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                             , defaultRowCount:Int = 100
                             , maxDaysWindow: Option[Map[RequestType, Int]] = None
                             , maxDaysLookBack: Option[Map[RequestType, Int]] = None
-                            , availableOnwardsDate : Option[String] = None)(implicit cc: ColumnContext) : FactBuilder = {
+                            , availableOnwardsDate : Option[String] = None
+                            , underlyingTableName: Option[String] = None)(implicit cc: ColumnContext) : FactBuilder = {
 
     require(!tableMap.contains(name), s"should not export with existing table name $name")
     require(tableMap.nonEmpty, "no tables found")
@@ -1070,6 +1084,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
         , if (maxDaysWindow.isDefined) maxDaysWindow else fromTable.maxDaysWindow
         , if (maxDaysLookBack.isDefined) maxDaysLookBack else fromTable.maxDaysLookBack
         , availableOnwardsDate
+        , underlyingTableName
       ))
 
     this
@@ -1083,7 +1098,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , columnAliasMap : Map[String, String] = Map.empty
                    , forceFilters: Set[ForceFilter] = Set.empty
                    , resetAliasIfNotPresent: Boolean = false
-                   , availableOnwardsDate : Option[String] = None) : FactBuilder = {
+                   , availableOnwardsDate : Option[String] = None
+                   , underlyingTableName: Option[String] = None) : FactBuilder = {
     require(tableMap.nonEmpty, "no table to create subset from")
     require(tableMap.contains(from), s"from table not valid $from")
     require(!tableMap.contains(name), s"table $name already exists")
@@ -1162,6 +1178,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
           , fromTable.maxDaysWindow
           , fromTable.maxDaysLookBack
           , availableOnwardsDate
+          , underlyingTableName
         ))
 
       this
@@ -1183,6 +1200,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                 , maxDaysWindow: Option[Map[RequestType, Int]] = None
                 , maxDaysLookBack: Option[Map[RequestType, Int]] = None
                 , availableOnwardsDate : Option[String] = None
+                , underlyingTableName: Option[String] = None
                ) : FactBuilder = {
     require(tableMap.nonEmpty, "no table to roll up from")
     require(tableMap.contains(from), s"from table not valid $from")
@@ -1298,6 +1316,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
           , if (maxDaysWindow.isDefined) maxDaysWindow else fromTable.maxDaysWindow
           , if (maxDaysLookBack.isDefined) maxDaysLookBack else fromTable.maxDaysLookBack
           , availableOnwardsDate
+          , underlyingTableName
       ))
       this
     }
@@ -1398,6 +1417,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
           , fromTable.maxDaysWindow
           , fromTable.maxDaysLookBack
           , None // availableFromDate is not inherited
+          , None // underlyingTableName is not inherited
         ))
       this
     }
