@@ -151,31 +151,6 @@ case class RequestModel(cube: String
   defaultJoinType has higher preference than the joinType associated with the dimensions.
    */
   val dimensionNameToJoinTypeMap : Map[String, JoinType]  = {
-    val schema: Schema = reportingRequest.schema
-    val schemaRequiredAliases = factSchemaRequiredAliasesMap.map(_._2).flatten.toSet
-    //val hasSchemaRequiredFields: Boolean = schemaRequiredAliases.forall(bestCandidates.get.publicFact.columnsByAlias.apply)
-    /*
-    val defaultJoinType: Option[JoinType] =  if(bestCandidates.isDefined && dimensionsCandidates.nonEmpty) {
-
-      val joinType: Option[JoinType] = {
-        if (forceDimDriven) {
-          Some(RightOuterJoin)
-           //TO_DO parent inner join for all parent dims
-        } else {
-          if (hasAllDimsNonFKNonForceFilter) {
-            Some(InnerJoin)
-          } else
-          if (hasSchemaRequiredFields) {
-            Some(LeftOuterJoin)
-          } else {
-            None
-          }
-        }
-      }
-      joinType
-    } else None
-    */
-
     //dim driven query
     //1. fact ROJ driving dim (filter or no filter)
     //2. fact ROJ driving dim (filter or no filter) LOJ parent dim LOJ parent dim
@@ -186,35 +161,12 @@ case class RequestModel(cube: String
     //3. fact IJ driving dim (filter on anything)
     //4. fact IJ driving dim IJ parent dim IJ parent dim
 
-    /*
-    val drivingDimJoinType: Option[JoinType] = if(dimensionsCandidates.isEmpty) None else {
-      val hasSchemaRequiredNonKeyField: Boolean = dimensionsCandidates.head.dim.schemaRequiredAlias(schema).exists(!_.isKey)
-      if(forceDimDriven) {
-        Some(RightOuterJoin)
-      } else {
-        if(hasAllDimsNonFKNonForceFilter || hasSchemaRequiredNonKeyField) {
-          Some(InnerJoin)
-        } else {
-          Some(LeftOuterJoin)
-        }
-      }
-    }*/
-
-    /*
-    dimensionsCandidates.map {
-      dc =>
-        dc.dim.dimList.map{
-          dimension =>
-            (dimension.name -> defaultJoinType.getOrElse(getJoinType(dimension, dc, schemaRequiredAliases)))
-        }.toMap
-    }.flatten.toMap
-    */
-
-    //require(dimensionsCandidates.isEmpty || (dimensionsCandidates.nonEmpty && drivingDimJoinType.nonEmpty), "No driving dim join type defined!")
+    val schema: Schema = reportingRequest.schema
     val anyDimsHasSchemaRequiredNonKeyField: Boolean = dimensionsCandidates.exists(
       _.dim.schemaRequiredAlias(schema).exists(!_.isKey))
     dimensionsCandidates.flatMap {
       dc =>
+        //driving dim case
         if(dc.isDrivingDimension) {
           dc.dim.dimList.map {
             dimension => dimension.name -> {
@@ -231,6 +183,8 @@ case class RequestModel(cube: String
             }
           }
         } else {
+          //non driving dim case
+
           if(forceDimDriven) {
             dc.dim.dimList.map {
               dimension => dimension.name -> InnerJoin
