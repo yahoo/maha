@@ -1008,7 +1008,7 @@ object RequestModel extends Logging {
             hasNonDrivingDimSortOrFilter = hasNonDrivingDimSortOrFilter,
             hasDrivingDimNonFKNonPKSortBy = hasDrivingDimNonFKNonPKSortBy,
             hasNonDrivingDimNonFKNonPKFilter =  hasNonDrivingDimNonFKNonPKFilter,
-            anyDimHasNonFKNonForceFilter = hasAllDimsNonFKNonForceFilter,
+            anyDimHasNonFKNonForceFilter = anyDimHasNonFKNonForceFilter,
             schema = request.schema,
             requestType = request.requestType,
             localTimeDayFilter = localTimeDayFilter,
