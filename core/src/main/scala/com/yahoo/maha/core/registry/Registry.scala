@@ -47,10 +47,6 @@ class RegistryBuilder{
     this
   }
 
-  def build() : Registry ={
-    build(new DefaultDimEstimator, new DefaultFactEstimator, Map.empty, Map.empty)
-  }
-
   def build( dimEstimator:DimCostEstimator=new DefaultDimEstimator,
              factEstimator: FactCostEstimator=new DefaultFactEstimator,
              defaultPublicFactRevisionMap: Map[String, Int] = Map.empty,
