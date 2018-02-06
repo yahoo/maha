@@ -192,6 +192,11 @@ trait BaseHiveQueryGeneratorTest
             , FactCol("budget", DecType(0, "0.0"))
             , FactCol("forecasted_budget", DecType(0, "0.0"))
             , HiveDerFactCol("forecasted_spend", DecType(0, "0.0"), HiveDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = SumRollup)
+            , HiveDerFactCol("max_rollup_spend", DecType(0, "0.0"), HiveDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = MaxRollup)
+            , HiveDerFactCol("min_rollup_spend", DecType(0, "0.0"), HiveDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = MinRollup)
+            , HiveDerFactCol("avg_rollup_spend", DecType(0, "0.0"), HiveDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = AverageRollup)
+            , HiveDerFactCol("custom_rollup_spend", DecType(0, "0.0"), HiveDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = HiveCustomRollup(""))
+            , HiveDerFactCol("noop_rollup_spend", DecType(0, "0.0"), HiveDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = NoopRollup)
           )
           , ddlAnnotation = Option(
             HiveDDLAnnotation(Map(),
@@ -242,6 +247,11 @@ trait BaseHiveQueryGeneratorTest
         , PublicFactCol("budget", "Budget", InBetweenEquality)
         , PublicFactCol("spend", "Spend", InBetweenEquality)
         , PublicFactCol("forecasted_spend", "Forecasted Spend", InBetweenEquality)
+        , PublicFactCol("max_rollup_spend", "Max Rollup Spend", InBetweenEquality)
+        , PublicFactCol("min_rollup_spend", "Min Rollup Spend", InBetweenEquality)
+        , PublicFactCol("avg_rollup_spend", "Avg Rollup Spend", InBetweenEquality)
+        , PublicFactCol("custom_rollup_spend", "Custom Rollup Spend", InBetweenEquality)
+        , PublicFactCol("noop_rollup_spend", "Noop Rollup Spend", InBetweenEquality)
       ),
       Set(EqualityFilter("Status","Valid", isForceFilter = true)),
       Map(

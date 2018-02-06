@@ -38,6 +38,23 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
 
   }
 
+  test("generating hive query with custom rollups") {
+    val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_query_generator_test_custom_rollups.json")
+      .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+
+  }
+
   test("user stats hourly") {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "user_stats_hourly.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)

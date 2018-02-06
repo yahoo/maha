@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.fact
 
-import com.yahoo.maha.core.{WithDruidEngine, ClassNameHashCode, WithOracleEngine, WithHiveEngine}
+import com.yahoo.maha.core._
 
 /**
  * Created by hiral on 10/7/15.
@@ -25,6 +25,9 @@ case class OracleFactStaticHint(hint: String) extends FactStaticHint with FactAn
 case class OracleFactDimDrivenHint(hint: String) extends FactDimDrivenHint with FactAnnotationInstance with WithOracleEngine
 
 case class OraclePartitioningScheme(schemeName:String) extends PartitioningScheme  with FactAnnotationInstance with WithOracleEngine
+
+case class PrestoPartitioningScheme(schemeName:String) extends PartitioningScheme  with FactAnnotationInstance with WithPrestoEngine
+
 case class DruidQueryPriority(priority: Int) extends FactAnnotationInstance with WithDruidEngine
 case object DruidGroupByStrategyV1 extends FactAnnotationInstance with WithDruidEngine
 case object DruidGroupByStrategyV2 extends FactAnnotationInstance with WithDruidEngine

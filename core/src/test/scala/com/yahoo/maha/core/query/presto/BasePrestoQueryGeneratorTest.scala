@@ -199,6 +199,11 @@ trait BasePrestoQueryGeneratorTest
             , FactCol("budget", DecType(0, "0.0"))
             , FactCol("forecasted_budget", DecType(0, "0.0"))
             , PrestoDerFactCol("forecasted_spend", DecType(0, "0.0"), PrestoDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = SumRollup)
+            , PrestoDerFactCol("max_rollup_spend", DecType(0, "0.0"), PrestoDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = MaxRollup)
+            , PrestoDerFactCol("min_rollup_spend", DecType(0, "0.0"), PrestoDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = MinRollup)
+            , PrestoDerFactCol("avg_rollup_spend", DecType(0, "0.0"), PrestoDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = AverageRollup)
+            , PrestoDerFactCol("custom_rollup_spend", DecType(0, "0.0"), PrestoDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = PrestoCustomRollup(""))
+            , PrestoDerFactCol("noop_rollup_spend", DecType(0, "0.0"), PrestoDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = NoopRollup)
           )
           , ddlAnnotation = Option(
             PrestoDDLAnnotation(Map(),
@@ -221,7 +226,7 @@ trait BasePrestoQueryGeneratorTest
                   "budget",
                   "forecasted_budget",
                   "last_updated"
-                )))
+                ))), annotations = Set(PrestoPartitioningScheme("frequency"))
         )
       }
     }
@@ -249,6 +254,11 @@ trait BasePrestoQueryGeneratorTest
         , PublicFactCol("budget", "Budget", InBetweenEquality)
         , PublicFactCol("spend", "Spend", InBetweenEquality)
         , PublicFactCol("forecasted_spend", "Forecasted Spend", InBetweenEquality)
+        , PublicFactCol("max_rollup_spend", "Max Rollup Spend", InBetweenEquality)
+        , PublicFactCol("min_rollup_spend", "Min Rollup Spend", InBetweenEquality)
+        , PublicFactCol("avg_rollup_spend", "Avg Rollup Spend", InBetweenEquality)
+        , PublicFactCol("custom_rollup_spend", "Custom Rollup Spend", InBetweenEquality)
+        , PublicFactCol("noop_rollup_spend", "Noop Rollup Spend", InBetweenEquality)
       ),
       Set(EqualityFilter("Status","Valid", isForceFilter = true)),
       Map(

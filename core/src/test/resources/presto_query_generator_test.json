@@ -10,11 +10,15 @@
     { "field" : "Keyword" },
     { "field" : "Search Term" },
     { "field" : "Delivered Match Type" },
-    { "field" : "Impressions" }
+    { "field" : "Impressions" },
+    { "field" : "Ad Group Start Date Full"},
+    { "field" : "Clicks"},
+    { "field" : "Average CPC"}
   ],
   "filterExpressions":[
     { "field": "Day", "operator": "between", "from": "{from_date}", "to": "{to_date}" },
-    { "field":"Advertiser ID", "operator":"=", "value":"12345" }
+    { "field":"Advertiser ID", "operator":"=", "value":"12345" },
+    { "field":"Clicks", "operator":"between", "from": "0", "to": "100000" }
   ],
   "sortBy": [
     { "field": "Impressions", "order": "Asc" }
