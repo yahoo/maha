@@ -100,7 +100,7 @@ class createSubsetTest extends BaseFactTest {
             , DimCol("dimcol2", IntType())),
           Set(
             FactCol("factcol1", StrType())
-          ), None, Set.empty, None, Fact.DEFAULT_COST_MULTIPLIER_MAP,Set.empty,10,100,None, None, None, None)
+          ), None, Set.empty, None, Fact.DEFAULT_COST_MULTIPLIER_MAP,Set.empty,10,100,None, None, None, None, None)
         val fb = new FactBuilder(base_fact, Map(), None)
         fb.createSubset("fact2", "base_fact", Set("clicks"), Set.empty, availableOnwardsDate = Some(toDate))
       }
