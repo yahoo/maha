@@ -35,7 +35,6 @@ class QueryBuilderContext {
     tableAliasMap.get(name) match {
       case None => {
         val alias = s"${name.split("_").map(_.substring(0, 1)).mkString("")}$aliasIndex"
-        println("Name: "  + name + " Alias: " + alias + " map: " + tableAliasMap)
         aliasIndex += 1
         tableAliasMap += name -> alias
         alias
