@@ -149,7 +149,7 @@ trait BaseFactTest extends FunSuite with Matchers {
     fb.toPublicFact("publicFact",
       Set(
         PubCol("account_id", "Advertiser Id", InEquality),
-        PubCol("stats_source", "Source", Equality),
+        PubCol("stats_source", "Source", BetweenEquality),
         PubCol("price_type", "Pricing Type", In),
         PubCol("landing_page_url", "Destination URL", Set.empty)
       ),

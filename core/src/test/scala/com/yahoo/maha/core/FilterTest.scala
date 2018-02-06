@@ -21,9 +21,23 @@ class FilterTest extends FunSuite with Matchers {
   def render[T, O](renderer: FilterRenderer[T, O], filter: T, literalMapper: LiteralMapper, engine: Engine, column: Column) : O = {
     renderer.render(column.name, filter, literalMapper, column, engine, None)
   }
+
+  def renderWithGrain[T, O](renderer: FilterRenderer[T, O], filter: T, literalMapper: LiteralMapper, engine: Engine, column: Column, grain : Grain) : O = {
+    renderer.render(column.name, filter, literalMapper, column, engine, Some(grain))
+  }
   
   implicit val columnContext: ColumnContext = new ColumnContext
   val col = DimCol("field1", StrType())
+  val dateCol = DimCol("stats_date", DateType())
+
+  test("BetweenFilter with a defined grain should modify the output result to include it.") {
+    val filter = BetweenFilter("stats_date", "2018-01-01", "2018-01-07")
+    val dailyResult = renderWithGrain(SqlBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, dateCol, DailyGrain).filter
+    dailyResult shouldBe "stats_date >= trunc(to_date('2018-01-01', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('2018-01-07', 'YYYY-MM-DD'))"
+    val hourlyResult = renderWithGrain(SqlBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, dateCol, HourlyGrain).filter
+    hourlyResult shouldBe "stats_date >= to_date('2018-01-01', 'HH24') AND stats_date <= to_date('2018-01-07', 'HH24')"
+
+  }
 
   test("InFilter should render correct string for Oracle") {
     val filter = InFilter("field1", List("abc", "def", "ghi"))
