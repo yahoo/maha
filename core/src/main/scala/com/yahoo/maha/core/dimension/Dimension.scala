@@ -713,6 +713,20 @@ case class DimensionBuilder private[dimension](private val baseDim: Dimension, p
   def toPublicDimension(name: String, grainKey:String, columns: Set[PublicDimColumn], forcedFilters: Set[ForcedFilter] = Set.empty, revision: Int = 0, highCardinalityFilters: Set[Filter] = Set.empty) : PublicDimension = {
     var ts: TreeSet[Filter] = TreeSet.empty(Filter.baseFilterOrdering)
     ts ++= highCardinalityFilters
+    val schemaTableColMap : Map[Schema, Map[String, String]] = {
+      val allDims: Set[Dimension] = Set(baseDim) ++ tableMap.values
+      val dimSchemColMap: Set[(String, Schema, String)] = allDims.flatMap(d => d.schemaColFilterMap.map(kv => (d.name, kv._1, kv._2)))
+      dimSchemColMap.groupBy(_._2).mapValues(_.map(tpl => tpl._1 -> tpl._3).toMap)
+    }
+    schemaTableColMap.foreach { case (schema, nameColMap) =>
+      val groupedByCol: Map[String, Map[String, String]] = nameColMap.groupBy {
+        case (name, col) => col
+      }
+      val groupFlattened = groupedByCol.map {
+        case (col, nameColMap) => col -> nameColMap.keys.toSet
+      }
+      require(groupFlattened.size == 1, s"Schema $schema requires different columns across underlying tables : $groupFlattened")
+    }
     new PublicDim(name, grainKey, baseDim, columns, tableMap, forcedFilters, ts, revision)
   }
 
@@ -732,6 +746,7 @@ case class PubCol(name: String
                   , filteringRequired: Boolean = false
                   , restrictedSchemas: Set[Schema] = Set.empty) extends PublicDimColumn
 
+case class RequiredAlias(name: String, alias: String, isKey: Boolean)
 trait PublicDimension extends PublicTable {
   def revision: Int
 
@@ -743,7 +758,7 @@ trait PublicDimension extends PublicTable {
 
   def schemas: Set[Schema]
 
-  def schemaRequiredAlias(schema: Schema): Option[String]
+  def schemaRequiredAlias(schema: Schema): Option[RequiredAlias]
 
   //def forSchema(schema: Schema): Option[Map[Engine, Dimension]]
   //def forEngine(engine: Engine, schema: Schema) : Option[Dimension]
@@ -874,6 +889,11 @@ case class PublicDim (name: String
 
   private[this] val aliasColumnMap = columns.map(col => (col.alias, col.name)).toMap
   private[this] val columnAliasMap = columns.map(col => (col.name, col.alias)).toMap
+  private[this] val schemaRequiredAliasMap: Map[Schema, RequiredAlias] = baseDim.schemas.collect {
+    case schema if baseDim.schemaColFilterMap.contains(schema) =>
+      val name = baseDim.schemaColFilterMap(schema)
+      schema -> RequiredAlias(name, columnAliasMap(name), baseDim.columnsByNameMap(name).isKey)
+  }.toMap
 
   validateForcedFilters()
 
@@ -898,7 +918,7 @@ case class PublicDim (name: String
     dims.values.foreach(_.postValidate(this))
   }
 
-  override def schemaRequiredAlias(schema: Schema) : Option[String] = baseDim.schemaColFilterMap.get(schema).map(columnAliasMap.apply)
+  override def schemaRequiredAlias(schema: Schema) : Option[RequiredAlias] = schemaRequiredAliasMap.get(schema)
 
   override def dimLevel: DimLevel = baseDim.dimLevel
 
