@@ -1869,13 +1869,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |            GROUP BY advertiser_id, campaign_id, ad_group_id
                       |
                       |           ) af0
-                      |           RIGHT OUTER JOIN
+                      |           INNER JOIN
                       |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
                       |            FROM advertiser_oracle
                       |            WHERE (managed_by = 12345)
                       |             )
                       |           ao1 ON (af0.advertiser_id = ao1.id)
-                      |           LEFT OUTER JOIN
+                      |           INNER JOIN
                       |           (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
                       |            FROM campaign_oracle
                       |
@@ -2764,19 +2764,19 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |            GROUP BY advertiser_id, campaign_id, ad_group_id
                       |
                       |           ) af0
-                      |           RIGHT OUTER JOIN
+                      |           INNER JOIN
                       |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
                       |            FROM advertiser_oracle
                       |            WHERE (managed_by = 12345)
                       |             )
                       |           ao1 ON (af0.advertiser_id = ao1.id)
-                      |           LEFT OUTER JOIN
+                      |           INNER JOIN
                       |           (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
                       |            FROM campaign_oracle
                       |
                       |             )
                       |           co2 ON ( af0.advertiser_id = co2.advertiser_id AND af0.campaign_id = co2.id)
-                      |           LEFT OUTER JOIN
+                      |           INNER JOIN
                       |           (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
                       |            FROM ad_group_oracle
                       |
@@ -2997,106 +2997,6 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
 
     result should equal (expected) (after being whiteSpaceNormalised)
-  }
-
-  test("successfully generate fact driven query with right outer join when schema required fields are not present in the fact and with outer filters") {
-    val jsonString = s"""{
-                           "cube": "performance_stats",
-                           "selectFields": [
-                             {
-                               "field": "Campaign ID",
-                               "alias": null,
-                               "value": null
-                             },
-                             {
-                               "field": "Ad Group ID",
-                               "alias": null,
-                               "value": null
-                             },
-                             {
-                               "field": "Ad Group Status",
-                               "alias": null,
-                               "value": null
-                             },
-                             {
-                               "field": "Advertiser Status",
-                               "alias": null,
-                               "value": null
-                             },
-                             {
-                               "field": "Campaign Name",
-                               "alias": null,
-                               "value": null
-                             },
-                             {
-                               "field": "Impressions",
-                               "alias": null,
-                               "value": null
-                             },
-                             {
-                               "field": "CTR",
-                               "alias": null,
-                               "value": null
-                             }
-                           ],
-                           "filterExpressions": [
-                             {"operator": "outer", "outerFilters": [
-                                  {"field": "Ad Group ID", "operator": "isnull"},
-                                  {"field": "Ad Group Status", "operator": "=", "value":"ON"}
-                                  ]
-                             },
-                              {"field": "Reseller ID", "operator": "=", "value": "12345"},
-                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
-                           ],
-                           "forceDimensionDriven": false
-                         }"""
-
-    val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), ResellerSchema).toOption.get
-    val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
-    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
-
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-
-
-    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    val expected = s"""
-                      |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
-                      |FROM (SELECT to_char(ago3.campaign_id) "Campaign ID", to_char(ago3.id) "Ad Group ID", ago3."Ad Group Status" "Ad Group Status", ao1."Advertiser Status" "Advertiser Status", co2.campaign_name "Campaign Name", coalesce(af0."impressions", 1) "Impressions", ROUND(af0."CTR", 10) "CTR"
-                      |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-                      |                   advertiser_id, campaign_id, ad_group_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
-                      |            FROM ad_fact1 FactAlias
-                      |            WHERE (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-                      |            GROUP BY advertiser_id, campaign_id, ad_group_id
-                      |
-                      |           ) af0
-                      |           RIGHT OUTER JOIN
-                      |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
-                      |            FROM advertiser_oracle
-                      |            WHERE (managed_by = 12345)
-                      |             )
-                      |           ao1 ON (af0.advertiser_id = ao1.id)
-                      |           LEFT OUTER JOIN
-                      |           (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
-                      |            FROM campaign_oracle
-                      |
-                      |             )
-                      |           co2 ON ( af0.advertiser_id = co2.advertiser_id AND af0.campaign_id = co2.id)
-                      |           LEFT OUTER JOIN
-                      |           (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
-                      |            FROM ad_group_oracle
-                      |
-                      |             )
-                      |           ago3 ON ( af0.advertiser_id = ago3.advertiser_id AND af0.ad_group_id = ago3.id)
-                      |
-                      |) WHERE ( "Ad Group ID"   IS NULL) AND ( "Ad Group Status"   = 'ON')
-                      |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
-                      |
-                      |""".stripMargin
-
-
-    result should equal (expected)(after being whiteSpaceNormalised)
   }
 
   test("PowerEditor: Use case1") {

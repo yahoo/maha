@@ -486,7 +486,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
 
       val dimWhere = s"""WHERE ${AndFilter(wheres + partitionFilters).toString}"""
 
-      val joinType = if (requestModel.hasAllDimsNonFKNonForceFilter) {
+      val joinType = if (requestModel.anyDimHasNonFKNonForceFilter) {
         "JOIN"
       } else {
         "LEFT OUTER JOIN"
