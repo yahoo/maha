@@ -300,7 +300,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    assert(requestModel.toOption.get.hasAllDimsNonFKNonForceFilter == true)
+    assert(requestModel.toOption.get.anyDimHasNonFKNonForceFilter == true)
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
@@ -318,7 +318,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    assert(requestModel.toOption.get.hasAllDimsNonFKNonForceFilter == false)
+    assert(requestModel.toOption.get.anyDimHasNonFKNonForceFilter == false)
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))

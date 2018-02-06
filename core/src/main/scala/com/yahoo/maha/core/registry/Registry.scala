@@ -149,7 +149,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
       "Size mismatch where non expected after flattening and converting to map")
     mapOfFactNameSchemaWithPubDimensions.map {
       case ((factName, schema, publicFactName, revision), publicDimSet) =>
-        (factName, schema, publicFactName) -> publicDimSet.map(_.schemaRequiredAlias(schema)).flatten.toSet
+        (factName, schema, publicFactName) -> publicDimSet.map(_.schemaRequiredAlias(schema).map(_.alias)).flatten.toSet
     }
   }
 
@@ -386,7 +386,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
       }
 
       val schemaColAliasMap = foreignSources
-        .map(dim => dim.schemas.map(s => (s, dim.schemaRequiredAlias(s)))
+        .map(dim => dim.schemas.map(s => (s, dim.schemaRequiredAlias(s).map(_.alias)))
         .collect {
           case (s, Some(alias)) => (s.toString, toJSON(alias))
         }).flatten.toMap
@@ -487,7 +487,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
       }
 
       val schemaColAliasMap = foreignSources
-        .map(dim => dim.schemas.map(s => (s, dim.schemaRequiredAlias(s)))
+        .map(dim => dim.schemas.map(s => (s, dim.schemaRequiredAlias(s).map(_.alias)))
           .collect {
             case (s, Some(alias)) => (s.toString, toJSON(alias))
           }).flatten.toMap

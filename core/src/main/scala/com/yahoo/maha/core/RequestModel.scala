@@ -110,7 +110,7 @@ case class RequestModel(cube: String
                         , hasNonDrivingDimSortOrFilter: Boolean
                         , hasDrivingDimNonFKNonPKSortBy: Boolean
                         , hasNonDrivingDimNonFKNonPKFilter: Boolean
-                        , hasAllDimsNonFKNonForceFilter: Boolean
+                        , anyDimHasNonFKNonForceFilter: Boolean
                         , schema: Schema
                         , utcTimeDayFilter: Filter
                         , localTimeDayFilter: Filter
@@ -151,44 +151,57 @@ case class RequestModel(cube: String
   defaultJoinType has higher preference than the joinType associated with the dimensions.
    */
   val dimensionNameToJoinTypeMap : Map[String, JoinType]  = {
-    val schemaRequiredAliases = factSchemaRequiredAliasesMap.map(_._2).flatten.toSet
-    val defaultJoinType: Option[JoinType] =  if(bestCandidates.isDefined && dimensionsCandidates.nonEmpty) {
-      val factHasSchemaRequiredFields: Boolean = schemaRequiredAliases.forall(bestCandidates.get.publicFact.columnsByAlias.apply)
-      val hasAllDimsNonFKNonForceFilterAsync = isAsyncRequest && hasAllDimsNonFKNonForceFilter
-
-      val joinType: Option[JoinType] = {
-        if (forceDimDriven) {
-          Some(RightOuterJoin)
-        } else {
-          if (hasAllDimsNonFKNonForceFilterAsync) {
-            Some(InnerJoin)
-          } else
-          if (factHasSchemaRequiredFields) {
-            Some(LeftOuterJoin)
-          } else {
-            None
-          }
-        }
-      }
-      joinType
-    } else None
-
     //dim driven query
     //1. fact ROJ driving dim (filter or no filter)
-    //2. fact ROJ driving dim IJ parent dim IJ parent dim
+    //2. fact ROJ driving dim (filter or no filter) LOJ parent dim LOJ parent dim
+    //3. fact ROJ driving dim IJ parent dim IJ parent dim
     //fact driven query
     //1. fact LOJ driving dim (no filter)
     //2. fact LOJ driving dim (no filter) LOJ parent dim (no filter) LOJ parent dim (no filter)
     //3. fact IJ driving dim (filter on anything)
     //4. fact IJ driving dim IJ parent dim IJ parent dim
 
-    dimensionsCandidates.map {
+    val schema: Schema = reportingRequest.schema
+    val anyDimsHasSchemaRequiredNonKeyField: Boolean = dimensionsCandidates.exists(
+      _.dim.schemaRequiredAlias(schema).exists(!_.isKey))
+    dimensionsCandidates.flatMap {
       dc =>
-        dc.dim.dimList.map{
-          dimension =>
-            (dimension.name -> defaultJoinType.getOrElse(getJoinType(dimension, dc, schemaRequiredAliases)))
-        }.toMap
-    }.flatten.toMap
+        //driving dim case
+        if(dc.isDrivingDimension) {
+          dc.dim.dimList.map {
+            dimension => dimension.name -> {
+              if(forceDimDriven) {
+                RightOuterJoin
+              } else {
+                if(anyDimHasNonFKNonForceFilter || anyDimsHasSchemaRequiredNonKeyField) {
+                  InnerJoin
+                } else {
+                  LeftOuterJoin
+                }
+
+              }
+            }
+          }
+        } else {
+          //non driving dim case
+
+          if(forceDimDriven) {
+            dc.dim.dimList.map {
+              dimension => dimension.name -> InnerJoin
+            }
+          } else {
+            dc.dim.dimList.map {
+              dimension => dimension.name -> {
+                if(anyDimHasNonFKNonForceFilter || anyDimsHasSchemaRequiredNonKeyField) {
+                  InnerJoin
+                } else {
+                  LeftOuterJoin
+                }
+              }
+            }
+          }
+        }
+    }.toMap
   }
 
   private def getJoinType(dim: Dimension, dc : DimensionCandidate, schemaRequiredAliases: Set[String]): JoinType = {
@@ -264,7 +277,7 @@ case class RequestModel(cube: String
        hasNonDrivingDimSortFilter=$hasNonDrivingDimSortOrFilter
        hasDrivingDimNonFKNonPKSortBy=$hasDrivingDimNonFKNonPKSortBy
        hasNonDrivingDimNonFKNonPKFilter=$hasNonDrivingDimNonFKNonPKFilter
-       hasAllDimsNonFKNonForceFilter=$hasAllDimsNonFKNonForceFilter
+       anyDimHasNonFKNonForceFilter=$anyDimHasNonFKNonForceFilter
        isFactDriven=$isFactDriven
        forceDimDriven=$forceDimDriven
        schema=$schema
@@ -929,7 +942,7 @@ object RequestModel extends Logging {
 
           val hasNonDrivingDimNonFKNonPKFilter = dimensionCandidates.filter(dim => !dim.isDrivingDimension && dim.hasNonFKOrForcedFilters).nonEmpty
 
-          val hasAllDimsNonFKNonForceFilter = dimensionCandidates.filter(dim=> dim.hasNonFKNonForceFilters).nonEmpty
+          val anyDimHasNonFKNonForceFilter = dimensionCandidates.exists(dim=> dim.hasNonFKNonForceFilters)
 
           //dimensionCandidates.filter(dim=> dim.isDrivingDimension && !dim.filters.intersect(filterMap.values.toSet).isEmpty
 
@@ -995,7 +1008,7 @@ object RequestModel extends Logging {
             hasNonDrivingDimSortOrFilter = hasNonDrivingDimSortOrFilter,
             hasDrivingDimNonFKNonPKSortBy = hasDrivingDimNonFKNonPKSortBy,
             hasNonDrivingDimNonFKNonPKFilter =  hasNonDrivingDimNonFKNonPKFilter,
-            hasAllDimsNonFKNonForceFilter = hasAllDimsNonFKNonForceFilter,
+            anyDimHasNonFKNonForceFilter = anyDimHasNonFKNonForceFilter,
             schema = request.schema,
             requestType = request.requestType,
             localTimeDayFilter = localTimeDayFilter,
