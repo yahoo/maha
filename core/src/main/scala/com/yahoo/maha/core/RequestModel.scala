@@ -110,7 +110,7 @@ case class RequestModel(cube: String
                         , hasNonDrivingDimSortOrFilter: Boolean
                         , hasDrivingDimNonFKNonPKSortBy: Boolean
                         , hasNonDrivingDimNonFKNonPKFilter: Boolean
-                        , hasAllDimsNonFKNonForceFilter: Boolean
+                        , anyDimHasNonFKNonForceFilter: Boolean
                         , schema: Schema
                         , utcTimeDayFilter: Filter
                         , localTimeDayFilter: Filter
@@ -173,7 +173,7 @@ case class RequestModel(cube: String
               if(forceDimDriven) {
                 RightOuterJoin
               } else {
-                if(hasAllDimsNonFKNonForceFilter || anyDimsHasSchemaRequiredNonKeyField) {
+                if(anyDimHasNonFKNonForceFilter || anyDimsHasSchemaRequiredNonKeyField) {
                   InnerJoin
                 } else {
                   LeftOuterJoin
@@ -192,7 +192,7 @@ case class RequestModel(cube: String
           } else {
             dc.dim.dimList.map {
               dimension => dimension.name -> {
-                if(hasAllDimsNonFKNonForceFilter || anyDimsHasSchemaRequiredNonKeyField) {
+                if(anyDimHasNonFKNonForceFilter || anyDimsHasSchemaRequiredNonKeyField) {
                   InnerJoin
                 } else {
                   LeftOuterJoin
@@ -277,7 +277,7 @@ case class RequestModel(cube: String
        hasNonDrivingDimSortFilter=$hasNonDrivingDimSortOrFilter
        hasDrivingDimNonFKNonPKSortBy=$hasDrivingDimNonFKNonPKSortBy
        hasNonDrivingDimNonFKNonPKFilter=$hasNonDrivingDimNonFKNonPKFilter
-       hasAllDimsNonFKNonForceFilter=$hasAllDimsNonFKNonForceFilter
+       anyDimHasNonFKNonForceFilter=$anyDimHasNonFKNonForceFilter
        isFactDriven=$isFactDriven
        forceDimDriven=$forceDimDriven
        schema=$schema
@@ -942,7 +942,7 @@ object RequestModel extends Logging {
 
           val hasNonDrivingDimNonFKNonPKFilter = dimensionCandidates.filter(dim => !dim.isDrivingDimension && dim.hasNonFKOrForcedFilters).nonEmpty
 
-          val hasAllDimsNonFKNonForceFilter = dimensionCandidates.filter(dim=> dim.hasNonFKNonForceFilters).nonEmpty
+          val anyDimHasNonFKNonForceFilter = dimensionCandidates.exists(dim=> dim.hasNonFKNonForceFilters)
 
           //dimensionCandidates.filter(dim=> dim.isDrivingDimension && !dim.filters.intersect(filterMap.values.toSet).isEmpty
 
@@ -1008,7 +1008,7 @@ object RequestModel extends Logging {
             hasNonDrivingDimSortOrFilter = hasNonDrivingDimSortOrFilter,
             hasDrivingDimNonFKNonPKSortBy = hasDrivingDimNonFKNonPKSortBy,
             hasNonDrivingDimNonFKNonPKFilter =  hasNonDrivingDimNonFKNonPKFilter,
-            hasAllDimsNonFKNonForceFilter = hasAllDimsNonFKNonForceFilter,
+            anyDimHasNonFKNonForceFilter = hasAllDimsNonFKNonForceFilter,
             schema = request.schema,
             requestType = request.requestType,
             localTimeDayFilter = localTimeDayFilter,
