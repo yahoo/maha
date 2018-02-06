@@ -2,12 +2,13 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.executor.druid
 
-import java.net.{URI, InetSocketAddress}
+import java.net.{InetSocketAddress, URI}
 import java.util.concurrent.ExecutionException
 
 import com.ning.http.client.filter.FilterException
 import com.ning.http.client.{AsyncHttpClient, AsyncHttpClientConfig}
-import com.yahoo.maha.executor.druid.filters.{ServiceUnavailableException, TimeoutThrottlingFilter, TimeoutMillsStore}
+import com.yahoo.maha.executor.druid.filters.{ServiceUnavailableException, TimeoutMillsStore, TimeoutThrottlingFilter}
+import grizzled.slf4j.Logging
 import org.http4s.HttpService
 import org.http4s.dsl._
 import org.http4s.server.blaze.BlazeBuilder
@@ -19,7 +20,7 @@ import scala.util.Try
 /**
  * Created by pranavbhole on 28/06/17.
  */
-class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndAfterAll {
+class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndAfterAll with Logging {
 
   var server: org.http4s.server.Server = null
 
@@ -83,6 +84,7 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
 
     // Send 1 good request.
     val f = ningClient.prepareGet(targetURI.toASCIIString()).execute();
+    Thread.sleep(3000)
     val response = f.get();
     val statusCode = response.getStatusCode();
     assert(statusCode == 200)
