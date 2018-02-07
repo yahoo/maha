@@ -159,7 +159,7 @@ class MahaResourceTest {
   def successfulSyncRequest(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/er/schemas/student/query")
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/er/schemas/student/query?debug=true&forceEngine=DruidEngine")
     val jsonRequest = s"""{
                           "cube": "student_performance",
                           "selectFields": [

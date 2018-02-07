@@ -6,6 +6,7 @@ import java.net.InetSocketAddress
 
 import grizzled.slf4j.Logging
 import org.http4s.server.blaze.BlazeBuilder
+import org.mockito.Mockito
 import org.scalatest._
 
 class HttpUtilsTest extends FunSuite with Matchers with BeforeAndAfterAll with Logging with TestWebService {
@@ -26,6 +27,19 @@ class HttpUtilsTest extends FunSuite with Matchers with BeforeAndAfterAll with L
     val builder = BlazeBuilder.mountService(service,"/mock").bindSocketAddress(new InetSocketAddress("localhost",5544) )
     server = builder.run
     info("Started blaze server")
+  }
+
+  test("Successful ResultSet conversion") {
+    val bigDecimalTransformer = new NumberTransformer
+    val bigDecimal : BigDecimal = 0.0
+    val floatInput : Float = 1
+    assert(bigDecimalTransformer.extractBigDecimal(floatInput).getClass == bigDecimal.getClass, "Output should be a BigDecimal, but found " + bigDecimalTransformer.extractBigDecimal(floatInput).getClass)
+    val longInput : Long = 10
+    assert(bigDecimalTransformer.extractBigDecimal(longInput).getClass == bigDecimal.getClass, "Output should be a BigDecimal, but found " + bigDecimalTransformer.extractBigDecimal(longInput).getClass)
+    val intInput : Int = 53
+    assert(bigDecimalTransformer.extractBigDecimal(intInput).getClass == bigDecimal.getClass, "Output should be a BigDecimal, but found " + bigDecimalTransformer.extractBigDecimal(intInput).getClass)
+    val fallthroughStringInput : String = "Should not be returned"
+    assert(bigDecimalTransformer.extractBigDecimal(fallthroughStringInput).getClass == bigDecimal.getClass, "Output should be a BigDecimal, but found " + bigDecimalTransformer.extractBigDecimal(fallthroughStringInput).getClass)
   }
 
   test("successful POST call test") {
