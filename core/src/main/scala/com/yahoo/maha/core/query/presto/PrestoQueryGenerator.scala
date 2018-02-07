@@ -36,7 +36,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
     val factCandidate = queryContext.factBestCandidate
     val publicFact = queryContext.factBestCandidate.publicFact
     val fact = factCandidate.fact
-    val factViewName = fact.name
+    val factViewName = fact.underlyingTableName.getOrElse(fact.name)
     val factViewAlias = queryBuilderContext.getAliasForTable(factViewName)
     val dims = queryContext.dims
     val partitionCols = new mutable.HashSet[Column]()
@@ -116,7 +116,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
             val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)
             val finalAliasOrExpression = {
               if(queryBuilderContext.isDimensionCol(alias)) {
-                val factAlias = queryBuilderContext.getAliasForTable(factCandidate.fact.name)
+                val factAlias = queryBuilderContext.getAliasForTable(factCandidate.fact.underlyingTableName.getOrElse(factCandidate.fact.name))
                 val factExp = queryBuilderContext.getFactColExpressionOrNameForAlias(alias)
                 s"$factAlias.$factExp"
               } else  {
@@ -339,7 +339,6 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
 
 
       val unique_filters = removeDuplicateIfForced( factFilters.toSeq, allFilters.toSeq, queryContext )
-      println()
 
       unique_filters.sorted map {
         filter =>

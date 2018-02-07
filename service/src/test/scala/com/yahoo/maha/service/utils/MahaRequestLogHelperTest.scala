@@ -15,7 +15,13 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     val mahaRequestLogHelper = MahaRequestLogHelper("ir", mahaService)
     mahaRequestLogHelper.setDryRun()
     mahaRequestLogHelper.logSuccess()
+    mahaRequestLogHelper.setAsyncQueueParams()
     val builder = mahaRequestLogHelper.protoBuilder
     assert(builder.getStatus == 200)
+  }
+
+  test("Set a requestID") {
+    val mahaService = mock(classOf[MahaService])
+    val mahaRequestLogHelper = MahaRequestLogHelper("ir", mahaService)
   }
 }

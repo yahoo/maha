@@ -82,7 +82,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
         Dimension.newDimension("student", OracleEngine, LevelOne, Set(StudentSchema),
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
-            , DimCol("name", StrType())
+            , DimCol("name", StrType(), annotations = Set(OracleSnapshotTimestamp))
             , DimCol("department_id", IntType())
             , DimCol("admitted_year", IntType())
             , DimCol("status", StrType())

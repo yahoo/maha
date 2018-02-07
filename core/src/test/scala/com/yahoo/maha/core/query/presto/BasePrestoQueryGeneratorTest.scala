@@ -73,7 +73,7 @@ trait BasePrestoQueryGeneratorTest
           , PrestoDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}", rollupExpression = NoopRollup)
           , PrestoDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100", rollupExpression = NoopRollup)
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
-        )
+        ),underlyingTableName = Some("s_stats_fact_underlying")
       )
     }
       .toPublicFact("s_stats",
