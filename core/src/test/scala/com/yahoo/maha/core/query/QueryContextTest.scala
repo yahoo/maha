@@ -34,7 +34,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     queryGeneratorRegistry.getGenerator(DruidEngine).get.asInstanceOf[DruidQueryGenerator].generate(qc).asInstanceOf[DruidQuery[_]]
   }
 
-  
+
   test("dim only query should generate full SQL") {
     val jsonString = dimOnlyQueryJson
 

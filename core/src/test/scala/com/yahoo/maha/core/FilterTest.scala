@@ -3,6 +3,7 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.core.dimension.DimCol
+import org.joda.time.DateTime
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.immutable.TreeSet
@@ -36,6 +37,9 @@ class FilterTest extends FunSuite with Matchers {
     dailyResult shouldBe "stats_date >= trunc(to_date('2018-01-01', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('2018-01-07', 'YYYY-MM-DD'))"
     val hourlyResult = renderWithGrain(SqlBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, dateCol, HourlyGrain).filter
     hourlyResult shouldBe "stats_date >= to_date('2018-01-01', 'HH24') AND stats_date <= to_date('2018-01-07', 'HH24')"
+
+    val maxDate = FilterDruid.getMaxDate(filter, DailyGrain)
+    assert(maxDate.getClass == classOf[DateTime])
 
   }
 

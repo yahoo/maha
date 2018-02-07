@@ -219,7 +219,7 @@ trait BaseHiveQueryGeneratorTest
                   "budget",
                   "forecasted_budget",
                   "last_updated"
-                )))
+                ))), annotations = Set(HivePartitioningScheme("frequency"))
         )
       }
     }
