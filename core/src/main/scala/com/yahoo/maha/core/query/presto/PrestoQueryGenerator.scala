@@ -327,7 +327,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
         }
       }
 
-      val hasPartitioningScheme = fact.annotations.contains(PrestoQueryGenerator.ANY_PARTITIONING_SCHEME))
+      val hasPartitioningScheme = fact.annotations.contains(PrestoQueryGenerator.ANY_PARTITIONING_SCHEME)
 
       val factFilters = queryContext.factBestCandidate.filters
       val factForcedFilters = queryContext.factBestCandidate.publicFact.forcedFilters
