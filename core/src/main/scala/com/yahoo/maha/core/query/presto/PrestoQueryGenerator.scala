@@ -327,7 +327,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
         }
       }
 
-      val hasPartitioningScheme = fact.annotations.contains(PrestoQueryGenerator.ANY_PARTITIONING_SCHEME) || fact.annotations.contains(PrestoPartitioningScheme(""))
+      val hasPartitioningScheme = fact.annotations.contains(PrestoQueryGenerator.ANY_PARTITIONING_SCHEME))
 
       val factFilters = queryContext.factBestCandidate.filters
       val factForcedFilters = queryContext.factBestCandidate.publicFact.forcedFilters
@@ -592,7 +592,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
 }
 
 object PrestoQueryGenerator extends Logging {
-  val ANY_PARTITIONING_SCHEME = HivePartitioningScheme("") //no name needed since class name hashcode
+  val ANY_PARTITIONING_SCHEME = PrestoPartitioningScheme("") //no name needed since class name hashcode
 
   def register(queryGeneratorRegistry: QueryGeneratorRegistry, partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) = {
     if(!queryGeneratorRegistry.isEngineRegistered(PrestoEngine)) {
