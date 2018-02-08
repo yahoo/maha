@@ -78,6 +78,7 @@ case class DimensionBundle(dim: Dimension
                            , hasNonFKSortBy: Boolean
                            , hasNonPushDownFilters: Boolean
                            , hasPKRequested: Boolean
+                           , hasNonFKNonForceFilters: Boolean
                             ) {
   def debugString : String = {
     s"""

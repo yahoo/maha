@@ -45,8 +45,8 @@ trait BaseQueryGeneratorTest {
     registryBuilder.build()
   }
 
-  protected[this] def getReportingRequestAsync(jsonString: String) = {
-    val reportingRequestOption = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+  protected[this] def getReportingRequestAsync(jsonString: String, schema: Schema = AdvertiserSchema) = {
+    val reportingRequestOption = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), schema)
     require(reportingRequestOption.isSuccess)
     reportingRequestOption.toOption.get
   }

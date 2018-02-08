@@ -552,6 +552,7 @@ object DefaultQueryPipelineFactory extends Logging {
                   , hasNonFKSortBy = dc.hasNonFKSortBy
                   , hasNonPushDownFilters = dc.hasNonPushDownFilters
                   , hasPKRequested = dc.hasPKRequested
+                  , hasNonFKNonForceFilters = dc.hasNonFKNonForceFilters
                 )
               }
             }
