@@ -12,6 +12,7 @@ import org.apache.commons.lang3.StringUtils
 
 import scala.collection.{SortedSet, mutable}
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.util.Try
 
 /**
  * Created by hiral on 11/13/15.
@@ -40,7 +41,7 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
       case DimQueryContext(dims, requestModel, indexAliasOption, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, true, None, includePagination)
       case CombinedQueryContext(dims, fact, requestModel, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, false, Option(fact), includePagination)
       case DimFactOuterGroupByQueryQueryContext(dims, fact, requestModel, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, false, Option(fact), includePagination)
-      case any => throw new UnsupportedOperationException(s"query context not supported : ${any.getClass.getSimpleName}")
+      case any => throw new UnsupportedOperationException(s"query context not supported : ${Try(any.getClass.getSimpleName)}")
     }
   }
 
@@ -635,16 +636,7 @@ b. Dim Driven
           info("publicDim contains injectFilter.field: " + injectFilter.field)
           db.copy(filters = db.filters ++ injectFilterSet)
         } else {
-          val fkSources = db.publicDim.foreignKeySources
-          val fkDimBundles = dbSet.find(b => fkSources.contains(b.publicDim.name) && b.publicDim.isPrimaryKeyAlias(injectFilter.field))
-          info("fkDimBundles: " + fkDimBundles)
-          fkDimBundles.fold(db){
-            fkDimBundle =>
-              db.dim.sourceToForeignKeyColumnMap.get(fkDimBundle.publicDim.name).map {
-                col =>
-                  db.copy(filters = db.filters ++ Set(injectFilter.renameField(db.publicDim.keyColumnToAliasMap(col.name))))
-              }.getOrElse(db)
-          }
+          db
         }
     }
   }

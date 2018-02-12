@@ -440,8 +440,9 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestDebug = ReportingRequest.enableDebug(request)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = RequestModel.from(requestDebug, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -3434,8 +3435,9 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            }""".stripMargin
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val requestDebug = ReportingRequest.enableDebug(request.toOption.get)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request.toOption.get, registry)
+    val requestModel = RequestModel.from(requestDebug, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -3994,6 +3996,5 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
-
 
 }

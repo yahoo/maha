@@ -103,7 +103,10 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
                               {"field": "Pricing Type"},
                               {"field": "Destination URL"},
                               {"field": "Impressions"},
-                              {"field": "Clicks"}
+                              {"field": "Clicks"},
+                              {"field": "Advertiser Currency"},
+                              {"field": "Campaign Device ID"},
+                              {"field": "Campaign ID"}
                           ],
                           "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "213"},
@@ -235,6 +238,29 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
                           "rowsPerPage":100
                           }"""
 
+  val requestWithFkInjected = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Ad Group ID"},
+                              {"field": "Reseller ID"},
+                              {"field": "Campaign Device ID"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "ASC"}
+                          ],
+                          "includeRowCount" : true,
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+
   implicit private[this] val queryExecutionContext = new QueryExecutorContext
   
   import DefaultQueryPipelineFactoryTest._
@@ -242,6 +268,48 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     OracleQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer)
     DruidQueryGenerator.register(queryGeneratorRegistry)
     HiveQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
+  }
+
+
+  test("force injectFilterSet to fk primary key") {
+    val request: ReportingRequest = getReportingRequestSync(requestWithFkInjected)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[MultiEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[MultiEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
+    val result = pipeline.withDruidCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Campaign ID", 10)
+        row.addValue("Ad Group ID", 202)
+        row.addValue("Impressions", 100)
+        //row.addValue("Clicks", 1)
+        rl.addRow(row)
+    }.withOracleCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Advertiser ID", 1)
+        //row.addValue("Ad Group Status", "ON")
+        row.addValue("Campaign ID", 10)
+        row.addValue("Ad Group ID", 101)
+        //row.addValue("Source", 2)
+        //row.addValue("Pricing Type", "CPC")
+        //row.addValue("Destination URL", "url-10")
+        rl.addRow(row)
+    }.run()
+
+    assert(result.isSuccess, result)
+    result.toOption.get._1.foreach {
+      row =>
+        assert(row.getValue("Impressions") === 100)
+        assert(row.getValue("Clicks") === 1)
+    }
   }
 
   test("successfully generate sync single engine query") {
@@ -410,6 +478,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
         assert(row.getValue("Clicks") === 1)
     }
   }
+
   test("successfully generate sync query for oracle and not druid + oracle when fact driven with no dimension ids") {
     val request: ReportingRequest = getReportingRequestSync(factRequestWithMetricSortNoDimensionIds)
     val registry = getDefaultRegistry()
