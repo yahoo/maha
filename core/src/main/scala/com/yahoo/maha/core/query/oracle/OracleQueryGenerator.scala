@@ -211,10 +211,10 @@ b. Dim Driven
           if ((requestModel.isDimDriven || isDimOnly) && dimSortMap.contains(alias) && dimBundle.isDrivingDimension) {
             val nullsLast = if (column.isKey) "" else "NULLS LAST"
             orderByIndex += s"""$colIndex ${dimSortMap(alias)} $nullsLast"""
-          } /*else if(isDimOnly && requestModel.factSortByMap.contains(alias)){
+          } else if(isDimOnly && requestModel.factSortByMap.contains(alias)){
             val nullsLast = if (column.isKey) "" else "NULLS LAST"
             orderByIndex += s"""$colIndex ${requestModel.factSortByMap(alias)} $nullsLast"""
-          }*/
+          }
       }
 
       if (dimBundle.dim.partitionColumns.nonEmpty) {
