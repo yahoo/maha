@@ -3,13 +3,13 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator}
+import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator, SyncDruidQueryOptimizer}
 import com.yahoo.maha.core.query.hive.HiveQueryGenerator
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.core.{EqualityFilter, BetweenFilter, DefaultPartitionColumnRenderer, RequestModel}
-import com.yahoo.maha.executor.{MockHiveQueryExecutor, MockOracleQueryExecutor, MockDruidQueryExecutor}
-import org.scalatest.{BeforeAndAfterAll, Matchers, FunSuite}
+import com.yahoo.maha.core.{BetweenFilter, DefaultPartitionColumnRenderer, EqualityFilter, RequestModel}
+import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockHiveQueryExecutor, MockOracleQueryExecutor}
+import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 import scala.util.Try
 
@@ -942,5 +942,65 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isFailure, "should fail if In filter with more than allowed limit")
     assert(queryPipelineTry.failed.get.getMessage === "requirement failed: Failed to find best candidate, forceEngine=Some(Hive), engine disqualifyingSet=Set(Druid), candidates=Set((fact_druid,Druid), (fact_hive,Hive), (fact_oracle,Oracle))")
+  }
+
+  test("Validate subsequent Oracle + Druid query generation to dim.")
+  {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Ad Group Status"},
+                              {"field": "Ad Group ID"},
+                              {"field": "Source"},
+                              {"field": "Pricing Type"},
+                              {"field": "Destination URL"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "213"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Asc"},
+                            {"field": "Ad Group ID", "order": "Asc"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                        }"""
+    val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestSync(jsonString))
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, new DruidQueryGenerator(new SyncDruidQueryOptimizer(), 40000)) //do not include local time filter
+    altQueryGeneratorRegistry.register(OracleEngine, new OracleQueryGenerator(DefaultPartitionColumnRenderer))
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val query =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
+    println(query.asString)
+    val result = queryPipelineTry.toOption.get.withDruidCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Ad Group ID", 10)
+        row.addValue("Impressions", 100)
+        rl.addRow(row)
+    }.withOracleCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Advertiser ID", 1)
+        row.addValue("Ad Group Status", "ON")
+        row.addValue("Ad Group ID", 10)
+        row.addValue("Source", 2)
+        row.addValue("Pricing Type", "CPC")
+        row.addValue("Destination URL", "url-10")
+        rl.addRow(row)
+    }.run()
+
+    assert(result.isSuccess, result)
+    val oracleQuery = queryPipelineTry.toOption.get.queryChain.subsequentQueryList.head
   }
 }

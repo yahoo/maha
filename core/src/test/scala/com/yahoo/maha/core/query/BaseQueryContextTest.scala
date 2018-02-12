@@ -209,14 +209,15 @@ trait BaseQueryContextTest {
         ), Set(),  getMaxDaysWindow, getMaxDaysLookBack
       )
   }
-  
+
   override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
     val builder = ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       import HiveExpression._
       Fact.newFact(
         "fact_hive", DailyGrain, HiveEngine, Set(AdvertiserSchema)
         , Set(
-          DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+          DimCol("id", IntType(), annotations = Set(ForeignKey("keyword")))
+          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
           , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
           , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
           , DimCol("country_woeid", IntType(), annotations = Set(ForeignKey("woeid")))
@@ -279,6 +280,7 @@ trait BaseQueryContextTest {
 
     val cube = builder.toPublicFact("k_stats",
       Set(
+        PubCol("id", "Keyword ID", InEquality),
         PubCol("stats_date", "Day", InBetweenEquality),
         PubCol("ad_group_id", "Ad Group ID", InEquality),
         PubCol("campaign_id", "Campaign ID", InEquality),
