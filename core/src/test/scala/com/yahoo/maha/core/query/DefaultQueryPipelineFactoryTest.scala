@@ -242,11 +242,17 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
                           "cube": "k_stats",
                           "selectFields": [
                               {"field": "Advertiser ID"},
-                              {"field": "Campaign ID"},
-                              {"field": "Impressions"},
+                              {"field": "Ad Group Status"},
                               {"field": "Ad Group ID"},
-                              {"field": "Reseller ID"},
-                              {"field": "Campaign Device ID"}
+                              {"field": "Source"},
+                              {"field": "Pricing Type"},
+                              {"field": "Destination URL"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"},
+                              {"field": "Advertiser Currency"},
+                              {"field": "Campaign Device ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Reseller ID"}
                           ],
                           "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "213"},
@@ -289,18 +295,18 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
         row.addValue("Campaign ID", 10)
         row.addValue("Ad Group ID", 202)
         row.addValue("Impressions", 100)
-        //row.addValue("Clicks", 1)
+        row.addValue("Clicks", 1)
         rl.addRow(row)
     }.withOracleCallback {
       rl =>
         val row = rl.newRow
         row.addValue("Advertiser ID", 1)
-        //row.addValue("Ad Group Status", "ON")
+        row.addValue("Ad Group Status", "ON")
         row.addValue("Campaign ID", 10)
-        row.addValue("Ad Group ID", 101)
-        //row.addValue("Source", 2)
-        //row.addValue("Pricing Type", "CPC")
-        //row.addValue("Destination URL", "url-10")
+        row.addValue("Ad Group ID", 202)
+        row.addValue("Source", 2)
+        row.addValue("Pricing Type", "CPC")
+        row.addValue("Destination URL", "url-10")
         rl.addRow(row)
     }.run()
 
