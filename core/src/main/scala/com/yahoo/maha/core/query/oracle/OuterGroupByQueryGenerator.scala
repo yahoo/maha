@@ -44,7 +44,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
     }
     val requestColAliasesSet = requestModel.requestCols.map(_.alias).toSet
     val factOnlySubqueryFields : Set[String] = if(isFactOnlyQuery) {
-      queryContext.dims.view.map(_.publicDim.primaryKeyByAlias).filterNot(requestColAliasesSet).toSet
+      queryContext.dims.view.filter(!_.hasNonFKNonForceFilters).map(_.publicDim.primaryKeyByAlias).filterNot(requestColAliasesSet).toSet
     } else Set.empty
 
     val factBest = queryContext.factBestCandidate

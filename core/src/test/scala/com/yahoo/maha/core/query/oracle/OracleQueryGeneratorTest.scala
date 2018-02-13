@@ -440,9 +440,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestDebug = ReportingRequest.enableDebug(request)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(requestDebug, registry)
+    val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -3435,9 +3434,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            }""".stripMargin
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val requestDebug = ReportingRequest.enableDebug(request.toOption.get)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(requestDebug, registry)
+    val requestModel = RequestModel.from(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -3808,7 +3806,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                               "field": "Spend",
                               "alias": null,
                               "value": null
-                              } 
+                              }
                            ],
                            "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
@@ -3997,4 +3995,135 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     result should equal (expected)(after being whiteSpaceNormalised)
   }
 
+
+  test("successfully generate fact driven query with filter on FK and dimension attribute without including attribute in output") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Advertiser ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Impressions",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Average CPC",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Ad Group Status", "operator": "=", "value": "ON"},
+                              {"field": "Campaign ID", "operator": "In", "values": ["22222"]},
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                         }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    val expected = s"""
+                      |SELECT "Advertiser ID", impressions AS "Impressions", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC"
+                      |FROM (SELECT to_char(af0.advertiser_id) "Advertiser ID", SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend
+                      |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+                      |                   advertiser_id, ad_group_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend, SUM(impressions) AS impressions
+                      |            FROM ad_fact1 FactAlias
+                      |            WHERE (advertiser_id = 12345) AND (campaign_id IN (22222)) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+                      |            GROUP BY advertiser_id, ad_group_id
+                      |
+                      |           ) af0
+                      |                     INNER JOIN
+                      |           (SELECT  id, advertiser_id
+                      |            FROM ad_group_oracle
+                      |            WHERE (advertiser_id = 12345) AND (campaign_id IN (22222)) AND (DECODE(status, 'ON', 'ON', 'OFF') = 'ON')
+                      |             )
+                      |           ago1 ON ( af0.advertiser_id = ago1.advertiser_id AND af0.ad_group_id = ago1.id)
+                      |
+                      |          GROUP BY to_char(af0.advertiser_id)
+                      |)
+                      |""".stripMargin
+
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("successfully generate fact driven query with filter on FK and dimension attribute without including attribute in output with attribute col as schema required field") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Advertiser ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Impressions",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Average CPC",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Ad Group Status", "operator": "=", "value": "ON"},
+                              {"field": "Campaign ID", "operator": "In", "values": ["22222"]},
+                              {"field": "Reseller ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                         }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString, ResellerSchema)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    val expected = s"""
+                      |SELECT "Advertiser ID", impressions AS "Impressions", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC"
+                      |FROM (SELECT to_char(af0.advertiser_id) "Advertiser ID", SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend
+                      |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+                      |                   advertiser_id, ad_group_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend, SUM(impressions) AS impressions
+                      |            FROM ad_fact1 FactAlias
+                      |            WHERE (campaign_id IN (22222)) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+                      |            GROUP BY advertiser_id, ad_group_id
+                      |
+                      |           ) af0
+                      |                     INNER JOIN
+                      |           (SELECT  id
+                      |            FROM advertiser_oracle
+                      |            WHERE (managed_by = 12345)
+                      |             )
+                      |           ao1 ON (af0.advertiser_id = ao1.id)
+                      |           INNER JOIN
+                      |           (SELECT  advertiser_id, id
+                      |            FROM ad_group_oracle
+                      |            WHERE (campaign_id IN (22222)) AND (DECODE(status, 'ON', 'ON', 'OFF') = 'ON')
+                      |             )
+                      |           ago2 ON ( af0.advertiser_id = ago2.advertiser_id AND af0.ad_group_id = ago2.id)
+                      |
+                      |          GROUP BY to_char(af0.advertiser_id)
+                      |)
+                      |""".stripMargin
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
 }
