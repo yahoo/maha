@@ -252,8 +252,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
     val factAliasColumnMap: Map[String, Column] = {
       val nameAliasMap = queryContext.factBestCandidate.dimColMapping ++ queryContext.factBestCandidate.factColMapping
-      nameAliasMap.map {
-        case (name, alias) => alias -> queryContext.factBestCandidate.fact.columnsByNameMap(name)
+      nameAliasMap.collect {
+        case (name, alias) if model.requestColsSet(alias) => alias -> queryContext.factBestCandidate.fact.columnsByNameMap(name)
       }
     }
 
@@ -1071,8 +1071,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       }
     }
 
-    queryContext.factBestCandidate.dimColMapping.map {
-      case (dimCol, alias) =>
+    queryContext.factBestCandidate.dimColMapping.collect {
+      case (dimCol, alias) if queryContext.requestModel.requestColsSet(alias) =>
         if (factRequestCols(dimCol)) {
           val column = fact.columnsByNameMap(dimCol)
           if (Grain.grainFields(alias) && !queryContext.factBestCandidate.publicFact.renderLocalTimeFilter) {

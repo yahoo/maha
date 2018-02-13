@@ -473,7 +473,7 @@ trait SharedDimSchema {
             DruidFuncDimCol("managed_by", StrType(), LOOKUP("advertiser_lookup", "managed_by")),
             DruidFuncDimCol("timezone", StrType(), LOOKUP_WITH_DECODE_ON_OTHER_COLUMN("advertiser_lookup", "timezone", "US", "timezone", "currency"))
           )
-          , Option(Map(AsyncRequest -> 14, SyncRequest -> 14))
+          , Option(Map(AsyncRequest -> 14, SyncRequest -> 14)), schemas = Set(AdvertiserSchema, ResellerSchema, InternalSchema)
         )
       }
     }
