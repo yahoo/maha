@@ -121,8 +121,7 @@ public class TestParRequestListOption {
         ParRequestListOption<String> request = builder.build();
         Either<GeneralError, Integer> result = request.resultMap(stringAssert);
         assertTrue(result.isLeft());
-        //Below assert creating random failures in PR builds, comment for now.
-        //assertTrue(result.left().get().message.equals("failed"), result.left().get().message);
+        assertTrue(result.left().get().message.equals("failed"), result.left().get().message);
     }
 
     @Test
