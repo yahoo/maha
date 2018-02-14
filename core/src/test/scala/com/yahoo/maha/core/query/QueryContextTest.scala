@@ -3,7 +3,7 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator, DruidQueryOptimizer, SyncDruidQueryOptimizer}
+import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator, SyncDruidQueryOptimizer}
 import com.yahoo.maha.core.query.hive.HiveQueryGenerator
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.query.presto.PrestoQueryGenerator

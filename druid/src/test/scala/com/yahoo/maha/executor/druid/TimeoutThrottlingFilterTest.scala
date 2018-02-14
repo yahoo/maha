@@ -84,7 +84,7 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
 
     // Send 1 good request.
     val f = ningClient.prepareGet(targetURI.toASCIIString()).execute();
-    Thread.sleep(6000)
+    Thread.sleep(3000)
     val response = f.get();
     val statusCode = response.getStatusCode();
     assert(statusCode == 200)
