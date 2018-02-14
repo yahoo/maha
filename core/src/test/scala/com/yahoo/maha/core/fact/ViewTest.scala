@@ -396,7 +396,7 @@ class ViewTest extends FunSuite with Matchers {
 
   test("ViewBaseTable: Incorrect engine in annotations should throw an error.") {
     val thrown = intercept[IllegalArgumentException] {
-      val missingSchema = {
+      {
         ColumnContext.withColumnContext {
           implicit dc: ColumnContext =>
             Fact.newFactForView(
@@ -421,7 +421,7 @@ class ViewTest extends FunSuite with Matchers {
 
   test("Should fail to create UnionView with differing Fact Columns") {
     val thrown = intercept[IllegalArgumentException] {
-      val unionViewAccount = UnionView("account_adjustment_view", Seq(accountStatsViewWithoutSpend, accountAdjustmentView))
+      UnionView("account_adjustment_view", Seq(accountStatsViewWithoutSpend, accountAdjustmentView))
     }
     assert(thrown.getMessage.contains("should have same number of fact columns"))
   }
@@ -429,28 +429,28 @@ class ViewTest extends FunSuite with Matchers {
   test("Should fail to create UnionView with discarded dims difference") {
     val accountStatsViewDiscardDim = factForViewCampaignStats.copyWith("account_stats", Set("campaign_id", "stats_date"), Map.empty)
     val thrown = intercept[IllegalArgumentException] {
-      val unionViewAccount = UnionView("account_adjustment_view", Seq(accountStatsViewDiscardDim, accountAdjustmentView))
+      UnionView("account_adjustment_view", Seq(accountStatsViewDiscardDim, accountAdjustmentView))
     }
     assert(thrown.getMessage.contains("should have same number of dim columns"))
   }
 
   test("UnionView takes two or more facts") {
     val thrown = intercept[IllegalArgumentException] {
-      val unionViewAccount = UnionView("account_adjustment_view", Seq(accountAdjustmentView))
+      UnionView("account_adjustment_view", Seq(accountAdjustmentView))
     }
     assert(thrown.getMessage.contains("Require 2 or more facts in order to create view"))
   }
 
   test("UnionView should fail with different dimCol names") {
     val thrown = intercept[IllegalArgumentException] {
-      val unionViewAccount = UnionView("account_adjustment_view", Seq(accountAdjustmentView, accountStatsViewDifferentDim))
+      UnionView("account_adjustment_view", Seq(accountAdjustmentView, accountStatsViewDifferentDim))
     }
     assert(thrown.getMessage.contains("Col mismatch stats_date2 in view account_stats, account_adjustment"))
   }
 
   test("UnionView should fail with different factCol names") {
     val thrown = intercept[IllegalArgumentException] {
-      val unionViewAccount = UnionView("account_adjustment_view", Seq(accountAdjustmentView, accountStatsViewDifferentFact))
+      UnionView("account_adjustment_view", Seq(accountAdjustmentView, accountStatsViewDifferentFact))
     }
     assert(thrown.getMessage.contains("Col mismatch spend2 in view account_stats, account_adjustment"))
   }
