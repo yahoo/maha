@@ -3,7 +3,7 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelected, BucketSelector}
-import com.yahoo.maha.core.dimension.{Dimension, PublicDimension}
+import com.yahoo.maha.core.dimension.PublicDimension
 import com.yahoo.maha.core.fact.{BestCandidates, PublicFactCol}
 import com.yahoo.maha.core.registry.{FactRowsCostEstimate, Registry}
 import com.yahoo.maha.core.request.Parameter.Distinct

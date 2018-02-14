@@ -7,9 +7,9 @@ import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator, SyncDru
 import com.yahoo.maha.core.query.hive.HiveQueryGenerator
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.core.{BetweenFilter, DefaultPartitionColumnRenderer, EqualityFilter, RequestModel}
-import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockHiveQueryExecutor, MockOracleQueryExecutor}
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import com.yahoo.maha.core.{EqualityFilter, BetweenFilter, DefaultPartitionColumnRenderer, RequestModel}
+import com.yahoo.maha.executor.{MockHiveQueryExecutor, MockOracleQueryExecutor, MockDruidQueryExecutor}
+import org.scalatest.{BeforeAndAfterAll, Matchers, FunSuite}
 
 import scala.util.Try
 
