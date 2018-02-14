@@ -32,7 +32,7 @@ trait QueryPipeline {
 
 object QueryPipeline extends Logging {
   val syncNonDruidDisqualifyingSet: Set[Engine] = Set(DruidEngine, HiveEngine)
-  val syncDisqualifyingSet: Set[Engine] = Set(HiveEngine)
+  val syncDisqualifyingSet: Set[Engine] = Set(HiveEngine, PrestoEngine)
   val asyncDisqualifyingSet: Set[Engine] = Set(DruidEngine)
 
   val completeRowList: Query => RowList = (q) => new CompleteRowList(q)
