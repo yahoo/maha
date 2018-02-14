@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.executor.oracle
 
-import java.sql.{Date, Timestamp}
+import java.sql.{Date, ResultSet, Timestamp}
 import java.util.UUID
 
 import com.yahoo.maha.core.CoreSchema._
@@ -799,7 +799,60 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     }
   }
 
-  test("Manual get on Oracle Column types") {
-    val result = oracleQueryExecutor
+  test("test null result") {
+    import org.mockito.Matchers._
+    import org.mockito.Mockito
+    var resultSet: ResultSet = null
+    var executor : OracleQueryExecutor = Mockito.spy(oracleQueryExecutor.get)
+    val today = new Date(1515794890000L)
+    jdbcConnection.get.queryForList("select * from ad_stats_oracle where ad_id=1000 limit 1") {
+      rs => {
+        resultSet = Mockito.spy(rs)
+        Mockito.doNothing().when(resultSet).close()
+        Mockito.doReturn(null).when(resultSet).getBigDecimal(anyInt())
+        Mockito.doReturn(null).when(resultSet).getDate(1)
+        Mockito.doReturn(today).when(resultSet).getDate(2)
+        Mockito.doReturn(null).when(resultSet).getTimestamp(anyInt())
+      }
+    }
+
+    abstract class TestCol extends Column {
+      override def alias: Option[String] = None
+      override def filterOperationOverrides: Set[FilterOperation] = Set.empty
+      override def isDerivedColumn: Boolean = false
+      override def name: String = "test"
+      override def annotations: Set[ColumnAnnotation] = Set.empty
+      override def columnContext: ColumnContext = null
+      override def dataType: DataType = ???
+    }
+
+    val dateCol = new TestCol {
+      override def dataType: DataType = DateType()
+    }
+    assert(oracleQueryExecutor.get.getColumnValue(1, dateCol, resultSet) == null)
+    assert(oracleQueryExecutor.get.getColumnValue(2, dateCol, resultSet) == "2018-01-12")
+
+    val timestampCol = new TestCol {
+      override def dataType: DataType = TimestampType()
+    }
+    val decCol = new TestCol {
+      override def dataType : DataType = DecType()
+    }
+    val decWithLen = new TestCol {
+      override def dataType : DataType = DecType(1, 0)
+    }
+    val decWithScaleAndLength = new TestCol {
+      override def dataType : DataType = DecType(1, 1)
+    }
+    val invalidType = new TestCol {
+      override def dataType : DataType = null
+    }
+
+    assert(oracleQueryExecutor.get.getColumnValue(1, timestampCol, resultSet) == null)
+    assert(executor.getColumnValue(5, decCol, resultSet) == null)
+    assert(executor.getColumnValue(5, decWithLen, resultSet) == null)
+    assert(executor.getColumnValue(5, decWithScaleAndLength, resultSet) == null)
+    assertThrows[UnsupportedOperationException](executor.getColumnValue(5, invalidType, resultSet))
+
   }
 }
