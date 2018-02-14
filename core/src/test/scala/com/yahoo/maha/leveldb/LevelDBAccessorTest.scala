@@ -59,4 +59,22 @@ class LevelDBAccessorTest extends FunSuite with Matchers with BeforeAndAfterAll 
     assertEquals(builder.maxOpenFiles, 1000)
     assertEquals(builder.writeBufferSize, 10 * _1MB)
   }
+
+  test("DB closed, error cases") {
+    val _1MB : Int = 1024 * 1024
+    val key : String = "key-val"
+    val value : String = "value-val"
+    val builder : LevelDBAccessor[String, String] = new LevelDBAccessorBuilder("mutable", Some("/tmp"))
+      .addBlockSize(_1MB)
+      .addCacheSize(500 * _1MB)
+      .addMaxOpenFiles(1000)
+      .addWriteBufferSize(10 * _1MB)
+      .setCreateIfMissing(true)
+      .toLevelDBAccessor
+    builder.close
+    builder.destroy()
+    assertFalse(builder.put("key", "value"))
+    assertFalse(builder.putBatch(mutable.Map(key->value)))
+    assertEquals(None, builder.get(key))
+  }
 }

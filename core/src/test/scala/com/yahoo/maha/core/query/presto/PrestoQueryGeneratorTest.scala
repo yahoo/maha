@@ -102,4 +102,20 @@ CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
     assert(result != null && result.length > 0 && result.contains("campaign_presto_underlying"))
   }
 
+  test("Duplicate registration of the generator") {
+    val failRegistry = new QueryGeneratorRegistry
+    val dummyPrestoQueryGenerator = new QueryGenerator[WithPrestoEngine] {
+      override def generate(queryContext: QueryContext): Query = { null }
+      override def engine: Engine = OracleEngine
+    }
+    val dummyFalseQueryGenerator = new QueryGenerator[WithDruidEngine] {
+      override def generate(queryContext: QueryContext): Query = { null }
+      override def engine: Engine = DruidEngine
+    }
+    failRegistry.register(PrestoEngine, dummyPrestoQueryGenerator)
+    failRegistry.register(DruidEngine, dummyFalseQueryGenerator)
+
+    PrestoQueryGenerator.register(failRegistry,DefaultPartitionColumnRenderer, TestPrestoUDFRegistrationFactory())
+  }
+
 }

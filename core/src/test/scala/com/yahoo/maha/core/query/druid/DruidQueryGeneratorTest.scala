@@ -2072,4 +2072,20 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
     println(result)
   }
 
+  test("Duplicate registration of the generator") {
+    val failRegistry = new QueryGeneratorRegistry
+    val dummyOracleQueryGenerator = new QueryGenerator[WithOracleEngine] {
+      override def generate(queryContext: QueryContext): Query = { null }
+      override def engine: Engine = OracleEngine
+    }
+    val dummyFalseQueryGenerator = new QueryGenerator[WithDruidEngine] {
+      override def generate(queryContext: QueryContext): Query = { null }
+      override def engine: Engine = DruidEngine
+    }
+    failRegistry.register(OracleEngine, dummyOracleQueryGenerator)
+    failRegistry.register(DruidEngine, dummyFalseQueryGenerator)
+
+    DruidQueryGenerator.register(failRegistry, queryOptimizer = new SyncDruidQueryOptimizer(timeout = 5000))
+  }
+
 }

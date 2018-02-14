@@ -204,26 +204,6 @@ case class RequestModel(cube: String
     }.toMap
   }
 
-  private def getJoinType(dim: Dimension, dc : DimensionCandidate, schemaRequiredAliases: Set[String]): JoinType = {
-    val publicDimension: PublicDimension = dc.dim
-    if (schemaRequiredAliases.forall(publicDimension.columnsByAlias)) {
-      if (isDebugEnabled) {
-        RequestModel.Logger.info(s"dimBundle.dim.isDerivedDimension: ${dim.name} ${dim.isDerivedDimension}, hasNonPushDownFilters: ${dc.hasNonPushDownFilters}")
-      }
-      if (dim.isDerivedDimension) {
-        if (dc.hasNonPushDownFilters) { // If derived dim has filter, then use inner join, otherwise use left outer join
-          InnerJoin
-        } else {
-          LeftOuterJoin
-        }
-      } else {
-        RightOuterJoin
-      }
-    } else {
-      LeftOuterJoin
-    }
-  }
-
   utcTimeDayFilter match {
     case BetweenFilter(field, from, to) =>
       require(!DaysUtils.isFutureDate(from), FutureDateNotSupportedError(from))

@@ -36,6 +36,7 @@ trait BasePrestoQueryGeneratorTest
     registryBuilder.register(aga_stats_fact(forcedFilters))
     registryBuilder.register(ce_stats(forcedFilters))
     registryBuilder.register(bidReco())
+    registryBuilder.register(pubfact5())
   }
 
   protected[this] def s_stats_fact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
@@ -340,6 +341,95 @@ trait BasePrestoQueryGeneratorTest
         Set(),
         Set(),
         Map((AsyncRequest, DailyGrain) -> 400), Map((AsyncRequest, DailyGrain) -> 400)
+      )
+  }
+
+  def pubfact5(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+
+    val campaignStats  = {
+      import com.yahoo.maha.core.PrestoExpression._
+      ColumnContext.withColumnContext {
+        implicit dc: ColumnContext =>
+          Fact.newFactForView(
+            "campaign_stats", DailyGrain, PrestoEngine, Set(AdvertiserSchema, ResellerSchema),
+            Set(
+              DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+              , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+              , DimCol("stats_date", DateType("YYYY-MM-DD"))
+              , PrestoDerDimCol("Month", DateType(), "{stats_date}")
+              , PrestoDerDimCol("Week", DateType(), "{stats_date}")
+            ),
+            Set(
+              FactCol("impressions", IntType(3, 1))
+              , FactCol("clicks", IntType(3, 0, 1, 800))
+              , PrestoDerFactCol("spend", DecType(0, "0.0"), PrestoDerivedExpression("{impressions}"))
+            )
+          )
+      }
+    }
+
+    val campaignAdjustment  = {
+      import com.yahoo.maha.core.PrestoExpression._
+      ColumnContext.withColumnContext {
+        implicit dc: ColumnContext =>
+          Fact.newFactForView(
+            "campaign_adjustments", DailyGrain, PrestoEngine, Set(AdvertiserSchema, ResellerSchema),
+            Set(
+              DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+              , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+              , DimCol("stats_date", DateType("YYYY-MM-DD"))
+              , PrestoDerDimCol("Month", DateType(), "{stats_date}")
+              , PrestoDerDimCol("Week", DateType(), "{stats_date}")
+            ),
+            Set(
+              FactCol("impressions", IntType(3, 1))
+              , FactCol("clicks", IntType(3, 0, 1, 800))
+              , PrestoDerFactCol("spend", DecType(0, "0.0"), PrestoDerivedExpression("{impressions}"))
+            )
+          )
+      }
+    }
+
+    val campaignAdjView = UnionView("campaign_adjustment_view", Seq(campaignStats, campaignAdjustment))
+
+    val accountStats = campaignStats.copyWith("account_stats", Set("campaign_id"), Map.empty)
+    val accountAdjustment = campaignAdjustment.copyWith("account_adjustment", Set("campaign_id"), Map.empty)
+
+    val accountAdjustmentView = UnionView("account_adjustment_view", Seq(accountStats, accountAdjustment))
+
+    ColumnContext.withColumnContext {
+      import com.yahoo.maha.core.PrestoExpression._
+      implicit dc: ColumnContext =>
+        Fact.newUnionView(campaignAdjView, DailyGrain, PrestoEngine, Set(AdvertiserSchema, ResellerSchema),
+          Set(
+            DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+            , DimCol("stats_date", DateType("YYYY-MM-DD"))
+            , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+            , PrestoDerDimCol("Month", DateType(), "{stats_date}")
+            , PrestoDerDimCol("Week", DateType(), "{stats_date}")
+          ),
+          Set(
+            FactCol("impressions", IntType(3, 1))
+            , FactCol("clicks", IntType(3, 0, 1, 800))
+            , PrestoDerFactCol("spend", DecType(0, "0.0"), PrestoDerivedExpression("{impressions}"))
+          )
+        )
+    }
+      .newViewTableRollUp(accountAdjustmentView,"campaign_adjustment_view", Set("campaign_id"))
+
+      .toPublicFact("a_stats",
+        Set(
+          PubCol("stats_date", "Day", InBetweenEquality),
+          PubCol("advertiser_id", "Advertiser ID", InEquality),
+          PubCol("campaign_id", "Campaign ID", InEquality),
+          PubCol("Month", "Month", Equality),
+          PubCol("Week", "Week", Equality)
+        ),
+        Set(
+          PublicFactCol("impressions", "Impressions", InBetweenEquality),
+          PublicFactCol("clicks", "Clicks", InBetweenEquality),
+          PublicFactCol("spend", "Spend", Set.empty)
+        ), Set(),  getMaxDaysWindow, getMaxDaysLookBack
       )
   }
 }

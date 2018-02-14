@@ -4126,4 +4126,20 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
+
+  test("Duplicate registration of the generator") {
+    val failRegistry = new QueryGeneratorRegistry
+    val dummyOracleQueryGenerator = new QueryGenerator[WithOracleEngine] {
+      override def generate(queryContext: QueryContext): Query = { null }
+      override def engine: Engine = OracleEngine
+    }
+    val dummyFalseQueryGenerator = new QueryGenerator[WithDruidEngine] {
+      override def generate(queryContext: QueryContext): Query = { null }
+      override def engine: Engine = DruidEngine
+    }
+    failRegistry.register(OracleEngine, dummyOracleQueryGenerator)
+    failRegistry.register(DruidEngine, dummyFalseQueryGenerator)
+
+    OracleQueryGenerator.register(failRegistry,DefaultPartitionColumnRenderer)
+  }
 }
