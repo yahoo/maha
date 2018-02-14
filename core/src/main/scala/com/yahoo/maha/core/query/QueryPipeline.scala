@@ -766,9 +766,10 @@ OuterGroupBy operation has to be applied only in the following cases
             } else if(requestModel.isFactDriven) {
               NoopQuery
             } else {
-              QueryChain.logger.info("No data returned from druid, re-running on alt engine")
-              val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(noRowCountRequestModel, Set(factBestCandidateOption.get.fact.engine))
-              getDimFactQuery(newBestDimCandidates, newFactBestCandidateOption.get, noRowCountRequestModel, queryAttributes)
+              QueryChain.logger.info("No data returned from druid, re-running on alt engine with original request model")
+              //use original request model on rerun since no data returned from druid
+              val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(requestModel, Set(factBestCandidateOption.get.fact.engine))
+              getDimFactQuery(newBestDimCandidates, newFactBestCandidateOption.get, requestModel, queryAttributes)
             }
 
         }

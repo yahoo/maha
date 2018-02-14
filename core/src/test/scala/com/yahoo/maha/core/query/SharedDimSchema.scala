@@ -26,7 +26,7 @@ trait SharedDimSchema {
       import com.yahoo.maha.core.BaseExpressionTest._
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
         Dimension.newDimension(
-          "cache_targeting_attribute", HiveEngine, LevelFive, Set(AdvertiserSchema, AdvertiserLowLatencySchema, ResellerSchema),
+          "cache_targeting_attribute", HiveEngine, LevelFive, Set(AdvertiserSchema, AdvertiserLowLatencySchema, ResellerSchema, InternalSchema),
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
@@ -473,7 +473,7 @@ trait SharedDimSchema {
             DruidFuncDimCol("managed_by", StrType(), LOOKUP("advertiser_lookup", "managed_by")),
             DruidFuncDimCol("timezone", StrType(), LOOKUP_WITH_DECODE_ON_OTHER_COLUMN("advertiser_lookup", "timezone", "US", "timezone", "currency"))
           )
-          , Option(Map(AsyncRequest -> 14, SyncRequest -> 14))
+          , Option(Map(AsyncRequest -> 14, SyncRequest -> 14)), schemas = Set(AdvertiserSchema, ResellerSchema, InternalSchema)
         )
       }
     }
