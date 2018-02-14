@@ -584,6 +584,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
   test("test null result") {
     var resultSet: ResultSet = null
+    var executor : PrestoQueryExecutor = Mockito.spy(prestoQueryExecutor.get)
     val today = new Date(1515794890000L)
     jdbcConnection.get.queryForList("select * from ad_stats_presto where ad_id=1000 limit 1") {
       rs => {
@@ -593,6 +594,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
         Mockito.doReturn(null).when(resultSet).getDate(1)
         Mockito.doReturn(today).when(resultSet).getDate(2)
         Mockito.doReturn(null).when(resultSet).getTimestamp(anyInt())
+        Mockito.doReturn(null).when(executor).getBigDecimalSafely(resultSet, 5)
       }
     }
 
@@ -617,7 +619,24 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val timestampCol = new TestCol {
       override def dataType: DataType = TimestampType()
     }
+    val decCol = new TestCol {
+      override def dataType : DataType = DecType()
+    }
+    val decWithLen = new TestCol {
+      override def dataType : DataType = DecType(1, 0)
+    }
+    val decWithScaleAndLength = new TestCol {
+      override def dataType : DataType = DecType(1, 1)
+    }
+    val invalidType = new TestCol {
+      override def dataType : DataType = null
+    }
+
     assert(prestoQueryExecutor.get.getColumnValue(1, timestampCol, resultSet) == null)
+    assert(executor.getColumnValue(5, decCol, resultSet) == null)
+    assert(executor.getColumnValue(5, decWithLen, resultSet) == null)
+    assert(executor.getColumnValue(5, decWithScaleAndLength, resultSet) == null)
+    assertThrows[UnsupportedOperationException](executor.getColumnValue(5, invalidType, resultSet))
 
   }
 }

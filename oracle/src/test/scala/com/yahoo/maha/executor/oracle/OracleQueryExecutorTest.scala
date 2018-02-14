@@ -18,6 +18,7 @@ import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.MockDruidQueryExecutor
 import com.yahoo.maha.jdbc._
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
+import org.mockito.Mock
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 /**
@@ -796,5 +797,9 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
       case any =>
         throw new UnsupportedOperationException(s"unexpected row list : $any")
     }
+  }
+
+  test("Manual get on Oracle Column types") {
+    val result = oracleQueryExecutor
   }
 }
