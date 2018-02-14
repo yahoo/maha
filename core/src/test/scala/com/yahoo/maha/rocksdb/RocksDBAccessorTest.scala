@@ -86,4 +86,5 @@ class RocksDBAccessorTest extends FunSuite with Matchers with BeforeAndAfterAll 
     assertFalse(builder.putBatch(mutable.Map(key->value)))
     assertEquals(None, builder.get(key))
   }
+  
 }
