@@ -26,7 +26,7 @@ trait SharedDimSchema {
       import com.yahoo.maha.core.BaseExpressionTest._
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
         Dimension.newDimension(
-          "cache_targeting_attribute", HiveEngine, LevelFive, Set(AdvertiserSchema, AdvertiserLowLatencySchema, ResellerSchema),
+          "cache_targeting_attribute", HiveEngine, LevelFive, Set(AdvertiserSchema, AdvertiserLowLatencySchema, ResellerSchema, InternalSchema),
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))

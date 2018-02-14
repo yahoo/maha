@@ -250,10 +250,11 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     queryOptimizer.optimize(queryContext, context)
     val dimCardinality = queryContext.requestModel.dimCardinalityEstimate.getOrElse(defaultDimCardinality)
 
+    val isUsingDruidLookup: Boolean = dims.exists(_.dim.engine == DruidEngine)
     val factAliasColumnMap: Map[String, Column] = {
       val nameAliasMap = queryContext.factBestCandidate.dimColMapping ++ queryContext.factBestCandidate.factColMapping
       nameAliasMap.collect {
-        case (name, alias) if model.requestColsSet(alias) => alias -> queryContext.factBestCandidate.fact.columnsByNameMap(name)
+        case (name, alias) if !isUsingDruidLookup || (isUsingDruidLookup && model.requestColsSet(alias)) => alias -> queryContext.factBestCandidate.fact.columnsByNameMap(name)
       }
     }
 
@@ -288,7 +289,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
     val (aggregatorList, postAggregatorList) = getAggregators(queryContext)
     val (dimFilterList, factFilterList) = getFilters(queryContext, dims)
-    val dimensionSpecTupleList: mutable.Buffer[(DimensionSpec, Option[DimensionSpec])] = getDimensions(queryContext, factRequestCols, dims)
+    val dimensionSpecTupleList: mutable.Buffer[(DimensionSpec, Option[DimensionSpec])] = getDimensions(queryContext, factRequestCols, dims, isUsingDruidLookup)
 
     require(queryContext.requestModel.startIndex < maximumMaxRows, s"startIndex can not exceed $maximumMaxRows")
 
@@ -893,7 +894,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     (aggregatorList, postAggregatorList)
   }
 
-  private[this] def getDimensions(queryContext: FactQueryContext, factRequestCols: Set[String], dims: SortedSet[DimensionBundle]): mutable.Buffer[(DimensionSpec, Option[DimensionSpec])] = {
+  private[this] def getDimensions(queryContext: FactQueryContext, factRequestCols: Set[String], dims: SortedSet[DimensionBundle], isUsingDruidLookups: Boolean): mutable.Buffer[(DimensionSpec, Option[DimensionSpec])] = {
     val fact = queryContext.factBestCandidate.fact
     val dimensionSpecTupleList = new ArrayBuffer[(DimensionSpec, Option[DimensionSpec])](queryContext.factBestCandidate.dimColMapping.size)
 
@@ -1072,7 +1073,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     }
 
     queryContext.factBestCandidate.dimColMapping.collect {
-      case (dimCol, alias) if queryContext.requestModel.requestColsSet(alias) =>
+      case (dimCol, alias) if !isUsingDruidLookups || (isUsingDruidLookups && queryContext.requestModel.requestColsSet(alias)) =>
         if (factRequestCols(dimCol)) {
           val column = fact.columnsByNameMap(dimCol)
           if (Grain.grainFields(alias) && !queryContext.factBestCandidate.publicFact.renderLocalTimeFilter) {
@@ -1084,12 +1085,12 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         }
     }
 
-    queryContext.factBestCandidate.factColMapping.map {
+    queryContext.factBestCandidate.factColMapping.foreach {
       case (factCol, alias) =>
         if (factRequestCols(factCol)) {
           val column = fact.columnsByNameMap(factCol)
           column match {
-            case DruidPostResultDerivedFactCol(_,_,_,_,_,_,_,_,prf) => {
+            case DruidPostResultDerivedFactCol(_,_,_,_,_,_,_,_,prf) =>
               prf.sourceColumns.foreach {
                 sc => {
                   for {
@@ -1099,7 +1100,6 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                   }
                 }
               }
-            }
             case _ =>
           }
         }
