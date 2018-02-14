@@ -10,11 +10,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-<<<<<<< HEAD
-        <version>5.45-SNAPSHOT</version>
-=======
         <version>5.46-SNAPSHOT</version>
->>>>>>> 94e60e581d4e9e22b6f4acab30f4973a1257f281
     </parent>
 
     <name>maha core</name>
