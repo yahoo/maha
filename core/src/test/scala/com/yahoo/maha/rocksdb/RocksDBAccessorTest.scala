@@ -64,7 +64,7 @@ class RocksDBAccessorTest extends FunSuite with Matchers with BeforeAndAfterAll 
     val testKey = null
     val testVal = null
     assertFalse(rocksDBAccessor.put(testKey, testVal))
-    assertTrue(rocksDBAccessor.putBatch(mutable.Map.empty))
+    assertFalse(rocksDBAccessor.putBatch(mutable.Map.empty))
     assertFalse(rocksDBAccessor.putBatch(null))
     assertEquals(None, rocksDBAccessor.get(null))
   }

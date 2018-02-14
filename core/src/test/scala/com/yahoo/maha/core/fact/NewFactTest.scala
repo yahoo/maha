@@ -295,6 +295,26 @@ class NewFactTest extends BaseFactTest {
     val p = toSetRequestCol("dimcol1")
     assert(p.hashCode.isInstanceOf[Int] && p.equals(null) == false && p.equals(p) == true && p.equals("inexistent") == false, s"All attributes for setRequestCol not as expected:\nhashCode: ${p.hashCode}\tequals null:${p.equals(null)}\tequals itself:${p.equals(p)}\tequals string:${p.equals("s")}")
   }
+
+  test("Fact with FK flag should fail") {
+
+    val thrown = intercept[IllegalArgumentException] {
+      import DruidExpression._
+      ColumnContext.withColumnContext { implicit cc =>
+        new FactTable("base_fact", 9999, DailyGrain, DruidEngine, Set(AdvertiserSchema),
+          Set(
+            DimCol("dimcol1", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("dimcol2", IntType())
+          ),
+          Set(
+            FactCol("factcol1", StrType()),
+            FactCol("factcol2", StrType(), annotations = Set(ForeignKey("fail"))),
+            DruidPostResultDerivedFactCol("factcol3", StrType(), "{factcol1}" /- "{factcol2}", postResultFunction = POST_RESULT_DECODE("{dimcol3}", "0", "N/A"))
+          ), None, Set.empty, None, Fact.DEFAULT_COST_MULTIPLIER_MAP,Set.empty,10,100,None, None, None, None, None)
+      }
+    }
+    thrown.getMessage should startWith ("requirement failed: Non dimension column cannot have foreign key annotation : ")
+  }
 }
 
 

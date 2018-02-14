@@ -33,7 +33,7 @@ class LevelDBAccessorTest extends FunSuite with Matchers with BeforeAndAfterAll 
     val testKey = null
     val testVal = null
     assertFalse(levelDBAccessor.put(testKey, testVal))
-    assertTrue(levelDBAccessor.putBatch(mutable.Map.empty))
+    assertFalse(levelDBAccessor.putBatch(mutable.Map.empty))
     assertFalse(levelDBAccessor.putBatch(null))
     assertEquals(None, levelDBAccessor.get(null))
   }

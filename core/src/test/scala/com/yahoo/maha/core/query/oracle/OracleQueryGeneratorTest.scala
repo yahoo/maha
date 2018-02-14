@@ -2562,6 +2562,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(factBest.isDefined)
     assert(factBest.get.fact.isInstanceOf[ViewTable])
     assert(factBest.get.fact.asInstanceOf[ViewTable].name == "campaign_adjustment_view")
+    factBest.get.fact.asInstanceOf[ViewTable].postValidate(pubfact5())
   }
   test("Best Candidates test for account adjustment in a_stats Fact View") {
     val jsonString = s"""{
