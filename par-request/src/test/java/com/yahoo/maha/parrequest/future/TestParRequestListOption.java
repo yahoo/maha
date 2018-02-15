@@ -9,6 +9,7 @@ import com.yahoo.maha.parrequest.Nothing;
 import com.yahoo.maha.parrequest.Option;
 import com.yahoo.maha.parrequest.ParCallable;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -121,7 +122,7 @@ public class TestParRequestListOption {
         ParRequestListOption<String> request = builder.build();
         Either<GeneralError, Integer> result = request.resultMap(stringAssert);
         assertTrue(result.isLeft());
-        assertTrue(result.left().get().message.equals("failed"), result.left().get().message);
+        assertTrue(result.left().get().message.equals("failed"), result.left().get().message + result.left().get().throwableOption.map(ParFunction.from(ExceptionUtils::getStackTrace)));
     }
 
     @Test
