@@ -181,6 +181,10 @@ trait BaseRequest {
     reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.QueryEngine -> QueryEngineValue(HiveEngine)))
   }
 
+  def forcePresto(reportingRequest: ReportingRequest) : ReportingRequest = {
+    reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.QueryEngine -> QueryEngineValue(PrestoEngine)))
+  }
+
   def addRequestContext(reportingRequest: ReportingRequest, requestContext: RequestContext) : ReportingRequest = {
     reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++
       Map(

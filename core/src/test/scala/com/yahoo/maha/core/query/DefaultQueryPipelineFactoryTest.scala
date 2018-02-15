@@ -868,4 +868,14 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     assert(queryPipelineTry.isFailure, "should fail if In filter with more than allowed limit")
     assert(queryPipelineTry.failed.get.getMessage === "requirement failed: Failed to find best candidate, forceEngine=Some(Hive), engine disqualifyingSet=Set(Druid), candidates=Set((fact_druid,Druid), (fact_hive,Hive), (fact_oracle,Oracle))")
   }
+  test("fail to generate sync query for presto") {
+    val request: ReportingRequest = ReportingRequest.forcePresto(getReportingRequestSync(requestWithIdSort))
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Expected failure to get the query pipeline, Presto is not supported for sync queries"))
+    assert(queryPipelineTry.failed.get.getMessage === "requirement failed: Failed to find best candidate, forceEngine=Some(Presto), engine disqualifyingSet=Set(Hive, Presto), candidates=Set((fact_druid,Druid), (fact_hive,Hive), (fact_oracle,Oracle))")
+  }
 }
