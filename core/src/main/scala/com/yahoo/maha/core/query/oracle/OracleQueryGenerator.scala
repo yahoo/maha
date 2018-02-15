@@ -635,16 +635,7 @@ b. Dim Driven
           info("publicDim contains injectFilter.field: " + injectFilter.field)
           db.copy(filters = db.filters ++ injectFilterSet)
         } else {
-          val fkSources = db.publicDim.foreignKeySources
-          val fkDimBundles = dbSet.find(b => fkSources.contains(b.publicDim.name) && b.publicDim.isPrimaryKeyAlias(injectFilter.field))
-          info("fkDimBundles: " + fkDimBundles)
-          fkDimBundles.fold(db){
-            fkDimBundle =>
-              db.dim.sourceToForeignKeyColumnMap.get(fkDimBundle.publicDim.name).map {
-                col =>
-                  db.copy(filters = db.filters ++ Set(injectFilter.renameField(db.publicDim.keyColumnToAliasMap(col.name))))
-              }.getOrElse(db)
-          }
+          db
         }
     }
   }
