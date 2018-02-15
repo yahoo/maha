@@ -122,7 +122,11 @@ public class TestParRequestListOption {
         ParRequestListOption<String> request = builder.build();
         Either<GeneralError, Integer> result = request.resultMap(stringAssert);
         assertTrue(result.isLeft());
-        assertTrue(result.left().get().message.equals("failed"), result.left().get().message + result.left().get().throwableOption.map(ParFunction.from(ExceptionUtils::getStackTrace)));
+        assertTrue(result.left().get().message.equals("failed"),
+                   "Result message expected 'failed' got " +
+                   result.left().get().message +
+                   "Throwable stacktrace: " +
+                   result.left().get().throwableOption.map(ParFunction.from(ExceptionUtils::getStackTrace)));
     }
 
     @Test
