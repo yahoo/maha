@@ -409,6 +409,16 @@ class MahaServiceExampleTest extends BaseFactoryTest {
     assert(flattenDomainJsonOption.isDefined)
     val cubeDomain = mahaService.getDomainForCube("er", "student_performance")
     assert(cubeDomain.isDefined)
+    val flatDomain = mahaService.getFlattenDomain("er")
+    assert(flatDomain.isDefined)
+    val flatDomainWithoutRev = mahaService.getFlattenDomainForCube("er", "student_performance")
+    assert(flatDomainWithoutRev.isDefined)
+    val flatDomainWithRev = mahaService.getFlattenDomainForCube("er", "student_performance", Option(0))
+    assert(flatDomainWithRev.isDefined)
+    assert(!mahaService.getDomain("temp").isDefined)
+    assert(!mahaService.getFlattenDomain("temp").isDefined)
+    assert(!mahaService.getDomainForCube("temp", "inexistent").isDefined)
+    assert(!mahaService.getFlattenDomainForCube("temp", "inexistent").isDefined)
 
     // test MahaRequestProcessor
     val mahaRequestProcessor : MahaRequestProcessor = MahaRequestProcessor("er", bucketParams, reportingRequest, mahaService, jsonRequest.getBytes)

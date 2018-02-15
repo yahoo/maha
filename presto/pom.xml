@@ -10,7 +10,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.48-SNAPSHOT</version>
+        <version>5.49-SNAPSHOT</version>
     </parent>
 
     <name>maha presto executor</name>

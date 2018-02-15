@@ -12,6 +12,7 @@ import org.apache.commons.lang3.StringUtils
 
 import scala.collection.{SortedSet, mutable}
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.util.Try
 
 /**
  * Created by hiral on 11/13/15.
@@ -40,7 +41,7 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
       case DimQueryContext(dims, requestModel, indexAliasOption, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, true, None, includePagination)
       case CombinedQueryContext(dims, fact, requestModel, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, false, Option(fact), includePagination)
       case DimFactOuterGroupByQueryQueryContext(dims, fact, requestModel, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, false, Option(fact), includePagination)
-      case any => throw new UnsupportedOperationException(s"query context not supported : ${any.getClass.getSimpleName}")
+      case any => throw new UnsupportedOperationException(s"query context not supported : ${Try(any.getClass.getSimpleName)}")
     }
   }
 

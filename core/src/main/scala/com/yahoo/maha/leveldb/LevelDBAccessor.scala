@@ -51,7 +51,7 @@ class LevelDBAccessor[K, V](builder: LevelDBAccessorBuilder[K, V]) extends Loggi
   }
 
   def putBatch(inputBatch: mutable.Map[K, V], sync: Boolean = true): Boolean = {
-    if (inputBatch != null || inputBatch.nonEmpty) {
+    if (inputBatch != null && inputBatch.nonEmpty) {
       try {
         val writeOptions = new WriteOptions
         val batch: WriteBatch = db.createWriteBatch()

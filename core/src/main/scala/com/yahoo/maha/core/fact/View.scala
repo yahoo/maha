@@ -38,7 +38,7 @@ case class UnionView(viewName : String, facts: Seq[Fact]) extends View {
 
 object View {
   def validateBaseViewFacts(facts : Seq[Fact]): Unit = {
-    require(facts.size > 0, "Require 2 or more facts in order to create view")
+    require(facts.size > 1, "Require 2 or more facts in order to create view")
 
     facts.sliding(2).foreach {
       seq =>

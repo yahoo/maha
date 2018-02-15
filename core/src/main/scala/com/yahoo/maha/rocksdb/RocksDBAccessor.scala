@@ -73,7 +73,7 @@ thus leaving it public to invoke it as per the implementation
   }
 
   def putBatch(inputBatch: mutable.Map[K, V], sync: Boolean = true): Boolean = {
-    if (inputBatch != null || inputBatch.nonEmpty) {
+    if (inputBatch != null && inputBatch.nonEmpty) {
       val writeOptions: WriteOptions = new WriteOptions
       val batch: WriteBatch =  new WriteBatch()
       try {

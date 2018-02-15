@@ -580,4 +580,20 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
+  test("Duplicate registration of the generator") {
+    val failRegistry = new QueryGeneratorRegistry
+    val dummyHiveQueryGenerator = new QueryGenerator[WithHiveEngine] {
+      override def generate(queryContext: QueryContext): Query = { null }
+      override def engine: Engine = OracleEngine
+    }
+    val dummyFalseQueryGenerator = new QueryGenerator[WithDruidEngine] {
+      override def generate(queryContext: QueryContext): Query = { null }
+      override def engine: Engine = DruidEngine
+    }
+    failRegistry.register(OracleEngine, dummyHiveQueryGenerator)
+    failRegistry.register(DruidEngine, dummyFalseQueryGenerator)
+
+    HiveQueryGenerator.register(failRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
+  }
+
 }

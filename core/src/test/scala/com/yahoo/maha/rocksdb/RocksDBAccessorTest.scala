@@ -9,6 +9,8 @@ import org.junit.Assert._
 import org.rocksdb.{Options, TtlDB}
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
+import scala.collection.mutable
+
 /**
  * Created by surabhip on 3/10/16.
  */
@@ -57,4 +59,32 @@ class RocksDBAccessorTest extends FunSuite with Matchers with BeforeAndAfterAll 
     val value = rocksDBAccessorTtl.get(testKey)
     assert(value.isDefined == false)
   }
+
+  test("Failure put") {
+    val testKey = null
+    val testVal = null
+    assertFalse(rocksDBAccessor.put(testKey, testVal))
+    assertFalse(rocksDBAccessor.putBatch(mutable.Map.empty))
+    assertFalse(rocksDBAccessor.putBatch(null))
+    assertEquals(None, rocksDBAccessor.get(null))
+  }
+
+  test("DB closed, error cases") {
+    val _1MB : Int = 1024 * 1024
+    val key : String = "key-val"
+    val value : String = "value-val"
+    val builder : RocksDBAccessor[String, String] = new RocksDBAccessorBuilder("mutable", Some("/tmp"))
+      .addBlockSize(_1MB)
+      .addCacheSize(500 * _1MB)
+      .addMaxOpenFiles(1000)
+      .addWriteBufferSize(10 * _1MB)
+      .setCreateIfMissing(true)
+      .toRocksDBAccessor
+    builder.close
+    builder.destroy()
+    assertFalse(builder.put("key", "value"))
+    assertFalse(builder.putBatch(mutable.Map(key->value)))
+    assertEquals(None, builder.get(key))
+  }
+
 }

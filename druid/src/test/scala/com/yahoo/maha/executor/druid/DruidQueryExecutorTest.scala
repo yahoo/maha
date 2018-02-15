@@ -217,14 +217,14 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
           , FactCol("min_bid", DecType(0, "0.0"), MinRollup)
           , FactCol("avg_pos_times_impressions", DecType(0, "0.0"), MaxRollup)
           , FactCol("weighted_bid_modifier", DecType(8, 2, "0.0"))
-          , FactCol("weighted_bid_usd", DecType(8, 2, "0.0"))
+          , FactCol("weighted_bid_usd", DecType(0, 2, "0.0"))
           , FactCol("bid_mod_impressions", IntType(10, 0))
-          , DruidDerFactCol("Average Bid", DecType(8, 2, "0.0"), "{weighted_bid_usd}" /- "{impresssions}")
+          , DruidDerFactCol("Average Bid", DecType(8, "0.0"), "{weighted_bid_usd}" /- "{impresssions}")
           , DruidDerFactCol("Average CPC", DecType(), "{spend}" / "{clicks}")
           , DruidDerFactCol("CTR", DecType(), "{clicks}" /- "{impresssions}")
           , DruidDerFactCol("Bid Mod", DecType(8, 5, "0.0"), "{weighted_bid_modifier}" /-"{bid_mod_impressions}")
           , DruidDerFactCol("derived_avg_pos", DecType(8, 2, "0.0", "0.1", "500"), "{avg_pos_times_impressions}" /- "{impresssions}")
-          , DruidDerFactCol("Bid Modifier", DecType(8, 5, "0.0"), "{weighted_bid_modifier}" /-"{bid_mod_impressions}")
+          , DruidDerFactCol("Bid Modifier", DecType(0, 5, "0.0"), "{weighted_bid_modifier}" /-"{bid_mod_impressions}")
           , DruidPostResultDerivedFactCol("Modified Bid", DecType(8, 5, "0.0"), "{Bid Modifier}" * "{Average Bid}", postResultFunction =POST_RESULT_DECODE("{Bid Mod}", "0", "{Average Bid}"))
           , DruidPostResultDerivedFactCol("Impression Share", StrType(), "{impresssions}" /- "{sov_impresssions}", postResultFunction = POST_RESULT_DECODE("{show_sov_flag}", "0", "N/A"))
         ),
@@ -815,7 +815,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     }
 
     assert(count==4)
-    val expected = "Row(Map(Bid Modifier -> 5, Average Bid -> 4, Day -> 0, Modified Bid -> 6, Device Type -> 7, Impressions -> 3, Advertiser ID -> 1, Spend -> 2),ArrayBuffer(2017-08-07, 5430, 5793.1630783081, 2884485, 0.3, 9, 2.74208, 'Desktop'))Row(Map(Bid Modifier -> 5, Average Bid -> 4, Day -> 0, Modified Bid -> 6, Device Type -> 7, Impressions -> 3, Advertiser ID -> 1, Spend -> 2),ArrayBuffer(2017-08-08, 5430, 5237.0206726193, 2701909, 0.3, 8.99726, 2.70132, 'Desktop'))Row(Map(Bid Modifier -> 5, Average Bid -> 4, Day -> 0, Modified Bid -> 6, Device Type -> 7, Impressions -> 3, Advertiser ID -> 1, Spend -> 2),ArrayBuffer(2017-08-07, 5430, 1.4580000341, 2250, 0.3, 0, 0.3, 'SmartPhone'))Row(Map(Bid Modifier -> 5, Average Bid -> 4, Day -> 0, Modified Bid -> 6, Device Type -> 7, Impressions -> 3, Advertiser ID -> 1, Spend -> 2),ArrayBuffer(2017-08-08, 5430, 1.0800000392, 2138, 0.3, 0.2, 0.06022, 'SmartPhone'))"
+    val expected = "Row(Map(Bid Modifier -> 5, Average Bid -> 4, Day -> 0, Modified Bid -> 6, Device Type -> 7, Impressions -> 3, Advertiser ID -> 1, Spend -> 2),ArrayBuffer(2017-08-07, 5430, 5793.1630783081, 2884485, 0.30467536, 9, 2.74208, 'Desktop'))Row(Map(Bid Modifier -> 5, Average Bid -> 4, Day -> 0, Modified Bid -> 6, Device Type -> 7, Impressions -> 3, Advertiser ID -> 1, Spend -> 2),ArrayBuffer(2017-08-08, 5430, 5237.0206726193, 2701909, 0.30023782, 8.99726, 2.70132, 'Desktop'))Row(Map(Bid Modifier -> 5, Average Bid -> 4, Day -> 0, Modified Bid -> 6, Device Type -> 7, Impressions -> 3, Advertiser ID -> 1, Spend -> 2),ArrayBuffer(2017-08-07, 5430, 1.4580000341, 2250, 0.30307999, 0, 0.30307999, 'SmartPhone'))Row(Map(Bid Modifier -> 5, Average Bid -> 4, Day -> 0, Modified Bid -> 6, Device Type -> 7, Impressions -> 3, Advertiser ID -> 1, Spend -> 2),ArrayBuffer(2017-08-08, 5430, 1.0800000392, 2138, 0.30110852, 0.2, 0.06022, 'SmartPhone'))"
     println(s"Actual:\n $str\n expected:\n ${expected}")
     str should equal (expected) (after being whiteSpaceNormalised)
 

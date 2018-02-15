@@ -3,6 +3,7 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.core.dimension.DimCol
+import com.yahoo.maha.core.fact.ForceFilter
 import org.joda.time.DateTime
 import org.scalatest.{FunSuite, Matchers}
 
@@ -221,6 +222,12 @@ class FilterTest extends FunSuite with Matchers {
     val filter3 = IsNotNullFilter("field1", isForceFilter = false)
     val filter4 = IsNotNullFilter("field1", isForceFilter = true)
     val filter5 = IsNotNullFilter("field2", isForceFilter = true)
+
+    val thrown = intercept[IllegalArgumentException] {
+      ForceFilter(EqualityFilter("field1", "1", isForceFilter = false))
+    }
+
+    assert(thrown.getMessage.contains("Filter must be declared with isForceFilter = true"))
 
     assert(filter1 === filter4)
     assert(filter2 === filter3)

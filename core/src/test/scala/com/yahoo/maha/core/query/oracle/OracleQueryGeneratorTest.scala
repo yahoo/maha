@@ -2562,6 +2562,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(factBest.isDefined)
     assert(factBest.get.fact.isInstanceOf[ViewTable])
     assert(factBest.get.fact.asInstanceOf[ViewTable].name == "campaign_adjustment_view")
+    factBest.get.fact.asInstanceOf[ViewTable].postValidate(pubfact5())
   }
   test("Best Candidates test for account adjustment in a_stats Fact View") {
     val jsonString = s"""{
@@ -3806,7 +3807,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                               "field": "Spend",
                               "alias": null,
                               "value": null
-                              } 
+                              }
                            ],
                            "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
@@ -4125,5 +4126,21 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |""".stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Duplicate registration of the generator") {
+    val failRegistry = new QueryGeneratorRegistry
+    val dummyOracleQueryGenerator = new QueryGenerator[WithOracleEngine] {
+      override def generate(queryContext: QueryContext): Query = { null }
+      override def engine: Engine = OracleEngine
+    }
+    val dummyFalseQueryGenerator = new QueryGenerator[WithDruidEngine] {
+      override def generate(queryContext: QueryContext): Query = { null }
+      override def engine: Engine = DruidEngine
+    }
+    failRegistry.register(OracleEngine, dummyOracleQueryGenerator)
+    failRegistry.register(DruidEngine, dummyFalseQueryGenerator)
+
+    OracleQueryGenerator.register(failRegistry,DefaultPartitionColumnRenderer)
   }
 }

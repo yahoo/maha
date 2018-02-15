@@ -77,7 +77,7 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
       .setMaxConnectionsPerHost(5)
       .setMaxConnections(5)
       .setRequestTimeout(600000)
-      .addRequestFilter(new TimeoutThrottlingFilter(1000L, 2, 1000L))
+      .addRequestFilter(new TimeoutThrottlingFilter(1000L, 2, 1000L, 1))
       .build();
 
     val ningClient = new AsyncHttpClient(config);

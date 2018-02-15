@@ -4,8 +4,9 @@ package com.yahoo.maha.leveldb
 
 import com.yahoo.maha.serde.StringSerDe
 import org.junit.Assert._
+import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
-import org.scalatest.{ BeforeAndAfterAll, FunSuite, Matchers }
+import scala.collection.mutable
 
 /**
  * Created by surabhip on 3/10/16.
@@ -27,6 +28,15 @@ class LevelDBAccessorTest extends FunSuite with Matchers with BeforeAndAfterAll 
     assertTrue(levelDBAccessor.get(testKey).isDefined)
     assertEquals(testVal, levelDBAccessor.get(testKey).get)
   }
+
+  test("Failure put") {
+    val testKey = null
+    val testVal = null
+    assertFalse(levelDBAccessor.put(testKey, testVal))
+    assertFalse(levelDBAccessor.putBatch(mutable.Map.empty))
+    assertFalse(levelDBAccessor.putBatch(null))
+    assertEquals(None, levelDBAccessor.get(null))
+  }
   
   test("successfully perform put batch and should be able to retrieve") {
     val kv = new collection.mutable.HashMap[String, String]
@@ -38,5 +48,33 @@ class LevelDBAccessorTest extends FunSuite with Matchers with BeforeAndAfterAll 
     assert(levelDBAccessor.get("one").get === "1")
     assert(levelDBAccessor.get("two").get === "2")
     assert(levelDBAccessor.get("three").get === "3")
+  }
+
+  test("Set LevelDBAccessorBuilder parameters") {
+    val _1MB : Int = 1024 * 1024
+    val builder = new LevelDBAccessorBuilder("mutable", Some("/tmp")).addBlockSize(_1MB).addCacheSize(500 * _1MB).addMaxOpenFiles(1000).addWriteBufferSize(10 * _1MB).setCreateIfMissing(true)
+    assertTrue(builder.createIfMissing)
+    assertEquals(builder.blockSize, _1MB)
+    assertEquals(builder.cacheSize, 500 * _1MB)
+    assertEquals(builder.maxOpenFiles, 1000)
+    assertEquals(builder.writeBufferSize, 10 * _1MB)
+  }
+
+  test("DB closed, error cases") {
+    val _1MB : Int = 1024 * 1024
+    val key : String = "key-val"
+    val value : String = "value-val"
+    val builder : LevelDBAccessor[String, String] = new LevelDBAccessorBuilder("mutable", Some("/tmp"))
+      .addBlockSize(_1MB)
+      .addCacheSize(500 * _1MB)
+      .addMaxOpenFiles(1000)
+      .addWriteBufferSize(10 * _1MB)
+      .setCreateIfMissing(true)
+      .toLevelDBAccessor
+    builder.close
+    builder.destroy()
+    assertFalse(builder.put("key", "value"))
+    assertFalse(builder.putBatch(mutable.Map(key->value)))
+    assertEquals(None, builder.get(key))
   }
 }

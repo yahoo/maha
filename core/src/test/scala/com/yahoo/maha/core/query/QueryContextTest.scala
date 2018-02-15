@@ -3,11 +3,12 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator}
+import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator, SyncDruidQueryOptimizer}
 import com.yahoo.maha.core.query.hive.HiveQueryGenerator
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
-import com.yahoo.maha.core.request.{QueryEngineValue, Parameter, ReportingRequest}
-import org.scalatest.{BeforeAndAfterAll, Matchers, FunSuite}
+import com.yahoo.maha.core.query.presto.PrestoQueryGenerator
+import com.yahoo.maha.core.request.{Parameter, QueryEngineValue, ReportingRequest}
+import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 import scala.collection.SortedSet
 
@@ -20,6 +21,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     OracleQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer)
     HiveQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
     DruidQueryGenerator.register(queryGeneratorRegistry)
+    PrestoQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestPrestoUDFRegistrationFactory())
   }
 
   private def getOracleQuery(qc: QueryContext) : OracleQuery = {
@@ -32,6 +34,10 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
 
   private def getDruidQuery(qc: QueryContext) : DruidQuery[_] = {
     queryGeneratorRegistry.getGenerator(DruidEngine).get.asInstanceOf[DruidQueryGenerator].generate(qc).asInstanceOf[DruidQuery[_]]
+  }
+
+  private def getPrestoQuery(qc: QueryContext) : PrestoQuery = {
+    queryGeneratorRegistry.getGenerator(PrestoEngine).get.asInstanceOf[PrestoQueryGenerator].generate(qc).asInstanceOf[PrestoQuery]
   }
 
 
@@ -52,7 +58,41 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
       val result = getOracleQuery(builder.build()).asString
       assert(result.contains("""SELECT /*+ CampaignHint */ DECODE(status, 'ON', 'ON', 'OFF') AS "Campaign Status", id"""))
     }
+
+  }
+  test("Generators calling generate with null context should throw IllegalArgumentExceptions"){
+    val oracleThrown = intercept[IllegalArgumentException] {
+      val oracleFail = new OracleQueryGenerator(DefaultPartitionColumnRenderer)
+      oracleFail.generate(null)
+    }
+    assert(oracleThrown.getMessage.contains("Unhandled query context"), "Null context should throw an IllegalArgumentException")
+
+    val hiveThrown = intercept[UnsupportedOperationException] {
+      val hiveFail = new HiveQueryGenerator(DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
+      hiveFail.generate(null)
+    }
+    assert(hiveThrown.getMessage.contains("query context not supported"), "Null context should throw an UnsupportedOperationException")
+
+    val druidThrown = intercept[UnsupportedOperationException] {
+      val druidFail = new DruidQueryGenerator(new SyncDruidQueryOptimizer(), defaultDimCardinality = 1)
+      druidFail.generate(null)
+    }
+    assert(druidThrown.getMessage.contains("query context not supported"), "Null context should throw an UnsupportedOperationException")
+
+    val prestoThrown = intercept[UnsupportedOperationException] {
+      val prestoFail = new PrestoQueryGenerator(DefaultPartitionColumnRenderer, TestPrestoUDFRegistrationFactory())
+      prestoFail.generate(null)
+    }
+    assert(prestoThrown.getMessage.contains("query context not supported"), "Null context should throw an UnsupportedOperationException")
     
+  }
+
+  test("Generators attempting to create dimension SQL should fail with null context") {
+    val oracleThrown = intercept[UnsupportedOperationException] {
+      val oracleFail = new OracleQueryGenerator(DefaultPartitionColumnRenderer)
+      oracleFail.generateDimensionSql(null, new QueryBuilderContext, false)
+    }
+    assert(oracleThrown.getMessage.contains("query context not supported"), "Null context should throw an UnsupportedOperationException")
   }
 
   test("dim only query with no dim should fail") {
@@ -123,6 +163,15 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
       assert(result.contains("""{"type":"selector","dimension":"advertiser_id","value":"213"}"""))
       assert(result.contains("""granularity":{"type":"all"""))
       assert(result.contains("""dimensions":[{"type":"default","dimension":"landing_page_url","outputName":"Destination URL"},{"type":"default","dimension":"stats_date","outputName":"Day"},{"type":"extraction","dimension":"price_type","outputName":"Pricing Type","extractionFn":{"type":"lookup","lookup":{"type":"map","map":{"-10":"CPE","-20":"CPF","6":"CPV","1":"CPC","2":"CPA","7":"CPCV","3":"CPM"},"isOneToOne":false},"retainMissingValue":false,"replaceMissingValueWith":"NONE","injective":false,"optimize":true}},{"type":"default","dimension":"ad_group_id","outputName":"Ad Group ID"},{"type":"default","dimension":"stats_source","outputName":"Source"},{"type":"default","dimension":"advertiser_id","outputName":"Advertiser ID"},{"type":"default","dimension":"campaign_id","outputName":"Campaign ID"}],"aggregations":[{"type":"longSum","name":"Clicks","fieldName":"clicks"},{"type":"longSum","name":"Impressions","fieldName":"impressions"}],"postAggregations":[],"limitSpec":{"type":"default","columns":[{"dimension":"Clicks","direction":"ascending","dimensionOrder":{"type":"numeric"}}],"limit":100},"context":{"""))
+    }
+
+    //test with Presto
+    {
+      val builder = new QueryContextBuilder(FactOnlyQuery, requestModel.get)
+      val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(PrestoEngine), queryGeneratorRegistry = queryGeneratorRegistry)
+      builder.addFactBestCandidate(fact)
+      val result = getPrestoQuery(builder.build()).asString
+      assert(result.contains("""SELECT mang_day, advertiser_id, campaign_id, ad_group_id, mang_source, mang_pricing_type, mang_destination_url, mang_impressions, mang_clicks"""))
     }
   }
 

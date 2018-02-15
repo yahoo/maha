@@ -156,10 +156,94 @@ class MahaResourceTest {
   }
 
   @Test
+  def failedDruidRequest(){
+    assertNotNull("jetty must be initialised", MahaResourceTest.server)
+    val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/er/schemas/student/query?debug=true&forceEngine=druid")
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "${ExampleMahaService.yesterday}", "to": "${ExampleMahaService.today}"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val httpEntity: HttpEntity = new StringEntity(jsonRequest)
+    httpPost.setEntity(httpEntity)
+    httpPost.setHeader(HttpHeaders.ACCEPT,MediaType.APPLICATION_JSON)
+    httpPost.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
+    httpPost.setHeader("RequestId", "failedDruidRequest")
+    val httpResponse: HttpResponse = httpClient.execute(httpPost)
+    assertEquals(s"should return status 500, ${httpResponse.getStatusLine}", 500, httpResponse.getStatusLine.getStatusCode)
+  }
+
+  @Test
   def successfulSyncRequest(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/er/schemas/student/query?debug=true&forceEngine=DruidEngine")
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/er/schemas/student/query?debug=true&forceEngine=oracle")
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "${ExampleMahaService.yesterday}", "to": "${ExampleMahaService.today}"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val httpEntity: HttpEntity = new StringEntity(jsonRequest)
+    httpPost.setEntity(httpEntity)
+    httpPost.setHeader(HttpHeaders.ACCEPT,MediaType.APPLICATION_JSON)
+    httpPost.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
+    httpPost.setHeader("RequestId", "successfulSyncRequest")
+    val httpResponse: HttpResponse = httpClient.execute(httpPost)
+    assertEquals(s"should return status 200, ${httpResponse.getStatusLine}", 200, httpResponse.getStatusLine.getStatusCode)
+    val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
+    println(responseJson)
+    assert(responseJson.contains("""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[213,200,100,125]]}"""))
+  }
+
+  @Test
+  def failedHiveRequest(){
+    assertNotNull("jetty must be initialised", MahaResourceTest.server)
+    val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/er/schemas/student/query?debug=true&forceEngine=hive")
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "${ExampleMahaService.yesterday}", "to": "${ExampleMahaService.today}"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val httpEntity: HttpEntity = new StringEntity(jsonRequest)
+    httpPost.setEntity(httpEntity)
+    httpPost.setHeader(HttpHeaders.ACCEPT,MediaType.APPLICATION_JSON)
+    httpPost.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
+    httpPost.setHeader("RequestId", "failedHiveRequest")
+    val httpResponse: HttpResponse = httpClient.execute(httpPost)
+    assertEquals(s"should return status 500, ${httpResponse.getStatusLine}", 500, httpResponse.getStatusLine.getStatusCode)
+  }
+
+  @Test
+  def requestWithoutForcedEngine(){
+    assertNotNull("jetty must be initialised", MahaResourceTest.server)
+    val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/er/schemas/student/query?debug=true")
     val jsonRequest = s"""{
                           "cube": "student_performance",
                           "selectFields": [

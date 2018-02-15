@@ -3,7 +3,7 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelected, BucketSelector}
-import com.yahoo.maha.core.dimension.{Dimension, PublicDimension}
+import com.yahoo.maha.core.dimension.PublicDimension
 import com.yahoo.maha.core.fact.{BestCandidates, PublicFactCol}
 import com.yahoo.maha.core.registry.{FactRowsCostEstimate, Registry}
 import com.yahoo.maha.core.request.Parameter.Distinct
@@ -220,26 +220,6 @@ case class RequestModel(cube: String
           }
         }
     }.toMap
-  }
-
-  private def getJoinType(dim: Dimension, dc : DimensionCandidate, schemaRequiredAliases: Set[String]): JoinType = {
-    val publicDimension: PublicDimension = dc.dim
-    if (schemaRequiredAliases.forall(publicDimension.columnsByAlias)) {
-      if (isDebugEnabled) {
-        RequestModel.Logger.info(s"dimBundle.dim.isDerivedDimension: ${dim.name} ${dim.isDerivedDimension}, hasNonPushDownFilters: ${dc.hasNonPushDownFilters}")
-      }
-      if (dim.isDerivedDimension) {
-        if (dc.hasNonPushDownFilters) { // If derived dim has filter, then use inner join, otherwise use left outer join
-          InnerJoin
-        } else {
-          LeftOuterJoin
-        }
-      } else {
-        RightOuterJoin
-      }
-    } else {
-      LeftOuterJoin
-    }
   }
 
   utcTimeDayFilter match {

@@ -20,6 +20,7 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       //register dependent column
       DimCol("created_date", IntType())
       val col = HiveDerDimCol("Keyword Date Created", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{created_date}", "YYYY-MM-dd"), annotations = Set())
+      assert(TIMESTAMP_TO_FORMATTED_DATE("{created_date}", "YYYY-MM-dd").isUDF, "UDF hive expression should return true")
       col.derivedExpression.sourceColumns.contains("created_date") should equal(true)
       col.derivedExpression.render(col.name) should equal("getDateFromEpoch(created_date, 'YYYY-MM-dd')")
     }
@@ -342,6 +343,7 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       //register dependent column
       DimCol("created_date", IntType())
       val col = PrestoDerDimCol("Keyword Date Created", StrType(), PRESTO_TIMESTAMP_TO_FORMATTED_DATE("{created_date}", "YYYY-MM-dd"), annotations = Set())
+      assert(PRESTO_TIMESTAMP_TO_FORMATTED_DATE("{created_date}", "YYYY-MM-dd").isUDF, "Presto timestamp UDF should return true")
       col.derivedExpression.sourceColumns.contains("created_date") should equal(true)
       col.derivedExpression.render(col.name) should equal("getDateFromEpoch(created_date, 'YYYY-MM-dd')")
     }
@@ -368,6 +370,11 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       DimCol("impressions", IntType())
       PrestoDerFactCol("De 1", DecType(), "{clicks}" * "1000")
       PrestoDerFactCol("De 2", DecType(), "{impressions}" * "1000")
+      PrestoDerFactCol("De 11", DecType(), "{impressions}" * "1000" * "1")
+      PrestoDerFactCol("De 12", DecType(), "{impressions}" * "1000" / "1")
+      FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{avg_pos}" * "{impressions}") * SUM("{impressions}")))
+      FactCol("avg_pos2", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{avg_pos2}" * "{impressions}") / SUM("{impressions}")))
+      FactCol("avg_pos3", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{avg_pos3}" * "{impressions}") ++ SUM("{impressions}")))
       val col = PrestoDerFactCol("De 3", DecType(), "{De 1}" /- "{De 2}")
       col.derivedExpression.sourceColumns.contains("De 1") should equal(true)
       col.derivedExpression.sourceColumns.contains("De 2") should equal(true)
@@ -395,6 +402,7 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       val col = PrestoDerDimCol("Day of Week", StrType(), DAY_OF_WEEK	("stats_date", "yyyyMMdd"))
       col.derivedExpression.render(col.name) should equal("from_unixtime(unix_timestamp(stats_date, 'yyyyMMdd'), 'EEEE')")
     }
+    assert(!SUM("stats_date").isUDF, "Presto Expr is not supposed to be a UDF")
   }
 
   test("Hive Column MAX/MIN test") {
@@ -407,6 +415,7 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       minCol.derivedExpression.render(minCol.name) should equal("MIN(input_column)")
       maxCol.derivedExpression.render(maxCol.name) should equal("MAX(input_column)")
     }
+    assert(!SUM("stats_date").isUDF, "Hive Expr is not supposed to be a UDF")
   }
 
   test("Oracle Column MAX/MIN test") {
