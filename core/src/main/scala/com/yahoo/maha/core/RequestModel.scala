@@ -33,7 +33,25 @@ case class DimensionCandidate(dim: PublicDimension
                               , hasLowCardinalityFilter: Boolean
                               , hasPKRequested : Boolean
                               , hasNonPushDownFilters : Boolean
-                             )
+                             ) {
+
+  def debugString : String = {
+    s"""
+       fields=$fields
+       filters=${filters.map(_.field)}
+       upperCandidates=${upperCandidates.map(_.name)}
+       lowerCandidates=${lowerCandidates.map(_.name)}
+       isDrivingDimension=$isDrivingDimension
+       hasNonFKOrForcedFilters=$hasNonFKOrForcedFilters
+       hasNonFKNonForceFilters=$hasNonFKNonForceFilters
+       hasNonFKSortBy=$hasNonFKSortBy
+       hasNonFKNonPKSortBy=$hasNonFKNonPKSortBy
+       hasLowCardinalityFilter=$hasLowCardinalityFilter
+       hasPKRequested=$hasPKRequested
+       hasNonPushDownFilters=$hasNonPushDownFilters
+     """
+  }
+}
 
 object DimensionCandidate {
   implicit val ordering: Ordering[DimensionCandidate] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.dim.name}")
@@ -278,6 +296,7 @@ case class RequestModel(cube: String
        hasDrivingDimNonFKNonPKSortBy=$hasDrivingDimNonFKNonPKSortBy
        hasNonDrivingDimNonFKNonPKFilter=$hasNonDrivingDimNonFKNonPKFilter
        anyDimHasNonFKNonForceFilter=$anyDimHasNonFKNonForceFilter
+       hasLowCardinalityDimFilters=$hasLowCardinalityDimFilters
        isFactDriven=$isFactDriven
        forceDimDriven=$forceDimDriven
        schema=$schema
@@ -294,6 +313,8 @@ case class RequestModel(cube: String
        factSchemaRequiredAliasesMap=$factSchemaRequiredAliasesMap
        queryGrain=$queryGrain
        isRequestingDistict=$isRequestingDistict
+       dimensionNameToJoinTypeMap=$dimensionNameToJoinTypeMap
+       dimensionsCandidates=${dimensionsCandidates.map(_.debugString)}
      """
   }
 }
