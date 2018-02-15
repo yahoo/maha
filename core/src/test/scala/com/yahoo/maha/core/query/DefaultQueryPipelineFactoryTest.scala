@@ -943,7 +943,6 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     assert(queryPipelineTry.isFailure, "should fail if In filter with more than allowed limit")
     assert(queryPipelineTry.failed.get.getMessage === "requirement failed: Failed to find best candidate, forceEngine=Some(Hive), engine disqualifyingSet=Set(Druid), candidates=Set((fact_druid,Druid), (fact_hive,Hive), (fact_oracle,Oracle))")
   }
-<<<<<<< HEAD
 
   test("Validate subsequent Oracle + Druid query generation to dim.") {
     val jsonString = s"""{
