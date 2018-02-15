@@ -799,7 +799,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isFailure, "should fail if In filter with more than allowed limit")
-    assert(queryPipelineTry.failed.get.getMessage === "requirement failed: Failed to find best candidate, forceEngine=Some(Oracle), engine disqualifyingSet=Set(Hive), candidates=Set((fact_druid,Druid), (fact_hive,Hive), (fact_oracle,Oracle))")
+    assert(queryPipelineTry.failed.get.getMessage === "requirement failed: Failed to find best candidate, forceEngine=Some(Oracle), engine disqualifyingSet=Set(Hive, Presto), candidates=Set((fact_druid,Druid), (fact_hive,Hive), (fact_oracle,Oracle))")
 
   }
   test("query with fact IN filter with more than allowed limit should fail if engine is oracle") {
@@ -853,7 +853,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isFailure, "should fail if In filter with more than allowed limit")
-    assert(queryPipelineTry.failed.get.getMessage === "requirement failed: Failed to find best candidate, forceEngine=Some(Oracle), engine disqualifyingSet=Set(Hive), candidates=Set((fact_druid,Druid), (fact_hive,Hive), (fact_oracle,Oracle))")
+    assert(queryPipelineTry.failed.get.getMessage === "requirement failed: Failed to find best candidate, forceEngine=Some(Oracle), engine disqualifyingSet=Set(Hive, Presto), candidates=Set((fact_druid,Druid), (fact_hive,Hive), (fact_oracle,Oracle))")
   }
   test("query with OR filter should fail if engine is Hive") {
     val request: ReportingRequest = {
