@@ -168,7 +168,7 @@ case class RequestModel(cube: String
   Map to store the dimension name to JoinType associated with the given dimension based on the different constraints.
   defaultJoinType has higher preference than the joinType associated with the dimensions.
    */
-  val dimensionNameToJoinTypeMap : Map[String, JoinType]  = {
+  val publicDimToJoinTypeMap : Map[String, JoinType]  = {
     //dim driven query
     //1. fact ROJ driving dim (filter or no filter)
     //2. fact ROJ driving dim (filter or no filter) LOJ parent dim LOJ parent dim
@@ -182,42 +182,33 @@ case class RequestModel(cube: String
     val schema: Schema = reportingRequest.schema
     val anyDimsHasSchemaRequiredNonKeyField: Boolean = dimensionsCandidates.exists(
       _.dim.schemaRequiredAlias(schema).exists(!_.isKey))
-    dimensionsCandidates.flatMap {
+    dimensionsCandidates.map {
       dc =>
         //driving dim case
         if(dc.isDrivingDimension) {
-          dc.dim.dimList.map {
-            dimension => dimension.name -> {
-              if(forceDimDriven) {
-                RightOuterJoin
-              } else {
-                if(anyDimHasNonFKNonForceFilter || anyDimsHasSchemaRequiredNonKeyField) {
-                  InnerJoin
-                } else {
-                  LeftOuterJoin
-                }
-
-              }
+          val joinType = if(forceDimDriven) {
+            RightOuterJoin
+          } else {
+            if(anyDimHasNonFKNonForceFilter || anyDimsHasSchemaRequiredNonKeyField) {
+              InnerJoin
+            } else {
+              LeftOuterJoin
             }
+
           }
+          dc.dim.name -> joinType
         } else {
           //non driving dim case
-
-          if(forceDimDriven) {
-            dc.dim.dimList.map {
-              dimension => dimension.name -> InnerJoin
-            }
+          val joinType = if(forceDimDriven) {
+              InnerJoin
           } else {
-            dc.dim.dimList.map {
-              dimension => dimension.name -> {
-                if(anyDimHasNonFKNonForceFilter || anyDimsHasSchemaRequiredNonKeyField) {
-                  InnerJoin
-                } else {
-                  LeftOuterJoin
-                }
-              }
+            if(anyDimHasNonFKNonForceFilter || anyDimsHasSchemaRequiredNonKeyField) {
+              InnerJoin
+            } else {
+              LeftOuterJoin
             }
           }
+          dc.dim.name -> joinType
         }
     }.toMap
   }
@@ -293,7 +284,7 @@ case class RequestModel(cube: String
        factSchemaRequiredAliasesMap=$factSchemaRequiredAliasesMap
        queryGrain=$queryGrain
        isRequestingDistict=$isRequestingDistict
-       dimensionNameToJoinTypeMap=$dimensionNameToJoinTypeMap
+       publicDimToJoinTypeMap=$publicDimToJoinTypeMap
        dimensionsCandidates=${dimensionsCandidates.map(_.debugString)}
      """
   }

@@ -454,7 +454,7 @@ b. Dim Driven
 
             val pk = dimBundle.dim.primaryKey
 
-            val joinType : JoinType = requestModel.dimensionNameToJoinTypeMap(dimBundle.dim.name)
+            val joinType : JoinType = requestModel.publicDimToJoinTypeMap(dimBundle.publicDim.name)
 
             joinConditions.add(s"$factAlias.$fk = $dimAlias.$pk")
 
