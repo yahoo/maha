@@ -464,13 +464,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
         |            FROM targetingattribute
         |            WHERE (advertiser_id = 12345)
         |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) t3
-        |          LEFT OUTER JOIN
+        |           INNER JOIN
         |            (SELECT  campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id, advertiser_id
         |            FROM ad_group_oracle
         |            WHERE (advertiser_id = 12345)
         |             ) ago2
         |              ON( t3.advertiser_id = ago2.advertiser_id AND t3.parent_id = ago2.id )
-        |               LEFT OUTER JOIN
+        |               INNER JOIN
         |            (SELECT /*+ CampaignHint */ DECODE(status, 'ON', 'ON', 'OFF') AS "Campaign Status", id, advertiser_id
         |            FROM campaign_oracle
         |            WHERE (advertiser_id = 12345)
@@ -482,6 +482,86 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
         |
         |) ORDER BY "Campaign Status" ASC NULLS LAST
       """.stripMargin
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("dim fact sync dimension driven query with dim filters in multiple dimensions should not fail") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Keyword ID"},
+                              {"field": "Keyword Value"},
+                              {"field": "Campaign ID"},
+                              {"field": "Campaign Name"},
+                              {"field": "Advertiser Currency"},
+                              {"field": "Impressions"},
+                              {"field": "Spend"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Keyword Status", "operator": "not in", "values": ["OFF"]},
+                              {"field": "Ad Group Status", "operator": "not in", "values": ["OFF"]},
+                              {"field": "Campaign Status", "operator": "not in", "values": ["OFF"]}
+                          ],
+                          "sortBy": [
+                              {"field": "Spend", "order": "DESC"}
+                          ],
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    val expected =
+      s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+         |FROM (SELECT to_char(t4.id) "Keyword ID", t4.value "Keyword Value", to_char(ago3.campaign_id) "Campaign ID", co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", coalesce(f0."impressions", 1) "Impressions", coalesce(ROUND(f0."spend", 10), 0.0) "Spend"
+         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
+         |                   ad_group_id, advertiser_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", SUM(spend) AS "spend"
+         |            FROM fact2 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY ad_group_id, advertiser_id, campaign_id, keyword_id
+         |
+         |           ) f0
+         |           RIGHT OUTER JOIN
+         |               ( (SELECT  parent_id, advertiser_id, value, id
+         |            FROM targetingattribute
+         |            WHERE (advertiser_id = 12345) AND (status NOT IN ('OFF'))
+         |             ) t4
+         |          INNER JOIN
+         |            (SELECT  advertiser_id, campaign_id, id
+         |            FROM ad_group_oracle
+         |            WHERE (advertiser_id = 12345) AND (DECODE(status, 'ON', 'ON', 'OFF') NOT IN ('OFF'))
+         |             ) ago3
+         |              ON( t4.advertiser_id = ago3.advertiser_id AND t4.parent_id = ago3.id )
+         |               INNER JOIN
+         |            (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345) AND (DECODE(status, 'ON', 'ON', 'OFF') NOT IN ('OFF'))
+         |             ) co2
+         |              ON( ago3.advertiser_id = co2.advertiser_id AND ago3.campaign_id = co2.id )
+         |               INNER JOIN
+         |            (SELECT  currency, id
+         |            FROM advertiser_oracle
+         |            WHERE (id = 12345)
+         |             ) ao1
+         |              ON( co2.advertiser_id = ao1.id )
+         |               )  ON (f0.keyword_id = t4.id)
+         |
+         |
+         |)
+         |   ORDER BY "Spend" DESC NULLS LAST) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120
+         |
+      """.stripMargin
+    println(result)
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -534,13 +614,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM targetingattribute
          |            WHERE (advertiser_id = 12345)
          |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) t3
-         |          LEFT OUTER JOIN
+         |           INNER JOIN
          |            (SELECT  id, campaign_id, advertiser_id
          |            FROM ad_group_oracle
          |            WHERE (advertiser_id = 12345)
          |             ) ago2
          |              ON( t3.advertiser_id = ago2.advertiser_id AND t3.parent_id = ago2.id )
-         |               LEFT OUTER JOIN
+         |               INNER JOIN
          |            (SELECT /*+ CampaignHint */ DECODE(status, 'ON', 'ON', 'OFF') AS "Campaign Status", id, advertiser_id
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
@@ -1226,13 +1306,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM targetingattribute
          |            WHERE (advertiser_id = 12345)
          |             ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) t3
-         |          LEFT OUTER JOIN
+         |           INNER JOIN
          |            (SELECT  campaign_id, name, id, advertiser_id
          |            FROM ad_group_oracle
          |
          |             ) ago2
          |              ON( t3.advertiser_id = ago2.advertiser_id AND t3.parent_id = ago2.id )
-         |               LEFT OUTER JOIN
+         |               INNER JOIN
          |            (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
          |            FROM campaign_oracle
          |
@@ -1292,19 +1372,19 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM targetingattribute
          |            WHERE (advertiser_id = 12345)
          |             ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) t4
-         |          LEFT OUTER JOIN
+         |           INNER JOIN
          |            (SELECT  advertiser_id, campaign_id, name, id
          |            FROM ad_group_oracle
          |
          |             ) ago3
          |              ON( t4.advertiser_id = ago3.advertiser_id AND t4.parent_id = ago3.id )
-         |               LEFT OUTER JOIN
+         |               INNER JOIN
          |            (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
          |            FROM campaign_oracle
          |
          |             ) co2
          |              ON( ago3.advertiser_id = co2.advertiser_id AND ago3.campaign_id = co2.id )
-         |               LEFT OUTER JOIN
+         |               INNER JOIN
          |            (SELECT  name, id
          |            FROM advertiser_oracle
          |
@@ -1360,13 +1440,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |            FROM targetingattribute
                       |            WHERE (advertiser_id = 12345)
                       |             ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) t3
-                      |          LEFT OUTER JOIN
+                      |           INNER JOIN
                       |            (SELECT  id, campaign_id, advertiser_id
                       |            FROM ad_group_oracle
                       |
                       |             ) ago2
                       |              ON( t3.advertiser_id = ago2.advertiser_id AND t3.parent_id = ago2.id )
-                      |               LEFT OUTER JOIN
+                      |               INNER JOIN
                       |            (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
                       |            FROM campaign_oracle
                       |
@@ -1440,19 +1520,19 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM targetingattribute
          |            WHERE (advertiser_id = 12345)
          |            ORDER BY 1 ASC NULLS LAST, 2 DESC , 3 DESC , 4 DESC  ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) t4
-         |          LEFT OUTER JOIN
+         |           INNER JOIN
          |            (SELECT  name, id, campaign_id, advertiser_id
          |            FROM ad_group_oracle
          |            WHERE (advertiser_id = 12345)
          |             ) ago3
          |              ON( t4.advertiser_id = ago3.advertiser_id AND t4.parent_id = ago3.id )
-         |               LEFT OUTER JOIN
+         |               INNER JOIN
          |            (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
          |             ) co2
          |              ON( ago3.advertiser_id = co2.advertiser_id AND ago3.campaign_id = co2.id )
-         |               LEFT OUTER JOIN
+         |               INNER JOIN
          |            (SELECT  name, id
          |            FROM advertiser_oracle
          |            WHERE (id = 12345)
@@ -2101,13 +2181,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            ON( ad_dim_oracle.advertiser_id = adoi4.ado3_advertiser_id AND ad_dim_oracle.id = adoi4.ado3_id )
          |            WHERE (advertiser_id = 12345)
          |            ORDER BY 1 DESC  ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) ado3
-         |          LEFT OUTER JOIN
+         |           INNER JOIN
          |            (SELECT  campaign_id, name, id, advertiser_id
          |            FROM ad_group_oracle
          |
          |             ) ago2
          |              ON( ado3.advertiser_id = ago2.advertiser_id AND ado3.ad_group_id = ago2.id )
-         |               LEFT OUTER JOIN
+         |               INNER JOIN
          |            (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
          |            FROM campaign_oracle
          |
@@ -3117,13 +3197,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM targetingattribute
          |            WHERE (advertiser_id = 12345)
          |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) t3
-         |          LEFT OUTER JOIN
+         |           INNER JOIN
          |            (SELECT  id, campaign_id, advertiser_id
          |            FROM ad_group_oracle
          |            WHERE (advertiser_id = 12345)
          |             ) ago2
          |              ON( t3.advertiser_id = ago2.advertiser_id AND t3.parent_id = ago2.id )
-         |               LEFT OUTER JOIN
+         |               INNER JOIN
          |            (SELECT /*+ CampaignHint */ DECODE(status, 'ON', 'ON', 'OFF') AS "Campaign Status", id, advertiser_id
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)

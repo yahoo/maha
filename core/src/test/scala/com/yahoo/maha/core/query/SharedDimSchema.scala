@@ -111,7 +111,7 @@ trait SharedDimSchema {
         , PubCol("ad_param_value_2", "Keyword Param 2", InEquality)
         , PubCol("ad_param_value_3", "Keyword Param 3", InEquality)
         , PubCol("status", "Keyword Status Full", InEquality)
-        , PubCol("status", "Keyword Status", InEquality)
+        , PubCol("status", "Keyword Status", InNotInEquality)
         , PubCol("landing_url", "Keyword Landing URL", InEquality)
         , PubCol("parent_type", "Parent Type", InEquality)
         , PubCol("parent_id", "Ad Group ID", InEquality)
@@ -171,7 +171,7 @@ trait SharedDimSchema {
           , PubCol("advertiser_id", "Advertiser ID", InEquality)
           , PubCol("campaign_id", "Campaign ID", InEquality)
           , PubCol("ad_group_id", "Ad Group ID", InEquality)
-          , PubCol("Ad Status", "Ad Status", InEquality)
+          , PubCol("Ad Status", "Ad Status", InNotInEquality)
         ), highCardinalityFilters = Set(NotInFilter("Ad Status", List("DELETED")))
       )
   }
