@@ -454,7 +454,7 @@ b. Dim Driven
 
             val pk = dimBundle.dim.primaryKey
 
-            val joinType : JoinType = requestModel.dimensionNameToJoinTypeMap(dimBundle.dim.name)
+            val joinType : JoinType = requestModel.publicDimToJoinTypeMap(dimBundle.publicDim.name)
 
             joinConditions.add(s"$factAlias.$fk = $dimAlias.$pk")
 
@@ -501,17 +501,7 @@ b. Dim Driven
           }
         }
         val parentJoinsLOJBuilder = new StringBuilder
-        val parentJoinType = {
-          if(isDimOnly && requestModel.hasNonDrivingDimNonFKNonPKFilter) {
-            "INNER JOIN"
-          } else
-          if(requestModel.hasNonDrivingDimNonFKNonPKFilter) {
-            "RIGHT OUTER JOIN"
-          } else  {
-            "LEFT OUTER JOIN"
-          }
-        }
-        val (_, renderedPrimaryDim, _) = renderedDimensionsList.reduceRight {
+        val (_, renderedPrimaryDim, renderedPrimaryDimBundle) = renderedDimensionsList.reduceRight {
           (renderedDim, b) =>
             require(renderedDim._2.onCondition.isDefined,
               s"Failed to determine join condition between ${primaryBundle.dim.name} and ${renderedDim._1}")
@@ -523,7 +513,7 @@ b. Dim Driven
                 "INNER JOIN"
             } else if (renderedDim._3.dim.isDerivedDimension || b._3.dim.isDerivedDimension){
               "LEFT OUTER JOIN"
-            } else parentJoinType
+            } else SqlHelper.getJoinString(requestModel.publicDimToJoinTypeMap(renderedDim._3.publicDim.name), engine)
 
             parentJoinsLOJBuilder.append(
               s""" $joinType
@@ -535,6 +525,8 @@ b. Dim Driven
         }
         val dimAlias = renderedPrimaryDim.dimAlias
         val pk = primaryBundle.dim.primaryKey
+        val parentJoinType = SqlHelper.getJoinString(
+          requestModel.publicDimToJoinTypeMap(renderedPrimaryDimBundle.publicDim.name), engine)
 
         val sqlBuilder = new StringBuilder
         val factCondition: String = if (!isDimOnly) {
@@ -545,7 +537,7 @@ b. Dim Driven
           s""" ON ($factAlias.$fkName = $dimAlias.$pk)"""
         } else StringUtils.EMPTY
         if (!isDimOnly) {
-          sqlBuilder.append( s"""           RIGHT OUTER JOIN""")
+          sqlBuilder.append( s"""           $parentJoinType""")
         }
 
         val dimJoinsTemplate = " (%s) %s \n" +
