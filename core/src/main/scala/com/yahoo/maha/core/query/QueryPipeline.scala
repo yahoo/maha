@@ -403,7 +403,8 @@ object DefaultQueryPipelineFactory extends Logging {
             if (requestModel.isSyncRequest) {
               val hasIndexInOutput = requestModel.dimensionsCandidates.forall(d => requestModel.requestColsSet(d.dim.primaryKeyByAlias))
 
-              if ((requestModel.hasLowCardinalityDimFilters && requestModel.hasDimAndFactOperations)
+              //disqualify druid for a bunch of reasons, need to better codify this, it is messy
+              if ((requestModel.hasLowCardinalityDimFilters && (requestModel.forceDimDriven || !dimEngines(DruidEngine)) && requestModel.hasDimAndFactOperations)
                 || (!requestModel.forceDimDriven && requestModel.isFactDriven && !hasIndexInOutput && !dimEngines.contains(DruidEngine)) //this does not apply if druid is the only dim candidate
               ) {
                 if(requestModel.isDebugEnabled) {

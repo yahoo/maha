@@ -1168,7 +1168,6 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
                           "cube": "k_stats",
                           "selectFields": [
                             {"field": "Keyword ID"},
-                            {"field": "Keyword Value"},
                             {"field": "Pricing Type"},
                             {"field": "Max Bid"},
                             {"field": "Min Bid"},
@@ -1233,7 +1232,7 @@ class DruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndAfter
     val requestModel = RequestModel.from(request, getDefaultRegistry())
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-    assert(queryPipelineTry.checkFailureMessage("requirement failed: Failed to find best candidate, forceEngine=None, engine disqualifyingSet=Set(Druid, Hive), candidates=Set((fact1,Druid))"))
+    assert(queryPipelineTry.checkFailureMessage("requirement failed: Failed to find best candidate, forceEngine=None, engine disqualifyingSet=Set(Druid, Hive, Presto), candidates=Set((fact1,Druid))"))
 
   }
 
