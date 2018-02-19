@@ -4652,11 +4652,12 @@ class RequestModelTest extends FunSuite with Matchers {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = getDefaultRegistry()
     val res = RequestModel.from(request, registry)
+    val orOp = OrFilterOperation
     assert(res.isSuccess)
     assert(!res.get.orFilterMeta.isEmpty)
     assert(res.get.orFilterMeta.head.isFactFilters == true)
     assert(res.get.orFilterMeta.head.orFliter.filters.size == 2)
-    assert(res.get.orFilterMeta.head.orFliter.operator == OrFilterOperation)
+    assert(res.get.orFilterMeta.head.orFliter.operator == orOp)
     assert(res.get.orFilterMeta.head.orFliter.field == "or")
     assert(res.get.orFilterMeta.head.orFliter.filters(0).operator == EqualityFilterOperation)
     assert(res.get.orFilterMeta.head.orFliter.filters(0).field == "Clicks")
