@@ -144,6 +144,36 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
                           "rowsPerPage":100
                           }"""
 
+  val factRequestWithMetricSortDimFilter = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Ad Group Status"},
+                              {"field": "Ad Group ID"},
+                              {"field": "Source"},
+                              {"field": "Pricing Type"},
+                              {"field": "Destination URL"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"},
+                              {"field": "Advertiser Currency"},
+                              {"field": "Campaign Device ID"},
+                              {"field": "Campaign ID"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Advertiser Currency", "operator": "in", "values": ["USD"]},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "ASC"}
+                          ],
+                          "includeRowCount" : false,
+                          "forceDimensionDriven": false,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+
+
   val requestWithIdSort = s"""{
                           "cube": "k_stats",
                           "selectFields": [
@@ -474,6 +504,39 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
         row.addValue("Source", 2)
         row.addValue("Pricing Type", "CPC")
         row.addValue("Destination URL", "url-10")
+        rl.addRow(row)
+    }.run()
+
+    assert(result.isSuccess, result)
+    result.toOption.get._1.foreach {
+      row =>
+        assert(row.getValue("Impressions") === 100)
+        assert(row.getValue("Clicks") === 1)
+    }
+  }
+
+  test("successfully generate sync query for oracle and not druid + oracle when fact driven with low cardinality filter") {
+    val request: ReportingRequest = getReportingRequestSync(factRequestWithMetricSortDimFilter)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[OracleQuery])
+    val result = pipeline.withOracleCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Advertiser ID", 1)
+        row.addValue("Ad Group Status", "ON")
+        row.addValue("Source", 2)
+        row.addValue("Pricing Type", "CPC")
+        row.addValue("Destination URL", "url-10")
+        row.addValue("Impressions", 100)
+        row.addValue("Clicks", 1)
         rl.addRow(row)
     }.run()
 
@@ -888,7 +951,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isFailure, "should fail if In filter with more than allowed limit")
-    assert(queryPipelineTry.failed.get.getMessage === "requirement failed: Failed to find best candidate, forceEngine=Some(Oracle), engine disqualifyingSet=Set(Druid, Hive), candidates=Set((fact_druid,Druid), (fact_hive,Hive), (fact_oracle,Oracle))")
+    assert(queryPipelineTry.failed.get.getMessage === "requirement failed: Failed to find best candidate, forceEngine=Some(Oracle), engine disqualifyingSet=Set(Druid, Hive, Presto), candidates=Set((fact_druid,Druid), (fact_hive,Hive), (fact_oracle,Oracle))")
   }
   test("query with fact IN filter with 1000 values should succeed if engine is druid") {
     val request: ReportingRequest = {

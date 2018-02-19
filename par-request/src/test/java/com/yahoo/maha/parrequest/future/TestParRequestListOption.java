@@ -220,7 +220,7 @@ public class TestParRequestListOption {
     public void testParRequestListOptionMapFailureInFirstParCallableAllMustSucceed() {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
         builder.addParCallable(stringSleep1000Failure);
-        for (int i = 1; i < 10; i++) {
+        for (int i = 1; i < 8; i++) {
             builder.addParCallable(stringSleep1000);
         }
         builder.allMustSucceed(true);
@@ -230,7 +230,7 @@ public class TestParRequestListOption {
                 composedRequest =
                 request.map("testParRequestListOptionMapFailureInFirstParCallableAllMustSucceed",
                         ParFunction.from((input) -> {
-                            for (int i = 0; i < 10; i++) {
+                            for (int i = 0; i < 8; i++) {
                                 assertTrue(
                                         (i == 0 && input.get(i).isEmpty()) ||
                                                 (i > 0 && input.get(i).get().equals("100")),
