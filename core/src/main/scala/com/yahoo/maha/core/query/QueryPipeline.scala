@@ -31,8 +31,8 @@ trait QueryPipeline {
 }
 
 object QueryPipeline extends Logging {
-  val syncNonDruidDisqualifyingSet: Set[Engine] = Set(DruidEngine, HiveEngine)
   val syncDisqualifyingSet: Set[Engine] = Set(HiveEngine, PrestoEngine)
+  val syncNonDruidDisqualifyingSet: Set[Engine] = Set(DruidEngine) ++ syncDisqualifyingSet
   val asyncDisqualifyingSet: Set[Engine] = Set(DruidEngine)
 
   val completeRowList: Query => RowList = (q) => new CompleteRowList(q)
@@ -403,7 +403,7 @@ object DefaultQueryPipelineFactory extends Logging {
             if (requestModel.isSyncRequest) {
               val hasIndexInOutput = requestModel.dimensionsCandidates.forall(d => requestModel.requestColsSet(d.dim.primaryKeyByAlias))
 
-              if ((requestModel.hasLowCardinalityDimFilters && requestModel.forceDimDriven && requestModel.hasDimAndFactOperations)
+              if ((requestModel.hasLowCardinalityDimFilters && requestModel.hasDimAndFactOperations)
                 || (!requestModel.forceDimDriven && requestModel.isFactDriven && !hasIndexInOutput && !dimEngines.contains(DruidEngine)) //this does not apply if druid is the only dim candidate
               ) {
                 if(requestModel.isDebugEnabled) {
