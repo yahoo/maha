@@ -158,7 +158,8 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
       val builder = new QueryContextBuilder(FactOnlyQuery, requestModel.get)
       val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(DruidEngine), queryGeneratorRegistry = queryGeneratorRegistry)
       builder.addFactBestCandidate(fact)
-      val result = getDruidQuery(builder.build()).asString
+      val context = builder.build()
+      val result = getDruidQuery(context).asString
       assert(result.contains("""{"queryType":"groupBy","dataSource":{"type":"table","name":"fact_druid"},"""))
       assert(result.contains("""{"type":"selector","dimension":"advertiser_id","value":"213"}"""))
       assert(result.contains("""granularity":{"type":"all"""))
@@ -264,7 +265,11 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
       val dims = DefaultQueryPipelineFactory.findBestDimCandidates(OracleEngine, requestModel.get.schema, dimMapping)
       builder.addDimTable(dims)
       builder.addFactBestCandidate(fact)
-      val result = getOracleQuery(builder.build()).asString
+      val context = builder.build()
+      val dimFactGeneratingContext = new DimFactOuterGroupByQueryQueryContext(dims, fact, requestModel.get, QueryAttributes(Map.empty))
+      assert(dimFactGeneratingContext.primaryTableName == "fact_druid")
+      assert(dimFactGeneratingContext.indexAliasOption == None)
+      val result = getOracleQuery(context).asString
       assert(result.contains("""landing_page_url, stats_date, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, ad_group_id, stats_source, advertiser_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions""""))
     }
 
@@ -331,6 +336,12 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
       val dims = DefaultQueryPipelineFactory.findBestDimCandidates(OracleEngine, requestModel.get.schema, dimMapping)
       builder.addDimTable(dims)
       builder.addFactBestCandidate(fact)
+
+      val thrown = intercept[IllegalArgumentException] {
+        builder.addIndexAlias("")
+      }
+
+      assert(thrown.getMessage.contains("dim fact query should not have index alias"))
       val result = getOracleQuery(builder.build()).asString
       assert(result.contains("""landing_page_url, stats_date, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, ad_group_id, stats_source, advertiser_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions""""))
     }
@@ -440,6 +451,42 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     require(queryContext.isInstanceOf[DimensionQueryContext])
     require(queryContext.asInstanceOf[DimensionQueryContext].dims.size == 1)
     require(queryContext.primaryTableName == "campaign_oracle")
+
+    builder.addDimTable(dims.head)
+  }
+
+  test("Dim query with invalid parameter adds") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Campaign Name"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    val builder = new QueryContextBuilder(DimOnlyQuery, requestModel.get)
+
+    val addFactThrown = intercept[IllegalArgumentException] {
+      builder.addFactBestCandidate(null)
+    }
+    assert(addFactThrown.getMessage.contains("dim only query should not have fact table"))
+
+    val addIndexThrown = intercept[IllegalArgumentException] {
+      builder.addIndexAlias("")
+      builder.addIndexAlias("")
+    }
+    assert(addIndexThrown.getMessage.contains("requirement failed: index alias already defined : indexAlias="))
   }
 
   test("FactualQuery Context test") {
@@ -467,7 +514,58 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     builder.addFactBestCandidate(bestFact)
     val queryContext = builder.build()
     require(queryContext.isInstanceOf[FactualQueryContext])
-    require(queryContext.asInstanceOf[FactualQueryContext].factBestCandidate.fact.name ==  "fact_druid")
+    val factQueryContext = queryContext.asInstanceOf[FactualQueryContext]
+    require(factQueryContext.primaryTableName ==  "fact_druid")
+  }
+
+  test("dim fact fact driven query with no valid facts should fail") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Day"},
+                              {"field": "Advertiser ID"},
+                              {"field": "Ad Group Status"},
+                              {"field": "Ad Group ID"},
+                              {"field": "Source"},
+                              {"field": "Pricing Type"},
+                              {"field": "Destination URL"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Clicks", "order": "ASC"}
+                          ],
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    val builder = new QueryContextBuilder(DimFactOuterGroupByQuery, requestModel.get)
+
+    val factThrown = intercept[IllegalArgumentException] {
+      builder.build()
+    }
+    assert(factThrown.getMessage.contains("dim fact outer group by query should have fact defined"))
+    val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(HiveEngine), queryGeneratorRegistry = queryGeneratorRegistry)
+    builder.addFactBestCandidate(fact)
+    val dimThrown = intercept[IllegalArgumentException] {
+      builder.build()
+    }
+    assert(dimThrown.getMessage.contains("dim fact outer group by query should not have dimension empty"))
+    val dimMapping = DefaultQueryPipelineFactory.findDimCandidatesMapping(requestModel.get)
+    val dims = DefaultQueryPipelineFactory.findBestDimCandidates(OracleEngine, requestModel.get.schema, dimMapping)
+    builder.addDimTable(dims)
+    val result = builder.build()
+    assert(result.primaryTableName == "fact_druid")
   }
 
 }

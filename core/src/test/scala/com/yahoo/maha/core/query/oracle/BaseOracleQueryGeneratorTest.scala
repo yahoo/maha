@@ -30,6 +30,7 @@ trait BaseOracleQueryGeneratorTest
     registryBuilder.register(pubfact6(forcedFilters))
     registryBuilder.register(pubfact7(forcedFilters))
     registryBuilder.register(pubfact8(forcedFilters))
+    registryBuilder.register(pubfact9(forcedFilters))
 
   }
 
@@ -645,6 +646,39 @@ trait BaseOracleQueryGeneratorTest
         Set(EqualityFilter("Source", "2", true, true)),
         getMaxDaysWindow, getMaxDaysLookBack
       )
+  }
+
+  def pubfact9(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+
+    val publisherStats  = {
+      ColumnContext.withColumnContext {
+        implicit dc: ColumnContext =>
+          Fact.newFact(
+            "v_publisher_stats2", HourlyGrain, OracleEngine, Set(PublisherSchema),
+            Set(
+              DimCol("publisher_id", IntType())
+              , DimCol("date_sid", IntType(), annotations = Set(DayColumn("YYYYMMDD")))
+            ),
+            Set(
+              FactCol("impressions", IntType(3, 1))
+              , FactCol("clicks", IntType(3, 0, 1, 800))
+              , FactCol("spend", DecType(0, "0.0"))
+            )
+          )
+      }
+    }
+
+    publisherStats.toPublicFact("publisher_stats_int2",
+      Set(
+        PubCol("date_sid", "Day", InBetweenEquality)
+        , PubCol("publisher_id", "Publisher ID", InEquality)
+      ),
+      Set(
+        PublicFactCol("impressions", "Impressions", InBetweenEqualityNullNotNull),
+        PublicFactCol("clicks", "Clicks", InEqualityNotEquals),
+        PublicFactCol("spend", "Spend", Set.empty)
+      ), Set(NotEqualToFilter("Clicks", "777", true, true), IsNotNullFilter("Impressions", true, true)),  getMaxDaysWindow, getMaxDaysLookBack
+    )
   }
 
 }

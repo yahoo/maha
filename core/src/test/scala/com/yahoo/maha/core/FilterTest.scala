@@ -332,4 +332,11 @@ class FilterTest extends FunSuite with Matchers {
     assert(force.isForceFilter == false)
     assert(force.isOverridable == false)
   }
+
+  test("failing forced filter") {
+    val thrown = intercept[UnsupportedOperationException] {
+      FilterSql.renderFilterWithAlias(null, null, null, null)
+    }
+    assert(thrown.getMessage.contains("Unhandled filter operation"))
+  }
 }
