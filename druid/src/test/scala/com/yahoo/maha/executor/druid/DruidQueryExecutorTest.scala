@@ -1696,7 +1696,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "paginationStartIndex":0,
                           "rowsPerPage":2
                         }""".stripMargin
-    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val request: ReportingRequest = getReportingRequestSync(jsonString).copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
     val registry = getDefaultRegistry()
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))

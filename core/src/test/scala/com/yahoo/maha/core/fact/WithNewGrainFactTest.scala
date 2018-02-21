@@ -50,6 +50,20 @@ class WithNewGrainFactTest extends BaseFactTest {
 
   }
 
+  test("withNewGrain should be successful given a different grain on Presto") {
+    val fact = factp
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      fact.withNewGrain("fact2", "factp", HourlyGrain, resetAliasIfNotPresent = true)
+    }
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      fact.withNewGrain("fact3", "factp", HourlyGrain, resetAliasIfNotPresent = false)
+    }
+    val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
+    require(bcOption.isDefined, "Failed to get candidates!")
+    assert(bcOption.get.facts.values.exists( f => f.fact.name == "fact2") === true)
+
+  }
+
   test("withNewGrain should be successful given a different grain and should copy force filters") {
     val fact = fact1WithForceFilters(Set(ForceFilter(InFilter("Pricing Type", List("1"), isForceFilter = true))))
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>

@@ -1172,7 +1172,7 @@ b. Dim Driven
       // add requested dim and fact columns, this should include constants
       queryContext.requestModel.requestCols foreach {
         columnInfo =>
-          if (!columnInfo.isInstanceOf[ConstantColumnInfo] && queryBuilderContext.aliasColumnMap.contains(columnInfo.alias)) {
+          /*if (!columnInfo.isInstanceOf[ConstantColumnInfo] && queryBuilderContext.aliasColumnMap.contains(columnInfo.alias)) {
             aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.aliasColumnMap(columnInfo.alias))
           } else if (queryContext.factBestCandidate.duplicateAliasMapping.contains(columnInfo.alias)) {
             val sourceAliases = queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)
@@ -1180,7 +1180,8 @@ b. Dim Driven
             require(sourceAlias.isDefined
               , s"Failed to find source column for duplicate alias mapping : ${queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)}")
             aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.aliasColumnMap(sourceAlias.get))
-          }
+          }*/
+          aliasColumnMapOfRequestCols ++= populateAliasColMapOfRequestCols(columnInfo, queryBuilderContext, queryContext)
             queryBuilder.addOuterColumn(concat(renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, isFactOnlyQuery, false, queryContext)))
       }
 

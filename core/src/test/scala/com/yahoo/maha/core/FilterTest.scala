@@ -34,6 +34,8 @@ class FilterTest extends FunSuite with Matchers {
   val intDateCol = DimCol("date_sid", IntType(), annotations = Set(DayColumn("YYYYMMDD")))
   val strDateCol = DimCol("date_sid2", StrType(), annotations = Set(DayColumn("YYYYMMDD")))
   val insensitiveCol = DimCol("insensitive", StrType(), annotations = Set(CaseInsensitive))
+  val escapedCol = DimCol("%sfield__1", StrType())
+  val escapedIntCol = DimCol("%sfield__2", IntType())
 
   object EqualityObj {
     def compare(a : Int, b : String) = EqualityObj.baseEq.compare(a, b)
@@ -209,6 +211,18 @@ class FilterTest extends FunSuite with Matchers {
       render(SqlLikeFilterRenderer, filter, druidLiteralMapper, DruidEngine, col)
     }
     thrown.getMessage should startWith ("Unsupported engine for LikeFilterRenderer Druid")
+  }
+
+  test("SqlLikeFilterRenderer edit strings") {
+    val filter = LikeFilter("%sfield__1", "ad%s")
+    val intFilter = LikeFilter("%sfield__2", "ads")
+    val normalFilter = LikeFilter("field1", "ads")
+    val rendered = render(SqlLikeFilterRenderer, filter, druidLiteralMapper, OracleEngine, escapedCol)
+    val renderedInt = render(SqlLikeFilterRenderer, intFilter, druidLiteralMapper, OracleEngine, escapedIntCol)
+    val renderedNonEscaped = render(SqlLikeFilterRenderer, normalFilter, druidLiteralMapper, OracleEngine, col)
+    assert(rendered.isInstanceOf[DefaultResult])
+    assert(renderedInt.isInstanceOf[DefaultResult])
+    assert(renderedNonEscaped.isInstanceOf[DefaultResult])
   }
 
   test("NotEqualToFilter should fail for Druid engine") {
