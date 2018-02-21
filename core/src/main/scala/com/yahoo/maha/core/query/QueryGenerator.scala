@@ -187,23 +187,25 @@ trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
     val returnedFilters = new mutable.LinkedHashMap[String, Filter]
     localFilters.foreach {
       filter =>
-        val name = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap( filter.field )
-        val column = fact.columnsByNameMap( name )
-        val real_name = column.alias.getOrElse( name )
-        returnedFilters( real_name ) = filter
+        val name = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap(filter.field)
+        val column = fact.columnsByNameMap(name)
+        val real_name = column.alias.getOrElse(name)
+        returnedFilters(real_name) = filter
     }
     forcedFilters.foreach {
       filter =>
-        val name = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap( filter.field )
-        val column = fact.columnsByNameMap( name )
-        val real_name = column.alias.getOrElse( name )
-        if( !filter.isOverridable || !returnedFilters.contains( real_name )) {
-          returnedFilters( real_name ) = filter
+        val name = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap(filter.field)
+        val column = fact.columnsByNameMap(name)
+        val real_name = column.alias.getOrElse(name)
+        if (!filter.isOverridable || !returnedFilters.contains(real_name)) {
+          returnedFilters(real_name) = filter
         }
     }
-        returnedFilters.values.toArray
+    returnedFilters.values.toArray
   }
+}
 
+object QueryGeneratorHelper {
   def populateAliasColMapOfRequestCols(columnInfo: ColumnInfo
                                        , queryBuilderContext: QueryBuilderContext
                                        , queryContext : CombinedQueryContext) : Map[String, Column] = {

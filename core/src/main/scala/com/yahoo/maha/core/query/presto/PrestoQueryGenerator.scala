@@ -96,7 +96,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
               , s"Failed to find source column for duplicate alias mapping : ${queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)}")
             //aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.aliasColumnMap(sourceAlias.get))
           }*/
-          populateAliasColMapOfRequestCols(columnInfo, queryBuilderContext, queryContext)
+          QueryGeneratorHelper.populateAliasColMapOfRequestCols(columnInfo, queryBuilderContext, queryContext)
           queryBuilder.addOuterColumn(renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, factCandidate))
       }
       queryBuilder.getOuterColumns
@@ -112,7 +112,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
 
       columnInfo match {
         case FactColumnInfo(alias) =>
-          handleFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.underlyingTableName.getOrElse(factCandidate.fact.name))
+          QueryGeneratorHelper.handleFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.underlyingTableName.getOrElse(factCandidate.fact.name))
           /*if (queryBuilderContext.containsFactColNameForAlias(alias)) {
             val col = queryBuilderContext.getFactColByAlias(alias)
             val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)

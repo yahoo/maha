@@ -52,9 +52,6 @@ class FilterTest extends FunSuite with Matchers {
     val hourlyResult = renderWithGrain(SqlBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, dateCol, HourlyGrain).filter
     hourlyResult shouldBe "stats_date >= to_date('2018-01-01', 'HH24') AND stats_date <= to_date('2018-01-07', 'HH24')"
 
-    val maxDate = FilterDruid.getMaxDate(filter, DailyGrain)
-    assert(maxDate.getClass == classOf[DateTime])
-
     val intBetweenfilter = BetweenFilter("date_sid", "2018-01-01", "2018-01-02")
     val intHourlyResult = renderWithGrain(SqlBetweenFilterRenderer, intBetweenfilter, oracleLiteralMapper, OracleEngine, intDateCol, HourlyGrain).filter
     intHourlyResult shouldBe "date_sid >= to_date('2018-01-01', 'HH24') AND date_sid <= to_date('2018-01-02', 'HH24')"
@@ -62,7 +59,18 @@ class FilterTest extends FunSuite with Matchers {
     val strBetweenfilter = BetweenFilter("date_sid2", "2018-01-01", "2018-01-02")
     val strHourlyResult = renderWithGrain(SqlBetweenFilterRenderer, strBetweenfilter, oracleLiteralMapper, OracleEngine, strDateCol, HourlyGrain).filter
     strHourlyResult shouldBe "date_sid2 >= to_date('2018-01-01', 'HH24') AND date_sid2 <= to_date('2018-01-02', 'HH24')"
+  }
 
+  test("Filter Types in Druid should return valid MaxDate") {
+    val filter = BetweenFilter("stats_date", "2018-01-01", "2018-01-07")
+    val eqFilter = EqualityFilter("stats_date", "2018-01-01")
+    val inFilter = InFilter("stats_date", List("2018-01-01", "2018-01-07"))
+    val maxDate = FilterDruid.getMaxDate(filter, DailyGrain)
+    assert(maxDate.getClass == classOf[DateTime])
+    val maxIntDate = FilterDruid.getMaxDate(inFilter, DailyGrain)
+    assert(maxIntDate.getClass == classOf[DateTime])
+    val maxEqDate = FilterDruid.getMaxDate(eqFilter, DailyGrain)
+    assert(maxEqDate.getClass == classOf[DateTime])
   }
 
   test("InFilter should render correct string for Oracle") {
@@ -352,5 +360,18 @@ class FilterTest extends FunSuite with Matchers {
       FilterSql.renderFilterWithAlias(null, null, null, null)
     }
     assert(thrown.getMessage.contains("Unhandled filter operation"))
+  }
+
+  test("Druid Filter Dim should be valid") {
+    val thrown = intercept[UnsupportedOperationException] {
+      FilterDruid.renderFilterDim(IsNotNullFilter("field1"), Map("field1"->"field1"), Map("field1"->col), Some(DailyGrain))
+    }
+    assert(thrown.getMessage.contains("Unhandled filter operation"))
+
+    val pdThrown = intercept[UnsupportedOperationException] {
+      val pdFilter = PushDownFilter(BetweenFilter("field1", "1", "2"))
+      FilterDruid.renderFilterDim(pdFilter, Map("field1" -> "field1"), Map("field1" -> col), Option(DailyGrain))
+    }
+    assert(pdThrown.getMessage.contains("Between filter not supported on Druid dimension fields :"))
   }
 }

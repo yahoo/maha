@@ -1181,7 +1181,7 @@ b. Dim Driven
               , s"Failed to find source column for duplicate alias mapping : ${queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)}")
             aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.aliasColumnMap(sourceAlias.get))
           }*/
-          aliasColumnMapOfRequestCols ++= populateAliasColMapOfRequestCols(columnInfo, queryBuilderContext, queryContext)
+          aliasColumnMapOfRequestCols ++= QueryGeneratorHelper.populateAliasColMapOfRequestCols(columnInfo, queryBuilderContext, queryContext)
             queryBuilder.addOuterColumn(concat(renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, isFactOnlyQuery, false, queryContext)))
       }
 

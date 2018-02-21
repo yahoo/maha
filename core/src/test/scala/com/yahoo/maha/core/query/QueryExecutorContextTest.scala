@@ -18,6 +18,7 @@ class QueryExecutorContextTest extends FunSuite with Matchers {
       override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
         val acquiredQueryAttributes = lifecycleListener.acquired(query, queryAttributes)
         val startedQueryAttributes = lifecycleListener.started(query, acquiredQueryAttributes)
+        val checkFailed = lifecycleListener.failed(query, startedQueryAttributes, null)
         QueryResult(rowList, lifecycleListener.completed(query, queryAttributes), QueryResultStatus.SUCCESS)
       }
 
