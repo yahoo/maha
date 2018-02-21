@@ -4217,6 +4217,131 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(requestModelResult.get.dryRunModelTry.get.isSuccess)
   }
 
+  test("Multiple requestModels are returned from factory for DryRun with OracleEngine") {
+    val jsonString =
+      s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Advertiser Status"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Ad Group ID", "operator": "in", "values": ["1", "2", "3"]}
+                          ],
+                          "sortBy": [
+                              {"field": "Advertiser Status", "order": "Asc"}
+                          ],
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    object TestBucketingConfig extends BucketingConfig {
+      override def getConfig(cube: String): Option[CubeBucketingConfig] = {
+        Some(CubeBucketingConfig.builder()
+          .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
+          .externalBucketPercentage(Map(1 -> 100, 2 -> 0))
+          .dryRunPercentage(Map(1 -> (25, None), 2 -> (100, Some(OracleEngine))))
+          .build())
+      }
+    }
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val bucketParams = new BucketParams(new UserInfo("test-user", false)) // isInternal = false
+    val registry = getDefaultRegistry()
+    val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
+    val requestModelResult = RequestModelFactory.fromBucketSelector(request, bucketParams, registry, bucketSelector)
+    assert(requestModelResult.isSuccess)
+    assert(requestModelResult.get.model.isInstanceOf[RequestModel])
+    assert(requestModelResult.get.dryRunModelTry.isDefined, "Failed to get 2nd Request Model")
+    assert(requestModelResult.get.dryRunModelTry.get.isSuccess)
+  }
+
+    test("Multiple requestModels are returned from factory for DryRun with HiveEngine") {
+      val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Advertiser Status"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Ad Group ID", "operator": "in", "values": ["1", "2", "3"]}
+                          ],
+                          "sortBy": [
+                              {"field": "Advertiser Status", "order": "Asc"}
+                          ],
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+      object TestBucketingConfig extends BucketingConfig {
+        override def getConfig(cube: String): Option[CubeBucketingConfig] = {
+          Some(CubeBucketingConfig.builder()
+            .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
+            .externalBucketPercentage(Map(1 -> 100, 2 -> 0))
+            .dryRunPercentage(Map(1 -> (25, None), 2 -> (100, Some(HiveEngine))))
+            .build())
+        }
+      }
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val bucketParams = new BucketParams(new UserInfo("test-user", false)) // isInternal = false
+    val registry = getDefaultRegistry()
+    val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
+    val requestModelResult = RequestModelFactory.fromBucketSelector(request, bucketParams, registry, bucketSelector)
+    assert(requestModelResult.isSuccess)
+    assert(requestModelResult.get.model.isInstanceOf[RequestModel])
+    assert(requestModelResult.get.dryRunModelTry.isDefined, "Failed to get 2nd Request Model")
+    assert(requestModelResult.get.dryRunModelTry.get.isSuccess)
+  }
+
+  test("Multiple requestModels are returned from factory for DryRun with PrestoEngine should FAIL") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Advertiser Status"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Ad Group ID", "operator": "in", "values": ["1", "2", "3"]}
+                          ],
+                          "sortBy": [
+                              {"field": "Advertiser Status", "order": "Asc"}
+                          ],
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    object TestBucketingConfig extends BucketingConfig {
+      override def getConfig(cube: String): Option[CubeBucketingConfig] = {
+        Some(CubeBucketingConfig.builder()
+          .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
+          .externalBucketPercentage(Map(1 -> 100, 2 -> 0))
+          .dryRunPercentage(Map(1 -> (25, None), 2 -> (100, Some(PrestoEngine))))
+          .build())
+      }
+    }
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val bucketParams = new BucketParams(new UserInfo("test-user", false)) // isInternal = false
+    val registry = getDefaultRegistry()
+    val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
+    val requestModelResult = RequestModelFactory.fromBucketSelector(request, bucketParams, registry, bucketSelector)
+    assert(requestModelResult.isSuccess)
+    assert(requestModelResult.get.model.isInstanceOf[RequestModel])
+    assert(requestModelResult.get.dryRunModelTry.isDefined, "Failed to get 2nd Request Model")
+  }
+
   test("Only one requestModel is returned from factory for NO DryRun") {
     val jsonString = s"""{
                           "cube": "publicFact",

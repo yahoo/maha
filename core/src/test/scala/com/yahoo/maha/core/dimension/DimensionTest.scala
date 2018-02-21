@@ -110,6 +110,58 @@ class DimensionTest extends FunSuite with Matchers {
     }
   }
 
+  test("Copy a Presto dimension without resetAliasIfNotPresent") {
+    val dim : DimensionBuilder = {
+      ColumnContext.withColumnContext { implicit cc =>
+        import PrestoExpression._
+        Dimension.newDimension("dim1", PrestoEngine, LevelOne, Set(AdvertiserSchema),
+          Set(
+            DimCol("start_time", StrType(), annotations = Set(PrimaryKey))
+            , ConstDimCol("constant", StrType(), "Constant")
+            , DimCol("end_time", StrType(), annotations = Set(EscapingRequired))
+            , PrestoDerDimCol("clicks", DecType(), "start_time")
+            , PrestoDimCol("new_clicks", DecType())
+            , PrestoPartDimCol("newest_clicks", DecType())
+
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+        )
+      }
+    }
+
+    val dim2 : DimensionBuilder = {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        dim.createSubset("dim1_subset", "dim1", Set("end_time"), Set.empty, Set.empty, None, Map.empty, resetAliasIfNotPresent = false)
+      }
+    }
+  }
+
+  test("Copy a Presto dimension with resetAliasIfNotPresent") {
+    val dim : DimensionBuilder = {
+      ColumnContext.withColumnContext { implicit cc =>
+        import PrestoExpression._
+        Dimension.newDimension("dim1", PrestoEngine, LevelOne, Set(AdvertiserSchema),
+          Set(
+            DimCol("start_time", StrType(), annotations = Set(PrimaryKey))
+            , ConstDimCol("constant", StrType(), "Constant")
+            , DimCol("end_time", StrType(), annotations = Set(EscapingRequired))
+            , PrestoDerDimCol("clicks", DecType(), "start_time")
+            , PrestoDimCol("new_clicks", DecType())
+            , PrestoPartDimCol("newest_clicks", DecType())
+
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+        )
+      }
+    }
+
+    val dim2 : DimensionBuilder = {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        dim.createSubset("dim1_subset", "dim1", Set("end_time"), Set.empty, Set.empty, None, Map.empty, resetAliasIfNotPresent = true)
+      }
+    }
+  }
+
   test("Copy a Hive dimension with resetAliasIfNotPresent") {
     val dim : DimensionBuilder = {
       ColumnContext.withColumnContext { implicit cc =>
