@@ -51,4 +51,16 @@ class BaseJsonModelsTest extends FunSuite with Matchers {
     val result = fromJSON[JsonQueryExecutorConfig](json)
     assert(result.isSuccess && result.toOption.get.className === "name" && result.toOption.get.json.isInstanceOf[JObject])
   }
+
+  test("Validate JSONHelpers") {
+    val jsonString = """{
+                   |	"factoryClass": "name",
+                   |	"config": { "c1" : "v1" }
+                   |}""".stripMargin
+
+    assert(JsonHelpers.nonEmptyString("", "", "").isFailure)
+    assert(JsonHelpers.nonEmptyList(List.empty, "", "").isFailure)
+    assert(JsonHelpers.nonEmptyString(jsonString, "", "").isSuccess)
+    assert(JsonHelpers.nonEmptyList(List(jsonString), "", "").isSuccess)
+  }
 }
