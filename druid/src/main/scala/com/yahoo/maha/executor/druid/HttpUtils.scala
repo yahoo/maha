@@ -48,9 +48,6 @@ class HttpUtils(config:AsyncHttpClientConfig, enableRetryOn500: Boolean, retryDe
       }
       requestBuilder.addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString)
       val request = requestBuilder.build()
-      if (debugEnabled) {
-        info("Sending request " + request.toString)
-      }
       requestBuilder.execute().get()
     }
 

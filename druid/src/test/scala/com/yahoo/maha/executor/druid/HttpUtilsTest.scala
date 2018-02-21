@@ -120,6 +120,7 @@ class HttpUtilsTest extends FunSuite with Matchers with BeforeAndAfterAll with L
     val response  = httpUtils.post("http://localhost:5544/mock/fail",httpUtils.POST)
     println("POST Response "+response.getResponseBody)
     assert(response.getStatusCode==500)
+    httpUtils.close()
   }
 
   override def afterAll{
