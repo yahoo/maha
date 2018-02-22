@@ -58,6 +58,7 @@ sealed trait Filter {
   def operator: FilterOperation
   def asValues: String
   def isPushDown: Boolean = false
+  def canBeHighCardinalityFilter: Boolean = false
 }
 import scala.reflect.ClassTag
 abstract class BaseEquality[T](implicit tag: ClassTag[T]) {
@@ -110,9 +111,11 @@ case class BetweenFilter(field: String, from: String, to: String) extends Filter
 
 case class EqualityFilter(field: String, value: String
                           , override val isForceFilter: Boolean = false
-                          , override val isOverridable: Boolean = false) extends ForcedFilter {
+                          , override val isOverridable: Boolean = false
+                         ) extends ForcedFilter {
   override def operator = EqualityFilterOperation
   val asValues: String = value
+  override def canBeHighCardinalityFilter: Boolean = true
 }
 sealed trait ValuesFilter extends ForcedFilter {
   def values: List[String]
@@ -124,12 +127,14 @@ case class InFilter(field: String, values: List[String]
                     , override val isOverridable: Boolean = false) extends ValuesFilter {
   override def operator = InFilterOperation
   override def renameField(newField: String): ValuesFilter = this.copy(field = newField)
+  override def canBeHighCardinalityFilter: Boolean = true
 }
 case class NotInFilter(field: String, values: List[String]
                        , override val isForceFilter: Boolean = false
                        , override val isOverridable: Boolean = false) extends ValuesFilter {
   override def operator = NotInFilterOperation
   override def renameField(newField: String): ValuesFilter = this.copy(field = newField)
+  override def canBeHighCardinalityFilter: Boolean = true
 }
 case class LikeFilter(field: String, value: String
                       , override val isForceFilter: Boolean = false
@@ -142,6 +147,7 @@ case class NotEqualToFilter(field: String, value: String
                             , override val isOverridable: Boolean = false) extends ForcedFilter {
   override def operator = NotEqualToFilterOperation
   val asValues: String = value
+  override def canBeHighCardinalityFilter: Boolean = true
 }
 case class IsNullFilter(field: String
                         , override val isForceFilter: Boolean = false

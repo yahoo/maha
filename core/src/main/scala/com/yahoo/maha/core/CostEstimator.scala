@@ -10,14 +10,15 @@ import com.yahoo.maha.core.request.ReportingRequest
  */
 
 case class DimCostMetrics(averageCardinality7Day: Int, cardinality1Day: Int)
-
+case class RowsEstimate(rows: Long, isGrainOptimized: Boolean)
 trait FactCostEstimator {
-  def getRowsEstimate(grainKey:String, request: ReportingRequest,filters: scala.collection.mutable.Map[String, Filter], defaultRowCount:Long): Long
-  def getCostEstimate(rowsEstimate: Long, rowCostMultiplierOption: Option[CostMultiplier]) : Long = {
+  protected def isGrainKey(grainKey: String): Boolean
+  def getRowsEstimate(grainKey:String, request: ReportingRequest,filters: scala.collection.mutable.Map[String, Filter], defaultRowCount:Long): RowsEstimate
+  def getCostEstimate(rowsEstimate: RowsEstimate, rowCostMultiplierOption: Option[CostMultiplier]) : Long = {
     val cost = for {
       rowCostMultiplier <- rowCostMultiplierOption
-      costMultiplier <- rowCostMultiplier.rows.find(rowsEstimate)
-    } yield (costMultiplier * rowsEstimate).longValue()
+      costMultiplier <- rowCostMultiplier.rows.find(rowsEstimate.rows)
+    } yield (costMultiplier * rowsEstimate.rows).longValue()
     cost.getOrElse(Long.MaxValue)
   }
 }
@@ -30,8 +31,11 @@ class DefaultDimEstimator extends DimCostEstimator {
   def getCardinalityEstimate(grainKey: String, request: ReportingRequest,filters: scala.collection.mutable.Map[String, Filter]): Option[Long] = None
 }
 
-class DefaultFactEstimator extends FactCostEstimator {
-  def getRowsEstimate(grainKey:String, request: ReportingRequest,filters: scala.collection.mutable.Map[String, Filter], defaultRowCount:Long): Long = {
-    (defaultRowCount * (request.numDays + 1)).longValue()
+class DefaultFactEstimator(grainKeySet: Set[String] = Set.empty) extends FactCostEstimator {
+  protected def isGrainKey(grainKey: String): Boolean = grainKeySet(grainKey)
+  def getRowsEstimate(grainKey:String, request: ReportingRequest,filters: scala.collection.mutable.Map[String, Filter], defaultRowCount:Long): RowsEstimate = {
+    val cost = (defaultRowCount * (request.numDays + 1)).longValue()
+    val isGrainOptimized = isGrainKey(grainKey)
+    RowsEstimate(cost, isGrainOptimized)
   }
 }

@@ -98,7 +98,7 @@ class BaseUTCTimeProviderTest extends FunSuite {
   }
 
   test("Case: Timezone: AU, Day - NotIn, Hour - non-zero (intentional exception)") {
-    val thrown = intercept[UnsupportedOperationException] {
+    val thrown = intercept[IllegalArgumentException] {
       val timezone = Option("Australia/Melbourne")
       val localDayFilter = new NotInFilter("Day", List("2016-03-07", "2016-03-08"))
       //val localHourFilter = new NotInFilter("Hour", List("05", "05"))
@@ -394,6 +394,81 @@ class BaseUTCTimeProviderTest extends FunSuite {
     assertEquals("2016-03-08-2016-03-09", utcDayFilter.asValues)
 
     assertEquals("00-00", utcHourFilter.get.asValues)
+  }
+
+  test("Case: Shift backward by invalid filter") {
+    val localDayFilter = new NotInFilter("Day", List("2018-02-02"))
+    val thrown = intercept[IllegalArgumentException] {
+      baseUTCTimeProvider.shiftDaysBackwardsByOneDay(localDayFilter)
+    }
+    assert(thrown.getMessage.contains("Filter operation not supported. Day filter can be 'between', 'in' or 'equality' :"))
+  }
+
+  test("Case: Extend backwards with Equality filter") {
+    val localDayFilter = new EqualityFilter("Day", "2018-02-02")
+    val filterVal = baseUTCTimeProvider.extendDaysBackwardsByOneDay(localDayFilter)
+    assert(filterVal.operator == BetweenFilterOperation)
+  }
+
+  test("Case: Shift forward with Equality filter") {
+    val localDayFilter = new EqualityFilter("Day", "2018-02-02")
+    val filterVal = baseUTCTimeProvider.shiftDaysForwardByOneDay(localDayFilter)
+    assert(filterVal.operator == EqualityFilterOperation)
+  }
+
+  test("Case: Shift forward by invalid filter") {
+    val localDayFilter = new NotInFilter("Day", List("2018-02-02"))
+    val thrown = intercept[IllegalArgumentException] {
+      baseUTCTimeProvider.shiftDaysForwardByOneDay(localDayFilter)
+    }
+    assert(thrown.getMessage.contains("Filter operation not supported. Day filter can be 'between', 'in' or 'equality' :"))
+  }
+
+  test("Case: Extend forward with Equality filter") {
+    val localDayFilter = new EqualityFilter("Day", "2018-02-02")
+    val filterVal = baseUTCTimeProvider.extendDaysForwardByOneDay(localDayFilter)
+    assert(filterVal.operator == BetweenFilterOperation)
+  }
+
+  test("Case: Extend forward by invalid filter") {
+    val localDayFilter = new NotInFilter("Day", List("2018-02-02"))
+    val thrown = intercept[IllegalArgumentException] {
+      baseUTCTimeProvider.extendDaysForwardByOneDay(localDayFilter)
+    }
+    assert(thrown.getMessage.contains("Filter operation not supported. Day filter can be 'between', 'in' or 'equality' :"))
+  }
+
+  test("Case: getMinAndMaxHours invalid filter") {
+    val localDayFilter = new NotInFilter("Day", List("2018-02-02"))
+    val thrown = intercept[IllegalArgumentException] {
+      baseUTCTimeProvider.getMinAndMaxHours(localDayFilter)
+    }
+    assert(thrown.getMessage.contains("Filter operation not supported. Hour filter can be 'between', 'in' or 'equality' :"))
+  }
+
+  test("Case: updateHours invalid filter") {
+    val localDayFilter = new NotInFilter("Day", List("2018-02-02"))
+    val thrown = intercept[IllegalArgumentException] {
+      baseUTCTimeProvider.updateHours(localDayFilter, 24)
+    }
+    assert(thrown.getMessage.contains("Filter operation not supported. Hour filter can be 'between', 'in' or 'equality' :"))
+  }
+
+  test("Case: applyOffset zero offset") {
+    baseUTCTimeProvider.applyOffset("19", 0)
+  }
+
+  test("Case: validateFilters minuteFilter test") {
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
+    val localMinuteFilter = new BetweenFilter("Minute", "00", "20")
+    assert(!baseUTCTimeProvider.validateFilters(localDayFilter, Option.empty, Option(localMinuteFilter)))
+  }
+
+  test("Case: validateFilters different hour and minute types test") {
+    val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
+    val localHourFilter = new InFilter("Hour", List("16", "16"))
+    val localMinuteFilter = new BetweenFilter("Minute", "00", "20")
+    assert(!baseUTCTimeProvider.validateFilters(localDayFilter, Option(localHourFilter), Option(localMinuteFilter)))
   }
 
   test("Case: Invalid Filter Operation (InFilter)") {

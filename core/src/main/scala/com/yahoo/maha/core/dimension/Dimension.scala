@@ -805,7 +805,7 @@ trait PublicDimension extends PublicTable {
 
   def getBaseDim: Dimension
 
-  def highCardinalityFilters: Set[Filter]
+  def containsHighCardinalityFilter(f: Filter) : Boolean
 }
 
 object PublicDimension {
@@ -818,7 +818,7 @@ case class PublicDim (name: String
                       , columns: Set[PublicDimColumn]
                       , dims: Map[String, Dimension]
                       , forcedFilters: Set[ForcedFilter]
-                      , highCardinalityFilters: Set[Filter]
+                      , private val highCardinalityFilters: Set[Filter]
                       , revision: Int = 0) extends PublicDimension {
 
   def dimList : Iterable[Dimension] = dims.values
@@ -898,7 +898,39 @@ case class PublicDim (name: String
   validateForcedFilters()
 
   highCardinalityFilters.foreach {
-    filter => require(allColumnsByAlias(filter.field), s"Unknown high cardinality filter : ${filter.field}")
+    filter =>
+      require(filter.canBeHighCardinalityFilter, s"Filter can not be high cardinality filter : $filter")
+      require(allColumnsByAlias(filter.field), s"Unknown high cardinality filter : ${filter.field}")
+  }
+
+  private[this] val highCardinalityFilterInValuesMap: Map[String, Set[String]] = {
+    highCardinalityFilters
+      .filter(f => f.isInstanceOf[InFilter] || f.isInstanceOf[EqualityFilter])
+      .groupBy(_.field)
+      .mapValues {
+        filterSet =>
+          filterSet.collect {
+            case InFilter(_, values, _, _) =>
+              values.toSet
+            case EqualityFilter(_, value, _, _) =>
+              Set(value)
+          }.flatten
+      }
+  }
+
+  private[this] val highCardinalityFilterNotInValuesMap: Map[String, Set[String]] = {
+    highCardinalityFilters
+      .filter(f => f.isInstanceOf[NotInFilter] || f.isInstanceOf[NotEqualToFilter])
+      .groupBy(_.field)
+      .mapValues {
+        filterSet =>
+          filterSet.collect {
+            case NotInFilter(_, values, _, _) =>
+              values.toSet
+            case NotEqualToFilter(_, value, _, _) =>
+              Set(value)
+          }.flatten
+      }
   }
 
   postValidate()
@@ -931,6 +963,43 @@ case class PublicDim (name: String
     val dimCandidates = dimMap.get((engine, schema))
     val columns = columnAliases.map(aliasToNameMapFull.apply)
     dimCandidates.flatMap(_.find(d => columns.forall(d.columnNames.apply)))
+  }
+
+  private[this] def containsHighCardinalityInclusiveFilter(f:Filter): Boolean = {
+    f match {
+      case InFilter(field, values, _, _) =>
+        val highCardinalityValues = highCardinalityFilterInValuesMap(f.field)
+        values.exists(highCardinalityValues.apply)
+      case EqualityFilter(field, value, _, _) =>
+        val highCardinalityValues = highCardinalityFilterInValuesMap(f.field)
+        highCardinalityValues(value)
+      case PushDownFilter(f) => containsHighCardinalityInclusiveFilter(f)
+      case _ => false
+    }
+  }
+
+  private[this] def containsHighCardinalityExclusiveFilter(f:Filter): Boolean = {
+    f match {
+      case NotInFilter(field, values, _, _) =>
+        val highCardinalityValues = highCardinalityFilterNotInValuesMap(f.field)
+        val inclusiveHighCardinalityValuesOption = highCardinalityFilterInValuesMap.get(f.field)
+        values.exists(highCardinalityValues.apply) && !inclusiveHighCardinalityValuesOption.exists(inSet => values.exists(inSet.apply))
+      case NotEqualToFilter(field, value, _, _) =>
+        val highCardinalityValues = highCardinalityFilterNotInValuesMap(f.field)
+        highCardinalityValues(value)
+      case PushDownFilter(f) => containsHighCardinalityExclusiveFilter(f)
+      case _ => false
+    }
+  }
+
+  def containsHighCardinalityFilter(f: Filter) : Boolean = {
+    val inclusiveCheck: Boolean = if(highCardinalityFilterInValuesMap.contains(f.field)) {
+      containsHighCardinalityInclusiveFilter(f)
+    } else false
+    val exclusiveCheck: Boolean = if(highCardinalityFilterNotInValuesMap.contains(f.field)) {
+      containsHighCardinalityExclusiveFilter(f)
+    } else false
+    inclusiveCheck || exclusiveCheck
   }
 }
 
