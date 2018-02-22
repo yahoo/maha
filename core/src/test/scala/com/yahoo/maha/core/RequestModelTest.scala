@@ -242,7 +242,7 @@ class RequestModelTest extends FunSuite with Matchers {
             , PubCol("advertiser_id", "Advertiser ID", InEquality)
             , PubCol("ad_group_id", "Ad Group ID", InEquality)
             , PubCol("ad_id", "Ad ID", InEquality)
-            , PubCol("status", "Keyword Status", InEquality)
+            , PubCol("status", "Keyword Status", InNotInEquality)
           ), highCardinalityFilters = Set(NotInFilter("Keyword Status", List("DELETED")), InFilter("Keyword Status", List("ON")))
         )
     }
@@ -4814,6 +4814,90 @@ class RequestModelTest extends FunSuite with Matchers {
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess)
     assert(!res.get.factCost.head._2.isIndexOptimized, "Fact should not be index optimized!")
+  }
+
+  test("create model should succeed when query is not low cardinality with exclusive filter") {
+    val jsonString = s"""{
+                          "cube": "publicFact2",
+                          "selectFields": [
+                              {"field": "Keyword ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Keyword Status", "operator": "not in", "values": ["DELETED"]},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Clicks", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess)
+    assert(!res.get.dimensionsCandidates.headOption.get.hasLowCardinalityFilter, "Dim should have low cardinality filter")
+  }
+
+  test("create model should succeed when query is not low cardinality with inclusive filter") {
+    val jsonString = s"""{
+                          "cube": "publicFact2",
+                          "selectFields": [
+                              {"field": "Keyword ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Keyword Status", "operator": "in", "values": ["ON"]},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Clicks", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess)
+    assert(!res.get.dimensionsCandidates.headOption.get.hasLowCardinalityFilter, "Dim should have low cardinality filter")
+  }
+
+  test("create model should succeed when query is low cardinality with mix of inclusive and exclusive") {
+    val jsonString = s"""{
+                          "cube": "publicFact2",
+                          "selectFields": [
+                              {"field": "Keyword ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Keyword Status", "operator": "not in", "values": ["DELETED","ON"]},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Clicks", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess)
+    assert(res.get.dimensionsCandidates.headOption.get.hasLowCardinalityFilter, "Dim should have low cardinality filter")
   }
 }
 

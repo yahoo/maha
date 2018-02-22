@@ -1482,6 +1482,8 @@ case class FactBestCandidate(fkCols: SortedSet[String]
                              , duplicateAliasMapping: Map[String, Set[String]]
                              , schemaRequiredAliases: Set[String]
                              , requestModel: RequestModel
+                             , isGrainOptimized: Boolean
+                             , isIndexOptimized: Boolean
                               ) {
   def debugString: String = {
     s"""
@@ -1498,6 +1500,8 @@ case class FactBestCandidate(fkCols: SortedSet[String]
        filters=$filters
        duplicateAliasMapping=$duplicateAliasMapping
        schemaRequiredAliases=$schemaRequiredAliases
+       isGrainOptimized=$isGrainOptimized
+       isIndexOptimized=$isIndexOptimized
      """
   }
   
@@ -1536,7 +1540,9 @@ case class BestCandidates(fkCols: SortedSet[String],
                                      => !(forceFilter.isOverridable &&  requestModel.factFilters.contains(forceFilter.filter))).map(_.filter)),
       duplicateAliasMapping,
       requestModel.factSchemaRequiredAliasesMap(factName),
-      requestModel
+      requestModel,
+      factRowsCostEstimate.isGrainOptimized,
+      factRowsCostEstimate.isIndexOptimized
     )
   }
 }

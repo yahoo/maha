@@ -982,7 +982,8 @@ case class PublicDim (name: String
     f match {
       case NotInFilter(field, values, _, _) =>
         val highCardinalityValues = highCardinalityFilterNotInValuesMap(f.field)
-        values.exists(highCardinalityValues.apply)
+        val inclusiveHighCardinalityValuesOption = highCardinalityFilterInValuesMap.get(f.field)
+        values.exists(highCardinalityValues.apply) && !inclusiveHighCardinalityValuesOption.exists(inSet => values.exists(inSet.apply))
       case NotEqualToFilter(field, value, _, _) =>
         val highCardinalityValues = highCardinalityFilterNotInValuesMap(f.field)
         highCardinalityValues(value)
@@ -992,14 +993,13 @@ case class PublicDim (name: String
   }
 
   def containsHighCardinalityFilter(f: Filter) : Boolean = {
-    if(highCardinalityFilterInValuesMap.contains(f.field)) {
+    val inclusiveCheck: Boolean = if(highCardinalityFilterInValuesMap.contains(f.field)) {
       containsHighCardinalityInclusiveFilter(f)
-    }
-    else if(highCardinalityFilterNotInValuesMap.contains(f.field)) {
+    } else false
+    val exclusiveCheck: Boolean = if(highCardinalityFilterNotInValuesMap.contains(f.field)) {
       containsHighCardinalityExclusiveFilter(f)
-    } else {
-      false
-    }
+    } else false
+    inclusiveCheck || exclusiveCheck
   }
 }
 
