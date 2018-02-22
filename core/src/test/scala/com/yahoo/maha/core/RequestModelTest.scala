@@ -4,14 +4,14 @@ package com.yahoo.maha.core
 
 import java.nio.charset.StandardCharsets
 
-import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, ResellerSchema}
+import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, InternalSchema, ResellerSchema}
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core.HiveExpression._
 import com.yahoo.maha.core.bucketing._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.error.{NoRelationWithPrimaryKeyError, UnknownFieldNameError}
 import com.yahoo.maha.core.fact.{FactCol, _}
-import com.yahoo.maha.core.query.{RightOuterJoin, LeftOuterJoin, InnerJoin}
+import com.yahoo.maha.core.query.{InnerJoin, LeftOuterJoin, RightOuterJoin}
 import com.yahoo.maha.core.registry.{Registry, RegistryBuilder}
 import com.yahoo.maha.core.request._
 import org.joda.time.{DateTime, DateTimeZone}
@@ -49,14 +49,14 @@ class RequestModelTest extends FunSuite with Matchers {
     )
   }
 
-  def getReportingRequestAsync(jsonString: String) = {
-    val result = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+  def getReportingRequestAsync(jsonString: String, schema: Schema = AdvertiserSchema) = {
+    val result = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), schema)
     require(result.isSuccess, result)
     result.toOption.get
   }
   
-  def getReportingRequestSync(jsonString: String) = {
-    val result = ReportingRequest.deserializeSync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+  def getReportingRequestSync(jsonString: String, schema: Schema = AdvertiserSchema) = {
+    val result = ReportingRequest.deserializeSync(jsonString.getBytes(StandardCharsets.UTF_8), schema)
     require(result.isSuccess, result)
     result.toOption.get
   }
@@ -65,7 +65,7 @@ class RequestModelTest extends FunSuite with Matchers {
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       import com.yahoo.maha.core.BaseExpressionTest._
       Fact.newFact(
-        "fact1", DailyGrain, HiveEngine, Set(AdvertiserSchema),
+        "fact1", DailyGrain, HiveEngine, Set(AdvertiserSchema, InternalSchema),
         Set(
           DimCol("ad_id", IntType(), annotations = Set(ForeignKey("ad")))
           , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
@@ -242,7 +242,7 @@ class RequestModelTest extends FunSuite with Matchers {
             , PubCol("advertiser_id", "Advertiser ID", InEquality)
             , PubCol("ad_group_id", "Ad Group ID", InEquality)
             , PubCol("ad_id", "Ad ID", InEquality)
-            , PubCol("status", "Keyword Status", InEquality)
+            , PubCol("status", "Keyword Status", InNotInEquality)
           ), highCardinalityFilters = Set(NotInFilter("Keyword Status", List("DELETED")), InFilter("Keyword Status", List("ON")))
         )
     }
@@ -390,7 +390,7 @@ class RequestModelTest extends FunSuite with Matchers {
     registryBuilder.register(ad_group)
     registryBuilder.register(keyword_dim)
     registryBuilder.register(product_ad_dim)
-    registryBuilder.build()
+    registryBuilder.build(factEstimator = new DefaultFactEstimator(Set("advertiser-ad","advertiser-adgroup","advertiser-campaign", "advertiser-campaign-adgroup", "advertiser-adgroup-ad", "advertiser-campaign-adgroup-ad")))
   }
 
   test("create model should fail when non existing cube requested") {
@@ -4905,6 +4905,198 @@ class RequestModelTest extends FunSuite with Matchers {
 
     assert(model.publicDimToJoinTypeMap("advertiser") == LeftOuterJoin, "Should LeftOuterJoin as request fact driven")
     assert(model.publicDimToJoinTypeMap("campaign") == LeftOuterJoin, "Should LeftOuterJoin as request fact driven")
+  }
+
+  test("create model should succeed when query is grain optimized") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Campaign Name"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Clicks", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess)
+    assert(res.get.factCost.head._2.isGrainOptimized, "Fact should be grain optimized!")
+  }
+
+  test("create model should succeed when query is not grain optimized") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Clicks", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess)
+    assert(!res.get.factCost.head._2.isGrainOptimized, "Fact should not be grain optimized!")
+  }
+
+  test("create model should succeed when query is index optimized") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Clicks", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess)
+    assert(res.get.factCost.head._2.isIndexOptimized, "Fact should be index optimized!")
+  }
+
+  test("create model should succeed when query is not index optimized") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Clicks", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString, InternalSchema)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess)
+    assert(!res.get.factCost.head._2.isIndexOptimized, "Fact should not be index optimized!")
+  }
+
+  test("create model should succeed when query is not low cardinality with exclusive filter") {
+    val jsonString = s"""{
+                          "cube": "publicFact2",
+                          "selectFields": [
+                              {"field": "Keyword ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Keyword Status", "operator": "not in", "values": ["DELETED"]},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Clicks", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess)
+    assert(!res.get.dimensionsCandidates.headOption.get.hasLowCardinalityFilter, "Dim should have low cardinality filter")
+  }
+
+  test("create model should succeed when query is not low cardinality with inclusive filter") {
+    val jsonString = s"""{
+                          "cube": "publicFact2",
+                          "selectFields": [
+                              {"field": "Keyword ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Keyword Status", "operator": "in", "values": ["ON"]},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Clicks", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess)
+    assert(!res.get.dimensionsCandidates.headOption.get.hasLowCardinalityFilter, "Dim should have low cardinality filter")
+  }
+
+  test("create model should succeed when query is low cardinality with mix of inclusive and exclusive") {
+    val jsonString = s"""{
+                          "cube": "publicFact2",
+                          "selectFields": [
+                              {"field": "Keyword ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Keyword Status", "operator": "not in", "values": ["DELETED","ON"]},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Clicks", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess)
+    assert(res.get.dimensionsCandidates.headOption.get.hasLowCardinalityFilter, "Dim should have low cardinality filter")
   }
 
 }

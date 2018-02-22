@@ -5,6 +5,7 @@ package com.yahoo.maha.core.fact
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.request.SyncRequest
+import org.joda.time.DateTime
 
 /**
  * Created by jians on 10/20/15.
@@ -110,6 +111,35 @@ class WithNewGrainFactTest extends BaseFactTest {
       }
     }
     thrown.getMessage should startWith("requirement failed: to table should not exist")
+  }
+
+  test("Test DailyGrain Operations") {
+    val grain = DailyGrain
+    assert(grain.fromFormattedStringAndZone("2018-01-01", "UTC").isInstanceOf[DateTime])
+
+    val thrown = intercept[IllegalArgumentException] {
+      grain.validateFilterAndGetNumDays(NotInFilter("Day", List("2018-01-01")))
+    }
+
+    assert(thrown.getMessage.contains("Unsupported filter operation on daily grain filter :"))
+  }
+
+  test("DailyGrain: getDaysBetween Failure Cases") {
+    val grain = DailyGrain
+    val fromToEqual = intercept[IllegalArgumentException] {
+      grain.getDaysBetween("2018-02-01", "2018-01-01")
+    }
+    assert(fromToEqual.getMessage.contains("From date must be before or equal to To date :"))
+    val fakeDate = intercept[Exception] {
+      grain.getDaysBetween("2018-01-01", "not a date")
+    }
+
+    assert(fakeDate.getMessage.contains("Invalid format:"))
+  }
+
+  test("MinuteGrain: success cases") {
+    val grain = MinuteGrain
+    assert(grain.getAsInt("23") == 23)
   }
 
 }

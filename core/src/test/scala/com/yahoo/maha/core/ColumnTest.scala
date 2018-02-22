@@ -15,7 +15,7 @@ class ColumnTest extends FunSuite with Matchers {
       ColumnContext.withColumnContext {implicit cc : ColumnContext =>
         import HiveExpression._
         val col = DimCol("dimcol1", IntType())
-        val col2 = HiveDerFactCol("noop_rollup_spend", DecType(0, "0.0"), HiveDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = NoopRollup)
+        val col2 = HiveDerFactCol("noop_rollup_spend", DecType(0, "0.0"), HiveDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = NoopRollup, annotations = Set(EscapingRequired))
         cc.register(col)
         cc.register(col)
         ColumnContext.validateColumnContext(Set(col), "no prefix")
@@ -40,6 +40,8 @@ class ColumnTest extends FunSuite with Matchers {
       require(col.constantValue == "0")
       val dimCol = ConstDimCol("field1", StrType(), "Y")
       require(dimCol.constantValue == "Y")
+      val colname = cc.getColumnByName("field")
+      assert(colname.get.dataType == IntType(0,None,None,None,None))
     }
   }
 
