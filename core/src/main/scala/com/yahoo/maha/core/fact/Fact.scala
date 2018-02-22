@@ -1482,6 +1482,8 @@ case class FactBestCandidate(fkCols: SortedSet[String]
                              , duplicateAliasMapping: Map[String, Set[String]]
                              , schemaRequiredAliases: Set[String]
                              , requestModel: RequestModel
+                             , isGrainOptimized: Boolean
+                             , isIndexOptimized: Boolean
                               ) {
   def debugString: String = {
     s"""
@@ -1498,12 +1500,14 @@ case class FactBestCandidate(fkCols: SortedSet[String]
        filters=$filters
        duplicateAliasMapping=$duplicateAliasMapping
        schemaRequiredAliases=$schemaRequiredAliases
+       isGrainOptimized=$isGrainOptimized
+       isIndexOptimized=$isIndexOptimized
      """
   }
   
 }
 
-case class FactCandidate(fact: Fact, filterCols: Set[String])
+case class FactCandidate(fact: Fact, publicFact: PublicFact, filterCols: Set[String])
 case class BestCandidates(fkCols: SortedSet[String], 
                           nonFkCols: Set[String], 
                           requestCols: Set[String],
@@ -1536,7 +1540,9 @@ case class BestCandidates(fkCols: SortedSet[String],
                                      => !(forceFilter.isOverridable &&  requestModel.factFilters.contains(forceFilter.filter))).map(_.filter)),
       duplicateAliasMapping,
       requestModel.factSchemaRequiredAliasesMap(factName),
-      requestModel
+      requestModel,
+      factRowsCostEstimate.isGrainOptimized,
+      factRowsCostEstimate.isIndexOptimized
     )
   }
 }
@@ -1829,7 +1835,7 @@ case class PublicFactTable private[fact](name: String
               }
             }.map { fact =>
               val forceFilterColumnNames: Set[String] = fact.forceFilters.map(f => aliasToNameColumnMap(f.filter.field))
-              FactCandidate(fact, filterColumnNames ++ forceFilterColumnNames)
+              FactCandidate(fact, this, filterColumnNames ++ forceFilterColumnNames)
             }
               
             Some(

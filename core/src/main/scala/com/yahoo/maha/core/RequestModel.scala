@@ -860,7 +860,7 @@ object RequestModel extends Logging {
                               filter =>
                                 (colAliases(filter.field) || injectDim.columnsByAlias(filter.field)) &&
                                   !publicFact.columnsByAlias(filter.field) &&
-                                  !(publicDim.highCardinalityFilters(filter) || injectDim.highCardinalityFilters(filter))
+                                  !(publicDim.containsHighCardinalityFilter(filter) || injectDim.containsHighCardinalityFilter(filter))
                             }
                             intermediateCandidates += new DimensionCandidate(
                               injectDim
@@ -888,7 +888,7 @@ object RequestModel extends Logging {
 
                     val filteredLowerTopList = lowerJoinCandidates.lastOption.fold(List.empty[PublicDimension])(List(_))
                     val hasLowCardinalityFilter = filters.view.filter(!_.isPushDown).exists {
-                      filter => colAliases(filter.field) && !publicFact.columnsByAlias(filter.field) && !publicDim.highCardinalityFilters(filter)
+                      filter => colAliases(filter.field) && !publicFact.columnsByAlias(filter.field) && !publicDim.containsHighCardinalityFilter(filter)
                     }
 
                     intermediateCandidates += new DimensionCandidate(
@@ -984,7 +984,7 @@ object RequestModel extends Logging {
             registry.getDimCardinalityEstimate(dimensionCandidates, request, entityPublicDimSet.toSet, filterMap,isDebugEnabled),
             bestCandidatesOption.map(
               _.facts.values
-                .map(f => (f.fact.name, f.fact.engine) -> registry.getFactRowsCostEstimate(dimensionCandidates,f.fact, request, entityPublicDimSet.toSet, filterMap, isDebugEnabled)).toMap
+                .map(f => (f.fact.name, f.fact.engine) -> registry.getFactRowsCostEstimate(dimensionCandidates,f, request, entityPublicDimSet.toSet, filterMap, isDebugEnabled)).toMap
             ).getOrElse(Map.empty),
             factSortByMap = allFactSortBy.toMap,
             dimSortByMap = allDimSortBy.toMap,

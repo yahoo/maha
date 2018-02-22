@@ -92,7 +92,8 @@ class CombinedFutureListOption<T> extends AbstractFuture<Either<GeneralError, Li
                     for (ListenableFuture<Either<GeneralError, T>> listenableFuture: CombinedFutureListOption.this.futures) {
                         if (listenable != listenableFuture) {
                             try {
-                                listenableFuture.cancel(true);
+                                if(!listenableFuture.isCancelled())
+                                    listenableFuture.cancel(true);
                             } catch (Throwable t) {
                                 //do nothing
                             }
@@ -104,7 +105,7 @@ class CombinedFutureListOption<T> extends AbstractFuture<Either<GeneralError, Li
                 localValues.set(index, Option.apply(Either.extractRight(returnValue)));
             }
         } catch (CancellationException e) {
-            if (allMustSucceed) {
+            if (allMustSucceed && !this.isCancelled()) {
                 cancel(false);
             }
         } catch (Throwable t) {
