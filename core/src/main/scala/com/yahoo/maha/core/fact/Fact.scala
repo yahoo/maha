@@ -1503,7 +1503,7 @@ case class FactBestCandidate(fkCols: SortedSet[String]
   
 }
 
-case class FactCandidate(fact: Fact, filterCols: Set[String])
+case class FactCandidate(fact: Fact, publicFact: PublicFact, filterCols: Set[String])
 case class BestCandidates(fkCols: SortedSet[String], 
                           nonFkCols: Set[String], 
                           requestCols: Set[String],
@@ -1829,7 +1829,7 @@ case class PublicFactTable private[fact](name: String
               }
             }.map { fact =>
               val forceFilterColumnNames: Set[String] = fact.forceFilters.map(f => aliasToNameColumnMap(f.filter.field))
-              FactCandidate(fact, filterColumnNames ++ forceFilterColumnNames)
+              FactCandidate(fact, this, filterColumnNames ++ forceFilterColumnNames)
             }
               
             Some(

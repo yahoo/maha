@@ -12,6 +12,7 @@ import com.yahoo.maha.core.request.ReportingRequest
 case class DimCostMetrics(averageCardinality7Day: Int, cardinality1Day: Int)
 
 trait FactCostEstimator {
+  def isGrainKey(grainKey: String): Boolean
   def getRowsEstimate(grainKey:String, request: ReportingRequest,filters: scala.collection.mutable.Map[String, Filter], defaultRowCount:Long): Long
   def getCostEstimate(rowsEstimate: Long, rowCostMultiplierOption: Option[CostMultiplier]) : Long = {
     val cost = for {
@@ -30,7 +31,8 @@ class DefaultDimEstimator extends DimCostEstimator {
   def getCardinalityEstimate(grainKey: String, request: ReportingRequest,filters: scala.collection.mutable.Map[String, Filter]): Option[Long] = None
 }
 
-class DefaultFactEstimator extends FactCostEstimator {
+class DefaultFactEstimator(grainKeySet: Set[String] = Set.empty) extends FactCostEstimator {
+  def isGrainKey(grainKey: String): Boolean = grainKeySet(grainKey)
   def getRowsEstimate(grainKey:String, request: ReportingRequest,filters: scala.collection.mutable.Map[String, Filter], defaultRowCount:Long): Long = {
     (defaultRowCount * (request.numDays + 1)).longValue()
   }
