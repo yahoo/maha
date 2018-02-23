@@ -206,6 +206,9 @@ sealed trait IndexedRowList extends InMemRowList {
   def isUpdatedRowListEmpty: Boolean
 }
 
+object DimDrivenIndexedRowList {
+  val logger: Logger = LoggerFactory.getLogger(classOf[DimDrivenIndexedRowList])
+}
 sealed trait DimDrivenIndexedRowList extends IndexedRowList {
 
   protected[this] val aliasRowMap = new collection.mutable.HashMap[String, Set[(Row, Int)]]
@@ -216,6 +219,7 @@ sealed trait DimDrivenIndexedRowList extends IndexedRowList {
 
   override def subQuery: IndexedSeq[Query] = subQueryList
 
+  val logger: Logger = DimDrivenIndexedRowList.logger
   def indexAlias: String
 
   def getRowByIndex(indexValue: Any) : scala.collection.Set[Row] = {
@@ -232,8 +236,11 @@ sealed trait DimDrivenIndexedRowList extends IndexedRowList {
 
   override def addRow(r: Row, er: Option[Row] = None) : Unit = {
     postResultRowOperation(r, er)
-    if (r.getValue(indexAlias) != null) {
-      val primaryKeyValue = r.getValue(indexAlias).toString
+    val primaryKeyAny = r.getValue(indexAlias)
+    if(primaryKeyAny == null) {
+      logger.error(s"Index alias ($indexAlias) value is null on addRow, dropping row : $r")
+    } else {
+      val primaryKeyValue = primaryKeyAny.toString
       if (aliasRowMap.contains(primaryKeyValue)) {
         val rowSet = aliasRowMap(primaryKeyValue)
         //perform update
@@ -254,36 +261,41 @@ sealed trait DimDrivenIndexedRowList extends IndexedRowList {
         list += r
         //since it is dim driven, we should never have more than one value in the set so always overriding with new set
         val rowSet: Set[(Row, Int)] = Set((r, idx))
-        aliasRowMap.put(r.getValue(indexAlias).toString, rowSet)
+        aliasRowMap.put(primaryKeyValue, rowSet)
       }
     }
   }
 
   //used by subsequent query when back filling dim rows
   def updateRow(r: Row) : Unit = {
-    val primaryKeyValue = r.getValue(indexAlias).toString
-    if(aliasRowMap.contains(primaryKeyValue)) {
-      val rowSet = aliasRowMap(primaryKeyValue)
-      //perform update
-      rowSet.foreach {
-        case (existingRow, existingRowIndex) =>
-          r.aliasMap.foreach {
-            case (alias, index) =>
-              val newValue = r.getValue(index)
-              if(newValue != null) {
-                existingRow.addValue(index, newValue)
-              }
-          }
-          updatedRowSet += existingRowIndex
-      }
+    val primaryKeyAny = r.getValue(indexAlias)
+    if(primaryKeyAny == null) {
+      logger.error(s"Index alias ($indexAlias) value is null on updateRow, dropping row : $r")
     } else {
-      //add new row
-      val idx = list.size
-      list += r
-      //since it is dim driven, we should never have more than one value in the set so always overriding with new set
-      val rowSet: Set[(Row, Int)] = Set((r,idx))
-      aliasRowMap.put(r.getValue(indexAlias).toString, rowSet)
-      updatedRowSet += idx
+      val primaryKeyValue = primaryKeyAny.toString
+      if (aliasRowMap.contains(primaryKeyValue)) {
+        val rowSet = aliasRowMap(primaryKeyValue)
+        //perform update
+        rowSet.foreach {
+          case (existingRow, existingRowIndex) =>
+            r.aliasMap.foreach {
+              case (alias, index) =>
+                val newValue = r.getValue(index)
+                if (newValue != null) {
+                  existingRow.addValue(index, newValue)
+                }
+            }
+            updatedRowSet += existingRowIndex
+        }
+      } else {
+        //add new row
+        val idx = list.size
+        list += r
+        //since it is dim driven, we should never have more than one value in the set so always overriding with new set
+        val rowSet: Set[(Row, Int)] = Set((r, idx))
+        aliasRowMap.put(primaryKeyValue, rowSet)
+        updatedRowSet += idx
+      }
     }
   }
 
@@ -297,6 +309,9 @@ sealed trait DimDrivenIndexedRowList extends IndexedRowList {
 
 }
 
+object FactDrivenIndexedRowList {
+  val logger: Logger = LoggerFactory.getLogger(classOf[FactDrivenIndexedRowList])
+}
 sealed trait FactDrivenIndexedRowList extends IndexedRowList {
 
   protected[this] val aliasRowMap = new collection.mutable.HashMap[String, Set[(Row, Int)]]
@@ -307,6 +322,7 @@ sealed trait FactDrivenIndexedRowList extends IndexedRowList {
 
   override def subQuery: IndexedSeq[Query] = subQueryList
 
+  val logger: Logger = FactDrivenIndexedRowList.logger
   def indexAlias: String
 
   def getRowByIndex(indexValue: Any) : scala.collection.Set[Row] = {
@@ -323,39 +339,49 @@ sealed trait FactDrivenIndexedRowList extends IndexedRowList {
 
   override def addRow(r: Row, er: Option[Row] = None) : Unit = {
     postResultRowOperation(r, er)
-      val primaryKeyValue = r.getValue(indexAlias).toString
-      //add new row
-      val idx = list.size
-      list += r
-      val existingSetOption = aliasRowMap.get(primaryKeyValue)
-      if(existingSetOption.isDefined) {
-        val rowSet: Set[(Row, Int)] = existingSetOption.get ++ Set((r,idx))
-        aliasRowMap.put(primaryKeyValue, rowSet)
+      val primaryKeyAny = r.getValue(indexAlias)
+      if(primaryKeyAny == null) {
+        logger.error(s"Index alias ($indexAlias) value is null on addRow, dropping row : $r")
       } else {
-        val rowSet: Set[(Row, Int)] = Set((r,idx))
-        aliasRowMap.put(primaryKeyValue, rowSet)
+        val primaryKeyValue = primaryKeyAny.toString
+        //add new row
+        val idx = list.size
+        list += r
+        val existingSetOption = aliasRowMap.get(primaryKeyValue)
+        if (existingSetOption.isDefined) {
+          val rowSet: Set[(Row, Int)] = existingSetOption.get ++ Set((r, idx))
+          aliasRowMap.put(primaryKeyValue, rowSet)
+        } else {
+          val rowSet: Set[(Row, Int)] = Set((r, idx))
+          aliasRowMap.put(primaryKeyValue, rowSet)
+        }
       }
     }
 
   //used by subsequent query when back filling dim rows : Fact Driven Case
   def updateRow(r: Row) : Unit = {
-    val primaryKeyValue = r.getValue(indexAlias).toString
-    if(aliasRowMap.contains(primaryKeyValue)) {
-      aliasRowMap.get(primaryKeyValue).get.foreach {
-        entry =>
-          val (existingRow, existingRowIndex) = (entry._1, entry._2)
-          //perform update
-          r.aliasMap.foreach {
-            case (alias, index) =>
-              val newValue = r.getValue(index)
-              if(newValue != null) {
-                existingRow.addValue(index, newValue)
-              }
-          }
-          updatedRowSet += existingRowIndex
-      }
+    val primaryKeyAny = r.getValue(indexAlias)
+    if(primaryKeyAny == null) {
+      logger.error(s"Index alias ($indexAlias) value is null on updateRow, dropping row : $r")
     } else {
-      //since fact driven, update of row should not add new row, ignore the row
+      val primaryKeyValue = primaryKeyAny.toString
+      if (aliasRowMap.contains(primaryKeyValue)) {
+        aliasRowMap.get(primaryKeyValue).get.foreach {
+          entry =>
+            val (existingRow, existingRowIndex) = (entry._1, entry._2)
+            //perform update
+            r.aliasMap.foreach {
+              case (alias, index) =>
+                val newValue = r.getValue(index)
+                if (newValue != null) {
+                  existingRow.addValue(index, newValue)
+                }
+            }
+            updatedRowSet += existingRowIndex
+        }
+      } else {
+        //since fact driven, update of row should not add new row, ignore the row
+      }
     }
   }
 
@@ -419,6 +445,9 @@ case class DimDrivenFactOrderedPartialRowList(indexAlias: String, query: Query) 
   override def isEmpty : Boolean = updatedRowSet.isEmpty
 }
 
+object UnionViewRowList {
+  val logger = LoggerFactory.getLogger(classOf[UnionViewRowList])
+}
 case class UnionViewRowList(indexAliasComposite:Set[String]
                             , query: Query
                             , factAliasToDataTypeMap: Map[String, DataType]
@@ -430,7 +459,7 @@ case class UnionViewRowList(indexAliasComposite:Set[String]
 
   protected[this] val updatedRowSet = new collection.mutable.TreeSet[Int]
 
-  private val logger = LoggerFactory.getLogger(classOf[UnionViewRowList])
+  private val logger = UnionViewRowList.logger
 
   private var stageCount = 0
   private var allConstAliasToValueMap : Map[String, String] = constAliasToValueMapList(stageCount)
@@ -577,7 +606,7 @@ case class NoopRowList(query: Query) extends RowList {
 }
 
 object CSVRowList {
-  private final val LOGGER: Logger = LoggerFactory.getLogger(classOf[CSVRowList])
+  private final val logger: Logger = LoggerFactory.getLogger(classOf[CSVRowList])
 }
 
 case class CSVRowList(query: Query, csvWriter: RowCSVWriter, writeHeader: Boolean) extends RowList {
@@ -594,10 +623,10 @@ case class CSVRowList(query: Query, csvWriter: RowCSVWriter, writeHeader: Boolea
 
   override def isEmpty : Boolean = true
   override def foreach(fn: Row => Unit) : Unit = {
-    CSVRowList.LOGGER.warn("foreach not supported on CSVRowList")
+    CSVRowList.logger.warn("foreach not supported on CSVRowList")
   }
   override def map[T](fn: Row => T) : Iterable[T] = {
-    CSVRowList.LOGGER.warn("map not supported on CSVRowList")
+    CSVRowList.logger.warn("map not supported on CSVRowList")
     Iterable.empty
   }
 }
