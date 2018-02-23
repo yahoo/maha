@@ -73,6 +73,17 @@ class DerivedExpressionTest extends FunSuite with Matchers {
     }
   }
 
+  test("successfully derive dependent columns from OracleDerivedExpression TRUNC") {
+    import OracleExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      DimCol("created_date", IntType())
+
+      val col = OracleDerDimCol("Keyword Date Created", StrType(), TRUNC("{created_date}"))
+      col.derivedExpression.sourceColumns.contains("created_date") should equal(true)
+    }
+  }
+
   test("successfully derive dependent columns from DruidDerivedExpression") {
     import DruidExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
@@ -428,5 +439,122 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       minCol.derivedExpression.render(minCol.name) should equal("MIN(input_column)")
       maxCol.derivedExpression.render(maxCol.name) should equal("MAX(input_column)")
     }
+  }
+
+  test("Create oracle NVL and parse parameters") {
+    import OracleExpression._
+    implicit val cc = new ColumnContext
+    val nvlVal = NVL("{col_name}", "{default_str}")
+    assert(!nvlVal.hasRollupExpression)
+    assert(!nvlVal.hasNumericOperation)
+    assert(nvlVal.asString.contains("col_name"))
+  }
+
+  test("Create hive NVL and parse parameters") {
+    import HiveExpression._
+    implicit val cc = new ColumnContext
+    val nvlVal = NVL("{col_name}", "{default_str}")
+    assert(!nvlVal.hasRollupExpression)
+    assert(!nvlVal.hasNumericOperation)
+    assert(nvlVal.asString.contains("col_name"))
+  }
+
+  test("Create presto NVL and parse parameters") {
+    import PrestoExpression._
+    implicit val cc = new ColumnContext
+    val nvlVal = NVL("{col_name}", "{default_str}")
+    assert(!nvlVal.hasRollupExpression)
+    assert(!nvlVal.hasNumericOperation)
+    assert(nvlVal.asString.contains("col_name"))
+  }
+
+  test("Create oracle TRUNC and parse parameters") {
+    import OracleExpression._
+    implicit val cc = new ColumnContext
+    val truncVal = TRUNC("{col_name}")
+    assert(!truncVal.hasRollupExpression)
+    assert(!truncVal.hasNumericOperation)
+    assert(truncVal.asString.contains("col_name"))
+  }
+
+  test("Create oracle COALESCE and parse parameters") {
+    import OracleExpression._
+    implicit val cc = new ColumnContext
+    val coalesceVal = COALESCE("{col_name}", "''")
+    assert(!coalesceVal.hasRollupExpression)
+    assert(!coalesceVal.hasNumericOperation)
+    assert(coalesceVal.asString.contains("col_name"))
+  }
+
+  test("Create hive COALESCE and parse parameters") {
+    import HiveExpression._
+    implicit val cc = new ColumnContext
+    val coalesceVal = COALESCE("{col_name}", "''")
+    assert(!coalesceVal.hasRollupExpression)
+    assert(!coalesceVal.hasNumericOperation)
+    assert(coalesceVal.asString.contains("col_name"))
+  }
+
+  test("Create presto COALESCE and parse parameters") {
+    import PrestoExpression._
+    implicit val cc = new ColumnContext
+    val coalesceVal = COALESCE("{col_name}", "''")
+    assert(!coalesceVal.hasRollupExpression)
+    assert(!coalesceVal.hasNumericOperation)
+    assert(coalesceVal.asString.contains("col_name"))
+  }
+
+  test("Create oracle TO_CHAR and parse parameters") {
+    import OracleExpression._
+    implicit val cc = new ColumnContext
+    val tocharVal = TO_CHAR("{col_name}", "''")
+    assert(!tocharVal.hasRollupExpression)
+    assert(!tocharVal.hasNumericOperation)
+    assert(tocharVal.asString.contains("col_name"))
+  }
+
+  test("Create oracle ROUND and parse parameters") {
+    import OracleExpression._
+    implicit val cc = new ColumnContext
+    val roundVal = ROUND("{col_name}", 1)
+    assert(!roundVal.hasRollupExpression)
+    assert(!roundVal.hasNumericOperation)
+    assert(roundVal.asString.contains("col_name"))
+  }
+
+  test("Create hive ROUND and parse parameters") {
+    import HiveExpression._
+    implicit val cc = new ColumnContext
+    val roundVal = ROUND("{col_name}", 1)
+    assert(!roundVal.hasRollupExpression)
+    assert(!roundVal.hasNumericOperation)
+    assert(roundVal.asString.contains("col_name"))
+  }
+
+  test("Create presto ROUND and parse parameters") {
+    import PrestoExpression._
+    implicit val cc = new ColumnContext
+    val roundVal = ROUND("{col_name}", 1)
+    assert(!roundVal.hasRollupExpression)
+    assert(!roundVal.hasNumericOperation)
+    assert(roundVal.asString.contains("col_name"))
+  }
+
+  test("Create presto TRIM and parse parameters") {
+    import PrestoExpression._
+    implicit val cc = new ColumnContext
+    val roundVal = TRIM("{col_name}")
+    assert(!roundVal.hasRollupExpression)
+    assert(!roundVal.hasNumericOperation)
+    assert(roundVal.asString.contains("col_name"))
+  }
+
+  test("Create presto MAX and parse parameters") {
+    import PrestoExpression._
+    implicit val cc = new ColumnContext
+    val roundVal = MAX("{col_name}")
+    assert(roundVal.hasRollupExpression)
+    assert(roundVal.hasNumericOperation)
+    assert(roundVal.asString.contains("col_name"))
   }
 }

@@ -50,12 +50,26 @@ class QueryTest extends FunSuite with Matchers with BaseOracleQueryGeneratorTest
     assume(query.asString != null)
     assume(query.isInstanceOf[OracleQuery])
     assume(query.engine == OracleEngine)
+    val p = query
+    assert(!query.aliasColumnMapJava.isEmpty)
   }
 
   test("NOOP QueryTest") {
     val nq= NoopQuery
     intercept[UnsupportedOperationException] {
     nq.asString
+    }
+    intercept[UnsupportedOperationException] {
+      nq.queryContext
+    }
+    intercept[UnsupportedOperationException] {
+      nq.additionalColumns
+    }
+    intercept[UnsupportedOperationException] {
+      nq.engine
+    }
+    intercept[UnsupportedOperationException] {
+      nq.aliasColumnMap
     }
   }
 }

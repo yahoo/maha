@@ -4223,4 +4223,51 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     OracleQueryGenerator.register(failRegistry,DefaultPartitionColumnRenderer)
   }
+
+  test("succesfully generate uncommon filter types") {
+    val jsonString = s"""{
+                           "cube": "publisher_stats_int2",
+                           "selectFields": [
+                             {
+                               "field": "Publisher ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                          "filterExpressions": [
+                             {"field": "Publisher ID", "operator": "=", "value": "12345"},
+                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ],
+                           "paginationStartIndex":0,
+                           "rowsPerPage":100
+                          }"""
+
+    val requestOption = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), PublisherSchema)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(requestOption.toOption.get, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+
+    val expected = s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+                      |FROM (SELECT to_char(vps0.publisher_id) "Publisher ID", coalesce(ROUND(vps0."spend", 10), 0.0) "Spend"
+                      |      FROM (SELECT
+                      |                   publisher_id, SUM(spend) AS "spend"
+                      |            FROM v_publisher_stats2
+                      |            WHERE (publisher_id = 12345) AND (date_sid >= to_number(to_char(trunc(to_date('$fromDate', 'YYYY-MM-DD')), 'YYYYMMDD')) AND date_sid <= to_number(to_char(trunc(to_date('$toDate', 'YYYY-MM-DD')), 'YYYYMMDD')))
+                      |            GROUP BY publisher_id
+                      |            HAVING (SUM(clicks) <> 777) AND (SUM(impressions) IS NOT NULL)
+                     |           ) vps0
+                      |
+                     |)
+                      |   ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
 }

@@ -4,10 +4,12 @@ package com.yahoo.maha.service.factory
 
 import java.util.UUID
 import javax.sql.DataSource
+
 import com.yahoo.maha.jdbc.JdbcConnection
 import com.zaxxer.hikari.HikariDataSource
+import org.json4s.JValue
 import org.json4s.jackson.JsonMethods._
-import org.scalatest.{Matchers, FunSuite}
+import org.scalatest.{FunSuite, Matchers}
 
 /**
  * Created by pranavbhole on 31/05/17.
@@ -51,5 +53,6 @@ class DataSourceConnectionPoolFactoryTest extends BaseFactoryTest{
         val ddlResult = connection.executeUpdate("create table test(key varchar(20), value varchar(20));")
         assert(ddlResult.isSuccess)
     }
+    assert(KvPair.fieldJSONW.write(KvPair("1", "2")).isInstanceOf[JValue])
   }
 }

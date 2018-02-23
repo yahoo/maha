@@ -48,6 +48,10 @@ trait BaseFactTest extends FunSuite with Matchers {
     factDWithDruid()
   }
 
+  def factp : FactBuilder = {
+    factPWithPresto()
+  }
+
   //create a new fact builder for each call
   def fact1WithForceFilters(forceFilters: Set[ForceFilter]) : FactBuilder = {
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
@@ -139,6 +143,32 @@ trait BaseFactTest extends FunSuite with Matchers {
           , FactCol("engagement_count", IntType(0, 0))
           , ConstFactCol("constant_count", IntType(), "1")
           , DruidDerFactCol("Video Starts", IntType(), ("{engagement_count}"))
+        )
+        , forceFilters = forceFilters
+      )
+    }
+  }
+
+  def factPWithPresto(forceFilters: Set[ForceFilter] = Set.empty) : FactBuilder = {
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      Fact.newFact(
+        "factp", DailyGrain, PrestoEngine, Set(AdvertiserSchema),
+        Set(
+          DimCol("account_id", IntType(), annotations = Set(ForeignKey("cache_advertiser_metadata")))
+          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("cache_campaign_metadata")))
+          , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("cache_campaign_metadata")))
+          , DimCol("ad_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("stats_source", IntType(3))
+          , DimCol("price_type", IntType(3))
+          , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
+          , DimCol("engagement_type", IntType(3))
+        ),
+        Set(
+          FactCol("impressions", IntType())
+          , FactCol("clicks", IntType())
+          , FactCol("engagement_count", IntType(0, 0))
+          , ConstFactCol("constant_count", IntType(), "1")
+          , PrestoDerFactCol("Video Starts", IntType(), ("{engagement_count}"))
         )
         , forceFilters = forceFilters
       )

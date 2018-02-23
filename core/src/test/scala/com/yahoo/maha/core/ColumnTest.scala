@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
-import com.yahoo.maha.core.fact.ConstFactCol
+import com.yahoo.maha.core.fact.{ConstFactCol, HiveDerFactCol, NoopRollup}
 import org.scalatest.{FunSuite, Matchers}
 import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol}
 
@@ -13,9 +13,12 @@ class ColumnTest extends FunSuite with Matchers {
   test("register duplicate column in one column context should fail") {
     val thrown = intercept[IllegalArgumentException] {
       ColumnContext.withColumnContext {implicit cc : ColumnContext =>
+        import HiveExpression._
         val col = DimCol("dimcol1", IntType())
+        val col2 = HiveDerFactCol("noop_rollup_spend", DecType(0, "0.0"), HiveDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = NoopRollup, annotations = Set(EscapingRequired))
         cc.register(col)
         cc.register(col)
+        ColumnContext.validateColumnContext(Set(col), "no prefix")
       }
     }
     thrown.getMessage should startWith ("requirement failed: Column already exists : dimcol1")
@@ -37,6 +40,17 @@ class ColumnTest extends FunSuite with Matchers {
       require(col.constantValue == "0")
       val dimCol = ConstDimCol("field1", StrType(), "Y")
       require(dimCol.constantValue == "Y")
+      val colname = cc.getColumnByName("field")
+      assert(colname.get.dataType == IntType(0,None,None,None,None))
+    }
+  }
+
+  test("Attempt to validate columns in the CC") {
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      import HiveExpression._
+      val col = DimCol("dimcol100", IntType())
+      val col2 = HiveDerFactCol("noop_rollup_spend", DecType(0, "0.0"), HiveDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = NoopRollup)
+      ColumnContext.validateColumnContext(Set(col, col2), "no prefix")
     }
   }
 

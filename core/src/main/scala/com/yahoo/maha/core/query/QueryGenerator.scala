@@ -4,6 +4,7 @@ package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
+import com.yahoo.maha.core.fact.FactBestCandidate
 
 import scala.collection.mutable
 
@@ -186,21 +187,75 @@ trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
     val returnedFilters = new mutable.LinkedHashMap[String, Filter]
     localFilters.foreach {
       filter =>
-        val name = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap( filter.field )
-        val column = fact.columnsByNameMap( name )
-        val real_name = column.alias.getOrElse( name )
-        returnedFilters( real_name ) = filter
+        val name = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap(filter.field)
+        val column = fact.columnsByNameMap(name)
+        val real_name = column.alias.getOrElse(name)
+        returnedFilters(real_name) = filter
     }
     forcedFilters.foreach {
       filter =>
-        val name = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap( filter.field )
-        val column = fact.columnsByNameMap( name )
-        val real_name = column.alias.getOrElse( name )
-        if( !filter.isOverridable || !returnedFilters.contains( real_name )) {
-          returnedFilters( real_name ) = filter
+        val name = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap(filter.field)
+        val column = fact.columnsByNameMap(name)
+        val real_name = column.alias.getOrElse(name)
+        if (!filter.isOverridable || !returnedFilters.contains(real_name)) {
+          returnedFilters(real_name) = filter
         }
     }
-        returnedFilters.values.toArray
+    returnedFilters.values.toArray
+  }
+}
+
+object QueryGeneratorHelper {
+  def populateAliasColMapOfRequestCols(columnInfo: ColumnInfo
+                                       , queryBuilderContext: QueryBuilderContext
+                                       , queryContext : CombinedQueryContext) : Map[String, Column] = {
+    if (!columnInfo.isInstanceOf[ConstantColumnInfo] && queryBuilderContext.aliasColumnMap.contains(columnInfo.alias)) {
+      Map(columnInfo.alias -> queryBuilderContext.aliasColumnMap(columnInfo.alias))
+    } else if (queryContext.factBestCandidate.duplicateAliasMapping.contains(columnInfo.alias)) {
+      val sourceAliases = queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)
+      val sourceAlias = sourceAliases.find(queryBuilderContext.aliasColumnMap.contains)
+      require(sourceAlias.isDefined
+        , s"Failed to find source column for duplicate alias mapping : ${queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)}")
+      Map(columnInfo.alias -> queryBuilderContext.aliasColumnMap(sourceAlias.get))
+    }
+    else {
+      Map.empty
+    }
+  }
+
+  def handleFactColInfo(queryBuilderContext: QueryBuilderContext
+                        , alias : String
+                        , factCandidate : FactBestCandidate
+                        , renderFactCol: (String, String, Column, String) => String
+                        , duplicateAliasMapping: Map[String, Set[String]]
+                        , tableAlias : String) : String = {
+    if (queryBuilderContext.containsFactColNameForAlias(alias)) {
+      val col = queryBuilderContext.getFactColByAlias(alias)
+      val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)
+      val finalAliasOrExpression = {
+        if(queryBuilderContext.isDimensionCol(alias)) {
+          val factAlias = queryBuilderContext.getAliasForTable(tableAlias)
+          val factExp = queryBuilderContext.getFactColExpressionOrNameForAlias(alias)
+          s"$factAlias.$factExp"
+        } else  {
+          queryBuilderContext.getFactColExpressionOrNameForAlias(alias)
+        }
+      }
+      renderFactCol(alias, finalAliasOrExpression, col, finalAlias)
+    } else if (duplicateAliasMapping.contains(alias)) {
+      val duplicateAliases = duplicateAliasMapping(alias)
+      val renderedDuplicateAlias = duplicateAliases.collectFirst {
+        case duplicateAlias if queryBuilderContext.containsFactColNameForAlias(duplicateAlias) =>
+          val col = queryBuilderContext.getFactColByAlias(duplicateAlias)
+          val finalAliasOrExpression = queryBuilderContext.getFactColExpressionOrNameForAlias(duplicateAlias)
+          val finalAlias = queryBuilderContext.getFactColNameForAlias(duplicateAlias)
+          renderFactCol(alias, finalAliasOrExpression, col, finalAlias)
+      }
+      require(renderedDuplicateAlias.isDefined, s"Failed to render column : $alias")
+      renderedDuplicateAlias.get
+    } else {
+      throw new IllegalArgumentException(s"Could not find inner alias for outer column : $alias")
+    }
   }
 }
 

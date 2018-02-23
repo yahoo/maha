@@ -28,6 +28,12 @@ import static org.testng.Assert.assertTrue;
  */
 public class TestParRequestListOption {
 
+    private String printError(Either<GeneralError, Integer> result) {
+        return result.left().get().message +
+               "\nThrowable stacktrace:\n" +
+               result.left().get().throwableOption.map(ParFunction.from(ExceptionUtils::getStackTrace));
+    }
+
     private ParallelServiceExecutor executor;
 
     private ParFunction<List<Option<String>>, Integer> stringAssert =
@@ -122,11 +128,7 @@ public class TestParRequestListOption {
         ParRequestListOption<String> request = builder.build();
         Either<GeneralError, Integer> result = request.resultMap(stringAssert);
         assertTrue(result.isLeft());
-        assertTrue(result.left().get().message.equals("failed"),
-                   "Result message expected 'failed' got " +
-                   result.left().get().message +
-                   "Throwable stacktrace: " +
-                   result.left().get().throwableOption.map(ParFunction.from(ExceptionUtils::getStackTrace)));
+        assertTrue(result.left().get().message.equals("failed"), printError(result));
     }
 
     @Test
@@ -213,7 +215,7 @@ public class TestParRequestListOption {
                         }));
         Either<GeneralError, Integer> result = composedRequest.get();
         assertTrue(result.isLeft());
-        assertTrue(result.left().get().throwableOption.get().getMessage().contains("failed"));
+        assertTrue(result.left().get().throwableOption.get().getMessage().contains("failed"), printError(result));
     }
 
     @Test
@@ -241,7 +243,7 @@ public class TestParRequestListOption {
                         }));
         Either<GeneralError, Integer> result = composedRequest.get();
         assertTrue(result.isLeft());
-        assertTrue(result.left().get().message.equals("failed"));
+        assertTrue(result.left().get().message.equals("failed"), printError(result));
     }
 
     @Test
@@ -375,7 +377,7 @@ public class TestParRequestListOption {
                         }));
         Either<GeneralError, Integer> result = composedRequest.get();
         assertTrue(result.isLeft());
-        assertTrue(result.left().get().throwableOption.get().getMessage().contains("failed"));
+        assertTrue(result.left().get().throwableOption.get().getMessage().contains("failed"), printError(result));
     }
 
     class TestResponse {

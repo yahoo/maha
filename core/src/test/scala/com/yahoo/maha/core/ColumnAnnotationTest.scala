@@ -2,6 +2,8 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
+import HiveExpression._
+import com.yahoo.maha.core.BaseExpressionTest.PRESTO_TIMESTAMP_TO_FORMATTED_DATE
 import org.scalatest.{FunSuite, Matchers}
 
 /**
@@ -26,6 +28,26 @@ class ColumnAnnotationTest extends FunSuite with Matchers {
   test("successfully find PrestoShardingExpression with instance") {
     val set: Set[ColumnAnnotation] = Set(PrestoShardingExpression(null))
     set.contains(PrestoShardingExpression.instance) === true
+  }
+
+  test("Instantiate  Hive/PrestoShardingExpression") {
+    implicit val cc: ColumnContext = new ColumnContext
+    val derivedMin : HiveDerivedExpression = HiveDerivedExpression.fromExpression(MIN("{thing}"))
+    val shardingExpr : HiveShardingExpression = new HiveShardingExpression(derivedMin)
+    assert(shardingExpr.instance == HiveShardingExpression.instance)
+
+    val prestoMin : PrestoDerivedExpression = PrestoDerivedExpression.fromExpression(PRESTO_TIMESTAMP_TO_FORMATTED_DATE("{created_date}", "YYYY-MM-dd"))
+    val prestoShardingExpr : PrestoShardingExpression = new PrestoShardingExpression(prestoMin)
+    assert(prestoShardingExpr.instance == PrestoShardingExpression.instance)
+  }
+
+  test("Instantiate ForeignKey and DayColumn") {
+    val fk : ForeignKey = new ForeignKey("public_name")
+    assert(fk.publicDimName == "public_name")
+    assert(fk.instance == ForeignKey.instance)
+    val dc : DayColumn = new DayColumn("format")
+    assert(dc.fmt == "format")
+    assert(dc.instance == DayColumn.instance)
   }
 
 }

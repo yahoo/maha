@@ -73,7 +73,7 @@ class RequestModelTest extends FunSuite with Matchers {
           , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
           , DimCol("product_ad_id", IntType(), annotations = Set(ForeignKey("productAd")))
           , DimCol("stats_source", IntType(3))
-          , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
+          , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF", 10 -> "CPF"), "NONE")))
           , DimCol("device_id", IntType(8, (Map(1 -> "SmartPhone", 2 -> "Tablet", 3 -> "Desktop", -1 -> "UNKNOWN"), "UNKNOWN")))
           , DimCol("device_type", IntType(8, (Map(1 -> "SmartPhone", 2 -> "Tablet", 3 -> "Desktop", -1 -> "UNKNOWN"), "UNKNOWN")), alias = Option("device_id"))
           , DimCol("start_time", IntType())
@@ -134,7 +134,7 @@ class RequestModelTest extends FunSuite with Matchers {
           PubCol("advertiser_id", "Advertiser ID", InEquality),
           PubCol("product_ad_id", "Product Ad ID", InEquality),
           PubCol("stats_source", "Source", Equality),
-          PubCol("price_type", "Pricing Type", In),
+          PubCol("price_type", "Pricing Type", InBetweenEquality),
           PubCol("landing_page_url", "Destination URL", Set.empty),
           PubCol("network_type", "Network Type", InEqualityIsNotNullNotIn, restrictedSchemas = Set(AdvertiserSchema)),
           PubCol("ad_format_id", "Ad Format Name", Set.empty, restrictedSchemas = Set(ResellerSchema)),
@@ -3415,7 +3415,6 @@ class RequestModelTest extends FunSuite with Matchers {
 
     assert(model.publicDimToJoinTypeMap("advertiser") == InnerJoin, "Should be InnerJoin as request has dim filters")
     assert(model.publicDimToJoinTypeMap("ad_group") == InnerJoin, "Should be InnerJoin as request has dim filters")
-
   }
 
   test(
@@ -3537,7 +3536,6 @@ class RequestModelTest extends FunSuite with Matchers {
 
     assert(model.publicDimToJoinTypeMap("advertiser") == LeftOuterJoin, "Should LeftOuterJoin as request fact driven")
     assert(model.publicDimToJoinTypeMap("campaign") == LeftOuterJoin, "Should LeftOuterJoin as request fact driven")
-
   }
 
   test("""generate valid model with filter on field with static mapping and in fields list""") {
@@ -3879,7 +3877,6 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(!model.bestCandidates.get.requestCols("stats_source"))
     assert(model.bestCandidates.get.facts.head._2.filterCols("stats_source"))
     assert(res.get.publicDimToJoinTypeMap("keyword") == InnerJoin, "Should InnerJoin as request is filtering on dim")
-
   }
 
   test("generate valid model for dim driven query with dim filters") {
@@ -4220,6 +4217,131 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(requestModelResult.get.dryRunModelTry.get.isSuccess)
   }
 
+  test("Multiple requestModels are returned from factory for DryRun with OracleEngine") {
+    val jsonString =
+      s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Advertiser Status"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Ad Group ID", "operator": "in", "values": ["1", "2", "3"]}
+                          ],
+                          "sortBy": [
+                              {"field": "Advertiser Status", "order": "Asc"}
+                          ],
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    object TestBucketingConfig extends BucketingConfig {
+      override def getConfig(cube: String): Option[CubeBucketingConfig] = {
+        Some(CubeBucketingConfig.builder()
+          .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
+          .externalBucketPercentage(Map(1 -> 100, 2 -> 0))
+          .dryRunPercentage(Map(1 -> (25, None), 2 -> (100, Some(OracleEngine))))
+          .build())
+      }
+    }
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val bucketParams = new BucketParams(new UserInfo("test-user", false)) // isInternal = false
+    val registry = getDefaultRegistry()
+    val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
+    val requestModelResult = RequestModelFactory.fromBucketSelector(request, bucketParams, registry, bucketSelector)
+    assert(requestModelResult.isSuccess)
+    assert(requestModelResult.get.model.isInstanceOf[RequestModel])
+    assert(requestModelResult.get.dryRunModelTry.isDefined, "Failed to get 2nd Request Model")
+    assert(requestModelResult.get.dryRunModelTry.get.isSuccess)
+  }
+
+    test("Multiple requestModels are returned from factory for DryRun with HiveEngine") {
+      val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Advertiser Status"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Ad Group ID", "operator": "in", "values": ["1", "2", "3"]}
+                          ],
+                          "sortBy": [
+                              {"field": "Advertiser Status", "order": "Asc"}
+                          ],
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+      object TestBucketingConfig extends BucketingConfig {
+        override def getConfig(cube: String): Option[CubeBucketingConfig] = {
+          Some(CubeBucketingConfig.builder()
+            .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
+            .externalBucketPercentage(Map(1 -> 100, 2 -> 0))
+            .dryRunPercentage(Map(1 -> (25, None), 2 -> (100, Some(HiveEngine))))
+            .build())
+        }
+      }
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val bucketParams = new BucketParams(new UserInfo("test-user", false)) // isInternal = false
+    val registry = getDefaultRegistry()
+    val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
+    val requestModelResult = RequestModelFactory.fromBucketSelector(request, bucketParams, registry, bucketSelector)
+    assert(requestModelResult.isSuccess)
+    assert(requestModelResult.get.model.isInstanceOf[RequestModel])
+    assert(requestModelResult.get.dryRunModelTry.isDefined, "Failed to get 2nd Request Model")
+    assert(requestModelResult.get.dryRunModelTry.get.isSuccess)
+  }
+
+  test("Multiple requestModels are returned from factory for DryRun with PrestoEngine should FAIL") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Advertiser Status"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Ad Group ID", "operator": "in", "values": ["1", "2", "3"]}
+                          ],
+                          "sortBy": [
+                              {"field": "Advertiser Status", "order": "Asc"}
+                          ],
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    object TestBucketingConfig extends BucketingConfig {
+      override def getConfig(cube: String): Option[CubeBucketingConfig] = {
+        Some(CubeBucketingConfig.builder()
+          .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
+          .externalBucketPercentage(Map(1 -> 100, 2 -> 0))
+          .dryRunPercentage(Map(1 -> (25, None), 2 -> (100, Some(PrestoEngine))))
+          .build())
+      }
+    }
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val bucketParams = new BucketParams(new UserInfo("test-user", false)) // isInternal = false
+    val registry = getDefaultRegistry()
+    val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
+    val requestModelResult = RequestModelFactory.fromBucketSelector(request, bucketParams, registry, bucketSelector)
+    assert(requestModelResult.isSuccess)
+    assert(requestModelResult.get.model.isInstanceOf[RequestModel])
+    assert(requestModelResult.get.dryRunModelTry.isDefined, "Failed to get 2nd Request Model")
+  }
+
   test("Only one requestModel is returned from factory for NO DryRun") {
     val jsonString = s"""{
                           "cube": "publicFact",
@@ -4314,8 +4436,12 @@ class RequestModelTest extends FunSuite with Matchers {
   test("Base Request Col Test") {
     val baseRequestCol = new BaseRequestCol("Keyword Value")
     require(baseRequestCol.isKey == false)
+    require(baseRequestCol.isJoinKey == false)
+    assert(baseRequestCol.toName("Keyword Value").equals(baseRequestCol))
     val joinKey = new JoinKeyCol("Keyword ID")
     require(joinKey.isKey == true)
+    require(joinKey.isJoinKey == true)
+    assert(joinKey.toName("Keyword ID").equals(joinKey))
   }
 
   test("Filtering on the dimension with the like operator should generate valid model") {
@@ -4652,11 +4778,12 @@ class RequestModelTest extends FunSuite with Matchers {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = getDefaultRegistry()
     val res = RequestModel.from(request, registry)
+    val orOp = OrFilterOperation
     assert(res.isSuccess)
     assert(!res.get.orFilterMeta.isEmpty)
     assert(res.get.orFilterMeta.head.isFactFilters == true)
     assert(res.get.orFilterMeta.head.orFliter.filters.size == 2)
-    assert(res.get.orFilterMeta.head.orFliter.operator == OrFilterOperation)
+    assert(res.get.orFilterMeta.head.orFliter.operator == orOp)
     assert(res.get.orFilterMeta.head.orFliter.field == "or")
     assert(res.get.orFilterMeta.head.orFliter.filters(0).operator == EqualityFilterOperation)
     assert(res.get.orFilterMeta.head.orFliter.filters(0).field == "Clicks")
@@ -4706,6 +4833,78 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(res.get.orFilterMeta.head.orFliter.filters(1).operator == EqualityFilterOperation)
     assert(res.get.orFilterMeta.head.orFliter.filters(1).field == "Advertiser Status")
     assert(res.get.orFilterMeta.head.orFliter.filters(1).asValues == "ON")
+  }
+
+  test("""create model errors with incorrect filters""") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Campaign Status"},
+                              {"field": "Impressions"},
+                              {"field": "Advertiser Status"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Spend", "operator": "between", "from": "0", "to": "1000"},
+                              {"field": "Pricing Type", "operator": "between", "from": "CPE", "to": "CPA"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "Asc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess, res.errorMessage("Failed to build request model"))
+    val model = res.toOption.get
+    assert(model.factFilters.size === 3)
+    assert(model.factFilters.exists(_.field === "Advertiser ID") === true)
+    assert(model.factFilters.exists(_.field === "Pricing Type") === true)
+    assert(model.factFilters.find(_.field === "Pricing Type").get.asInstanceOf[BetweenFilter].from === "-10")
+    assert(model.factFilters.find(_.field === "Pricing Type").get.asInstanceOf[BetweenFilter].to === "2")
+
+    assert(model.publicDimToJoinTypeMap("advertiser") == LeftOuterJoin, "Should LeftOuterJoin as request fact driven")
+    assert(model.publicDimToJoinTypeMap("campaign") == LeftOuterJoin, "Should LeftOuterJoin as request fact driven")
+  }
+
+  test("""verify local equality filter on pricing type""") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Campaign Status"},
+                              {"field": "Impressions"},
+                              {"field": "Advertiser Status"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Pricing Type", "operator": "=", "value": "CPF"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "Asc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess, res.errorMessage("Failed to build request model"))
+    val model = res.toOption.get
+    assert(model.factFilters.size === 2)
+    assert(model.factFilters.exists(_.field === "Advertiser ID") === true)
+    assert(model.factFilters.exists(_.field === "Pricing Type") === true)
+    assert(model.factFilters.find(_.field === "Pricing Type").get.asInstanceOf[InFilter].values === List("10", "-20"))
+
+    assert(model.publicDimToJoinTypeMap("advertiser") == LeftOuterJoin, "Should LeftOuterJoin as request fact driven")
+    assert(model.publicDimToJoinTypeMap("campaign") == LeftOuterJoin, "Should LeftOuterJoin as request fact driven")
   }
 
   test("create model should succeed when query is grain optimized") {
@@ -4899,5 +5098,6 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(res.isSuccess)
     assert(res.get.dimensionsCandidates.headOption.get.hasLowCardinalityFilter, "Dim should have low cardinality filter")
   }
+
 }
 

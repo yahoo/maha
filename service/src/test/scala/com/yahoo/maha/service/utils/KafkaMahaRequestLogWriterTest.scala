@@ -145,6 +145,13 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
     }
   }
 
+  test("Create a noopRequestLogWriter") {
+    val writer = new NoopMahaRequestLogWriter
+    writer.write(null)
+    writer.validate(null)
+    mahaRequestLogWriter.callback.onCompletion(null, new Exception)
+  }
+
   private def getFreePort(): Int = {
     val s = new ServerSocket(0)
     val freePort = s.getLocalPort

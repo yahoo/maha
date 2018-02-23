@@ -112,7 +112,7 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
       case EqualityFilter(field, day, _, _) =>
         new EqualityFilter(field, oneDayBefore(day))
       case a =>
-        throw new UnsupportedOperationException(s"Filter operation not supported. Day filter can be 'between', 'in' or 'equality' : $a")
+        throw new IllegalArgumentException(s"Filter operation not supported. Day filter can be 'between', 'in' or 'equality' : $a")
     }
   }
 
@@ -136,7 +136,7 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
       case EqualityFilter(field, day, _ , _) =>
         new BetweenFilter(field, oneDayBefore(day), day)
       case a =>
-        throw new UnsupportedOperationException(s"Filter operation not supported. Day filter can be 'between', 'in' or 'equality' : $a")
+        throw new IllegalArgumentException(s"Filter operation not supported. Day filter can be 'between', 'in' or 'equality' : $a")
     }
   }
 
@@ -241,14 +241,6 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
     if (hourFilter.isDefined && dayFilter.operator != hourFilter.get.operator) return false
     if (hourFilter.isDefined && minuteFilter.isDefined && hourFilter.get.operator != minuteFilter.get.operator) return false
     true
-  }
-
-  private def getOneDayBefore(date: String, timezone: String): String = {
-    DailyGrain.toFormattedString(DailyGrain.fromFormattedStringAndZone(date, timezone).minusDays(1))
-  }
-
-  private def getOneDayAfter(date: String, timezone: String): String = {
-    DailyGrain.toFormattedString(DailyGrain.fromFormattedStringAndZone(date, timezone).plusDays(1))
   }
 
   private def getOffsetMinutes(timezone: DateTimeZone): Int = {

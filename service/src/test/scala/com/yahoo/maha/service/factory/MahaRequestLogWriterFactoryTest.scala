@@ -25,6 +25,8 @@ class MahaRequestLogWriterFactoryTest extends BaseFactoryTest {
     val generatorResult = factory.fromJson(json, true)
     assert(generatorResult.isSuccess, generatorResult)
     assert(generatorResult.toList.head.isInstanceOf[NoopMahaRequestLogWriter])
+    val noopFactory = new NoopMahaRequestLogWriterFactory
+    assert(noopFactory.supportedProperties == List.empty)
   }
 
   test("Kafka MahaRequestLogWriterFactoryTest") {
@@ -52,6 +54,8 @@ class MahaRequestLogWriterFactoryTest extends BaseFactoryTest {
     val generatorResult = factory.fromJson(json, false)
     assert(generatorResult.isSuccess, generatorResult)
     assert(generatorResult.toList.head.isInstanceOf[KafkaMahaRequestLogWriter])
+    val kafkaFactory = new KafkaMahaRequestLogWriterFactory
+    assert(kafkaFactory.supportedProperties == List.empty)
   }
 
 }

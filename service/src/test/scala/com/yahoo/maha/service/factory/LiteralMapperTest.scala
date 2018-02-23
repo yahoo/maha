@@ -2,9 +2,9 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.factory
 
-import com.yahoo.maha.core.{DruidLiteralMapper, OracleLiteralMapper}
+import com.yahoo.maha.core.dimension.DimCol
+import com.yahoo.maha.core._
 import org.json4s.jackson.JsonMethods._
-import org.scalatest.{Matchers, FunSuite}
 
 /**
  * Created by pranavbhole on 31/05/17.

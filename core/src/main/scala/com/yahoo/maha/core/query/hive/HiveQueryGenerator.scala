@@ -108,7 +108,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
     def generateOuterColumns() : String = {
       queryContext.requestModel.requestCols foreach {
         columnInfo =>
-          if (!columnInfo.isInstanceOf[ConstantColumnInfo] && queryBuilderContext.aliasColumnMap.contains(columnInfo.alias)) {
+          /*if (!columnInfo.isInstanceOf[ConstantColumnInfo] && queryBuilderContext.aliasColumnMap.contains(columnInfo.alias)) {
             //aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.aliasColumnMap(columnInfo.alias))
           } else if (queryContext.factBestCandidate.duplicateAliasMapping.contains(columnInfo.alias)) {
             val sourceAliases = queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)
@@ -116,7 +116,8 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
             require(sourceAlias.isDefined
               , s"Failed to find source column for duplicate alias mapping : ${queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)}")
             //aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.aliasColumnMap(sourceAlias.get))
-          }
+          }*/
+          QueryGeneratorHelper.populateAliasColMapOfRequestCols(columnInfo, queryBuilderContext, queryContext)
           queryBuilder.addOuterColumn(renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, factCandidate))
       }
       queryBuilder.getOuterColumns
@@ -143,7 +144,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
 
       columnInfo match {
         case FactColumnInfo(alias) =>
-          if (queryBuilderContext.containsFactColNameForAlias(alias)) {
+          /*if (queryBuilderContext.containsFactColNameForAlias(alias)) {
             val col = queryBuilderContext.getFactColByAlias(alias)
             val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)
             val finalAliasOrExpression = {
@@ -169,7 +170,8 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
             renderedDuplicateAlias.get
           } else {
             throw new IllegalArgumentException(s"Could not find inner alias for outer column : $alias")
-          }
+          }*/
+          QueryGeneratorHelper.handleFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.name)
         case DimColumnInfo(alias) =>
           val col = queryBuilderContext.getDimensionColByAlias(alias)
           val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)

@@ -114,6 +114,12 @@ class JdbcConnectionTest extends FunSuite with Matchers with BeforeAndAfterAll {
     assert(mappedSingle.isSuccess, "Mapped args failed to add LIMIT 1 condition")
   }
 
+  test("Verify SqlAndArgs can execute stripMargin") {
+    val queryableArgs : SqlAndArgs = SqlAndArgs("SELECT * FROM student_grade_sheet ",
+      Seq()).stripMargin
+    assert(queryableArgs.sql == "SELECT * FROM student_grade_sheet ")
+  }
+
   test("Get RowData on a query") {
     val queryableArgs : SqlAndArgs = SqlAndArgs("SELECT * FROM dummy",
       Seq())

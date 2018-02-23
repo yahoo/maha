@@ -31,6 +31,19 @@ class FilterTest extends FunSuite with Matchers {
   implicit val columnContext: ColumnContext = new ColumnContext
   val col = DimCol("field1", StrType())
   val dateCol = DimCol("stats_date", DateType())
+  val intDateCol = DimCol("date_sid", IntType(), annotations = Set(DayColumn("YYYYMMDD")))
+  val strDateCol = DimCol("date_sid2", StrType(), annotations = Set(DayColumn("YYYYMMDD")))
+  val insensitiveCol = DimCol("insensitive", StrType(), annotations = Set(CaseInsensitive))
+  val escapedCol = DimCol("%sfield__1", StrType())
+  val escapedIntCol = DimCol("%sfield__2", IntType())
+
+  object EqualityObj {
+    def compare(a : Int, b : String) = EqualityObj.baseEq.compare(a, b)
+    val baseEq : BaseEquality[Int] = BaseEquality.from[Int] {
+      (a,b) =>
+        a.compare(b)
+    }
+  }
 
   test("BetweenFilter with a defined grain should modify the output result to include it.") {
     val filter = BetweenFilter("stats_date", "2018-01-01", "2018-01-07")
@@ -39,14 +52,32 @@ class FilterTest extends FunSuite with Matchers {
     val hourlyResult = renderWithGrain(SqlBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, dateCol, HourlyGrain).filter
     hourlyResult shouldBe "stats_date >= to_date('2018-01-01', 'HH24') AND stats_date <= to_date('2018-01-07', 'HH24')"
 
+    val intBetweenfilter = BetweenFilter("date_sid", "2018-01-01", "2018-01-02")
+    val intHourlyResult = renderWithGrain(SqlBetweenFilterRenderer, intBetweenfilter, oracleLiteralMapper, OracleEngine, intDateCol, HourlyGrain).filter
+    intHourlyResult shouldBe "date_sid >= to_date('2018-01-01', 'HH24') AND date_sid <= to_date('2018-01-02', 'HH24')"
+
+    val strBetweenfilter = BetweenFilter("date_sid2", "2018-01-01", "2018-01-02")
+    val strHourlyResult = renderWithGrain(SqlBetweenFilterRenderer, strBetweenfilter, oracleLiteralMapper, OracleEngine, strDateCol, HourlyGrain).filter
+    strHourlyResult shouldBe "date_sid2 >= to_date('2018-01-01', 'HH24') AND date_sid2 <= to_date('2018-01-02', 'HH24')"
+  }
+
+  test("Filter Types in Druid should return valid MaxDate") {
+    val filter = BetweenFilter("stats_date", "2018-01-01", "2018-01-07")
+    val eqFilter = EqualityFilter("stats_date", "2018-01-01")
+    val inFilter = InFilter("stats_date", List("2018-01-01", "2018-01-07"))
     val maxDate = FilterDruid.getMaxDate(filter, DailyGrain)
     assert(maxDate.getClass == classOf[DateTime])
-
+    val maxIntDate = FilterDruid.getMaxDate(inFilter, DailyGrain)
+    assert(maxIntDate.getClass == classOf[DateTime])
+    val maxEqDate = FilterDruid.getMaxDate(eqFilter, DailyGrain)
+    assert(maxEqDate.getClass == classOf[DateTime])
   }
 
   test("InFilter should render correct string for Oracle") {
     val filter = InFilter("field1", List("abc", "def", "ghi"))
     render(SqlInFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col) shouldBe DefaultResult("field1 IN ('abc','def','ghi')")
+    val insensitiveFilter = InFilter("insensitive", List("abc", "def", "ghi"))
+    render(SqlInFilterRenderer, filter, oracleLiteralMapper, OracleEngine, insensitiveCol) shouldBe DefaultResult("lower(insensitive) IN (lower('abc'),lower('def'),lower('ghi'))")
   }
 
   test("NotInFilter should render correct string for Oracle") {
@@ -87,6 +118,8 @@ class FilterTest extends FunSuite with Matchers {
   test("InFilter should render correct string for Hive") {
     val filter = InFilter("field1", List("abc", "def", "ghi"))
     render(SqlInFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col) shouldBe DefaultResult("field1 IN ('abc','def','ghi')")
+    val insensitiveFilter = InFilter("insensitive", List("abc", "def", "ghi"))
+    render(SqlInFilterRenderer, filter, oracleLiteralMapper, HiveEngine, insensitiveCol) shouldBe DefaultResult("lower(insensitive) IN (lower('abc'),lower('def'),lower('ghi'))")
   }
 
   test("NotInFilter should render correct string for Hive") {
@@ -140,6 +173,7 @@ class FilterTest extends FunSuite with Matchers {
       "field3 =  \'ghi\'"
     ))
     orFilter.toString shouldBe "(field1 IN ('abc', 'def', 'ghi')) OR (field2 BETWEEN 'abc' AND 'def') OR (field3 =  'ghi')"
+    orFilter.isEmpty shouldBe false
   }
 
   test("BetweenFilter should fail for Druid engine") {
@@ -185,6 +219,18 @@ class FilterTest extends FunSuite with Matchers {
       render(SqlLikeFilterRenderer, filter, druidLiteralMapper, DruidEngine, col)
     }
     thrown.getMessage should startWith ("Unsupported engine for LikeFilterRenderer Druid")
+  }
+
+  test("SqlLikeFilterRenderer edit strings") {
+    val filter = LikeFilter("%sfield__1", "ad%s")
+    val intFilter = LikeFilter("%sfield__2", "ads")
+    val normalFilter = LikeFilter("field1", "ads")
+    val rendered = render(SqlLikeFilterRenderer, filter, druidLiteralMapper, OracleEngine, escapedCol)
+    val renderedInt = render(SqlLikeFilterRenderer, intFilter, druidLiteralMapper, OracleEngine, escapedIntCol)
+    val renderedNonEscaped = render(SqlLikeFilterRenderer, normalFilter, druidLiteralMapper, OracleEngine, col)
+    assert(rendered.isInstanceOf[DefaultResult])
+    assert(renderedInt.isInstanceOf[DefaultResult])
+    assert(renderedNonEscaped.isInstanceOf[DefaultResult])
   }
 
   test("NotEqualToFilter should fail for Druid engine") {
@@ -252,6 +298,7 @@ class FilterTest extends FunSuite with Matchers {
     val filter3 = InFilter("field1", List("a","b","c"), isOverridable = false)
     val filter4 = InFilter("field1", List("a","b","c"), isOverridable = true)
     val filter5 = InFilter("field1", List("a","b","c","d"), isOverridable = true)
+    val filter6 = filter5.renameField("new_field_name")
 
     assert(filter1 === filter4)
     assert(filter2 === filter3)
@@ -267,7 +314,7 @@ class FilterTest extends FunSuite with Matchers {
 
     assert(ts.contains(filter1) === true)
     assert(ts.contains(filter2) === true)
-
+    assert(filter6.field === "new_field_name")
   }
 
   test("Filters with different operations are different using the baseFilterOrdering") {
@@ -281,6 +328,7 @@ class FilterTest extends FunSuite with Matchers {
     val filter8 = NotEqualToFilter("field1", "a")
     val filter9 = PushDownFilter(IsNotNullFilter("field1"))
     val filter10 = OuterFilter(List(IsNotNullFilter("field1")))
+    val filter11 = filter2.renameField("new_field_name")
 
     val s: Set[Filter] = Set(filter1, filter2, filter3, filter4, filter5, filter6, filter7, filter8, filter9, filter10)
     assert(s.size === 10)
@@ -288,5 +336,42 @@ class FilterTest extends FunSuite with Matchers {
     var ts: TreeSet[Filter] = TreeSet.empty(Filter.baseFilterOrdering)
     ts ++= s
     assert(ts.size === 10)
+    assert(filter11.field === "new_field_name")
+  }
+
+  test("Attempt to compare incomparable types") {
+    assert(EqualityObj.compare(1, "one") == -10, "Incomparable objects should have a sensible returnable value.")
+  }
+
+  test("Instantiate a ForcedFilter") {
+    val force : ForcedFilter = new ForcedFilter {
+      override def operator: FilterOperation = InFilterOperation
+
+      override def field: String = "none"
+
+      override def asValues: String = "None"
+    }
+    assert(force.isForceFilter == false)
+    assert(force.isOverridable == false)
+  }
+
+  test("failing forced filter") {
+    val thrown = intercept[UnsupportedOperationException] {
+      FilterSql.renderFilterWithAlias(null, null, null, null)
+    }
+    assert(thrown.getMessage.contains("Unhandled filter operation"))
+  }
+
+  test("Druid Filter Dim should be valid") {
+    val thrown = intercept[UnsupportedOperationException] {
+      FilterDruid.renderFilterDim(IsNotNullFilter("field1"), Map("field1"->"field1"), Map("field1"->col), Some(DailyGrain))
+    }
+    assert(thrown.getMessage.contains("Unhandled filter operation"))
+
+    val pdThrown = intercept[UnsupportedOperationException] {
+      val pdFilter = PushDownFilter(BetweenFilter("field1", "1", "2"))
+      FilterDruid.renderFilterDim(pdFilter, Map("field1" -> "field1"), Map("field1" -> col), Option(DailyGrain))
+    }
+    assert(pdThrown.getMessage.contains("Between filter not supported on Druid dimension fields :"))
   }
 }
