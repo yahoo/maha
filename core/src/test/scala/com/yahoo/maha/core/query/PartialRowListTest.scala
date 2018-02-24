@@ -157,6 +157,22 @@ class PartialRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTe
 
     rowList.addRow(row1)
 
+    //fail to add row with null index alias value
+    {
+      val badrow = rowList.newRow
+
+      badrow.addValue("Campaign ID", null)
+      badrow.addValue("Day", "2016-10-11")
+      badrow.addValue("Campaign Name", null)
+      badrow.addValue("Campaign Status", null)
+      badrow.addValue("Impressions", 100)
+      badrow.addValue("CTR", java.lang.Double.valueOf(1.11D))
+      assert(badrow.aliasMap.size === 6)
+
+      rowList.addRow(badrow)
+    }
+    assert(rowList.size === 2)
+
     val lookupExisting =  rowList.getRowByIndex(java.lang.Integer.valueOf(1))
     assert(lookupExisting.size == 2)
     assert(lookupExisting.contains(row))
@@ -168,12 +184,24 @@ class PartialRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTe
     row2.addValue("Campaign Status","cname")
 
     rowList.updateRow(row2)
+    //fail to update row with null index alias value
+
+    {
+      val badrow = rowList.newRow
+
+      row2.addValue("Campaign ID", null)
+      row2.addValue("Campaign Name","cname")
+      row2.addValue("Campaign Status","cname")
+      rowList.updateRow(badrow)
+    }
+    assert(rowList.size === 2)
 
     rowList.foreach {
       row=>
         assert(row.getValue("Campaign ID") == 1)
         assert(row.getValue("Campaign Name") === "cname")
         assert(row.getValue("Campaign Status") === "cname")
+        assert(row.getValue("Impressions") === 100)
     }
   }
 }
