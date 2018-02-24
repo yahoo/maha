@@ -28,6 +28,13 @@
         </dependency>
         <dependency>
             <groupId>com.yahoo.maha</groupId>
+            <artifactId>maha-core</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.yahoo.maha</groupId>
             <artifactId>maha-oracle-executor</artifactId>
             <version>${project.version}</version>
         </dependency>
