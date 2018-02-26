@@ -750,19 +750,18 @@ OuterGroupBy operation has to be applied only in the following cases
           case (irl, subqueryqueryAttributes) =>
             val field = irl.indexAlias
             val values = irl.keys.toList.map(_.toString)
-            val injectedAttributes = if (values.nonEmpty) {
-              val queryAttributesBuilder = subqueryqueryAttributes.toBuilder
-              val injectedInFilter = InFilter(field, values)
-              queryAttributesBuilder.addAttribute(QueryAttributes.injectedDimINFilter, InjectedDimFilterAttribute(injectedInFilter))
-              if (values.size < noRowCountRequestModel.maxRows) {
-                val injectedNotInFilter = NotInFilter(field, values)
-                queryAttributesBuilder.addAttribute(QueryAttributes.injectedDimNOTINFilter, InjectedDimFilterAttribute(injectedNotInFilter)).build
+            val valuesSize = values.size
+            if(values.nonEmpty && (valuesSize >= noRowCountRequestModel.maxRows || noRowCountRequestModel.startIndex <= 0)) {
+              val injectedAttributes = {
+                val queryAttributesBuilder = subqueryqueryAttributes.toBuilder
+                val injectedInFilter = InFilter(field, values)
+                queryAttributesBuilder.addAttribute(QueryAttributes.injectedDimINFilter, InjectedDimFilterAttribute(injectedInFilter))
+                if (valuesSize < noRowCountRequestModel.maxRows && noRowCountRequestModel.startIndex <= 0) {
+                  val injectedNotInFilter = NotInFilter(field, values)
+                  queryAttributesBuilder.addAttribute(QueryAttributes.injectedDimNOTINFilter, InjectedDimFilterAttribute(injectedNotInFilter)).build
+                }
+                queryAttributesBuilder.build
               }
-              queryAttributesBuilder.build
-            } else {
-              queryAttributes
-            }
-            if (values.nonEmpty) {
               getMultiEngineDimQuery(bestDimCandidates, noRowCountRequestModel, indexAlias, injectedAttributes)
             } else if(requestModel.isFactDriven) {
               NoopQuery
@@ -772,7 +771,6 @@ OuterGroupBy operation has to be applied only in the following cases
               val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(requestModel, Set(factBestCandidateOption.get.fact.engine))
               getDimFactQuery(newBestDimCandidates, newFactBestCandidateOption.get, requestModel, queryAttributes)
             }
-
         }
 
         val fallbackQueryAndRowList: Option[(Query, RowList)] = {
