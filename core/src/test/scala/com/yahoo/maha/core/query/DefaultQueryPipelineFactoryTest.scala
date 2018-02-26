@@ -120,6 +120,33 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
                           "paginationStartIndex":0,
                           "rowsPerPage":100
                           }"""
+  val requestWithMetricSortPage2 = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Ad Group Status"},
+                              {"field": "Ad Group ID"},
+                              {"field": "Source"},
+                              {"field": "Pricing Type"},
+                              {"field": "Destination URL"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"},
+                              {"field": "Advertiser Currency"},
+                              {"field": "Campaign Device ID"},
+                              {"field": "Campaign ID"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "ASC"}
+                          ],
+                          "includeRowCount" : true,
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":10,
+                          "rowsPerPage":10
+                          }"""
   val factRequestWithMetricSortNoDimensionIds = s"""{
                           "cube": "k_stats",
                           "selectFields": [
@@ -682,6 +709,67 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     assert(subQuery.aliasColumnMap.contains("Impressions"))
     assert(subQuery.aliasColumnMap.contains("Clicks"))
     assert(!subQuery.queryContext.requestModel.includeRowCount)
+
+  }
+  test("successfully generate sync multi engine query for druid + oracle with rerun on oracle when partial page data from druid on page 2") {
+    val request: ReportingRequest = getReportingRequestSync(requestWithMetricSortPage2)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[MultiEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[MultiEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
+    val result = pipeline.withDruidCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Advertiser ID", 1)
+        row.addValue("Ad Group ID", 10)
+        row.addValue("Impressions", 100)
+        row.addValue("Clicks", 1)
+        rl.addRow(row)
+    }.withOracleCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Advertiser ID", 1)
+        row.addValue("Ad Group Status", "ON")
+        row.addValue("Ad Group ID", 10)
+        row.addValue("Source", 2)
+        row.addValue("Pricing Type", "CPC")
+        row.addValue("Destination URL", "url-10")
+        row.addValue("Impressions", 100)
+        row.addValue("Clicks", 1)
+        rl.addRow(row)
+        val row2 = rl.newRow
+        row2.addValue("Advertiser ID", 1)
+        row2.addValue("Ad Group Status", "ON")
+        row2.addValue("Ad Group ID", 11)
+        row2.addValue("Source", 2)
+        row2.addValue("Pricing Type", "CPC")
+        row2.addValue("Destination URL", "url-11")
+        rl.addRow(row2)
+    }.run()
+
+    assert(result.isSuccess, result)
+    result.toOption.get._1.foreach {
+      row =>
+        if(row.getValue("Ad Group ID") == 10) {
+          assert(row.getValue("Impressions") === 100)
+          assert(row.getValue("Clicks") === 1)
+          assert(row.getValue("Destination URL") === "url-10")
+        } else {
+          assert(row.getValue("Destination URL") === "url-11")
+        }
+    }
+
+    val subQuery = pipeline.queryChain.subsequentQueryList.head.asInstanceOf[OracleQuery]
+    assert(subQuery.aliasColumnMap.contains("Impressions"))
+    assert(subQuery.aliasColumnMap.contains("Clicks"))
+    assert(subQuery.queryContext.requestModel.includeRowCount)
+    assert(subQuery.queryContext.isInstanceOf[CombinedQueryContext], s"incorrect query context : ${subQuery.queryContext.getClass.getSimpleName}")
 
   }
   test("successfully generate sync multi engine query for druid + oracle with rerun on oracle when no data from oracle") {
