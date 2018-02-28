@@ -155,7 +155,7 @@ class QueryPipelineWithFallbackTest extends FunSuite with Matchers with BeforeAn
     val queryChain = queryPipelineTry.toOption.get.queryChain
     val factBest = queryPipelineTry.toOption.get.factBestCandidate
     val dimBest = queryPipelineTry.toOption.get.bestDimCandidates
-    val newPipelineBuilder = new QueryPipelineBuilder(queryChain, factBest, dimBest).withFallbackQueryChain(queryPipelineTry.toOption.get.queryChain)
+    val newPipelineBuilder = new QueryPipelineBuilder(requestModel.get, queryChain, factBest, dimBest).withFallbackQueryChain(queryPipelineTry.toOption.get.queryChain)
     val newQuery = newPipelineBuilder.build()
 
     val result = newQuery.execute(queryExecContext)

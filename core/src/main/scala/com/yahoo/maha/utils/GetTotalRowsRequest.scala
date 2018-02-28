@@ -12,32 +12,34 @@ import scala.util.Try
 
 object GetTotalRowsRequest extends Logging {
 
-  def getTotalRowsRequest(request: ReportingRequest, sourcePipeline: QueryPipeline) : Try[ReportingRequest] = {
+  def getTotalRowsRequest(sourcePipeline: QueryPipeline) : Try[ReportingRequest] = {
     //no filters except fk filters
     Try {
       require(
         sourcePipeline.bestDimCandidates.nonEmpty
-        , s"Invalid total rows request, no best dim candidates! : $request")
+        , s"Invalid total rows request, no best dim candidates! : ${sourcePipeline.requestModel}")
 
       //force dim driven
       //remove all fields except primary key
       //remove all sorts
       val primaryKeyAliasFields = sourcePipeline.bestDimCandidates.map(dim => Field(dim.publicDim.primaryKeyByAlias, None, None)).toIndexedSeq
-      request.copy(
+      sourcePipeline.requestModel.reportingRequest.copy(
         selectFields = primaryKeyAliasFields
         , sortBy = IndexedSeq.empty
         , includeRowCount = true
         , forceDimensionDriven = true
         , forceFactDriven = false
         , paginationStartIndex = 0
-        , rowsPerPage = request.rowsPerPage
+        , rowsPerPage = sourcePipeline.requestModel.reportingRequest.rowsPerPage
       )
     }
   }
 
-  def getTotalRows(request: ReportingRequest, sourcePipeline: QueryPipeline, registry: Registry, queryContext: QueryExecutorContext)(implicit queryGeneratorRegistry: QueryGeneratorRegistry) : Try[Int] = {
+  def getTotalRows(sourcePipeline: QueryPipeline
+                   , registry: Registry
+                   , queryContext: QueryExecutorContext)(implicit queryGeneratorRegistry: QueryGeneratorRegistry) : Try[Int] = {
     Try {
-      val totalRowsRequest: Try[ReportingRequest] = getTotalRowsRequest(request, sourcePipeline)
+      val totalRowsRequest: Try[ReportingRequest] = getTotalRowsRequest(sourcePipeline)
       require(totalRowsRequest.isSuccess, "Failed to get valid totalRowsRequest\n" + totalRowsRequest)
 
       val modelTry: Try[RequestModel] = RequestModel.from(totalRowsRequest.get, registry)
