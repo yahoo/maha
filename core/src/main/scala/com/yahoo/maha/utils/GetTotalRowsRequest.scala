@@ -37,7 +37,8 @@ object GetTotalRowsRequest extends Logging {
 
   def getTotalRows(sourcePipeline: QueryPipeline
                    , registry: Registry
-                   , queryContext: QueryExecutorContext)(implicit queryGeneratorRegistry: QueryGeneratorRegistry) : Try[Int] = {
+                   , queryContext: QueryExecutorContext
+                  )(implicit queryGeneratorRegistry: QueryGeneratorRegistry) : Try[Int] = {
     Try {
       val totalRowsRequest: Try[ReportingRequest] = getTotalRowsRequest(sourcePipeline)
       require(totalRowsRequest.isSuccess, "Failed to get valid totalRowsRequest\n" + totalRowsRequest)
