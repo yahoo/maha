@@ -39,6 +39,7 @@ object GetTotalRowsRequest extends Logging {
     Try {
       val totalRowsRequest: Try[ReportingRequest] = getTotalRowsRequest(request, sourcePipeline)
       require(totalRowsRequest.isSuccess, "Failed to get valid totalRowsRequest\n" + totalRowsRequest)
+
       val modelTry: Try[RequestModel] = RequestModel.from(totalRowsRequest.get, registry)
       require(modelTry.isSuccess, "Failed to get valid request model\n" + modelTry)
       val model = modelTry.get
@@ -46,6 +47,7 @@ object GetTotalRowsRequest extends Logging {
       val queryPipelineFactory = new DefaultQueryPipelineFactory()
       val requestPipelineTry = queryPipelineFactory.from(model, QueryAttributes.empty)
       require(requestPipelineTry.isSuccess, "Failed to get the query pipeline\n" + requestPipelineTry)
+      
       val rowListAttempt = requestPipelineTry.toOption.get.execute(queryContext)
       require(rowListAttempt.isSuccess, "Failed to get valid executor and row list\n" + rowListAttempt)
 
