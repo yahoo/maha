@@ -91,7 +91,7 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryContext: QueryExecutorContext = getQueryExecutorContext
 
-    val totalRowRequest = GetTotalRowsRequest.getTotalRows(requestModel.get, pipeline, registry, queryContext)
+    val totalRowRequest = GetTotalRowsRequest.getTotalRows(requestModel.get.reportingRequest, pipeline, registry, queryContext)
     assert(totalRowRequest.isSuccess, "Total Row Request Failed!")
   }
 
@@ -107,7 +107,7 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryContext: QueryExecutorContext = getQueryExecutorContext
 
-    val totalRowRequest = GetTotalRowsRequest.getTotalRows(requestModel.get, pipeline, registry, queryContext)
+    val totalRowRequest = GetTotalRowsRequest.getTotalRows(requestModel.get.reportingRequest, pipeline, registry, queryContext)
     assert(totalRowRequest.isSuccess, "Total Row Request Failed!")
   }
 
@@ -123,7 +123,7 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryContext: QueryExecutorContext = getQueryExecutorContext
 
-    val totalRowRequest = GetTotalRowsRequest.getTotalRows(requestModel.get, pipeline, registry, queryContext)
+    val totalRowRequest = GetTotalRowsRequest.getTotalRows(requestModel.get.reportingRequest, pipeline, registry, queryContext)
     assert(totalRowRequest.isSuccess, "Requests outside of Oracle should trace back into Oracle, if applicable")
   }
 
@@ -139,7 +139,7 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryContext: QueryExecutorContext = getQueryExecutorContext
 
-    val totalRowRequest = GetTotalRowsRequest.getTotalRows(requestModel.get, pipeline, registry, queryContext)
+    val totalRowRequest = GetTotalRowsRequest.getTotalRows(requestModel.get.reportingRequest, pipeline, registry, queryContext)
     assert(totalRowRequest.isSuccess, "Requests outside of Oracle should trace back into Oracle, if applicable")
   }
 }

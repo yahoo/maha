@@ -12,17 +12,17 @@ import scala.util.Try
 
 object GetTotalRowsRequest extends Logging {
 
-  def getTotalRowsRequest(request: ReportingRequest, pipeline: QueryPipeline) : Try[ReportingRequest] = {
+  def getTotalRowsRequest(request: ReportingRequest, sourcePipeline: QueryPipeline) : Try[ReportingRequest] = {
     //no filters except fk filters
     Try {
       require(
-        pipeline.bestDimCandidates.nonEmpty
+        sourcePipeline.bestDimCandidates.nonEmpty
         , s"Invalid total rows request, no best dim candidates! : $request")
 
       //force dim driven
       //remove all fields except primary key
       //remove all sorts
-      val primaryKeyAliasFields = pipeline.bestDimCandidates.map(dim => Field(dim.publicDim.primaryKeyByAlias, None, None)).toIndexedSeq
+      val primaryKeyAliasFields = sourcePipeline.bestDimCandidates.map(dim => Field(dim.publicDim.primaryKeyByAlias, None, None)).toIndexedSeq
       request.copy(
         selectFields = primaryKeyAliasFields
         , sortBy = IndexedSeq.empty
@@ -35,10 +35,11 @@ object GetTotalRowsRequest extends Logging {
     }
   }
 
-  def getTotalRows(request: RequestModel, sourcePipeline: QueryPipeline, registry: Registry, queryContext: QueryExecutorContext)(implicit queryGeneratorRegistry: QueryGeneratorRegistry) : Try[Int] = {
+  def getTotalRows(request: ReportingRequest, sourcePipeline: QueryPipeline, registry: Registry, queryContext: QueryExecutorContext)(implicit queryGeneratorRegistry: QueryGeneratorRegistry) : Try[Int] = {
     Try {
-      val totalRowsRequest: Try[ReportingRequest] = getTotalRowsRequest(request.reportingRequest, sourcePipeline)
+      val totalRowsRequest: Try[ReportingRequest] = getTotalRowsRequest(request, sourcePipeline)
       require(totalRowsRequest.isSuccess, "Failed to get valid totalRowsRequest\n" + totalRowsRequest)
+
       val modelTry: Try[RequestModel] = RequestModel.from(totalRowsRequest.get, registry)
       require(modelTry.isSuccess, "Failed to get valid request model\n" + modelTry)
       val model = modelTry.get
@@ -46,6 +47,7 @@ object GetTotalRowsRequest extends Logging {
       val queryPipelineFactory = new DefaultQueryPipelineFactory()
       val requestPipelineTry = queryPipelineFactory.from(model, QueryAttributes.empty)
       require(requestPipelineTry.isSuccess, "Failed to get the query pipeline\n" + requestPipelineTry)
+
       val rowListAttempt = requestPipelineTry.toOption.get.execute(queryContext)
       require(rowListAttempt.isSuccess, "Failed to get valid executor and row list\n" + rowListAttempt)
 
