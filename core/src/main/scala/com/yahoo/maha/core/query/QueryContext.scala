@@ -5,6 +5,7 @@ package com.yahoo.maha.core.query
 import com.yahoo.maha.core.dimension.{Dimension, PublicDimension}
 import com.yahoo.maha.core.fact.FactBestCandidate
 import com.yahoo.maha.core.{Column, Filter, RequestModel}
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.SortedSet
 
@@ -24,8 +25,28 @@ sealed trait DimensionQueryContext extends QueryContext {
 }
 
 trait FactualQueryContext extends QueryContext {
+  protected def logger: Logger = FactualQueryContext.logger
   def factBestCandidate: FactBestCandidate
   def primaryTableName: String = factBestCandidate.fact.name
+
+  lazy val factConditionalHints: Set[String] = {
+    val queryConditions = factBestCandidate.fact.queryConditions.collect {
+      case cond if cond.eval(this) => cond
+    }
+    val hints = factBestCandidate.fact.factConditionalHints.collect {
+      case hint if hint.eval(queryConditions) => hint.hint
+    }
+    if(factBestCandidate.requestModel.isDebugEnabled) {
+      logger.info(s"queryConditions = $queryConditions")
+      logger.info(s"factConditionalHints = $hints")
+    }
+
+    hints
+  }
+}
+
+object FactualQueryContext {
+  val logger: Logger = LoggerFactory.getLogger(classOf[FactualQueryContext])
 }
 
 trait QueryType

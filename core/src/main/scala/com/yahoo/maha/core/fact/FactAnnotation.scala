@@ -3,7 +3,7 @@
 package com.yahoo.maha.core.fact
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.query.{FactualQueryContext, Query}
+import com.yahoo.maha.core.query.{FactualQueryContext, Query, QueryContext}
 
 /**
  * Created by hiral on 10/7/15.
@@ -21,7 +21,11 @@ case class HivePartitioningScheme(schemeName:String) extends PartitioningScheme 
 
 sealed trait FactStaticHint extends FactAnnotation
 sealed trait FactDimDrivenHint extends FactAnnotation
-sealed trait FactConditionalHint extends FactAnnotation
+sealed trait FactConditionalHint extends FactAnnotation {
+  def conditions: Set[QueryCondition]
+  def eval(queryConditions: Set[QueryCondition]): Boolean
+  def hint: String
+}
 
 case class OracleFactStaticHint(hint: String) extends FactStaticHint with FactAnnotationInstance with WithOracleEngine
 case class OracleFactDimDrivenHint(hint: String) extends FactDimDrivenHint with FactAnnotationInstance with WithOracleEngine
@@ -35,12 +39,12 @@ case object DruidGroupByStrategyV1 extends FactAnnotationInstance with WithDruid
 case object DruidGroupByStrategyV2 extends FactAnnotationInstance with WithDruidEngine
 
 sealed trait QueryCondition {
-  def eval(query: Query): Boolean
+  def eval(query: QueryContext): Boolean
 }
 sealed trait FactualQueryCondition extends QueryCondition {
-  final def eval(query: Query) : Boolean = {
-    if(query.queryContext.isInstanceOf[FactualQueryContext]) {
-      evalContext(query.queryContext.asInstanceOf[FactualQueryContext])
+  final def eval(queryContext: QueryContext) : Boolean = {
+    if(queryContext.isInstanceOf[FactualQueryContext]) {
+      evalContext(queryContext.asInstanceOf[FactualQueryContext])
     } else false
   }
 
@@ -89,4 +93,7 @@ object FactCondition {
     FactCondition(conds)
   }
 }
-case class OracleFactConditionalHint(cond: FactCondition, hint: String) extends FactAnnotation with WithOracleEngine
+case class OracleFactConditionalHint(cond: FactCondition, hint: String) extends FactConditionalHint with WithOracleEngine {
+  override def conditions: Set[QueryCondition] = cond.conditions
+  override def eval(queryConditions: Set[QueryCondition]): Boolean = cond.eval(queryConditions)
+}
