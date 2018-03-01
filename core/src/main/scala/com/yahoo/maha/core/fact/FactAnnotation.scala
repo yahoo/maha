@@ -74,6 +74,11 @@ case class IsDimDriven(value: Boolean) extends FactualQueryCondition {
     queryContext.requestModel.isDimDriven == value
   }
 }
+case class MinRowsEstimate(value: Long) extends FactualQueryCondition {
+  protected def evalContext(queryContext: FactualQueryContext): Boolean = {
+    queryContext.factBestCandidate.factRows >= value
+  }
+}
 case class FactCondition(conditions: Set[QueryCondition]) {
   def eval(queryConditions: Set[QueryCondition]): Boolean = {
     (conditions.size <= queryConditions.size) && conditions.forall(queryConditions)
@@ -81,10 +86,12 @@ case class FactCondition(conditions: Set[QueryCondition]) {
 }
 object FactCondition {
   def apply(isIndexOptimized: Option[Boolean]
-            , isGrainOptimized: Option[Boolean]
-            , forceDimDriven: Option[Boolean]
-            , isDimDriven: Option[Boolean]): FactCondition = {
-    val list=List(isIndexOptimized, isGrainOptimized, forceDimDriven, isDimDriven)
+            , isGrainOptimized: Option[Boolean] = None
+            , forceDimDriven: Option[Boolean] = None
+            , isDimDriven: Option[Boolean] = None
+            , minRowsEstimate: Option[Long] = None
+           ): FactCondition = {
+    val list=List(isIndexOptimized, isGrainOptimized, forceDimDriven, isDimDriven, minRowsEstimate)
     require(list.exists(_.isDefined), "At least one condition must be defined!")
 
     var conds: Set[QueryCondition] = Set.empty
@@ -93,6 +100,7 @@ object FactCondition {
     isGrainOptimized.foreach( v => conds+=IsGrainOptimized(v))
     forceDimDriven.foreach( v => conds+=ForceDimDriven(v))
     isDimDriven.foreach( v => conds+=IsDimDriven(v))
+    minRowsEstimate.foreach( v => conds+=MinRowsEstimate(v))
 
     FactCondition(conds)
   }

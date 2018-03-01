@@ -766,7 +766,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                             {"field": "Column2 Status"}
                           ],
                           "filterExpressions": [
-                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Day", "operator": "between", "from": "$fromDateMinusOne", "to": "$toDate"},
                             {"field": "Advertiser ID", "operator": "=", "value": "12345"}
                           ],
                           "sortBy": [
@@ -785,7 +785,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Non-hash partitioned dimension with singleton snapshot failed"))
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    assert(result.contains("/*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */"), "Query should contain dimension hint")
+    //since we are using fromDateMinus10, the fact rows should be high enough to render the min rows estimate based hint
+    assert(result.contains("/*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 CONDITIONAL_HINT5 */"), "Query should contain dimension hint")
   }
 
   test("dim fact async fact driven query with hint annotation should have static hint comment in the final sql string") {
