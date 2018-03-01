@@ -21,7 +21,7 @@ import scala.util.Try
 trait QueryPipeline {
   def queryChain: QueryChain
 
-  def requestModel: RequestModel
+  def requestModel : RequestModel
 
   def factBestCandidate: Option[FactBestCandidate]
 
@@ -93,8 +93,7 @@ object QueryPipelineWithFallback {
   private val logger = LoggerFactory.getLogger(classOf[QueryPipelineWithFallback])
 }
 
-case class QueryPipelineWithFallback(requestModel: RequestModel
-                                     , queryChain: QueryChain
+case class QueryPipelineWithFallback(queryChain: QueryChain
                                      , factBestCandidate: Option[FactBestCandidate]
                                      , bestDimCandidates: SortedSet[DimensionBundle]
                                      , rowListFn: Query => RowList
@@ -118,10 +117,11 @@ case class QueryPipelineWithFallback(requestModel: RequestModel
         fallbackQueryChain.execute(executorContext, fallbackRowListFn, queryAttributes, stats)
     }
   }
+
+  override def requestModel: RequestModel = queryChain.drivingQuery.queryContext.requestModel
 }
 
-case class DefaultQueryPipeline(requestModel: RequestModel
-                                , queryChain: QueryChain
+case class DefaultQueryPipeline(queryChain: QueryChain
                                 , factBestCandidate: Option[FactBestCandidate]
                                 , bestDimCandidates: SortedSet[DimensionBundle]
                                 , rowListFn: Query => RowList) extends QueryPipeline {
@@ -134,19 +134,17 @@ case class DefaultQueryPipeline(requestModel: RequestModel
     val stats = new EngineQueryStats
     Try(queryChain.execute(executorContext, rowListFn, queryAttributes, stats))
   }
+
+  override def requestModel: RequestModel = queryChain.drivingQuery.queryContext.requestModel
 }
 
-class QueryPipelineBuilder(requestModel: RequestModel
-                           , queryChain: QueryChain
+class QueryPipelineBuilder(queryChain: QueryChain
                            , factBestCandidate: Option[FactBestCandidate]
                            , bestDimCandidates: SortedSet[DimensionBundle]) {
 
   private[this] var rowListFn: Query => RowList = QueryPipeline.completeRowList
   private[this] var fallbackRowListFn: Option[Query => RowList] = None
   private[this] var fallbackQueryChain: Option[QueryChain] = None
-  private[this] var requestModelOption : Option[RequestModel] = Option(requestModel)
-
-  require(requestModelOption.isDefined, "Must define a requestModel before attempting to instantiate a pipeline!")
 
   def withRowListFunction(fn: Query => RowList): QueryPipelineBuilder = {
     require(fn != null, "Undefined function Query => RowList")
@@ -169,9 +167,9 @@ class QueryPipelineBuilder(requestModel: RequestModel
   def build(): QueryPipeline = {
     if (fallbackQueryChain.isDefined) {
       new QueryPipelineWithFallback(
-        requestModelOption.get, queryChain, factBestCandidate, bestDimCandidates, rowListFn, fallbackQueryChain.get, fallbackRowListFn.getOrElse(QueryPipeline.completeRowList))
+        queryChain, factBestCandidate, bestDimCandidates, rowListFn, fallbackQueryChain.get, fallbackRowListFn.getOrElse(QueryPipeline.completeRowList))
     } else {
-      new DefaultQueryPipeline(requestModelOption.get, queryChain, factBestCandidate, bestDimCandidates, rowListFn)
+      new DefaultQueryPipeline(queryChain, factBestCandidate, bestDimCandidates, rowListFn)
     }
   }
 }
@@ -739,8 +737,7 @@ OuterGroupBy operation has to be applied only in the following cases
             query
         }
         new QueryPipelineBuilder(
-          requestModel
-          , MultiEngineQuery(
+          MultiEngineQuery(
             dimQuery,
             Set(dimQuery.engine, factBestCandidateOption.get.fact.engine),
             IndexedSeq(
@@ -809,8 +806,7 @@ OuterGroupBy operation has to be applied only in the following cases
         }
 
         new QueryPipelineBuilder(
-          requestModel
-            , MultiEngineQuery(
+          MultiEngineQuery(
             factQuery,
             Set(bestDimCandidates.head.dim.engine, factQuery.engine),
             IndexedSeq(
@@ -829,16 +825,14 @@ OuterGroupBy operation has to be applied only in the following cases
       if (factBestCandidateOption.isDefined) {
         val query = getDimFactQuery(bestDimCandidates, factBestCandidateOption.get, requestModel, queryAttributes)
         new QueryPipelineBuilder(
-          requestModel
-          , SingleEngineQuery(query)
+          SingleEngineQuery(query)
           , factBestCandidateOption
           , bestDimCandidates
         )
       } else {
         val query = getDimOnlyQuery(bestDimCandidates, requestModel)
         new QueryPipelineBuilder(
-          requestModel
-          , SingleEngineQuery(query)
+          SingleEngineQuery(query)
           , factBestCandidateOption
           , bestDimCandidates
         )
@@ -862,8 +856,7 @@ OuterGroupBy operation has to be applied only in the following cases
       }
 
         new QueryPipelineBuilder(
-          requestModel
-          , MultiQuery(queryList, fallbackNonViewQueryAndRowList)
+          MultiQuery(queryList, fallbackNonViewQueryAndRowList)
           , factBestCandidateOption
           , bestDimCandidates
         ).withRowListFunction(QueryPipeline.unionViewPartialRowList(queryList))
@@ -934,8 +927,7 @@ OuterGroupBy operation has to be applied only in the following cases
                 }
               }
               new QueryPipelineBuilder(
-                requestModel
-                ,SingleEngineQuery(query, fallbackQueryOptionTry.getOrElse(None))
+                SingleEngineQuery(query, fallbackQueryOptionTry.getOrElse(None))
                 , factBestCandidateOption
                 , bestDimCandidates
               )
@@ -943,8 +935,7 @@ OuterGroupBy operation has to be applied only in the following cases
               if (requestModel.forceDimDriven) {
                 val query = getDimOnlyQuery(bestDimCandidates, requestModel)
                 new QueryPipelineBuilder(
-                  requestModel
-                  ,SingleEngineQuery(query)
+                  SingleEngineQuery(query)
                   , factBestCandidateOption
                   , bestDimCandidates
                 )
