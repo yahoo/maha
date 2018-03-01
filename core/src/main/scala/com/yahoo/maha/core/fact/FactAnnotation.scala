@@ -52,22 +52,22 @@ sealed trait FactualQueryCondition extends QueryCondition {
 }
 case class IsIndexOptimized(value: Boolean) extends FactualQueryCondition {
   protected def evalContext(queryContext: FactualQueryContext) : Boolean = {
-    queryContext.factBestCandidate.isIndexOptimized
+    queryContext.factBestCandidate.isIndexOptimized == value
   }
 }
 case class IsGrainOptimized(value: Boolean) extends FactualQueryCondition {
   protected def evalContext(queryContext: FactualQueryContext) : Boolean = {
-    queryContext.factBestCandidate.isGrainOptimized
+    queryContext.factBestCandidate.isGrainOptimized == value
   }
 }
 case class ForceDimDriven(value: Boolean) extends FactualQueryCondition {
   protected def evalContext(queryContext: FactualQueryContext) : Boolean = {
-    queryContext.requestModel.forceDimDriven
+    queryContext.requestModel.forceDimDriven == value
   }
 }
 case class IsDimDriven(value: Boolean) extends FactualQueryCondition {
   protected def evalContext(queryContext: FactualQueryContext) : Boolean = {
-    queryContext.requestModel.isDimDriven
+    queryContext.requestModel.isDimDriven == value
   }
 }
 case class FactCondition(conditions: Set[QueryCondition]) {

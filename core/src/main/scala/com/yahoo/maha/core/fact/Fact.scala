@@ -1317,7 +1317,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
           , rolledUpDims
           , factCols
           , Option(fromTable)
-          , fromTable.annotations
+          , fromTable.annotations ++ overrideAnnotations
           , ddlAnnotations
           , fromTable.costMultiplierMap
           , newForceFilters
