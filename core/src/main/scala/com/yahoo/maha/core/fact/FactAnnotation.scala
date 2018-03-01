@@ -27,6 +27,10 @@ sealed trait FactConditionalHint extends FactAnnotation {
   def hint: String
 }
 
+object FactConditionalHint {
+  implicit val ordering: Ordering[FactConditionalHint] = Ordering.by(ch => ch.hint)
+}
+
 case class OracleFactStaticHint(hint: String) extends FactStaticHint with FactAnnotationInstance with WithOracleEngine
 case class OracleFactDimDrivenHint(hint: String) extends FactDimDrivenHint with FactAnnotationInstance with WithOracleEngine
 

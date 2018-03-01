@@ -29,7 +29,7 @@ trait FactualQueryContext extends QueryContext {
   def factBestCandidate: FactBestCandidate
   def primaryTableName: String = factBestCandidate.fact.name
 
-  lazy val factConditionalHints: Set[String] = {
+  lazy val factConditionalHints: SortedSet[String] = {
     val queryConditions = factBestCandidate.fact.queryConditions.collect {
       case cond if cond.eval(this) => cond
     }

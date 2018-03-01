@@ -307,7 +307,7 @@ trait Fact extends BaseTable {
   def dimCols: Set[DimensionColumn]
   def factCols: Set[FactColumn]
   def annotations: Set[FactAnnotation]
-  def factConditionalHints: Set[FactConditionalHint]
+  def factConditionalHints: SortedSet[FactConditionalHint]
   def queryConditions: Set[QueryCondition]
   def ddlAnnotation: Option[DDLAnnotation]
   def from : Option[Fact]
@@ -331,10 +331,10 @@ trait Fact extends BaseTable {
 
 trait FactView extends Fact {
   def constantColNameToValueMap: Map[String, String]
-  val factConditionalHints: Set[FactConditionalHint] = annotations
+  val factConditionalHints: SortedSet[FactConditionalHint] = annotations
     .filter(_.isInstanceOf[FactConditionalHint])
-    .map(_.asInstanceOf[FactConditionalHint])
-  val queryConditions: Set[QueryCondition] = factConditionalHints.map(_.conditions).flatten
+    .map(_.asInstanceOf[FactConditionalHint]).to[SortedSet]
+  val queryConditions: Set[QueryCondition] = factConditionalHints.flatMap(_.conditions).toSet
 }
 
 object Fact {
@@ -503,10 +503,10 @@ case class FactTable private[fact](name: String
     dimCols.filter(_.isInstanceOf[PartitionColumn]).map(c=> c.asInstanceOf[PartitionColumn]).to[SortedSet]
   }
 
-  val factConditionalHints: Set[FactConditionalHint] = annotations
+  val factConditionalHints: SortedSet[FactConditionalHint] = annotations
     .filter(_.isInstanceOf[FactConditionalHint])
-    .map(_.asInstanceOf[FactConditionalHint])
-  val queryConditions: Set[QueryCondition] = factConditionalHints.map(_.conditions).flatten
+    .map(_.asInstanceOf[FactConditionalHint]).to[SortedSet]
+  val queryConditions: Set[QueryCondition] = factConditionalHints.flatMap(_.conditions).toSet
 
   private[this] def validate() : Unit = {
     schemaRequired()
