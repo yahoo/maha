@@ -453,8 +453,8 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    val json = """"dimension":"statsDate","outputName":"Week","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"yyyy-w"}}"""
-    val filterjson = """{"type":"selector","dimension":"statsDate","value":"2017-24","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"yyyy-w"}},{"type":"selector","dimension":"statsDate","value":"2017-26","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"yyyy-w"}}"""
+    val json = """"dimension":"statsDate","outputName":"Week","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"YYYY-w"}}"""
+    val filterjson = """{"type":"selector","dimension":"statsDate","value":"2017-24","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"YYYY-w"}},{"type":"selector","dimension":"statsDate","value":"2017-26","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"YYYY-w"}}"""
 
     assert(result.contains(json), result)
     assert(result.contains(filterjson), result)
