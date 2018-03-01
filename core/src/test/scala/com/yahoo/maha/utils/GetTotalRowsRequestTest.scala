@@ -13,10 +13,8 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
   def updateRowList(rowList: RowList) : Unit = {
     val row = rowList.newRow
     rowList.columnNames.foreach {
-      col => col match {
-        case "TOTALROWS" => row.addValue("TOTALROWS", 42)
-        case otherwise => row.addValue (otherwise, s"$otherwise-value")
-      }
+      case "TOTALROWS" => row.addValue("TOTALROWS", 42)
+      case otherwise => row.addValue(otherwise, s"$otherwise-value")
     }
     rowList.addRow(row)
   }
@@ -56,7 +54,7 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
     HiveQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
   }
 
-  val inputValidJSON =
+  val inputValidJSON : String =
     s"""{
        |                          "cube": "k_stats",
        |                          "selectFields": [
@@ -91,7 +89,7 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryContext: QueryExecutorContext = getQueryExecutorContext
 
-    val totalRowRequest = GetTotalRowsRequest.getTotalRows(requestModel.get.reportingRequest, pipeline, registry, queryContext)
+    val totalRowRequest = GetTotalRowsRequest.getTotalRows(pipeline, registry, queryContext)
     assert(totalRowRequest.isSuccess, "Total Row Request Failed!")
   }
 
@@ -107,7 +105,7 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryContext: QueryExecutorContext = getQueryExecutorContext
 
-    val totalRowRequest = GetTotalRowsRequest.getTotalRows(requestModel.get.reportingRequest, pipeline, registry, queryContext)
+    val totalRowRequest = GetTotalRowsRequest.getTotalRows(pipeline, registry, queryContext)
     assert(totalRowRequest.isSuccess, "Total Row Request Failed!")
   }
 
@@ -123,7 +121,7 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryContext: QueryExecutorContext = getQueryExecutorContext
 
-    val totalRowRequest = GetTotalRowsRequest.getTotalRows(requestModel.get.reportingRequest, pipeline, registry, queryContext)
+    val totalRowRequest = GetTotalRowsRequest.getTotalRows(pipeline, registry, queryContext)
     assert(totalRowRequest.isSuccess, "Requests outside of Oracle should trace back into Oracle, if applicable")
   }
 
@@ -139,7 +137,7 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryContext: QueryExecutorContext = getQueryExecutorContext
 
-    val totalRowRequest = GetTotalRowsRequest.getTotalRows(requestModel.get.reportingRequest, pipeline, registry, queryContext)
+    val totalRowRequest = GetTotalRowsRequest.getTotalRows(pipeline, registry, queryContext)
     assert(totalRowRequest.isSuccess, "Requests outside of Oracle should trace back into Oracle, if applicable")
   }
 }

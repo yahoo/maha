@@ -21,6 +21,8 @@ import scala.util.Try
 trait QueryPipeline {
   def queryChain: QueryChain
 
+  def requestModel : RequestModel
+
   def factBestCandidate: Option[FactBestCandidate]
 
   def bestDimCandidates: SortedSet[DimensionBundle]
@@ -97,6 +99,7 @@ case class QueryPipelineWithFallback(queryChain: QueryChain
                                      , rowListFn: Query => RowList
                                      , fallbackQueryChain: QueryChain
                                      , fallbackRowListFn: Query => RowList) extends QueryPipeline {
+
   def execute(executorContext: QueryExecutorContext): Try[(RowList, QueryAttributes)] = {
     val stats = new EngineQueryStats
     Try(queryChain.execute(executorContext, rowListFn, QueryAttributes.empty, stats)).recover {
@@ -114,6 +117,8 @@ case class QueryPipelineWithFallback(queryChain: QueryChain
         fallbackQueryChain.execute(executorContext, fallbackRowListFn, queryAttributes, stats)
     }
   }
+
+  override def requestModel: RequestModel = queryChain.drivingQuery.queryContext.requestModel
 }
 
 case class DefaultQueryPipeline(queryChain: QueryChain
@@ -129,6 +134,8 @@ case class DefaultQueryPipeline(queryChain: QueryChain
     val stats = new EngineQueryStats
     Try(queryChain.execute(executorContext, rowListFn, queryAttributes, stats))
   }
+
+  override def requestModel: RequestModel = queryChain.drivingQuery.queryContext.requestModel
 }
 
 class QueryPipelineBuilder(queryChain: QueryChain
