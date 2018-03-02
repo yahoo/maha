@@ -80,7 +80,7 @@ object DruidQueryExecutor extends Logging {
                                   , getEphemeralRow: List[JField] => Row
                                   , rowList: T
                                   , jsonString: String
-                                  , eventObject: List[JField]) = {
+                                  , eventObject: List[JField]): Unit = {
     val aliasColumnMap = query.aliasColumnMap
     val ephemeralAliasColumnMap = query.ephemeralAliasColumnMap
     val row =getRow(eventObject)
@@ -122,8 +122,6 @@ object DruidQueryExecutor extends Logging {
     }
     require(response.getStatusCode == 200, s"received status code from druid is ${response.getStatusCode} instead of 200 : $jsonString")
 
-    val aliasColumnMap = query.aliasColumnMap
-    val ephemeralAliasColumnMap = query.ephemeralAliasColumnMap
     val si: Int = query.queryContext.requestModel.startIndex
     val startIndex: Int = if(si < 0) {
       0
@@ -147,21 +145,6 @@ object DruidQueryExecutor extends Logging {
                     jvalue match {
                       case JObject(eventObject) =>
                         processResult(query, transformers, getRow, getEphemeralRow, rowList, jsonString, eventObject)
-                        /*
-                        val row = getRow(resultCols)
-                        resultCols.foreach {
-                          case (resultAlias, resultValue) =>
-                            if(rowList.columnNames.contains(resultAlias)) {
-                              parseHelper(query.queryContext.requestModel.queryGrain.getOrElse(DailyGrain),
-                                row,resultAlias,resultValue,aliasColumnMap, transformers)
-                            } else {
-                              if(query.queryContext.requestModel.isDebugEnabled) {
-                                info(s"Skipping result from druid which is not in columnNames : $resultAlias : $resultValue")
-                              }
-                            }
-                        }
-                        rowList.addRow(row)
-                        */
                       case unmatched => throw new UnsupportedOperationException(s"Unexpected field in timeseries json response : $unmatched")
                     }
                   case a => throw new UnsupportedOperationException(s"Unexpected field in timeseries json response : $a")
@@ -188,22 +171,6 @@ object DruidQueryExecutor extends Logging {
                         resultRows.drop(startIndex).foreach{
                           case JObject(eventObject) =>
                             processResult(query, transformers, getRow, getEphemeralRow, rowList, jsonString, eventObject)
-                            /*
-                            val row = getRow(resultVal)
-                            resultVal.foreach{
-                              case (resultAlias, resultValue) =>
-                                if(rowList.columnNames.contains(resultAlias)) {
-                                  parseHelper(query.queryContext.requestModel.queryGrain.getOrElse(DailyGrain),
-                                    row,resultAlias,resultValue,aliasColumnMap, transformers)
-                                } else {
-                                  if(query.queryContext.requestModel.isDebugEnabled) {
-                                    info(s"Skipping result from druid which is not in columnNames : $resultAlias : $resultValue")
-                                  }
-                                }
-                              case other => throw new UnsupportedOperationException(s"Unexpected field in TopNDruidQuery json response : $other")
-                            }
-                            rowList.addRow(row)
-                            */
                           case other => throw new UnsupportedOperationException(s"Unexpected field in TopNDruidQuery json response : $other")
                         }
                       case other => throw new UnsupportedOperationException(s"Unexpected field in TopNDruidQuery json response : $other")
@@ -230,36 +197,6 @@ object DruidQueryExecutor extends Logging {
                     jvalue match{
                       case JObject(eventObject)  =>
                         processResult(query, transformers, getRow, getEphemeralRow, rowList, jsonString, eventObject)
-                        /*
-                        val row =getRow(eventObject)
-                        val ephemeralRow: Option[Row] = if(!rowList.ephemeralColumnNames.isEmpty) {
-                          Option(getEphemeralRow(eventObject))
-                        } else {
-                          None
-                        }
-                        eventObject.foreach{
-                          case (resultAlias, resultValue) =>
-                            if(rowList.columnNames.contains(resultAlias)) {
-                              parseHelper(query.queryContext.requestModel.queryGrain.getOrElse(DailyGrain),
-                                row, resultAlias, resultValue, aliasColumnMap, transformers)
-                            } else if(rowList.ephemeralColumnNames.contains(resultAlias) && ephemeralRow.isDefined) {
-                              parseHelper(query.queryContext.requestModel.queryGrain.getOrElse(DailyGrain),
-                                ephemeralRow.get, resultAlias, resultValue, ephemeralAliasColumnMap, transformers)
-                            } else {
-                              if(query.queryContext.requestModel.isDebugEnabled) {
-                                info(s"Skipping result from druid which is not in columnNames : $resultAlias : $resultValue")
-                              }
-                            }
-                          case other => throw new UnsupportedOperationException(s"Unexpected field in GroupByDruidQuery json response : $other")
-                        }
-                        try {
-                          rowList.addRow(row, ephemeralRow)
-                        } catch {
-                          case e: Exception =>
-                            error(s"Failed to add row to rowList $row, response json $jsonString,  Query: ${query.asString}")
-                            throw e
-                        }
-                        */
                       case other => throw new UnsupportedOperationException(s"Unexpected field in GroupByDruidQuery json response : $other")
                     }
                   case other => throw new UnsupportedOperationException(s"Unexpected field in GroupByDruidQuery json response : $other")
