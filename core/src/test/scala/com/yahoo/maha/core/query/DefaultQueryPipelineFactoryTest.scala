@@ -120,6 +120,48 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
                           "paginationStartIndex":0,
                           "rowsPerPage":100
                           }"""
+  val requestWithMetricSortNoPK = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Keyword Value"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Keyword Status", "operator": "not in", "values": ["DELETED"]},
+                              {"field": "Ad Group Status", "operator": "not in", "values": ["DELETED"]},
+                              {"field": "Campaign Status", "operator": "not in", "values": ["DELETED"]},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "DESC"}
+                          ],
+                          "includeRowCount" : true,
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+  val requestWithDimSortNoPK = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Keyword Value"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Keyword Status", "operator": "not in", "values": ["DELETED"]},
+                              {"field": "Ad Group Status", "operator": "not in", "values": ["DELETED"]},
+                              {"field": "Campaign Status", "operator": "not in", "values": ["DELETED"]},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Keyword Value", "order": "DESC"}
+                          ],
+                          "includeRowCount" : true,
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
   val requestWithMetricSortPage2 = s"""{
                           "cube": "k_stats",
                           "selectFields": [
@@ -503,6 +545,45 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
         assert(row.getValue("Clicks") === 1)
     }
   }
+
+  test("successfully generate sync multi engine query for oracle + druid with no PK in request") {
+    val request: ReportingRequest = getReportingRequestSync(requestWithDimSortNoPK)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[MultiEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[MultiEngineQuery].drivingQuery.isInstanceOf[OracleQuery])
+    val drivingQuery = pipeline.queryChain.drivingQuery.asString
+    assert(drivingQuery contains("Keyword ID"))
+    val result = pipeline.withOracleCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Keyword ID", 10)
+        row.addValue("Keyword Value", "value")
+        rl.addRow(row)
+    }.withDruidCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Keyword ID", 10)
+        row.addValue("Impressions", 100)
+        rl.addRow(row)
+    }.run()
+
+    val subsequentQuery = pipeline.queryChain.subsequentQueryList.head.asString
+    assert(subsequentQuery contains("Keyword ID"))
+    assert(result.isSuccess, result)
+    result.toOption.get._1.foreach {
+      row =>
+        assert(row.getValue("Keyword Value") === "value")
+        assert(row.getValue("Impressions") === 100)
+    }
+  }
+
   test("successfully generate sync multi engine query for druid + oracle") {
     val request: ReportingRequest = getReportingRequestSync(requestWithMetricSort)
     val registry = getDefaultRegistry()
@@ -539,6 +620,41 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
       row =>
         assert(row.getValue("Impressions") === 100)
         assert(row.getValue("Clicks") === 1)
+    }
+  }
+  test("successfully generate sync multi engine query for druid + oracle with no PK in request") {
+    val request: ReportingRequest = getReportingRequestSync(requestWithMetricSortNoPK)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[MultiEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[MultiEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
+    val result = pipeline.withDruidCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Keyword ID", 10)
+        row.addValue("Impressions", 100)
+        rl.addRow(row)
+    }.withOracleCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Keyword ID", 10)
+        row.addValue("Keyword Value", "value")
+        rl.addRow(row)
+    }.run()
+
+    val subsequentQuery = pipeline.queryChain.subsequentQueryList.head.asString
+    assert(subsequentQuery contains("Keyword ID"))
+    assert(result.isSuccess, result)
+    result.toOption.get._1.foreach {
+      row =>
+        assert(row.getValue("Keyword Value") === "value")
+        assert(row.getValue("Impressions") === 100)
     }
   }
 

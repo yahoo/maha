@@ -128,6 +128,9 @@ object DruidQueryExecutor extends Logging {
     } else {
       si
     }
+    if(query.queryContext.requestModel.isDebugEnabled) {
+      info(s"starIndex=$startIndex")
+    }
 
     query match {
       case TimeseriesDruidQuery(_,_,_,_) =>
@@ -168,6 +171,9 @@ object DruidQueryExecutor extends Logging {
                   case (alias,jvalue) if alias=="result" =>
                     jvalue match{
                       case JArray(resultRows)  =>
+                        if(query.queryContext.requestModel.isDebugEnabled) {
+                          info(s"results size=${resultRows.size}")
+                        }
                         resultRows.drop(startIndex).foreach{
                           case JObject(eventObject) =>
                             processResult(query, transformers, getRow, getEphemeralRow, rowList, jsonString, eventObject)
