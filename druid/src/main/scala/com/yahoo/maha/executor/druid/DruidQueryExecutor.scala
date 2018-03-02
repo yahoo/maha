@@ -128,6 +128,9 @@ object DruidQueryExecutor extends Logging {
     } else {
       si
     }
+    if(query.queryContext.requestModel.isDebugEnabled) {
+      info(s"starIndex=$startIndex")
+    }
 
     query match {
       case TimeseriesDruidQuery(_,_,_,_) =>

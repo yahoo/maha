@@ -694,8 +694,19 @@ b. Dim Driven
 
       val outerWhereClause = generateOuterWhereClause(queryContext, queryBuilderContext)
       val aliasColumnMap = queryBuilderContext.aliasColumnMap
+      val requestCols = {
+        if(queryContext.indexAliasOption.isDefined) {
+          if(!requestModel.requestColsSet(queryContext.indexAliasOption.get)) {
+            requestModel.requestCols :+ DimColumnInfo(queryContext.indexAliasOption.get)
+          } else {
+            requestModel.requestCols
+          }
+        } else {
+          requestModel.requestCols
+        }
+      }
 
-      queryContext.requestModel.requestCols.map {
+      requestCols.map {
         ci =>
           if (aliasColumnMap.contains(ci.alias)) {
             aliasColumnMapOfRequestCols += (ci.alias -> aliasColumnMap(ci.alias))
