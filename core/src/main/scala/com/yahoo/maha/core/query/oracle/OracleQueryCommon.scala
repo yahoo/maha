@@ -74,8 +74,9 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
     dim.annotations.find(_.isInstanceOf[PKCompositeIndex]).map(_.asInstanceOf[PKCompositeIndex])
   }
 
-  protected[this] def getFactOptionalHint(fact: Fact, requestModel: RequestModel): Option[String] = {
-    fact.annotations.foldLeft(Option.empty[String]) {
+  protected[this] def getFactOptionalHint(factualContext: FactualQueryContext, requestModel: RequestModel): Option[String] = {
+    val fact = factualContext.factBestCandidate.fact
+    val legacyHint = fact.annotations.foldLeft(Option.empty[String]) {
       (optionalHint, annotation) =>
         if (annotation.isInstanceOf[OracleFactDimDrivenHint] && requestModel.isDimDriven) {
           Option(annotation.asInstanceOf[OracleFactDimDrivenHint].hint)
@@ -87,6 +88,12 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
           }
         }
     }
+    val conditionalHintsOption = if(factualContext.factConditionalHints.nonEmpty) {
+      Option(factualContext.factConditionalHints.mkString(" "))
+    } else None
+    if(legacyHint.isDefined) {
+      conditionalHintsOption.fold(legacyHint)(ch => legacyHint.map(lh => s"$lh $ch"))
+    } else conditionalHintsOption
   }
 
   protected[this] def additionalColumns(queryContext: QueryContext): IndexedSeq[String] = {

@@ -452,7 +452,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       s"""
         |SELECT *
         |FROM (SELECT to_char(t3.id) "Keyword ID", to_char(ago2.campaign_id) "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ago2."Ad Group Status" "Ad Group Status", co1."Campaign Status" "Campaign Status"
-        |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
+        |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
         |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions"
         |            FROM fact2 FactAlias
         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
@@ -524,7 +524,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
          |FROM (SELECT to_char(t4.id) "Keyword ID", t4.value "Keyword Value", to_char(ago3.campaign_id) "Campaign ID", co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", coalesce(f0."impressions", 1) "Impressions", coalesce(ROUND(f0."spend", 10), 0.0) "Spend"
-         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
+         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   ad_group_id, advertiser_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", SUM(spend) AS "spend"
          |            FROM fact2 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
@@ -602,7 +602,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       s"""
          |SELECT *
          |FROM (SELECT to_char(t3.id) "Keyword ID", coalesce(f0."impressions", 1) "Impressions", COALESCE(f0.device_id, 'UNKNOWN') "Device ID", COALESCE(f0.network_type, 'NONE') "Network Type", COALESCE(f0.pricing_type, 'NONE') "Pricing Type", co1."Campaign Status" "Campaign Status"
-         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
+         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END device_id, DECODE(network_type, 'TEST_PUBLISHER', 'Test Publisher', 'CONTENT_SYNDICATION', 'Content Syndication', 'EXTERNAL', 'Yahoo Partners', 'INTERNAL', 'Yahoo Properties', 'NONE') network_type, CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END pricing_type, campaign_id, keyword_id, SUM(impressions) AS "impressions"
          |            FROM fact2 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_source IN (1,2)) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
@@ -766,7 +766,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                             {"field": "Column2 Status"}
                           ],
                           "filterExpressions": [
-                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Day", "operator": "between", "from": "$fromDateMinusOne", "to": "$toDate"},
                             {"field": "Advertiser ID", "operator": "=", "value": "12345"}
                           ],
                           "sortBy": [
@@ -785,7 +785,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Non-hash partitioned dimension with singleton snapshot failed"))
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    assert(result.contains("/*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */"), "Query should contain dimension hint")
+    //since we are using fromDateMinus10, the fact rows should be high enough to render the min rows estimate based hint
+    assert(result.contains("/*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 CONDITIONAL_HINT5 */"), "Query should contain dimension hint")
   }
 
   test("dim fact async fact driven query with hint annotation should have static hint comment in the final sql string") {
@@ -801,7 +802,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    assert(result.contains("/*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */"), "Query should contain dimension hint")
+    assert(result.contains("/*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */"), "Query should contain dimension hint")
   }
 
   test("dim fact sync dimension driven query with dimension id filters should generate full SQL with in subquery clause") {
@@ -991,7 +992,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     assert(result.contains("NOT IN ('OFF')"), "Query should contain NOT IN")
     assert(result.contains("RIGHT OUTER JOIN"), "Query should be ROJ")
-    assert(result.contains("/*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */"), "Query should contain dim driven hint")
+    assert(result.contains("/*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */"), "Query should contain dim driven hint")
   }
 
   test("dim fact sync fact driven query should have static hint") {
@@ -1007,7 +1008,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
-    assert(result.contains("/*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */"), "Query should contain dim driven hint")
+    assert(result.contains("/*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */"), "Query should contain dim driven hint")
   }
 
   test("dim fact sync fact driven query with request DecType fields that contains max and min should return query with max and min range") {
@@ -1294,7 +1295,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       s"""
          |SELECT *
          |FROM (SELECT to_char(t3.id) "Keyword ID", to_char(ago2.campaign_id) "Campaign ID", ago2.name "Ad Group Name", to_char(t3.parent_id) "Ad Group ID", t3.value "Keyword Value", coalesce(f0."impressions", 1) "Impressions", co1.campaign_name "Campaign Name", ROUND(f0."CTR", 10) "CTR"
-         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
+         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
          |            FROM fact2 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
@@ -1360,7 +1361,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""SELECT *
          |FROM (SELECT to_char(t4.id) "Keyword ID", to_char(ago3.campaign_id) "Campaign ID", ago3.name "Ad Group Name", to_char(t4.parent_id) "Ad Group ID", t4.value "Keyword Value", coalesce(f0."impressions", 1) "Impressions", co2.campaign_name "Campaign Name", ROUND(f0."CTR", 10) "CTR", ao1.name "Advertiser Name"
-         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
+         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   ad_group_id, advertiser_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
          |            FROM fact2 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
@@ -1428,7 +1429,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = s"""SELECT *
                       |FROM (SELECT to_char(t3.id) "Keyword ID", coalesce(f0."impressions", 1) "Impressions", co1.campaign_name "Campaign Name", ROUND(f0."CTR", 10) "CTR"
-                      |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
+                      |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
                       |                   keyword_id, campaign_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
                       |            FROM fact2 FactAlias
                       |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
@@ -1508,7 +1509,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""SELECT *
          |FROM (SELECT to_char(t4.id) "Keyword ID", to_char(ago3.campaign_id) "Campaign ID", ago3.name "Ad Group Name", to_char(t4.parent_id) "Ad Group ID", to_char(t4.advertiser_id) "Advertiser ID", t4.value "Keyword Value", coalesce(f0."impressions", 1) "Impressions", co2.campaign_name "Campaign Name", ROUND(f0."CTR", 10) "CTR", ao1.name "Advertiser Name"
-         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
+         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   ad_group_id, advertiser_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
          |            FROM fact2 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
@@ -1581,7 +1582,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected = s"""
                       |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
                       |FROM (SELECT to_char(f0.keyword_id) "Keyword ID", to_char(f0.campaign_id) "Campaign ID", f0."Month" "Month", to_char(f0.ad_group_id) "Ad Group ID", f0."Week" "Week", to_char(f0.stats_date, 'YYYY-MM-DD') "Day", coalesce(f0."impressions", 1) "Impressions", coalesce(f0."clicks", 0) "Clicks", ROUND(f0."CTR", 10) "CTR"
-                      |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
+                      |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
                       |                   stats_date, ad_group_id, campaign_id, keyword_id, TRUNC(stats_date, 'MM') AS "Month", TRUNC(stats_date, 'IW') AS "Week", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
                       |            FROM fact2
                       |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
@@ -1688,7 +1689,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected = s"""
                       |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
                       |FROM (SELECT f0."Month" "Month", to_char(f0.advertiser_id) "Advertiser ID"
-                      |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
+                      |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
                       |                   advertiser_id, TRUNC(stats_date, 'MM') AS "Month"
                       |            FROM fact2
                       |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
@@ -3058,7 +3059,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected = s"""
                       |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
                       |FROM (SELECT to_char(f0.keyword_id) "Keyword ID", to_char(ago1.campaign_id) "Campaign ID", f0."Month" "Month", to_char(ago1.id) "Ad Group ID", ago1."Ad Group Status" "Ad Group Status", f0."Week" "Week", to_char(f0.stats_date, 'YYYY-MM-DD') "Day", coalesce(f0."impressions", 1) "Impressions", coalesce(f0."clicks", 0) "Clicks", ROUND(f0."CTR", 10) "CTR"
-                      |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
+                      |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
                       |                   stats_date, ad_group_id, campaign_id, keyword_id, TRUNC(stats_date, 'MM') AS "Month", TRUNC(stats_date, 'IW') AS "Week", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
                       |            FROM fact2 FactAlias
                       |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
@@ -3185,7 +3186,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       s"""
          |SELECT *
          |FROM (SELECT to_char(t3.id) "Keyword ID", coalesce(f0."impressions", 1) "Impressions", COALESCE(f0.device_id, 'UNKNOWN') "Device ID", COALESCE(f0.network_type, 'NONE') "Network Type", COALESCE(f0.pricing_type, 'NONE') "Pricing Type", co1."Campaign Status" "Campaign Status"
-         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
+         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END device_id, DECODE(network_type, 'TEST_PUBLISHER', 'Test Publisher', 'CONTENT_SYNDICATION', 'Content Syndication', 'EXTERNAL', 'Yahoo Partners', 'INTERNAL', 'Yahoo Properties', 'NONE') network_type, CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END pricing_type, campaign_id, keyword_id, SUM(impressions) AS "impressions"
          |            FROM fact2 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_source IN (1,2)) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))

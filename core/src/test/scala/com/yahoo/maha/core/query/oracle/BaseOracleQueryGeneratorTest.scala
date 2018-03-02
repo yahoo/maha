@@ -74,8 +74,19 @@ trait BaseOracleQueryGeneratorTest
         )
       )
     }
-      .newRollUp("fact2", "fact1", discarding = Set("ad_id"), columnAliasMap = Map("price_type" -> "pricing_type", "source_name" -> "stats_source"))
-      .toPublicFact("k_stats",
+      .newRollUp("fact2"
+        , "fact1"
+        , discarding = Set("ad_id")
+        , columnAliasMap = Map("price_type" -> "pricing_type", "source_name" -> "stats_source")
+        , overrideAnnotations = Set(
+          OracleFactConditionalHint(FactCondition(Option(true)), "CONDITIONAL_HINT1")
+          , OracleFactConditionalHint(FactCondition(Option(true), Option(false)), "CONDITIONAL_HINT2")
+          , OracleFactConditionalHint(FactCondition(Option(true), Option(false), Option(true)), "CONDITIONAL_HINT3")
+          , OracleFactConditionalHint(FactCondition(Option(true), Option(false), Option(false), Option(false)), "CONDITIONAL_HINT4")
+          , OracleFactConditionalHint(FactCondition(None, minRowsEstimate = Option(900L))
+            , "CONDITIONAL_HINT5")
+        )
+      ).toPublicFact("k_stats",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
           PubCol("keyword_id", "Keyword ID", InEquality),

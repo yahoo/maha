@@ -966,7 +966,7 @@ b. Dim Driven
       queryContext.requestModel.requestCols.size + 5
       , queryContext.requestModel.requestSortByCols.size + 1)
     val requestModel = queryContext.requestModel
-    val optionalHint: String = getFactOptionalHint(queryContext.factBestCandidate.fact, requestModel).map(toComment).getOrElse("")
+    val optionalHint: String = getFactOptionalHint(queryContext, requestModel).map(toComment).getOrElse("")
     val aliasColumnMapOfRequestCols = new mutable.HashMap[String, Column]()
     val isFactOnlyQuery = requestModel.isFactDriven && queryContext.dims.forall {
       db => (db.fields.filterNot(db.publicDim.isPrimaryKeyAlias).isEmpty && !db.hasNonFKSortBy
