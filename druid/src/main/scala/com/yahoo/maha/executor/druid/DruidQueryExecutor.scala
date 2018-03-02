@@ -74,6 +74,45 @@ object DruidQueryExecutor extends Logging {
     }
   }
 
+  def processResult[T <: RowList](query:Query
+                                  , transformers: List[ResultSetTransformers]
+                                  , getRow: List[JField] => Row
+                                  , getEphemeralRow: List[JField] => Row
+                                  , rowList: T
+                                  , jsonString: String
+                                  , eventObject: List[JField]) = {
+    val aliasColumnMap = query.aliasColumnMap
+    val ephemeralAliasColumnMap = query.ephemeralAliasColumnMap
+    val row =getRow(eventObject)
+    val ephemeralRow: Option[Row] = if(!rowList.ephemeralColumnNames.isEmpty) {
+      Option(getEphemeralRow(eventObject))
+    } else {
+      None
+    }
+    eventObject.foreach{
+      case (resultAlias, resultValue) =>
+        if(rowList.columnNames.contains(resultAlias)) {
+          parseHelper(query.queryContext.requestModel.queryGrain.getOrElse(DailyGrain),
+            row, resultAlias, resultValue, aliasColumnMap, transformers)
+        } else if(rowList.ephemeralColumnNames.contains(resultAlias) && ephemeralRow.isDefined) {
+          parseHelper(query.queryContext.requestModel.queryGrain.getOrElse(DailyGrain),
+            ephemeralRow.get, resultAlias, resultValue, ephemeralAliasColumnMap, transformers)
+        } else {
+          if(query.queryContext.requestModel.isDebugEnabled) {
+            info(s"Skipping result from druid which is not in columnNames : $resultAlias : $resultValue")
+          }
+        }
+      case other => throw new UnsupportedOperationException(s"Unexpected field in GroupByDruidQuery json response : $other")
+    }
+    try {
+      rowList.addRow(row, ephemeralRow)
+    } catch {
+      case e: Exception =>
+        error(s"Failed to add row to rowList $row, response json $jsonString,  Query: ${query.asString}")
+        throw e
+    }
+  }
+
   def parseJsonAndPopulateResultSet[T <: RowList](query:Query,response:Response,rowList: T, getRow: List[JField] => Row, getEphemeralRow: List[JField] => Row,
                                                   transformers: List[ResultSetTransformers]  ) : Unit ={
     val jsonString : String = response.getResponseBody(StandardCharsets.UTF_8.displayName())
@@ -106,7 +145,10 @@ object DruidQueryExecutor extends Logging {
                   case (alias, jvalue) if alias == "timestamp" =>  // TODO timestamp support
                   case (alias, jvalue) if alias == "result" =>
                     jvalue match {
-                      case JObject(resultCols) => val row = getRow(resultCols)
+                      case JObject(eventObject) =>
+                        processResult(query, transformers, getRow, getEphemeralRow, rowList, jsonString, eventObject)
+                        /*
+                        val row = getRow(resultCols)
                         resultCols.foreach {
                           case (resultAlias, resultValue) =>
                             if(rowList.columnNames.contains(resultAlias)) {
@@ -119,6 +161,7 @@ object DruidQueryExecutor extends Logging {
                             }
                         }
                         rowList.addRow(row)
+                        */
                       case unmatched => throw new UnsupportedOperationException(s"Unexpected field in timeseries json response : $unmatched")
                     }
                   case a => throw new UnsupportedOperationException(s"Unexpected field in timeseries json response : $a")
@@ -135,15 +178,17 @@ object DruidQueryExecutor extends Logging {
             if(query.queryContext.requestModel.isDebugEnabled) {
               info(s"TopN rows.size=${rows.size}")
             }
-            rows.drop(startIndex).foreach {
+            rows.foreach {
               case JObject(jobject) =>
                 jobject.foreach{
                   case (alias, jvalue) if alias=="timestamp" =>  // TODO timestamp support
                   case (alias,jvalue) if alias=="result" =>
                     jvalue match{
                       case JArray(resultRows)  =>
-                        resultRows.foreach{
-                          case JObject(resultVal) =>
+                        resultRows.drop(startIndex).foreach{
+                          case JObject(eventObject) =>
+                            processResult(query, transformers, getRow, getEphemeralRow, rowList, jsonString, eventObject)
+                            /*
                             val row = getRow(resultVal)
                             resultVal.foreach{
                               case (resultAlias, resultValue) =>
@@ -158,6 +203,7 @@ object DruidQueryExecutor extends Logging {
                               case other => throw new UnsupportedOperationException(s"Unexpected field in TopNDruidQuery json response : $other")
                             }
                             rowList.addRow(row)
+                            */
                           case other => throw new UnsupportedOperationException(s"Unexpected field in TopNDruidQuery json response : $other")
                         }
                       case other => throw new UnsupportedOperationException(s"Unexpected field in TopNDruidQuery json response : $other")
@@ -183,6 +229,8 @@ object DruidQueryExecutor extends Logging {
                   case (alias,jvalue) if alias=="event" =>
                     jvalue match{
                       case JObject(eventObject)  =>
+                        processResult(query, transformers, getRow, getEphemeralRow, rowList, jsonString, eventObject)
+                        /*
                         val row =getRow(eventObject)
                         val ephemeralRow: Option[Row] = if(!rowList.ephemeralColumnNames.isEmpty) {
                           Option(getEphemeralRow(eventObject))
@@ -211,6 +259,7 @@ object DruidQueryExecutor extends Logging {
                             error(s"Failed to add row to rowList $row, response json $jsonString,  Query: ${query.asString}")
                             throw e
                         }
+                        */
                       case other => throw new UnsupportedOperationException(s"Unexpected field in GroupByDruidQuery json response : $other")
                     }
                   case other => throw new UnsupportedOperationException(s"Unexpected field in GroupByDruidQuery json response : $other")
