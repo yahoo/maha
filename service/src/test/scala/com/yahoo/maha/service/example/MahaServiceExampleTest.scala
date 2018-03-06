@@ -399,6 +399,11 @@ class MahaServiceExampleTest extends BaseFactoryTest {
     assert(executeRequestParRequestResult.prodRun.get(10000).isRight)
     assert(executeRequestParRequestResult.prodRun.get(10000).toOption.get.rowList.columnNames.contains("Total Marks"))
 
+
+    //ExecuteRequest With Total Rows Test expect Failure due to no dim candidates
+    val executeRequestParRequestResultWithTotalRows = mahaService.executeRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper, true)
+    assert(executeRequestParRequestResultWithTotalRows.prodRun.get(10000).isLeft)
+
     // Domain Tests
     val domainJsonOption = mahaService.getDomain("er")
     assert(domainJsonOption.isDefined)
