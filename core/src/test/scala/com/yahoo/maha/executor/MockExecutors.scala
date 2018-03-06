@@ -5,6 +5,8 @@ package com.yahoo.maha.executor
 import com.yahoo.maha.core.{DruidEngine, Engine, HiveEngine, OracleEngine}
 import com.yahoo.maha.core.query._
 
+import scala.util.{Success, Try}
+
 /**
  * Created by pranavbhole on 08/04/16.
  */
@@ -12,8 +14,12 @@ class MockDruidQueryExecutor(callback: RowList => Unit) extends QueryExecutor {
   override def engine: Engine = DruidEngine
 
   override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
-    callback(rowList)
-    QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
+    val result = Try(callback(rowList))
+    if(result.isSuccess) {
+      QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
+    } else {
+      QueryResult(rowList, queryAttributes, QueryResultStatus.FAILURE)
+    }
   }
 }
 
@@ -21,8 +27,12 @@ class MockOracleQueryExecutor(callback: RowList => Unit) extends QueryExecutor {
   override def engine: Engine = OracleEngine
 
   override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
-    callback(rowList)
-    QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
+    val result = Try(callback(rowList))
+    if(result.isSuccess) {
+      QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
+    } else {
+      QueryResult(rowList, queryAttributes, QueryResultStatus.FAILURE)
+    }
   }
 }
 
@@ -30,7 +40,11 @@ class MockHiveQueryExecutor(callback: RowList => Unit) extends QueryExecutor {
   override def engine: Engine = HiveEngine
 
   override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
-    callback(rowList)
-    QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
+    val result = Try(callback(rowList))
+    if(result.isSuccess) {
+      QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
+    } else {
+      QueryResult(rowList, queryAttributes, QueryResultStatus.FAILURE)
+    }
   }
 }
