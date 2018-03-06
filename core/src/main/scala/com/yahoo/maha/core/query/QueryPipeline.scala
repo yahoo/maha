@@ -216,17 +216,21 @@ case class SingleEngineQuery(drivingQuery: Query, fallbackQueryOption: Option[(Q
     engineQueryStats.addStat(queryStats)
     rowList.end()
 
-    if(result.isFailure && fallbackQueryOption.isDefined) {
-      QueryChain.logger.info(s"running fall back query, driving query failed with message=${result.message}")
-      val (query, rowList) = fallbackQueryOption.get
-      rowList.start()
-      val queryStartTime = System.currentTimeMillis()
-      val executor = executorContext.getExecutor(query.engine).get
-      val newResult = executor.execute(query, rowList, result.queryAttributes)
-      val queryEndTime = System.currentTimeMillis()
-      engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
-      rowList.end()
-      (newResult.rowList, newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+    if(result.isFailure) {
+      if(fallbackQueryOption.isDefined) {
+        QueryChain.logger.info(s"running fall back query, driving query failed with message=${result.message}")
+        val (query, rowList) = fallbackQueryOption.get
+        rowList.start()
+        val queryStartTime = System.currentTimeMillis()
+        val executor = executorContext.getExecutor(query.engine).get
+        val newResult = executor.execute(query, rowList, result.queryAttributes)
+        val queryEndTime = System.currentTimeMillis()
+        engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
+        rowList.end()
+        (newResult.rowList, newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+      } else {
+        throw new IllegalArgumentException("No fall back query defined, failing request!")
+      }
     } else {
       (result.rowList, result.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
     }
@@ -916,13 +920,21 @@ OuterGroupBy operation has to be applied only in the following cases
             if (factBestCandidateOption.isDefined) {
               val query = getDimFactQuery(bestDimCandidates, factBestCandidateOption.get, requestModel, queryAttributes)
               val fallbackQueryOptionTry: Try[Option[(Query, RowList)]] = Try {
+                val factEngines = requestModel.bestCandidates.get.facts.values.map(_.fact.engine).toSet
+                val factBestCandidateEngine = factBestCandidateOption.get.fact.engine
                 if (requestModel.bestCandidates.isDefined
-                  && requestModel.bestCandidates.get.facts.values.map(_.fact.engine).toSet.size > 1
-                  && requestModel.forceQueryEngine.isEmpty) {
-                  val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(requestModel, Set(factBestCandidateOption.get.fact.engine))
-                  val query = getDimFactQuery(newBestDimCandidates, newFactBestCandidateOption.get, requestModel, queryAttributes)
-                  Option((query, QueryPipeline.completeRowList(query)))
+                  && factEngines.size > 1) {
+                  val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(requestModel, Set(factBestCandidateEngine))
+                  if(newFactBestCandidateOption.isEmpty) {
+                    info("No fact best candidate found for fallback query for request!")
+                  }
+                  newFactBestCandidateOption.map {
+                    newFactBestCandidate =>
+                      val query = getDimFactQuery(newBestDimCandidates, newFactBestCandidate, requestModel, queryAttributes)
+                      (query, QueryPipeline.completeRowList(query))
+                  }
                 } else {
+                  info("No fallback query for request!")
                   None
                 }
               }
