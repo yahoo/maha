@@ -3,7 +3,9 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core._
-import org.scalatest.{Matchers, FunSuite}
+import org.scalatest.{FunSuite, Matchers}
+
+import scala.util.Try
 
 /**
  * Created by hiral on 2/18/16.
@@ -66,5 +68,11 @@ class SingleEngineQueryTest extends FunSuite with Matchers with BaseQueryGenerat
     }
     val queryAttribute = result._2.getAttribute(QueryAttributes.QueryStats)
     assert(queryAttribute.isInstanceOf[QueryStatsAttribute] && queryAttribute.asInstanceOf[QueryStatsAttribute].stats.getStats.nonEmpty)
+  }
+  test("with forced failing query result and fallback not defined") {
+    val query = getQuery(DruidEngine, getFactQueryContext(OracleEngine, getRequestModel(combinedQueryJson), None, QueryAttributes.empty), DimFactQuery)
+    val qc = new SingleEngineQuery(query, None)
+    val resultTry = Try(qc.execute(getPartialQueryExecutorContext, (q) => new CompleteRowList(q), QueryAttributes.empty, new EngineQueryStats))
+    assert(resultTry.isFailure)
   }
 }

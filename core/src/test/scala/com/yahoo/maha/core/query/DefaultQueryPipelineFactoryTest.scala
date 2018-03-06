@@ -316,6 +316,46 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
                           "rowsPerPage":100
                           }"""
 
+  val factRequestWithDruidFactAndDim = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Day"},
+                              {"field": "Advertiser ID"},
+                              {"field": "Country Name"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "DESC"}
+                          ],
+                          "includeRowCount" : false,
+                          "forceDimensionDriven": false
+                          }"""
+
+  val factRequestWithOracleAndDruidDim = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Day"},
+                              {"field": "Advertiser ID"},
+                              {"field": "Advertiser Name"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "DESC"}
+                          ],
+                          "includeRowCount" : false,
+                          "forceDimensionDriven": false
+                          }"""
+
   val requestWithOutOfRangeDruidDim = s"""{
                           "cube": "k_stats",
                           "selectFields": [
@@ -1279,5 +1319,61 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Expected failure to get the query pipeline, Presto is not supported for sync queries"))
     assert(queryPipelineTry.failed.get.getMessage === "requirement failed: Failed to find best candidate, forceEngine=Some(Presto), engine disqualifyingSet=Set(Hive, Presto), candidates=Set((fact_druid,Druid), (fact_hive,Hive), (fact_oracle,Oracle))")
+  }
+
+  test("successfully generate fallback query on async request and execute it") {
+    val request: ReportingRequest = getReportingRequestAsync(factRequestWithOracleAndDruidDim)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
+    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.isDefined)
+    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.get._1.isInstanceOf[OracleQuery])
+    val result = pipeline.withDruidCallback {
+      rl => throw new IllegalStateException("error!")
+    }.withOracleCallback {
+      rl =>
+        assert(true, "Should get here!")
+        val row = rl.newRow
+        row.addValue("Day", fromDate)
+        row.addValue("Advertiser ID", 1)
+        row.addValue("Advertiser Name", "ON")
+        row.addValue("Impressions", 100)
+        row.addValue("Clicks", 1)
+        rl.addRow(row)
+    }.run()
+
+    assert(result.isSuccess, result)
+    assert(!result.toOption.get._1.isEmpty)
+  }
+
+  test("successfully execute pipeline while failing to create fallback query") {
+    val request: ReportingRequest = getReportingRequestAsync(factRequestWithDruidFactAndDim)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
+    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.isEmpty)
+    val result = pipeline.withDruidCallback {
+      rl => throw new IllegalStateException("error!")
+    }.withOracleCallback {
+      rl =>
+        assert(false, "Should not get here!")
+    }.run()
+
+    assert(result.isFailure, result)
+    assert(result.failed.get.getMessage === "No fall back query defined, failing request!", result)
   }
 }
