@@ -17,8 +17,6 @@ import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{DefaultMahaService, MahaRequestProcessor, MahaServiceConfig, RequestResult}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 
-import scala.util.Failure
-
 /**
  * Created by pranavbhole on 09/06/17.
  */
