@@ -49,8 +49,7 @@ trait MahaService {
   def processRequest(registryName: String
                      , reportingRequest: ReportingRequest
                      , bucketParams: BucketParams
-                     , mahaRequestLogHelper: MahaRequestLogHelper
-                     , calculateTotalRows : Boolean = false): Try[RequestResult]
+                     , mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestResult]
 
   /**
    * Generates own model, create ParRequestResult. Invocation is left on the user's implementation details.
@@ -58,8 +57,7 @@ trait MahaService {
   def executeRequest(registryName: String
                      , reportingRequest: ReportingRequest
                      , bucketParams: BucketParams
-                     , mahaRequestLogHelper: MahaRequestLogHelper
-                     , calculateTotalRows : Boolean = false ): ParRequestResult
+                     , mahaRequestLogHelper: MahaRequestLogHelper): ParRequestResult
 
   def generateRequestModel(registryName: String,
                            reportingRequest: ReportingRequest,
@@ -71,16 +69,14 @@ trait MahaService {
    */
   def processRequestModel(registryName: String,
                           requestModel: RequestModel,
-                          mahaRequestLogHelper: MahaRequestLogHelper,
-                          calculateTotalRows : Boolean = false): Try[RequestResult]
+                          mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestResult]
 
   /**
    * Provide model result
    */
   def executeRequestModelResult(registryName: String,
                                 requestModelResult: RequestModelResult,
-                                mahaRequestLogHelper: MahaRequestLogHelper,
-                                calculateTotalRows : Boolean = false): ParRequestResult
+                                mahaRequestLogHelper: MahaRequestLogHelper): ParRequestResult
 
   def getDomain(registryName: String) : Option[String]
   def getDomainForCube(registryName: String, cube : String) : Option[String]
@@ -98,8 +94,7 @@ class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Log
   override def processRequest(registryName: String
                               , reportingRequest: ReportingRequest
                               , bucketParams: BucketParams
-                              , mahaRequestLogHelper: MahaRequestLogHelper
-                              , calculateTotalRows : Boolean = false ): Try[RequestResult] = {
+                              , mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestResult] = {
     val requestModelResultTry = generateRequestModel(registryName, reportingRequest, bucketParams, mahaRequestLogHelper)
     if (requestModelResultTry.isFailure) {
       val message = "Failed to create Report Model:"
@@ -109,7 +104,7 @@ class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Log
     }
     val requestModelResult = requestModelResultTry.get
 
-    val parRequestResult = executeRequestModelResult(registryName, requestModelResult, mahaRequestLogHelper, calculateTotalRows)
+    val parRequestResult = executeRequestModelResult(registryName, requestModelResult, mahaRequestLogHelper)
     val finalResult = syncParRequestExecutor(parRequestResult.prodRun, mahaRequestLogHelper)
 
     parRequestResult.dryRunOption.foreach(asyncParRequestExecutor(_,mahaRequestLogHelper))
@@ -122,8 +117,7 @@ class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Log
   override def executeRequest(registryName: String
                               , reportingRequest: ReportingRequest
                               , bucketParams: BucketParams
-                              , mahaRequestLogHelper: MahaRequestLogHelper
-                              , calculateTotalRows : Boolean = false ): ParRequestResult = {
+                              , mahaRequestLogHelper: MahaRequestLogHelper): ParRequestResult = {
     val parLabel = "executeRequest"
     val requestModelResultTry = generateRequestModel(registryName, reportingRequest, bucketParams, mahaRequestLogHelper)
     if (requestModelResultTry.isFailure) {
@@ -133,11 +127,11 @@ class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Log
     }
     val requestModelResult = requestModelResultTry.get
     val reportingModel = requestModelResult.model
-    val finalResult = createParRequest(registryName, reportingModel, parLabel, mahaRequestLogHelper, calculateTotalRows)
+    val finalResult = createParRequest(registryName, reportingModel, parLabel, mahaRequestLogHelper)
     val dryRunResult = {
       if (requestModelResult.dryRunModelTry.isDefined &&
         requestModelResult.dryRunModelTry.get.isSuccess) {
-        Some(createParRequest(registryName, requestModelResult.dryRunModelTry.get.get, parLabel, mahaRequestLogHelper, calculateTotalRows))
+        Some(createParRequest(registryName, requestModelResult.dryRunModelTry.get.get, parLabel, mahaRequestLogHelper))
       } else None
     }
     ParRequestResult(finalResult, dryRunResult)
@@ -152,29 +146,29 @@ class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Log
    * Provide model
    *
    */
-  override def processRequestModel(registryName: String, requestModel: RequestModel, mahaRequestLogHelper: MahaRequestLogHelper, calculateTotalRows : Boolean = false): Try[RequestResult] = {
+  override def processRequestModel(registryName: String, requestModel: RequestModel, mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestResult] = {
     val parLabel = "processRequestModel"
-    val parRequest = createParRequest(registryName, requestModel, parLabel, mahaRequestLogHelper, calculateTotalRows)
+    val parRequest = createParRequest(registryName, requestModel, parLabel, mahaRequestLogHelper)
     syncParRequestExecutor(parRequest, mahaRequestLogHelper)
   }
 
   /**
    * Provide model
    */
-  override def executeRequestModelResult(registryName: String, requestModelResult: RequestModelResult, mahaRequestLogHelper: MahaRequestLogHelper, calculateTotalRows : Boolean = false): ParRequestResult = {
+  override def executeRequestModelResult(registryName: String, requestModelResult: RequestModelResult, mahaRequestLogHelper: MahaRequestLogHelper): ParRequestResult = {
     val parLabel = "executeRequestModelResult"
     val reportingModel = requestModelResult.model
-    val finalResult = createParRequest(registryName, reportingModel, parLabel, mahaRequestLogHelper, calculateTotalRows)
+    val finalResult = createParRequest(registryName, reportingModel, parLabel, mahaRequestLogHelper)
     val dryRunResult = {
       if (requestModelResult.dryRunModelTry.isDefined &&
         requestModelResult.dryRunModelTry.get.isSuccess) {
-        Some(createParRequest(registryName, requestModelResult.dryRunModelTry.get.get, parLabel, mahaRequestLogHelper, calculateTotalRows))
+        Some(createParRequest(registryName, requestModelResult.dryRunModelTry.get.get, parLabel, mahaRequestLogHelper))
       } else None
     }
     ParRequestResult(finalResult, dryRunResult)
   }
 
-  private def createParRequest(registryName: String, requestModel: RequestModel, parRequestLabel: String, mahaRequestLogHelper: MahaRequestLogHelper, calculateTotalRows : Boolean = false): ParRequest[RequestResult] = {
+  private def createParRequest(registryName: String, requestModel: RequestModel, parRequestLabel: String, mahaRequestLogHelper: MahaRequestLogHelper): ParRequest[RequestResult] = {
     val registryConfig = config.registry.get(registryName).get
     val queryPipelineFactory = registryConfig.queryPipelineFactory
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
@@ -203,6 +197,7 @@ class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Log
             return GeneralError.either[RequestResult](parRequestLabel, message, new MahaServiceBadRequestException(message))
           }
           val totalRowsOption: Option[Int] = {
+          val calculateTotalRows = requestModel.reportingRequest.includeRowCount && queryPipeline.bestDimCandidates.nonEmpty
           if (calculateTotalRows) {
              val totalRowsTry: Try[Int] = GetTotalRowsRequest.getTotalRows(queryPipeline, registryConfig.registry, registryConfig.queryExecutorContext, registryConfig.queryPipelineFactory)
               if(totalRowsTry.isFailure) {
