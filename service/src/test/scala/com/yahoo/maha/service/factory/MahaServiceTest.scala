@@ -110,7 +110,7 @@ class MahaServiceTest extends BaseFactoryTest {
    }
   }
 
-  test("Test MahaService Validation Failure: Expects Success in registry Validation should fail to load factory class") {
+  test("Test MahaService Validation: Expects Success in registry Validation should fail to load factory class") {
     val jsonString = """{
                        |	"registryMap": {
                        |		"er": {
@@ -214,6 +214,5 @@ class MahaServiceTest extends BaseFactoryTest {
         val errorList = list.map(a=> a.message).list.toList
         assert(errorList.containsSlice(Seq("Failed to construct factory : erBucketClass", "Failed to construct factory : irBucketClass")))
     }
-
   }
 }
