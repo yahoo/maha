@@ -218,17 +218,22 @@ case class SingleEngineQuery(drivingQuery: Query, fallbackQueryOption: Option[(Q
 
     if(result.isFailure) {
       if(fallbackQueryOption.isDefined) {
-        QueryChain.logger.info(s"running fall back query, driving query failed with message=${result.message}")
         val (query, rowList) = fallbackQueryOption.get
         subsequentQueryList ++= Seq(query)
-        rowList.start()
-        val queryStartTime = System.currentTimeMillis()
-        val executor = executorContext.getExecutor(query.engine).get
-        val newResult = executor.execute(query, rowList, result.queryAttributes)
-        val queryEndTime = System.currentTimeMillis()
-        engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
-        rowList.end()
-        (newResult.rowList, newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+        QueryChain.logger.info(s"running fall back query with engine=${query.engine}, driving query failed with message=${result.message}")
+        val executorOption = executorContext.getExecutor(query.engine)
+        executorOption.fold {
+          QueryChain.logger.error(s"No executor found for fall back query engine : ${query.engine}")
+          throw new IllegalArgumentException("No fall back query engine executor defined, failing request!")
+        } { executor =>
+          rowList.start()
+          val queryStartTime = System.currentTimeMillis()
+          val newResult = executor.execute(query, rowList, result.queryAttributes)
+          val queryEndTime = System.currentTimeMillis()
+          engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
+          rowList.end()
+          (newResult.rowList, newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+        }
       } else {
         throw new IllegalArgumentException("No fall back query defined, failing request!")
       }
