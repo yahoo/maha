@@ -17,8 +17,6 @@ import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{DefaultMahaService, MahaRequestProcessor, MahaServiceConfig, RequestResult}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 
-import scala.util.Failure
-
 /**
  * Created by pranavbhole on 09/06/17.
  */
@@ -399,7 +397,8 @@ class MahaServiceExampleTest extends BaseFactoryTest {
     //ExecuteRequest Test
     val executeRequestParRequestResult = mahaService.executeRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
     assert(executeRequestParRequestResult.prodRun.get(10000).isRight)
-    assert(executeRequestParRequestResult.prodRun.get(10000).toOption.get.rowList.columnNames.contains("Total Marks"))
+    val requestResultOption = executeRequestParRequestResult.prodRun.get(10000).toOption
+    assert(requestResultOption.get.rowList.columnNames.contains("Total Marks"))
 
     // Domain Tests
     val domainJsonOption = mahaService.getDomain("er")
