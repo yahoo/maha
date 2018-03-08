@@ -82,11 +82,17 @@ trait MahaService {
   def getDomainForCube(registryName: String, cube : String) : Option[String]
   def getFlattenDomain(registryName: String) : Option[String]
   def getFlattenDomainForCube(registryName: String, cube : String, revision: Option[Int]= None) : Option[String]
+
+  /*
+    Defines list of engines which are not capable calculating the totalRowCount in one run
+   */
+  def rowCountIncomputableEngineSet: Set[Engine]
 }
 
 
 class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Logging {
   val mahaRequestLogWriter: MahaRequestLogWriter = config.mahaRequestLogWriter
+  val rowCountIncomputableEngineSet: Set[Engine] = Set(DruidEngine)
 
   /**
    * Generates own model
@@ -196,8 +202,13 @@ class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Log
 
             return GeneralError.either[RequestResult](parRequestLabel, message, new MahaServiceBadRequestException(message))
           }
+
+          //Oracle Queries can give totalRowCount,
+          // where was druid query can not, totalRowsOption is valid for druid queries requesting rowCount
           val totalRowsOption: Option[Int] = {
-          val calculateTotalRows = requestModel.reportingRequest.includeRowCount && queryPipeline.bestDimCandidates.nonEmpty
+          val calculateTotalRows = (requestModel.reportingRequest.includeRowCount
+                                    && queryPipeline.bestDimCandidates.nonEmpty
+                                    && rowCountIncomputableEngineSet.contains(queryPipeline.queryChain.drivingQuery.engine))
           if (calculateTotalRows) {
              val totalRowsTry: Try[Int] = GetTotalRowsRequest.getTotalRows(queryPipeline, registryConfig.registry, registryConfig.queryExecutorContext, registryConfig.queryPipelineFactory)
               if(totalRowsTry.isFailure) {
