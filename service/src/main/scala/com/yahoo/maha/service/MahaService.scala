@@ -18,6 +18,7 @@ import com.yahoo.maha.service.config._
 import com.yahoo.maha.service.error._
 import com.yahoo.maha.service.factory._
 import com.yahoo.maha.service.utils.{MahaRequestLogHelper, MahaRequestLogWriter}
+import com.yahoo.maha.utils.GetTotalRowsRequest
 import grizzled.slf4j.Logging
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.scalaz.JsonScalaz._
@@ -36,7 +37,7 @@ case class RegistryConfig(name: String, registry: Registry, queryPipelineFactory
 
 case class MahaServiceConfig(registry: Map[String, RegistryConfig], mahaRequestLogWriter: MahaRequestLogWriter)
 
-case class RequestResult(rowList: RowList, queryAttributes: QueryAttributes)
+case class RequestResult(rowList: RowList, queryAttributes: QueryAttributes, totalRowsOption: Option[Int] = None)
 
 case class ParRequestResult(prodRun: ParRequest[RequestResult], dryRunOption: Option[ParRequest[RequestResult]])
 
@@ -55,29 +56,43 @@ trait MahaService {
    */
   def executeRequest(registryName: String
                      , reportingRequest: ReportingRequest
-                     , bucketParams: BucketParams, mahaRequestLogHelper: MahaRequestLogHelper): ParRequestResult
+                     , bucketParams: BucketParams
+                     , mahaRequestLogHelper: MahaRequestLogHelper): ParRequestResult
 
-  def generateRequestModel(registryName: String, reportingRequest: ReportingRequest, bucketParams: BucketParams, mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestModelResult]
+  def generateRequestModel(registryName: String,
+                           reportingRequest: ReportingRequest,
+                           bucketParams: BucketParams,
+                           mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestModelResult]
 
   /**
    * Provide model
    */
-  def processRequestModel(registryName: String, requestModel: RequestModel, mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestResult]
+  def processRequestModel(registryName: String,
+                          requestModel: RequestModel,
+                          mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestResult]
 
   /**
    * Provide model result
    */
-  def executeRequestModelResult(registryName: String, requestModelResult: RequestModelResult, mahaRequestLogHelper: MahaRequestLogHelper): ParRequestResult
+  def executeRequestModelResult(registryName: String,
+                                requestModelResult: RequestModelResult,
+                                mahaRequestLogHelper: MahaRequestLogHelper): ParRequestResult
 
   def getDomain(registryName: String) : Option[String]
   def getDomainForCube(registryName: String, cube : String) : Option[String]
   def getFlattenDomain(registryName: String) : Option[String]
   def getFlattenDomainForCube(registryName: String, cube : String, revision: Option[Int]= None) : Option[String]
+
+  /*
+    Defines list of engines which are not capable calculating the totalRowCount in one run
+   */
+  def rowCountIncomputableEngineSet: Set[Engine]
 }
 
 
 class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Logging {
   val mahaRequestLogWriter: MahaRequestLogWriter = config.mahaRequestLogWriter
+  val rowCountIncomputableEngineSet: Set[Engine] = Set(DruidEngine)
 
   /**
    * Generates own model
@@ -187,11 +202,30 @@ class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Log
 
             return GeneralError.either[RequestResult](parRequestLabel, message, new MahaServiceBadRequestException(message))
           }
+
+          //Oracle Queries can give totalRowCount,
+          // where was druid query can not, totalRowsOption is valid for druid queries requesting rowCount
+          val totalRowsOption: Option[Int] = {
+          val calculateTotalRows = (requestModel.reportingRequest.includeRowCount
+                                    && queryPipeline.bestDimCandidates.nonEmpty
+                                    && rowCountIncomputableEngineSet.contains(queryPipeline.queryChain.drivingQuery.engine))
+          if (calculateTotalRows) {
+             val totalRowsTry: Try[Int] = GetTotalRowsRequest.getTotalRows(queryPipeline, registryConfig.registry, registryConfig.queryExecutorContext, registryConfig.queryPipelineFactory)
+              if(totalRowsTry.isFailure) {
+                val error = totalRowsTry.failed.get
+                val message = error.getMessage
+                mahaRequestLogHelper.logFailed(message)
+                return GeneralError.either[RequestResult](parRequestLabel, message, new MahaServiceBadRequestException(message))
+              } else {
+                Some(totalRowsTry.get)
+              }
+           } else None
+          }
           val rowList = rowListTry.get
           mahaRequestLogHelper.logQueryStats(rowList._2)
           mahaRequestLogHelper.logSuccess()
 
-          return new Right[GeneralError, RequestResult](RequestResult(rowList._1, rowList._2))
+          return new Right[GeneralError, RequestResult](RequestResult(rowList._1, rowList._2, totalRowsOption))
       }
     }
     )).build()

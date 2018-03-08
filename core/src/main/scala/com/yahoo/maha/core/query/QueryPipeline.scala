@@ -201,7 +201,7 @@ object QueryChain {
 }
 
 case class SingleEngineQuery(drivingQuery: Query, fallbackQueryOption: Option[(Query, RowList)] = None) extends QueryChain {
-  val subsequentQueryList: IndexedSeq[Query] = IndexedSeq.empty
+  var subsequentQueryList: IndexedSeq[Query] = IndexedSeq.empty
 
   def execute(executorContext: QueryExecutorContext, rowListFn: Query => RowList, queryAttributes: QueryAttributes, engineQueryStats: EngineQueryStats): (RowList, QueryAttributes) = {
     val executor = executorContext.getExecutor(drivingQuery.engine)
@@ -220,6 +220,7 @@ case class SingleEngineQuery(drivingQuery: Query, fallbackQueryOption: Option[(Q
       if(fallbackQueryOption.isDefined) {
         QueryChain.logger.info(s"running fall back query, driving query failed with message=${result.message}")
         val (query, rowList) = fallbackQueryOption.get
+        subsequentQueryList ++= Seq(query)
         rowList.start()
         val queryStartTime = System.currentTimeMillis()
         val executor = executorContext.getExecutor(query.engine).get
@@ -401,7 +402,7 @@ object DefaultQueryPipelineFactory extends Logging {
     requestModel.schema match {
       case _ =>
         //do we want to force engine?
-        val forceEngine = requestModel.forceQueryEngine
+        val forceEngine = requestModel.forceQueryEngine.filterNot(forceDisqualifySet)
 
         //do not use druid if we have both dim and fact operations
         val disqualifySet: Set[Engine] = {

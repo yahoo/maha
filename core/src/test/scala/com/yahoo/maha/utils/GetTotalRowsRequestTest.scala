@@ -89,7 +89,7 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryContext: QueryExecutorContext = getQueryExecutorContext
 
-    val totalRowRequest = GetTotalRowsRequest.getTotalRows(pipeline, registry, queryContext)
+    val totalRowRequest = GetTotalRowsRequest.getTotalRows(pipeline, registry, queryContext, queryPipelineFactory)
     assert(totalRowRequest.isSuccess, "Total Row Request Failed!")
   }
 
@@ -105,7 +105,7 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryContext: QueryExecutorContext = getQueryExecutorContext
 
-    val totalRowRequest = GetTotalRowsRequest.getTotalRows(pipeline, registry, queryContext)
+    val totalRowRequest = GetTotalRowsRequest.getTotalRows(pipeline, registry, queryContext, queryPipelineFactory)
     assert(totalRowRequest.isSuccess, "Total Row Request Failed!")
   }
 
@@ -121,7 +121,7 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryContext: QueryExecutorContext = getQueryExecutorContext
 
-    val totalRowRequest = GetTotalRowsRequest.getTotalRows(pipeline, registry, queryContext)
+    val totalRowRequest = GetTotalRowsRequest.getTotalRows(pipeline, registry, queryContext, queryPipelineFactory)
     assert(totalRowRequest.isSuccess, "Requests outside of Oracle should trace back into Oracle, if applicable")
   }
 
@@ -137,7 +137,7 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryContext: QueryExecutorContext = getQueryExecutorContext
 
-    val totalRowRequest = GetTotalRowsRequest.getTotalRows(pipeline, registry, queryContext)
+    val totalRowRequest = GetTotalRowsRequest.getTotalRows(pipeline, registry, queryContext, queryPipelineFactory)
     assert(totalRowRequest.isSuccess, "Requests outside of Oracle should trace back into Oracle, if applicable")
   }
 }
