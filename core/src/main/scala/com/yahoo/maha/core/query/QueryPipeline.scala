@@ -454,7 +454,7 @@ object DefaultQueryPipelineFactory extends Logging {
           info(s"disqualifySet = $disqualifySet")
         }
         val result: IndexedSeq[(String, Engine, Long, Int, Int)] = requestModel.factCost.toIndexedSeq.collect {
-          case ((fn, engine), rowcost) if (!queryGeneratorRegistry.getGenerator(engine).isDefined || queryGeneratorRegistry.getGenerator(engine).get.validateEngineConstraints(requestModel)) && ((forceEngine.contains(engine) && !disqualifySet(engine)) || (!disqualifySet(engine) && forceEngine.isEmpty)) =>
+          case ((fn, engine), rowcost) if (!queryGeneratorRegistry.getGenerator(engine).isDefined || queryGeneratorRegistry.getGenerator(engine).get.validateEngineConstraints(requestModel)) && (forceEngine.contains(engine) || (!disqualifySet(engine) && forceEngine.isEmpty)) =>
             val fact = requestModel.bestCandidates.get.facts(fn).fact
             val level = fact.level
             val dimCardinality: Long = requestModel.dimCardinalityEstimate.getOrElse(fact.defaultCardinality)
