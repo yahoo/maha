@@ -1321,8 +1321,8 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     assert(queryPipelineTry.failed.get.getMessage === "requirement failed: Failed to find best candidate, forceEngine=Some(Presto), engine disqualifyingSet=Set(Hive, Presto), candidates=Set((fact_druid,Druid), (fact_hive,Hive), (fact_oracle,Oracle))")
   }
 
-  test("successfully generate fallback query on async request and execute it") {
-    val request: ReportingRequest = getReportingRequestAsync(factRequestWithOracleAndDruidDim)
+  test("successfully generate fallback query on sync request and execute it") {
+    val request: ReportingRequest = getReportingRequestSync(factRequestWithOracleAndDruidDim)
     val registry = getDefaultRegistry()
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
@@ -1335,6 +1335,94 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
     assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.isDefined)
     assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.get._1.isInstanceOf[OracleQuery])
+    val result = pipeline.withDruidCallback {
+      rl => throw new IllegalStateException("error!")
+    }.withOracleCallback {
+      rl =>
+        assert(true, "Should get here!")
+        val row = rl.newRow
+        row.addValue("Day", fromDate)
+        row.addValue("Advertiser ID", 1)
+        row.addValue("Advertiser Name", "ON")
+        row.addValue("Impressions", 100)
+        row.addValue("Clicks", 1)
+        rl.addRow(row)
+    }.run()
+
+    assert(result.isSuccess, result)
+    assert(!result.toOption.get._1.isEmpty)
+  }
+
+  test("successfully generate fallback query on sync request with force engine and execute it") {
+    val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestSync(factRequestWithOracleAndDruidDim))
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
+    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.isDefined)
+    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.get._1.isInstanceOf[OracleQuery])
+    val result = pipeline.withDruidCallback {
+      rl => throw new IllegalStateException("error!")
+    }.withOracleCallback {
+      rl =>
+        assert(true, "Should get here!")
+        val row = rl.newRow
+        row.addValue("Day", fromDate)
+        row.addValue("Advertiser ID", 1)
+        row.addValue("Advertiser Name", "ON")
+        row.addValue("Impressions", 100)
+        row.addValue("Clicks", 1)
+        rl.addRow(row)
+    }.run()
+
+    assert(result.isSuccess, result)
+    assert(!result.toOption.get._1.isEmpty)
+  }
+
+  test("successfully generate fallback query on sync request and fail to execute it due to missing executor") {
+    val request: ReportingRequest = getReportingRequestSync(factRequestWithOracleAndDruidDim)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
+    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.isDefined)
+    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.get._1.isInstanceOf[OracleQuery])
+    val result = pipeline.withDruidCallback {
+      rl => throw new IllegalStateException("error!")
+    }.run()
+
+    assert(result.isFailure, result)
+    assert(result.failed.get.getMessage === "No fall back query engine executor defined, failing request!", result)
+  }
+
+  test("successfully generate fallback query on async request and execute it") {
+    val request: ReportingRequest = getReportingRequestAsync(factRequestWithOracleAndDruidDim)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
+    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.isEmpty)
+    assert(pipeline.isInstanceOf[QueryPipelineWithFallback])
+    assert(pipeline.asInstanceOf[QueryPipelineWithFallback].fallbackQueryChain.isInstanceOf[SingleEngineQuery])
+    assert(pipeline.asInstanceOf[QueryPipelineWithFallback].fallbackQueryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[OracleQuery])
     val result = pipeline.withDruidCallback {
       rl => throw new IllegalStateException("error!")
     }.withOracleCallback {
@@ -1365,8 +1453,10 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
     assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
-    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.isDefined)
-    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.get._1.isInstanceOf[OracleQuery])
+    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.isEmpty)
+    assert(pipeline.isInstanceOf[QueryPipelineWithFallback])
+    assert(pipeline.asInstanceOf[QueryPipelineWithFallback].fallbackQueryChain.isInstanceOf[SingleEngineQuery])
+    assert(pipeline.asInstanceOf[QueryPipelineWithFallback].fallbackQueryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[OracleQuery])
     val result = pipeline.withDruidCallback {
       rl => throw new IllegalStateException("error!")
     }.withOracleCallback {
@@ -1383,28 +1473,6 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     assert(result.isSuccess, result)
     assert(!result.toOption.get._1.isEmpty)
-  }
-
-  test("successfully generate fallback query on async request and fail to execute it due to missing executor") {
-    val request: ReportingRequest = getReportingRequestAsync(factRequestWithOracleAndDruidDim)
-    val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
-    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
-
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-    val pipeline = queryPipelineTry.toOption.get
-
-    assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
-    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
-    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.isDefined)
-    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.get._1.isInstanceOf[OracleQuery])
-    val result = pipeline.withDruidCallback {
-      rl => throw new IllegalStateException("error!")
-    }.run()
-
-    assert(result.isFailure, result)
-    assert(result.failed.get.getMessage === "No fall back query engine executor defined, failing request!", result)
   }
 
   test("successfully execute pipeline while failing to create fallback query") {
