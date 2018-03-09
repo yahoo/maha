@@ -2,16 +2,19 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query
 
-import java.io.{Writer, OutputStream, IOException}
+import java.io._
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, StandardOpenOption}
 
 import com.fasterxml.jackson.core.{JsonEncoding, JsonGenerator}
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.yahoo.maha.core.{FactColumnInfo, DimColumnInfo, Column, ColumnInfo}
-import org.slf4j.{LoggerFactory, Logger}
+import com.yahoo.maha.core.{Column, ColumnInfo, DimColumnInfo, FactColumnInfo}
+import org.slf4j.{Logger, LoggerFactory}
 
 /**
  * Created by hiral on 5/5/16.
  */
+
 object JsonRowList {
   private final val LOGGER: Logger = LoggerFactory.getLogger(classOf[JsonRowList])
   private final val objectMapper: ObjectMapper = new ObjectMapper
@@ -27,26 +30,27 @@ object JsonRowList {
   }
 
   def from(rowList: RowList, injectTotalRowsOption: Option[Integer], jsonGenerator: JsonGenerator, compatibilityMode: Boolean) : JsonRowList = {
-    val jsonRowList = JsonRowList(rowList.query, rowList.subQuery, injectTotalRowsOption, jsonGenerator, compatibilityMode)
-    jsonRowList.start()
-    rowList.foreach(jsonRowList.addRow)
-    jsonRowList.end()
+    val jsonRowList = DefaultJsonRowList(rowList.query, rowList.subQuery, injectTotalRowsOption, PassThroughJsonGeneratorProvider(jsonGenerator), compatibilityMode)
+    jsonRowList.withLifeCycle {
+      rowList.foreach(jsonRowList.addRow)
+    }
     jsonRowList
   }
 
   def jsonRowList(jsonGenerator: JsonGenerator, injectTotalRowsOption: Option[Integer], compatibilityMode: Boolean) : Query => RowList = (q) => {
-    JsonRowList(q, IndexedSeq.empty, injectTotalRowsOption, jsonGenerator, compatibilityMode)
+    DefaultJsonRowList(q, IndexedSeq.empty, injectTotalRowsOption, PassThroughJsonGeneratorProvider(jsonGenerator), compatibilityMode)
   }
 }
 
-case class JsonRowList(query: Query
-                       , override val subQuery: IndexedSeq[Query]
-                       , injectTotalRowsOption: Option[Integer]
-                       , jsonGenerator: JsonGenerator
-                       , compatibilityMode: Boolean
-                        ) extends RowList {
+trait JsonRowList extends RowList {
+  def query: Query
+  protected def subQuery: IndexedSeq[Query]
+  protected def injectTotalRowsOption: Option[Integer]
+  protected def jsonGeneratorProvider: JsonGeneratorProvider
+  protected def compatibilityMode: Boolean
+
   import JsonRowList._
-  private[this] val combinedAliasColumnMap = query.aliasColumnMap ++ subQuery.map(_.aliasColumnMap).flatten
+  private[this] val combinedAliasColumnMap = query.aliasColumnMap ++ subQuery.flatMap(_.aliasColumnMap)
   private[this] final val requestModel = query.queryContext.requestModel
   private[this] val numCols: Int = {
     val addOneForTotalRows = {
@@ -56,11 +60,13 @@ case class JsonRowList(query: Query
     }
     requestModel.requestCols.size + addOneForTotalRows
   }
-  private[this] var started = false
-  private[this] var ended = false
+  protected var started = false
+  protected var ended = false
   private[this] var rowsWritten: Int = 0
 
-  override def start() : Unit = {
+  protected lazy val jsonGenerator: JsonGenerator = jsonGeneratorProvider.newJsonGenerator
+
+  override protected def start() : Unit = {
     if(!started) {
       val outputColumnNames = query.queryContext.requestModel.reportingRequest.selectFields.map(f => f.alias.getOrElse(f.field))
       writeHeader(jsonGenerator, injectTotalRowsOption, outputColumnNames, getAliasColumnTypeMap(requestModel.requestCols, combinedAliasColumnMap))
@@ -73,8 +79,8 @@ case class JsonRowList(query: Query
     }
   }
 
-  override def end() : Unit = {
-    if(!ended) {
+  override protected def end() : Unit = {
+    if(started && !ended) {
       jsonGenerator.writeEndArray()
       if(requestModel.isAsyncRequest) {
         jsonGenerator.writeFieldName(ROW_COUNT)
@@ -173,6 +179,7 @@ case class JsonRowList(query: Query
   }
 
   private def writeRow(row: Row) {
+    require(started, "cannot write row without starting lifecycle")
     try {
       jsonGenerator.writeStartArray()
       var i: Int = 0
@@ -245,4 +252,65 @@ case class JsonRowList(query: Query
     }
   }
 
+}
+
+
+
+case class DefaultJsonRowList(query: Query
+                       , override val subQuery: IndexedSeq[Query]
+                       , injectTotalRowsOption: Option[Integer]
+                       , jsonGeneratorProvider: JsonGeneratorProvider
+                       , compatibilityMode: Boolean
+                        ) extends JsonRowList
+
+object FileJsonRowList {
+  def fileJsonRowList(file: File, injectTotalRowsOption: Option[Integer], compatibilityMode: Boolean) : Query => RowList = (q) => {
+    FileJsonRowList(q, IndexedSeq.empty, injectTotalRowsOption, FileJsonGeneratorProvider(file), compatibilityMode)
+  }
+}
+
+case class FileJsonRowList(query: Query
+                       , override val subQuery: IndexedSeq[Query]
+                       , injectTotalRowsOption: Option[Integer]
+                       , jsonGeneratorProvider: JsonGeneratorProvider
+                       , compatibilityMode: Boolean
+                      ) extends JsonRowList {
+
+  override def start(): Unit = {
+    if(!started) {
+      jsonGenerator.writeStartObject()
+      super.start()
+    }
+  }
+
+  override def end(): Unit = {
+    if(started && !ended) {
+      try {
+        super.end()
+        jsonGenerator.writeEndObject()
+      } finally {
+        jsonGenerator.flush()
+        jsonGenerator.close()
+      }
+    }
+  }
+}
+
+trait JsonGeneratorProvider {
+  def newJsonGenerator: JsonGenerator
+}
+
+case class FileJsonGeneratorProvider(file: File) extends JsonGeneratorProvider {
+  def newJsonGenerator: JsonGenerator = {
+    if(file.exists() && file.length() > 0) {
+      Files.write(file.toPath, Array[Byte](), StandardOpenOption.TRUNCATE_EXISTING) // Clear file
+    }
+    val fw = new OutputStreamWriter(new FileOutputStream(file.getAbsoluteFile, true),StandardCharsets.UTF_8)
+    val bw = new BufferedWriter(fw)
+    JsonRowList.jsonGenerator(bw)
+  }
+}
+
+case class PassThroughJsonGeneratorProvider(jsonGenerator: JsonGenerator) extends JsonGeneratorProvider {
+  def newJsonGenerator: JsonGenerator = jsonGenerator
 }

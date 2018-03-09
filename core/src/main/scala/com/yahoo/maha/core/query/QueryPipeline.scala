@@ -5,9 +5,9 @@ package com.yahoo.maha.core.query
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension.Dimension
 import com.yahoo.maha.core.fact.Fact.ViewTable
-import com.yahoo.maha.core.fact.{ViewBaseTable, FactView, FactBestCandidate}
+import com.yahoo.maha.core.fact.{FactBestCandidate, FactView, ViewBaseTable}
 import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
-import com.yahoo.maha.report.RowCSVWriter
+import com.yahoo.maha.report.{RowCSVWriter, RowCSVWriterProvider}
 import grizzled.slf4j.Logging
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -85,8 +85,8 @@ object QueryPipeline extends Logging {
   }
 
 
-  def csvRowList(csvWriter: RowCSVWriter, writeHeader: Boolean): Query => RowList = (q) =>
-    new CSVRowList(q, csvWriter, writeHeader)
+  def csvRowList(csvWriterProvider: RowCSVWriterProvider, writeHeader: Boolean): Query => RowList = (q) =>
+    new CSVRowList(q, csvWriterProvider, writeHeader)
 }
 
 object QueryPipelineWithFallback {
@@ -200,39 +200,21 @@ object QueryChain {
   val logger : Logger = LoggerFactory.getLogger(classOf[QueryChain])
 }
 
-case class SingleEngineQuery(drivingQuery: Query, fallbackQueryOption: Option[(Query, RowList)] = None) extends QueryChain {
-  var subsequentQueryList: IndexedSeq[Query] = IndexedSeq.empty
+case class SingleEngineQuery(drivingQuery: Query) extends QueryChain {
+  val subsequentQueryList: IndexedSeq[Query] = IndexedSeq.empty
 
   def execute(executorContext: QueryExecutorContext, rowListFn: Query => RowList, queryAttributes: QueryAttributes, engineQueryStats: EngineQueryStats): (RowList, QueryAttributes) = {
     val executor = executorContext.getExecutor(drivingQuery.engine)
     val drivingQueryStartTime = System.currentTimeMillis()
     val rowList = rowListFn(drivingQuery)
-    rowList.start()
-    val result = executor.fold(
-      throw new IllegalArgumentException(s"Executor not found for engine=${drivingQuery.engine}, query=$drivingQuery")
-    )(_.execute(drivingQuery, rowList, queryAttributes))
-    val drivingQueryEndTime = System.currentTimeMillis()
-    val queryStats = EngineQueryStat(drivingQuery.engine, drivingQueryStartTime, drivingQueryEndTime)
-    engineQueryStats.addStat(queryStats)
-    rowList.end()
-
-    if(result.isFailure) {
-      if(fallbackQueryOption.isDefined) {
-        QueryChain.logger.info(s"running fall back query, driving query failed with message=${result.message}")
-        val (query, rowList) = fallbackQueryOption.get
-        subsequentQueryList ++= Seq(query)
-        rowList.start()
-        val queryStartTime = System.currentTimeMillis()
-        val executor = executorContext.getExecutor(query.engine).get
-        val newResult = executor.execute(query, rowList, result.queryAttributes)
-        val queryEndTime = System.currentTimeMillis()
-        engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
-        rowList.end()
-        (newResult.rowList, newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
-      } else {
-        throw new IllegalArgumentException("No fall back query defined, failing request!")
-      }
-    } else {
+    rowList.withLifeCycle {
+      val result = executor.fold(
+        throw new IllegalArgumentException(s"Executor not found for engine=${drivingQuery.engine}, query=$drivingQuery")
+      )(_.execute(drivingQuery, rowList, queryAttributes))
+      val drivingQueryEndTime = System.currentTimeMillis()
+      val queryStats = EngineQueryStat(drivingQuery.engine, drivingQueryStartTime, drivingQueryEndTime)
+      engineQueryStats.addStat(queryStats)
+      require(!result.isFailure, s"query execution failed with message : ${result.message}")
       (result.rowList, result.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
     }
   }
@@ -245,7 +227,7 @@ case class SingleEngineQuery(drivingQuery: Query, fallbackQueryOption: Option[(Q
 case class MultiEngineQuery(drivingQuery: Query,
                             engines: Set[Engine], subsequentQueries: IndexedSeq[(IndexedRowList, QueryAttributes) => Query],
                             fallbackQueryOption: Option[(Query, RowList)] = None) extends QueryChain {
-  require(subsequentQueries.size > 0, "MultiEngineQuery must have > 1 subsequent queries!")
+  require(subsequentQueries.nonEmpty, "MultiEngineQuery must have > 1 subsequent queries!")
   require(drivingQuery.queryContext.indexAliasOption.isDefined, "Driving query must have index alias defined!")
 
   val subQueryList = new ArrayBuffer[Query]()
@@ -262,41 +244,43 @@ case class MultiEngineQuery(drivingQuery: Query,
 
     require(rowList.isInstanceOf[IndexedRowList], "Multi Engine Query requires an indexed row list!")
 
-    rowList.start()
-    val drivingQueryStartTime = System.currentTimeMillis()
-    val drivingResult = executorsMap(drivingQuery.engine).execute(drivingQuery, rowList.asInstanceOf[IndexedRowList], queryAttributes)
-    val drivingQueryEndTime = System.currentTimeMillis()
-    engineQueryStats.addStat(EngineQueryStat(drivingQuery.engine, drivingQueryStartTime, drivingQueryEndTime))
-    val result = if (drivingResult.rowList.keys.isEmpty) drivingResult else subsequentQueries.foldLeft(drivingResult) {
-      (previousResult, subsequentQuery) =>
-        val query = subsequentQuery(previousResult.rowList, previousResult.queryAttributes)
-        query match {
-          case NoopQuery =>
-            previousResult
-          case _ =>
-            subQueryList += query
-            val queryStartTime = System.currentTimeMillis()
-            val result = executorsMap(query.engine).execute(query, previousResult.rowList, previousResult.queryAttributes)
-            val queryEndTime = System.currentTimeMillis()
-            engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
-            result
-        }
+    val result = rowList.withLifeCycle {
+      val drivingQueryStartTime = System.currentTimeMillis()
+      val drivingResult = executorsMap(drivingQuery.engine).execute(drivingQuery, rowList.asInstanceOf[IndexedRowList], queryAttributes)
+      val drivingQueryEndTime = System.currentTimeMillis()
+      engineQueryStats.addStat(EngineQueryStat(drivingQuery.engine, drivingQueryStartTime, drivingQueryEndTime))
+      if (drivingResult.rowList.keys.isEmpty) drivingResult else subsequentQueries.foldLeft(drivingResult) {
+        (previousResult, subsequentQuery) =>
+          val query = subsequentQuery(previousResult.rowList, previousResult.queryAttributes)
+          query match {
+            case NoopQuery =>
+              previousResult
+            case _ =>
+              subQueryList += query
+              val queryStartTime = System.currentTimeMillis()
+              val result = executorsMap(query.engine).execute(query, previousResult.rowList, previousResult.queryAttributes)
+              val queryEndTime = System.currentTimeMillis()
+              engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
+              result
+          }
+      }
     }
-    rowList.end()
 
     // result._1.isEmpty returns of the updatedRows.isEmpty
     if (result.rowList.isUpdatedRowListEmpty && fallbackQueryOption.isDefined) {
       QueryChain.logger.info("No data from driving query, running fall back query")
       val (query, rowList) = fallbackQueryOption.get
       subQueryList += query
-      rowList.start()
-      val queryStartTime = System.currentTimeMillis()
-      val newResult = executorsMap(query.engine).execute(query, rowList, result.queryAttributes)
-      val queryEndTime = System.currentTimeMillis()
-      engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
-      rowList.end()
-      (newResult.rowList, newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+      rowList.withLifeCycle {
+        val queryStartTime = System.currentTimeMillis()
+        val newResult = executorsMap(query.engine).execute(query, rowList, result.queryAttributes)
+        val queryEndTime = System.currentTimeMillis()
+        engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
+        require(!newResult.isFailure, s"fallback query execution failed with message : ${newResult.message}")
+        (newResult.rowList, newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+      }
     } else {
+      require(!result.isFailure, s"query execution failed with message : ${result.message}")
       (result.rowList, result.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
     }
   }
@@ -322,46 +306,48 @@ case class MultiQuery(unionQueryList: List[Query], fallbackQueryOption: Option[(
     val executor = executorOption.get
     val drivingQueryStartTime = System.currentTimeMillis()
     val rowList = rowListFn(firstQuery)
-    rowList.start()
 
-    val firstResult = executor.execute(firstQuery, rowList, queryAttributes)  //it is just first seed to MultiQuery
-    val drivingQueryEndTime = System.currentTimeMillis()
-    engineQueryStats.addStat(EngineQueryStat(firstQuery.engine, drivingQueryStartTime, drivingQueryEndTime))
+    val result = rowList.withLifeCycle {
+      val firstResult = executor.execute(firstQuery, rowList, queryAttributes)  //it is just first seed to MultiQuery
+      val drivingQueryEndTime = System.currentTimeMillis()
+      engineQueryStats.addStat(EngineQueryStat(firstQuery.engine, drivingQueryStartTime, drivingQueryEndTime))
 
-    val result = unionQueryList.filter(q=> q!=firstQuery).foldLeft(firstResult) {
-      (previousResult, subsequentQuery) =>
-        val query = subsequentQuery
-        query match {
-          case NoopQuery =>
-            previousResult
-          case _ =>
-            val subsequentQueryStartTime = System.currentTimeMillis()
+      unionQueryList.filter(q=> q!=firstQuery).foldLeft(firstResult) {
+        (previousResult, subsequentQuery) =>
+          val query = subsequentQuery
+          query match {
+            case NoopQuery =>
+              previousResult
+            case _ =>
+              val subsequentQueryStartTime = System.currentTimeMillis()
 
-            val result = {
+              val result = {
                 //Step to trigger the use of the next ConstAliasToValueMap out of the list created at init
-               previousResult.rowList.nextStage()
-               executor.execute(query, previousResult.rowList, previousResult.queryAttributes)
-            }
-            val subsequentQueryEndTime = System.currentTimeMillis()
-            engineQueryStats.addStat(EngineQueryStat(query.engine, subsequentQueryStartTime, subsequentQueryEndTime))
-            result
-        }
+                previousResult.rowList.nextStage()
+                executor.execute(query, previousResult.rowList, previousResult.queryAttributes)
+              }
+              val subsequentQueryEndTime = System.currentTimeMillis()
+              engineQueryStats.addStat(EngineQueryStat(query.engine, subsequentQueryStartTime, subsequentQueryEndTime))
+              result
+          }
+      }
     }
-    rowList.end()
 
     if (result.rowList.isEmpty && fallbackQueryOption.isDefined) {
       QueryChain.logger.info("No data from driving query, running fall back query for MultiQuery")
       val (query, rowList) = fallbackQueryOption.get
-      rowList.start()
-      val queryStartTime = System.currentTimeMillis()
-      val executorOption = executorContext.getExecutor(query.engine)
-      val executor = executorOption.get
-      val newResult = executor.execute(query, rowList, result.queryAttributes)
-      val queryEndTime = System.currentTimeMillis()
-      engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
-      rowList.end()
-      (newResult.rowList, newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+      rowList.withLifeCycle {
+        val queryStartTime = System.currentTimeMillis()
+        val executorOption = executorContext.getExecutor(query.engine)
+        val executor = executorOption.get
+        val newResult = executor.execute(query, rowList, result.queryAttributes)
+        val queryEndTime = System.currentTimeMillis()
+        engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
+        require(!newResult.isFailure, s"fallback query execution failed with message : ${newResult.message}")
+        (newResult.rowList, newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+      }
     } else {
+      require(!result.isFailure, s"query execution failed with message : ${result.message}")
       (result.rowList, result.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
     }
   }
@@ -825,15 +811,37 @@ OuterGroupBy operation has to be applied only in the following cases
       }
     }
 
-    def runSingleEngineQuery(factBestCandidateOption: Option[FactBestCandidate], bestDimCandidates: SortedSet[DimensionBundle]): QueryPipelineBuilder = {
+    def runSyncSingleEngineQuery(factBestCandidateOption: Option[FactBestCandidate], bestDimCandidates: SortedSet[DimensionBundle]): QueryPipelineBuilder = {
       //oracle + oracle or druid only
       if (factBestCandidateOption.isDefined) {
         val query = getDimFactQuery(bestDimCandidates, factBestCandidateOption.get, requestModel, queryAttributes)
-        new QueryPipelineBuilder(
+        val fallbackQueryOptionTry: Try[Option[Query]] = Try {
+          val factEngines = requestModel.bestCandidates.get.facts.values.map(_.fact.engine).toSet
+          val factBestCandidateEngine = factBestCandidateOption.get.fact.engine
+          if (factEngines.size > 1) {
+            val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(requestModel, Set(factBestCandidateEngine))
+            if(newFactBestCandidateOption.isEmpty) {
+              requestDebug("No fact best candidate found for fallback query for request!")
+            }
+            newFactBestCandidateOption.map {
+              newFactBestCandidate =>
+                val query = getDimFactQuery(newBestDimCandidates, newFactBestCandidate, requestModel, queryAttributes)
+                query
+            }
+          } else {
+            requestDebug("No fallback query for request!")
+            None
+          }
+        }
+        val builder = new QueryPipelineBuilder(
           SingleEngineQuery(query)
           , factBestCandidateOption
           , bestDimCandidates
         )
+        if(fallbackQueryOptionTry.isSuccess && fallbackQueryOptionTry.get.isDefined) {
+          builder.withFallbackQueryChain(SingleEngineQuery(fallbackQueryOptionTry.get.get))
+        }
+        builder
       } else {
         val query = getDimOnlyQuery(bestDimCandidates, requestModel)
         new QueryPipelineBuilder(
@@ -912,7 +920,7 @@ OuterGroupBy operation has to be applied only in the following cases
           } else {
             //oracle + oracle or druid only
             requestDebug("runSingleEngineQuery")
-            runSingleEngineQuery(factBestCandidateOption, bestDimCandidates)
+            runSyncSingleEngineQuery(factBestCandidateOption, bestDimCandidates)
           }
         case AsyncRequest =>
           if (isMultiEngineQuery) {
@@ -920,7 +928,7 @@ OuterGroupBy operation has to be applied only in the following cases
           } else {
             if (factBestCandidateOption.isDefined) {
               val query = getDimFactQuery(bestDimCandidates, factBestCandidateOption.get, requestModel, queryAttributes)
-              val fallbackQueryOptionTry: Try[Option[(Query, RowList)]] = Try {
+              val fallbackQueryOptionTry: Try[Option[Query]] = Try {
                 val factEngines = requestModel.bestCandidates.get.facts.values.map(_.fact.engine).toSet
                 val factBestCandidateEngine = factBestCandidateOption.get.fact.engine
                 if (requestModel.bestCandidates.isDefined
@@ -932,18 +940,23 @@ OuterGroupBy operation has to be applied only in the following cases
                   newFactBestCandidateOption.map {
                     newFactBestCandidate =>
                       val query = getDimFactQuery(newBestDimCandidates, newFactBestCandidate, requestModel, queryAttributes)
-                      (query, QueryPipeline.completeRowList(query))
+                      //(query, QueryPipeline.completeRowList(query))
+                      query
                   }
                 } else {
                   info("No fallback query for request!")
                   None
                 }
               }
-              new QueryPipelineBuilder(
-                SingleEngineQuery(query, fallbackQueryOptionTry.getOrElse(None))
+              val builder = new QueryPipelineBuilder(
+                SingleEngineQuery(query)
                 , factBestCandidateOption
                 , bestDimCandidates
               )
+              if(fallbackQueryOptionTry.isSuccess && fallbackQueryOptionTry.get.isDefined) {
+                builder.withFallbackQueryChain(SingleEngineQuery(fallbackQueryOptionTry.get.get))
+              }
+              builder
             } else {
               if (requestModel.forceDimDriven) {
                 val query = getDimOnlyQuery(bestDimCandidates, requestModel)
