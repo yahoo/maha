@@ -13,6 +13,7 @@ import com.metamx.common.lifecycle.LifecycleStop;
 import com.metamx.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
 import io.druid.guice.ManageLifecycle;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
@@ -29,6 +30,7 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.ssl.SSLContexts;
 
 import javax.net.ssl.SSLContext;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Properties;
@@ -93,7 +95,7 @@ public class LookupService {
                     byte[] value = new byte[0];
                     for(String serviceNode: serviceNodeList) {
                         try {
-                            value = callService(lookupData).getBytes();
+                            value = callService(lookupData);
                             return value;
                         } catch (Exception e) {
                             LOG.error(e, String.format("Exception with node [%s] while doing lookup on key [%s]. Moving on to next node", serviceNode, lookupData.key));
@@ -114,10 +116,9 @@ public class LookupService {
         }
     }
 
-    private String callService(LookupData lookupData) throws URISyntaxException, IOException {
+    private byte[] callService(LookupData lookupData) throws URISyntaxException, IOException {
 
         HttpGet httpGet = new HttpGet();
-        httpGet.setHeader("content-type", "application/json");
         httpGet.setURI(new URIBuilder()
                 .setScheme(serviceScheme)
                 .setHost(getHost())
@@ -127,7 +128,10 @@ public class LookupService {
                 .addParameter("key", lookupData.key)
                 .build());
         final HttpResponse response = httpclient.execute(httpGet);
-        return new BasicResponseHandler().handleResponse(response);
+        final HttpEntity entity = response.getEntity();
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        entity.writeTo(baos);
+        return baos.toByteArray();
     }
 
     public Long getLastUpdatedTime(LookupData lookupData) {
