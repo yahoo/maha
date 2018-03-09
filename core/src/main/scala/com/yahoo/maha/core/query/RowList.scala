@@ -4,7 +4,7 @@ package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.parrequest.future.ParFunction
-import com.yahoo.maha.report.RowCSVWriter
+import com.yahoo.maha.report.{RowCSVWriter, RowCSVWriterProvider}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable
@@ -63,9 +63,18 @@ case class Row(aliasMap: Map[String, Int], cols: collection.mutable.ArrayBuffer[
 }
 
 sealed trait RowListLifeCycle {
-  def start() : Unit
+  protected def start() : Unit
   def nextStage(): Unit = {}
-  def end() : Unit
+  protected def end() : Unit
+
+  def withLifeCycle[T](fn: => T) : T = {
+    start()
+    try {
+      fn
+    } finally {
+      end()
+    }
+  }
 }
 
 trait RowList extends RowListLifeCycle {
@@ -121,10 +130,10 @@ trait RowList extends RowListLifeCycle {
     import collection.JavaConverters._
     map(r => fn.apply(r)).asJava
   }
-  def start() : Unit = {
+  protected def start() : Unit = {
     //do nothing
   }
-  def end() : Unit = {
+  protected def end() : Unit = {
     //do nothing
   }
 
@@ -609,16 +618,42 @@ object CSVRowList {
   private final val logger: Logger = LoggerFactory.getLogger(classOf[CSVRowList])
 }
 
-case class CSVRowList(query: Query, csvWriter: RowCSVWriter, writeHeader: Boolean) extends RowList {
+/**
+  * CSV row list.  Not thread safe
+  * @param query
+  * @param csvWriterProvider
+  * @param writeHeader
+  */
+class CSVRowList(val query: Query, csvWriterProvider: RowCSVWriterProvider, writeHeader: Boolean) extends RowList {
 
-  if(writeHeader) {
-    val outputColumnNames = query.queryContext.requestModel.reportingRequest.selectFields.map(f => f.alias.getOrElse(f.field)) ++ query.additionalColumns
-    csvWriter.writeColumnNames(outputColumnNames)
+  private[this] var started = false
+  private[this] var ended = false
+  private[this] var rowsWritten: Int = 0
+  private[this] var csvWriter: RowCSVWriter = null
+
+  override protected def start(): Unit = {
+    if(!started) {
+      csvWriter = csvWriterProvider.newRowCSVWriter
+      if (writeHeader) {
+        val outputColumnNames = query.queryContext.requestModel.reportingRequest.selectFields.map(f => f.alias.getOrElse(f.field)) ++ query.additionalColumns
+        csvWriter.writeColumnNames(outputColumnNames)
+      }
+      started = true
+    }
+  }
+
+  override protected def end(): Unit = {
+    if(started && !ended) {
+      csvWriter.close()
+      ended = true
+    }
   }
 
   override def addRow(r: Row, er: Option[Row] = None): Unit = {
-    postResultRowOperation(r, er)
-    csvWriter.writeRow(r, columnNames)
+    if(started) {
+      postResultRowOperation(r, er)
+      csvWriter.writeRow(r, columnNames)
+    }
   }
 
   override def isEmpty : Boolean = true

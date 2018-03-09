@@ -1333,8 +1333,9 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
     assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
-    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.isDefined)
-    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.get._1.isInstanceOf[OracleQuery])
+    assert(pipeline.isInstanceOf[QueryPipelineWithFallback])
+    assert(pipeline.asInstanceOf[QueryPipelineWithFallback].fallbackQueryChain.isInstanceOf[SingleEngineQuery])
+    assert(pipeline.asInstanceOf[QueryPipelineWithFallback].fallbackQueryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[OracleQuery])
     val result = pipeline.withDruidCallback {
       rl => throw new IllegalStateException("error!")
     }.withOracleCallback {
@@ -1365,8 +1366,9 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
     assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
-    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.isDefined)
-    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.get._1.isInstanceOf[OracleQuery])
+    assert(pipeline.isInstanceOf[QueryPipelineWithFallback])
+    assert(pipeline.asInstanceOf[QueryPipelineWithFallback].fallbackQueryChain.isInstanceOf[SingleEngineQuery])
+    assert(pipeline.asInstanceOf[QueryPipelineWithFallback].fallbackQueryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[OracleQuery])
     val result = pipeline.withDruidCallback {
       rl => throw new IllegalStateException("error!")
     }.withOracleCallback {
@@ -1397,14 +1399,15 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
     assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
-    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.isDefined)
-    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.get._1.isInstanceOf[OracleQuery])
+    assert(pipeline.isInstanceOf[QueryPipelineWithFallback])
+    assert(pipeline.asInstanceOf[QueryPipelineWithFallback].fallbackQueryChain.isInstanceOf[SingleEngineQuery])
+    assert(pipeline.asInstanceOf[QueryPipelineWithFallback].fallbackQueryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[OracleQuery])
     val result = pipeline.withDruidCallback {
       rl => throw new IllegalStateException("error!")
     }.run()
 
     assert(result.isFailure, result)
-    assert(result.failed.get.getMessage === "No fall back query engine executor defined, failing request!", result)
+    assert(result.failed.get.getMessage startsWith "Executor not found for engine=Oracle", result)
   }
 
   test("successfully generate fallback query on async request and execute it") {
@@ -1419,7 +1422,6 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
     assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
-    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.isEmpty)
     assert(pipeline.isInstanceOf[QueryPipelineWithFallback])
     assert(pipeline.asInstanceOf[QueryPipelineWithFallback].fallbackQueryChain.isInstanceOf[SingleEngineQuery])
     assert(pipeline.asInstanceOf[QueryPipelineWithFallback].fallbackQueryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[OracleQuery])
@@ -1453,7 +1455,6 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
     assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
-    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.isEmpty)
     assert(pipeline.isInstanceOf[QueryPipelineWithFallback])
     assert(pipeline.asInstanceOf[QueryPipelineWithFallback].fallbackQueryChain.isInstanceOf[SingleEngineQuery])
     assert(pipeline.asInstanceOf[QueryPipelineWithFallback].fallbackQueryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[OracleQuery])
@@ -1487,7 +1488,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
     assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
-    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].fallbackQueryOption.isEmpty)
+    assert(pipeline.isInstanceOf[DefaultQueryPipeline])
     val result = pipeline.withDruidCallback {
       rl => throw new IllegalStateException("error!")
     }.withOracleCallback {
@@ -1496,6 +1497,6 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isFailure, result)
-    assert(result.failed.get.getMessage === "No fall back query defined, failing request!", result)
+    assert(result.failed.get.getMessage === "requirement failed: query execution failed with message : ", result)
   }
 }

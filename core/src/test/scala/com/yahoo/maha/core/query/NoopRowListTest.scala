@@ -67,11 +67,11 @@ class NoopRowListTest extends FunSuite with Matchers with BaseOracleQueryGenerat
   }
   test("RowList LifeCycle Tests") {
     intercept[UnsupportedOperationException] {
-    val nrl =  new NoopRowList(query).foreach(r => println(r))
-    val rl = nrl.asInstanceOf[RowList]
-    rl.start()
-    rl.nextStage()
-    rl.end()
+      val nrl =  new NoopRowList(query).foreach(r => println(r))
+      val rl = nrl.asInstanceOf[RowList]
+      rl.withLifeCycle {
+        rl.nextStage()
+      }
     }
   }
 }

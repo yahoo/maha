@@ -55,23 +55,9 @@ class SingleEngineQueryTest extends FunSuite with Matchers with BaseQueryGenerat
     assert(queryAttribute.isInstanceOf[QueryStatsAttribute] && queryAttribute.asInstanceOf[QueryStatsAttribute].stats.getStats.nonEmpty)
   }
 
-  test("with forced failing query result and fallback defined") {
-    val query = getQuery(DruidEngine, getFactQueryContext(OracleEngine, getRequestModel(combinedQueryJson), None, QueryAttributes.empty), DimFactQuery)
-    val queryFallback = getQuery(HiveEngine, getFactQueryContext(OracleEngine, getRequestModel(combinedQueryJson), None, QueryAttributes.empty), DimFactQuery)
-    val qc = new SingleEngineQuery(query, Option((queryFallback, new CompleteRowList(queryFallback))))
-    val result = qc.execute(getPartialQueryExecutorContext, (q) => new CompleteRowList(q), QueryAttributes.empty, new EngineQueryStats)
-    result._1.foreach {
-      r =>
-        query.queryContext.requestModel.requestCols.filterNot(_.isInstanceOf[ConstantColumnInfo]).map(_.alias).foreach {
-          col => assert(r.getValue(col) === s"$col-value")
-        }
-    }
-    val queryAttribute = result._2.getAttribute(QueryAttributes.QueryStats)
-    assert(queryAttribute.isInstanceOf[QueryStatsAttribute] && queryAttribute.asInstanceOf[QueryStatsAttribute].stats.getStats.nonEmpty)
-  }
   test("with forced failing query result and fallback not defined") {
     val query = getQuery(DruidEngine, getFactQueryContext(OracleEngine, getRequestModel(combinedQueryJson), None, QueryAttributes.empty), DimFactQuery)
-    val qc = new SingleEngineQuery(query, None)
+    val qc = new SingleEngineQuery(query)
     val resultTry = Try(qc.execute(getPartialQueryExecutorContext, (q) => new CompleteRowList(q), QueryAttributes.empty, new EngineQueryStats))
     assert(resultTry.isFailure)
   }
