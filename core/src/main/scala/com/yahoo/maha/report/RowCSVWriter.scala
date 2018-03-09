@@ -8,8 +8,9 @@ package com.yahoo.maha.report
 
 import com.opencsv.CSVWriter
 import com.yahoo.maha.core.query.Row
-import java.io.PrintWriter
-import java.io.Writer
+import java.io._
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, StandardOpenOption}
 
 import org.apache.commons.lang.StringUtils
 
@@ -147,4 +148,17 @@ class RowCSVWriter(pw: PrintWriter, separator: Char, quotechar: Char, escapechar
 
 }
 
+trait RowCSVWriterProvider {
+  def newRowCSVWriter: RowCSVWriter
+}
 
+case class FileRowCSVWriterProvider(file: File) extends RowCSVWriterProvider {
+  def newRowCSVWriter: RowCSVWriter = {
+    if(file.exists() && file.length() > 0) {
+      Files.write(file.toPath, Array[Byte](), StandardOpenOption.TRUNCATE_EXISTING) // Clear file
+    }
+    val fw = new OutputStreamWriter(new FileOutputStream(file.getAbsoluteFile, true),StandardCharsets.UTF_8)
+    val bw = new BufferedWriter(fw)
+    new RowCSVWriter(bw, RowCSVWriter.DEFAULT_SEPARATOR)
+  }
+}

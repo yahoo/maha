@@ -3,7 +3,7 @@
 package com.yahoo.maha.report
 
 import java.io._
-import java.nio.file.Files
+import java.nio.file.{Files, StandardOpenOption}
 
 import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, ResellerSchema}
 import com.yahoo.maha.core.FilterOperation._
@@ -63,6 +63,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
     val tmpPath = new File("target").toPath
     val tmpFile = Files.createTempFile(tmpPath, "pre", "suf").toFile
     tmpFile.deleteOnExit()
+    Files.write(tmpFile.toPath, Array[Byte](1,2,3,4,5), StandardOpenOption.TRUNCATE_EXISTING) // Clear file
     val bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(tmpFile), "UTF-8"))
     val jsonGenerator = JsonRowList.jsonGenerator(bufferedWriter)
     val jsonRowList : RowList = JsonRowList.jsonRowList(jsonGenerator, None, false)(query)
@@ -70,33 +71,34 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
     assert(jsonRowList.isEmpty)
 
     jsonGenerator.writeStartObject()
-    jsonRowList.start()
-    val row = jsonRowList.newRow
+    jsonRowList.withLifeCycle {
+      val row = jsonRowList.newRow
 
-    row.addValue("Campaign ID",java.lang.Integer.valueOf(1))
-    row.addValue("Impressions",java.lang.Integer.valueOf(2))
-    row.addValue("Campaign Name","\"name\"")
-    row.addValue("Campaign Status","o,n")
-    row.addValue("CTR", java.lang.Double.valueOf(1.11D))
-    row.addValue("TOTALROWS", java.lang.Integer.valueOf(1))
-    assert(row.getValue("Campaign ID") === 1)
-    assert(row.getValue("Impressions") === 2)
-    assert(row.getValue("Campaign Name") === "\"name\"")
-    assert(row.getValue("Campaign Status") === "o,n")
-    assert(row.getValue("CTR") === 1.11D)
-    assert(row.getValue("TOTALROWS") === 1)
+      row.addValue("Campaign ID", java.lang.Integer.valueOf(1))
+      row.addValue("Impressions", java.lang.Integer.valueOf(2))
+      row.addValue("Campaign Name", "\"name\"")
+      row.addValue("Campaign Status", "o,n")
+      row.addValue("CTR", java.lang.Double.valueOf(1.11D))
+      row.addValue("TOTALROWS", java.lang.Integer.valueOf(1))
+      assert(row.getValue("Campaign ID") === 1)
+      assert(row.getValue("Impressions") === 2)
+      assert(row.getValue("Campaign Name") === "\"name\"")
+      assert(row.getValue("Campaign Status") === "o,n")
+      assert(row.getValue("CTR") === 1.11D)
+      assert(row.getValue("TOTALROWS") === 1)
 
-    assert(row.aliasMap.size === 6)
-    assert(row.getValue(0) === 1)
-    assert(row.getValue(1) === 2)
-    assert(row.getValue(2) === "\"name\"")
-    assert(row.getValue(3) === "o,n")
-    assert(row.getValue(4) === 1.11D)
-    assert(row.getValue(5) === 1)
+      assert(row.aliasMap.size === 6)
+      assert(row.getValue(0) === 1)
+      assert(row.getValue(1) === 2)
+      assert(row.getValue(2) === "\"name\"")
+      assert(row.getValue(3) === "o,n")
+      assert(row.getValue(4) === 1.11D)
+      assert(row.getValue(5) === 1)
 
-    jsonRowList.addRow(row)
+      jsonRowList.addRow(row)
 
-    jsonRowList.end()
+      jsonRowList
+    }
     jsonGenerator.writeEndObject()
     jsonGenerator.flush()
     bufferedWriter.close()
@@ -168,33 +170,32 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
     assert(jsonRowList.isEmpty)
 
     jsonGenerator.writeStartObject()
-    jsonRowList.start()
-    val row = jsonRowList.newRow
+    jsonRowList.withLifeCycle {
+      val row = jsonRowList.newRow
 
-    row.addValue("Campaign ID",java.lang.Integer.valueOf(1))
-    row.addValue("Impressions",java.lang.Integer.valueOf(2))
-    row.addValue("Campaign Name","\"name\"")
-    row.addValue("Campaign Status","o,n")
-    row.addValue("CTR", java.lang.Double.valueOf(1.11D))
-    row.addValue("TOTALROWS", java.lang.Integer.valueOf(1))
-    assert(row.getValue("Campaign ID") === 1)
-    assert(row.getValue("Impressions") === 2)
-    assert(row.getValue("Campaign Name") === "\"name\"")
-    assert(row.getValue("Campaign Status") === "o,n")
-    assert(row.getValue("CTR") === 1.11D)
-    assert(row.getValue("TOTALROWS") === 1)
+      row.addValue("Campaign ID", java.lang.Integer.valueOf(1))
+      row.addValue("Impressions", java.lang.Integer.valueOf(2))
+      row.addValue("Campaign Name", "\"name\"")
+      row.addValue("Campaign Status", "o,n")
+      row.addValue("CTR", java.lang.Double.valueOf(1.11D))
+      row.addValue("TOTALROWS", java.lang.Integer.valueOf(1))
+      assert(row.getValue("Campaign ID") === 1)
+      assert(row.getValue("Impressions") === 2)
+      assert(row.getValue("Campaign Name") === "\"name\"")
+      assert(row.getValue("Campaign Status") === "o,n")
+      assert(row.getValue("CTR") === 1.11D)
+      assert(row.getValue("TOTALROWS") === 1)
 
-    assert(row.aliasMap.size === 6)
-    assert(row.getValue(0) === 1)
-    assert(row.getValue(1) === 2)
-    assert(row.getValue(2) === "\"name\"")
-    assert(row.getValue(3) === "o,n")
-    assert(row.getValue(4) === 1.11D)
-    assert(row.getValue(5) === 1)
+      assert(row.aliasMap.size === 6)
+      assert(row.getValue(0) === 1)
+      assert(row.getValue(1) === 2)
+      assert(row.getValue(2) === "\"name\"")
+      assert(row.getValue(3) === "o,n")
+      assert(row.getValue(4) === 1.11D)
+      assert(row.getValue(5) === 1)
 
-    jsonRowList.addRow(row)
-
-    jsonRowList.end()
+      jsonRowList.addRow(row)
+    }
     jsonGenerator.writeEndObject()
     jsonGenerator.flush()
     bufferedWriter.close()
@@ -348,6 +349,45 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
     assert(jsonString2 === """{"header":{"cube":"k_stats","fields":[{"fieldName":"campaign_id","fieldType":"DIM"},{"fieldName":"Impressions","fieldType":"FACT"},{"fieldName":"Campaign Name","fieldType":"DIM"},{"fieldName":"Campaign Status","fieldType":"DIM"},{"fieldName":"CTR","fieldType":"FACT"}]},"fields":[{"fieldName":"campaign_id","fieldType":"DIM"},{"fieldName":"Impressions","fieldType":"FACT"},{"fieldName":"Campaign Name","fieldType":"DIM"},{"fieldName":"Campaign Status","fieldType":"DIM"},{"fieldName":"CTR","fieldType":"FACT"}],"rows":[[1,2,"name","on",1.11]],"rowCount":1,"debug":{"fields":[{"fieldName":"Campaign ID","dataType":"Number"},{"fieldName":"Campaign Status","dataType":"String"},{"fieldName":"Impressions","dataType":"Number"},{"fieldName":"Campaign Name","dataType":"String"},{"fieldName":"CTR","dataType":"Number"}],"drivingQuery":{"tableName":"fact_table_keywords","engine":"Oracle"}}}""")
   }
 
+  test("successfully construct file json row list") {
+    val tmpPath = new File("target").toPath
+    val tmpFile = Files.createTempFile(tmpPath, "pre2", "suf2").toFile
+    tmpFile.deleteOnExit()
+    Files.write(tmpFile.toPath, Array[Byte](1,2,3,4,5), StandardOpenOption.TRUNCATE_EXISTING) // Clear file
+    val jsonRowList : RowList = FileJsonRowList.fileJsonRowList(tmpFile, None, false)(query)
+    assert(jsonRowList.columnNames === IndexedSeq("Campaign ID", "Impressions", "Campaign Name", "Campaign Status", "CTR", "TOTALROWS"))
+    assert(jsonRowList.isEmpty)
+    jsonRowList.withLifeCycle {
+      val row = jsonRowList.newRow
+
+      row.addValue("Campaign ID", java.lang.Integer.valueOf(1))
+      row.addValue("Impressions", java.lang.Integer.valueOf(2))
+      row.addValue("Campaign Name", "\"name\"")
+      row.addValue("Campaign Status", "o,n")
+      row.addValue("CTR", java.lang.Double.valueOf(1.11D))
+      row.addValue("TOTALROWS", java.lang.Integer.valueOf(1))
+      assert(row.getValue("Campaign ID") === 1)
+      assert(row.getValue("Impressions") === 2)
+      assert(row.getValue("Campaign Name") === "\"name\"")
+      assert(row.getValue("Campaign Status") === "o,n")
+      assert(row.getValue("CTR") === 1.11D)
+      assert(row.getValue("TOTALROWS") === 1)
+
+      assert(row.aliasMap.size === 6)
+      assert(row.getValue(0) === 1)
+      assert(row.getValue(1) === 2)
+      assert(row.getValue(2) === "\"name\"")
+      assert(row.getValue(3) === "o,n")
+      assert(row.getValue(4) === 1.11D)
+      assert(row.getValue(5) === 1)
+
+      jsonRowList.addRow(row)
+
+      jsonRowList
+    }
+    val jsonString = scala.io.Source.fromFile(tmpFile, "UTF-8").getLines().mkString
+    assert(jsonString === """{"header":{"cube":"k_stats","fields":[{"fieldName":"campaign_id","fieldType":"DIM"},{"fieldName":"Impressions","fieldType":"FACT"},{"fieldName":"Campaign Name","fieldType":"DIM"},{"fieldName":"Campaign Status","fieldType":"DIM"},{"fieldName":"CTR","fieldType":"FACT"},{"fieldName":"TotalRows","fieldType":"CONSTANT"}],"maxRows":100},"rows":[[1,2,"\"name\"","o,n",1.11,1]],"debug":{"fields":[{"fieldName":"Campaign ID","dataType":"Number"},{"fieldName":"Campaign Status","dataType":"String"},{"fieldName":"Impressions","dataType":"Number"},{"fieldName":"Campaign Name","dataType":"String"},{"fieldName":"CTR","dataType":"Number"},{"fieldName":"TOTALROWS","dataType":"Number"},{"fieldName":"TotalRows","dataType":"integer"}],"drivingQuery":{"tableName":"campaign_oracle","engine":"Oracle"}}}""")
+  }
 
   override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
     registryBuilder.register(pubfact(forcedFilters))

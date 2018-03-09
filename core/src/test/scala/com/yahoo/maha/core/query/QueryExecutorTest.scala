@@ -2,16 +2,16 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query
 
-import java.io.{BufferedWriter, File, FileOutputStream, OutputStreamWriter}
+import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 import com.yahoo.maha.core.query.oracle.BaseOracleQueryGeneratorTest
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.core.{Column, Engine, OracleEngine, RequestModel}
-import com.yahoo.maha.report.RowCSVWriter
-import org.scalatest.{FunSuite, Matchers}
+import com.yahoo.maha.core.{Engine, OracleEngine, RequestModel}
+import com.yahoo.maha.report.FileRowCSVWriterProvider
 import org.apache.commons.io.FileUtils
+import org.scalatest.{FunSuite, Matchers}
 /**
  * Created by hiral on 3/15/16.
  */
@@ -82,9 +82,9 @@ class QueryExecutorTest extends FunSuite with Matchers with BaseOracleQueryGener
         row.addValue("Campaign Status", "active")
         row.addValue("CTR", "0.5")
         row.addValue("TOTALROWS", "1")
-        rowList.start()
-        rowList.addRow(row)
-        rowList.end()
+        rowList.withLifeCycle {
+          rowList.addRow(row)
+        }
         QueryResult(rowList, lifecycleListener.completed(query, queryAttributes), QueryResultStatus.SUCCESS)
       }
 
@@ -127,11 +127,8 @@ class QueryExecutorTest extends FunSuite with Matchers with BaseOracleQueryGener
     val tmpPath = new File("target").toPath
     val tmpFile = Files.createTempFile(tmpPath, "pre", ".csv").toFile
     tmpFile.deleteOnExit()
-    val bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(tmpFile), "UTF-8"))
-    val csvWriter = new RowCSVWriter(bufferedWriter, ',', RowCSVWriter.DEFAULT_QUOTE_CHARACTER)
-    val rowListWithHeaders : CSVRowList = new CSVRowList(query, csvWriter, true)
+    val rowListWithHeaders : CSVRowList = new CSVRowList(query, FileRowCSVWriterProvider(tmpFile), true)
     qe.execute(query, rowListWithHeaders, QueryAttributes.empty)
-    csvWriter.flush()
     val fileContents = FileUtils.readFileToString(tmpFile, StandardCharsets.UTF_8).trim
     val expectedContents = "Campaign ID,Impressions,Campaign Name,Campaign Status,CTR,TOTALROWS\ntest-camp-id,10,Test Campaign,active,0.5,1"
     assert(expectedContents.equals(fileContents), s"Expected: $expectedContents Actual: $fileContents")
