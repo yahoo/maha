@@ -209,7 +209,7 @@ case class SingleEngineQuery(drivingQuery: Query) extends QueryChain {
     val rowList = rowListFn(drivingQuery)
     rowList.withLifeCycle {
       val result = executor.fold(
-        throw new IllegalArgumentException(s"Executor not found for engine=${drivingQuery.engine}, query=$drivingQuery")
+        throw new IllegalArgumentException(s"Executor not found for engine=${drivingQuery.engine}, query=${drivingQuery.getClass.getSimpleName}")
       )(_.execute(drivingQuery, rowList, queryAttributes))
       val drivingQueryEndTime = System.currentTimeMillis()
       val queryStats = EngineQueryStat(drivingQuery.engine, drivingQueryStartTime, drivingQueryEndTime)

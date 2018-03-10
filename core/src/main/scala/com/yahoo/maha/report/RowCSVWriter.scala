@@ -157,8 +157,11 @@ case class FileRowCSVWriterProvider(file: File) extends RowCSVWriterProvider {
     if(file.exists() && file.length() > 0) {
       Files.write(file.toPath, Array[Byte](), StandardOpenOption.TRUNCATE_EXISTING) // Clear file
     }
-    val fw = new OutputStreamWriter(new FileOutputStream(file.getAbsoluteFile, true),StandardCharsets.UTF_8)
-    val bw = new BufferedWriter(fw)
-    new RowCSVWriter(bw, RowCSVWriter.DEFAULT_SEPARATOR)
+    val fos = new FileOutputStream(file.getAbsoluteFile, true)
+    val writerTry = safeCloseable(fos)(new OutputStreamWriter(_, StandardCharsets.UTF_8))
+      .flatMap(safeCloseable(_)(new BufferedWriter(_)))
+      .flatMap(safeCloseable(_)(new RowCSVWriter(_, RowCSVWriter.DEFAULT_SEPARATOR)))
+    require(writerTry.isSuccess, s"Failed to create RowCSVWriter safely : $writerTry")
+    writerTry.get
   }
 }
