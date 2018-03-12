@@ -231,6 +231,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     }
   }
 
+  override def validateEngineConstraints(requestModel: RequestModel): Boolean = {
+    return requestModel.startIndex < maximumMaxRows ;
+  }
 
   private[this] def generateFactQuery(dims: SortedSet[DimensionBundle], queryContext: FactQueryContext): Query = {
 
