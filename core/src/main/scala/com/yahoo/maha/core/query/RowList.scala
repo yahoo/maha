@@ -629,23 +629,29 @@ class CSVRowList(val query: Query, csvWriterProvider: RowCSVWriterProvider, writ
   private[this] var started = false
   private[this] var ended = false
   private[this] var rowsWritten: Int = 0
-  private[this] var csvWriter: RowCSVWriter = null
+  private[this] lazy val csvWriter: RowCSVWriter = csvWriterProvider.newRowCSVWriter
 
   override protected def start(): Unit = {
     if(!started) {
-      csvWriter = csvWriterProvider.newRowCSVWriter
+      started = true
       if (writeHeader) {
         val outputColumnNames = query.queryContext.requestModel.reportingRequest.selectFields.map(f => f.alias.getOrElse(f.field)) ++ query.additionalColumns
         csvWriter.writeColumnNames(outputColumnNames)
       }
-      started = true
     }
   }
 
   override protected def end(): Unit = {
     if(started && !ended) {
-      csvWriter.close()
-      ended = true
+      try {
+        csvWriter.close()
+      } catch {
+        case t: Throwable =>
+          CSVRowList.logger.error("Failed on end", t)
+          throw t
+      } finally {
+        ended = true
+      }
     }
   }
 
@@ -653,6 +659,8 @@ class CSVRowList(val query: Query, csvWriterProvider: RowCSVWriterProvider, writ
     if(started) {
       postResultRowOperation(r, er)
       csvWriter.writeRow(r, columnNames)
+    } else {
+      throw new IllegalStateException("Cannot addRow without calling start first")
     }
   }
 
