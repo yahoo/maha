@@ -3,8 +3,6 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.jdbc._
-import org.joda.time
-import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone, Instant}
 import org.junit.Assert._
 import org.scalatest.FunSuite
