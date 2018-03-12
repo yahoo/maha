@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query
 
-import java.io.File
+import java.io.{File, FileNotFoundException}
 import java.nio.file.{Files, StandardOpenOption}
 
 import com.yahoo.maha.core.RequestModel
@@ -92,30 +92,32 @@ class CSVRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTest {
     assert(rowListWithHeaders.columnNames === IndexedSeq("Campaign ID", "Impressions", "Campaign Name", "Campaign Status", "CTR", "TOTALROWS"))
     assert(rowListWithHeaders.isEmpty)
 
-    val row = rowListWithHeaders.newRow
-    
-    row.addValue("Campaign ID",java.lang.Integer.valueOf(1))
-    row.addValue("Impressions",java.lang.Integer.valueOf(2))
-    row.addValue("Campaign Name","\"name\"")
-    row.addValue("Campaign Status","o,n")
-    row.addValue("CTR", java.lang.Double.valueOf(1.11D))
-    row.addValue("TOTALROWS", java.lang.Integer.valueOf(1))
-    assert(row.getValue("Campaign ID") === 1)
-    assert(row.getValue("Impressions") === 2)
-    assert(row.getValue("Campaign Name") === "\"name\"")
-    assert(row.getValue("Campaign Status") === "o,n")
-    assert(row.getValue("CTR") === 1.11D)
-    assert(row.getValue("TOTALROWS") === 1)
+    rowListWithHeaders.withLifeCycle {
+      val row = rowListWithHeaders.newRow
 
-    assert(row.aliasMap.size === 6)
-    assert(row.getValue(0) === 1)
-    assert(row.getValue(1) === 2)
-    assert(row.getValue(2) === "\"name\"")
-    assert(row.getValue(3) === "o,n")
-    assert(row.getValue(4) === 1.11D)
-    assert(row.getValue(5) === 1)
+      row.addValue("Campaign ID", java.lang.Integer.valueOf(1))
+      row.addValue("Impressions", java.lang.Integer.valueOf(2))
+      row.addValue("Campaign Name", "\"name\"")
+      row.addValue("Campaign Status", "o,n")
+      row.addValue("CTR", java.lang.Double.valueOf(1.11D))
+      row.addValue("TOTALROWS", java.lang.Integer.valueOf(1))
+      assert(row.getValue("Campaign ID") === 1)
+      assert(row.getValue("Impressions") === 2)
+      assert(row.getValue("Campaign Name") === "\"name\"")
+      assert(row.getValue("Campaign Status") === "o,n")
+      assert(row.getValue("CTR") === 1.11D)
+      assert(row.getValue("TOTALROWS") === 1)
 
-    rowListWithHeaders.addRow(row)
+      assert(row.aliasMap.size === 6)
+      assert(row.getValue(0) === 1)
+      assert(row.getValue(1) === 2)
+      assert(row.getValue(2) === "\"name\"")
+      assert(row.getValue(3) === "o,n")
+      assert(row.getValue(4) === 1.11D)
+      assert(row.getValue(5) === 1)
+
+      rowListWithHeaders.addRow(row)
+    }
     
     val csvLines = scala.io.Source.fromFile(tmpFile, "UTF-8").getLines()
     var count = 0
@@ -231,4 +233,14 @@ class CSVRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTest {
     assert(checkedHeader)
   }
 
+  test("fail to construct file csv row list with no write perm") {
+    val tmpFile= new File("/blah")
+    val rowListWithHeaders : CSVRowList = new CSVRowList(query, FileRowCSVWriterProvider(tmpFile), true)
+    val thrown = intercept[FileNotFoundException] {
+      rowListWithHeaders.withLifeCycle {
+        println("hello")
+      }
+    }
+    assert(thrown.getMessage === "/blah (Permission denied)")
+  }
 }

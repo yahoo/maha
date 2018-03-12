@@ -1,6 +1,6 @@
 // Copyright 2017, Yahoo Holdings Inc.
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
-package com.yahoo.maha.core.query
+package com.yahoo.maha.report
 
 import java.io._
 import java.nio.charset.StandardCharsets
@@ -8,6 +8,7 @@ import java.nio.file.{Files, StandardOpenOption}
 
 import com.fasterxml.jackson.core.{JsonEncoding, JsonGenerator}
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.yahoo.maha.core.query.{Query, Row, RowList}
 import com.yahoo.maha.core.{Column, ColumnInfo, DimColumnInfo, FactColumnInfo}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -16,7 +17,7 @@ import org.slf4j.{Logger, LoggerFactory}
  */
 
 object JsonRowList {
-  private final val LOGGER: Logger = LoggerFactory.getLogger(classOf[JsonRowList])
+  private final val logger: Logger = LoggerFactory.getLogger(classOf[JsonRowList])
   private final val objectMapper: ObjectMapper = new ObjectMapper
   private final val TOTAL_ROWS: String = "TotalRows"
   private final val ROW_COUNT: String = "rowCount"
@@ -68,6 +69,7 @@ trait JsonRowList extends RowList {
 
   override protected def start() : Unit = {
     if(!started) {
+      started = true
       val outputColumnNames = query.queryContext.requestModel.reportingRequest.selectFields.map(f => f.alias.getOrElse(f.field))
       writeHeader(jsonGenerator, injectTotalRowsOption, outputColumnNames, getAliasColumnTypeMap(requestModel.requestCols, combinedAliasColumnMap))
       if(compatibilityMode) {
@@ -75,22 +77,27 @@ trait JsonRowList extends RowList {
       }
       jsonGenerator.writeFieldName("rows")
       jsonGenerator.writeStartArray()
-      started = true
     }
   }
 
   override protected def end() : Unit = {
     if(started && !ended) {
-      jsonGenerator.writeEndArray()
-      if(requestModel.isAsyncRequest) {
-        jsonGenerator.writeFieldName(ROW_COUNT)
-        if(injectTotalRowsOption.isDefined) {
-          jsonGenerator.writeNumber(injectTotalRowsOption.get)
-        } else {
-          jsonGenerator.writeNumber(rowsWritten)
+      try {
+        jsonGenerator.writeEndArray()
+        if (requestModel.isAsyncRequest) {
+          jsonGenerator.writeFieldName(ROW_COUNT)
+          if (injectTotalRowsOption.isDefined) {
+            jsonGenerator.writeNumber(injectTotalRowsOption.get)
+          } else {
+            jsonGenerator.writeNumber(rowsWritten)
+          }
         }
+        writeDebug()
+      } catch {
+        case t: Throwable =>
+          JsonRowList.logger.error("Failed on end", t)
+          throw t
       }
-      writeDebug()
       ended = true
     }
   }
@@ -196,7 +203,7 @@ trait JsonRowList extends RowList {
     }
     catch {
       case e: IOException =>
-        LOGGER.error("Failed on transforming row data : " + row, e)
+        logger.error("Failed on transforming row data : " + row, e)
     }
   }
 
@@ -264,6 +271,7 @@ case class DefaultJsonRowList(query: Query
                         ) extends JsonRowList
 
 object FileJsonRowList {
+  private final val logger: Logger = LoggerFactory.getLogger(classOf[FileJsonRowList])
   def fileJsonRowList(file: File, injectTotalRowsOption: Option[Integer], compatibilityMode: Boolean) : Query => RowList = (q) => {
     FileJsonRowList(q, IndexedSeq.empty, injectTotalRowsOption, FileJsonGeneratorProvider(file), compatibilityMode)
   }
@@ -288,6 +296,10 @@ case class FileJsonRowList(query: Query
       try {
         super.end()
         jsonGenerator.writeEndObject()
+      } catch {
+        case t:Throwable =>
+          FileJsonRowList.logger.error("Failed on end", t)
+          throw t
       } finally {
         jsonGenerator.flush()
         jsonGenerator.close()
@@ -305,9 +317,12 @@ case class FileJsonGeneratorProvider(file: File) extends JsonGeneratorProvider {
     if(file.exists() && file.length() > 0) {
       Files.write(file.toPath, Array[Byte](), StandardOpenOption.TRUNCATE_EXISTING) // Clear file
     }
-    val fw = new OutputStreamWriter(new FileOutputStream(file.getAbsoluteFile, true),StandardCharsets.UTF_8)
-    val bw = new BufferedWriter(fw)
-    JsonRowList.jsonGenerator(bw)
+    val fos = new FileOutputStream(file.getAbsoluteFile, true)
+    val jsonGeneratorTry = safeCloseable(fos)(new OutputStreamWriter(_, StandardCharsets.UTF_8))
+      .flatMap(safeCloseable(_)(new BufferedWriter(_)))
+      .flatMap(safeCloseable(_)(JsonRowList.jsonGenerator(_)))
+    require(jsonGeneratorTry.isSuccess, "Failed to create json generator safely")
+    jsonGeneratorTry.get
   }
 }
 

@@ -21,6 +21,8 @@ import scala.util.Try
 trait QueryPipeline {
   def queryChain: QueryChain
 
+  def fallbackQueryChainOption: Option[QueryChain]
+
   def requestModel : RequestModel
 
   def factBestCandidate: Option[FactBestCandidate]
@@ -100,6 +102,8 @@ case class QueryPipelineWithFallback(queryChain: QueryChain
                                      , fallbackQueryChain: QueryChain
                                      , fallbackRowListFn: Query => RowList) extends QueryPipeline {
 
+  val fallbackQueryChainOption: Option[QueryChain] = Option(fallbackQueryChain)
+
   def execute(executorContext: QueryExecutorContext): Try[(RowList, QueryAttributes)] = {
     val stats = new EngineQueryStats
     Try(queryChain.execute(executorContext, rowListFn, QueryAttributes.empty, stats)).recover {
@@ -125,6 +129,9 @@ case class DefaultQueryPipeline(queryChain: QueryChain
                                 , factBestCandidate: Option[FactBestCandidate]
                                 , bestDimCandidates: SortedSet[DimensionBundle]
                                 , rowListFn: Query => RowList) extends QueryPipeline {
+
+  val fallbackQueryChainOption: Option[QueryChain] = None
+
   def execute(executorContext: QueryExecutorContext): Try[(RowList, QueryAttributes)] = {
     val stats = new EngineQueryStats
     Try(queryChain.execute(executorContext, rowListFn, QueryAttributes.empty, stats))
@@ -209,7 +216,7 @@ case class SingleEngineQuery(drivingQuery: Query) extends QueryChain {
     val rowList = rowListFn(drivingQuery)
     rowList.withLifeCycle {
       val result = executor.fold(
-        throw new IllegalArgumentException(s"Executor not found for engine=${drivingQuery.engine}, query=$drivingQuery")
+        throw new IllegalArgumentException(s"Executor not found for engine=${drivingQuery.engine}, query=${drivingQuery.getClass.getSimpleName}")
       )(_.execute(drivingQuery, rowList, queryAttributes))
       val drivingQueryEndTime = System.currentTimeMillis()
       val queryStats = EngineQueryStat(drivingQuery.engine, drivingQueryStartTime, drivingQueryEndTime)
