@@ -390,11 +390,6 @@ class BaseUTCTimeProviderTest extends FunSuite {
 
   test("Case: Shift UtcDay forward by 1 day") {
     val timezone = Option("America/Los_Angeles")
-    val today = DateTime.now()
-    val yesterday = today.minusDays(1)
-    val fmt = DateTimeFormat.forPattern("yyyy-MM-dd")
-    val todayStr = fmt.print(today)
-    val yDayStr = fmt.print(yesterday)
     val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-08")
     val hourStr = {
       if (DateTimeZone.forID(timezone.get).isStandardOffset(Instant.now().getMillis))
