@@ -395,6 +395,7 @@ class BaseUTCTimeProviderTest extends FunSuite {
       else
         "17"
     } ;
+
     val localHourFilter = new BetweenFilter("Hour", hourStr, hourStr)
     val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter),  None, timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[BetweenFilter], Option[BetweenFilter]]]
     assertEquals("2016-03-08-2016-03-09", utcDayFilter.asValues)

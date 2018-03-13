@@ -7,6 +7,7 @@ package com.yahoo.maha.executor.druid
  */
 
 import java.io.Closeable
+import javax.net.ssl.SSLContext
 
 import com.ning.http.client.{AsyncHttpClient, AsyncHttpClientConfig, Response}
 import com.yahoo.maha.executor.druid.filters.TimeoutThrottlingFilter
@@ -91,7 +92,7 @@ class HttpUtils(config:AsyncHttpClientConfig, enableRetryOn500: Boolean, retryDe
 
 object ClientConfig{
 
-  def getConfig( maxConnectionsPerHost:Int, maxConnections:Int,connectionTimeout:Int,timeoutRetryInterval:Int,timeoutThreshold:Int,degradationConfig:String,readTimeout:Int,requestTimeout:Int,pooledConnectionIdleTimeout:Int,timeoutMaxResponseTimeInMs:Int): AsyncHttpClientConfig ={
+  def getConfig( maxConnectionsPerHost:Int, maxConnections:Int,connectionTimeout:Int,timeoutRetryInterval:Int,timeoutThreshold:Int,degradationConfig:String,readTimeout:Int,requestTimeout:Int,pooledConnectionIdleTimeout:Int,timeoutMaxResponseTimeInMs:Int,sslContextVersion:String): AsyncHttpClientConfig ={
     val builder =  new AsyncHttpClientConfig.Builder()
     builder.setAllowPoolingConnections(true)
       .setMaxConnectionsPerHost(maxConnectionsPerHost)
@@ -105,6 +106,7 @@ object ClientConfig{
         timeoutMaxResponseTime= timeoutMaxResponseTimeInMs))
       .setAllowPoolingSslConnections(true)
       .setCompressionEnforced(true)
+      .setSSLContext(SSLContext.getInstance(sslContextVersion))
     builder.build()
   }
 }
