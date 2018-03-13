@@ -430,12 +430,12 @@ object DefaultQueryPipelineFactory extends Logging {
               // (i)  explicitly enabled through asyncDruidEnabled
               // (ii) request does not have any dim filter/field
               // (iii) explicitly enabled through asyncDruidEnabled and asyncDruidLookupEnabled
-              if ((dimEngines.contains(DruidEngine) && !forceDisqualifySet(DruidEngine)) || !(requestModel.hasDimFilters || requestModel.requestCols.filter(c => c.isInstanceOf[DimColumnInfo]).size > 0)) {
+              if (dimEngines.contains(DruidEngine) || !(requestModel.hasDimFilters || requestModel.requestCols.filter(c => c.isInstanceOf[DimColumnInfo]).size > 0)) {
                 if(requestModel.isDebugEnabled) {
                   info(s"isFactDriven=${requestModel.isFactDriven} forceDisqualifySet=$forceDisqualifySet dimEngines=$dimEngines")
                   info(s"hasDimFilters=${requestModel.hasDimFilters} requestCols=${requestModel.requestCols.filter(c => c.isInstanceOf[DimColumnInfo])}")
                 }
-                QueryPipeline.asyncDisqualifyingSet ++ forceDisqualifySet -- Set(DruidEngine)
+                (QueryPipeline.asyncDisqualifyingSet -- Set(DruidEngine)) ++ forceDisqualifySet
               } else {
                 QueryPipeline.asyncDisqualifyingSet ++ forceDisqualifySet
               }

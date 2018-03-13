@@ -356,6 +356,25 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
                           "forceDimensionDriven": false
                           }"""
 
+  val factRequestWithNoDims = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Day"},
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "DESC"}
+                          ],
+                          "includeRowCount" : false,
+                          "forceDimensionDriven": false
+                          }"""
+
   val requestWithOutOfRangeDruidDim = s"""{
                           "cube": "k_stats",
                           "selectFields": [
@@ -1504,5 +1523,38 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     assert(result.isFailure, result)
     assert(result.failed.get.getMessage === "requirement failed: query execution failed with message : ", result)
+  }
+
+  test("successfully generate fallback query on async request with force engine and execute it when no joins required") {
+    val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestAsync(factRequestWithNoDims))
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
+    assert(pipeline.fallbackQueryChainOption.isDefined)
+    assert(pipeline.isInstanceOf[QueryPipelineWithFallback])
+    assert(pipeline.asInstanceOf[QueryPipelineWithFallback].fallbackQueryChain.isInstanceOf[SingleEngineQuery])
+    assert(pipeline.asInstanceOf[QueryPipelineWithFallback].fallbackQueryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[OracleQuery])
+    val result = pipeline.withDruidCallback {
+      rl => throw new IllegalStateException("error!")
+    }.withOracleCallback {
+      rl =>
+        assert(true, "Should get here!")
+        val row = rl.newRow
+        row.addValue("Day", fromDate)
+        row.addValue("Advertiser ID", 1)
+        row.addValue("Impressions", 100)
+        row.addValue("Clicks", 1)
+        rl.addRow(row)
+    }.run()
+
+    assert(result.isSuccess, result)
+    assert(!result.toOption.get._1.isEmpty)
   }
 }
