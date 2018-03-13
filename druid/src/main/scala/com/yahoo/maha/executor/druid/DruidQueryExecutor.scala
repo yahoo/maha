@@ -37,6 +37,7 @@ case class DruidQueryExecutorConfig(maxConnectionsPerHost:Int
                                     , retryDelayMillis:Int
                                     , maxRetry: Int
                                     , enableFallbackOnUncoveredIntervals: Boolean = false
+                                    , sslContextVersion: String = "TLSv1.2"
                                      )
 
 object DruidQueryExecutor extends Logging {
@@ -244,6 +245,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
       ,config.requestTimeout
       ,config.pooledConnectionIdleTimeout
       ,config.timeoutMaxResponseTimeInMs
+      ,config.sslContextVersion
     )
     , config.enableRetryOn500
     , config.retryDelayMillis
