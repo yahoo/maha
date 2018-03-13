@@ -3,7 +3,7 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.jdbc._
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{DateTime, DateTimeZone, Instant}
 import org.junit.Assert._
 import org.scalatest.FunSuite
 
@@ -389,7 +389,13 @@ class BaseUTCTimeProviderTest extends FunSuite {
   test("Case: Shift UtcDay forward by 1 day") {
     val timezone = Option("America/Los_Angeles")
     val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-08")
-    val localHourFilter = new BetweenFilter("Hour", "16", "16")
+    val hourStr = {
+    if (DateTimeZone.forID(timezone.get).isStandardOffset(Instant.now().getMillis))
+      "16"
+    else
+      "17"
+    }
+    val localHourFilter = new BetweenFilter("Hour", hourStr, hourStr)
     val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter),  None, timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[BetweenFilter], Option[BetweenFilter]]]
     assertEquals("2016-03-08-2016-03-09", utcDayFilter.asValues)
 
