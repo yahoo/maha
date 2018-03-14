@@ -94,6 +94,8 @@ object ClientConfig{
 
   def getConfig( maxConnectionsPerHost:Int, maxConnections:Int,connectionTimeout:Int,timeoutRetryInterval:Int,timeoutThreshold:Int,degradationConfig:String,readTimeout:Int,requestTimeout:Int,pooledConnectionIdleTimeout:Int,timeoutMaxResponseTimeInMs:Int,sslContextVersion:String): AsyncHttpClientConfig ={
     val builder =  new AsyncHttpClientConfig.Builder()
+    val sslContext: SSLContext = SSLContext.getInstance(sslContextVersion)
+    sslContext.init(null, null, null)
     builder.setAllowPoolingConnections(true)
       .setMaxConnectionsPerHost(maxConnectionsPerHost)
       .setMaxConnections(maxConnections)
@@ -106,7 +108,7 @@ object ClientConfig{
         timeoutMaxResponseTime= timeoutMaxResponseTimeInMs))
       .setAllowPoolingSslConnections(true)
       .setCompressionEnforced(true)
-      .setSSLContext(SSLContext.getInstance(sslContextVersion))
+      .setSSLContext(sslContext)
     builder.build()
   }
 }
