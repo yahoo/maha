@@ -711,15 +711,14 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "sortBy": [
                             {"field": "Impressions", "order": "Asc"}
                           ],
-                          "paginationStartIndex":5001,
+                          "paginationStartIndex":5000,
                           "rowsPerPage":100
                         }"""
 
       val request: ReportingRequest = getReportingRequestSync(jsonString)
       val requestModel = RequestModel.from(request, getDefaultRegistry())
       val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-      assert(!queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-
+      assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
   }
 
   test("limit should be set to 2*maxRows if there is a NonFKDimfilter") {
