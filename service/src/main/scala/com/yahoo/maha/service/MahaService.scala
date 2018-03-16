@@ -78,20 +78,23 @@ trait MahaService {
                      , bucketParams: BucketParams
                      , mahaRequestLogHelper: MahaRequestLogHelper): ParRequestResult
 
+  /*
+   Generates the RequestModelResult for given ReportingRequest
+   */
   def generateRequestModel(registryName: String,
                            reportingRequest: ReportingRequest,
                            bucketParams: BucketParams,
                            mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestModelResult]
 
   /**
-   * Provide model
+   * Executes the RequestModel and provide the RequestResult
    */
   def processRequestModel(registryName: String,
                           requestModel: RequestModel,
                           mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestResult]
 
   /**
-   * Provide model result
+   * Prepare the ParRequests for given RequestModel. Invocation is left on the user's implementation details.
    */
   def executeRequestModelResult(registryName: String,
                                 requestModelResult: RequestModelResult,
@@ -117,7 +120,7 @@ case class DefaultMahaService(config: MahaServiceConfig,
   val rowCountIncomputableEngineSet: Set[Engine] = Set(DruidEngine)
 
   /**
-   * Generates own model
+   * Generates own model and create ParRequestResult and invoke the execution
    */
   override def processRequest(registryName: String
                               , reportingRequest: ReportingRequest
@@ -141,7 +144,7 @@ case class DefaultMahaService(config: MahaServiceConfig,
   }
 
   /**
-   * Generates own model
+   * Generates own model, create ParRequestResult. Invocation is left on the user's implementation details.
    */
   override def executeRequest(registryName: String
                               , reportingRequest: ReportingRequest
@@ -173,8 +176,7 @@ case class DefaultMahaService(config: MahaServiceConfig,
   }
 
   /**
-   * Provide model
-   *
+   * Executes the RequestModel and provide the RequestResult
    */
   override def processRequestModel(registryName: String, requestModel: RequestModel, mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestResult] = {
     val parLabel = "processRequestModel"
@@ -183,7 +185,7 @@ case class DefaultMahaService(config: MahaServiceConfig,
   }
 
   /**
-   * Provide model
+   * Prepare the ParRequests for given RequestModel. Invocation is left on the user's implementation details.
    */
   override def executeRequestModelResult(registryName: String, requestModelResult: RequestModelResult, mahaRequestLogHelper: MahaRequestLogHelper): ParRequestResult = {
     val parLabel = "executeRequestModelResult"
