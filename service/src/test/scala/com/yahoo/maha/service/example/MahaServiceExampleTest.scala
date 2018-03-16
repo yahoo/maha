@@ -750,7 +750,9 @@ class MahaServiceExampleTest extends BaseFactoryTest {
     val mahaRequestLogHelper = MahaRequestLogHelper("er", mahaService)
 
     val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams, mahaRequestLogHelper)
-    assert(requestModelResultTry.isSuccess)
+    val eitherResult = mahaService.rmResultPostProcessor.process(requestModelResultTry, mahaRequestLogHelper)
+
+    assert(eitherResult.isRight)
 
     // Create Tables
     erRegistry.dimMap.values.foreach {
@@ -762,7 +764,9 @@ class MahaServiceExampleTest extends BaseFactoryTest {
         }
     }
 
-    val processRequestResult = mahaService.processRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
-    assert(processRequestResult.isFailure, "Request should fail with invalid SQL syntax.")
+    val requestResultTry = mahaService.processRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
+    val eitherRequestResult = mahaService.requestResultPostProcessor.process(requestResultTry, mahaRequestLogHelper)
+    assert(eitherRequestResult.isLeft, "Request should fail with invalid SQL syntax.")
+
     }
 }
