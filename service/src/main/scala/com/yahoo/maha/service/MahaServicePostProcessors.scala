@@ -7,7 +7,6 @@ import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.parrequest.{Either, GeneralError, Right}
 import com.yahoo.maha.service.error.{MahaServiceExecutionException, MahaServiceBadRequestException}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
-
 import scala.util.Try
 
 /**
