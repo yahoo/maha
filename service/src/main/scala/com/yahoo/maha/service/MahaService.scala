@@ -55,7 +55,7 @@ trait MahaService {
   /*
    Application Logger for every Maha Reporting Request
  */
-  def mahaServiceAppLogger : MahaServiceAppLogger
+  def mahaServiceAppLogger : MahaServiceMonitor
 
   /*
    Kafka logger for every Maha Reporting Request
@@ -111,7 +111,7 @@ trait MahaService {
 case class DefaultMahaService(config: MahaServiceConfig,
                          rmResultPostProcessor: RmResultPostProcessor = DefaultRmResultPostProcessor(MahaServiceConstants.RequestLabel),
                          requestResultPostProcessor :RequestResultPostProcessor = DefaultRequestResultPostProcessor(MahaServiceConstants.RequestLabel),
-                         mahaServiceAppLogger : MahaServiceAppLogger = new DefaultMahaServiceAppLogger) extends MahaService with Logging {
+                         mahaServiceAppLogger : MahaServiceMonitor = new DefaultMahaServiceMonitor) extends MahaService with Logging {
 
   override val mahaRequestLogWriter: MahaRequestLogWriter = config.mahaRequestLogWriter
   val rowCountIncomputableEngineSet: Set[Engine] = Set(DruidEngine)
