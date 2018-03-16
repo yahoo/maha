@@ -1,3 +1,5 @@
+// Copyright 2017, Yahoo Holdings Inc.
+// Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service
 
 import com.yahoo.maha.core.RequestModelResult
@@ -16,7 +18,7 @@ trait RmResultPostProcessor {
   def process(requestModelResultTry: Try[RequestModelResult], mahaRequestLogHelper: MahaRequestLogHelper) : Either[GeneralError, RequestModelResult]
 }
 
-trait MahaServiceAppLogger {
+trait MahaServiceMonitor {
   def start(reportingRequest: ReportingRequest)
   def stop()
 }
@@ -40,7 +42,7 @@ case class DefaultRmResultPostProcessor(label : String) extends RmResultPostProc
   }
 }
 
-class DefaultMahaServiceAppLogger extends MahaServiceAppLogger {
+class DefaultMahaServiceMonitor extends MahaServiceMonitor {
   override def start(reportingRequest: ReportingRequest): Unit = {}
 
   override def stop(): Unit =  {}
