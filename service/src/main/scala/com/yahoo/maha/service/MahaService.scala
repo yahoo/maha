@@ -42,7 +42,26 @@ case class RequestResult(rowList: RowList, queryAttributes: QueryAttributes, tot
 case class ParRequestResult(prodRun: ParRequest[RequestResult], dryRunOption: Option[ParRequest[RequestResult]])
 
 trait MahaService {
+  /*
+     Defines the post processing steps for Request Model Result Success and Failure handling
+   */
+  def rmResultPostProcessor: RmResultPostProcessor
+
+  /*
+   Defines the post processing steps for Request Result Success and Failure handling
+ */
+  def requestResultPostProcessor :RequestResultPostProcessor
+
+  /*
+   Application Logger for every Maha Reporting Request
+ */
+  def mahaServiceAppLogger : MahaServiceAppLogger
+
+  /*
+   Kafka logger for every Maha Reporting Request
+ */
   def mahaRequestLogWriter: MahaRequestLogWriter
+
   /**
    * Generates own model and create ParRequestResult and invoke the execution
    */
@@ -89,9 +108,12 @@ trait MahaService {
   def rowCountIncomputableEngineSet: Set[Engine]
 }
 
+case class DefaultMahaService(config: MahaServiceConfig,
+                         rmResultPostProcessor: RmResultPostProcessor = DefaultRmResultPostProcessor(MahaServiceConstants.RequestLabel),
+                         requestResultPostProcessor :RequestResultPostProcessor = DefaultRequestResultPostProcessor(MahaServiceConstants.RequestLabel),
+                         mahaServiceAppLogger : MahaServiceAppLogger = new DefaultMahaServiceAppLogger) extends MahaService with Logging {
 
-class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Logging {
-  val mahaRequestLogWriter: MahaRequestLogWriter = config.mahaRequestLogWriter
+  override val mahaRequestLogWriter: MahaRequestLogWriter = config.mahaRequestLogWriter
   val rowCountIncomputableEngineSet: Set[Engine] = Set(DruidEngine)
 
   /**
@@ -102,11 +124,12 @@ class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Log
                               , bucketParams: BucketParams
                               , mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestResult] = {
     val requestModelResultTry = generateRequestModel(registryName, reportingRequest, bucketParams, mahaRequestLogHelper)
+
     if (requestModelResultTry.isFailure) {
       val message = "Failed to create Report Model:"
       val error = requestModelResultTry.failed.toOption
-      throw new MahaServiceBadRequestException(message, error)
       mahaRequestLogHelper.logFailed(message)
+      throw new MahaServiceBadRequestException(message, error)
     }
     val requestModelResult = requestModelResultTry.get
 
@@ -129,6 +152,7 @@ class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Log
     if (requestModelResultTry.isFailure) {
       val message = "Failed to create Report Model:"
       val error = requestModelResultTry.failed.toOption
+      mahaRequestLogHelper.logFailed(message)
       throw new MahaServiceBadRequestException(message, error)
     }
     val requestModelResult = requestModelResultTry.get
@@ -298,6 +322,7 @@ class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Log
       }
     } else None
   }
+
 }
 
 object MahaServiceConfig {
