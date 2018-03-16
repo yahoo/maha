@@ -12,7 +12,7 @@ import scala.util.Try
 /**
  * Created by pranavbhole on 15/03/18.
  */
-trait RequestModelResultPostProcessor {
+trait RequestModelPostProcessor {
   def label : String
   def process(requestModelResultTry: Try[RequestModelResult], mahaRequestLogHelper: MahaRequestLogHelper) : Either[GeneralError, RequestModelResult]
 }
@@ -27,7 +27,7 @@ trait RequestResultPostProcessor {
   def process(requestResultTry: Try[RequestResult], mahaRequestLogHelper: MahaRequestLogHelper): Either[GeneralError, RequestResult]
 }
 
-case class DefaultRequestModelResultPostProcessor(label : String) extends RequestModelResultPostProcessor {
+case class DefaultRequestModelPostProcessor(label : String) extends RequestModelPostProcessor {
 
   override def process(requestModelResultTry: Try[RequestModelResult], mahaRequestLogHelper: MahaRequestLogHelper): Either[GeneralError, RequestModelResult] = {
     if (requestModelResultTry.isFailure) {
