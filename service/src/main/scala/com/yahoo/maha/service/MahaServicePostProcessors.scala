@@ -33,7 +33,7 @@ case class DefaultRmResultPostProcessor(label : String) extends RmResultPostProc
       val message = "Failed to create Report Model:"
       val error = requestModelResultTry.failed.toOption
       mahaRequestLogHelper.logFailed(message)
-      return GeneralError.either[RequestModelResult](label, message, new MahaServiceBadRequestException(message))
+      return GeneralError.either[RequestModelResult](label, message, new MahaServiceBadRequestException(message, error))
     } else {
       new Right(requestModelResultTry.get)
     }
@@ -52,7 +52,7 @@ case class DefaultRequestResultPostProcessor(label : String) extends RequestResu
       val message = "Failed on executing the query pipeline:"
       val error = requestResultTry.failed.toOption
       mahaRequestLogHelper.logFailed(message)
-      return GeneralError.either(label, "Dryrun Failed on execute query pipeline", new MahaServiceExecutionException(message, error))
+      return GeneralError.either(label, message, new MahaServiceExecutionException(message, error))
     } else {
       return new Right(requestResultTry.get)
     }
