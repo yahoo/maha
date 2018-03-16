@@ -45,7 +45,7 @@ trait MahaService {
   /*
      Defines the post processing steps for Request Model Result Success and Failure handling
    */
-  def rmResultPostProcessor: RmResultPostProcessor
+  def rmResultPostProcessor: RequestModelResultPostProcessor
 
   /*
    Defines the post processing steps for Request Result Success and Failure handling
@@ -109,7 +109,7 @@ trait MahaService {
 }
 
 case class DefaultMahaService(config: MahaServiceConfig,
-                         rmResultPostProcessor: RmResultPostProcessor = DefaultRmResultPostProcessor(MahaServiceConstants.RequestLabel),
+                         rmResultPostProcessor: RequestModelResultPostProcessor = DefaultRequestModelResultPostProcessor(MahaServiceConstants.RequestLabel),
                          requestResultPostProcessor :RequestResultPostProcessor = DefaultRequestResultPostProcessor(MahaServiceConstants.RequestLabel),
                          mahaServiceAppLogger : MahaServiceMonitor = new DefaultMahaServiceMonitor) extends MahaService with Logging {
 
