@@ -751,10 +751,10 @@ class MahaServiceExampleTest extends BaseFactoryTest {
     val mahaRequestLogHelper = MahaRequestLogHelper("er", mahaService)
 
     // Start Logging with App Logger
-    mahaService.mahaServiceAppLogger.start(reportingRequest)
+    mahaService.mahaServiceMonitor.start(reportingRequest)
 
     val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams, mahaRequestLogHelper)
-    val eitherResult = mahaService.rmResultPostProcessor.process(requestModelResultTry, mahaRequestLogHelper)
+    val eitherResult = mahaService.requestModelPostProcessor.process(requestModelResultTry, mahaRequestLogHelper)
 
     assert(eitherResult.isRight)
 
@@ -773,6 +773,6 @@ class MahaServiceExampleTest extends BaseFactoryTest {
     assert(eitherRequestResult.isLeft, "Request should fail with invalid SQL syntax.")
 
     // Stop Logging with App Logger
-    mahaService.mahaServiceAppLogger.stop
+    mahaService.mahaServiceMonitor.stop
   }
 }
