@@ -12,12 +12,12 @@ import com.yahoo.maha.core.request.ReportingRequest
    MahaServiceMonitor is application monitoring interface for logging the api request into monitoring system
  */
 trait MahaServiceMonitor {
-  def start: (ReportingRequest) => Unit
-  def stop : () => Unit
+  def start(reportingRequest: ReportingRequest): Unit
+  def stop(): Unit
 }
 
 object DefaultMahaServiceMonitor extends MahaServiceMonitor {
-  override def start: (ReportingRequest) => Unit = (reportingRequest) => {}
+  override def start(reportingRequest: ReportingRequest) =  {}
 
-  override def stop: () => Unit = () => {}
+  override def stop() = {}
 }

@@ -60,7 +60,7 @@ case class MahaRequestProcessor (registryName: String,
     val mahaRequestLogHelper = MahaRequestLogHelper(registryName, mahaService)
     mahaRequestLogHelper.init(reportingRequest, None, MahaRequestProto.RequestType.SYNC, ByteString.copyFrom(rawJson))
     //Starting Service Monitor
-    mahaServiceMonitor.start
+    mahaServiceMonitor.start(reportingRequest)
 
     val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams , mahaRequestLogHelper)
     requestModelPostProcessorFn.foreach(_ (requestModelResultTry, mahaRequestLogHelper))
