@@ -420,7 +420,7 @@ class MahaServiceExampleTest extends BaseFactoryTest {
     assert(!mahaService.getFlattenDomainForCube("temp", "inexistent").isDefined)
 
     // test MahaRequestProcessor
-    val mahaRequestProcessor : MahaRequestProcessor = MahaRequestProcessor("er", bucketParams, reportingRequest, mahaService, jsonRequest.getBytes)
+    val mahaRequestProcessor : MahaRequestProcessor = MahaRequestProcessor("er", mahaService)
 
     def fn = {
       (requestModel: RequestModel, requestResult: RequestResult) => {
@@ -431,14 +431,14 @@ class MahaServiceExampleTest extends BaseFactoryTest {
 
     mahaRequestProcessor.onSuccess(fn)
     mahaRequestProcessor.onFailure((error: GeneralError) => println(error.message))
-    val protoBuilder: MahaRequestProto.Builder = mahaRequestProcessor.process()
+    val protoBuilder: MahaRequestProto.Builder = mahaRequestProcessor.process(bucketParams, reportingRequest, jsonRequest.getBytes)
     assert(protoBuilder.getDrivingTable == "student_grade_sheet")
     assert(protoBuilder.getStatus == 200)
     assert(protoBuilder.getRequestEndTime > System.currentTimeMillis() - 30000)
 
     val thrown = intercept[IllegalArgumentException] {
-      val failedProcessor = MahaRequestProcessor("er", bucketParams, reportingRequest, mahaService, jsonRequest.getBytes)
-      failedProcessor.process()
+      val failedProcessor = MahaRequestProcessor("er", mahaService)
+      failedProcessor.process(bucketParams, reportingRequest, jsonRequest.getBytes)
     }
   }
 
@@ -749,13 +749,8 @@ class MahaServiceExampleTest extends BaseFactoryTest {
 
     val mahaRequestLogHelper = MahaRequestLogHelper("er", mahaService)
 
-    // Start Logging with App Logger
-    mahaService.mahaServiceMonitor.start(reportingRequest)
-
     val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams, mahaRequestLogHelper)
-    val eitherResult = mahaService.requestModelPostProcessor.process(requestModelResultTry, mahaRequestLogHelper)
-
-    assert(eitherResult.isRight)
+    assert(requestModelResultTry.isSuccess)
 
     // Create Tables
     erRegistry.dimMap.values.foreach {
@@ -767,11 +762,7 @@ class MahaServiceExampleTest extends BaseFactoryTest {
         }
     }
 
-    val requestResultTry = mahaService.processRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
-    val eitherRequestResult = mahaService.requestResultPostProcessor.process(requestResultTry, mahaRequestLogHelper)
-    assert(eitherRequestResult.isLeft, "Request should fail with invalid SQL syntax.")
-
-    // Stop Logging with App Logger
-    mahaService.mahaServiceMonitor.stop
-  }
+    val processRequestResult = mahaService.processRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
+    assert(processRequestResult.isFailure, "Request should fail with invalid SQL syntax.")
+    }
 }
