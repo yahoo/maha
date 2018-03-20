@@ -679,9 +679,9 @@ class CSVRowList(val query: Query, csvWriterProvider: RowCSVWriterProvider, writ
   }
 }
 
-class DerivedRowList(override val columns: IndexedSeq[ColumnInfo]) extends RowList {
+class DerivedRowList(override val columns: IndexedSeq[ColumnInfo], val initialSize: Int = 1) extends RowList {
 
-  val list: collection.mutable.ArrayBuffer[Row] = new ArrayBuffer[Row]()
+  val list: collection.mutable.ArrayBuffer[Row] = new ArrayBuffer[Row](initialSize)
 
   override def addRow(r: Row, er: Option[Row]): Unit = {
     list += r
