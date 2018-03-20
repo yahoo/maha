@@ -11,7 +11,7 @@ import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import grizzled.slf4j.Logging
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{Success, Failure, Try}
 
 trait BaseMahaRequestProcessor {
   def process(bucketParams: BucketParams,
@@ -73,7 +73,7 @@ case class MahaRequestProcessor (registryName: String,
       case _ =>
     }
 
-    if(requestModelResultTry.isSuccess) {
+    if(requestModelResultTry.isSuccess && requestModelValidationTry.isSuccess) {
       val requestModelResult = requestModelResultTry.get
       val requestResultTry = mahaService.processRequestModel(registryName, requestModelResult.model, mahaRequestLogHelper)
 
@@ -86,14 +86,17 @@ case class MahaRequestProcessor (registryName: String,
         case _ =>
       }
 
-      requestResultTry match {
-        case Success(result) =>
-          onSuccessFn.foreach(_ (requestModelResult.model, result))
-          mahaRequestLogHelper.logSuccess()
-        case Failure(err) =>
-          onFailureFn.foreach(_ (GeneralError.from(processingLabel, requestModelResultTry.failed.get.getMessage, requestModelResultTry.failed.get)))
-          mahaRequestLogHelper.logFailed(err.getMessage)
+      if (requestResultValidationTry.isSuccess) {
+        requestResultTry match {
+          case Success(result) =>
+            onSuccessFn.foreach(_ (requestModelResult.model, result))
+            mahaRequestLogHelper.logSuccess()
+          case Failure(err) =>
+            onFailureFn.foreach(_ (GeneralError.from(processingLabel, requestModelResultTry.failed.get.getMessage, requestModelResultTry.failed.get)))
+            mahaRequestLogHelper.logFailed(err.getMessage)
+        }
       }
+
     } else {
       //construct general error
       onFailureFn.foreach(_ (GeneralError.from(processingLabel, requestModelResultTry.failed.get.getMessage, requestModelResultTry.failed.get)))
