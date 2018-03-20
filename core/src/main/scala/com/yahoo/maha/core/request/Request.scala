@@ -5,19 +5,37 @@ package com.yahoo.maha.core.request
 import com.yahoo.maha.core.Engine
 import enumeratum.EnumEntry
 import enumeratum.Enum
-import enumeratum.EnumEntry.{Uppercase, Snakecase}
+import enumeratum.EnumEntry.{Snakecase, Uppercase}
 import org.json4s.scalaz.JsonScalaz
+
 import scalaz.syntax.applicative._
-import _root_.scalaz.{syntax, Success, Validation}
-import org.json4s._
+import _root_.scalaz.{Success, Validation, syntax}
+import org.json4s.{JValue, _}
 import org.json4s.scalaz.JsonScalaz._
+
 import Validation.FlatMap._
 import grizzled.slf4j.Logging
+import org.json4s.JsonAST.JValue
 
 /**
  * Created by jians on 10/5/15.
  */
 case class Field(field: String, alias: Option[String], value: Option[String])
+case class CuratorJsonConfig(json: JValue)
+
+object CuratorJsonConfig {
+  import org.json4s.scalaz.JsonScalaz._
+
+  implicit def parse: JSONR[CuratorJsonConfig] = new JSONR[CuratorJsonConfig] {
+    override def read(json: JValue): Result[CuratorJsonConfig] = {
+      for {
+        config <- fieldExtended[JValue]("config")(json)
+      } yield {
+        CuratorJsonConfig(config)
+      }
+    }
+  }
+}
 
 sealed trait Order
 case object ASC extends Order { override def toString = "ASC" }

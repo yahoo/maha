@@ -14,7 +14,7 @@ trait BaseQueryChainTest {
   val queryExecutorContext = getQueryExecutorContext
   val partialQueryExecutorContext = getPartialQueryExecutorContext
 
-  def updateRowList(rowList: RowList) : Unit = {
+  def updateRowList(rowList: QueryRowList) : Unit = {
     val row = rowList.newRow
     println(rowList.columnNames)
     rowList.columnNames.foreach {
@@ -27,7 +27,7 @@ trait BaseQueryChainTest {
   def getQueryExecutorContext: QueryExecutorContext = {
     val qeOracle = new QueryExecutor {
       override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
-        updateRowList(rowList)
+        updateRowList(rowList.asInstanceOf[QueryRowList])
         QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
       }
       override def engine: Engine = OracleEngine
@@ -35,14 +35,14 @@ trait BaseQueryChainTest {
 
     val qeHive = new QueryExecutor {
       override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
-        updateRowList(rowList)
+        updateRowList(rowList.asInstanceOf[QueryRowList])
         QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
       }
       override def engine: Engine = HiveEngine
     }
     val qeDruid = new QueryExecutor {
       override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
-        updateRowList(rowList)
+        updateRowList(rowList.asInstanceOf[QueryRowList])
         QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
       }
       override def engine: Engine = DruidEngine
@@ -58,7 +58,7 @@ trait BaseQueryChainTest {
   def getPartialQueryExecutorContext: QueryExecutorContext = {
     val qeOracle = new QueryExecutor {
       override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
-        updateRowList(rowList)
+        updateRowList(rowList.asInstanceOf[QueryRowList])
         QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
       }
       override def engine: Engine = OracleEngine
@@ -66,14 +66,14 @@ trait BaseQueryChainTest {
 
     val qeHive = new QueryExecutor {
       override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
-        updateRowList(rowList)
+        updateRowList(rowList.asInstanceOf[QueryRowList])
         QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
       }
       override def engine: Engine = HiveEngine
     }
     val qeDruid = new QueryExecutor {
       override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
-        updateRowList(rowList)
+        updateRowList(rowList.asInstanceOf[QueryRowList])
         QueryResult(rowList, queryAttributes, QueryResultStatus.FAILURE)
       }
       override def engine: Engine = DruidEngine

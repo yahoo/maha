@@ -8,7 +8,7 @@ import java.nio.file.{Files, StandardOpenOption}
 
 import com.fasterxml.jackson.core.{JsonEncoding, JsonGenerator}
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.yahoo.maha.core.query.{Query, Row, RowList}
+import com.yahoo.maha.core.query.{Query, QueryRowList, Row, RowList}
 import com.yahoo.maha.core.{Column, ColumnInfo, DimColumnInfo, FactColumnInfo}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -30,7 +30,7 @@ object JsonRowList {
     objectMapper.getFactory.createGenerator(writer)
   }
 
-  def from(rowList: RowList, injectTotalRowsOption: Option[Integer], jsonGenerator: JsonGenerator, compatibilityMode: Boolean) : JsonRowList = {
+  def from(rowList: QueryRowList, injectTotalRowsOption: Option[Integer], jsonGenerator: JsonGenerator, compatibilityMode: Boolean) : JsonRowList = {
     val jsonRowList = DefaultJsonRowList(rowList.query, rowList.subQuery, injectTotalRowsOption, PassThroughJsonGeneratorProvider(jsonGenerator), compatibilityMode)
     jsonRowList.withLifeCycle {
       rowList.foreach(jsonRowList.addRow)
@@ -38,12 +38,12 @@ object JsonRowList {
     jsonRowList
   }
 
-  def jsonRowList(jsonGenerator: JsonGenerator, injectTotalRowsOption: Option[Integer], compatibilityMode: Boolean) : Query => RowList = (q) => {
+  def jsonRowList(jsonGenerator: JsonGenerator, injectTotalRowsOption: Option[Integer], compatibilityMode: Boolean) : Query => QueryRowList = (q) => {
     DefaultJsonRowList(q, IndexedSeq.empty, injectTotalRowsOption, PassThroughJsonGeneratorProvider(jsonGenerator), compatibilityMode)
   }
 }
 
-trait JsonRowList extends RowList {
+trait JsonRowList extends QueryRowList {
   def query: Query
   protected def subQuery: IndexedSeq[Query]
   protected def injectTotalRowsOption: Option[Integer]
@@ -272,7 +272,7 @@ case class DefaultJsonRowList(query: Query
 
 object FileJsonRowList {
   private final val logger: Logger = LoggerFactory.getLogger(classOf[FileJsonRowList])
-  def fileJsonRowList(file: File, injectTotalRowsOption: Option[Integer], compatibilityMode: Boolean) : Query => RowList = (q) => {
+  def fileJsonRowList(file: File, injectTotalRowsOption: Option[Integer], compatibilityMode: Boolean) : Query => QueryRowList = (q) => {
     FileJsonRowList(q, IndexedSeq.empty, injectTotalRowsOption, FileJsonGeneratorProvider(file), compatibilityMode)
   }
 }

@@ -75,7 +75,7 @@ class QueryExecutorTest extends FunSuite with Matchers with BaseOracleQueryGener
       override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
         val acquiredQueryAttributes = lifecycleListener.acquired(query, queryAttributes)
         val startedQueryAttributes = lifecycleListener.started(query, acquiredQueryAttributes)
-        val row = rowList.newRow
+        val row = rowList.asInstanceOf[QueryRowList].newRow
         row.addValue("Campaign ID", "test-camp-id")
         row.addValue("Impressions", "10")
         row.addValue("Campaign Name", "Test Campaign")

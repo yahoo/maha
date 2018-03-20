@@ -47,7 +47,8 @@ case class ReportingRequest(cube: String
                             , sortBy: IndexedSeq[SortBy] = IndexedSeq.empty
                             , paginationStartIndex: Int = 0
                             , rowsPerPage: Int = -1
-                            , additionalParameters: Map[Parameter, ParameterValue[_]]) {
+                            , additionalParameters: Map[Parameter, ParameterValue[_]]
+                            , curatorJsonConfigMap: Map[String, CuratorJsonConfig]) {
   def isDebugEnabled : Boolean = {
     additionalParameters.contains(Parameter.Debug) && additionalParameters(Parameter.Debug).asInstanceOf[DebugValue].value
   }
@@ -72,6 +73,7 @@ trait BaseRequest {
   val NOOP_MINUTE_FILTER : JsonScalaz.Result[Option[Filter]] = Option(EqualityFilter("Minute", "00")).successNel
   val NOOP_NUM_DAYS : JsonScalaz.Result[Int] = 1.successNel
   val DEFAULT_DISPLAY_NAME : JsonScalaz.Result[Option[String]] = None.successNel
+  val DEFAULT_CURATOR_JSON_CONFIG_MAP: JsonScalaz.Result[Map[String, CuratorJsonConfig]] = Map.empty[String, CuratorJsonConfig].successNel
 
   protected[this] val factBiasOption : Option[Bias] = Option(FactBias)
 
@@ -307,7 +309,7 @@ object ReportingRequest extends BaseRequest {
             UncategorizedError("schema", s"Unrecognized schema : $schemaString", List.empty).asInstanceOf[JsonScalaz.Error].failureNel[Schema])(
               s => s.successNel[JsonScalaz.Error])
       }
-    }{ 
+    }{
       s =>
         s.successNel[JsonScalaz.Error]
     }
@@ -343,6 +345,11 @@ object ReportingRequest extends BaseRequest {
       }
     }
 
+    val curatorJsonConfigMap: Result[Map[String, CuratorJsonConfig]] =
+      json
+        .findField(_._1 == "curators")
+        .map(_ => fieldExtended[Map[String, CuratorJsonConfig]]("curators")(json))
+        .fold(DEFAULT_CURATOR_JSON_CONFIG_MAP)(r => r)
 
     for {
       cube <- cubeResult
@@ -363,6 +370,7 @@ object ReportingRequest extends BaseRequest {
       mr <-  mrResult
       additionalParameters <- additonalParamtersResult
       bothForceDimAndFactCannotBeTrue <- checkBothForceDimensionAndFactCase(forceDimensionDriven = forceDimensionDriven, forceFactDriven = forceFactDriven)
+      curatorJsonConfigMap <- curatorJsonConfigMap
     } yield {
       ReportingRequest(
         cube=cube
@@ -382,6 +390,7 @@ object ReportingRequest extends BaseRequest {
         , paginationStartIndex = si
         , rowsPerPage = mr
         , additionalParameters = additionalParameters
+        , curatorJsonConfigMap = curatorJsonConfigMap
       )
     }
   }

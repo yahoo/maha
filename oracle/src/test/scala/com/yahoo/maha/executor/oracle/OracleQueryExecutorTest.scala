@@ -329,7 +329,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     assert(rows.size === count)
   }
   
-  private def withMockDruidQueryExecutor(rowListCallback: RowList => Unit)(fn: => Unit) : Unit = {
+  private def withMockDruidQueryExecutor(rowListCallback: QueryRowList => Unit)(fn: => Unit) : Unit = {
     val qe = new MockDruidQueryExecutor(rowListCallback)
     try {
       queryExecutorContext.register(qe)

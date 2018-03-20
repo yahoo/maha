@@ -75,7 +75,7 @@ object DruidQueryExecutor extends Logging {
     }
   }
 
-  def processResult[T <: RowList](query:Query
+  def processResult[T <: QueryRowList](query:Query
                                   , transformers: List[ResultSetTransformers]
                                   , getRow: List[JField] => Row
                                   , getEphemeralRow: List[JField] => Row
@@ -114,7 +114,7 @@ object DruidQueryExecutor extends Logging {
     }
   }
 
-  def parseJsonAndPopulateResultSet[T <: RowList](query:Query,response:Response,rowList: T, getRow: List[JField] => Row, getEphemeralRow: List[JField] => Row,
+  def parseJsonAndPopulateResultSet[T <: QueryRowList](query:Query,response:Response,rowList: T, getRow: List[JField] => Row, getEphemeralRow: List[JField] => Row,
                                                   transformers: List[ResultSetTransformers]  ) : Unit ={
     val jsonString : String = response.getResponseBody(StandardCharsets.UTF_8.displayName())
 
@@ -290,7 +290,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
 
             val temp = checkUncoveredIntervals(query, response, config)
 
-            DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,rl,(fieldList:List[JField] ) =>{
+            DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,irl,(fieldList:List[JField] ) =>{
               val indexName =irl.indexAlias
               val fieldListMap = fieldList.toMap
               val rowSet = if(performJoin) {
@@ -299,22 +299,22 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
                   val field = DruidQueryExecutor.extractField(indexValue)
                   if (field == null) {
                     error(s"Druid has null value : ${response.getResponseBody()}")
-                    Set(rowList.newRow)
+                    Set(irl.newRow)
                   } else {
                     irl.getRowByIndex(field)
                   }
                 } else {
-                  Set(rowList.newRow)
+                  Set(irl.newRow)
                 }
               } else {
-                Set(rowList.newRow)
+                Set(irl.newRow)
               }
               if(rowSet.size > 0) {
                 rowSet.head
               }
-              else rowList.newRow
+              else irl.newRow
             }, (fieldList: List[JField]) =>{
-              rowList.newEphemeralRow
+              irl.newEphemeralRow
             }, transformers)
 
           }
@@ -330,16 +330,17 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
               QueryResult(rl, lifecycleListener.completed(query, acquiredQueryAttributes), QueryResultStatus.SUCCESS)
           }
 
-        case rl =>
+        case rl if rl.isInstanceOf[QueryRowList] =>
+          val qrl = rl.asInstanceOf[QueryRowList]
           val result = Try {
             val response = httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
 
             val temp = checkUncoveredIntervals(query, response, config)
 
-            DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,rl,(fieldList: List[JField]) =>{
-              rowList.newRow
+            DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,qrl,(fieldList: List[JField]) =>{
+              qrl.newRow
             }, (fieldList: List[JField]) =>{
-              rowList.newEphemeralRow
+              qrl.newEphemeralRow
             }, transformers)
 
           }

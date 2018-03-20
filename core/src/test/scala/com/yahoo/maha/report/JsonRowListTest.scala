@@ -66,7 +66,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
     Files.write(tmpFile.toPath, Array[Byte](1,2,3,4,5), StandardOpenOption.TRUNCATE_EXISTING) // Clear file
     val bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(tmpFile), "UTF-8"))
     val jsonGenerator = JsonRowList.jsonGenerator(bufferedWriter)
-    val jsonRowList : RowList = JsonRowList.jsonRowList(jsonGenerator, None, false)(query)
+    val jsonRowList : QueryRowList = JsonRowList.jsonRowList(jsonGenerator, None, false)(query)
     assert(jsonRowList.columnNames === IndexedSeq("Campaign ID", "Impressions", "Campaign Name", "Campaign Status", "CTR", "TOTALROWS"))
     assert(jsonRowList.isEmpty)
 
@@ -165,7 +165,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
     tmpFile.deleteOnExit()
     val bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(tmpFile), "UTF-8"))
     val jsonGenerator = JsonRowList.jsonGenerator(bufferedWriter)
-    val jsonRowList : RowList = JsonRowList.jsonRowList(jsonGenerator, None, true)(query)
+    val jsonRowList : QueryRowList = JsonRowList.jsonRowList(jsonGenerator, None, true)(query)
     assert(jsonRowList.columnNames === IndexedSeq("Campaign ID", "Impressions", "Campaign Name", "Campaign Status", "CTR", "TOTALROWS"))
     assert(jsonRowList.isEmpty)
 
@@ -354,7 +354,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
     val tmpFile = Files.createTempFile(tmpPath, "pre2", "suf2").toFile
     tmpFile.deleteOnExit()
     Files.write(tmpFile.toPath, Array[Byte](1,2,3,4,5), StandardOpenOption.TRUNCATE_EXISTING) // Clear file
-    val jsonRowList : RowList = FileJsonRowList.fileJsonRowList(tmpFile, None, false)(query)
+    val jsonRowList : QueryRowList = FileJsonRowList.fileJsonRowList(tmpFile, None, false)(query)
     assert(jsonRowList.columnNames === IndexedSeq("Campaign ID", "Impressions", "Campaign Name", "Campaign Status", "CTR", "TOTALROWS"))
     assert(jsonRowList.isEmpty)
     jsonRowList.withLifeCycle {
