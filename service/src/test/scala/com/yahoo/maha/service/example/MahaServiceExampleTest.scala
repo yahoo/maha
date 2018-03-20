@@ -17,11 +17,12 @@ import com.yahoo.maha.service.factory.BaseFactoryTest
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{DefaultMahaService, MahaRequestProcessor, MahaServiceConfig, RequestResult}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
+import grizzled.slf4j.Logging
 
 /**
  * Created by pranavbhole on 09/06/17.
  */
-class MahaServiceExampleTest extends BaseFactoryTest {
+class MahaServiceExampleTest extends BaseFactoryTest with Logging {
 
   private var dataSource: Option[HikariDataSource] = None
   private var jdbcConnection: Option[JdbcConnection] = None
@@ -432,6 +433,32 @@ class MahaServiceExampleTest extends BaseFactoryTest {
 
     mahaRequestProcessor.onSuccess(fn)
     mahaRequestProcessor.onFailure((error: GeneralError) => println(error.message))
+    mahaRequestProcessor.withRequestModelPostProcessor(
+      (requestModelResultTry, mahaRequestLogHelper) => {
+        // Defining the sample/custom post requestModelResultTry execution steps to be executed
+        if(requestModelResultTry.isSuccess) {
+          val model = requestModelResultTry.get.model
+          if (model.hasNonDrivingDimNonFKNonPKFilter && model.hasLowCardinalityDimFilters && model.isSyncRequest) {
+            warn("Costly Outer group by request with high SLA, should not be the SYNC request"+model)
+          }
+        }
+      }
+    )
+
+    mahaRequestProcessor.withRequestResultPostProcessor(
+      (requestResultTry, mahaRequestLogHelper) => {
+        // Defining the sample/custom post requestResultTry execution steps to be executed
+        if(requestResultTry.isSuccess) {
+          val requestResult = requestResultTry.get
+          val model = requestResult.rowList.query.queryContext.requestModel
+          val isFactOnlyOperation = model.dimensionsCandidates.isEmpty
+          if(isFactOnlyOperation && model.includeRowCount) {
+            requestResult.copy(totalRowsOption = Some(5000))
+          }
+        }
+      }
+    )
+
     val protoBuilder: MahaRequestProto.Builder = mahaRequestProcessor.process(bucketParams, reportingRequest, jsonRequest.getBytes)
     assert(protoBuilder.getDrivingTable == "student_grade_sheet")
     assert(protoBuilder.getStatus == 200)
