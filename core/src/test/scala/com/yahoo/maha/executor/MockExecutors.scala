@@ -10,11 +10,11 @@ import scala.util.{Success, Try}
 /**
  * Created by pranavbhole on 08/04/16.
  */
-class MockDruidQueryExecutor(callback: RowList => Unit) extends QueryExecutor {
+class MockDruidQueryExecutor(callback: QueryRowList => Unit) extends QueryExecutor {
   override def engine: Engine = DruidEngine
 
   override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
-    val result = Try(callback(rowList))
+    val result = Try(callback(rowList.asInstanceOf[QueryRowList]))
     if(result.isSuccess) {
       QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
     } else {
@@ -23,11 +23,11 @@ class MockDruidQueryExecutor(callback: RowList => Unit) extends QueryExecutor {
   }
 }
 
-class MockOracleQueryExecutor(callback: RowList => Unit) extends QueryExecutor {
+class MockOracleQueryExecutor(callback: QueryRowList => Unit) extends QueryExecutor {
   override def engine: Engine = OracleEngine
 
   override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
-    val result = Try(callback(rowList))
+    val result = Try(callback(rowList.asInstanceOf[QueryRowList]))
     if(result.isSuccess) {
       QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
     } else {
@@ -36,11 +36,11 @@ class MockOracleQueryExecutor(callback: RowList => Unit) extends QueryExecutor {
   }
 }
 
-class MockHiveQueryExecutor(callback: RowList => Unit) extends QueryExecutor {
+class MockHiveQueryExecutor(callback: QueryRowList => Unit) extends QueryExecutor {
   override def engine: Engine = HiveEngine
 
   override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
-    val result = Try(callback(rowList))
+    val result = Try(callback(rowList.asInstanceOf[QueryRowList]))
     if(result.isSuccess) {
       QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
     } else {

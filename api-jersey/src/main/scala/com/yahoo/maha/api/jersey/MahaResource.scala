@@ -110,7 +110,10 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
     val mahaRequestProcessor: MahaRequestProcessor = MahaRequestProcessor(registryName, bucketParams, reportingRequest, mahaService, rawJson)
 
     mahaRequestProcessor.onSuccess((requestModel: RequestModel, requestResult: RequestResult) => {
-      response.resume(JsonStreamingOutput(requestModel, requestResult.rowList))
+      val dimCols : Set[String]  = if(requestModel.bestCandidates.isDefined) {
+        requestModel.bestCandidates.get.publicFact.dimCols.map(_.alias)
+      } else Set.empty
+      response.resume(JsonStreamingOutput(reportingRequest, dimCols, requestResult.rowList))
     })
 
     mahaRequestProcessor.onFailure((ge: GeneralError) => {

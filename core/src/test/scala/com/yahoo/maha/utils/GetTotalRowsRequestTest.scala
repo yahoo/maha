@@ -10,7 +10,7 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema with BaseQueryContextTest {
 
-  def updateRowList(rowList: RowList) : Unit = {
+  def updateRowList(rowList: QueryRowList) : Unit = {
     val row = rowList.newRow
     rowList.columnNames.foreach {
       case "TOTALROWS" => row.addValue("TOTALROWS", 42)
@@ -22,7 +22,7 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
   def getQueryExecutorContext: QueryExecutorContext = {
     val qeOracle = new QueryExecutor {
       override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
-        updateRowList(rowList)
+        updateRowList(rowList.asInstanceOf[QueryRowList])
         QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
       }
       override def engine: Engine = OracleEngine
@@ -30,13 +30,13 @@ class GetTotalRowsRequestTest extends FunSuite with Matchers with BeforeAndAfter
 
     val qeHive = new QueryExecutor {
       override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
-        updateRowList(rowList)
+        updateRowList(rowList.asInstanceOf[QueryRowList])
         QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)      }
       override def engine: Engine = HiveEngine
     }
     val qeDruid = new QueryExecutor {
       override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
-        updateRowList(rowList)
+        updateRowList(rowList.asInstanceOf[QueryRowList])
         QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)      }
       override def engine: Engine = DruidEngine
     }

@@ -7,46 +7,37 @@ import javax.ws.rs.core.StreamingOutput
 
 import com.fasterxml.jackson.core.{JsonEncoding, JsonGenerator}
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.yahoo.maha.core.{ColumnInfo, DimColumnInfo, FactColumnInfo, RequestModel}
-import com.yahoo.maha.core.query.{RowList}
+import com.yahoo.maha.core.{ColumnInfo, DimColumnInfo, FactColumnInfo}
+import com.yahoo.maha.core.query.RowList
+import com.yahoo.maha.core.request.ReportingRequest
 
 object JsonStreamingOutput {
   val objectMapper: ObjectMapper = new ObjectMapper()
 }
 
-case class JsonStreamingOutput(requestModel:RequestModel, rowList: RowList) extends StreamingOutput {
+case class JsonStreamingOutput(reportingRequest: ReportingRequest, dimCols : Set[String], rowList: RowList) extends StreamingOutput {
 
   override def write(outputStream: OutputStream): Unit = {
     val jsonGenerator: JsonGenerator = JsonStreamingOutput.objectMapper.getFactory().createGenerator(outputStream, JsonEncoding.UTF8)
     jsonGenerator.writeStartObject() // {
-    writeHeader(jsonGenerator, requestModel.requestCols)
+    writeHeader(jsonGenerator, rowList.columns)
     writeDataRows(jsonGenerator)
     jsonGenerator.writeEndObject() // }
     jsonGenerator.flush()
     jsonGenerator.close()
   }
 
-  private def writeHeader(jsonGenerator: JsonGenerator, requestedCols: IndexedSeq[ColumnInfo]) {
+  private def writeHeader(jsonGenerator: JsonGenerator, columns: IndexedSeq[ColumnInfo]) {
     jsonGenerator.writeFieldName("header") // "header":
     jsonGenerator.writeStartObject() // {
 
     jsonGenerator.writeFieldName("cube") // "cube":
-    jsonGenerator.writeString(requestModel.cube) // <cube_name>
+    jsonGenerator.writeString(reportingRequest.cube) // <cube_name>
     jsonGenerator.writeFieldName("fields") // "fields":
     jsonGenerator.writeStartArray() // [
 
-    val dimCols : Set[String]  = if(requestModel.bestCandidates.isDefined) {
-      requestModel.bestCandidates.get.publicFact.dimCols.map(_.alias)
-    } else Set.empty
-
-    requestedCols.foreach {
+    columns.foreach {
       columnInfo => {
-        val isKey: Boolean = {
-          if (rowList.query.aliasColumnMap.contains(columnInfo.alias))
-            rowList.query.aliasColumnMap(columnInfo.alias).isKey
-          else
-            false
-        }
         val columnType: String = {
           if (columnInfo.isInstanceOf[DimColumnInfo] || dimCols.contains(columnInfo.alias) || "Hour".equals(columnInfo.alias) || "Day".equals(columnInfo.alias))
             "DIM"
@@ -65,14 +56,14 @@ case class JsonStreamingOutput(requestModel:RequestModel, rowList: RowList) exte
     }
     jsonGenerator.writeEndArray() // ]
     jsonGenerator.writeFieldName("maxRows")
-    jsonGenerator.writeNumber(requestModel.maxRows)
+    jsonGenerator.writeNumber(reportingRequest.rowsPerPage)
     jsonGenerator.writeEndObject()
   }
 
   private def writeDataRows(jsonGenerator: JsonGenerator): Unit = {
     jsonGenerator.writeFieldName("rows") // "rows":
     jsonGenerator.writeStartArray() // [
-    val numColumns = requestModel.requestCols.size
+    val numColumns = rowList.columns.size
 
     rowList.foreach {
       row => {

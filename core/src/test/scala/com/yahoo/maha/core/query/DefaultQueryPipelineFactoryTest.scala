@@ -21,17 +21,17 @@ object DefaultQueryPipelineFactoryTest {
   implicit class PipelineRunner(pipeline: QueryPipeline) {
     val queryExecutorContext = new QueryExecutorContext
     
-    def withDruidCallback(callback: RowList => Unit) : PipelineRunner = {
+    def withDruidCallback(callback: QueryRowList => Unit) : PipelineRunner = {
       val e = new MockDruidQueryExecutor(callback)
       queryExecutorContext.register(e)
       this
     }
-    def withOracleCallback(callback: RowList => Unit) : PipelineRunner = {
+    def withOracleCallback(callback: QueryRowList => Unit) : PipelineRunner = {
       val e = new MockOracleQueryExecutor(callback)
       queryExecutorContext.register(e)
       this
     }
-    def withHiveCallback(callback: RowList => Unit) : PipelineRunner = {
+    def withHiveCallback(callback: QueryRowList => Unit) : PipelineRunner = {
       val e = new MockHiveQueryExecutor(callback)
       queryExecutorContext.register(e)
       this
