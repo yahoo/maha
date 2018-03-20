@@ -433,7 +433,7 @@ class MahaServiceExampleTest extends BaseFactoryTest with Logging {
 
     mahaRequestProcessor.onSuccess(fn)
     mahaRequestProcessor.onFailure((error: GeneralError) => println(error.message))
-    mahaRequestProcessor.withRequestModelPostProcessor(
+    mahaRequestProcessor.withRequestModelValidator(
       (requestModelResultTry, mahaRequestLogHelper) => {
         // Defining the sample/custom post requestModelResultTry execution steps to be executed
         if(requestModelResultTry.isSuccess) {
@@ -445,7 +445,7 @@ class MahaServiceExampleTest extends BaseFactoryTest with Logging {
       }
     )
 
-    mahaRequestProcessor.withRequestResultPostProcessor(
+    mahaRequestProcessor.withRequestResultValidator(
       (requestResultTry, mahaRequestLogHelper) => {
         // Defining the sample/custom post requestResultTry execution steps to be executed
         if(requestResultTry.isSuccess) {

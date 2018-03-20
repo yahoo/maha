@@ -20,9 +20,9 @@ trait BaseMahaRequestProcessor {
   def onSuccess(fn: (RequestModel, RequestResult) => Unit)
   def onFailure(fn: (GeneralError) => Unit)
 
-  //Optional Post Operation Functional Traits
-  def withRequestModelPostProcessor(fn: (Try[RequestModelResult], MahaRequestLogHelper) => Unit)
-  def withRequestResultPostProcessor(fn: (Try[RequestResult], MahaRequestLogHelper) => Unit)
+  //Optional model/result validation Functional Traits
+  def withRequestModelValidator(fn: (Try[RequestModelResult], MahaRequestLogHelper) => Unit)
+  def withRequestResultValidator(fn: (Try[RequestResult], MahaRequestLogHelper) => Unit)
   def mahaServiceMonitor : MahaServiceMonitor
 }
 
@@ -35,14 +35,14 @@ case class MahaRequestProcessor (registryName: String,
 
   //Optional Post Operation Functional Traits
   /*
-   Defines the post processing steps for Request Model Result Success and Failure handling
+   Defines the validation steps for Request Model Result Success and Failure handling
   */
-  var requestModelPostProcessorFn: Option[(Try[RequestModelResult], MahaRequestLogHelper) => Unit] = None
+  var requestModelValidationFn: Option[(Try[RequestModelResult], MahaRequestLogHelper) => Unit] = None
 
   /*
-   Defines the post processing steps for Request Result Success and Failure handling
+   Defines the validation steps for Request Result Success and Failure handling
  */
-  var requestResultPostProcessorFn : Option[(Try[RequestResult], MahaRequestLogHelper) => Unit] = None
+  var requestResultValidationFn : Option[(Try[RequestResult], MahaRequestLogHelper) => Unit] = None
 
   def onSuccess(fn: (RequestModel, RequestResult) => Unit) : Unit = {
     onSuccessFn = Some(fn)
@@ -63,12 +63,12 @@ case class MahaRequestProcessor (registryName: String,
     mahaServiceMonitor.start(reportingRequest)
 
     val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams , mahaRequestLogHelper)
-    requestModelPostProcessorFn.foreach(_ (requestModelResultTry, mahaRequestLogHelper))
+    requestModelValidationFn.foreach(_ (requestModelResultTry, mahaRequestLogHelper))
 
     if(requestModelResultTry.isSuccess) {
       val requestModelResult = requestModelResultTry.get
       val requestResultTry = mahaService.processRequestModel(registryName, requestModelResult.model, mahaRequestLogHelper)
-      requestResultPostProcessorFn.foreach(_ (requestResultTry, mahaRequestLogHelper))
+      requestResultValidationFn.foreach(_ (requestResultTry, mahaRequestLogHelper))
 
       requestResultTry match {
         case Success(result) =>
@@ -91,12 +91,12 @@ case class MahaRequestProcessor (registryName: String,
     mahaRequestLogHelper.protoBuilder
   }
 
-  override def withRequestModelPostProcessor(fn: (Try[RequestModelResult], MahaRequestLogHelper) => Unit): Unit =  {
-    requestModelPostProcessorFn = Some(fn)
+  override def withRequestModelValidator(fn: (Try[RequestModelResult], MahaRequestLogHelper) => Unit): Unit =  {
+    requestModelValidationFn = Some(fn)
   }
 
-  override def withRequestResultPostProcessor(fn: (Try[RequestResult], MahaRequestLogHelper) => Unit): Unit =  {
-    requestResultPostProcessorFn = Some(fn)
+  override def withRequestResultValidator(fn: (Try[RequestResult], MahaRequestLogHelper) => Unit): Unit =  {
+    requestResultValidationFn = Some(fn)
   }
 
 }
