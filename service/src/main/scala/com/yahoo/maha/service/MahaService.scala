@@ -43,21 +43,6 @@ case class ParRequestResult(prodRun: ParRequest[RequestResult], dryRunOption: Op
 
 trait MahaService {
   /*
-     Defines the post processing steps for Request Model Result Success and Failure handling
-   */
-  def requestModelPostProcessor: RequestModelPostProcessor
-
-  /*
-   Defines the post processing steps for Request Result Success and Failure handling
- */
-  def requestResultPostProcessor :RequestResultPostProcessor
-
-  /*
-   Maha Service Application Monitor for every Maha Reporting Request
- */
-  def mahaServiceMonitor : MahaServiceMonitor
-
-  /*
    Kafka logger for every Maha Reporting Request
  */
   def mahaRequestLogWriter: MahaRequestLogWriter
@@ -111,10 +96,7 @@ trait MahaService {
   def rowCountIncomputableEngineSet: Set[Engine]
 }
 
-case class DefaultMahaService(config: MahaServiceConfig,
-                         requestModelPostProcessor: RequestModelPostProcessor = DefaultRequestModelPostProcessor(MahaServiceConstants.RequestLabel),
-                         requestResultPostProcessor :RequestResultPostProcessor = DefaultRequestResultPostProcessor(MahaServiceConstants.RequestLabel),
-                         mahaServiceMonitor : MahaServiceMonitor = new DefaultMahaServiceMonitor) extends MahaService with Logging {
+case class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Logging {
 
   override val mahaRequestLogWriter: MahaRequestLogWriter = config.mahaRequestLogWriter
   val rowCountIncomputableEngineSet: Set[Engine] = Set(DruidEngine)
