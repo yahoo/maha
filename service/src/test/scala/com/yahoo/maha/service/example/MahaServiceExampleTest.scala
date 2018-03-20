@@ -434,7 +434,7 @@ class MahaServiceExampleTest extends BaseFactoryTest with Logging {
     mahaRequestProcessor.onSuccess(fn)
     mahaRequestProcessor.onFailure((error: GeneralError) => println(error.message))
     mahaRequestProcessor.withRequestModelValidator(
-      (requestModelResultTry, mahaRequestLogHelper) => {
+      (requestModelResultTry) => {
         // Defining the sample/custom post requestModelResultTry execution steps to be executed
         if(requestModelResultTry.isSuccess) {
           val model = requestModelResultTry.get.model
@@ -446,11 +446,11 @@ class MahaServiceExampleTest extends BaseFactoryTest with Logging {
     )
 
     mahaRequestProcessor.withRequestResultValidator(
-      (requestResultTry, mahaRequestLogHelper) => {
+      (requestResultTry) => {
         // Defining the sample/custom post requestResultTry execution steps to be executed
         if(requestResultTry.isSuccess) {
           val requestResult = requestResultTry.get
-          val model = requestResult.rowList.query.queryContext.requestModel
+          val model = requestResult.rowList.asInstanceOf[QueryRowList].query.queryContext.requestModel
           val isFactOnlyOperation = model.dimensionsCandidates.isEmpty
           if(isFactOnlyOperation && model.includeRowCount) {
             requestResult.copy(totalRowsOption = Some(5000))
