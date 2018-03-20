@@ -7,6 +7,7 @@ import java.util.UUID
 import com.yahoo.maha.core.RequestModel
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.ddl.OracleDDLGenerator
+import com.yahoo.maha.core.query.QueryRowList
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc.JdbcConnection
 import com.yahoo.maha.parrequest.GeneralError
@@ -382,23 +383,23 @@ class MahaServiceExampleTest extends BaseFactoryTest {
     // Execute Model Test
     val result = mahaService.executeRequestModelResult("er", requestModelResultTry.get, mahaRequestLogHelper).prodRun.get(10000)
     assert(result.isRight)
-    assert(result.right.get.rowList.columnNames.contains("Student ID"))
+    assert(result.right.get.rowList.asInstanceOf[QueryRowList].columnNames.contains("Student ID"))
 
     // Process Model Test
     val processRequestModelResult  = mahaService.processRequestModel("er", requestModelResultTry.get.model, mahaRequestLogHelper)
     assert(processRequestModelResult.isSuccess)
-    assert(processRequestModelResult.get.rowList.columnNames.contains("Class ID"))
+    assert(processRequestModelResult.get.rowList.asInstanceOf[QueryRowList].columnNames.contains("Class ID"))
 
     // Process Request Test
     val processRequestResult = mahaService.processRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
     assert(processRequestResult.isSuccess)
-    assert(processRequestResult.get.rowList.columnNames.contains("Class ID"))
+    assert(processRequestResult.get.rowList.asInstanceOf[QueryRowList].columnNames.contains("Class ID"))
 
     //ExecuteRequest Test
     val executeRequestParRequestResult = mahaService.executeRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
     assert(executeRequestParRequestResult.prodRun.get(10000).isRight)
     val requestResultOption = executeRequestParRequestResult.prodRun.get(10000).toOption
-    assert(requestResultOption.get.rowList.columnNames.contains("Total Marks"))
+    assert(requestResultOption.get.rowList.asInstanceOf[QueryRowList].columnNames.contains("Total Marks"))
 
     // Domain Tests
     val domainJsonOption = mahaService.getDomain("er")
@@ -424,7 +425,7 @@ class MahaServiceExampleTest extends BaseFactoryTest {
 
     def fn = {
       (requestModel: RequestModel, requestResult: RequestResult) => {
-        assert(requestResult.rowList.columnNames.contains("Total Marks"))
+        assert(requestResult.rowList.asInstanceOf[QueryRowList].columnNames.contains("Total Marks"))
         println("Inside onSuccess function")
       }
     }
