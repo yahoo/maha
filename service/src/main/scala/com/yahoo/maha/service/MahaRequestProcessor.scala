@@ -66,12 +66,7 @@ case class MahaRequestProcessor (registryName: String,
     val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams , mahaRequestLogHelper)
     // Custom validation for RequestModel
     val requestModelValidationTry = Try(requestModelValidationFn.foreach(_ (requestModelResultTry)))
-    requestModelValidationTry match {
-      case Failure(err) =>
-        onFailureFn.foreach(_ (GeneralError.from(processingLabel, err.getMessage, err)))
-        mahaRequestLogHelper.logFailed(err.getMessage)
-      case _ =>
-    }
+    validationTryWrapper(requestModelValidationTry, mahaRequestLogHelper)
 
     if(requestModelResultTry.isSuccess && requestModelValidationTry.isSuccess) {
       val requestModelResult = requestModelResultTry.get
@@ -79,27 +74,23 @@ case class MahaRequestProcessor (registryName: String,
 
       // Custom validation for RequestResult
       val requestResultValidationTry = Try(requestResultValidationFn.foreach(_ (requestResultTry)))
-      requestResultValidationTry match {
-        case Failure(err) =>
-          onFailureFn.foreach(_ (GeneralError.from(processingLabel, err.getMessage, err)))
-          mahaRequestLogHelper.logFailed(err.getMessage)
-        case _ =>
-      }
+      validationTryWrapper(requestResultValidationTry, mahaRequestLogHelper)
 
       if (requestResultValidationTry.isSuccess) {
         requestResultTry match {
           case Success(result) =>
-            onSuccessFn.foreach(_ (requestModelResult.model, result))
+            handleFailure(Try(onSuccessFn.foreach(_ (requestModelResult.model, result))), mahaRequestLogHelper)
             mahaRequestLogHelper.logSuccess()
           case Failure(err) =>
-            onFailureFn.foreach(_ (GeneralError.from(processingLabel, requestModelResultTry.failed.get.getMessage, requestModelResultTry.failed.get)))
+            handleFailure(Try(
+              onFailureFn.foreach(_ (GeneralError.from(processingLabel, requestModelResultTry.failed.get.getMessage, requestModelResultTry.failed.get)))), mahaRequestLogHelper)
             mahaRequestLogHelper.logFailed(err.getMessage)
         }
       }
 
     } else {
       //construct general error
-      onFailureFn.foreach(_ (GeneralError.from(processingLabel, requestModelResultTry.failed.get.getMessage, requestModelResultTry.failed.get)))
+      handleFailure(Try(onFailureFn.foreach(_ (GeneralError.from(processingLabel, requestModelResultTry.failed.get.getMessage, requestModelResultTry.failed.get)))), mahaRequestLogHelper)
       mahaRequestLogHelper.logFailed(requestModelResultTry.failed.get.getMessage)
     }
     info(s"Logging ${mahaRequestLogHelper.protoBuilder} to kafka")
@@ -108,6 +99,29 @@ case class MahaRequestProcessor (registryName: String,
 
     mahaService.mahaRequestLogWriter.write(mahaRequestLogHelper.protoBuilder)
     mahaRequestLogHelper.protoBuilder
+  }
+
+  /*
+  Method to handle the failure of validation function
+ */
+  private[this] def validationTryWrapper(anyTry: AnyRef, mahaRequestLogHelper: MahaRequestLogHelper): Unit = {
+    anyTry match {
+      case Failure(err) =>
+        handleFailure(Try(onFailureFn.foreach(_ (GeneralError.from(processingLabel, err.getMessage, err)))), mahaRequestLogHelper)
+        mahaRequestLogHelper.logFailed(err.getMessage)
+      case _=>
+    }
+  }
+
+  /*
+  Method to handle the failure of success and failure function
+   */
+  private[this] def handleFailure(anyTry: Try[Unit], mahaRequestLogHelper: MahaRequestLogHelper): Unit = {
+    anyTry match {
+      case Failure(err) =>
+        mahaRequestLogHelper.logFailed(err.getMessage)
+      case _=>
+    }
   }
 
   override def withRequestModelValidator(fn: (Try[RequestModelResult]) => Unit): Unit =  {
