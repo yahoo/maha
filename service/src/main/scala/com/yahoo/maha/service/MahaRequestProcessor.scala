@@ -82,8 +82,7 @@ case class MahaRequestProcessor (registryName: String,
             handleFailure(Try(onSuccessFn.foreach(_ (requestModelResult.model, result))), mahaRequestLogHelper)
             mahaRequestLogHelper.logSuccess()
           case Failure(err) =>
-            handleFailure(Try(
-              onFailureFn.foreach(_ (GeneralError.from(processingLabel, requestModelResultTry.failed.get.getMessage, requestModelResultTry.failed.get)))), mahaRequestLogHelper)
+            handleFailure(Try(onFailureFn.foreach(_ (GeneralError.from(processingLabel, requestModelResultTry.failed.get.getMessage, requestModelResultTry.failed.get)))), mahaRequestLogHelper)
             mahaRequestLogHelper.logFailed(err.getMessage)
         }
       }
@@ -119,6 +118,7 @@ case class MahaRequestProcessor (registryName: String,
   private[this] def handleFailure(anyTry: Try[Unit], mahaRequestLogHelper: MahaRequestLogHelper): Unit = {
     anyTry match {
       case Failure(err) =>
+        error(s"Execution Failure in user defined function $anyTry")
         mahaRequestLogHelper.logFailed(err.getMessage)
       case _=>
     }
