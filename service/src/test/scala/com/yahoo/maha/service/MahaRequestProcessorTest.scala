@@ -31,7 +31,7 @@ class MahaRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAfterAl
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
-    var assertCount = 0;
+    var assertCount = 0
 
     val mahaRequestProcessor = new MahaRequestProcessor(REGISTRY, mahaService)
     mahaRequestProcessor.onSuccess((requestModel, requestResult) => {
@@ -43,7 +43,7 @@ class MahaRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAfterAl
     })
     mahaRequestProcessor.process(BucketParams(UserInfo("uid", true)), reportingRequest, jsonRequest.getBytes)
 
-    Thread.sleep(500)
+    Thread.sleep(1000)
     assert(assertCount == 1)
   }
 
@@ -64,7 +64,7 @@ class MahaRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAfterAl
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
-    var assertCount = 0;
+    var assertCount = 0
 
     val mahaRequestProcessor = new MahaRequestProcessor(REGISTRY, mahaService)
     mahaRequestProcessor.withRequestModelValidator((reportingRequestResult) => {
