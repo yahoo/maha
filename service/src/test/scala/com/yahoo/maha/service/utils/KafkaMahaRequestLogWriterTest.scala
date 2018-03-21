@@ -117,7 +117,7 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
       def run() {
         var stopRequested = 20
         while(stopRequested > 0) {
-          mahaRequestLogWriter.write(reqLogBuilder)
+          mahaRequestLogWriter.write(reqLogBuilder.build())
           val consumerRecords = kafkaConsumer.poll(1000)
           if(consumerRecords.count() > 0) {
             info("Received:"+consumerRecords)

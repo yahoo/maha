@@ -12,7 +12,7 @@ import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import grizzled.slf4j.Logging
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 
 trait BaseMahaRequestProcessor {
   def process(bucketParams: BucketParams,
@@ -71,7 +71,6 @@ case class MahaRequestProcessor(registryName: String,
     } yield Try(requestModelValidationFn.foreach(_ (requestModelResult)))
 
     if(requestModelValidationTry.isFailure) {
-      //validationTryWrapper(requestModelValidationTry, mahaRequestLogHelper)
       val err = requestModelResultTry.failed.get
       callOnFailureFn(mahaRequestLogHelper, reportingRequest)(GeneralError.from(processingLabel, err.getMessage, err))
     } else {
@@ -80,17 +79,19 @@ case class MahaRequestProcessor(registryName: String,
 
       val errParFunction: ParFunction[GeneralError, Unit] = ParFunction.fromScala(callOnFailureFn(mahaRequestLogHelper, reportingRequest))
       val validationParFunction: ParFunction[RequestResult, com.yahoo.maha.parrequest.Either[GeneralError, RequestResult]] =
+      ParFunction.fromScala(
         (result: RequestResult) => {
           try {
             requestResultValidationFn.foreach(_ (result))
             new com.yahoo.maha.parrequest.Right(result)
           } catch {
             case e: Exception =>
-              mahaRequestLogHelper.logFailed(e.getMessage)
               GeneralError.either("resultValidation", e.getMessage, e)
           }
         }
+      )
       val successParFunction: ParFunction[RequestResult, Unit] =
+      ParFunction.fromScala(
         (result: RequestResult) => {
           try {
             onSuccessFn.foreach(_ (requestModelResult.model, result))
@@ -103,6 +104,7 @@ case class MahaRequestProcessor(registryName: String,
               mahaServiceMonitor.stop(reportingRequest)
           }
         }
+      )
       parRequestResult.prodRun.map[RequestResult]("resultValidation", validationParFunction)
         .fold[Unit](errParFunction, successParFunction)
     }

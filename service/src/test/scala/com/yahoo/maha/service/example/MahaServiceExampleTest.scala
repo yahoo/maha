@@ -11,13 +11,13 @@ import com.yahoo.maha.core.query.QueryRowList
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc.JdbcConnection
 import com.yahoo.maha.parrequest.GeneralError
-import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.factory.BaseFactoryTest
-import com.yahoo.maha.service.utils.MahaRequestLogHelper
+import com.yahoo.maha.service.utils.{MahaConstants, MahaRequestLogHelper}
 import com.yahoo.maha.service.{DefaultMahaService, MahaRequestProcessor, MahaServiceConfig, RequestResult}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import grizzled.slf4j.Logging
+import org.apache.log4j.MDC
 
 /**
  * Created by pranavbhole on 09/06/17.
@@ -336,6 +336,7 @@ class MahaServiceExampleTest extends BaseFactoryTest with Logging {
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
+    MDC.put(MahaConstants.REQUEST_ID, "123Request")
 
     val bucketParams = BucketParams(UserInfo("uid", true))
 
@@ -426,6 +427,7 @@ class MahaServiceExampleTest extends BaseFactoryTest with Logging {
 
     def fn = {
       (requestModel: RequestModel, requestResult: RequestResult) => {
+        assert(requestResult.rowList.columns.size  ==  4)
         assert(requestResult.rowList.asInstanceOf[QueryRowList].columnNames.contains("Total Marks"))
         println("Inside onSuccess function")
       }
@@ -434,36 +436,27 @@ class MahaServiceExampleTest extends BaseFactoryTest with Logging {
     mahaRequestProcessor.onSuccess(fn)
     mahaRequestProcessor.onFailure((error: GeneralError) => println(error.message))
     mahaRequestProcessor.withRequestModelValidator(
-      (requestModelResultTry) => {
+      (requestModelResult) => {
         // Defining the sample/custom post requestModelResultTry execution steps to be executed
-        if(requestModelResultTry.isSuccess) {
-          val model = requestModelResultTry.get.model
-          if (model.hasNonDrivingDimNonFKNonPKFilter && model.hasLowCardinalityDimFilters && model.isSyncRequest) {
-            warn("Costly Outer group by request with high SLA, should not be the SYNC request"+model)
-          }
+        val model = requestModelResultTry.get.model
+        if (model.hasNonDrivingDimNonFKNonPKFilter && model.hasLowCardinalityDimFilters && model.isSyncRequest) {
+          warn("Costly Outer group by request with high SLA, should not be the SYNC request"+model)
         }
       }
     )
 
     mahaRequestProcessor.withRequestResultValidator(
-      (requestResultTry) => {
+      (requestResult) => {
         // Defining the sample/custom post requestResultTry execution steps to be executed
-        if(requestResultTry.isSuccess) {
-          val requestResult = requestResultTry.get
-          val model = requestResult.rowList.asInstanceOf[QueryRowList].query.queryContext.requestModel
-          val isFactOnlyOperation = model.dimensionsCandidates.isEmpty
-          if(isFactOnlyOperation && model.includeRowCount) {
-            requestResult.copy(totalRowsOption = Some(5000))
-          }
+        val model = requestResult.rowList.asInstanceOf[QueryRowList].query.queryContext.requestModel
+        val isFactOnlyOperation = model.dimensionsCandidates.isEmpty
+        if(isFactOnlyOperation && model.includeRowCount) {
+          requestResult.copy(totalRowsOption = Some(5000))
         }
       }
     )
 
-    val protoBuilder: MahaRequestProto.Builder = mahaRequestProcessor.process(bucketParams, reportingRequest, jsonRequest.getBytes)
-    assert(protoBuilder.getDrivingTable == "student_grade_sheet")
-    assert(protoBuilder.getStatus == 200)
-    assert(protoBuilder.getRequestEndTime > System.currentTimeMillis() - 30000)
-
+    mahaRequestProcessor.process(bucketParams, reportingRequest, jsonRequest.getBytes)
     val thrown = intercept[IllegalArgumentException] {
       val failedProcessor = MahaRequestProcessor("er", mahaService)
       failedProcessor.process(bucketParams, reportingRequest, jsonRequest.getBytes)

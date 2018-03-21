@@ -4,6 +4,7 @@ package com.yahoo.maha.service.utils
 
 import java.util.concurrent.atomic.AtomicBoolean
 
+import com.google.common.annotations.VisibleForTesting
 import com.google.protobuf.ByteString
 import com.yahoo.maha.core.{DimensionCandidate, RequestModel, SortByColumnInfo}
 import com.yahoo.maha.core.query._
@@ -181,4 +182,10 @@ case class MahaRequestLogHelper(registryName: String, mahaService: MahaService) 
       logger.warn("logSuccess called more than once!")
     }
   }
+
+  @VisibleForTesting
+  def getbuilder(): MahaRequestProto.Builder = {
+    protoBuilder
+  }
+
 }

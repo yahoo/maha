@@ -49,7 +49,7 @@ class KafkaMahaRequestLogWriter(JsonKafkaRequestLoggingConfig: JsonKafkaRequestL
 
     if (loggingEnabled) {
       try {
-        val producerRecord: ProducerRecord[Array[Byte], Array[Byte]] = new ProducerRecord[Array[Byte], Array[Byte]](JsonKafkaRequestLoggingConfig.topicName, reqLogBuilder.build().toByteArray)
+        val producerRecord: ProducerRecord[Array[Byte], Array[Byte]] = new ProducerRecord[Array[Byte], Array[Byte]](JsonKafkaRequestLoggingConfig.topicName, reqLogBuilder.toByteArray)
         kafkaProducer.send(producerRecord, callback)
       }
       catch {

@@ -6,7 +6,7 @@ import java.nio.charset.StandardCharsets
 
 import com.google.protobuf.ByteString
 import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
-import com.yahoo.maha.core.request.{ReportingRequest, SyncRequest}
+import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service.MahaService
 import org.mockito.Mockito._
@@ -52,7 +52,7 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     mahaRequestLogHelper.setDryRun()
     mahaRequestLogHelper.logSuccess()
     mahaRequestLogHelper.setAsyncQueueParams()
-    val proto = mahaRequestLogHelper.build()
+    val proto = mahaRequestLogHelper.getbuilder()
     assert(proto.getStatus == 200)
     assert(proto.getRequestId == "123")
     assert(proto.getUserId == "abc")

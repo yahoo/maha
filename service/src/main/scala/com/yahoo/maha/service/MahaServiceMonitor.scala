@@ -19,5 +19,5 @@ trait MahaServiceMonitor {
 object DefaultMahaServiceMonitor extends MahaServiceMonitor {
   override def start(reportingRequest: ReportingRequest) =  {}
 
-  override def stop() = {}
+  override def stop(reportingRequest: ReportingRequest) = {}
 }
