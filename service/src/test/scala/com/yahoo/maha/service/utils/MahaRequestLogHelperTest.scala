@@ -6,7 +6,7 @@ import java.nio.charset.StandardCharsets
 
 import com.google.protobuf.ByteString
 import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
-import com.yahoo.maha.core.request.{ReportingRequest, SyncRequest}
+import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service.MahaService
 import org.mockito.Mockito._
@@ -44,15 +44,18 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
 
   test("Test MahaRequestLogHelper") {
     val mahaService = mock(classOf[MahaService])
+    val mahaRequestLogWriter = mock(classOf[MahaRequestLogWriter])
     val mahaRequestLogHelper = MahaRequestLogHelper("ir", mahaService)
+    val proto = mahaRequestLogHelper.getbuilder()
     MDC.put(MahaConstants.REQUEST_ID,"123")
     MDC.put(MahaConstants.USER_ID,"abc")
     mahaRequestLogHelper.init(request,Option(123L),
-      MahaRequestProto.RequestType.SYNC, ByteString.copyFrom(jsonString.getBytes(StandardCharsets.UTF_8)))
+    MahaRequestProto.RequestType.SYNC, ByteString.copyFrom(jsonString.getBytes(StandardCharsets.UTF_8)))
     mahaRequestLogHelper.setDryRun()
-    mahaRequestLogHelper.logSuccess()
     mahaRequestLogHelper.setAsyncQueueParams()
-    val proto = mahaRequestLogHelper.build()
+    when(mahaService.mahaRequestLogWriter).thenReturn(mahaRequestLogWriter)
+    when(mahaRequestLogWriter.write(proto.build())).thenAnswer(_)
+    mahaRequestLogHelper.logSuccess()
     assert(proto.getStatus == 200)
     assert(proto.getRequestId == "123")
     assert(proto.getUserId == "abc")

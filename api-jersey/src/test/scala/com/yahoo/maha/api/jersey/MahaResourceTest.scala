@@ -3,13 +3,16 @@
 package com.yahoo.maha.api.jersey
 
 import javax.ws.rs.core.MediaType
-import example.ExampleMahaService
+
+import com.yahoo.maha.api.jersey.example.ExampleMahaService
+import com.yahoo.maha.service.utils.MahaConstants
 import junit.framework.TestCase.assertNotNull
-import org.apache.http.{HttpEntity, HttpHeaders, HttpResponse}
 import org.apache.http.client.methods.{HttpGet, HttpPost}
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.client.{CloseableHttpClient, HttpClientBuilder}
 import org.apache.http.util.EntityUtils
+import org.apache.http.{HttpEntity, HttpHeaders, HttpResponse}
+import org.apache.log4j.MDC
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.webapp.WebAppContext
 import org.junit.Assert.assertEquals
@@ -391,6 +394,10 @@ object MahaResourceTest {
 
   @BeforeClass
   def startJetty() {
+    // user params for kafka logging and bucketing
+    MDC.put(MahaConstants.REQUEST_ID, "123Request")
+    MDC.put(MahaConstants.USER_ID,"abc")
+
     server = new Server(7875)
     server.setStopAtShutdown(true)
     val webAppContext : WebAppContext = new WebAppContext()
