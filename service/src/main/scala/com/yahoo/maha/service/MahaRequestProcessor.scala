@@ -66,12 +66,12 @@ case class MahaRequestProcessor(registryName: String,
 
     val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams , mahaRequestLogHelper)
     // Custom validation for RequestModel
-    val requestModelValidationTry: Try[Unit] = for {
+    val requestModelValidationTry = for {
       requestModelResult <- requestModelResultTry
-    } yield Try(requestModelValidationFn.foreach(_ (requestModelResult)))
+    } yield requestModelValidationFn.foreach(_ (requestModelResult))
 
     if(requestModelValidationTry.isFailure) {
-      val err = requestModelResultTry.failed.get
+      val err = requestModelValidationTry.failed.get
       callOnFailureFn(mahaRequestLogHelper, reportingRequest)(GeneralError.from(processingLabel, err.getMessage, err))
     } else {
       val requestModelResult = requestModelResultTry.get
