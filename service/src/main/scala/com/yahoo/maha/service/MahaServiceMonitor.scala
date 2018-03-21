@@ -13,7 +13,7 @@ import com.yahoo.maha.core.request.ReportingRequest
  */
 trait MahaServiceMonitor {
   def start(reportingRequest: ReportingRequest): Unit
-  def stop(): Unit
+  def stop(reportingRequest: ReportingRequest): Unit
 }
 
 object DefaultMahaServiceMonitor extends MahaServiceMonitor {

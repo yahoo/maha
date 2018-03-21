@@ -96,7 +96,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
             @QueryParam("forceEngine") forceEngine: String,
             @QueryParam("forceRevision") forceRevision: Int,
             @Context httpServletRequest: HttpServletRequest,
-            @Suspended response: AsyncResponse) = {
+            @Suspended response: AsyncResponse) : Unit = {
 
     info(s"registryName: $registryName, schema: $schema, forceEngine: $forceEngine, forceRevision: $forceRevision")
     val schemaOption: Option[Schema] = Schema.withNameInsensitiveOption(schema)

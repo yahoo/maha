@@ -2,15 +2,17 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.utils
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 import com.google.protobuf.ByteString
 import com.yahoo.maha.core.{DimensionCandidate, RequestModel, SortByColumnInfo}
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service.MahaService
-import grizzled.slf4j.Logging
 import org.apache.commons.lang.StringUtils
 import org.apache.log4j.MDC
+import org.slf4j.LoggerFactory
 
 /**
  * Created by pranavbhole on 11/08/17.
@@ -24,11 +26,11 @@ object MahaConstants {
 
 trait MahaRequestLogBuilder {
 
+  protected[this] val protoBuilder: MahaRequestProto.Builder = MahaRequestProto.newBuilder()
+
   def mahaService: MahaService
 
   def registryName: String
-
-  val protoBuilder: MahaRequestProto.Builder = MahaRequestProto.newBuilder()
 
   def init(reportingRequest: ReportingRequest, jobIdOption: Option[Long], requestType: MahaRequestProto.RequestType, rawJson: ByteString)
 
@@ -39,16 +41,21 @@ trait MahaRequestLogBuilder {
   def logFailed(errorMessage: String)
 
   def logSuccess()
-
-  def build(): MahaRequestProto
 }
 
-case class MahaRequestLogHelper(registryName: String, mahaService: MahaService) extends MahaRequestLogBuilder  with Logging {
+object MahaRequestLogHelper {
+  val logger: org.slf4j.Logger = LoggerFactory.getLogger(classOf[MahaRequestLogHelper])
+}
+case class MahaRequestLogHelper(registryName: String, mahaService: MahaService) extends MahaRequestLogBuilder {
+
+  private[this] val complete: AtomicBoolean = new AtomicBoolean(false)
+  import MahaRequestLogHelper._
 
   override def init(reportingRequest: ReportingRequest,
                     jobIdOption: Option[Long],
                     requestType: MahaRequestProto.RequestType,
                     rawJson: ByteString): Unit = {
+    protoBuilder.setMahaServiceRegistryName(registryName)
     protoBuilder.setRequestStartTime(System.currentTimeMillis())
 
     val requestId = MDC.get(MahaConstants.REQUEST_ID)
@@ -64,7 +71,7 @@ case class MahaRequestLogHelper(registryName: String, mahaService: MahaService) 
     protoBuilder.setCube(reportingRequest.cube)
     protoBuilder.setSchema(reportingRequest.schema.toString)
     protoBuilder.setJson(rawJson)
-    info(s"init MahaRequestLog requestId = $requestId , userId = $userId")
+    logger.info(s"init MahaRequestLog requestId = $requestId , userId = $userId")
   }
 
   def setDryRun(): Unit = {
@@ -80,7 +87,7 @@ case class MahaRequestLogHelper(registryName: String, mahaService: MahaService) 
       Some(requestModel.bestCandidates.get.publicFact.revision)
     } catch {
       case e:Exception =>
-        warn(s"Something went wrong in extracting cube revision for logging purpose $e")
+        logger.warn(s"Something went wrong in extracting cube revision for logging purpose $e")
         None
     }
   }
@@ -155,17 +162,23 @@ case class MahaRequestLogHelper(registryName: String, mahaService: MahaService) 
   }
 
   override def logFailed(errorMessage: String): Unit = {
-    protoBuilder.setStatus(500)
-    protoBuilder.setErrorMessage(errorMessage)
-    protoBuilder.setRequestEndTime(System.currentTimeMillis())
+    if(complete.compareAndSet(false, true)) {
+      protoBuilder.setStatus(500)
+      protoBuilder.setErrorMessage(errorMessage)
+      protoBuilder.setRequestEndTime(System.currentTimeMillis())
+      mahaService.mahaRequestLogWriter.write(protoBuilder.build())
+    } else {
+      logger.warn("logFailed called more than once!")
+    }
   }
 
   override def logSuccess(): Unit =  {
-    protoBuilder.setStatus(200)
-    protoBuilder.setRequestEndTime(System.currentTimeMillis())
-  }
-
-  override def build(): MahaRequestProto = {
-    protoBuilder.build()
+    if(complete.compareAndSet(false, true)) {
+      protoBuilder.setStatus(200)
+      protoBuilder.setRequestEndTime(System.currentTimeMillis())
+      mahaService.mahaRequestLogWriter.write(protoBuilder.build())
+    } else {
+      logger.warn("logSuccess called more than once!")
+    }
   }
 }

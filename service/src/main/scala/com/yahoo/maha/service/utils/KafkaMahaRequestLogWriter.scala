@@ -14,13 +14,13 @@ import org.apache.kafka.clients.producer.{Callback, ProducerRecord, RecordMetada
  */
 
 trait MahaRequestLogWriter {
-  def write(reqLogBuilder: MahaRequestProto.Builder)
-  def validate (reqLogBuilder: MahaRequestProto.Builder)
+  def write(reqLogBuilder: MahaRequestProto)
+  def validate (reqLogBuilder: MahaRequestProto)
 }
 
 class NoopMahaRequestLogWriter extends MahaRequestLogWriter {
-  override def write(reqLogBuilder: MahaRequestProto.Builder): Unit = {}
-  override def validate(reqLogBuilder: MahaRequestProto.Builder): Unit = {}
+  override def write(reqLogBuilder: MahaRequestProto): Unit = {}
+  override def validate(reqLogBuilder: MahaRequestProto): Unit = {}
 }
 
 class KafkaMahaRequestLogWriter(JsonKafkaRequestLoggingConfig: JsonKafkaRequestLoggingConfig, loggingEnabled: Boolean) extends MahaRequestLogWriter with Logging {
@@ -43,7 +43,7 @@ class KafkaMahaRequestLogWriter(JsonKafkaRequestLoggingConfig: JsonKafkaRequestL
   }
   val callback = new CheckErrorCallback
 
-  def write(reqLogBuilder: MahaRequestProto.Builder) = {
+  def write(reqLogBuilder: MahaRequestProto) = {
 
     validate(reqLogBuilder)
 
@@ -62,7 +62,7 @@ class KafkaMahaRequestLogWriter(JsonKafkaRequestLoggingConfig: JsonKafkaRequestL
     }
   }
 
-  def validate (reqLogBuilder: MahaRequestProto.Builder) = {
+  def validate (reqLogBuilder: MahaRequestProto) = {
     if(reqLogBuilder.hasJson == false || reqLogBuilder.hasRequestId == false) {
       warn(s"Message is missing the required fields [requestId, json] = [${reqLogBuilder.getRequestId} , ${reqLogBuilder.getJson}}], jobId = ${reqLogBuilder.getJobId}," +
         s" Builder: ${reqLogBuilder}")

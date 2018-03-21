@@ -7,26 +7,27 @@ import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{RequestModel, RequestModelResult}
 import com.yahoo.maha.parrequest.GeneralError
+import com.yahoo.maha.parrequest.future.ParFunction
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import grizzled.slf4j.Logging
 
-import scala.util.{Success, Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 trait BaseMahaRequestProcessor {
   def process(bucketParams: BucketParams,
               reportingRequest: ReportingRequest,
-              rawJson: Array[Byte]): MahaRequestProto.Builder
+              rawJson: Array[Byte]): Unit
   def onSuccess(fn: (RequestModel, RequestResult) => Unit)
   def onFailure(fn: (GeneralError) => Unit)
 
   //Optional model/result validation Functional Traits
-  def withRequestModelValidator(fn: (Try[RequestModelResult]) => Unit)
-  def withRequestResultValidator(fn: (Try[RequestResult]) => Unit)
+  def withRequestModelValidator(fn: (RequestModelResult) => Unit)
+  def withRequestResultValidator(fn: (RequestResult) => Unit)
   def mahaServiceMonitor : MahaServiceMonitor
 }
 
-case class MahaRequestProcessor (registryName: String,
+case class MahaRequestProcessor(registryName: String,
                                  mahaService: MahaService,
                                  mahaServiceMonitor : MahaServiceMonitor = DefaultMahaServiceMonitor,
                                  processingLabel : String  = MahaServiceConstants.MahaRequestLabel) extends BaseMahaRequestProcessor with Logging {
@@ -38,12 +39,12 @@ case class MahaRequestProcessor (registryName: String,
   /*
    Defines the validation steps for Request Model Result Success and Failure handling
   */
-  var requestModelValidationFn: Option[(Try[RequestModelResult]) => Unit] = None
+  var requestModelValidationFn: Option[(RequestModelResult) => Unit] = None
 
   /*
    Defines the validation steps for Request Result Success and Failure handling
  */
-  var requestResultValidationFn : Option[(Try[RequestResult]) => Unit] = None
+  var requestResultValidationFn : Option[(RequestResult) => Unit] = None
 
   def onSuccess(fn: (RequestModel, RequestResult) => Unit) : Unit = {
     onSuccessFn = Some(fn)
@@ -55,7 +56,7 @@ case class MahaRequestProcessor (registryName: String,
 
   def process(bucketParams: BucketParams,
                reportingRequest: ReportingRequest,
-               rawJson: Array[Byte]) : MahaRequestProto.Builder = {
+               rawJson: Array[Byte]) : Unit = {
 
     require(onSuccessFn.isDefined || onFailureFn.isDefined, "Nothing to do after processing!")
     val mahaRequestLogHelper = MahaRequestLogHelper(registryName, mahaService)
@@ -65,70 +66,65 @@ case class MahaRequestProcessor (registryName: String,
 
     val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams , mahaRequestLogHelper)
     // Custom validation for RequestModel
-    val requestModelValidationTry = Try(requestModelValidationFn.foreach(_ (requestModelResultTry)))
-    validationTryWrapper(requestModelValidationTry, mahaRequestLogHelper)
+    val requestModelValidationTry: Try[Unit] = for {
+      requestModelResult <- requestModelResultTry
+    } yield Try(requestModelValidationFn.foreach(_ (requestModelResult)))
 
-    if(requestModelResultTry.isSuccess && requestModelValidationTry.isSuccess) {
-      val requestModelResult = requestModelResultTry.get
-      val requestResultTry = mahaService.processRequestModel(registryName, requestModelResult.model, mahaRequestLogHelper)
-
-      // Custom validation for RequestResult
-      val requestResultValidationTry = Try(requestResultValidationFn.foreach(_ (requestResultTry)))
-      validationTryWrapper(requestResultValidationTry, mahaRequestLogHelper)
-
-      if (requestResultValidationTry.isSuccess) {
-        requestResultTry match {
-          case Success(result) =>
-            handleFailure(Try(onSuccessFn.foreach(_ (requestModelResult.model, result))), mahaRequestLogHelper)
-            mahaRequestLogHelper.logSuccess()
-          case Failure(err) =>
-            handleFailure(Try(onFailureFn.foreach(_ (GeneralError.from(processingLabel, requestModelResultTry.failed.get.getMessage, requestModelResultTry.failed.get)))), mahaRequestLogHelper)
-            mahaRequestLogHelper.logFailed(err.getMessage)
-        }
-      }
-
+    if(requestModelValidationTry.isFailure) {
+      //validationTryWrapper(requestModelValidationTry, mahaRequestLogHelper)
+      val err = requestModelResultTry.failed.get
+      callOnFailureFn(mahaRequestLogHelper, reportingRequest)(GeneralError.from(processingLabel, err.getMessage, err))
     } else {
-      //construct general error
-      handleFailure(Try(onFailureFn.foreach(_ (GeneralError.from(processingLabel, requestModelResultTry.failed.get.getMessage, requestModelResultTry.failed.get)))), mahaRequestLogHelper)
-      mahaRequestLogHelper.logFailed(requestModelResultTry.failed.get.getMessage)
-    }
-    info(s"Logging ${mahaRequestLogHelper.protoBuilder} to kafka")
-    //Stopping Service Monitor
-    mahaServiceMonitor.stop
+      val requestModelResult = requestModelResultTry.get
+      val parRequestResult = mahaService.executeRequestModelResult(registryName, requestModelResult, mahaRequestLogHelper)
 
-    mahaService.mahaRequestLogWriter.write(mahaRequestLogHelper.protoBuilder)
-    mahaRequestLogHelper.protoBuilder
-  }
-
-  /*
-  Method to handle the failure of validation function
- */
-  private[this] def validationTryWrapper(anyTry: AnyRef, mahaRequestLogHelper: MahaRequestLogHelper): Unit = {
-    anyTry match {
-      case Failure(err) =>
-        handleFailure(Try(onFailureFn.foreach(_ (GeneralError.from(processingLabel, err.getMessage, err)))), mahaRequestLogHelper)
-        mahaRequestLogHelper.logFailed(err.getMessage)
-      case _=>
-    }
-  }
-
-  /*
-  Method to handle the failure of success and failure function
-   */
-  private[this] def handleFailure(anyTry: Try[Unit], mahaRequestLogHelper: MahaRequestLogHelper): Unit = {
-    anyTry match {
-      case Failure(err) =>
-        error(s"Execution Failure in user defined function $anyTry")
-        mahaRequestLogHelper.logFailed(err.getMessage)
-      case _=>
+      val errParFunction: ParFunction[GeneralError, Unit] = ParFunction.fromScala(callOnFailureFn(mahaRequestLogHelper, reportingRequest))
+      val validationParFunction: ParFunction[RequestResult, com.yahoo.maha.parrequest.Either[GeneralError, RequestResult]] =
+        (result: RequestResult) => {
+          try {
+            requestResultValidationFn.foreach(_ (result))
+            new com.yahoo.maha.parrequest.Right(result)
+          } catch {
+            case e: Exception =>
+              mahaRequestLogHelper.logFailed(e.getMessage)
+              GeneralError.either("resultValidation", e.getMessage, e)
+          }
+        }
+      val successParFunction: ParFunction[RequestResult, Unit] =
+        (result: RequestResult) => {
+          try {
+            onSuccessFn.foreach(_ (requestModelResult.model, result))
+            mahaRequestLogHelper.logSuccess()
+            mahaServiceMonitor.stop(reportingRequest)
+          } catch {
+            case e: Exception =>
+              logger.error("Failed while calling onSuccessFn", e)
+              mahaRequestLogHelper.logFailed(e.getMessage)
+              mahaServiceMonitor.stop(reportingRequest)
+          }
+        }
+      parRequestResult.prodRun.map[RequestResult]("resultValidation", validationParFunction)
+        .fold[Unit](errParFunction, successParFunction)
     }
   }
 
-  override def withRequestModelValidator(fn: (Try[RequestModelResult]) => Unit): Unit =  {
+  private[this] def callOnFailureFn(mahaRequestLogHelper: MahaRequestLogHelper, reportingRequest: ReportingRequest)(err: GeneralError) : Unit = {
+    try {
+      onFailureFn.foreach(_ (err))
+    } catch {
+      case e: Exception =>
+        logger.error("Failed while calling onFailureFn", e)
+    } finally {
+      mahaRequestLogHelper.logFailed(err.message)
+      mahaServiceMonitor.stop(reportingRequest)
+    }
+  }
+
+  override def withRequestModelValidator(fn: (RequestModelResult) => Unit): Unit =  {
     requestModelValidationFn = Some(fn)
   }
 
-  override def withRequestResultValidator(fn: (Try[RequestResult]) => Unit): Unit =  {
+  override def withRequestResultValidator(fn: (RequestResult) => Unit): Unit =  {
     requestResultValidationFn = Some(fn)
   }
 
