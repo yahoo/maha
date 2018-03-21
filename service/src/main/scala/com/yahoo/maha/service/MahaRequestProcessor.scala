@@ -86,7 +86,6 @@ case class MahaRequestProcessor(registryName: String,
             new com.yahoo.maha.parrequest.Right(result)
           } catch {
             case e: Exception =>
-              mahaRequestLogHelper.logFailed(e.getMessage)
               GeneralError.either("resultValidation", e.getMessage, e)
           }
         }
