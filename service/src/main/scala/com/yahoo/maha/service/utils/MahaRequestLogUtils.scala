@@ -167,7 +167,7 @@ case class MahaRequestLogHelper(registryName: String, mahaService: MahaService) 
       protoBuilder.setStatus(500)
       protoBuilder.setErrorMessage(errorMessage)
       protoBuilder.setRequestEndTime(System.currentTimeMillis())
-      mahaService.mahaRequestLogWriter.write(protoBuilder.build())
+      writeLog()
     } else {
       logger.warn("logFailed called more than once!")
     }
@@ -177,9 +177,18 @@ case class MahaRequestLogHelper(registryName: String, mahaService: MahaService) 
     if(complete.compareAndSet(false, true)) {
       protoBuilder.setStatus(200)
       protoBuilder.setRequestEndTime(System.currentTimeMillis())
-      mahaService.mahaRequestLogWriter.write(protoBuilder.build())
+      writeLog()
     } else {
       logger.warn("logSuccess called more than once!")
+    }
+  }
+
+  private[this] def writeLog(): Unit = {
+    try {
+      mahaService.mahaRequestLogWriter.write(protoBuilder.build())
+    } catch {
+      case e=>
+        logger.warn(s"Failed to log the event to kafka ${e.getMessage} $e")
     }
   }
 
