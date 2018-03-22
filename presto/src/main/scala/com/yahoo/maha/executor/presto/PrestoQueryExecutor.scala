@@ -122,60 +122,64 @@ class PrestoQueryExecutor(jdbcConnection: JdbcConnection, prestoQueryTemplate: P
       throw new UnsupportedOperationException(s"PrestoQueryExecutor does not support query with engine=${query.engine}")
     } else {
       var rowCount = 0
-      var metaData: ResultSetMetaData = null
-      val columnIndexMap = new collection.mutable.HashMap[String, Int]
-      val aliasColumnMap = query.aliasColumnMap
-      val finalQuery = prestoQueryTemplate.buildFinalQuery(query.asString, query.queryContext, queryAttributes)
-      if (debugEnabled) {
-        info(s"Running query : $finalQuery")
-      }
-      val result: Try[Unit] = jdbcConnection.queryForObject(finalQuery) { resultSet =>
-        if (resultSet.next()) {
-          if (metaData == null) {
-            metaData = resultSet.getMetaData
-            var count = 1
-            while (count <= metaData.getColumnCount) {
-              //get alias
-              val alias = metaData.getColumnLabel(count).toLowerCase
-              columnIndexMap += alias -> count
-              if (debugEnabled) {
-                info(s"metaData index=$count label=$alias")
+      rowList match {
+        case rl if rl.isInstanceOf[QueryRowList] =>
+          val qrl = rl.asInstanceOf[QueryRowList]
+          var metaData: ResultSetMetaData = null
+          val columnIndexMap = new collection.mutable.HashMap[String, Int]
+          val aliasColumnMap = query.aliasColumnMap
+          val finalQuery = prestoQueryTemplate.buildFinalQuery(query.asString, query.queryContext, queryAttributes)
+          if (debugEnabled) {
+            info(s"Running query : $finalQuery")
+          }
+          val result: Try[Unit] = jdbcConnection.queryForObject(finalQuery) { resultSet =>
+            if (resultSet.next()) {
+              if (metaData == null) {
+                metaData = resultSet.getMetaData
+                var count = 1
+                while (count <= metaData.getColumnCount) {
+                  //get alias
+                  val alias = metaData.getColumnLabel(count).toLowerCase
+                  columnIndexMap += alias -> count
+                  if (debugEnabled) {
+                    info(s"metaData index=$count label=$alias")
+                  }
+                  count += 1
+                }
+                if (debugEnabled) {
+                  info(s"columnIndexMap from metaData ${columnIndexMap.toList.sortBy(_._1).mkString("\n", "\n", "\n")}")
+                  info(s"aliasColumnMap from query ${aliasColumnMap.mapValues(_.name).toList.sortBy(_._1).mkString("\n", "\n", "\n")}")
+                }
               }
-              count += 1
-            }
-            if (debugEnabled) {
-              info(s"columnIndexMap from metaData ${columnIndexMap.toList.sortBy(_._1).mkString("\n", "\n", "\n")}")
-              info(s"aliasColumnMap from query ${aliasColumnMap.mapValues(_.name).toList.sortBy(_._1).mkString("\n", "\n", "\n")}")
-            }
-          }
 
-          //process all columns
-          do {
-            val row = rowList.newRow
-            for {
-              (alias, column) <- aliasColumnMap
-            } {
-              val index = columnIndexMap(alias)
-              val value = getColumnValue(index, column, resultSet)
-              row.addValue(index-1, value)
+              //process all columns
+              do {
+                val row = qrl.newRow
+                for {
+                  (alias, column) <- aliasColumnMap
+                } {
+                  val index = columnIndexMap(alias)
+                  val value = getColumnValue(index, column, resultSet)
+                  row.addValue(index-1, value)
+                }
+                qrl.addRow(row)
+                rowCount += 1
+              } while (resultSet.next())
+              if (debugEnabled) {
+                info(s"rowCount = $rowCount")
+              }
             }
-            rowList.addRow(row)
-            rowCount += 1
-          } while (resultSet.next())
-          if (debugEnabled) {
-            info(s"rowCount = $rowCount")
           }
-        }
-      }
-      result match {
-        case Failure(e) =>
-          Try(lifecycleListener.failed(query, acquiredQueryAttributes, e))
-          throw e
-        case _ =>
-          if (debugEnabled) {
-            info(s"Successfully retrieved results from Presto: $rowCount")
+          result match {
+            case Failure(e) =>
+              Try(lifecycleListener.failed(query, acquiredQueryAttributes, e))
+              throw e
+            case _ =>
+              if (debugEnabled) {
+                info(s"Successfully retrieved results from Presto: $rowCount")
+              }
+              QueryResult(rowList, lifecycleListener.completed(query, acquiredQueryAttributes), QueryResultStatus.SUCCESS)
           }
-          QueryResult(rowList, lifecycleListener.completed(query, acquiredQueryAttributes), QueryResultStatus.SUCCESS)
       }
     }
   }

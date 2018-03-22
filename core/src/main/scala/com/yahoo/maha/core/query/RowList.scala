@@ -78,7 +78,33 @@ sealed trait RowListLifeCycle {
 }
 
 trait RowList extends RowListLifeCycle {
+  val columns: IndexedSeq[ColumnInfo]
+  def addRow(r: Row, er: Option[Row] = None) : Unit
+  def isEmpty : Boolean
+  def foreach(fn: Row => Unit) : Unit
+  def map[T](fn: Row => T) : Iterable[T]
+  def javaForeach[U](fn: ParFunction[Row, U]) : Unit = {
+    foreach(r => fn.apply(r))
+  }
+  def javaMap[U](fn: ParFunction[Row, U]) : java.lang.Iterable[U] = {
+    import collection.JavaConverters._
+    map(r => fn.apply(r)).asJava
+  }
+  def getTotalRowCount : Int = {
+    0
+  }
+  protected def start() : Unit = {
+    //do nothing
+  }
+  protected def end() : Unit = {
+    //do nothing
+  }
+}
+
+trait QueryRowList extends RowList {
   val ROW_COUNT_ALIAS: String = "TOTALROWS"
+
+  override val columns: IndexedSeq[ColumnInfo] = query.queryContext.requestModel.requestCols
 
   def query: Query
 
@@ -119,28 +145,6 @@ trait RowList extends RowListLifeCycle {
     new Row(ephemeralAliasMap, ArrayBuffer.fill[Any](ephemeralColumnNames.size)(null))
   }
 
-  def addRow(r: Row, er: Option[Row] = None) : Unit
-  def isEmpty : Boolean
-  def foreach(fn: Row => Unit) : Unit
-  def map[T](fn: Row => T) : Iterable[T]
-  def javaForeach[U](fn: ParFunction[Row, U]) : Unit = {
-    foreach(r => fn.apply(r))
-  }
-  def javaMap[U](fn: ParFunction[Row, U]) : java.lang.Iterable[U] = {
-    import collection.JavaConverters._
-    map(r => fn.apply(r)).asJava
-  }
-  protected def start() : Unit = {
-    //do nothing
-  }
-  protected def end() : Unit = {
-    //do nothing
-  }
-
-  def getTotalRowCount : Int = {
-    0
-  }
-
   def postResultRowOperation(row:Row, ephemeralRowOption:Option[Row]) : Unit = {
 
     postResultColumnMap.foreach {
@@ -153,7 +157,7 @@ trait RowList extends RowListLifeCycle {
 
 }
 
-trait InMemRowList extends RowList {
+trait InMemRowList extends QueryRowList {
 
   private val logger = LoggerFactory.getLogger(classOf[InMemRowList])
 
@@ -595,7 +599,7 @@ case class UnionViewRowList(indexAliasComposite:Set[String]
 
 }
 
-case class NoopRowList(query: Query) extends RowList {
+case class NoopRowList(query: Query) extends QueryRowList {
 
   override def addRow(r: Row, er: Option[Row] = None): Unit = {
     throw new UnsupportedOperationException("addRow not implemented!")
@@ -624,7 +628,7 @@ object CSVRowList {
   * @param csvWriterProvider
   * @param writeHeader
   */
-class CSVRowList(val query: Query, csvWriterProvider: RowCSVWriterProvider, writeHeader: Boolean) extends RowList {
+class CSVRowList(val query: Query, csvWriterProvider: RowCSVWriterProvider, writeHeader: Boolean) extends QueryRowList {
 
   private[this] var started = false
   private[this] var ended = false
@@ -672,6 +676,28 @@ class CSVRowList(val query: Query, csvWriterProvider: RowCSVWriterProvider, writ
     CSVRowList.logger.warn("map not supported on CSVRowList")
     Iterable.empty
   }
+}
+
+class DerivedRowList(override val columns: IndexedSeq[ColumnInfo], val initialSize: Int = 1) extends RowList {
+
+  val list: collection.mutable.ArrayBuffer[Row] = new ArrayBuffer[Row](initialSize)
+
+  override def addRow(r: Row, er: Option[Row]): Unit = {
+    list += r
+  }
+
+  override def isEmpty: Boolean = {
+    list.isEmpty
+  }
+
+  override def foreach(fn: (Row) => Unit): Unit = {
+    list.foreach(fn)
+  }
+
+  override def map[T](fn: (Row) => T): Iterable[T] = {
+    list.map(fn)
+  }
+
 }
 
 trait RowData {

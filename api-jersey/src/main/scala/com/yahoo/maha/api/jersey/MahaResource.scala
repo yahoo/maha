@@ -96,7 +96,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
             @QueryParam("forceEngine") forceEngine: String,
             @QueryParam("forceRevision") forceRevision: Int,
             @Context httpServletRequest: HttpServletRequest,
-            @Suspended response: AsyncResponse) = {
+            @Suspended response: AsyncResponse) : Unit = {
 
     info(s"registryName: $registryName, schema: $schema, forceEngine: $forceEngine, forceRevision: $forceRevision")
     val schemaOption: Option[Schema] = Schema.withNameInsensitiveOption(schema)
@@ -107,10 +107,13 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
 
     val (reportingRequest: ReportingRequest, rawJson: Array[Byte]) = createReportingRequest(httpServletRequest, schemaOption.get, debug, forceEngine)
     val bucketParams: BucketParams = BucketParams(UserInfo(MDC.get(MahaConstants.USER_ID), Try(MDC.get(MahaConstants.IS_INTERNAL).toBoolean).getOrElse(false)), forceRevision = Option(forceRevision))
-    val mahaRequestProcessor: MahaRequestProcessor = MahaRequestProcessor(registryName, bucketParams, reportingRequest, mahaService, rawJson)
+    val mahaRequestProcessor: MahaRequestProcessor = MahaRequestProcessor(registryName, mahaService)
 
     mahaRequestProcessor.onSuccess((requestModel: RequestModel, requestResult: RequestResult) => {
-      response.resume(JsonStreamingOutput(requestModel, requestResult.rowList))
+      val dimCols : Set[String]  = if(requestModel.bestCandidates.isDefined) {
+        requestModel.bestCandidates.get.publicFact.dimCols.map(_.alias)
+      } else Set.empty
+      response.resume(JsonStreamingOutput(reportingRequest, dimCols, requestResult.rowList))
     })
 
     mahaRequestProcessor.onFailure((ge: GeneralError) => {
@@ -121,7 +124,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
       }
     })
 
-    mahaRequestProcessor.process()
+    mahaRequestProcessor.process(bucketParams, reportingRequest, rawJson)
 
   }
 

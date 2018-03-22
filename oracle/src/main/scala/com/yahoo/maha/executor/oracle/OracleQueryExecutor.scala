@@ -221,7 +221,8 @@ class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
             case _ =>
               QueryResult(rl, lifecycleListener.completed(query, acquiredQueryAttributes), QueryResultStatus.SUCCESS)
           }
-        case rl =>
+        case rl if rl.isInstanceOf[QueryRowList] =>
+          val qrl = rl.asInstanceOf[QueryRowList]
           var metaData : ResultSetMetaData = null
           val columnIndexMap = new collection.mutable.HashMap[String, Int]
           val aliasColumnMap = query.aliasColumnMap
@@ -250,7 +251,7 @@ class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
 
               //process all columns
               do {
-                val row = rl.newRow
+                val row = qrl.newRow
                 for {
                   (alias, column) <- aliasColumnMap
                 } {
@@ -258,7 +259,7 @@ class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
                   val value = getColumnValue(index, column, resultSet)
                   row.addValue(alias, value)
                 }
-                rl.addRow(row)
+                qrl.addRow(row)
                 rowCount += 1
               } while (resultSet.next())
               if(debugEnabled) {
