@@ -83,6 +83,13 @@ trait RowList extends RowListLifeCycle {
   def isEmpty : Boolean
   def foreach(fn: Row => Unit) : Unit
   def map[T](fn: Row => T) : Iterable[T]
+  def javaForeach[U](fn: ParFunction[Row, U]) : Unit = {
+    foreach(r => fn.apply(r))
+  }
+  def javaMap[U](fn: ParFunction[Row, U]) : java.lang.Iterable[U] = {
+    import collection.JavaConverters._
+    map(r => fn.apply(r)).asJava
+  }
   def getTotalRowCount : Int = {
     0
   }
@@ -136,14 +143,6 @@ trait QueryRowList extends RowList {
 
   def newEphemeralRow: Row = {
     new Row(ephemeralAliasMap, ArrayBuffer.fill[Any](ephemeralColumnNames.size)(null))
-  }
-
-  def javaForeach[U](fn: ParFunction[Row, U]) : Unit = {
-    foreach(r => fn.apply(r))
-  }
-  def javaMap[U](fn: ParFunction[Row, U]) : java.lang.Iterable[U] = {
-    import collection.JavaConverters._
-    map(r => fn.apply(r)).asJava
   }
 
   def postResultRowOperation(row:Row, ephemeralRowOption:Option[Row]) : Unit = {
