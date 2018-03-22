@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.yahoo.maha</groupId>
-    <artifactId>maha-par-request</artifactId>
+    <artifactId>maha-par-request-2</artifactId>
     <packaging>jar</packaging>
 
     <parent>
@@ -14,7 +14,7 @@
     </parent>
 
 
-    <name>maha-par-request</name>
+    <name>maha-par-request-2</name>
     <url>http://maven.apache.org</url>
 
     <properties>
@@ -178,8 +178,8 @@
 
   <distributionManagement>
     <repository>
-      <id>bintray-maha-par-request-repo</id>
-      <url>https://api.bintray.com/maven/yahoo/maven/maha-par-request/;publish=1</url>
+      <id>bintray-maha-par-request-2-repo</id>
+      <url>https://api.bintray.com/maven/yahoo/maven/maha-par-request-2/;publish=1</url>
     </repository>
   </distributionManagement>
 </project>
