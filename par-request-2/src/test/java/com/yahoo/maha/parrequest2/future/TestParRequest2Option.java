@@ -1,17 +1,11 @@
 // Copyright 2017, Yahoo Holdings Inc.
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
-package com.yahoo.maha.parrequest.future;
+package com.yahoo.maha.parrequest2.future;
 
 import com.yahoo.maha.parrequest2.GeneralError;
 import com.yahoo.maha.parrequest2.Nothing;
 import com.yahoo.maha.parrequest2.ParCallable;
 
-import com.yahoo.maha.parrequest2.future.CombinableRequest;
-import com.yahoo.maha.parrequest2.future.NoopRequest;
-import com.yahoo.maha.parrequest2.future.ParFunction;
-import com.yahoo.maha.parrequest2.future.ParRequest;
-import com.yahoo.maha.parrequest2.future.ParRequest2Option;
-import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
