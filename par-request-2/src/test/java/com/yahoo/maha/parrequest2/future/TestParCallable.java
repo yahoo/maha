@@ -49,10 +49,10 @@ public class TestParCallable {
     @BeforeClass
     public void setUp() throws Exception {
         executor = new ParallelServiceExecutor();
-        executor.setDefaultTimeoutMillis(10000);
+        executor.setDefaultTimeoutMillis(20000);
         executor.setPoolName("test-par-callable");
         executor.setQueueSize(20);
-        executor.setThreadPoolSize(6);
+        executor.setThreadPoolSize(3);
         executor.init();
     }
 

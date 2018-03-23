@@ -31,10 +31,10 @@ public class TestParallelServiceExecutor {
     @BeforeClass
     public void setUp() throws Exception {
         executor = new ParallelServiceExecutor();
-        executor.setDefaultTimeoutMillis(1000);
+        executor.setDefaultTimeoutMillis(2000);
         executor.setPoolName("test-pse");
         executor.setQueueSize(40);
-        executor.setThreadPoolSize(80);
+        executor.setThreadPoolSize(40);
         executor.init();
     }
 
@@ -45,14 +45,14 @@ public class TestParallelServiceExecutor {
 
     @Test
     public void testPoolSize() {
-        assertTrue(executor.getThreadPoolSize() == 80, "Invalid pool size");
+        assertTrue(executor.getThreadPoolSize() == 40, "Invalid pool size");
     }
 
     @Test
     public void testLongRunningParRequest() throws Exception {
         ParRequest.Builder<Integer> builder = executor.parRequestBuilder();
         builder.setParCallable(ParCallable.from(() -> {
-            Thread.sleep(2000);
+            Thread.sleep(3000);
             return new Right<GeneralError, Integer>(10);
         }));
         ParRequest<Integer> request = builder.build();
@@ -65,11 +65,11 @@ public class TestParallelServiceExecutor {
     public void testLongRunningParRequest2() throws Exception {
         ParRequest2.Builder<Integer, Integer> builder = executor.parRequest2Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
-            Thread.sleep(2000);
+            Thread.sleep(3000);
             return new Right<GeneralError, Integer>(10);
         }));
         builder.setSecondParCallable(ParCallable.from(() -> {
-            Thread.sleep(2000);
+            Thread.sleep(3000);
             return new Right<GeneralError, Integer>(10);
         }));
         ParRequest2<Integer, Integer> request = builder.build();
@@ -82,15 +82,15 @@ public class TestParallelServiceExecutor {
     public void testLongRunningParRequest3() throws Exception {
         ParRequest3.Builder<Integer, Integer, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
-            Thread.sleep(2000);
+            Thread.sleep(3000);
             return new Right<GeneralError, Integer>(10);
         }));
         builder.setSecondParCallable(ParCallable.from(() -> {
-            Thread.sleep(2000);
+            Thread.sleep(3000);
             return new Right<GeneralError, Integer>(10);
         }));
         builder.setThirdParCallable(ParCallable.from(() -> {
-            Thread.sleep(2000);
+            Thread.sleep(3000);
             return new Right<GeneralError, Integer>(10);
         }));
         ParRequest3<Integer, Integer, Integer> request = builder.build();
@@ -103,19 +103,19 @@ public class TestParallelServiceExecutor {
     public void testLongRunningParRequest4() throws Exception {
         ParRequest4.Builder<Integer, Integer, Integer, Integer> builder = executor.parRequest4Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
-            Thread.sleep(2000);
+            Thread.sleep(3000);
             return new Right<GeneralError, Integer>(10);
         }));
         builder.setSecondParCallable(ParCallable.from(() -> {
-            Thread.sleep(2000);
+            Thread.sleep(3000);
             return new Right<GeneralError, Integer>(10);
         }));
         builder.setThirdParCallable(ParCallable.from(() -> {
-            Thread.sleep(2000);
+            Thread.sleep(3000);
             return new Right<GeneralError, Integer>(10);
         }));
         builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(2000);
+            Thread.sleep(3000);
             return new Right<GeneralError, Integer>(10);
         }));
         ParRequest4<Integer, Integer, Integer, Integer> request = builder.build();
