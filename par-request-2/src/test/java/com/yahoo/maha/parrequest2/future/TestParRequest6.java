@@ -31,7 +31,7 @@ public class TestParRequest6 {
         executor.setDefaultTimeoutMillis(10000);
         executor.setPoolName("test-par-request4");
         executor.setQueueSize(20);
-        executor.setThreadPoolSize(10);
+        executor.setThreadPoolSize(20);
         executor.init();
     }
 

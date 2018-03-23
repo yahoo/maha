@@ -34,7 +34,7 @@ public class TestParallelServiceExecutor {
         executor.setDefaultTimeoutMillis(1000);
         executor.setPoolName("test-pse");
         executor.setQueueSize(40);
-        executor.setThreadPoolSize(40);
+        executor.setThreadPoolSize(80);
         executor.init();
     }
 
@@ -45,7 +45,7 @@ public class TestParallelServiceExecutor {
 
     @Test
     public void testPoolSize() {
-        assertTrue(executor.getThreadPoolSize() == 40, "Invalid pool size");
+        assertTrue(executor.getThreadPoolSize() == 80, "Invalid pool size");
     }
 
     @Test

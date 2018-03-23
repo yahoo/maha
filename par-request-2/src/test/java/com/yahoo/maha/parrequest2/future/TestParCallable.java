@@ -52,7 +52,7 @@ public class TestParCallable {
         executor.setDefaultTimeoutMillis(10000);
         executor.setPoolName("test-par-callable");
         executor.setQueueSize(20);
-        executor.setThreadPoolSize(3);
+        executor.setThreadPoolSize(6);
         executor.init();
     }
 
