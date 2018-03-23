@@ -1,7 +1,8 @@
 language: java
 matrix:
   include:
-    - dist: precise
+    - os: osx
+
 jdk:
 - oraclejdk8
 install: true
