@@ -4,7 +4,6 @@ scala:
 matrix:
   include:
     - dist: trusty
-    - sudo: required
 
 jdk:
 - oraclejdk8
