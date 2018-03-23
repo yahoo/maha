@@ -692,6 +692,8 @@
                             <key>true</key>
                         </property>
                     </properties>
+                    <forkCount>2</forkCount>
+                    <reuseForks>false</reuseForks>
                 </configuration>
             </plugin>
         </plugins>
