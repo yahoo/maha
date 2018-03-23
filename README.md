@@ -28,10 +28,11 @@ A centralised library for building reporting APIs on top of multiple data stores
   - maha-druid : Druid Query Executor
   - maha-oracle : Oracle Query Executor 
   - maha-druid-lookups: Druid Lookup extension for lookup join
-  - maha-par-request: Library for Parallel Execution, Blocking and Non Blocking Callables
+  - maha-par-request: Library for Parallel Execution, Blocking and Non Blocking Callables using Java utils
   - maha-service : One json config for creating different registries using the fact and dim definitions. 
   - maha-api-jersey : Easy war file helper library for exposing the api using maha-service module
   - maha-api-example : End to end example implementation of maha apis
+  - maha-par-request-2: Library for Parallel Execution, Blocking and Non Blocking Callables using Scala utils
 
 ### Getting Started 
 

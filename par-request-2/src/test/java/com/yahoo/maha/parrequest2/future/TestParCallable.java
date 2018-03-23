@@ -5,6 +5,9 @@ package com.yahoo.maha.parrequest2.future;
 import com.yahoo.maha.parrequest2.GeneralError;
 import com.yahoo.maha.parrequest2.ParCallable;
 
+import com.yahoo.maha.parrequest2.future.ParFunction;
+import com.yahoo.maha.parrequest2.future.ParRequest;
+import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor;
 import org.slf4j.MDC;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -46,7 +49,7 @@ public class TestParCallable {
     @BeforeClass
     public void setUp() throws Exception {
         executor = new ParallelServiceExecutor();
-        executor.setDefaultTimeoutMillis(10000);
+        executor.setDefaultTimeoutMillis(20000);
         executor.setPoolName("test-par-callable");
         executor.setQueueSize(20);
         executor.setThreadPoolSize(3);

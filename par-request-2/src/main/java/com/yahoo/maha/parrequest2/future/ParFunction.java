@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import scala.Function1;
-import scala.runtime.AbstractFunction1;
 
 import java.util.function.Function;
 

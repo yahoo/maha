@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import scala.Function1;
 import scala.Unit;
-import scala.Unit$;
 
 import java.util.concurrent.Callable;
 
