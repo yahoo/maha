@@ -15,6 +15,11 @@ import grizzled.slf4j.Logging
 import scala.util.Try
 
 trait BaseMahaRequestProcessor {
+  def registryName: String
+  def mahaService: MahaService
+  def mahaServiceMonitor : MahaServiceMonitor
+  def mahaRequestLogHelperOption: Option[MahaRequestLogHelper]
+
   def process(bucketParams: BucketParams,
               reportingRequest: ReportingRequest,
               rawJson: Array[Byte]): Unit
@@ -24,27 +29,32 @@ trait BaseMahaRequestProcessor {
   //Optional model/result validation Functional Traits
   def withRequestModelValidator(fn: (RequestModelResult) => Unit)
   def withRequestResultValidator(fn: (RequestResult) => Unit)
-  def mahaServiceMonitor : MahaServiceMonitor
 }
 
 case class MahaRequestProcessor(registryName: String,
                                  mahaService: MahaService,
                                  mahaServiceMonitor : MahaServiceMonitor = DefaultMahaServiceMonitor,
-                                 processingLabel : String  = MahaServiceConstants.MahaRequestLabel) extends BaseMahaRequestProcessor with Logging {
+                                 processingLabel : String  = MahaServiceConstants.MahaRequestLabel,
+                                 mahaRequestLogHelperOption:Option[MahaRequestLogHelper] = None) extends BaseMahaRequestProcessor with Logging {
+  private[this] val mahaRequestLogHelper = if(mahaRequestLogHelperOption.isEmpty) {
+     MahaRequestLogHelper(registryName, mahaService)
+  } else {
+    mahaRequestLogHelperOption.get
+  }
 
-  var onSuccessFn: Option[(RequestModel, RequestResult) => Unit] = None
-  var onFailureFn: Option[GeneralError => Unit] = None
+  private[this] var onSuccessFn: Option[(RequestModel, RequestResult) => Unit] = None
+  private[this] var onFailureFn: Option[GeneralError => Unit] = None
 
   //Optional Post Operation Functional Traits
   /*
    Defines the validation steps for Request Model Result Success and Failure handling
   */
-  var requestModelValidationFn: Option[(RequestModelResult) => Unit] = None
+  private[this] var requestModelValidationFn: Option[(RequestModelResult) => Unit] = None
 
   /*
    Defines the validation steps for Request Result Success and Failure handling
  */
-  var requestResultValidationFn : Option[(RequestResult) => Unit] = None
+  private[this] var requestResultValidationFn : Option[(RequestResult) => Unit] = None
 
   def onSuccess(fn: (RequestModel, RequestResult) => Unit) : Unit = {
     onSuccessFn = Some(fn)
@@ -59,7 +69,6 @@ case class MahaRequestProcessor(registryName: String,
                rawJson: Array[Byte]) : Unit = {
 
     require(onSuccessFn.isDefined || onFailureFn.isDefined, "Nothing to do after processing!")
-    val mahaRequestLogHelper = MahaRequestLogHelper(registryName, mahaService)
     mahaRequestLogHelper.init(reportingRequest, None, MahaRequestProto.RequestType.SYNC, ByteString.copyFrom(rawJson))
     //Starting Service Monitor
     mahaServiceMonitor.start(reportingRequest)
