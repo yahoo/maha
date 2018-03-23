@@ -60,12 +60,12 @@
 
     <modules>
         <module>par-request-2</module>
+        <module>par-request</module>
         <module>druid-lookups</module>
         <module>core</module>
         <module>druid</module>
         <module>oracle</module>
         <module>presto</module>
-        <module>par-request</module>
         <module>service</module>
         <module>api-jersey</module>
         <module>api-example</module>
