@@ -2,9 +2,10 @@ language: java
 matrix:
   include:
     - os: osx
-
+sudo: true
 jdk:
 - oraclejdk8
+
 install: true
 script:
 - 'if [ "${TRAVIS_PULL_REQUEST}" != "false" ]; then bash ./travis/pull_request.sh; else echo "it is master build"; fi'
