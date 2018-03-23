@@ -59,6 +59,7 @@
 
 
     <modules>
+        <module>par-request-2</module>
         <module>druid-lookups</module>
         <module>core</module>
         <module>druid</module>
@@ -68,7 +69,6 @@
         <module>service</module>
         <module>api-jersey</module>
         <module>api-example</module>
-        <module>par-request-2</module>
     </modules>
 
     <developers>
