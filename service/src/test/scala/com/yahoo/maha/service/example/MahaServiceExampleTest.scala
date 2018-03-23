@@ -7,7 +7,7 @@ import com.yahoo.maha.core.RequestModel
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.QueryRowList
 import com.yahoo.maha.core.request._
-import com.yahoo.maha.parrequest.GeneralError
+import com.yahoo.maha.parrequest2._
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service._
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema

@@ -32,6 +32,7 @@ A centralised library for building reporting APIs on top of multiple data stores
   - maha-service : One json config for creating different registries using the fact and dim definitions. 
   - maha-api-jersey : Easy war file helper library for exposing the api using maha-service module
   - maha-api-example : End to end example implementation of maha apis
+  - maha-par-request-2: Library for Parallel Execution, Blocking and Non Blocking Callables
 
 ### Getting Started 
 
