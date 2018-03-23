@@ -1,8 +1,9 @@
 language: java
 matrix:
   include:
-    - os: osx
-sudo: true
+    - dist: trusty
+    - sudo: required
+
 jdk:
 - oraclejdk8
 
