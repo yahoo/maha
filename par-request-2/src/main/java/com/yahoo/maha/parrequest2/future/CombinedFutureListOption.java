@@ -6,7 +6,6 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.yahoo.maha.parrequest2.EitherUtils;
 import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;

@@ -1,12 +1,17 @@
 // Copyright 2017, Yahoo Holdings Inc.
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
-package com.yahoo.maha.parrequest2.future;
+package com.yahoo.maha.parrequest.future;
 
 import com.yahoo.maha.parrequest2.EitherUtils;
 import com.yahoo.maha.parrequest2.GeneralError;
 import com.yahoo.maha.parrequest2.Nothing;
 import com.yahoo.maha.parrequest2.ParCallable;
 
+import com.yahoo.maha.parrequest2.future.NoopRequest;
+import com.yahoo.maha.parrequest2.future.ParFunction;
+import com.yahoo.maha.parrequest2.future.ParRequest;
+import com.yahoo.maha.parrequest2.future.ParRequestListOption;
+import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -18,10 +23,10 @@ import scala.util.Right;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.yahoo.maha.parrequest2.future.ParRequestTestCommon.longSleep500;
-import static com.yahoo.maha.parrequest2.future.ParRequestTestCommon.stringSleep1000;
-import static com.yahoo.maha.parrequest2.future.ParRequestTestCommon.stringSleep1000Exception;
-import static com.yahoo.maha.parrequest2.future.ParRequestTestCommon.stringSleep1000Failure;
+import static com.yahoo.maha.parrequest.future.ParRequestTestCommon.longSleep500;
+import static com.yahoo.maha.parrequest.future.ParRequestTestCommon.stringSleep1000;
+import static com.yahoo.maha.parrequest.future.ParRequestTestCommon.stringSleep1000Exception;
+import static com.yahoo.maha.parrequest.future.ParRequestTestCommon.stringSleep1000Failure;
 import static org.testng.Assert.assertTrue;
 
 /**

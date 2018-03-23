@@ -1,8 +1,16 @@
 // Copyright 2017, Yahoo Holdings Inc.
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
-package com.yahoo.maha.parrequest2.future;
+package com.yahoo.maha.parrequest.future;
 
-import com.yahoo.maha.parrequest2.*;
+import com.yahoo.maha.parrequest2.ParCallable;
+import com.yahoo.maha.parrequest2.GeneralError;
+import com.yahoo.maha.parrequest2.Nothing;
+
+import com.yahoo.maha.parrequest2.future.NoopRequest;
+import com.yahoo.maha.parrequest2.future.ParFunction;
+import com.yahoo.maha.parrequest2.future.ParRequest;
+import com.yahoo.maha.parrequest2.future.ParRequest3;
+import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -14,7 +22,7 @@ import static org.testng.Assert.assertTrue;
 /**
  * Created by hiral on 6/16/14.
  */
-public class TestParRequest5 {
+public class TestParRequest3 {
 
     private ParallelServiceExecutor executor;
 
@@ -22,7 +30,7 @@ public class TestParRequest5 {
     public void setUp() throws Exception {
         executor = new ParallelServiceExecutor();
         executor.setDefaultTimeoutMillis(10000);
-        executor.setPoolName("test-par-request4");
+        executor.setPoolName("test-par-request3");
         executor.setQueueSize(20);
         executor.setThreadPoolSize(10);
         executor.init();
@@ -34,8 +42,8 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5ResultMapSuccess() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3ResultMapSuccess() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return new Right<GeneralError, String>("100");
@@ -48,24 +56,14 @@ public class TestParRequest5 {
             Thread.sleep(200);
             return new Right<GeneralError, Integer>(10);
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         Either<GeneralError, Integer>
                 result =
                 request.resultMap(ParFunction.from((input) -> {
                     assertTrue(input._1().equals("100"));
                     assertTrue(input._2() == 100);
                     assertTrue(input._3() == 10);
-                    assertTrue(input._4() == 10.0D);
-                    assertTrue(input._5() == 10.0F);
                     return 200;
                 }));
         assertTrue(result.isRight());
@@ -74,8 +72,8 @@ public class TestParRequest5 {
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
-    public void testParRequest5ResultMapFailure() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3ResultMapFailure() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return new Right<GeneralError, String>("100");
@@ -88,31 +86,21 @@ public class TestParRequest5 {
             Thread.sleep(200);
             return new Right<GeneralError, Integer>(10);
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         Either<GeneralError, Integer>
                 result =
                 request.resultMap(ParFunction.from((input) -> {
                     assertTrue(input._1().equals("100"));
                     assertTrue(input._2() == 100);
                     assertTrue(input._3() == 10);
-                    assertTrue(input._4() == 10.0D);
-                    assertTrue(input._5() == 10.0F);
                     throw new IllegalArgumentException("failed");
                 }));
     }
 
     @Test
-    public void testParRequest5ResultMapFailureInFirstParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3ResultMapFailureInFirstParCallable() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return GeneralError.either("testParRequestMapFailure", "failed");
@@ -125,25 +113,14 @@ public class TestParRequest5 {
             Thread.sleep(200);
             return new Right<GeneralError, Integer>(10);
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
-
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         Either<GeneralError, Integer>
                 result =
                 request.resultMap(ParFunction.from((input) -> {
                     assertTrue(input._1().equals("100"));
                     assertTrue(input._2() == 100);
                     assertTrue(input._3() == 10);
-                    assertTrue(input._4() == 10.0D);
-                    assertTrue(input._5() == 10.0F);
                     return 200;
                 }));
         assertTrue(result.isLeft());
@@ -152,8 +129,8 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5ResultMapExceptionInFirstParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3ResultMapExceptionInFirstParCallable() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             throw new IllegalArgumentException("blah1");
@@ -166,24 +143,14 @@ public class TestParRequest5 {
             Thread.sleep(200);
             return new Right<GeneralError, Integer>(10);
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         Either<GeneralError, Integer>
                 result =
                 request.resultMap(ParFunction.from((input) -> {
                     assertTrue(input._1().equals("100"));
                     assertTrue(input._2() == 100);
                     assertTrue(input._3() == 10);
-                    assertTrue(input._4() == 10.0D);
-                    assertTrue(input._5() == 10.0F);
                     return 200;
                 }));
         assertTrue(result.isLeft());
@@ -191,8 +158,8 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5ResultMapFailureInSecondParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3ResultMapFailureInSecondParCallable() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return new Right<GeneralError, String>("100");
@@ -205,100 +172,9 @@ public class TestParRequest5 {
             Thread.sleep(200);
             return new Right<GeneralError, Integer>(10);
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
-
 
         Long startTime = System.currentTimeMillis();
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
-        Either<GeneralError, Integer>
-                result =
-                request.resultMap(ParFunction.from((input) -> {
-                    assertTrue(input._1().equals("100"));
-                    assertTrue(input._2() == 100);
-                    assertTrue(input._3() == 10);
-                    assertTrue(input._4() == 10.0D);
-                    assertTrue(input._5() == 10.0F);
-                    return 200;
-                }));
-        Long endTime = System.currentTimeMillis();
-        assertTrue((endTime - startTime) < 500);
-        assertTrue(result.isLeft());
-        assertTrue(result.left().get().message.equals("failed"));
-
-    }
-
-    @Test
-    public void testParRequest5ResultMapExceptionInSecondParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
-        builder.setFirstParCallable(ParCallable.from(() -> {
-            Thread.sleep(1000);
-            return new Right<GeneralError, String>("100");
-        }));
-        builder.setSecondParCallable(ParCallable.from(() -> {
-            Thread.sleep(500);
-            throw new IllegalArgumentException("blah1");
-        }));
-        builder.setThirdParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Integer>(10);
-        }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
-
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
-        Either<GeneralError, Integer>
-                result =
-                request.resultMap(ParFunction.from((input) -> {
-                    assertTrue(input._1().equals("100"));
-                    assertTrue(input._2() == 100);
-                    assertTrue(input._3() == 10);
-                    assertTrue(input._4() == 10D);
-                    assertTrue(input._5() == 10.0F);
-                    return 200;
-                }));
-        assertTrue(result.isLeft());
-        assertTrue(result.left().get().throwableOption.get().getMessage().contains("blah1"));
-    }
-
-    @Test
-    public void testParRequest5ResultMapFailureInThirdParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
-        builder.setFirstParCallable(ParCallable.from(() -> {
-            Thread.sleep(1000);
-            return new Right<GeneralError, String>("100");
-        }));
-        builder.setSecondParCallable(ParCallable.from(() -> {
-            Thread.sleep(10);
-            return new Right<GeneralError, Long>(100L);
-        }));
-        builder.setThirdParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return GeneralError.either("testParRequestMapFailure", "failed");
-        }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
-
-        Long startTime = System.currentTimeMillis();
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         Either<GeneralError, Integer>
                 result =
                 request.resultMap(ParFunction.from((input) -> {
@@ -315,30 +191,22 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5ResultMapExceptionInThirdParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3ResultMapExceptionInSecondParCallable() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return new Right<GeneralError, String>("100");
         }));
         builder.setSecondParCallable(ParCallable.from(() -> {
             Thread.sleep(500);
-            return new Right<GeneralError, Long>(100L);
+            throw new IllegalArgumentException("blah1");
         }));
         builder.setThirdParCallable(ParCallable.from(() -> {
             Thread.sleep(200);
-            throw new IllegalArgumentException("blah1");
-        }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
+            return new Right<GeneralError, Integer>(10);
         }));
 
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         Either<GeneralError, Integer>
                 result =
                 request.resultMap(ParFunction.from((input) -> {
@@ -352,8 +220,8 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5ResultMapFailureInFourthParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3ResultMapFailureInThirdParCallable() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return new Right<GeneralError, String>("100");
@@ -364,19 +232,11 @@ public class TestParRequest5 {
         }));
         builder.setThirdParCallable(ParCallable.from(() -> {
             Thread.sleep(200);
-            return new Right<GeneralError, Integer>(10);
-        }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
             return GeneralError.either("testParRequestMapFailure", "failed");
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
         }));
 
         Long startTime = System.currentTimeMillis();
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         Either<GeneralError, Integer>
                 result =
                 request.resultMap(ParFunction.from((input) -> {
@@ -393,8 +253,8 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5ResultMapExceptionInFourthParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3ResultMapExceptionInThirdParCallable() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return new Right<GeneralError, String>("100");
@@ -405,18 +265,10 @@ public class TestParRequest5 {
         }));
         builder.setThirdParCallable(ParCallable.from(() -> {
             Thread.sleep(200);
-            return new Right<GeneralError, Integer>(10);
-        }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
             throw new IllegalArgumentException("blah1");
         }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         Either<GeneralError, Integer>
                 result =
                 request.resultMap(ParFunction.from((input) -> {
@@ -430,8 +282,8 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5ResultMapExceptionInFifthParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3MapSuccess() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return new Right<GeneralError, String>("100");
@@ -444,56 +296,11 @@ public class TestParRequest5 {
             Thread.sleep(200);
             return new Right<GeneralError, Integer>(10);
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            throw new IllegalArgumentException("blah1");
-        }));
 
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
-        Either<GeneralError, Integer>
-                result =
-                request.resultMap(ParFunction.from((input) -> {
-                    assertTrue(input._1().equals("100"));
-                    assertTrue(input._2() == 100);
-                    assertTrue(input._3() == 10);
-                    assertTrue(input._4() == 10.0D);
-                    return 200;
-                }));
-        assertTrue(result.isLeft());
-        assertTrue(result.left().get().throwableOption.get().getMessage().contains("blah1"));
-    }
-    @Test
-    public void testParRequest5MapSuccess() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
-        builder.setFirstParCallable(ParCallable.from(() -> {
-            Thread.sleep(1000);
-            return new Right<GeneralError, String>("100");
-        }));
-        builder.setSecondParCallable(ParCallable.from(() -> {
-            Thread.sleep(500);
-            return new Right<GeneralError, Long>(100L);
-        }));
-        builder.setThirdParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Integer>(10);
-        }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
-
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         ParRequest<Integer>
                 composedRequest =
-                request.map("testParRequest5MapSuccess",
+                request.map("testParRequest3MapSuccess",
                         ParFunction.from((input) -> {
                             assertTrue(input._1().equals("100"));
                             assertTrue(input._2() == 100);
@@ -506,8 +313,8 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5MapFailure() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3MapFailure() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return new Right<GeneralError, String>("100");
@@ -520,19 +327,11 @@ public class TestParRequest5 {
             Thread.sleep(200);
             return new Right<GeneralError, Integer>(10);
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         ParRequest<Integer>
                 composedRequest =
-                request.map("testParRequest5MapFailure",
+                request.map("testParRequest3MapFailure",
                         ParFunction.from((input) -> {
                             assertTrue(input._1().equals("100"));
                             assertTrue(input._2() == 100);
@@ -544,8 +343,8 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5MapFailureInFirstParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3MapFailureInFirstParCallable() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return GeneralError.either("testParRequestMapFailure", "failed");
@@ -558,19 +357,11 @@ public class TestParRequest5 {
             Thread.sleep(200);
             return new Right<GeneralError, Integer>(10);
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         ParRequest<Integer>
                 composedRequest =
-                request.map("testParRequest5MapFailureInFirstParCallable",
+                request.map("testParRequest3MapFailureInFirstParCallable",
                         ParFunction.from((input) -> {
                             assertTrue(input._1().equals("100"));
                             assertTrue(input._2() == 100);
@@ -583,8 +374,8 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5MapExceptionInFirstParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3MapExceptionInFirstParCallable() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             throw new IllegalArgumentException("blah1");
@@ -597,19 +388,11 @@ public class TestParRequest5 {
             Thread.sleep(200);
             return new Right<GeneralError, Integer>(10);
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         ParRequest<Integer>
                 composedRequest =
-                request.map("testParRequest5MapExceptionInFirstParCallable",
+                request.map("testParRequest3MapExceptionInFirstParCallable",
                         ParFunction.from((input) -> {
                             assertTrue(input._1().equals("100"));
                             assertTrue(input._2() == 100);
@@ -622,7 +405,7 @@ public class TestParRequest5 {
 
     @Test
     public void testParRequest3MapFailureInSecondParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return new Right<GeneralError, String>("100");
@@ -635,20 +418,12 @@ public class TestParRequest5 {
             Thread.sleep(200);
             return new Right<GeneralError, Integer>(10);
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
         Long startTime = System.currentTimeMillis();
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         ParRequest<Integer>
                 composedRequest =
-                request.map("testParRequest5MapFailureInSecondParCallable",
+                request.map("testParRequest3MapFailureInSecondParCallable",
                         ParFunction.from((input) -> {
                             assertTrue(input._1().equals("100"));
                             assertTrue(input._2() == 100);
@@ -663,8 +438,8 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5MapExceptionInSecondParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3MapExceptionInSecondParCallable() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return new Right<GeneralError, String>("100");
@@ -677,19 +452,11 @@ public class TestParRequest5 {
             Thread.sleep(200);
             return new Right<GeneralError, Integer>(10);
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         ParRequest<Integer>
                 composedRequest =
-                request.map("testParRequest5MapExceptionInSecondParCallable",
+                request.map("testParRequest3MapExceptionInSecondParCallable",
                         ParFunction.from((input) -> {
                             assertTrue(input._1().equals("100"));
                             assertTrue(input._2() == 100);
@@ -701,8 +468,8 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5MapFailureInThirdParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3MapFailureInThirdParCallable() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return new Right<GeneralError, String>("100");
@@ -715,20 +482,12 @@ public class TestParRequest5 {
             Thread.sleep(200);
             return GeneralError.either("testParRequestMapFailure", "failed");
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
         Long startTime = System.currentTimeMillis();
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         ParRequest<Integer>
                 composedRequest =
-                request.map("testParRequest5MapFailureInThirdParCallable",
+                request.map("testParRequest3MapFailureInThirdParCallable",
                         ParFunction.from((input) -> {
                             assertTrue(input._1().equals("100"));
                             assertTrue(input._2() == 100);
@@ -743,8 +502,8 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5MapExceptionInThirdParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3MapExceptionInThirdParCallable() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return new Right<GeneralError, String>("100");
@@ -757,19 +516,11 @@ public class TestParRequest5 {
             Thread.sleep(200);
             throw new IllegalArgumentException("blah1");
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         ParRequest<Integer>
                 composedRequest =
-                request.map("testParRequest5MapExceptionInThirdParCallable",
+                request.map("testParRequest3MapExceptionInThirdParCallable",
                         ParFunction.from((input) -> {
                             assertTrue(input._1().equals("100"));
                             assertTrue(input._2() == 100);
@@ -781,8 +532,8 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5FlatMapSuccess() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3FlatMapSuccess() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return new Right<GeneralError, String>("100");
@@ -795,19 +546,11 @@ public class TestParRequest5 {
             Thread.sleep(200);
             return new Right<GeneralError, Integer>(10);
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         ParRequest<Integer>
                 composedRequest =
-                request.flatMap("testParRequest5FlatMapSuccess",
+                request.flatMap("testParRequest3FlatMapSuccess",
                         ParFunction.from((input) -> {
                             ParRequest.Builder<Integer> builder2 = new ParRequest.Builder<>(executor);
                             builder2.setParCallable(ParCallable.from(() -> {
@@ -824,8 +567,8 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5FlatMapFailure() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3FlatMapFailure() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return new Right<GeneralError, String>("100");
@@ -838,19 +581,11 @@ public class TestParRequest5 {
             Thread.sleep(200);
             return new Right<GeneralError, Integer>(10);
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         ParRequest<Integer>
                 composedRequest =
-                request.flatMap("testParRequest5FlatMapSuccess",
+                request.flatMap("testParRequest3FlatMapSuccess",
                         ParFunction.from((input) -> {
                             ParRequest.Builder<Integer> builder2 = new ParRequest.Builder<>(executor);
                             builder2.setParCallable(ParCallable.from(() -> {
@@ -872,8 +607,8 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5FoldSuccess() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3FoldSuccess() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return new Right<GeneralError, String>("100");
@@ -886,32 +621,24 @@ public class TestParRequest5 {
             Thread.sleep(200);
             return new Right<GeneralError, Integer>(10);
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
         final TestResponse response = new TestResponse();
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         NoopRequest<Nothing> composedRequest = request.fold(ParFunction.from((input) -> {
             response.err = input.toString();
             return Nothing.get();
         }), ParFunction.from((input) -> {
-            response.success = String.format("%s-%s-%s-%s", input._1(), input._2(), input._3(), input._4());
+            response.success = String.format("%s-%s-%s", input._1(), input._2(), input._3());
             return null;
         }));
         Either<GeneralError, Nothing> result = composedRequest.get();
         assertTrue(result.isRight());
-        assertTrue(response.success.equals("100-100-10-10.0"));
+        assertTrue(response.success.equals("100-100-10"));
     }
 
     @Test
-    public void testParRequest5FoldFailureInFirstParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3FoldFailureInFirstParCallable() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return GeneralError.either("executeRequest", "blah1");
@@ -924,22 +651,14 @@ public class TestParRequest5 {
             Thread.sleep(200);
             return new Right<GeneralError, Integer>(10);
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
         final TestResponse response = new TestResponse();
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         NoopRequest<Nothing> composedRequest = request.fold(ParFunction.from((input) -> {
             response.err = input.toString();
             return Nothing.get();
         }), ParFunction.from((input) -> {
-            response.success = String.format("%s-%s-%s-%s", input._1(), input._2(), input._3(), input._4());
+            response.success = String.format("%s-%s-%s", input._1(), input._2(), input._3());
             return null;
         }));
         Either<GeneralError, Nothing> result = composedRequest.get();
@@ -948,8 +667,8 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5FoldFailureInSecondParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3FoldFailureInSecondParCallable() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return new Right<GeneralError, String>("100");
@@ -962,22 +681,14 @@ public class TestParRequest5 {
             Thread.sleep(200);
             return new Right<GeneralError, Integer>(10);
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
         final TestResponse response = new TestResponse();
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         NoopRequest<Nothing> composedRequest = request.fold(ParFunction.from((input) -> {
             response.err = input.toString();
             return Nothing.get();
         }), ParFunction.from((input) -> {
-            response.success = String.format("%s-%s-%s-%s", input._1(), input._2(), input._3(), input._4());
+            response.success = String.format("%s-%s-%s", input._1(), input._2(), input._3());
             return null;
         }));
         Either<GeneralError, Nothing> result = composedRequest.get();
@@ -986,8 +697,8 @@ public class TestParRequest5 {
     }
 
     @Test
-    public void testParRequest5FoldFailureInThirdParCallable() {
-        ParRequest5.Builder<String, Long, Integer, Double, Float> builder = executor.parRequest5Builder();
+    public void testParRequest3FoldFailureInThirdParCallable() {
+        ParRequest3.Builder<String, Long, Integer> builder = executor.parRequest3Builder();
         builder.setFirstParCallable(ParCallable.from(() -> {
             Thread.sleep(1000);
             return new Right<GeneralError, String>("100");
@@ -1000,22 +711,14 @@ public class TestParRequest5 {
             Thread.sleep(200);
             throw new IllegalArgumentException("blah1");
         }));
-        builder.setFourthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Double>(10.0D);
-        }));
-        builder.setFifthParCallable(ParCallable.from(() -> {
-            Thread.sleep(200);
-            return new Right<GeneralError, Float>(10.0F);
-        }));
 
         final TestResponse response = new TestResponse();
-        ParRequest5<String, Long, Integer, Double, Float> request = builder.build();
+        ParRequest3<String, Long, Integer> request = builder.build();
         NoopRequest<Nothing> composedRequest = request.fold(ParFunction.from((input) -> {
             response.err = input.toString();
             return Nothing.get();
         }), ParFunction.from((input) -> {
-            response.success = String.format("%s-%s-%s-%s", input._1(), input._2(), input._3(), input._4());
+            response.success = String.format("%s-%s-%s", input._1(), input._2(), input._3());
             return null;
         }));
         Either<GeneralError, Nothing> result = composedRequest.get();
