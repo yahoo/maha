@@ -92,7 +92,7 @@ class HttpUtils(config:AsyncHttpClientConfig, enableRetryOn500: Boolean, retryDe
 
 object ClientConfig{
 
-  def getConfig( maxConnectionsPerHost:Int, maxConnections:Int,connectionTimeout:Int,timeoutRetryInterval:Int,timeoutThreshold:Int,degradationConfig:String,readTimeout:Int,requestTimeout:Int,pooledConnectionIdleTimeout:Int,timeoutMaxResponseTimeInMs:Int,sslContextVersion:String): AsyncHttpClientConfig ={
+  def getConfig( maxConnectionsPerHost:Int, maxConnections:Int,connectionTimeout:Int,timeoutRetryInterval:Int,timeoutThreshold:Int,degradationConfig:String,readTimeout:Int,requestTimeout:Int,pooledConnectionIdleTimeout:Int,timeoutMaxResponseTimeInMs:Int,sslContextVersion:String, commaSeparatedCipherSuitesList:String): AsyncHttpClientConfig ={
     val builder =  new AsyncHttpClientConfig.Builder()
     val sslContext: SSLContext = SSLContext.getInstance(sslContextVersion)
     sslContext.init(null, null, null)
@@ -109,6 +109,8 @@ object ClientConfig{
       .setAllowPoolingSslConnections(true)
       .setCompressionEnforced(true)
       .setSSLContext(sslContext)
+      .setEnabledProtocols(Array(sslContextVersion))
+      .setEnabledCipherSuites(commaSeparatedCipherSuitesList.split(","))
     builder.build()
   }
 }
