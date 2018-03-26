@@ -1,10 +1,7 @@
 language: scala
 scala:
   - 2.11.11
-matrix:
-  include:
-    - dist: trusty
-
+sudo: required
 jdk:
 - oraclejdk8
 
