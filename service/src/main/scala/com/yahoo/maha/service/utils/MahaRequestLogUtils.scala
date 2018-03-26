@@ -6,9 +6,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import com.google.common.annotations.VisibleForTesting
 import com.google.protobuf.ByteString
-import com.yahoo.maha.core.{DimensionCandidate, RequestModel, SortByColumnInfo}
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.core.{DimensionCandidate, RequestModel, SortByColumnInfo}
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service.MahaService
 import org.apache.commons.lang.StringUtils
@@ -39,7 +39,7 @@ trait MahaRequestLogBuilder {
 
   def logQueryStats(queryAttributes: QueryAttributes)
 
-  def logFailed(errorMessage: String)
+  def logFailed(errorMessage: String, httpStatusOption: Option[Int])
 
   def logSuccess()
 }
@@ -162,9 +162,11 @@ case class MahaRequestLogHelper(registryName: String, mahaService: MahaService) 
     }
   }
 
-  override def logFailed(errorMessage: String): Unit = {
+  override def logFailed(errorMessage: String, httpStatusOption: Option[Int] = None): Unit = {
     if(complete.compareAndSet(false, true)) {
-      protoBuilder.setStatus(500)
+      if(httpStatusOption.isDefined) {
+        protoBuilder.setStatus(httpStatusOption.get)
+      } else protoBuilder.setStatus(500)
       protoBuilder.setErrorMessage(errorMessage)
       protoBuilder.setRequestEndTime(System.currentTimeMillis())
       writeLog()
