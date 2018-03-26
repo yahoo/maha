@@ -23,16 +23,6 @@
     <dependencies>
         <dependency>
             <groupId>com.yahoo.maha</groupId>
-            <artifactId>maha-par-request-2</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.yahoo.maha</groupId>
-            <artifactId>maha-par-request</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.yahoo.maha</groupId>
             <artifactId>maha-core</artifactId>
             <version>${project.version}</version>
         </dependency>
