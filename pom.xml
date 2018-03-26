@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>5.74-SNAPSHOT</version>
+    <version>5.80-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -60,12 +60,12 @@
 
     <modules>
         <module>par-request-2</module>
+        <module>par-request</module>
         <module>druid-lookups</module>
         <module>core</module>
         <module>druid</module>
         <module>oracle</module>
         <module>presto</module>
-        <module>par-request</module>
         <module>service</module>
         <module>api-jersey</module>
         <module>api-example</module>
@@ -578,7 +578,6 @@
                         </execution>
                     </executions>
                 </plugin>
-
                 <plugin>
                     <groupId>com.atlassian.maven.plugins</groupId>
                     <artifactId>maven-clover2-plugin</artifactId>

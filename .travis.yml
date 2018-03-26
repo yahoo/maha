@@ -1,6 +1,13 @@
-language: java
+language: scala
+scala:
+  - 2.11.11
+sudo: required
+services:
+  - docker
+
 jdk:
 - oraclejdk8
+
 install: true
 script:
 - 'if [ "${TRAVIS_PULL_REQUEST}" != "false" ]; then bash ./travis/pull_request.sh; else echo "it is master build"; fi'

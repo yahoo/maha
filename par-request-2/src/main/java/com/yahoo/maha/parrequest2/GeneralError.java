@@ -2,8 +2,6 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.parrequest2;
 
-import java.util.function.Function;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Option;

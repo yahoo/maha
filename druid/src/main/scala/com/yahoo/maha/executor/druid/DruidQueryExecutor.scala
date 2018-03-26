@@ -38,6 +38,7 @@ case class DruidQueryExecutorConfig(maxConnectionsPerHost:Int
                                     , maxRetry: Int
                                     , enableFallbackOnUncoveredIntervals: Boolean = false
                                     , sslContextVersion: String = "TLSv1.2"
+                                    , commaSeparatedCipherSuitesList: String = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_RSA_WITH_AES_256_CBC_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA"
                                      )
 
 object DruidQueryExecutor extends Logging {
@@ -246,6 +247,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
       ,config.pooledConnectionIdleTimeout
       ,config.timeoutMaxResponseTimeInMs
       ,config.sslContextVersion
+      ,config.commaSeparatedCipherSuitesList
     )
     , config.enableRetryOn500
     , config.retryDelayMillis

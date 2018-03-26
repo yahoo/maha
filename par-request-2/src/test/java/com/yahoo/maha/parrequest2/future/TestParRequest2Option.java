@@ -91,7 +91,7 @@ public class TestParRequest2Option {
     @BeforeClass
     public void setUp() throws Exception {
         executor = new ParallelServiceExecutor();
-        executor.setDefaultTimeoutMillis(10000);
+        executor.setDefaultTimeoutMillis(20000);
         executor.setPoolName("test-par-request2");
         executor.setQueueSize(20);
         executor.setThreadPoolSize(10);

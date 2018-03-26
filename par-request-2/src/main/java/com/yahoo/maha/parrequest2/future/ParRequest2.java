@@ -4,9 +4,9 @@ package com.yahoo.maha.parrequest2.future;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.yahoo.maha.parrequest2.EitherUtils;
+import com.yahoo.maha.parrequest2.ParCallable;
 import scala.util.Either;
 import scala.Option;
-import com.yahoo.maha.parrequest2.ParCallable;
 import com.yahoo.maha.parrequest2.GeneralError;
 
 import scala.Tuple2;

@@ -18,10 +18,6 @@ import scala.util.Right;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.yahoo.maha.parrequest2.future.ParRequestTestCommon.longSleep500;
-import static com.yahoo.maha.parrequest2.future.ParRequestTestCommon.stringSleep1000;
-import static com.yahoo.maha.parrequest2.future.ParRequestTestCommon.stringSleep1000Exception;
-import static com.yahoo.maha.parrequest2.future.ParRequestTestCommon.stringSleep1000Failure;
 import static org.testng.Assert.assertTrue;
 
 /**
@@ -60,7 +56,7 @@ public class TestParRequestListOption {
     @BeforeClass
     public void setUp() throws Exception {
         executor = new ParallelServiceExecutor();
-        executor.setDefaultTimeoutMillis(10000);
+        executor.setDefaultTimeoutMillis(20000);
         executor.setPoolName("test-par-request-list");
         executor.setQueueSize(20);
         executor.setThreadPoolSize(10);
@@ -76,7 +72,7 @@ public class TestParRequestListOption {
     public void testParRequestListOptionResultMapSuccess() {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
         for (int i = 0; i < 8; i++) {
-            builder.addParCallable(stringSleep1000);
+            builder.addParCallable(ParRequestTestCommon.stringSleep1000);
         }
         ParRequestListOption<String> request = builder.build();
         Either<GeneralError, Integer> result = request.resultMap(stringAssert);
@@ -88,7 +84,7 @@ public class TestParRequestListOption {
     public void testParRequestListOptionResultMapFailureAllMustSucceed() {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
         for (int i = 0; i < 8; i++) {
-            builder.addParCallable(stringSleep1000);
+            builder.addParCallable(ParRequestTestCommon.stringSleep1000);
         }
         builder.allMustSucceed(true);
 
@@ -105,7 +101,7 @@ public class TestParRequestListOption {
     public void testParRequestListOptionResultMapFailure() {
         ParRequestListOption.Builder<Long> builder = executor.parRequestListOptionBuilder();
         for (int i = 0; i < 8; i++) {
-            builder.addParCallable(longSleep500);
+            builder.addParCallable(ParRequestTestCommon.longSleep500);
         }
 
         ParRequestListOption<Long> request = builder.build();
@@ -120,9 +116,9 @@ public class TestParRequestListOption {
     @Test
     public void testParRequestListOptionResultMapFailureInFirstParCallableAllMustSucceed() {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
-        builder.addParCallable(stringSleep1000Failure);
+        builder.addParCallable(ParRequestTestCommon.stringSleep1000Failure);
         for (int i = 1; i < 8; i++) {
-            builder.addParCallable(stringSleep1000);
+            builder.addParCallable(ParRequestTestCommon.stringSleep1000);
         }
         builder.allMustSucceed(true);
 
@@ -135,9 +131,9 @@ public class TestParRequestListOption {
     @Test
     public void testParRequestListOptionResultMapFailureInFirstParCallable() {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
-        builder.addParCallable(stringSleep1000Failure);
+        builder.addParCallable(ParRequestTestCommon.stringSleep1000Failure);
         for (int i = 1; i < 8; i++) {
-            builder.addParCallable(stringSleep1000);
+            builder.addParCallable(ParRequestTestCommon.stringSleep1000);
         }
 
         ParRequestListOption<String> request = builder.build();
@@ -149,9 +145,9 @@ public class TestParRequestListOption {
     @Test
     public void testParRequestListOptionResultMapExceptionInFirstParCallableAllMustSucceed() {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
-        builder.addParCallable(stringSleep1000Exception);
+        builder.addParCallable(ParRequestTestCommon.stringSleep1000Exception);
         for (int i = 1; i < 8; i++) {
-            builder.addParCallable(stringSleep1000);
+            builder.addParCallable(ParRequestTestCommon.stringSleep1000);
         }
         builder.allMustSucceed(true);
 
@@ -164,9 +160,9 @@ public class TestParRequestListOption {
     @Test
     public void testParRequestListOptionResultMapExceptionInFirstParCallable() {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
-        builder.addParCallable(stringSleep1000Exception);
+        builder.addParCallable(ParRequestTestCommon.stringSleep1000Exception);
         for (int i = 1; i < 8; i++) {
-            builder.addParCallable(stringSleep1000);
+            builder.addParCallable(ParRequestTestCommon.stringSleep1000);
         }
 
         ParRequestListOption<String> request = builder.build();
@@ -179,7 +175,7 @@ public class TestParRequestListOption {
     public void testParRequestListOptionMapSuccess() {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
         for (int i = 0; i < 8; i++) {
-            builder.addParCallable(stringSleep1000);
+            builder.addParCallable(ParRequestTestCommon.stringSleep1000);
         }
 
         ParRequestListOption<String> request = builder.build();
@@ -201,7 +197,7 @@ public class TestParRequestListOption {
     public void testParRequestListOptionMapFailure() {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
         for (int i = 0; i < 8; i++) {
-            builder.addParCallable(stringSleep1000);
+            builder.addParCallable(ParRequestTestCommon.stringSleep1000);
         }
 
         ParRequestListOption<String> request = builder.build();
@@ -222,9 +218,9 @@ public class TestParRequestListOption {
     @Test
     public void testParRequestListOptionMapFailureInFirstParCallableAllMustSucceed() {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
-        builder.addParCallable(stringSleep1000Failure);
+        builder.addParCallable(ParRequestTestCommon.stringSleep1000Failure);
         for (int i = 1; i < 8; i++) {
-            builder.addParCallable(stringSleep1000);
+            builder.addParCallable(ParRequestTestCommon.stringSleep1000);
         }
         builder.allMustSucceed(true);
 
@@ -250,9 +246,9 @@ public class TestParRequestListOption {
     @Test
     public void testParRequestListOptionMapFailureInFirstParCallable() {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
-        builder.addParCallable(stringSleep1000Failure);
+        builder.addParCallable(ParRequestTestCommon.stringSleep1000Failure);
         for (int i = 1; i < 8; i++) {
-            builder.addParCallable(stringSleep1000);
+            builder.addParCallable(ParRequestTestCommon.stringSleep1000);
         }
 
         ParRequestListOption<String> request = builder.build();
@@ -277,9 +273,9 @@ public class TestParRequestListOption {
     @Test
     public void testParRequestListOptionMapExceptionInFirstParCallableAllMustSucceed() {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
-        builder.addParCallable(stringSleep1000Exception);
+        builder.addParCallable(ParRequestTestCommon.stringSleep1000Exception);
         for (int i = 1; i < 8; i++) {
-            builder.addParCallable(stringSleep1000);
+            builder.addParCallable(ParRequestTestCommon.stringSleep1000);
         }
         builder.allMustSucceed(true);
 
@@ -305,9 +301,9 @@ public class TestParRequestListOption {
     @Test
     public void testParRequestListOptionMapExceptionInFirstParCallable() {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
-        builder.addParCallable(stringSleep1000Exception);
+        builder.addParCallable(ParRequestTestCommon.stringSleep1000Exception);
         for (int i = 1; i < 8; i++) {
-            builder.addParCallable(stringSleep1000);
+            builder.addParCallable(ParRequestTestCommon.stringSleep1000);
         }
 
         ParRequestListOption<String> request = builder.build();
@@ -333,7 +329,7 @@ public class TestParRequestListOption {
     public void testParRequestListOptionFlatMapSuccess() {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
         for (int i = 0; i < 8; i++) {
-            builder.addParCallable(stringSleep1000);
+            builder.addParCallable(ParRequestTestCommon.stringSleep1000);
         }
 
         ParRequestListOption<String> request = builder.build();
@@ -359,7 +355,7 @@ public class TestParRequestListOption {
     public void testParRequestListOptionFlatMapFailure() {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
         for (int i = 0; i < 8; i++) {
-            builder.addParCallable(stringSleep1000);
+            builder.addParCallable(ParRequestTestCommon.stringSleep1000);
         }
 
         ParRequestListOption<String> request = builder.build();
@@ -391,7 +387,7 @@ public class TestParRequestListOption {
     public void testParRequestListOptionFoldSuccess() {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
         for (int i = 0; i < 8; i++) {
-            builder.addParCallable(stringSleep1000);
+            builder.addParCallable(ParRequestTestCommon.stringSleep1000);
         }
 
         final TestResponse response = new TestResponse();
@@ -415,9 +411,9 @@ public class TestParRequestListOption {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
         for (int i = 0; i < 8; i++) {
             if ((i & 1) == 1) {
-                builder.addParCallable(stringSleep1000);
+                builder.addParCallable(ParRequestTestCommon.stringSleep1000);
             } else {
-                builder.addParCallable(stringSleep1000Exception);
+                builder.addParCallable(ParRequestTestCommon.stringSleep1000Exception);
             }
 
         }
@@ -448,9 +444,9 @@ public class TestParRequestListOption {
         ParRequestListOption.Builder<String> builder = executor.parRequestListOptionBuilder();
         for (int i = 0; i < 8; i++) {
             if ((i & 1) == 1) {
-                builder.addParCallable(stringSleep1000);
+                builder.addParCallable(ParRequestTestCommon.stringSleep1000);
             } else {
-                builder.addParCallable(stringSleep1000Exception);
+                builder.addParCallable(ParRequestTestCommon.stringSleep1000Exception);
             }
         }
 
