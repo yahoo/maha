@@ -51,24 +51,14 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
     val resultFailure = mahaService.executeRequestModelResult("er", requestModelResultTry.get, mahaRequestLogHelper).prodRun.get(10000)
     assert(resultFailure.isLeft)
     val p = resultFailure.left.get
-    println(p)
     assert(p.message.contains("""Table "STUDENT_GRADE_SHEET" not found; SQL statement"""))
-    /*resultFailure.mapLeft(
-      (t: GeneralError) => {
-        println(t)
-        assert(t.message.contains(s"""Table "STUDENT_GRADE_SHEET" not found; SQL statement"""))
-      }
-    )*/
 
     // Test General Error in execute request
     val parRequestResultWithError = mahaService.executeRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
     val q = parRequestResultWithError.prodRun.resultMap(
       ParFunction.from((t: RequestResult)
       => t)
-    )/*.mapLeft(
-      (t: GeneralError)=>
-        assert(t.message.contains(s"""Table "STUDENT_GRADE_SHEET" not found; SQL statement"""))
-    )*/
+    )
     assert(q.left.get.message.contains("""Table "STUDENT_GRADE_SHEET" not found; SQL statement"""))
 
     // Test General Error in process Model
