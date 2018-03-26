@@ -7,7 +7,7 @@ import com.yahoo.maha.core.RequestModel
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.QueryRowList
 import com.yahoo.maha.core.request._
-import com.yahoo.maha.parrequest.GeneralError
+import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service._
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
@@ -95,7 +95,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
     //ExecuteRequest Test
     val executeRequestParRequestResult = mahaService.executeRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
     assert(executeRequestParRequestResult.prodRun.get(10000).isRight)
-    val requestResultOption = executeRequestParRequestResult.prodRun.get(10000).toOption
+    val requestResultOption : Option[RequestResult] = executeRequestParRequestResult.prodRun.get(10000).toOption
     assert(requestResultOption.get.rowList.asInstanceOf[QueryRowList].columnNames.contains("Total Marks"))
 
     // Domain Tests

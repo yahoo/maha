@@ -12,8 +12,8 @@ import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, BucketingCon
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.registry.{DimensionRegistrationFactory, FactRegistrationFactory, Registry, RegistryBuilder}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.parrequest.future.{NoopRequest, ParRequest, ParallelServiceExecutor}
-import com.yahoo.maha.parrequest.{Either, GeneralError, ParCallable, Right}
+import com.yahoo.maha.parrequest2.future.{NoopRequest, ParRequest, ParallelServiceExecutor}
+import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.service.config._
 import com.yahoo.maha.service.error._
 import com.yahoo.maha.service.factory._
@@ -253,7 +253,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
         val error = t.throwableOption
         val message = s"Failed to execute the Request Model: ${t.message} "
         val exception = if (error.isDefined) {
-          new MahaServiceExecutionException(message, Option(error.get()))
+          new MahaServiceExecutionException(message, Option(error.get))
         } else {
           new MahaServiceExecutionException(message)
         }

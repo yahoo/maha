@@ -6,8 +6,8 @@ import com.google.protobuf.ByteString
 import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{RequestModel, RequestModelResult}
-import com.yahoo.maha.parrequest.GeneralError
-import com.yahoo.maha.parrequest.future.ParFunction
+import com.yahoo.maha.parrequest2.GeneralError
+import com.yahoo.maha.parrequest2.future.ParFunction
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import grizzled.slf4j.Logging
