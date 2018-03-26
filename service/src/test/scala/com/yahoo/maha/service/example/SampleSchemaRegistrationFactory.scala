@@ -55,9 +55,9 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
       }
         .toPublicFact("student_performance",
           Set(
-            PubCol("class_id", "Class ID", Equality),
-            PubCol("student_id", "Student ID", Equality),
-            PubCol("section_id", "Section ID", Equality),
+            PubCol("class_id", "Class ID", InEquality),
+            PubCol("student_id", "Student ID", InEquality),
+            PubCol("section_id", "Section ID", InEquality),
             PubCol("date", "Day", Equality),
             PubCol("year", "Year", Equality),
             PubCol("comment", "Remarks", InEqualityLike)
