@@ -60,4 +60,23 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     assert(proto.getRequestId == "123")
     assert(proto.getUserId == "abc")
   }
+
+  test("Test MahaRequestLogHelper LogFailed with status") {
+    val mahaService = mock(classOf[MahaService])
+    val mahaRequestLogWriter = mock(classOf[MahaRequestLogWriter])
+    val mahaRequestLogHelper = MahaRequestLogHelper("ir", mahaService)
+    val proto = mahaRequestLogHelper.getbuilder()
+    MDC.put(MahaConstants.REQUEST_ID,"123")
+    MDC.put(MahaConstants.USER_ID,"abc")
+    mahaRequestLogHelper.init(request,Option(123L),
+      MahaRequestProto.RequestType.SYNC, ByteString.copyFrom(jsonString.getBytes(StandardCharsets.UTF_8)))
+    mahaRequestLogHelper.setDryRun()
+    mahaRequestLogHelper.setAsyncQueueParams()
+    when(mahaService.mahaRequestLogWriter).thenReturn(mahaRequestLogWriter)
+    when(mahaRequestLogWriter.write(proto.build())).thenAnswer(_)
+    mahaRequestLogHelper.logFailed("Test Failed", Some(400))
+    assert(proto.getStatus == 400)
+    assert(proto.getRequestId == "123")
+    assert(proto.getUserId == "abc")
+  }
 }
