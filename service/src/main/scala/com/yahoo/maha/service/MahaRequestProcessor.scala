@@ -87,12 +87,12 @@ case class MahaRequestProcessor(registryName: String,
       val parRequestResult = mahaService.executeRequestModelResult(registryName, requestModelResult, mahaRequestLogHelper)
 
       val errParFunction: ParFunction[GeneralError, Unit] = ParFunction.fromScala(callOnFailureFn(mahaRequestLogHelper, reportingRequest))
-      val validationParFunction: ParFunction[RequestResult, com.yahoo.maha.parrequest.Either[GeneralError, RequestResult]] =
+      val validationParFunction: ParFunction[RequestResult, Either[GeneralError, RequestResult]] =
       ParFunction.fromScala(
         (result: RequestResult) => {
           try {
             requestResultValidationFn.foreach(_ (result))
-            new com.yahoo.maha.parrequest.Right(result)
+            new Right(result)
           } catch {
             case e: Exception =>
               GeneralError.either("resultValidation", e.getMessage, e)

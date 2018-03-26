@@ -441,7 +441,6 @@
                                 <minimumCoverage>${scoverage.minimum.coverage}</minimumCoverage>
                                 <failOnMinimumCoverage>true</failOnMinimumCoverage>
                                 <highlighting>true</highlighting>
-                                <coverageOutputCobertura>true</coverageOutputCobertura>
                                 <!--<excludedFiles>.*Object</excludedFiles>-->
                             </configuration>
                         </plugin>
@@ -466,7 +465,6 @@
                             <minimumCoverage>${scoverage.minimum.coverage}</minimumCoverage>
                             <failOnMinimumCoverage>true</failOnMinimumCoverage>
                             <highlighting>true</highlighting>
-                            <coverageOutputCobertura>true</coverageOutputCobertura>
                             <!--<excludedFiles>.*Object</excludedFiles>-->
                         </configuration>
                     </plugin>
@@ -521,7 +519,6 @@
                         <minimumCoverage>${scoverage.minimum.coverage}</minimumCoverage>
                         <failOnMinimumCoverage>true</failOnMinimumCoverage>
                         <highlighting>true</highlighting>
-                        <coverageOutputCobertura>true</coverageOutputCobertura>
                         <!--<excludedFiles>.*Object</excludedFiles>-->
                     </configuration>
                 </plugin>
@@ -645,7 +642,6 @@
                     <minimumCoverage>${scoverage.minimum.coverage}</minimumCoverage>
                     <failOnMinimumCoverage>true</failOnMinimumCoverage>
                     <highlighting>true</highlighting>
-                    <coverageOutputCobertura>true</coverageOutputCobertura>
                     <!--<excludedFiles>.*Object</excludedFiles>-->
                 </configuration>
             </plugin>
