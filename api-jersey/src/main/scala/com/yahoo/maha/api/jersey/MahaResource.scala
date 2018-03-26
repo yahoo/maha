@@ -11,7 +11,7 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request.{BaseRequest, ReportingRequest}
 import com.yahoo.maha.core.{RequestModel, Schema}
-import com.yahoo.maha.parrequest.GeneralError
+import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.service.utils.MahaConstants
 import com.yahoo.maha.service.{MahaRequestProcessor, MahaService, RequestResult}
 import grizzled.slf4j.Logging
@@ -118,7 +118,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
 
     mahaRequestProcessor.onFailure((ge: GeneralError) => {
       if(ge.throwableOption.isDefined) {
-        response.resume(ge.throwableOption.get())
+        response.resume(ge.throwableOption.get)
       } else {
         response.resume(new Exception(ge.message))
       }
