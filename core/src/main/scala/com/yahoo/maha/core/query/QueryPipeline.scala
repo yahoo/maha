@@ -145,13 +145,25 @@ case class DefaultQueryPipeline(queryChain: QueryChain
   override def requestModel: RequestModel = queryChain.drivingQuery.queryContext.requestModel
 }
 
+object QueryPipelineBuilder {
+  val logger = LoggerFactory.getLogger(classOf[QueryPipelineBuilder])
+}
 class QueryPipelineBuilder(queryChain: QueryChain
                            , factBestCandidate: Option[FactBestCandidate]
-                           , bestDimCandidates: SortedSet[DimensionBundle]) {
+                           , bestDimCandidates: SortedSet[DimensionBundle]
+                           , debugEnabled: Boolean
+                          ) {
 
+  import QueryPipelineBuilder._
   private[this] var rowListFn: Query => RowList = QueryPipeline.completeRowList
   private[this] var fallbackRowListFn: Option[Query => RowList] = None
   private[this] var fallbackQueryChain: Option[QueryChain] = None
+
+  def requestDebug(msg: => String): Unit = {
+    if(debugEnabled) {
+      logger.info(msg)
+    }
+  }
 
   def withRowListFunction(fn: Query => RowList): QueryPipelineBuilder = {
     require(fn != null, "Undefined function Query => RowList")
@@ -173,9 +185,11 @@ class QueryPipelineBuilder(queryChain: QueryChain
 
   def build(): QueryPipeline = {
     if (fallbackQueryChain.isDefined) {
+      requestDebug("fallbackQueryChain defined")
       new QueryPipelineWithFallback(
         queryChain, factBestCandidate, bestDimCandidates, rowListFn, fallbackQueryChain.get, fallbackRowListFn.getOrElse(QueryPipeline.completeRowList))
     } else {
+      requestDebug("fallbackQueryChain not defined")
       new DefaultQueryPipeline(queryChain, factBestCandidate, bestDimCandidates, rowListFn)
     }
   }
@@ -635,8 +649,8 @@ OuterGroupBy operation has to be applied only in the following cases
    AND
    4. Request is not dimension driven
  */
-    val projectedNonIDCols = requestModel.requestColsSet.filter(!bestFactCandidate.publicFact.foreignKeyAliases.contains(_))
-    val nonKeyRequestedDimCols = bestFactCandidate.dimColMapping.map(_._2).filter(projectedNonIDCols.contains(_))
+    //val projectedNonIDCols = requestModel.requestColsSet.filter(!bestFactCandidate.publicFact.foreignKeyAliases.contains(_))
+    //val nonKeyRequestedDimCols = bestFactCandidate.dimColMapping.map(_._2).filter(projectedNonIDCols.contains(_))
     val isHighestDimPkIDRequested = if(bestDimCandidates.nonEmpty) {
       bestDimCandidates.takeRight(1).head.hasPKRequested
     } else false
@@ -651,11 +665,14 @@ OuterGroupBy operation has to be applied only in the following cases
       } else false
     }
 
-    val hasOuterGroupBy = (nonKeyRequestedDimCols.isEmpty
-      && !isRequestedHigherDimLevelKey
+    val allSubQueryCandidates = bestDimCandidates.forall(_.isSubQueryCandidate)
+
+    val hasOuterGroupBy = (//nonKeyRequestedDimCols.isEmpty
+      !isRequestedHigherDimLevelKey
       && !isHighestDimPkIDRequested
       && bestDimCandidates.nonEmpty
       && !requestModel.isDimDriven
+      && !allSubQueryCandidates
       && bestFactCandidate.fact.engine == OracleEngine
       && bestDimCandidates.forall(_.dim.engine == OracleEngine)) // Group by Feature is only implemented for oracle engine right now
 
@@ -744,6 +761,7 @@ OuterGroupBy operation has to be applied only in the following cases
           )
           , factBestCandidateOption
           , bestDimCandidates
+          , requestModel.isDebugEnabled
         ).withRowListFunction(QueryPipeline.dimDrivenPartialRowList)
       } else {
         //druid + oracle
@@ -814,6 +832,7 @@ OuterGroupBy operation has to be applied only in the following cases
           )
           , factBestCandidateOption
           , bestDimCandidates
+          , requestModel.isDebugEnabled
         ).withRowListFunction(partialRowList)
       }
     }
@@ -844,9 +863,12 @@ OuterGroupBy operation has to be applied only in the following cases
           SingleEngineQuery(query)
           , factBestCandidateOption
           , bestDimCandidates
+          , requestModel.isDebugEnabled
         )
         if(fallbackQueryOptionTry.isSuccess && fallbackQueryOptionTry.get.isDefined) {
           builder.withFallbackQueryChain(SingleEngineQuery(fallbackQueryOptionTry.get.get))
+        } else {
+          requestDebug("No fallback query option defined!")
         }
         builder
       } else {
@@ -855,6 +877,7 @@ OuterGroupBy operation has to be applied only in the following cases
           SingleEngineQuery(query)
           , factBestCandidateOption
           , bestDimCandidates
+          , requestModel.isDebugEnabled
         )
       }
     }
@@ -879,6 +902,7 @@ OuterGroupBy operation has to be applied only in the following cases
           MultiQuery(queryList, fallbackNonViewQueryAndRowList)
           , factBestCandidateOption
           , bestDimCandidates
+          , requestModel.isDebugEnabled
         ).withRowListFunction(QueryPipeline.unionViewPartialRowList(queryList))
     }
 
@@ -959,6 +983,7 @@ OuterGroupBy operation has to be applied only in the following cases
                 SingleEngineQuery(query)
                 , factBestCandidateOption
                 , bestDimCandidates
+                , requestModel.isDebugEnabled
               )
               if(fallbackQueryOptionTry.isSuccess && fallbackQueryOptionTry.get.isDefined) {
                 builder.withFallbackQueryChain(SingleEngineQuery(fallbackQueryOptionTry.get.get))
@@ -971,6 +996,7 @@ OuterGroupBy operation has to be applied only in the following cases
                   SingleEngineQuery(query)
                   , factBestCandidateOption
                   , bestDimCandidates
+                  , requestModel.isDebugEnabled
                 )
               } else {
                 throw new IllegalArgumentException(s"Fact driven dim only query is not valid : $requestModel")

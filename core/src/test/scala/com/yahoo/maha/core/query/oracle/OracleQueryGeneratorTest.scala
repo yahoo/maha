@@ -2019,33 +2019,33 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
-    val expected = s"""
-                      |
-                      |SELECT *
-                      |FROM (SELECT to_char(af0.stats_date, 'YYYY-MM-DD') "Day", ao1."Advertiser Status" "Advertiser Status", co2.campaign_name "Campaign Name", coalesce(af0."impressions", 1) "Impressions", ROUND(af0."CTR", 10) "CTR"
-                      |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-                      |                   advertiser_id, campaign_id, stats_date, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
-                      |            FROM ad_fact1 FactAlias
-                      |            WHERE (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-                      |            GROUP BY advertiser_id, campaign_id, stats_date
-                      |
-                      |           ) af0
-                      |           INNER JOIN
-                      |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
-                      |            FROM advertiser_oracle
-                      |            WHERE (managed_by = 12345)
-                      |             )
-                      |           ao1 ON (af0.advertiser_id = ao1.id)
-                      |           INNER JOIN
-                      |           (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
-                      |            FROM campaign_oracle
-                      |
-                      |             )
-                      |           co2 ON ( af0.advertiser_id = co2.advertiser_id AND af0.campaign_id = co2.id)
-                      |
-                      |)
-                      |""".stripMargin
-
+    val expected =
+      s"""
+         |SELECT "Day", "Advertiser Status", "Campaign Name", impressions AS "Impressions", CTR AS "CTR"
+         |FROM (SELECT to_char(af0.stats_date, 'YYYY-MM-DD') "Day", ao1."Advertiser Status" "Advertiser Status", co2.campaign_name "Campaign Name", SUM(impressions) AS impressions, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS CTR, SUM(clicks) AS clicks
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   advertiser_id, campaign_id, stats_date, SUM(impressions) AS impressions, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY advertiser_id, campaign_id, stats_date
+         |
+         |           ) af0
+         |                     INNER JOIN
+         |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+         |            FROM advertiser_oracle
+         |            WHERE (managed_by = 12345)
+         |             )
+         |           ao1 ON (af0.advertiser_id = ao1.id)
+         |           INNER JOIN
+         |           (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
+         |            FROM campaign_oracle
+         |
+         |             )
+         |           co2 ON ( af0.advertiser_id = co2.advertiser_id AND af0.campaign_id = co2.id)
+         |
+         |          GROUP BY to_char(af0.stats_date, 'YYYY-MM-DD'), ao1."Advertiser Status", co2.campaign_name
+         |)
+       """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -2097,33 +2097,33 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
-    val expected = s"""
-                      |
-                      |SELECT *
-                      |FROM (SELECT to_char(af0.stats_date, 'YYYY-MM-DD') "Day", ao1."Advertiser Status" "Advertiser Status", co2.campaign_name "Campaign Name", coalesce(af0."impressions", 1) "Impressions", ROUND(af0."CTR", 10) "CTR"
-                      |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-                      |                   advertiser_id, campaign_id, stats_date, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
-                      |            FROM ad_fact1 FactAlias
-                      |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-                      |            GROUP BY advertiser_id, campaign_id, stats_date
-                      |
-                      |           ) af0
-                      |           LEFT OUTER JOIN
-                      |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
-                      |            FROM advertiser_oracle
-                      |            WHERE (id = 12345)
-                      |             )
-                      |           ao1 ON (af0.advertiser_id = ao1.id)
-                      |           LEFT OUTER JOIN
-                      |           (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
-                      |            FROM campaign_oracle
-                      |            WHERE (advertiser_id = 12345)
-                      |             )
-                      |           co2 ON ( af0.advertiser_id = co2.advertiser_id AND af0.campaign_id = co2.id)
-                      |
-                      |)
-                      |""".stripMargin
-
+    val expected =
+      s"""
+         |SELECT "Day", "Advertiser Status", "Campaign Name", impressions AS "Impressions", CTR AS "CTR"
+         |FROM (SELECT to_char(af0.stats_date, 'YYYY-MM-DD') "Day", ao1."Advertiser Status" "Advertiser Status", co2.campaign_name "Campaign Name", SUM(impressions) AS impressions, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS CTR, SUM(clicks) AS clicks
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   advertiser_id, campaign_id, stats_date, SUM(impressions) AS impressions, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY advertiser_id, campaign_id, stats_date
+         |
+         |           ) af0
+         |                     LEFT OUTER JOIN
+         |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+         |            FROM advertiser_oracle
+         |            WHERE (id = 12345)
+         |             )
+         |           ao1 ON (af0.advertiser_id = ao1.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co2 ON ( af0.advertiser_id = co2.advertiser_id AND af0.campaign_id = co2.id)
+         |
+         |          GROUP BY to_char(af0.stats_date, 'YYYY-MM-DD'), ao1."Advertiser Status", co2.campaign_name
+         |)
+       """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -3331,6 +3331,71 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     result should equal (expected)(after being whiteSpaceNormalised)
   }
 
+  test("Successfully generated timeseries Outer Group By Query with dim non id field and fact field") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Day",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request.toOption.get, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    queryPipelineTry.get.bestDimCandidates.foreach{db=> assert(db.hasPKRequested == false)}
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Day", "Campaign Name", spend AS "Spend"
+         |FROM (SELECT to_char(af0.stats_date, 'YYYY-MM-DD') "Day", co1.campaign_name "Campaign Name", SUM(spend) AS spend
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   campaign_id, stats_date, SUM(spend) AS spend
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY campaign_id, stats_date
+         |
+         |           ) af0
+         |                     LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co1 ON (af0.campaign_id = co1.id)
+         |
+         |          GROUP BY to_char(af0.stats_date, 'YYYY-MM-DD'), co1.campaign_name
+         |)
+         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+       """.stripMargin
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
   test("Successfully generated Outer Group By Query with 2 dimension non id fields") {
     val jsonString = s"""{
                            "cube": "performance_stats",
@@ -4116,27 +4181,21 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    val expected = s"""
-                      |SELECT "Advertiser ID", impressions AS "Impressions", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC"
-                      |FROM (SELECT to_char(af0.advertiser_id) "Advertiser ID", SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend
-                      |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-                      |                   advertiser_id, ad_group_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend, SUM(impressions) AS impressions
-                      |            FROM ad_fact1 FactAlias
-                      |            WHERE (advertiser_id = 12345) AND (campaign_id IN (22222)) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-                      |            GROUP BY advertiser_id, ad_group_id
-                      |
-                      |           ) af0
-                      |                     INNER JOIN
-                      |           (SELECT  id, advertiser_id
-                      |            FROM ad_group_oracle
-                      |            WHERE (advertiser_id = 12345) AND (campaign_id IN (22222)) AND (DECODE(status, 'ON', 'ON', 'OFF') = 'ON')
-                      |             )
-                      |           ago1 ON ( af0.advertiser_id = ago1.advertiser_id AND af0.ad_group_id = ago1.id)
-                      |
-                      |          GROUP BY to_char(af0.advertiser_id)
-                      |)
-                      |""".stripMargin
-
+    println(result)
+    val expected =
+      s"""
+         |SELECT *
+         |FROM (SELECT to_char(af0.advertiser_id) "Advertiser ID", coalesce(af0."impressions", 1) "Impressions", ROUND((CASE WHEN af0."clicks" = 0 THEN 0.0 ELSE af0."spend" / af0."clicks" END), 10) "Average CPC"
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   advertiser_id, SUM(impressions) AS "impressions", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(spend) AS "spend"
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (ad_group_id IN (SELECT id FROM ad_group_oracle WHERE (DECODE(status, 'ON', 'ON', 'OFF') = 'ON') AND (advertiser_id = 12345) AND (campaign_id IN (22222)))) AND (advertiser_id = 12345) AND (campaign_id IN (22222)) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY advertiser_id
+         |
+         |           ) af0
+         |
+         |)
+       """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
