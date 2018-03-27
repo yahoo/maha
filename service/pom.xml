@@ -29,7 +29,7 @@
             <groupId>com.yahoo.maha</groupId>
             <artifactId>maha-core</artifactId>
             <version>${project.version}</version>
-            <!--exclusions>
+            <!--exclusions>TODO: Exclude dependency via MahaService and RowList.
                 <exclusion>
                     <groupId>com.yahoo.maha</groupId>
                     <artifactId>maha-par-request</artifactId>
