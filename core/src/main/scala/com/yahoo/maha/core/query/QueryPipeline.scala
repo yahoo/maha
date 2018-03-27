@@ -635,8 +635,8 @@ OuterGroupBy operation has to be applied only in the following cases
    AND
    4. Request is not dimension driven
  */
-    val projectedNonIDCols = requestModel.requestColsSet.filter(!bestFactCandidate.publicFact.foreignKeyAliases.contains(_))
-    val nonKeyRequestedDimCols = bestFactCandidate.dimColMapping.map(_._2).filter(projectedNonIDCols.contains(_))
+    //val projectedNonIDCols = requestModel.requestColsSet.filter(!bestFactCandidate.publicFact.foreignKeyAliases.contains(_))
+    //val nonKeyRequestedDimCols = bestFactCandidate.dimColMapping.map(_._2).filter(projectedNonIDCols.contains(_))
     val isHighestDimPkIDRequested = if(bestDimCandidates.nonEmpty) {
       bestDimCandidates.takeRight(1).head.hasPKRequested
     } else false
@@ -651,11 +651,14 @@ OuterGroupBy operation has to be applied only in the following cases
       } else false
     }
 
-    val hasOuterGroupBy = (nonKeyRequestedDimCols.isEmpty
-      && !isRequestedHigherDimLevelKey
+    val allSubQueryCandidates = bestDimCandidates.forall(_.isSubQueryCandidate)
+
+    val hasOuterGroupBy = (//nonKeyRequestedDimCols.isEmpty
+      !isRequestedHigherDimLevelKey
       && !isHighestDimPkIDRequested
       && bestDimCandidates.nonEmpty
       && !requestModel.isDimDriven
+      && !allSubQueryCandidates
       && bestFactCandidate.fact.engine == OracleEngine
       && bestDimCandidates.forall(_.dim.engine == OracleEngine)) // Group by Feature is only implemented for oracle engine right now
 
