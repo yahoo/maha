@@ -3,7 +3,7 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.parrequest.future.ParFunction
+import com.yahoo.maha.parrequest2.future.ParFunction
 import com.yahoo.maha.report.{RowCSVWriter, RowCSVWriterProvider}
 import org.slf4j.{Logger, LoggerFactory}
 
