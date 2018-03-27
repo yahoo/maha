@@ -29,12 +29,12 @@
             <groupId>com.yahoo.maha</groupId>
             <artifactId>maha-core</artifactId>
             <version>${project.version}</version>
-            <exclusions>
+            <!--exclusions>
                 <exclusion>
                     <groupId>com.yahoo.maha</groupId>
                     <artifactId>maha-par-request</artifactId>
                 </exclusion>
-            </exclusions>
+            </exclusions-->
         </dependency>
         <dependency>
             <groupId>com.yahoo.maha</groupId>
@@ -42,12 +42,12 @@
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
-            <!--exclusions>
+            <exclusions>
                 <exclusion>
                     <groupId>com.yahoo.maha</groupId>
                     <artifactId>maha-par-request</artifactId>
                 </exclusion>
-            </exclusions-->
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.yahoo.maha</groupId>
