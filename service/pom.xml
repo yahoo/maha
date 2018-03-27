@@ -3,7 +3,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-service</artifactId>
     <packaging>jar</packaging>
 
@@ -30,6 +29,12 @@
             <groupId>com.yahoo.maha</groupId>
             <artifactId>maha-core</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.yahoo.maha</groupId>
+                    <artifactId>maha-par-request</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.yahoo.maha</groupId>
@@ -37,6 +42,12 @@
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
+            <!--exclusions>
+                <exclusion>
+                    <groupId>com.yahoo.maha</groupId>
+                    <artifactId>maha-par-request</artifactId>
+                </exclusion>
+            </exclusions-->
         </dependency>
         <dependency>
             <groupId>com.yahoo.maha</groupId>
@@ -79,10 +90,6 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
         </dependency>
         <dependency>
             <groupId>joda-time</groupId>
@@ -187,21 +194,6 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.scalatest</groupId>
-            <artifactId>scalatest_${scala.major.version}</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
