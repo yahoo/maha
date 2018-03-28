@@ -10,6 +10,7 @@ import com.yahoo.maha.core.query.{DerivedRowList, Row, RowList}
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.parrequest.{Either, GeneralError, ParCallable, Right}
 import com.yahoo.maha.parrequest.future.ParRequest
+import com.yahoo.maha.service.error.{MahaServiceBadRequestException, MahaServiceExecutionException}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{MahaService, RequestResult}
 import grizzled.slf4j.Logging
@@ -72,16 +73,28 @@ class TimeShift extends Curator with Logging {
 
     val registryConfig = mahaService.getMahaServiceConfig.registry.get(registryName).get
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
+    val parRequestLabel = "processTimeshiftCurator"
 
-    val parRequest = parallelServiceExecutor.parRequestBuilder[CuratorResult].setLabel("processTimeshiftCurator").
+    val parRequest = parallelServiceExecutor.parRequestBuilder[CuratorResult].setLabel(parRequestLabel).
       setParCallable(ParCallable.from[Either[GeneralError, CuratorResult]](
         new Callable[Either[GeneralError, CuratorResult]](){
           override def call(): Either[GeneralError, CuratorResult] = {
+
             val defaultWindowRequestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams , mahaRequestLogHelper)
-            require(defaultWindowRequestModelResultTry.isSuccess)
+            if(defaultWindowRequestModelResultTry.isFailure) {
+              val message = defaultWindowRequestModelResultTry.failed.get.getMessage
+              mahaRequestLogHelper.logFailed(message)
+              return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceBadRequestException(message))
+            }
+
             val defaultWindowRequestModel: RequestModel = defaultWindowRequestModelResultTry.get.model
             val defaultWindowRequestResultTry = mahaService.processRequestModel(registryName, defaultWindowRequestModel, mahaRequestLogHelper)
-            require(defaultWindowRequestResultTry.isSuccess)
+            if(defaultWindowRequestResultTry.isFailure) {
+              val message = defaultWindowRequestResultTry.failed.get.getMessage
+              mahaRequestLogHelper.logFailed(message)
+              return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceExecutionException(message))
+            }
+
             val defaultWindowRowList: RowList = defaultWindowRequestResultTry.get.rowList
 
             val dimensionKeySet: Set[String] = defaultWindowRequestModel.bestCandidates.get.publicFact.dimCols.map(_.alias)
@@ -105,10 +118,18 @@ class TimeShift extends Curator with Logging {
                 mahaRequestLogHelper,
                 dimensionAndItsValuesMap.map(e => (e._1, e._2.toSet)).toList)
 
-            require(previousWindowRequestModelResultTry.isSuccess)
+            if(previousWindowRequestModelResultTry.isFailure) {
+              val message = previousWindowRequestModelResultTry.failed.get.getMessage
+              mahaRequestLogHelper.logFailed(message)
+              return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceBadRequestException(message))
+            }
 
             val previousWindowRequestResultTry = mahaService.processRequestModel(registryName, previousWindowRequestModelResultTry.get.model, mahaRequestLogHelper)
-            require(previousWindowRequestResultTry.isSuccess)
+            if(previousWindowRequestResultTry.isFailure) {
+              val message = previousWindowRequestResultTry.failed.get.getMessage
+              mahaRequestLogHelper.logFailed(message)
+              return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceExecutionException(message))
+            }
 
             val previousWindowRowList: RowList = previousWindowRequestResultTry.get.rowList
 
@@ -123,7 +144,7 @@ class TimeShift extends Curator with Logging {
 
   }
 
-  private def createDerivedRowList(defaultWindowRequestModel: RequestModel,
+  private[this] def createDerivedRowList(defaultWindowRequestModel: RequestModel,
                                    defaultWindowRowList: RowList,
                                    previousWindowRowList: RowList,
                                    dimensionKeySet: Set[String]) : DerivedRowList = {

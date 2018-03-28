@@ -9,6 +9,7 @@ import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.parrequest.future.ParRequest
 import com.yahoo.maha.parrequest.{Either, GeneralError, ParCallable, Right}
+import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{MahaService, RequestResult}
 import grizzled.slf4j.Logging
@@ -48,25 +49,25 @@ class DefaultCurator extends Curator with Logging {
                        reportingRequest: ReportingRequest,
                        mahaService: MahaService,
                        mahaRequestLogHelper: MahaRequestLogHelper): ParRequest[CuratorResult] = {
-    val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams , mahaRequestLogHelper)
-    require(requestModelResultTry.isSuccess)
-    createParRequest(registryName, mahaService, mahaRequestLogHelper, requestModelResultTry.get, "processDefaultCurator")
-  }
-
-  private def createParRequest(registryName: String,
-                               mahaService: MahaService,
-                               mahaRequestLogHelper: MahaRequestLogHelper,
-                               requestModelResult: RequestModelResult,
-                               parRequestLabel: String) : ParRequest[CuratorResult] = {
 
     val registryConfig = mahaService.getMahaServiceConfig.registry.get(registryName).get
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
+    val parRequestLabel = "processDefaultCurator"
 
     val parRequest = parallelServiceExecutor.parRequestBuilder[CuratorResult].setLabel(parRequestLabel).
       setParCallable(ParCallable.from[Either[GeneralError, CuratorResult]](
         new Callable[Either[GeneralError, CuratorResult]](){
           override def call(): Either[GeneralError, CuratorResult] = {
-            val requestResultTry = mahaService.processRequestModel(registryName, requestModelResult.model, mahaRequestLogHelper)
+
+            val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams , mahaRequestLogHelper)
+
+            if(requestModelResultTry.isFailure) {
+              val message = requestModelResultTry.failed.get.getMessage
+              mahaRequestLogHelper.logFailed(message)
+              return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceBadRequestException(message))
+            }
+
+            val requestResultTry = mahaService.processRequestModel(registryName, requestModelResultTry.get.model, mahaRequestLogHelper)
             return new Right[GeneralError, CuratorResult](CuratorResult(requestResultTry))
           }
         }
