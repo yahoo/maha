@@ -22,7 +22,7 @@ class DerivedFunctionTest extends FunSuiteLike with Matchers {
 
   test("Attempt LOOKUP_WITH_DECODE fail") {
     val minLengthCatch = intercept[IllegalArgumentException] {
-      new LOOKUP_WITH_DECODE("fieldNameSpace", "valueCol", "tooFewArgs")
+      new LOOKUP_WITH_DECODE("fieldNameSpace", "valueCol", dimensionOverrideMap = Map.empty, "tooFewArgs")
     }
     assert(minLengthCatch.getMessage.contains("Usage: DECODE( expression , search , result [, search , result]... [, default] )"))
   }

@@ -399,7 +399,7 @@ trait SharedDimSchema {
           Set(
             DimCol("id", IntType(10), annotations = Set(PrimaryKey)),
             DruidFuncDimCol("name", StrType(), LOOKUP("advertiser_lookup", "name")),
-            DruidFuncDimCol("Advertiser Status", StrType(), LOOKUP_WITH_DECODE("advertiser_lookup", "status", "ON", "ON", "OFF")),
+            DruidFuncDimCol("Advertiser Status", StrType(), LOOKUP_WITH_DECODE("advertiser_lookup", "status", dimensionOverrideMap = Map.empty, "ON", "ON", "OFF")),
             DruidFuncDimCol("managed_by", StrType(), LOOKUP("advertiser_lookup", "managed_by"))
           )
           , Option(Map(AsyncRequest -> 14, SyncRequest -> 14))
@@ -469,7 +469,7 @@ trait SharedDimSchema {
           Set(
             DimCol("id", IntType(10), annotations = Set(PrimaryKey)),
             DruidFuncDimCol("Advertiser Status", StrType(), LOOKUP("advertiser_lookup", "status")),
-            DruidFuncDimCol("currency", StrType(), LOOKUP("advertiser_lookup", "currency")),
+            DruidFuncDimCol("currency", StrType(), LOOKUP("advertiser_lookup", "currency", dimensionOverrideMap = Map("-3" -> "Unknown", "" -> "Unknown"))),
             DruidFuncDimCol("managed_by", StrType(), LOOKUP("advertiser_lookup", "managed_by")),
             DruidFuncDimCol("timezone", StrType(), LOOKUP_WITH_DECODE_ON_OTHER_COLUMN("advertiser_lookup", "timezone", "US", "timezone", "currency"))
           )
@@ -844,7 +844,7 @@ trait SharedDimSchema {
           DruidEngine,
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
-            , DruidFuncDimCol("external_site_name", StrType(), LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE("site_lookup", "external_site_name", true, true, "null", "Others", "", "Others"))
+            , DruidFuncDimCol("external_site_name", StrType(), LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE("site_lookup", "external_site_name", true, true, dimensionOverrideMap = Map.empty, "null", "Others", "", "Others"))
           ), None
         )
       }
