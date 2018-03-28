@@ -87,6 +87,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , schemaColMap = Map(StudentSchema -> "id")
+          , annotations = Set(OracleAdvertiserHashPartitioning)
         ).toPublicDimension("student","student",
           Set(
             PubCol("id", "Student ID", Equality)
