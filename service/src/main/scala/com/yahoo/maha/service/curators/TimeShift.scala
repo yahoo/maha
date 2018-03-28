@@ -2,10 +2,14 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.curators
 
+import java.util.concurrent.Callable
+
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.query.{DerivedRowList, Row, RowList}
 import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.parrequest.{Either, GeneralError, ParCallable, Right}
+import com.yahoo.maha.parrequest.future.ParRequest
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{MahaService, RequestResult}
 import grizzled.slf4j.Logging
@@ -64,85 +68,104 @@ class TimeShift extends Curator with Logging {
                        bucketParams: BucketParams,
                        reportingRequest: ReportingRequest,
                        mahaService: MahaService,
-                       mahaRequestLogHelper: MahaRequestLogHelper,
-                       curatorResultMapAtCurrentLevel: Map[String, (Try[RequestModelResult], Try[RequestResult])],
-                       curatorResultMapAcrossAllLevel: Map[Int, (Try[RequestModelResult], Try[RequestResult])]): (Try[RequestModelResult], Try[RequestResult]) = {
+                       mahaRequestLogHelper: MahaRequestLogHelper): ParRequest[CuratorResult] = {
 
-    require(curatorResultMapAtCurrentLevel.contains(DefaultCurator.name) &&
-      curatorResultMapAtCurrentLevel(DefaultCurator.name)._1.isSuccess &&
-      curatorResultMapAtCurrentLevel(DefaultCurator.name)._1.get.model.bestCandidates.isDefined &&
-      curatorResultMapAtCurrentLevel(DefaultCurator.name)._2.isSuccess)
+    val registryConfig = mahaService.getMahaServiceConfig.registry.get(registryName).get
+    val parallelServiceExecutor = registryConfig.parallelServiceExecutor
 
-    val defaultCuratorRequestModel = curatorResultMapAtCurrentLevel(DefaultCurator.name)._1.get.model
-    val defaultCuratorRequestResult = curatorResultMapAtCurrentLevel(DefaultCurator.name)._2.get
-    val defaultCuratorRowList: RowList = defaultCuratorRequestResult.rowList
+    val parRequest = parallelServiceExecutor.parRequestBuilder[CuratorResult].setLabel("processTimeshiftCurator").
+      setParCallable(ParCallable.from[Either[GeneralError, CuratorResult]](
+        new Callable[Either[GeneralError, CuratorResult]](){
+          override def call(): Either[GeneralError, CuratorResult] = {
+            val defaultWindowRequestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams , mahaRequestLogHelper)
+            require(defaultWindowRequestModelResultTry.isSuccess)
+            val defaultWindowRequestModel: RequestModel = defaultWindowRequestModelResultTry.get.model
+            val defaultWindowRequestResultTry = mahaService.processRequestModel(registryName, defaultWindowRequestModel, mahaRequestLogHelper)
+            require(defaultWindowRequestResultTry.isSuccess)
+            val defaultWindowRowList: RowList = defaultWindowRequestResultTry.get.rowList
 
-    val dimensionKeySet: Set[String] = defaultCuratorRequestModel.bestCandidates.get.publicFact.dimCols.map(_.alias)
-      .intersect(defaultCuratorRequestModel.reportingRequest.selectFields.map(_.field).toSet)
+            val dimensionKeySet: Set[String] = defaultWindowRequestModel.bestCandidates.get.publicFact.dimCols.map(_.alias)
+              .intersect(defaultWindowRequestModel.reportingRequest.selectFields.map(_.field).toSet)
 
-    val dimensionAndItsValuesMap: mutable.Map[String, mutable.Set[String]] = new mutable.HashMap[String, mutable.Set[String]]()
+            val dimensionAndItsValuesMap: mutable.Map[String, mutable.Set[String]] = new mutable.HashMap[String, mutable.Set[String]]()
 
-    defaultCuratorRowList.map { defaultRow => {
-      dimensionKeySet.map { dim => {
-        dimensionAndItsValuesMap.put(dim,dimensionAndItsValuesMap.getOrElse(dim, new mutable.HashSet[String]()) += defaultRow.getValue(dim).toString)
+            defaultWindowRowList.map { defaultRow => {
+              dimensionKeySet.map { dim => {
+                dimensionAndItsValuesMap.put(dim,dimensionAndItsValuesMap.getOrElse(dim, new mutable.HashSet[String]()) += defaultRow.getValue(dim).toString)
+              }
+              }
+            }
+            }
+
+            val previousWindowRequestModelResultTry: Try[RequestModelResult] =
+              getRequestModelForPreviousWindow(registryName,
+                bucketParams,
+                reportingRequest,
+                mahaService,
+                mahaRequestLogHelper,
+                dimensionAndItsValuesMap.map(e => (e._1, e._2.toSet)).toList)
+
+            require(previousWindowRequestModelResultTry.isSuccess)
+
+            val previousWindowRequestResultTry = mahaService.processRequestModel(registryName, previousWindowRequestModelResultTry.get.model, mahaRequestLogHelper)
+            require(previousWindowRequestResultTry.isSuccess)
+
+            val previousWindowRowList: RowList = previousWindowRequestResultTry.get.rowList
+
+            val derivedRowList: DerivedRowList = createDerivedRowList(defaultWindowRequestModel, defaultWindowRowList, previousWindowRowList, dimensionKeySet)
+
+            return new Right[GeneralError, CuratorResult](CuratorResult(Try(RequestResult(derivedRowList, defaultWindowRequestResultTry.get.queryAttributes, defaultWindowRequestResultTry.get.totalRowsOption))))
           }
         }
-      }
-    }
+      )).build()
+    parRequest
 
-    val timeShiftCuratorRequestModelResultTry: Try[RequestModelResult] =
-      getRequestModelForPreviousWindow(registryName,
-        bucketParams,
-        reportingRequest,
-        mahaService,
-        mahaRequestLogHelper,
-        dimensionAndItsValuesMap.map(e => (e._1, e._2.toSet)).toList)
 
-    require(timeShiftCuratorRequestModelResultTry.isSuccess)
+  }
 
-    val timeShiftCuratorRequestResultTry = mahaService.processRequestModel(registryName, timeShiftCuratorRequestModelResultTry.get.model, mahaRequestLogHelper)
-    require(timeShiftCuratorRequestResultTry.isSuccess)
+  private def createDerivedRowList(defaultWindowRequestModel: RequestModel,
+                                   defaultWindowRowList: RowList,
+                                   previousWindowRowList: RowList,
+                                   dimensionKeySet: Set[String]) : DerivedRowList = {
 
-    val timeShiftCuratorRowList: RowList = timeShiftCuratorRequestResultTry.get.rowList
-
-    val injectableColumns: collection.mutable.ArrayBuffer[ColumnInfo] = new collection.mutable.ArrayBuffer[ColumnInfo]()
-    defaultCuratorRequestModel.bestCandidates.get.factColAliases
+    val injectableColumns: ArrayBuffer[ColumnInfo] = new collection.mutable.ArrayBuffer[ColumnInfo]()
+    defaultWindowRequestModel.bestCandidates.get.factColAliases
       .foreach { colAlias =>
         injectableColumns += FactColumnInfo(colAlias + TimeShift.PREV_STRING)
         injectableColumns += FactColumnInfo(colAlias + TimeShift.PCT_CHANGE_STRING)
       }
 
-    val columns: IndexedSeq[ColumnInfo] = defaultCuratorRequestModel.requestCols ++ injectableColumns
+    val columns: IndexedSeq[ColumnInfo] = defaultWindowRequestModel.requestCols ++ injectableColumns
     val aliasMap : Map[String, Int] = columns.map(_.alias).zipWithIndex.toMap
     val primaryKeyToRowMap = new collection.mutable.HashMap[String, Row]
 
-    timeShiftCuratorRowList.foreach(timeShiftRow => {
+    previousWindowRowList.foreach(timeShiftRow => {
       val primaryKey = dimensionKeySet.map(alias => alias + timeShiftRow.getValue(alias)).mkString
       primaryKeyToRowMap.put(primaryKey, timeShiftRow)
     })
 
     val derivedRowList: DerivedRowList = new DerivedRowList(columns)
 
-    defaultCuratorRowList.foreach(defaultRow => {
+    defaultWindowRowList.foreach(defaultRow => {
       val primaryKey: String = dimensionKeySet.map(alias => alias + defaultRow.getValue(alias)).mkString
       val timeShiftRowOption: Option[Row] = primaryKeyToRowMap.get(primaryKey)
       val row: Row = new Row(aliasMap, ArrayBuffer.fill[Any](aliasMap.size)(null))
       aliasMap.foreach {
-        case(alias, pos) => {
-          if(alias.contains(TimeShift.PREV_STRING)) {
+        case (alias, pos) => {
+          if (alias.contains(TimeShift.PREV_STRING)) {
             val originalAlias: String = alias.substring(0, alias.indexOf(TimeShift.PREV_STRING))
-            val value = if(timeShiftRowOption.isDefined) timeShiftRowOption.get.getValue(originalAlias) else 0
+            val value = if (timeShiftRowOption.isDefined) timeShiftRowOption.get.getValue(originalAlias) else 0
             row.addValue(pos, value)
 
-          } else if(alias.contains(TimeShift.PCT_CHANGE_STRING)) {
+          } else if (alias.contains(TimeShift.PCT_CHANGE_STRING)) {
             val originalAlias: String = alias.substring(0, alias.indexOf(TimeShift.PCT_CHANGE_STRING))
-            val prevValue = if(timeShiftRowOption.isDefined) timeShiftRowOption.get.getValue(originalAlias) else 0
+            val prevValue = if (timeShiftRowOption.isDefined) timeShiftRowOption.get.getValue(originalAlias) else 0
             val currentValue = defaultRow.getValue(originalAlias)
 
-            if(prevValue.isInstanceOf[Number] && currentValue.isInstanceOf[Number]) {
+            if (prevValue.isInstanceOf[Number] && currentValue.isInstanceOf[Number]) {
               val prevValueDouble = prevValue.asInstanceOf[Number].doubleValue()
               val currentValueDouble = currentValue.asInstanceOf[Number].doubleValue()
-              val pctChange = if (prevValueDouble == 0) BigDecimal(100) else BigDecimal(((currentValueDouble - prevValueDouble)/prevValueDouble) * 100)
+              val pctChange = if (prevValueDouble == 0) BigDecimal(100) else BigDecimal(((currentValueDouble - prevValueDouble) / prevValueDouble) * 100)
               val pctChangeRounded = pctChange
                 .setScale(2, BigDecimal.RoundingMode.HALF_UP)
                 .toDouble
@@ -157,12 +180,6 @@ class TimeShift extends Curator with Logging {
       derivedRowList.addRow(row)
 
     })
-
-    (timeShiftCuratorRequestModelResultTry,
-      Try(RequestResult(derivedRowList,
-        timeShiftCuratorRequestResultTry.get.queryAttributes,
-        timeShiftCuratorRequestResultTry.get.totalRowsOption)
-      )
-    )
+    derivedRowList
   }
 }

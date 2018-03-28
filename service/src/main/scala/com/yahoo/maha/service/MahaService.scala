@@ -94,12 +94,16 @@ trait MahaService {
     Defines list of engines which are not capable calculating the totalRowCount in one run
    */
   def rowCountIncomputableEngineSet: Set[Engine]
+
+  def getMahaServiceConfig: MahaServiceConfig
 }
 
 case class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Logging {
 
   override val mahaRequestLogWriter: MahaRequestLogWriter = config.mahaRequestLogWriter
   val rowCountIncomputableEngineSet: Set[Engine] = Set(DruidEngine)
+
+  override def getMahaServiceConfig: MahaServiceConfig = config
 
   /**
    * Generates own model and create ParRequestResult and invoke the execution
