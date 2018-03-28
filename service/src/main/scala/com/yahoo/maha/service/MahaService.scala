@@ -12,8 +12,8 @@ import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, BucketingCon
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.registry.{DimensionRegistrationFactory, FactRegistrationFactory, Registry, RegistryBuilder}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.parrequest.future.{NoopRequest, ParRequest, ParallelServiceExecutor}
-import com.yahoo.maha.parrequest.{Either, GeneralError, ParCallable, Right}
+import com.yahoo.maha.parrequest2.future.{NoopRequest, ParFunction, ParRequest, ParallelServiceExecutor}
+import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.service.config._
 import com.yahoo.maha.service.error._
 import com.yahoo.maha.service.factory._
@@ -245,7 +245,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
    */
   private def syncParRequestExecutor(parRequest: ParRequest[RequestResult], mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestResult] = {
     val requestResultEither = {
-      parRequest.resultMap((t: RequestResult) => t)
+      parRequest.resultMap(ParFunction.from((t: RequestResult) => t))
     }
 
     requestResultEither.fold(
@@ -253,7 +253,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
         val error = t.throwableOption
         val message = s"Failed to execute the Request Model: ${t.message} "
         val exception = if (error.isDefined) {
-          new MahaServiceExecutionException(message, Option(error.get()))
+          new MahaServiceExecutionException(message, Option(error.get))
         } else {
           new MahaServiceExecutionException(message)
         }
@@ -271,11 +271,11 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
   */
   private def asyncParRequestExecutor(parRequest: ParRequest[RequestResult], mahaRequestLogHelper: MahaRequestLogHelper): Try[NoopRequest[Unit]] = {
 
-    Try(parRequest.fold[Unit]((ge: GeneralError) => {
-          val warnMessage= s"Failed to execute the dryRun Model ${ge.message} ${ge.throwableOption.get().getStackTrace}"
+    Try(parRequest.fold[Unit](ParFunction.from((ge: GeneralError) => {
+          val warnMessage= s"Failed to execute the dryRun Model ${ge.message} ${ge.throwableOption.get.getStackTrace}"
           mahaRequestLogHelper.logFailed(warnMessage)
           warn(warnMessage)
-      }, (t: RequestResult) => {}
+      }), ParFunction.from((t: RequestResult) => {})
     ))
   }
 

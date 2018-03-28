@@ -13,8 +13,8 @@ import com.yahoo.maha.core.query.druid.DruidQueryOptimizer
 import com.yahoo.maha.core.query.{ExecutionLifecycleListener, NoopExecutionLifecycleListener, QueryExecutor, QueryGenerator}
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.druid.{DruidQueryExecutorConfig, ResultSetTransformers}
-import com.yahoo.maha.parrequest.CustomRejectPolicy
-import com.yahoo.maha.parrequest.future.ParallelServiceExecutor
+import com.yahoo.maha.parrequest2.CustomRejectPolicy
+import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor
 import com.yahoo.maha.service.MahaServiceConfig
 import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
 import com.yahoo.maha.service.config.{PassThroughPasswordProvider, PasswordProvider}

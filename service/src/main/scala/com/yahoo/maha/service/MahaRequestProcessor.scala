@@ -6,8 +6,8 @@ import com.google.protobuf.ByteString
 import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{RequestModel, RequestModelResult}
-import com.yahoo.maha.parrequest.GeneralError
-import com.yahoo.maha.parrequest.future.ParFunction
+import com.yahoo.maha.parrequest2.GeneralError
+import com.yahoo.maha.parrequest2.future.ParFunction
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import grizzled.slf4j.Logging
@@ -87,12 +87,12 @@ case class MahaRequestProcessor(registryName: String,
       val parRequestResult = mahaService.executeRequestModelResult(registryName, requestModelResult, mahaRequestLogHelper)
 
       val errParFunction: ParFunction[GeneralError, Unit] = ParFunction.fromScala(callOnFailureFn(mahaRequestLogHelper, reportingRequest))
-      val validationParFunction: ParFunction[RequestResult, com.yahoo.maha.parrequest.Either[GeneralError, RequestResult]] =
+      val validationParFunction: ParFunction[RequestResult, Either[GeneralError, RequestResult]] =
       ParFunction.fromScala(
         (result: RequestResult) => {
           try {
             requestResultValidationFn.foreach(_ (result))
-            new com.yahoo.maha.parrequest.Right(result)
+            new Right(result)
           } catch {
             case e: Exception =>
               GeneralError.either("resultValidation", e.getMessage, e)
