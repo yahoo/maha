@@ -9,15 +9,19 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.metamx.common.logger.Logger;
 import io.druid.query.extraction.ExtractionFn;
 import io.druid.query.lookup.LookupReferencesManager;
 
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
+import java.util.Map;
 
 @JsonTypeName("mahaRegisteredLookup")
 public class MahaRegisteredLookupExtractionFn implements ExtractionFn
 {
+    private static final Logger LOG = new Logger(MahaRegisteredLookupExtractionFn.class);
     // Protected for moving to not-null by `delegateLock`
     private volatile MahaLookupExtractionFn delegate = null;
     private final Object delegateLock = new Object();
@@ -30,7 +34,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     private final boolean optimize;
     private final String valueColumn;
     private final DecodeConfig decodeConfig;
-    private static final String CONTROL_A_SEPARATOR = "\u0001";
+    private final Map<String, String> dimensionOverrideMap;
 
     @JsonCreator
     public MahaRegisteredLookupExtractionFn(
@@ -42,7 +46,8 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
             @JsonProperty("injective") final boolean injective,
             @JsonProperty("optimize") Boolean optimize,
             @Nullable @JsonProperty("valueColumn") String valueColumn,
-            @Nullable @JsonProperty("decode") DecodeConfig decodeConfig
+            @Nullable @JsonProperty("decode") DecodeConfig decodeConfig,
+            @Nullable @JsonProperty("dimensionOverrideMap") Map<String, String> dimensionOverrideMap
     )
     {
         Preconditions.checkArgument(lookup != null, "`lookup` required");
@@ -55,6 +60,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
         this.lookup = lookup;
         this.valueColumn = valueColumn;
         this.decodeConfig = decodeConfig;
+        this.dimensionOverrideMap = dimensionOverrideMap;
     }
 
     @JsonProperty("lookup")
@@ -99,6 +105,12 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
         return decodeConfig;
     }
 
+    @JsonProperty("dimensionOverrideMap")
+    public Map<String, String> getDimensionOverrideMap()
+    {
+        return ImmutableMap.copyOf(dimensionOverrideMap);
+    }
+
     @Override
     public byte[] getCacheKey()
     {
@@ -122,14 +134,19 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     @Override
     public String apply(String value)
     {
-        String serializedValue = value + CONTROL_A_SEPARATOR + valueColumn;
-        if(decodeConfig != null) {
-            try {
-                serializedValue = serializedValue + CONTROL_A_SEPARATOR + objectMapper.writeValueAsString(decodeConfig);
-            } catch (JsonProcessingException e) {
-            }
+        MahaLookupQueryElement mahaLookupQueryElement = new MahaLookupQueryElement();
+        mahaLookupQueryElement.setDimension(value);
+        mahaLookupQueryElement.setValueColumn(valueColumn);
+        mahaLookupQueryElement.setDecodeConfig(decodeConfig);
+        mahaLookupQueryElement.setDimensionOverrideMap(dimensionOverrideMap);
+
+        String serializedElement = "";
+        try {
+            serializedElement = objectMapper.writeValueAsString(mahaLookupQueryElement);
+        } catch (JsonProcessingException e) {
+            LOG.error(e, e.getMessage());
         }
-        return ensureDelegate().apply(serializedValue);
+        return ensureDelegate().apply(serializedElement);
     }
 
     @Override
