@@ -7,7 +7,8 @@ import com.yahoo.maha.core.RequestModel
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.QueryRowList
 import com.yahoo.maha.core.request._
-import com.yahoo.maha.parrequest.GeneralError
+import com.yahoo.maha.parrequest2.GeneralError
+import com.yahoo.maha.parrequest2.future.ParFunction
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service._
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
@@ -49,22 +50,16 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
     // Test General Error in Execute Model Test
     val resultFailure = mahaService.executeRequestModelResult("er", requestModelResultTry.get, mahaRequestLogHelper).prodRun.get(10000)
     assert(resultFailure.isLeft)
-    resultFailure.mapLeft(
-      (t: GeneralError) => {
-        println(t)
-        assert(t.message.contains(s"""Table "STUDENT_GRADE_SHEET" not found; SQL statement"""))
-      }
-    )
+    val p = resultFailure.left.get
+    assert(p.message.contains("""Table "STUDENT_GRADE_SHEET" not found; SQL statement"""))
 
     // Test General Error in execute request
     val parRequestResultWithError = mahaService.executeRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
-    parRequestResultWithError.prodRun.resultMap(
-      (t: RequestResult)
-      => t
-    ).mapLeft(
-      (t: GeneralError)=>
-        assert(t.message.contains(s"""Table "STUDENT_GRADE_SHEET" not found; SQL statement"""))
+    val q = parRequestResultWithError.prodRun.resultMap(
+      ParFunction.from((t: RequestResult)
+      => t)
     )
+    assert(q.left.get.message.contains("""Table "STUDENT_GRADE_SHEET" not found; SQL statement"""))
 
     // Test General Error in process Model
     val resultFailureToProcessModel = mahaService.processRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
@@ -95,8 +90,8 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
     //ExecuteRequest Test
     val executeRequestParRequestResult = mahaService.executeRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
     assert(executeRequestParRequestResult.prodRun.get(10000).isRight)
-    val requestResultOption = executeRequestParRequestResult.prodRun.get(10000).toOption
-    assert(requestResultOption.get.rowList.asInstanceOf[QueryRowList].columnNames.contains("Total Marks"))
+    val requestResultOption  = Option(executeRequestParRequestResult.prodRun.get(10000))
+    assert(requestResultOption.get.right.get.rowList.asInstanceOf[QueryRowList].columnNames.contains("Total Marks"))
 
     // Domain Tests
     val domainJsonOption = mahaService.getDomain("er")

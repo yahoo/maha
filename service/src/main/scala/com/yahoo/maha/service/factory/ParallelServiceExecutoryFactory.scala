@@ -5,7 +5,7 @@ package com.yahoo.maha.service.factory
 import java.util.concurrent.RejectedExecutionHandler
 
 import com.yahoo.maha.core.request._
-import com.yahoo.maha.parrequest.future.ParallelServiceExecutor
+import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor
 import com.yahoo.maha.service.MahaServiceConfig
 import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
 import org.json4s.JValue

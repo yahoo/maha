@@ -5,16 +5,18 @@ package com.yahoo.maha.service.utils
 import java.net.ServerSocket
 import java.util
 import java.util.Properties
-import com.google.protobuf.ByteString
+
+import com.google.protobuf.{ByteString, UninitializedMessageException}
 import com.yahoo.maha.proto.MahaRequestLog
 import com.yahoo.maha.service.config.JsonKafkaRequestLoggingConfig
 import grizzled.slf4j.Logging
 import kafka.server.{KafkaConfig, KafkaServer}
-import kafka.utils.{ZkUtils, TestUtils}
+import kafka.utils.{TestUtils, ZkUtils}
 import org.apache.curator.test.TestingServer
-import org.apache.kafka.clients.consumer.{KafkaConsumer}
+import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.common.protocol.SecurityProtocol
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+
 import collection.JavaConverters._
 
 
@@ -150,6 +152,27 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
     writer.write(null)
     writer.validate(null)
     mahaRequestLogWriter.callback.onCompletion(null, new Exception)
+  }
+
+  test("Create blank, invalid requestLog") {
+    val jsonKafkaRequestLoggingConfig = new JsonKafkaRequestLoggingConfig(
+      kafkaBroker,
+      kafkaBroker,
+      "test",
+      "org.apache.kafka.common.serialization.ByteArraySerializer",
+      "1",
+      "true",
+      "1",
+      TOPIC,
+      "999999",
+      "1000"
+    )
+    val writer : KafkaMahaRequestLogWriter = new KafkaMahaRequestLogWriter(jsonKafkaRequestLoggingConfig, true)
+
+    val thrown = intercept[UninitializedMessageException] {
+      writer.validate(MahaRequestLog.MahaRequestProto.newBuilder().build())
+    }
+    assert(thrown.getMessage.contains("Message missing required fields: requestId, json"))
   }
 
   private def getFreePort(): Int = {
