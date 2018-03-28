@@ -60,7 +60,7 @@
 
     <modules>
         <module>par-request-2</module>
-        <module>par-request</module>
+        <!--module>par-request</module-->
         <module>druid-lookups</module>
         <module>core</module>
         <module>druid</module>
