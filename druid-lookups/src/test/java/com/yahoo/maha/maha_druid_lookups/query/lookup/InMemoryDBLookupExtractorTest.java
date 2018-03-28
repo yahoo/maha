@@ -2,13 +2,16 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.Files;
 import com.google.protobuf.Message;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.AdProtos;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
+import io.druid.metadata.MetadataStorageConnectorConfig;
 import org.apache.commons.io.FileUtils;
 import org.joda.time.Period;
 import org.rocksdb.Options;
@@ -17,6 +20,8 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,6 +30,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class InMemoryDBLookupExtractorTest {
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     public void testBuildWhenDimensionValueIsEmpty() {
@@ -40,7 +46,20 @@ public class InMemoryDBLookupExtractorTest {
     }
 
     @Test
-    public void testBuildWhenCacheValueIsNull() {
+    public void testBuildWhenDimensionValueIsNull() {
+        LookupService lookupService = mock(LookupService.class);
+        RocksDBManager rocksDBManager = mock(RocksDBManager.class);
+        InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
+                "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated"
+        );
+        Map<String, String> map = new HashMap<>();
+        InMemoryDBLookupExtractor InMemoryDBLookupExtractor = new InMemoryDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, new TestProtobufSchemaFactory());
+        String lookupValue = InMemoryDBLookupExtractor.apply(null);
+        Assert.assertNull(lookupValue);
+    }
+
+    @Test
+    public void testBuildWhenCacheValueIsNull() throws Exception {
 
         LookupService lookupService = mock(LookupService.class);
         RocksDB db = mock(RocksDB.class);
@@ -52,7 +71,10 @@ public class InMemoryDBLookupExtractorTest {
         );
         Map<String, String> map = new HashMap<>();
         InMemoryDBLookupExtractor InMemoryDBLookupExtractor = new InMemoryDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, new TestProtobufSchemaFactory());
-        String lookupValue = InMemoryDBLookupExtractor.apply("abc\u0001status");
+        MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
+        mahaLookupQueryElement1.setDimension("abc");
+        mahaLookupQueryElement1.setValueColumn("status");
+        String lookupValue = InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
         Assert.assertNull(lookupValue);
     }
 
@@ -86,10 +108,16 @@ public class InMemoryDBLookupExtractorTest {
             );
             Map<String, String> map = new HashMap<>();
             InMemoryDBLookupExtractor InMemoryDBLookupExtractor = new InMemoryDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, new TestProtobufSchemaFactory());
-            String lookupValue = InMemoryDBLookupExtractor.apply("32309719080\u0001status");
+            MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
+            mahaLookupQueryElement1.setDimension("32309719080");
+            mahaLookupQueryElement1.setValueColumn("status");
+            String lookupValue = InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
             Assert.assertEquals(lookupValue, "ON");
 
-            lookupValue = InMemoryDBLookupExtractor.apply("32309719080\u0001title");
+            MahaLookupQueryElement mahaLookupQueryElement2 = new MahaLookupQueryElement();
+            mahaLookupQueryElement2.setDimension("32309719080");
+            mahaLookupQueryElement2.setValueColumn("title");
+            lookupValue = InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement2));
             Assert.assertEquals(lookupValue, "some title");
         } finally {
             if(db != null) {
@@ -99,6 +127,36 @@ public class InMemoryDBLookupExtractorTest {
                 FileUtils.forceDelete(tempFile);
             }
         }
+    }
+
+    @Test
+    public void testDimensionOverrideMap() throws Exception {
+
+        LookupService lookupService = mock(LookupService.class);
+        RocksDBManager rocksDBManager = mock(RocksDBManager.class);
+        InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
+                "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated"
+        );
+        Map<String, String> map = new HashMap<>();
+        InMemoryDBLookupExtractor InMemoryDBLookupExtractor = new InMemoryDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, new TestProtobufSchemaFactory());
+        Map<String, String> dimensionOverrideMap = new HashMap<>();
+        dimensionOverrideMap.put("12345", "something-12345");
+        dimensionOverrideMap.put("6789", "something-6789");
+        dimensionOverrideMap.put("", "Unknown");
+
+        MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
+        mahaLookupQueryElement1.setDimension("12345");
+        mahaLookupQueryElement1.setValueColumn("name");
+        mahaLookupQueryElement1.setDimensionOverrideMap(dimensionOverrideMap);
+        String lookupValue = InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
+        Assert.assertEquals(lookupValue, "something-12345");
+
+        MahaLookupQueryElement mahaLookupQueryElement2 = new MahaLookupQueryElement();
+        mahaLookupQueryElement2.setDimension("");
+        mahaLookupQueryElement2.setValueColumn("name");
+        mahaLookupQueryElement2.setDimensionOverrideMap(dimensionOverrideMap);
+        lookupValue = InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement2));
+        Assert.assertEquals(lookupValue, "Unknown");
     }
 
 }

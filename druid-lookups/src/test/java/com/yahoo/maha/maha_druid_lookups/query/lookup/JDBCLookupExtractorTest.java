@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
@@ -19,6 +20,7 @@ import java.util.Map;
 public class JDBCLookupExtractorTest {
 
     private static final String CONTROL_A_SEPARATOR = "\u0001";
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Mock
     RocksDBManager rocksDBManager;
@@ -41,7 +43,21 @@ public class JDBCLookupExtractorTest {
     }
 
     @Test
-    public void testBuildWhenCacheValueIsNull() {
+    public void testBuildWhenDimensionValueIsNull() {
+
+        MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
+        JDBCExtractionNamespace extractionNamespace =
+                new JDBCExtractionNamespace(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
+                        "id", "", new Period(), true, "advertiser_lookup");
+
+        Map<String, String> map = new HashMap<>();
+        JDBCLookupExtractor JDBCLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
+        String lookupValue = JDBCLookupExtractor.apply(null);
+        Assert.assertNull(lookupValue);
+    }
+
+    @Test
+    public void testBuildWhenCacheValueIsNull() throws Exception {
 
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
         JDBCExtractionNamespace extractionNamespace =
@@ -50,12 +66,15 @@ public class JDBCLookupExtractorTest {
                         "id", "", new Period(), true, "advertiser_lookup");
         Map<String, String> map = new HashMap<>();
         JDBCLookupExtractor JDBCLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
-        String lookupValue = JDBCLookupExtractor.apply("12345\u0001name");
+        MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
+        mahaLookupQueryElement1.setDimension("12345");
+        mahaLookupQueryElement1.setValueColumn("name");
+        String lookupValue = JDBCLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
         Assert.assertNull(lookupValue);
     }
 
     @Test
-    public void testBuildWhenCacheValueIsNotNull() {
+    public void testBuildWhenCacheValueIsNotNull() throws Exception {
 
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
         JDBCExtractionNamespace extractionNamespace =
@@ -65,18 +84,27 @@ public class JDBCLookupExtractorTest {
         Map<String, String> map = new HashMap<>();
         map.put("12345", "12345" + CONTROL_A_SEPARATOR + "my name" + CONTROL_A_SEPARATOR + "USD" + CONTROL_A_SEPARATOR + "ON");
         JDBCLookupExtractor JDBCLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
-        String lookupValue = JDBCLookupExtractor.apply("12345\u0001status");
+        MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
+        mahaLookupQueryElement1.setDimension("12345");
+        mahaLookupQueryElement1.setValueColumn("status");
+        String lookupValue = JDBCLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
         Assert.assertEquals(lookupValue, "ON");
 
-        lookupValue = JDBCLookupExtractor.apply("12345\u0001name");
+        MahaLookupQueryElement mahaLookupQueryElement2 = new MahaLookupQueryElement();
+        mahaLookupQueryElement2.setDimension("12345");
+        mahaLookupQueryElement2.setValueColumn("name");
+        lookupValue = JDBCLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement2));
         Assert.assertEquals(lookupValue, "my name");
 
-        lookupValue = JDBCLookupExtractor.apply("12345\u0001currency");
+        MahaLookupQueryElement mahaLookupQueryElement3 = new MahaLookupQueryElement();
+        mahaLookupQueryElement3.setDimension("12345");
+        mahaLookupQueryElement3.setValueColumn("currency");
+        lookupValue = JDBCLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement3));
         Assert.assertEquals(lookupValue, "USD");
     }
 
     @Test
-    public void testBuildWhenInvalidValueColumn() {
+    public void testBuildWhenInvalidValueColumn() throws Exception {
 
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
         JDBCExtractionNamespace extractionNamespace =
@@ -86,8 +114,88 @@ public class JDBCLookupExtractorTest {
         Map<String, String> map = new HashMap<>();
         map.put("12345", "12345" + CONTROL_A_SEPARATOR + "my name" + CONTROL_A_SEPARATOR + "USD" + CONTROL_A_SEPARATOR + "ON");
         JDBCLookupExtractor JDBCLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
-        String lookupValue = JDBCLookupExtractor.apply("12345\u0001booking_country");
+        MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
+        mahaLookupQueryElement1.setDimension("12345");
+        mahaLookupQueryElement1.setValueColumn("booking_country");
+        String lookupValue = JDBCLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
         Assert.assertNull(lookupValue);
+    }
+
+    @Test
+    public void testDimensionOverrideMap() throws Exception {
+
+        MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
+        JDBCExtractionNamespace extractionNamespace =
+                new JDBCExtractionNamespace(
+                        metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
+                        "id", "", new Period(), true, "advertiser_lookup");
+        Map<String, String> map = new HashMap<>();
+        map.put("12345", "12345" + CONTROL_A_SEPARATOR + "my name" + CONTROL_A_SEPARATOR + "USD" + CONTROL_A_SEPARATOR + "ON");
+        JDBCLookupExtractor JDBCLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
+        Map<String, String> dimensionOverrideMap = new HashMap<>();
+        dimensionOverrideMap.put("12345", "something-12345");
+        dimensionOverrideMap.put("6789", "something-6789");
+        dimensionOverrideMap.put("", "Unknown");
+
+        MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
+        mahaLookupQueryElement1.setDimension("12345");
+        mahaLookupQueryElement1.setValueColumn("name");
+        mahaLookupQueryElement1.setDimensionOverrideMap(dimensionOverrideMap);
+        String lookupValue = JDBCLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
+        Assert.assertEquals(lookupValue, "something-12345");
+
+        MahaLookupQueryElement mahaLookupQueryElement2 = new MahaLookupQueryElement();
+        mahaLookupQueryElement2.setDimension("");
+        mahaLookupQueryElement2.setValueColumn("name");
+        mahaLookupQueryElement2.setDimensionOverrideMap(dimensionOverrideMap);
+        lookupValue = JDBCLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement2));
+        Assert.assertEquals(lookupValue, "Unknown");
+    }
+
+    @Test
+    public void testDecodeConfig() throws Exception {
+
+        MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
+        JDBCExtractionNamespace extractionNamespace =
+                new JDBCExtractionNamespace(
+                        metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
+                        "id", "", new Period(), true, "advertiser_lookup");
+        Map<String, String> map = new HashMap<>();
+        map.put("12345", "12345" + CONTROL_A_SEPARATOR + "my name" + CONTROL_A_SEPARATOR + "USD" + CONTROL_A_SEPARATOR + "ON");
+        JDBCLookupExtractor JDBCLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
+
+        Map<String, String> dimensionOverrideMap = new HashMap<>();
+        dimensionOverrideMap.put("123", "something-123");
+        dimensionOverrideMap.put("6789", "something-6789");
+        dimensionOverrideMap.put("", "Unknown");
+
+        MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
+        mahaLookupQueryElement1.setDimension("12345");
+        mahaLookupQueryElement1.setValueColumn("name");
+        mahaLookupQueryElement1.setDimensionOverrideMap(dimensionOverrideMap);
+        DecodeConfig decodeConfig1 = new DecodeConfig();
+        decodeConfig1.setColumnToCheck("name");
+        decodeConfig1.setValueToCheck("my name");
+        decodeConfig1.setColumnIfValueMatched("currency");
+        decodeConfig1.setColumnIfValueNotMatched("status");
+        mahaLookupQueryElement1.setDecodeConfig(decodeConfig1);
+        String lookupValue = JDBCLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
+        Assert.assertEquals(lookupValue, "USD");
+
+
+        MahaLookupQueryElement mahaLookupQueryElement2 = new MahaLookupQueryElement();
+        mahaLookupQueryElement2.setDimension("12345");
+        mahaLookupQueryElement2.setValueColumn("name");
+        mahaLookupQueryElement2.setDimensionOverrideMap(dimensionOverrideMap);
+        DecodeConfig decodeConfig2 = new DecodeConfig();
+        decodeConfig2.setColumnToCheck("name");
+        decodeConfig2.setValueToCheck("my unknown name");
+        decodeConfig2.setColumnIfValueMatched("currency");
+        decodeConfig2.setColumnIfValueNotMatched("status");
+        mahaLookupQueryElement2.setDecodeConfig(decodeConfig2);
+        lookupValue = JDBCLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement2));
+        Assert.assertEquals(lookupValue, "ON");
+
     }
 
 }
