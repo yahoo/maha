@@ -2024,7 +2024,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |SELECT "Day", "Advertiser Status", "Campaign Name", impressions AS "Impressions", CTR AS "CTR"
          |FROM (SELECT to_char(af0.stats_date, 'YYYY-MM-DD') "Day", ao1."Advertiser Status" "Advertiser Status", co2.campaign_name "Campaign Name", SUM(impressions) AS impressions, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS CTR, SUM(clicks) AS clicks
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   advertiser_id, campaign_id, stats_date, SUM(impressions) AS impressions, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks
+         |                   advertiser_id, campaign_id, stats_date, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions
          |            FROM ad_fact1 FactAlias
          |            WHERE (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id, stats_date
@@ -2102,7 +2102,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |SELECT "Day", "Advertiser Status", "Campaign Name", impressions AS "Impressions", CTR AS "CTR"
          |FROM (SELECT to_char(af0.stats_date, 'YYYY-MM-DD') "Day", ao1."Advertiser Status" "Advertiser Status", co2.campaign_name "Campaign Name", SUM(impressions) AS impressions, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS CTR, SUM(clicks) AS clicks
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   advertiser_id, campaign_id, stats_date, SUM(impressions) AS impressions, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks
+         |                   advertiser_id, campaign_id, stats_date, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id, stats_date
@@ -4049,9 +4049,9 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       s"""
          |
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser ID", CASE WHEN DECODE(stats_source, 1, clicks, 0.0) = 0 THEN 0.0 ELSE DECODE(stats_source, 1, spend, 0.0) / DECODE(stats_source, 1, clicks, 0.0) END AS "N Average CPC", spend AS "Spend"
-         |FROM (SELECT co1.campaign_name "Campaign Name", to_char(co1.advertiser_id) "Advertiser ID", SUM(spend) AS spend, to_char(af0.stats_source) stats_source, SUM(clicks) AS clicks
+         |FROM (SELECT co1.campaign_name "Campaign Name", to_char(co1.advertiser_id) "Advertiser ID", SUM(spend) AS spend, SUM(clicks) AS clicks, to_char(af0.stats_source) stats_source
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   advertiser_id, campaign_id, stats_source, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend
+         |                   advertiser_id, campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, stats_source, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id, stats_source
@@ -4116,9 +4116,9 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       s"""
          |
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "impression_share_rounded" AS "Impression Share", spend AS "Spend"
-         |FROM (SELECT co1.campaign_name "Campaign Name", SUM(spend) AS spend, to_char(af0.show_flag) show_flag, SUM(s_impressions) AS s_impressions, SUM(impressions) AS impressions, (ROUND((DECODE(MAX(show_flag), 1, ROUND(CASE WHEN SUM(s_impressions) = 0 THEN 0.0 ELSE SUM(impressions) / (SUM(s_impressions)) END, 4), NULL)), 5)) AS "impression_share_rounded"
+         |FROM (SELECT co1.campaign_name "Campaign Name", SUM(spend) AS spend, SUM(impressions) AS impressions, SUM(s_impressions) AS s_impressions, to_char(af0.show_flag) show_flag, (ROUND((DECODE(MAX(show_flag), 1, ROUND(CASE WHEN SUM(s_impressions) = 0 THEN 0.0 ELSE SUM(impressions) / (SUM(s_impressions)) END, 4), NULL)), 5)) AS "impression_share_rounded"
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   campaign_id, show_flag, SUM(s_impressions) AS s_impressions, SUM(impressions) AS impressions, SUM(spend) AS spend
+         |                   campaign_id, SUM(impressions) AS impressions, SUM(s_impressions) AS s_impressions, show_flag, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY campaign_id, show_flag
