@@ -1,13 +1,19 @@
 package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.Map;
 
 public class MahaLookupQueryElement {
 
-    String dimension;
-    String valueColumn;
-    DecodeConfig decodeConfig;
-    Map<String, String> dimensionOverrideMap;
+    @JsonProperty
+    public String dimension;
+    @JsonProperty
+    public String valueColumn;
+    @JsonProperty
+    public DecodeConfig decodeConfig;
+    @JsonProperty
+    public Map<String, String> dimensionOverrideMap;
 
     public MahaLookupQueryElement() {
     }
