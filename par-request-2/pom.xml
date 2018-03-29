@@ -118,34 +118,12 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
-                    <rerunFailingTestsCount>3</rerunFailingTestsCount>
                     <forkCount>7</forkCount>
                     <reuseForks>true</reuseForks>
                     <argLine>-Xmx1024m -XX:MaxPermSize=256m -Djava.library.path=/home/y/lib64</argLine>
                     <workingDirectory>target/FORK_DIRECTORY_${surefire.forkNumber}</workingDirectory>
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                    <properties>
-                        <property>
-                            <name>usedefaultlisteners</name>
-                            <value>false</value>
-                        </property>
-                        <property>
-                            <name>listener</name>
-                            <value>com.yahoo.maha.parrequest2.RetryAnalyzerImpl</value>
-                        </property>
-                        <property>
-                            <name>testng</name>
-                            <value>false</value>
-                        </property>
-                    </properties>
                 </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.apache.maven.surefire</groupId>
-                        <artifactId>surefire-testng</artifactId>
-                        <version>2.19.1</version>
-                    </dependency>
-                </dependencies>
             </plugin>
 
             <plugin>
