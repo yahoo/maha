@@ -480,14 +480,4 @@ public class TestParRequestListOption {
         assertTrue(result.isRight());
         assertTrue(response.success.equals("Empty-100-Empty-100-Empty-100-Empty-100"));
     }
-
-    /*int rerun = 0;
-
-    @Test
-    public void testNGFailedTestRerunShouldAlwaysFail() {
-        rerun += 1;
-        System.err.println("Rerun number: " + (rerun-1));
-        assertTrue(false);
-
-    }*/
 }

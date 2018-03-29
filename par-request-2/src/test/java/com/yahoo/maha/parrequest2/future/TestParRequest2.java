@@ -6,13 +6,17 @@ import com.yahoo.maha.parrequest2.GeneralError;
 import com.yahoo.maha.parrequest2.Nothing;
 import com.yahoo.maha.parrequest2.ParCallable;
 
+import com.yahoo.maha.parrequest2.RetryAnalyzerImpl;
 import com.yahoo.maha.parrequest2.future.NoopRequest;
 import com.yahoo.maha.parrequest2.future.ParFunction;
 import com.yahoo.maha.parrequest2.future.ParRequest;
 import com.yahoo.maha.parrequest2.future.ParRequest2;
 import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor;
+import org.testng.ITestContext;
+import org.testng.ITestNGMethod;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 import scala.util.Either;
 import scala.util.Right;
@@ -23,6 +27,12 @@ import static org.testng.Assert.assertTrue;
  * Created by hiral on 6/16/14.
  */
 public class TestParRequest2 {
+    @BeforeSuite(alwaysRun = true)
+    public void beforeSuite(ITestContext context) {
+        for (ITestNGMethod method : context.getAllTestMethods()) {
+            method.setRetryAnalyzer(new RetryAnalyzerImpl());
+        }
+    }
 
     private ParallelServiceExecutor executor;
 
