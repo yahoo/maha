@@ -113,7 +113,6 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
-                    <rerunFailingTestsCount>3</rerunFailingTestsCount>
                     <forkCount>7</forkCount>
                     <reuseForks>true</reuseForks>
                     <argLine>-Xmx1024m -XX:MaxPermSize=256m -Djava.library.path=/home/y/lib64</argLine>
