@@ -8,12 +8,16 @@ import com.yahoo.maha.parrequest2.Nothing;
 import com.yahoo.maha.parrequest2.ParCallable;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.testng.ITestContext;
+import org.testng.ITestNGMethod;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 import scala.Option;
 import scala.util.Either;
 import scala.util.Right;
+import com.yahoo.maha.parrequest2.RetryAnalyzerImpl;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,6 +28,13 @@ import static org.testng.Assert.assertTrue;
  * Created by jians on 4/1/15.
  */
 public class TestParRequestListOption {
+
+    @BeforeSuite(alwaysRun = true)
+    public void beforeSuite(ITestContext context) {
+        for (ITestNGMethod method : context.getAllTestMethods()) {
+            method.setRetryAnalyzer(new RetryAnalyzerImpl());
+        }
+    }
 
     private String printError(Either<GeneralError, Integer> result) {
         return result.left().get().message +
@@ -469,4 +480,14 @@ public class TestParRequestListOption {
         assertTrue(result.isRight());
         assertTrue(response.success.equals("Empty-100-Empty-100-Empty-100-Empty-100"));
     }
+
+    /*int rerun = 0;
+
+    @Test
+    public void testNGFailedTestRerunShouldAlwaysFail() {
+        rerun += 1;
+        System.err.println("Rerun number: " + (rerun-1));
+        assertTrue(false);
+
+    }*/
 }
