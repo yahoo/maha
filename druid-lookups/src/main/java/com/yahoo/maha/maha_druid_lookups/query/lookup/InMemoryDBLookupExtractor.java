@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
@@ -32,7 +33,7 @@ import java.util.Map;
 public class InMemoryDBLookupExtractor extends LookupExtractor
 {
     private static final Logger LOG = new Logger(InMemoryDBLookupExtractor.class);
-    private static final String CONTROL_A_SEPARATOR = "\u0001";
+    private static final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, String> map;
     private final InMemoryDBExtractionNamespace extractionNamespace;
     private RocksDBManager rocksDBManager;
@@ -60,23 +61,32 @@ public class InMemoryDBLookupExtractor extends LookupExtractor
     public String apply(@NotNull String val)
     {
         try {
-            if(Strings.isNullOrEmpty(val) || !val.contains(CONTROL_A_SEPARATOR)) {
+
+            if("".equals(Strings.nullToEmpty(val))) {
                 return null;
             }
 
-            String[] values = val.split(CONTROL_A_SEPARATOR);
+            MahaLookupQueryElement mahaLookupQueryElement = objectMapper.readValue(val, MahaLookupQueryElement.class);
+            String dimension = Strings.nullToEmpty(mahaLookupQueryElement.getDimension());
+            String valueColumn = mahaLookupQueryElement.getValueColumn();
+            DecodeConfig decodeConfig = mahaLookupQueryElement.getDecodeConfig();
+            Map<String, String> dimensionOverrideMap = mahaLookupQueryElement.getDimensionOverrideMap();
+
+            if(dimensionOverrideMap != null && dimensionOverrideMap.containsKey(dimension)) {
+                return Strings.emptyToNull(dimensionOverrideMap.get(dimension));
+            }
 
             byte[] cacheByteValue = null;
             if (!extractionNamespace.isCacheEnabled()) {
                 cacheByteValue = lookupService.lookup(new LookupService.LookupData(extractionNamespace,
-                        values[0]));
+                        dimension));
             } else {
                 final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
                 if (db == null) {
                     LOG.error("RocksDB instance is null");
                     return null;
                 }
-                cacheByteValue = db.get(values[0].getBytes());
+                cacheByteValue = db.get(dimension.getBytes());
             }
 
             if (cacheByteValue == null || cacheByteValue.length == 0) {
@@ -86,11 +96,11 @@ public class InMemoryDBLookupExtractor extends LookupExtractor
             Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
             Message message = parser.parseFrom(cacheByteValue);
             Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
-            Descriptors.FieldDescriptor field = descriptor.findFieldByName(values[1]);
+            Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn);
 
             return Strings.emptyToNull(message.getField(field).toString());
 
-        } catch (RocksDBException | InvalidProtocolBufferException e) {
+        } catch (Exception e) {
             LOG.error(e, "Caught exception while lookup");
             return null;
         }

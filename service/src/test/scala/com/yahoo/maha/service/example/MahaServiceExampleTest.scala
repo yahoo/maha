@@ -51,7 +51,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
     val resultFailure = mahaService.executeRequestModelResult("er", requestModelResultTry.get, mahaRequestLogHelper).prodRun.get(10000)
     assert(resultFailure.isLeft)
     val p = resultFailure.left.get
-    assert(p.message.contains("""Table "STUDENT_GRADE_SHEET" not found; SQL statement"""))
+    assert(p.message.contains("""Failed to execute the query pipeline"""))
 
     // Test General Error in execute request
     val parRequestResultWithError = mahaService.executeRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
@@ -59,7 +59,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
       ParFunction.from((t: RequestResult)
       => t)
     )
-    assert(q.left.get.message.contains("""Table "STUDENT_GRADE_SHEET" not found; SQL statement"""))
+    assert(q.left.get.message.contains("""Failed to execute the query pipeline"""))
 
     // Test General Error in process Model
     val resultFailureToProcessModel = mahaService.processRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)

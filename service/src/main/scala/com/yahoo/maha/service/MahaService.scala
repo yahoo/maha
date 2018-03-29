@@ -142,6 +142,8 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
       val message = "Failed to create Report Model:"
       val error = requestModelResultTry.failed.toOption
       mahaRequestLogHelper.logFailed(message)
+      logger.error(message, error.get)
+      error.get.printStackTrace()
       throw new MahaServiceBadRequestException(message, error)
     }
     val requestModelResult = requestModelResultTry.get
@@ -198,10 +200,11 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
           val queryPipelineTry = queryPipelineFactory.from(requestModel, QueryAttributes.empty)
           if(queryPipelineTry.isFailure) {
             val error = queryPipelineTry.failed.get
-            val message = error.getMessage
+            val message = s"Failed to compile the query pipeline ${error.getMessage}"
+            logger.error(message, error)
+            error.printStackTrace()
             mahaRequestLogHelper.logFailed(message)
-
-            return GeneralError.either[RequestResult](parRequestLabel, message, new MahaServiceBadRequestException(message))
+            return GeneralError.either[RequestResult](parRequestLabel, message, new MahaServiceBadRequestException(message, Some(error)))
           }
           val queryPipeline = queryPipelineTry.get
           mahaRequestLogHelper.logQueryPipeline(queryPipeline)
@@ -209,10 +212,11 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
           val rowListTry = queryPipeline.execute(registryConfig.queryExecutorContext, QueryAttributes.empty)
           if(rowListTry.isFailure) {
             val error = rowListTry.failed.get
-            val message = error.getMessage
+            val message = s"Failed to execute the query pipeline"
+            logger.error(message, error)
+            error.printStackTrace()
             mahaRequestLogHelper.logFailed(message)
-
-            return GeneralError.either[RequestResult](parRequestLabel, message, new MahaServiceBadRequestException(message))
+            return GeneralError.either[RequestResult](parRequestLabel, message, new MahaServiceExecutionException(message, Some(error)))
           }
 
           //Oracle Queries can give totalRowCount,
@@ -257,7 +261,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
         val error = t.throwableOption
         val message = s"Failed to execute the Request Model: ${t.message} "
         val exception = if (error.isDefined) {
-          new MahaServiceExecutionException(message, Option(error.get))
+          new MahaServiceExecutionException(message, error)
         } else {
           new MahaServiceExecutionException(message)
         }

@@ -69,17 +69,19 @@ object DruidDerivedFunction {
     }
   }
 
-  case class LOOKUP(lookupNamespace: String, valueColumn: String) extends DruidDerivedFunction
+  case class LOOKUP(lookupNamespace: String, valueColumn: String, dimensionOverrideMap: Map[String, String] = Map.empty) extends DruidDerivedFunction
 
   case class LOOKUP_WITH_DECODE_ON_OTHER_COLUMN(lookupNamespace: String,
                                                 columnToCheck: String, valueToCheck: String,
                                                 columnIfValueMatched: String,
-                                                columnIfValueNotMatched: String) extends DruidDerivedFunction
+                                                columnIfValueNotMatched: String,
+                                                dimensionOverrideMap: Map[String, String] = Map.empty) extends DruidDerivedFunction
 
-  case class LOOKUP_WITH_TIMEFORMATTER(lookupNameSpace:String, valueColumn:String, inputFormat:String,resultFormat:String) extends DruidDerivedFunction
+  case class LOOKUP_WITH_TIMEFORMATTER(lookupNameSpace:String, valueColumn:String, inputFormat:String,resultFormat:String, dimensionOverrideMap: Map[String, String] = Map.empty) extends DruidDerivedFunction
 
   case class LOOKUP_WITH_DECODE(lookupNamespace: String,
                                 valueColumn: String,
+                                dimensionOverrideMap: Map[String, String],
                                 args: String*) extends DruidDerivedFunction {
     if (args.length < 2) throw new IllegalArgumentException("Usage: DECODE( expression , search , result [, search , result]... [, default] )")
 
@@ -94,8 +96,9 @@ object DruidDerivedFunction {
                                 valueColumn: String,
                                 retainMissingValue: Boolean,
                                 injective: Boolean,
+                                dimensionOverrideMap: Map[String, String],
                                 args: String*) extends DruidDerivedFunction {
-    val lookupWithDecode: LOOKUP_WITH_DECODE = LOOKUP_WITH_DECODE(lookupNamespace, valueColumn, args: _*)
+    val lookupWithDecode: LOOKUP_WITH_DECODE = LOOKUP_WITH_DECODE(lookupNamespace, valueColumn, dimensionOverrideMap, args: _*)
   }
 
   case class DRUID_TIME_FORMAT(format: String, zone: DateTimeZone = DateTimeZone.UTC) extends DruidDerivedFunction

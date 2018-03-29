@@ -118,7 +118,9 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
 
     mahaRequestProcessor.onFailure((ge: GeneralError) => {
       if(ge.throwableOption.isDefined) {
-        response.resume(ge.throwableOption.get)
+        val error = ge.throwableOption.get
+        error.printStackTrace()
+        response.resume(error)
       } else {
         response.resume(new Exception(ge.message))
       }

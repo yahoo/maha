@@ -59,17 +59,26 @@ public class JDBCLookupExtractor extends LookupExtractor
 
         try {
 
-            if (Strings.isNullOrEmpty(val) || !val.contains(CONTROL_A_SEPARATOR)) {
+            if("".equals(Strings.nullToEmpty(val))) {
                 return null;
             }
 
-            String[] values = val.split(CONTROL_A_SEPARATOR);
+            MahaLookupQueryElement mahaLookupQueryElement = objectMapper.readValue(val, MahaLookupQueryElement.class);
+            String dimension = Strings.nullToEmpty(mahaLookupQueryElement.getDimension());
+            String valueColumn = mahaLookupQueryElement.getValueColumn();
+            DecodeConfig decodeConfig = mahaLookupQueryElement.getDecodeConfig();
+            Map<String, String> dimensionOverrideMap = mahaLookupQueryElement.getDimensionOverrideMap();
+
+            if(dimensionOverrideMap != null && dimensionOverrideMap.containsKey(dimension)) {
+                return Strings.emptyToNull(dimensionOverrideMap.get(dimension));
+            }
+
             String cacheValue;
             if (!extractionNamespace.isCacheEnabled()) {
                 cacheValue = new String(lookupService.lookup(new LookupService.LookupData(extractionNamespace,
-                        values[0])), "UTF-8");
+                        dimension)), "UTF-8");
             } else {
-                cacheValue = map.get(values[0]);
+                cacheValue = map.get(dimension);
             }
 
             if (Strings.isNullOrEmpty(cacheValue)) {
@@ -77,19 +86,18 @@ public class JDBCLookupExtractor extends LookupExtractor
             }
 
             List<String> row = Arrays.asList(cacheValue.split(CONTROL_A_SEPARATOR));
-            if(values.length == 3) {
-                DecodeConfig decodeConfig = objectMapper.readValue(values[2], DecodeConfig.class);
+            if(decodeConfig != null) {
                 return handleDecode(row, decodeConfig);
             }
             else {
-                int columnIndex = getColumnIndex(extractionNamespace, values[1]);
+                int columnIndex = getColumnIndex(extractionNamespace, valueColumn);
                 if (columnIndex < 0) {
                     return null;
                 }
                 return Strings.emptyToNull(row.get(columnIndex));
             }
         } catch(Exception e) {
-            LOG.error(e, "Exception in CdwJDBCLookupExtractor apply");
+            LOG.error(e, "Exception in JDBCLookupExtractor apply");
         }
         return null;
     }
