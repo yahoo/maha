@@ -9,7 +9,6 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import com.metamx.common.logger.Logger;
 import io.druid.query.extraction.ExtractionFn;
 import io.druid.query.lookup.LookupReferencesManager;
@@ -108,7 +107,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     @JsonProperty("dimensionOverrideMap")
     public Map<String, String> getDimensionOverrideMap()
     {
-        return ImmutableMap.copyOf(dimensionOverrideMap);
+        return dimensionOverrideMap;
     }
 
     @Override
