@@ -480,10 +480,4 @@ public class TestParRequestListOption {
         assertTrue(result.isRight());
         assertTrue(response.success.equals("Empty-100-Empty-100-Empty-100-Empty-100"));
     }
-
-    @Test
-    public void shouldAlwaysFail() {
-        System.err.println("This is a retry");
-        assert(false);
-    }
 }
