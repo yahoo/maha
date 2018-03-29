@@ -306,7 +306,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                   case _=> //ignore all other rollup cases
                 }
                 if (rollup != NoopRollup) {
-                  de.sourceColumns.foreach {
+                  de.sourceColumns.toList.sorted.foreach {
                     sourceColName =>
                       val colOption = fact.columnsByNameMap.get(sourceColName)
                       require(colOption.isDefined, s"Failed to find the sourceColumn $sourceColName in fact ${fact.name}")
@@ -323,7 +323,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
             }
         }
         def parseCustomRollup(expression: OracleDerivedExpression, col : Column, alias : String): Unit = {
-          expression.sourceColumns.foreach {
+          expression.sourceColumns.toList.sorted.foreach {
             case sourceColName =>
               val colOption = fact.columnsByNameMap.get(sourceColName)
               require(colOption.isDefined, s"Failed to find the sourceColumn $sourceColName in fact ${fact.name}")
@@ -351,7 +351,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       def dfsGetPrimitiveCols(derivedCols: Set[Column], primitiveColsSet:mutable.LinkedHashSet[(String, Column)]): Unit = {
         derivedCols.foreach {
           case derCol:DerivedColumn =>
-            derCol.derivedExpression.sourceColumns.foreach {
+            derCol.derivedExpression.sourceColumns.toList.sorted.foreach {
               sourceCol =>
                 val colOption = fact.columnsByNameMap.get(sourceCol)
                 require(colOption.isDefined, s"Failed to find the sourceColumn $sourceCol in fact ${fact.name}")
@@ -365,7 +365,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
           case derCol : FactCol =>
             require(derCol.rollupExpression.isInstanceOf[OracleCustomRollup], s"Unexpected Rollup expression ${derCol.rollupExpression} in finding primitive cols")
             val customRollup = derCol.rollupExpression.asInstanceOf[OracleCustomRollup]
-            customRollup.expression.sourceColumns.foreach {
+            customRollup.expression.sourceColumns.toList.sorted.foreach {
               sourceCol =>
                 val colOption = fact.columnsByNameMap.get(sourceCol)
                 require(colOption.isDefined, s"Failed to find the sourceColumn $sourceCol in fact ${fact.name}")
