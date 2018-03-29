@@ -5,12 +5,16 @@ package com.yahoo.maha.parrequest2.future;
 import com.yahoo.maha.parrequest2.GeneralError;
 import com.yahoo.maha.parrequest2.ParCallable;
 
+import com.yahoo.maha.parrequest2.RetryAnalyzerImpl;
 import com.yahoo.maha.parrequest2.future.ParFunction;
 import com.yahoo.maha.parrequest2.future.ParRequest;
 import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor;
 import org.slf4j.MDC;
+import org.testng.ITestContext;
+import org.testng.ITestNGMethod;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 import scala.Function1;
 import scala.runtime.AbstractFunction1;
@@ -25,6 +29,12 @@ import static org.testng.Assert.assertTrue;
  * Created by hiral on 6/12/14.
  */
 public class TestParCallable {
+    @BeforeSuite(alwaysRun = true)
+    public void beforeSuite(ITestContext context) {
+        for (ITestNGMethod method : context.getAllTestMethods()) {
+            method.setRetryAnalyzer(new RetryAnalyzerImpl());
+        }
+    }
 
     <T,U> Function1<T, U> fn1(Function<T, U> fn) {
         return new AbstractFunction1<T, U>() {
