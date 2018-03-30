@@ -73,7 +73,7 @@ trait BaseRequest {
   val NOOP_MINUTE_FILTER : JsonScalaz.Result[Option[Filter]] = Option(EqualityFilter("Minute", "00")).successNel
   val NOOP_NUM_DAYS : JsonScalaz.Result[Int] = 1.successNel
   val DEFAULT_DISPLAY_NAME : JsonScalaz.Result[Option[String]] = None.successNel
-  val DEFAULT_CURATOR_JSON_CONFIG_MAP: JsonScalaz.Result[Map[String, CuratorJsonConfig]] = Map.empty[String, CuratorJsonConfig].successNel
+  val DEFAULT_CURATOR_JSON_CONFIG_MAP: JsonScalaz.Result[Map[String, CuratorJsonConfig]] = Map("default" -> CuratorJsonConfig(parse("""{}"""))).successNel
 
   protected[this] val factBiasOption : Option[Bias] = Option(FactBias)
 

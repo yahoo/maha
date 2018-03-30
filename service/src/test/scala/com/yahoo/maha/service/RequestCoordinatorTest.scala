@@ -52,12 +52,6 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val jsonRequest = s"""{
                           "cube": "student_performance",
-                          "curators" : {
-                            "default" : {
-                              "config" : {
-                              }
-                            }
-                          },
                           "selectFields": [
                             {"field": "Student ID"},
                             {"field": "Class ID"},
