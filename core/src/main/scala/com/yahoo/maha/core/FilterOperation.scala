@@ -80,7 +80,7 @@ object BaseEquality {
   }
 }
 
-trait ForcedFilter extends Filter {
+sealed trait ForcedFilter extends Filter {
   def isForceFilter: Boolean = false
   def isOverridable: Boolean = false
 }
@@ -528,6 +528,7 @@ object FilterDruid {
             values.map {
               v => new SelectorDimFilter(formatter.dimColName, druidLiteralMapper.toLiteral(column, v, Grain.getGrainByField(column.name)), exFn)
             }
+          case any => throw new UnsupportedOperationException(s"Unhandled druid func $any")
         }
       case _ =>
         values.map {
@@ -711,6 +712,7 @@ object FilterDruid {
             val exFn = new TimeDimExtractionFn(sourceDimColFormat, sotm.startOfTheMonthFormat)
             new SelectorDimFilter(sourceDimCol.alias.getOrElse(sourceDimCol.name), value, exFn)
           }
+          case any => throw new UnsupportedOperationException(s"Unhandled druid post result func $any")
         }
       }
       case _ =>
