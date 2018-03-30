@@ -576,6 +576,32 @@ class ReportingRequestTest extends FlatSpec {
     assert(request.curatorJsonConfigMap("drilldown").json.values === Map("k1"->"v1"))
   }
 
+  "ReportingRequest with out curators" should "inject default curator" in {
+    val jsonString = """{
+                          "cube": "performance_stats",
+                          "selectFields": [
+                              {"field": "Ad ID"},
+                              {"field": "Day"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "2014-04-01", "to": "2014-04-30"},
+                              {"field": "Hour", "operator": "between", "from": "00", "to": "23"},
+                              {"field": "Minute", "operator": "between", "from": "00", "to": "59"}
+                          ],
+                          "sortBy": [
+                              {"field": "Advertiser Id", "order": "Asc"},
+                              {"field": "Ad Id", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+    val request: ReportingRequest = getReportingRequest(jsonString, AdvertiserSchema)
+    assert(request.curatorJsonConfigMap.nonEmpty)
+    assert(request.curatorJsonConfigMap.size === 1)
+    assert(request.curatorJsonConfigMap("default").json.values === Map.empty)
+  }
+
   "ReportingRequest with day and hour filter between operator" should "succeed" in {
     val jsonString = """{
                           "cube": "performance_stats",

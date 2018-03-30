@@ -18,6 +18,7 @@ import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor
 import com.yahoo.maha.service.MahaServiceConfig
 import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
 import com.yahoo.maha.service.config.{PassThroughPasswordProvider, PasswordProvider}
+import com.yahoo.maha.service.curators.Curator
 import com.yahoo.maha.service.error.{FailedToConstructFactory, MahaServiceError}
 import com.yahoo.maha.service.utils.MahaRequestLogWriter
 import org.json4s.JValue
@@ -120,6 +121,10 @@ trait MahaRequestLogWriterFactory extends BaseFactory {
   def supportedProperties: List[(String, Boolean)]
 }
 
+trait CuratorFactory extends BaseFactory {
+  def fromJson(config: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[Curator]
+  def supportedProperties: List[(String, Boolean)]
+}
 
 import scalaz.syntax.validation._
 class PassThroughUTCTimeProviderFactory extends UTCTimeProvideryFactory {
