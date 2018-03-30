@@ -297,6 +297,18 @@ trait BaseMahaServiceTest extends FunSuite {
                       |      "maxBlockMs" : ""
                       |    },
                       |    "isLoggingEnabled" : false
+                      |   },
+                      |   "curatorMap": {
+                      |      "default": {
+                      |         "factoryClass": "com.yahoo.maha.service.factory.DefaultCuratorFactory",
+                      |         "config": {
+                      |         }
+                      |      },
+                      |      "timeshift": {
+                      |         "factoryClass": "com.yahoo.maha.service.factory.TimeShiftCuratorFactory",
+                      |         "config": {
+                      |         }
+                      |      }
                       |   }
                       |}
                       |

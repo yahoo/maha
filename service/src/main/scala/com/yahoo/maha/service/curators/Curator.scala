@@ -7,8 +7,8 @@ import java.util.concurrent.Callable
 import com.yahoo.maha.core.RequestModelResult
 import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.parrequest.future.ParRequest
-import com.yahoo.maha.parrequest.{Either, GeneralError, ParCallable, Right}
+import com.yahoo.maha.parrequest2.future.ParRequest
+import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{MahaService, RequestResult}

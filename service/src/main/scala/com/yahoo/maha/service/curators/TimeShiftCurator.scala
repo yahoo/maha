@@ -8,8 +8,8 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.query.{DerivedRowList, Row, RowList}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.parrequest.{Either, GeneralError, ParCallable, Right}
-import com.yahoo.maha.parrequest.future.ParRequest
+import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
+import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.service.error.{MahaServiceBadRequestException, MahaServiceExecutionException}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{MahaService, RequestResult}
@@ -19,15 +19,15 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
 
-object TimeShift {
+object TimeShiftCurator {
   val name: String = "timeshift"
   val PREV_STRING: String = " Prev"
   val PCT_CHANGE_STRING: String = " Pct Change"
 }
 
-class TimeShift extends Curator with Logging {
+class TimeShiftCurator extends Curator with Logging {
 
-  override val name: String = TimeShift.name
+  override val name: String = TimeShiftCurator.name
   override val level: Int = 1
   override val priority: Int = 0
 
@@ -152,8 +152,8 @@ class TimeShift extends Curator with Logging {
     val injectableColumns: ArrayBuffer[ColumnInfo] = new collection.mutable.ArrayBuffer[ColumnInfo]()
     defaultWindowRequestModel.bestCandidates.get.factColAliases
       .foreach { colAlias =>
-        injectableColumns += FactColumnInfo(colAlias + TimeShift.PREV_STRING)
-        injectableColumns += FactColumnInfo(colAlias + TimeShift.PCT_CHANGE_STRING)
+        injectableColumns += FactColumnInfo(colAlias + TimeShiftCurator.PREV_STRING)
+        injectableColumns += FactColumnInfo(colAlias + TimeShiftCurator.PCT_CHANGE_STRING)
       }
 
     val columns: IndexedSeq[ColumnInfo] = defaultWindowRequestModel.requestCols ++ injectableColumns
@@ -173,13 +173,13 @@ class TimeShift extends Curator with Logging {
       val row: Row = new Row(aliasMap, ArrayBuffer.fill[Any](aliasMap.size)(null))
       aliasMap.foreach {
         case (alias, pos) => {
-          if (alias.contains(TimeShift.PREV_STRING)) {
-            val originalAlias: String = alias.substring(0, alias.indexOf(TimeShift.PREV_STRING))
+          if (alias.contains(TimeShiftCurator.PREV_STRING)) {
+            val originalAlias: String = alias.substring(0, alias.indexOf(TimeShiftCurator.PREV_STRING))
             val value = if (timeShiftRowOption.isDefined) timeShiftRowOption.get.getValue(originalAlias) else 0
             row.addValue(pos, value)
 
-          } else if (alias.contains(TimeShift.PCT_CHANGE_STRING)) {
-            val originalAlias: String = alias.substring(0, alias.indexOf(TimeShift.PCT_CHANGE_STRING))
+          } else if (alias.contains(TimeShiftCurator.PCT_CHANGE_STRING)) {
+            val originalAlias: String = alias.substring(0, alias.indexOf(TimeShiftCurator.PCT_CHANGE_STRING))
             val prevValue = if (timeShiftRowOption.isDefined) timeShiftRowOption.get.getValue(originalAlias) else 0
             val currentValue = defaultRow.getValue(originalAlias)
 

@@ -15,6 +15,7 @@ import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.parrequest2.future.{NoopRequest, ParFunction, ParRequest, ParallelServiceExecutor}
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.service.config._
+import com.yahoo.maha.service.curators.Curator
 import com.yahoo.maha.service.error._
 import com.yahoo.maha.service.factory._
 import com.yahoo.maha.service.utils.{MahaRequestLogHelper, MahaRequestLogWriter}
@@ -35,7 +36,7 @@ import scalaz.{Failure, ValidationNel, _}
  */
 case class RegistryConfig(name: String, registry: Registry, queryPipelineFactory: QueryPipelineFactory, queryExecutorContext: QueryExecutorContext, bucketSelector: BucketSelector, utcTimeProvider: UTCTimeProvider, parallelServiceExecutor: ParallelServiceExecutor)
 
-case class MahaServiceConfig(registry: Map[String, RegistryConfig], mahaRequestLogWriter: MahaRequestLogWriter)
+case class MahaServiceConfig(registry: Map[String, RegistryConfig], mahaRequestLogWriter: MahaRequestLogWriter, curatorMap: Map[String, Curator])
 
 case class RequestResult(rowList: RowList, queryAttributes: QueryAttributes, totalRowsOption: Option[Int] = None)
 
@@ -346,6 +347,7 @@ object MahaServiceConfig {
       registryMap <- initRegistry(jsonMahaServiceConfig.registryMap)
       parallelServiceExecutorConfigMap <- initParallelServiceExecutors(jsonMahaServiceConfig.parallelServiceExecutorConfigMap)
       mahaRequestLogWriter <- initKafkaLogWriter(jsonMahaServiceConfig.jsonMahaRequestLogConfig)
+      curatorMap <- initCurators(jsonMahaServiceConfig.curatorMap)
     } yield {
         val resultMap: Map[String, RegistryConfig] = registryMap.map {
           case (regName, registry) => {
@@ -370,7 +372,7 @@ object MahaServiceConfig {
               parallelServiceExecutorConfigMap.get(registryConfig.parallelServiceExecutorName).get))
           }
         }
-        MahaServiceConfig(resultMap, mahaRequestLogWriter)
+        MahaServiceConfig(resultMap, mahaRequestLogWriter, curatorMap)
       }
     mahaServiceConfig
   }
@@ -545,6 +547,26 @@ object MahaServiceConfig {
         } yield (requestLogWriter)
       }
       requestLogWriter
+    }
+    result
+  }
+
+  def initCurators(curatorConfigMap: Map[String, JsonCuratorConfig]): MahaServiceConfig.MahaConfigResult[Map[String, Curator]] = {
+    import Scalaz._
+    val result: MahaServiceConfig.MahaConfigResult[Map[String, Curator]] = {
+      val constructCurator: Iterable[MahaServiceConfig.MahaConfigResult[(String, Curator)]] = {
+        curatorConfigMap.map {
+          case (name, jsonConfig) =>
+            for {
+              factoryResult <- getFactory[CuratorFactory](jsonConfig.className, closer)
+              built <- factoryResult.fromJson(jsonConfig.json)
+            } yield (name, built)
+        }
+      }
+      val resultList: MahaServiceConfig.MahaConfigResult[List[(String, Curator)]] =
+        constructCurator.toList.sequence[MahaServiceConfig.MahaConfigResult, (String, Curator)]
+
+      resultList.map(_.toMap)
     }
     result
   }

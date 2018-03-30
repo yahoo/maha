@@ -117,6 +117,18 @@ class JsonMahaServiceConfigTest extends FunSuite with Matchers {
                        |    "factoryClass": "com.yahoo.maha.service.factory.NoopMahaRequestLogWriterFactory",
                        |    "config" : {},
                        |    "isLoggingEnabled" : false
+                       |   },
+                       |"curatorMap": {
+                       |      "default": {
+                       |         "factoryClass": "com.yahoo.maha.service.factory.DefaultCuratorFactory",
+                       |         "config": {
+                       |         }
+                       |      },
+                       |      "timeshift": {
+                       |         "factoryClass": "com.yahoo.maha.service.factory.TimeShiftCuratorFactory",
+                       |         "config": {
+                       |         }
+                       |      }
                        |   }
                        |}""".stripMargin
     val json = parse(jsonString)
