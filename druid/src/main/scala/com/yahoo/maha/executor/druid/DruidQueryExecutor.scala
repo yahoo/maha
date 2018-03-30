@@ -306,7 +306,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
 
             val temp = checkUncoveredIntervals(query, response, config)
 
-            val rowsCount = DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,irl,(fieldList:List[JField] ) =>{
+            DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,irl,(fieldList:List[JField] ) =>{
               val indexName =irl.indexAlias
               val fieldListMap = fieldList.toMap
               val rowSet = if(performJoin) {
