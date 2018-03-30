@@ -134,8 +134,9 @@ object DruidQueryExecutor extends Logging {
       info(s"starIndex=$startIndex")
     }
 
+    var rowsCount : Int = 0
     query match {
-      case TimeseriesDruidQuery(_,_,_,_) =>
+      case TimeseriesDruidQuery(_,_,_,_,_,_) =>
         val json =parse(jsonString)
         json  match {
           case JArray(rows) =>
@@ -144,6 +145,7 @@ object DruidQueryExecutor extends Logging {
             }
             rows.foreach {
               case JObject(cols) =>
+                rowsCount += 1
                 cols.foreach {
                   case (alias, jvalue) if alias == "timestamp" =>  // TODO timestamp support
                   case (alias, jvalue) if alias == "result" =>
@@ -159,7 +161,7 @@ object DruidQueryExecutor extends Logging {
           case other => throw new UnsupportedOperationException(s"Unexpected field in timeseries json response : $other")
         }
 
-      case TopNDruidQuery(_,_,_,_)=>
+      case TopNDruidQuery(_,_,_,_,_,_)=>
         val json = parse(jsonString)
         json match {
           case JArray(rows) =>
@@ -178,6 +180,7 @@ object DruidQueryExecutor extends Logging {
                         }
                         resultRows.drop(startIndex).foreach{
                           case JObject(eventObject) =>
+                            rowsCount += 1
                             processResult(query, transformers, getRow, getEphemeralRow, rowList, jsonString, eventObject)
                           case other => throw new UnsupportedOperationException(s"Unexpected field in TopNDruidQuery json response : $other")
                         }
@@ -190,7 +193,7 @@ object DruidQueryExecutor extends Logging {
           case other => throw new UnsupportedOperationException(s"Unexpected field in TopNDruidQuery json response : $other")
         }
 
-      case GroupByDruidQuery(_,_,_,_,_)=>
+      case GroupByDruidQuery(_,_,_,_,_,_,_)=>
         val json = parse(jsonString)
         json match {
           case JArray(rows) =>
@@ -199,6 +202,7 @@ object DruidQueryExecutor extends Logging {
             }
             rows.drop(startIndex).foreach {
               case JObject(jobject) =>
+                rowsCount += 1
                 jobject.foreach{
                   case (alias, jvalue) if (alias == "timestamp" || alias == "version") => //TODO timestamp support
                   case (alias,jvalue) if alias=="event" =>
@@ -214,6 +218,16 @@ object DruidQueryExecutor extends Logging {
           case other => throw new UnsupportedOperationException(s"Unexpected field in GroupByDruidQuery json response : $other")
         }
       case other => new UnsupportedOperationException(s"Druid Query type not supported $other")
+    }
+    if(query.queryContext.requestModel.isDebugEnabled) {
+      info(s"rowsCount=$rowsCount")
+    }
+    if(query.isInstanceOf[DruidQuery[_]]) {
+      val druidQuery = query.asInstanceOf[DruidQuery[_]]
+      if(!druidQuery.isPaginated) {
+        require(rowsCount < druidQuery.maxRows
+          , s"Non paginated query fails rowsCount < maxRows, partial result possible : rowsCount=$rowsCount maxRows=${druidQuery.maxRows}")
+      }
     }
   }
 
@@ -292,7 +306,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
 
             val temp = checkUncoveredIntervals(query, response, config)
 
-            DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,irl,(fieldList:List[JField] ) =>{
+            val rowsCount = DruidQueryExecutor.parseJsonAndPopulateResultSet(query,response,irl,(fieldList:List[JField] ) =>{
               val indexName =irl.indexAlias
               val fieldListMap = fieldList.toMap
               val rowSet = if(performJoin) {
@@ -318,6 +332,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
             }, (fieldList: List[JField]) =>{
               irl.newEphemeralRow
             }, transformers)
+
 
           }
           result match{

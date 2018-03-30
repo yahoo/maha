@@ -173,18 +173,24 @@ abstract class DruidQuery[T] extends Query with WithDruidEngine {
   def query: io.druid.query.Query[T]
 
   def asString: String = DruidQuery.toJson(query)
+  def maxRows: Int
+  def isPaginated: Boolean
 }
 
 case class TimeseriesDruidQuery(queryContext: QueryContext
                                 , aliasColumnMap: Map[String, Column]
                                 , query: io.druid.query.Query[Result[TimeseriesResultValue]]
                                 , additionalColumns: IndexedSeq[String]
+                                , maxRows: Int
+                                , isPaginated: Boolean
                                  ) extends DruidQuery[Result[TimeseriesResultValue]]
 
 case class TopNDruidQuery(queryContext: QueryContext
                           , aliasColumnMap: Map[String, Column]
                           , query: io.druid.query.Query[Result[TopNResultValue]]
                           , additionalColumns: IndexedSeq[String]
+                          , maxRows: Int
+                          , isPaginated: Boolean
                            ) extends DruidQuery[Result[TopNResultValue]]
 
 case class GroupByDruidQuery(queryContext: QueryContext
@@ -192,6 +198,8 @@ case class GroupByDruidQuery(queryContext: QueryContext
                              , query: io.druid.query.Query[io.druid.data.input.Row]
                              , additionalColumns: IndexedSeq[String]
                              , override val ephemeralAliasColumnMap: Map[String, Column]
+                             , maxRows: Int
+                             , isPaginated: Boolean
                               ) extends DruidQuery[io.druid.data.input.Row]
 
 class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
@@ -367,7 +375,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       if (postAggregatorList.nonEmpty)
         builder.postAggregators(postAggregatorList.asJava)
 
-      new TopNDruidQuery(queryContext, aliasColumnMap, builder.build(), additionalColumns(queryContext))
+      new TopNDruidQuery(queryContext, aliasColumnMap, builder.build(), additionalColumns(queryContext), threshold, model.isSyncRequest)
     }
     //if there are no dimension cols in requested cols and no sorts, use time series request
     else if (!haveFactDimCols
@@ -390,7 +398,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       if (postAggregatorList.nonEmpty)
         builder.postAggregators(postAggregatorList.asJava)
 
-      new TimeseriesDruidQuery(queryContext, aliasColumnMap, builder.build(), additionalColumns(queryContext))
+      new TimeseriesDruidQuery(queryContext, aliasColumnMap, builder.build(), additionalColumns(queryContext), threshold, model.isSyncRequest)
     }
     //else use group by
     else {
@@ -439,7 +447,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
       val query: GroupByQuery = generateGroupByQuery(dims, queryContext, dimensionSpecTupleList, builder, havingSpec, limitSpec, context, ephemeralAliasColumns)
 
-      new GroupByDruidQuery(queryContext, aliasColumnMap, query, additionalColumns(queryContext), ephemeralAliasColumns)
+      new GroupByDruidQuery(queryContext, aliasColumnMap, query, additionalColumns(queryContext), ephemeralAliasColumns, threshold, model.isSyncRequest)
     }
   }
 

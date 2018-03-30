@@ -365,8 +365,8 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
       true, 500, 3, enableFallbackOnUncoveredIntervals), new NoopExecutionLifecycleListener, ResultSetTransformers.DEFAULT_TRANSFORMS)
   }
 
-  private[this] def getDruidQueryGenerator() : DruidQueryGenerator = {
-    new DruidQueryGenerator(new SyncDruidQueryOptimizer(), 40000)
+  private[this] def getDruidQueryGenerator(maximumMaxRowsAsync: Int = 100) : DruidQueryGenerator = {
+    new DruidQueryGenerator(new SyncDruidQueryOptimizer(), 40000, maximumMaxRowsAsync = maximumMaxRowsAsync)
   }
 
   test("success case for TimeSeries query"){
@@ -663,6 +663,54 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         assert(row.getValue(key)!=null)
       }
     }
+  }
+
+  test("failure case for query execution when non paginated query returns max rows") {
+
+    val jsonString =  s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Keyword ID"},
+                            {"field": "Max Bid"},
+                            {"field": "Min Bid"},
+                            {"field": "Pricing Type"},
+                            {"field": "Average Bid"},
+                            {"field": "Average Position"},
+                            {"field": "Impressions"},
+                            {"field": "Conversions"},
+                            {"field": "Advertiser Status"},
+                            {"field": "Impression Share"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "5485"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Asc"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":2
+                        }""".stripMargin
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator(2)) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val query =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
+    println(query.asString)
+    val executor = getDruidQueryExecutor("http://localhost:6667/mock/groupby")
+    val rowList= new CompleteRowList(query)
+    val error = intercept[IllegalArgumentException] {
+      executor.execute(query, rowList, QueryAttributes.empty)
+    }
+    assert(error.getMessage === "requirement failed: Non paginated query fails rowsCount < maxRows, partial result possible : rowsCount=2 maxRows=2")
   }
 
   test("test fallback to oracle when druid fails with empty lookup value") {
