@@ -779,7 +779,7 @@ OuterGroupBy operation has to be applied only in the following cases
                 val queryAttributesBuilder = subqueryqueryAttributes.toBuilder
                 val injectedInFilter = InFilter(field, values)
                 queryAttributesBuilder.addAttribute(QueryAttributes.injectedDimINFilter, InjectedDimFilterAttribute(injectedInFilter))
-                if (valuesSize < noRowCountRequestModel.maxRows && noRowCountRequestModel.startIndex <= 0) {
+                if (noRowCountRequestModel.startIndex <= 0) {
                   val injectedNotInFilter = NotInFilter(field, values)
                   queryAttributesBuilder.addAttribute(QueryAttributes.injectedDimNOTINFilter, InjectedDimFilterAttribute(injectedNotInFilter)).build
                 }

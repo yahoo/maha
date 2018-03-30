@@ -7,8 +7,11 @@ import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
+import com.yahoo.maha.core.lookup.LongRangeLookup
+import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, SyncDruidQueryOptimizer}
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.registry.RegistryBuilder
+import com.yahoo.maha.core.request.AsyncRequest
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 /**
@@ -19,10 +22,12 @@ trait BaseOracleQueryGeneratorTest
 
   override protected def beforeAll(): Unit = {
     OracleQueryGenerator.register(queryGeneratorRegistry,DefaultPartitionColumnRenderer)
+    DruidQueryGenerator.register(queryGeneratorRegistry, queryOptimizer = new SyncDruidQueryOptimizer(timeout = 5000))
   }
 
   override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
     registryBuilder.register(pubfact(forcedFilters))
+    registryBuilder.register(pubfactV1(forcedFilters))
     registryBuilder.register(pubfact2(forcedFilters))
     registryBuilder.register(pubfact3(forcedFilters))
     registryBuilder.register(pubfact4(forcedFilters))
@@ -119,6 +124,103 @@ trait BaseOracleQueryGeneratorTest
         Set(EqualityFilter("Source", "2", true, true)),
         getMaxDaysWindow, getMaxDaysLookBack
       )
+  }
+
+  def pubfactV1(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    val builder = ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      import HiveExpression._
+      Fact.newFact(
+        "fact_hive", DailyGrain, HiveEngine, Set(AdvertiserSchema)
+        , Set(
+          DimCol("id", IntType(), annotations = Set(ForeignKey("keyword")))
+          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+          , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
+          , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("country_woeid", IntType(), annotations = Set(ForeignKey("woeid")))
+          , DimCol("stats_source", IntType(3))
+          , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
+          , DimCol("start_time", IntType())
+          , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
+          , DimCol("stats_date", DateType("YYYY-MM-dd"))
+          , DimCol("column_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned")))
+          , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
+
+        )
+        , Set(
+          FactCol("impressions", IntType(3, 0))
+          , FactCol("clicks", IntType(3, 0, 1, 800))
+          , FactCol("spend", DecType(0, "0.0"))
+          , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
+          , HiveDerFactCol("Average CPC", DecType(), "{spend}" / "{clicks}")
+          , HiveDerFactCol("CTR", DecType(), "{clicks}" /- "{impressions}")
+          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), HiveCustomRollup(SUM("{avg_pos}" * "{impressions}") /- "{impressions}"))
+        )
+        , annotations = Set()
+        , forceFilters = Set(ForceFilter(EqualityFilter("Source", "2", isForceFilter = true)))
+        , costMultiplierMap = Map(AsyncRequest -> CostMultiplier(LongRangeLookup.full(3)))
+      )
+    }
+
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      import OracleExpression._
+      builder.withAlternativeEngine(
+        "fact_oracle", "fact_hive", OracleEngine
+        , overrideDimCols = Set(
+          DimCol("stats_date", DateType("YYYY-MM-DD"))
+        )
+        , overrideFactCols = Set(
+          FactCol("impressions", IntType(3, 1))
+          , OracleDerFactCol("Average CPC", DecType(), "{spend}" / "{clicks}")
+          , OracleDerFactCol("CTR", DecType(), "{clicks}" /- "{impressions}")
+          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), OracleCustomRollup(SUM("{avg_pos}" * "{impressions}") /- "{impressions}"))
+        )
+        , costMultiplierMap = Map(AsyncRequest -> CostMultiplier(LongRangeLookup.full(2)))
+        , forceFilters = Set(ForceFilter(EqualityFilter("Source", "2", isForceFilter = true)))
+      )
+    }
+
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      import DruidExpression._
+      builder.withAlternativeEngine(
+        "fact_druid", "fact_hive", DruidEngine,
+        overrideFactCols = Set(
+          FactCol("impressions", IntType(3, 1))
+          , DruidDerFactCol("Average CPC", DecType(), "{spend}" / "{clicks}")
+          , DruidDerFactCol("CTR", DecType(), "{clicks}" /- "{impressions}")
+          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), DruidCustomRollup("{avg_pos}" * "{impressions}" /- "{impressions}"))
+        )
+        , costMultiplierMap = Map(AsyncRequest -> CostMultiplier(LongRangeLookup.full(1)))
+      )
+    }
+
+
+    builder.toPublicFact("k_stats",
+      Set(
+        PubCol("id", "Keyword ID", InEquality),
+        PubCol("stats_date", "Day", InBetweenEquality),
+        PubCol("ad_group_id", "Ad Group ID", InEquality),
+        PubCol("campaign_id", "Campaign ID", InEquality),
+        PubCol("advertiser_id", "Advertiser ID", InEquality),
+        PubCol("country_woeid", "Country WOEID", InEquality),
+        PubCol("stats_source", "Source", Equality),
+        PubCol("price_type", "Pricing Type", In),
+        PubCol("landing_page_url", "Destination URL", Set.empty),
+        PubCol("column_id", "Column ID", Equality),
+        PubCol("column2_id", "Column2 ID", Equality)
+        //PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality)
+      ),
+      Set(
+        PublicFactCol("impressions", "Impressions", InBetweenEquality),
+        PublicFactCol("clicks", "Clicks", InBetweenEquality),
+        PublicFactCol("spend", "Spend", Set.empty),
+        PublicFactCol("avg_pos", "Average Position", Set.empty),
+        PublicFactCol("max_bid", "Max Bid", Set.empty),
+        PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
+        PublicFactCol("CTR", "CTR", InBetweenEquality)
+      ),
+      Set.empty,
+      getMaxDaysWindow, getMaxDaysLookBack, revision = 1
+    )
   }
 
   def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
