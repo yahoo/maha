@@ -6,7 +6,9 @@ package com.yahoo.maha.core
  * Created by hiral on 10/2/15.
  */
 
-sealed trait ColumnAnnotation
+sealed trait ColumnAnnotation {
+  def isHereditary:Boolean = false
+}
 
 sealed trait SingletonColumn
 
@@ -34,11 +36,15 @@ case object PrestoShardingExpression {
 }
 
 case object PrimaryKey extends ColumnAnnotation
-case object EscapingRequired extends ColumnAnnotation
+case object EscapingRequired extends ColumnAnnotation {
+  override val isHereditary = true
+}
 case object HiveSnapshotTimestamp extends ColumnAnnotation with SingletonColumn with WithHiveEngine
 case object OracleSnapshotTimestamp extends ColumnAnnotation with SingletonColumn with WithOracleEngine
 case object IsAggregation extends ColumnAnnotation
-case object CaseInsensitive extends ColumnAnnotation
+case object CaseInsensitive extends ColumnAnnotation {
+  override val isHereditary = true
+}
 case class ForeignKey(publicDimName: String) extends ColumnAnnotationInstance {
   def instance: ColumnAnnotation = ForeignKey.instance
 }

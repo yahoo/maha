@@ -585,6 +585,12 @@ case class FactTable private[fact](name: String
           s"Failed derived expression validation, unknown referenced column in fact=$name, $cn in $c")
         require(cn != c.name,
           s"Derived column is referring to itself, this will cause infinite loop : fact=$name, column=$cn, sourceColumns=${c.derivedExpression.sourceColumns}")
+        val sourceCol:Column = columns.filter(col=> cn.equals(col.name)).head
+        sourceCol.annotations.filter(_.isHereditary).foreach {
+          inheritableAnnotation =>
+            require(c.annotations.contains(inheritableAnnotation), s"Expected column annotation $inheritableAnnotation not found in the derived column ${c.name}, " +
+              s"derived column should also have all inheritable annotations of the respective sourceColumns")
+        }
       }
       //validate we can render it
       c.derivedExpression.render(c.name)

@@ -2,10 +2,10 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.fact
 
-import com.yahoo.maha.core.DruidDerivedFunction.GET_INTERVAL_DATE
-import com.yahoo.maha.core._
 import com.yahoo.maha.core.CoreSchema._
+import com.yahoo.maha.core.DruidDerivedFunction.GET_INTERVAL_DATE
 import com.yahoo.maha.core.DruidPostResultFunction.POST_RESULT_DECODE
+import com.yahoo.maha.core._
 import com.yahoo.maha.core.ddl.OracleDDLAnnotation
 import com.yahoo.maha.core.dimension.{DimCol, DruidFuncDimCol, OracleDerDimCol}
 
@@ -117,6 +117,28 @@ class NewFactTest extends BaseFactTest {
       }
     }
     thrown.getMessage should startWith ("requirement failed: Failed derived expression validation, unknown referenced column in")
+  }
+
+  test("newFact should fail if Derived Column does not have inheritable annotations of the all source columns") {
+    val thrown = intercept[IllegalArgumentException] {
+      val fact : FactBuilder = {
+      import OracleExpression._
+        ColumnContext.withColumnContext { implicit cc =>
+          Fact.newFact("dim1", DailyGrain, OracleEngine, Set(AdvertiserSchema),
+            Set(
+              DimCol("dimcol1", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("dimcol2", StrType(), annotations = Set(EscapingRequired))
+              , OracleDerDimCol("Dim Col 2", StrType(), NVL("{dimcol2}", ""))
+            ), Set(
+              FactCol("clicks", DecType())
+              , OracleDerFactCol("Clicks In Thousand", StrType(), "{clicks}" /- "1000")
+
+            )
+          )
+        }
+      }
+    }
+    thrown.getMessage should startWith ("requirement failed: Expected column annotation EscapingRequired not found in the derived column Dim Col 2")
   }
 
   test("newFact should fail if there's no reference column fo derived dim column") {
