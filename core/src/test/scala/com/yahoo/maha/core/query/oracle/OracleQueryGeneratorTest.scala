@@ -3369,18 +3369,18 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     println(result)
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Campaign Name"))
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("N Spend", "Campaign Name", "Source"))
 
 
     val expected =
       s"""
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", spend AS "Spend"
-         |FROM (SELECT co1.campaign_name "Campaign Name", SUM(spend) AS spend
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Source", DECODE(stats_source, 1, spend, 0.0) AS "N Spend"
+         |FROM (SELECT co1.campaign_name "Campaign Name", to_char(af0.stats_source) "Source", SUM(spend) AS spend
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   campaign_id, SUM(spend) AS spend
+         |                   campaign_id, stats_source, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY campaign_id
+         |            GROUP BY campaign_id, stats_source
          |
          |           ) af0
          |                     LEFT OUTER JOIN
@@ -3390,7 +3390,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |             )
          |           co1 ON (af0.campaign_id = co1.id)
          |
- |          GROUP BY co1.campaign_name
+         |          GROUP BY co1.campaign_name, to_char(af0.stats_source)
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
        """.stripMargin
