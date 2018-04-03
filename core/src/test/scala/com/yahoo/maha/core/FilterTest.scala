@@ -343,18 +343,6 @@ class FilterTest extends FunSuite with Matchers {
     assert(EqualityObj.compare(1, "one") == -10, "Incomparable objects should have a sensible returnable value.")
   }
 
-  test("Instantiate a ForcedFilter") {
-    val force : ForcedFilter = new ForcedFilter {
-      override def operator: FilterOperation = InFilterOperation
-
-      override def field: String = "none"
-
-      override def asValues: String = "None"
-    }
-    assert(force.isForceFilter == false)
-    assert(force.isOverridable == false)
-  }
-
   test("failing forced filter") {
     val thrown = intercept[UnsupportedOperationException] {
       FilterSql.renderFilterWithAlias(null, null, null, null)
