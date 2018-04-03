@@ -3332,6 +3332,72 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     result should equal (expected)(after being whiteSpaceNormalised)
   }
 
+  test("Successfully generated Outer Group By Query with dim non id field and derived fact field having dim source col") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Source"
+                             },
+                             {
+                               "field": "N Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request.toOption.get, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    queryPipelineTry.get.bestDimCandidates.foreach{db=> assert(db.hasPKRequested == false)}
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(result)
+    val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("N Spend", "Campaign Name", "Source"))
+
+
+    val expected =
+      s"""
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Source", DECODE(stats_source, 1, spend, 0.0) AS "N Spend"
+         |FROM (SELECT co1.campaign_name "Campaign Name", to_char(af0.stats_source) "Source", SUM(spend) AS spend
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   campaign_id, stats_source, SUM(spend) AS spend
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY campaign_id, stats_source
+         |
+         |           ) af0
+         |                     LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co1 ON (af0.campaign_id = co1.id)
+         |
+         |          GROUP BY co1.campaign_name, to_char(af0.stats_source)
+         |)
+         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+       """.stripMargin
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
   test("Successfully generated timeseries Outer Group By Query with dim non id field and fact field") {
     val jsonString = s"""{
                            "cube": "performance_stats",

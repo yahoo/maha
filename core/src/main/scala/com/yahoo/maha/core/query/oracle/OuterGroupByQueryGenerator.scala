@@ -468,7 +468,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
 
     def ogbGeneratePreOuterColumns(primitiveInnerAliasColMap: Map[String, Column], noopRollupColsMap: Map[String, Column]): Unit = {
       // add requested dim and fact columns, this should include constants
-      val preOuterRenderedColAlias = new mutable.HashSet[String]()
+      val preOuterRenderedColAlias = new mutable.HashSet[Column]()
       queryContext.requestModel.requestCols foreach {
         columnInfo =>
 
@@ -496,6 +496,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                   val (renderedCol, renderedAlias) = renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, isFactOnlyQuery, false, queryContext)
                   queryBuilder.addPreOuterColumn(concat(renderedCol, renderedAlias))
                   queryBuilder.addOuterGroupByExpressions(renderedCol)
+                  preOuterRenderedColAlias+=queryBuilderContext.getFactColByAlias(alias)
                 }
               }
 
@@ -510,7 +511,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       }
       // Render primitive cols
       primitiveInnerAliasColMap.foreach {
-        case (alias, col) if !preOuterRenderedColAlias.contains(alias) =>
+        case (alias, col) if !preOuterRenderedColAlias.contains(col) =>
           col match {
             case dimCol:DimensionColumn =>
             //dim col which are dependent upon the DerFact cols
@@ -525,7 +526,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
 
       // Render NoopRollup cols
       noopRollupColsMap.foreach {
-        case (alias, col) if !preOuterRenderedColAlias.contains(alias) =>
+        case (alias, col) if !preOuterRenderedColAlias.contains(col) =>
           renderPreOuterFactCol(col.alias.getOrElse(col.name), alias, col)
         case _=> // ignore as it col is already rendered
       }
@@ -542,7 +543,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
           s""""$colInnerAlias""""
         } else colInnerAlias
 
-        preOuterRenderedColAlias += colInnerAliasQuoted
+        preOuterRenderedColAlias += innerSelectCol
         queryBuilderContext.setPreOuterAliasToColumnMap(colInnerAliasQuoted, finalAlias, innerSelectCol)
         queryBuilder.addPreOuterColumn(preOuterFactColRendered)
       }
