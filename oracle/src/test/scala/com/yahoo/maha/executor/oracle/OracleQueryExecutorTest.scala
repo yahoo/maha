@@ -78,6 +78,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
             , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
             , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
             , DimCol("status", StrType())
+            , DimCol("unknown", StrType())
             , DimCol("created_date", TimestampType())
             , DimCol("last_updated", TimestampType())
             , OracleDerDimCol("Ad Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
@@ -102,6 +103,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           , PubCol("Ad Date Created", "Ad Date Created", InBetweenEquality)
           , PubCol("Ad Date Modified", "Ad Date Modified", InBetweenEquality)
           , PubCol("last_updated", "Ad Date Modified Timestamp", Set.empty)
+          , PubCol("unknown", "Ad Unknown Column", Set.empty)
         ), highCardinalityFilters = Set(NotInFilter("Ad Status", List("DELETED"), isForceFilter = true), InFilter("Ad Status", List("ON"), isForceFilter = true), EqualityFilter("Ad Status", "ON", isForceFilter = true))
       )
   }
@@ -796,6 +798,45 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
       case any =>
         throw new UnsupportedOperationException(s"unexpected row list : $any")
     }
+  }
+
+
+  test("Execution Failure test") {
+    val jsonString = s"""{
+                          "cube": "ad_stats",
+                          "selectFields": [
+                            {"field": "Campaign ID"},
+                            {"field": "Ad Group ID"},
+                            {"field": "Ad ID"},
+                            {"field": "Ad Title"},
+                            {"field": "Ad Status"},
+                            {"field": "Ad Unknown Column"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "1"}
+                          ],
+                          "sortBy": [
+                            {"field": "Ad Title", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":1,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(sqlQuery)
+    val result = queryPipeline.execute(queryExecutorContext)
+    assert(result.isFailure)
+    assert(result.failed.get.getMessage.contains("""Column "UNKNOWN" not found"""))
   }
 
   test("test null result") {
