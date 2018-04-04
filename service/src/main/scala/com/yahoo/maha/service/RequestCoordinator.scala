@@ -8,19 +8,19 @@ import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import grizzled.slf4j.Logging
 
 trait RequestCoordinator {
+  protected def mahaService: MahaService
+
   def execute(registryName: String,
               bucketParams: BucketParams,
               reportingRequest: ReportingRequest,
-              mahaService: MahaService,
               mahaRequestLogHelper: MahaRequestLogHelper): ParRequest[CuratorResult]
 }
 
-class DefaultRequestCoordinator extends RequestCoordinator with Logging {
+case class DefaultRequestCoordinator(protected val mahaService: MahaService) extends RequestCoordinator with Logging {
 
   override def execute(registryName: String,
                        bucketParams: BucketParams,
                        reportingRequest: ReportingRequest,
-                       mahaService: MahaService,
                        mahaRequestLogHelper: MahaRequestLogHelper): ParRequest[CuratorResult] = {
 
     val curatorJsonConfigMapFromRequest: Map[String, CuratorJsonConfig] = reportingRequest.curatorJsonConfigMap

@@ -32,13 +32,24 @@ trait Curator extends Ordered[Curator] {
       Integer.compare(this.priority, that.priority)
     } else Integer.compare(this.level, that.level)
   }
+  protected def requestModelValidator: CuratorRequestModelValidator
 }
 
 object DefaultCurator {
   val name: String = "default"
 }
 
-class DefaultCurator extends Curator with Logging {
+trait CuratorRequestModelValidator {
+  def validate(requestModelResult: RequestModelResult) : Unit
+}
+
+object NoopCuratorRequestModelValidator extends CuratorRequestModelValidator {
+  def validate(requestModelResult: RequestModelResult) : Unit = {
+    //do nothing
+  }
+}
+
+class DefaultCurator(protected val requestModelValidator: CuratorRequestModelValidator) extends Curator with Logging {
 
   override val name: String = DefaultCurator.name
   override val level: Int = 0
@@ -65,10 +76,11 @@ class DefaultCurator extends Curator with Logging {
               val message = requestModelResultTry.failed.get.getMessage
               mahaRequestLogHelper.logFailed(message)
               return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceBadRequestException(message))
+            } else {
+              requestModelValidator.validate(requestModelResultTry.get)
+              val requestResultTry = mahaService.processRequestModel(registryName, requestModelResultTry.get.model, mahaRequestLogHelper)
+              return new Right[GeneralError, CuratorResult](CuratorResult(requestResultTry))
             }
-
-            val requestResultTry = mahaService.processRequestModel(registryName, requestModelResultTry.get.model, mahaRequestLogHelper)
-            return new Right[GeneralError, CuratorResult](CuratorResult(requestResultTry))
           }
         }
       )).build()
