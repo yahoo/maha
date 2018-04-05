@@ -116,7 +116,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
     val requestModelResultTry = generateRequestModel(registryName, reportingRequest, bucketParams, mahaRequestLogHelper)
 
     if (requestModelResultTry.isFailure) {
-      val message = "Failed to create Report Model:"
+      val message = s"Failed to create Report Model, ${requestModelResultTry.failed.get.getMessage}"
       val error = requestModelResultTry.failed.toOption
       mahaRequestLogHelper.logFailed(message)
       throw new MahaServiceBadRequestException(message, error)
@@ -140,11 +140,10 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
     val parLabel = "executeRequest"
     val requestModelResultTry = generateRequestModel(registryName, reportingRequest, bucketParams, mahaRequestLogHelper)
     if (requestModelResultTry.isFailure) {
-      val message = "Failed to create Report Model:"
+      val message = s"Failed to create Report Model: ${requestModelResultTry.failed.get.getMessage}"
       val error = requestModelResultTry.failed.toOption
       mahaRequestLogHelper.logFailed(message)
       logger.error(message, error.get)
-      error.get.printStackTrace()
       throw new MahaServiceBadRequestException(message, error)
     }
     val requestModelResult = requestModelResultTry.get
@@ -161,7 +160,12 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
 
   override def generateRequestModel(registryName: String, reportingRequest: ReportingRequest, bucketParams: BucketParams, mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestModelResult] = {
     val registryConfig = config.registry.get(registryName).get
-    return RequestModelFactory.fromBucketSelector(reportingRequest, bucketParams, registryConfig.registry, registryConfig.bucketSelector, utcTimeProvider = registryConfig.utcTimeProvider)
+    val bucketFactoryTry = Try(RequestModelFactory.fromBucketSelector(reportingRequest, bucketParams, registryConfig.registry, registryConfig.bucketSelector, utcTimeProvider = registryConfig.utcTimeProvider))
+    if(bucketFactoryTry.isFailure) {
+      throw new
+    } else {
+      bucketFactoryTry.get
+    }
   }
 
   /**

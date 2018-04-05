@@ -8,6 +8,7 @@ import com.yahoo.maha.jdbc.{Seq, _}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.service.curators.{TimeShiftCurator, DefaultCurator, CuratorResult}
+import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.joda.time.DateTime
@@ -162,6 +163,51 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       })
 
       assert(expectedSet.size == cnt)
+    })
+
+  }
+
+  test("Test failure of processing of Default curator") {
+
+    val jsonRequest = s"""{
+                          "cube": "wrong_cube_name",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", true))
+
+    val mahaRequestLogHelper = MahaRequestLogHelper("er", mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator(mahaService)
+
+    val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute("er", bucketParams, reportingRequest, mahaRequestLogHelper)
+
+    val timeShiftCuratorResultEither = timeShiftCuratorResult.resultMap((t: CuratorResult) => t)
+    timeShiftCuratorResultEither.fold((t: GeneralError) => {
+      val exception = t.throwableOption.get
+      println("###"+exception)
+      println("###"+exception.getMessage)
+      println("###"+exception.getCause)
+      exception.printStackTrace()
+      assert(exception.isInstanceOf[MahaServiceBadRequestException])
+      //assert(exception.getMessage != null, "source exception message should not be null")
+    },(curatorResult: CuratorResult) => {
+
     })
 
   }
