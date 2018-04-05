@@ -3,6 +3,7 @@ package com.yahoo.maha.service
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
+import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.scalatest.BeforeAndAfterAll
 
 /**
@@ -106,9 +107,12 @@ class MahaRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAfterAl
     val reportingRequest = reportingRequestResult.toOption.get
     var assertCount = 0;
 
+    val mahaRequestLogHelper = MahaRequestLogHelper(REGISTRY, mahaServiceConfig.mahaRequestLogWriter)
+
     val mahaRequestProcessor = new MahaRequestProcessor(REGISTRY,
       DefaultRequestCoordinator(mahaService),
-      mahaServiceConfig.mahaRequestLogWriter
+      mahaServiceConfig.mahaRequestLogWriter,
+      mahaRequestLogHelperOption = Some(mahaRequestLogHelper)
     )
 
     mahaRequestProcessor.onSuccess((requestModel, requestResult) => {
@@ -119,14 +123,10 @@ class MahaRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAfterAl
     mahaRequestProcessor.onFailure((ge) => {
       assertCount+=1
     })
-    val thrown = intercept[IllegalArgumentException] {
     mahaRequestProcessor.process(BucketParams(UserInfo("uid", true)), reportingRequest, jsonRequest.getBytes)
-    }
-
-    assert(thrown.getMessage.contains("Failed while calling onSuccessFn"))
 
     Thread.sleep(900)
-    assert(assertCount == 1)
+    assert(assertCount == 0)
   }
 
 }
