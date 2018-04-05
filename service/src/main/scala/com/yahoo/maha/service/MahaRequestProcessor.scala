@@ -3,16 +3,15 @@
 package com.yahoo.maha.service
 
 import com.google.protobuf.ByteString
+import com.yahoo.maha.core.RequestModel
 import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.core.{RequestModel, RequestModelResult}
 import com.yahoo.maha.parrequest2.GeneralError
-import com.yahoo.maha.parrequest2.future.ParFunction
+import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
+import com.yahoo.maha.service.curators.CuratorResult
 import com.yahoo.maha.service.utils.{MahaRequestLogHelper, MahaRequestLogWriter}
 import grizzled.slf4j.Logging
-
-import scala.util.Try
 
 trait BaseMahaRequestProcessor {
   def registryName: String
@@ -26,9 +25,6 @@ trait BaseMahaRequestProcessor {
   def onSuccess(fn: (RequestModel, RequestResult) => Unit)
   def onFailure(fn: (GeneralError) => Unit)
 
-  //Optional model/result validation Functional Traits
-  def withRequestModelValidator(fn: (RequestModelResult) => Unit)
-  def withRequestResultValidator(fn: (RequestResult) => Unit)
 }
 
 case class MahaRequestProcessorFactory(requestCoordinator: RequestCoordinator
@@ -86,46 +82,37 @@ case class MahaRequestProcessor(registryName: String
     } yield requestModelValidationFn.foreach(_ (requestModelResult))
     */
 
-    requestCoordinator.execute(registryName, bucketParams, reportingRequest,)
 
-    if(requestModelValidationTry.isFailure) {
-      val err = requestModelValidationTry.failed.get
-      callOnFailureFn(mahaRequestLogHelper, reportingRequest)(GeneralError.from(processingLabel, err.getMessage, err))
-    } else {
-      val requestModelResult = requestModelResultTry.get
-      val parRequestResult = mahaService.executeRequestModelResult(registryName, requestModelResult, mahaRequestLogHelper)
+    val parRequest: ParRequest[CuratorResult] = requestCoordinator.execute(registryName, bucketParams, reportingRequest, mahaRequestLogHelper)
 
-      val errParFunction: ParFunction[GeneralError, Unit] = ParFunction.fromScala(callOnFailureFn(mahaRequestLogHelper, reportingRequest))
-      val validationParFunction: ParFunction[RequestResult, Either[GeneralError, RequestResult]] =
+    val errParFunction: ParFunction[GeneralError, Unit] = ParFunction.fromScala(callOnFailureFn(mahaRequestLogHelper, reportingRequest))
+
+    val successParFunction: ParFunction[CuratorResult, Unit] =
       ParFunction.fromScala(
-        (result: RequestResult) => {
-          try {
-            requestResultValidationFn.foreach(_ (result))
-            new Right(result)
-          } catch {
-            case e: Exception =>
-              GeneralError.either("resultValidation", e.getMessage, e)
-          }
-        }
-      )
-      val successParFunction: ParFunction[RequestResult, Unit] =
-      ParFunction.fromScala(
-        (result: RequestResult) => {
-          try {
-            onSuccessFn.foreach(_ (requestModelResult.model, result))
-            mahaRequestLogHelper.logSuccess()
-            mahaServiceMonitor.stop(reportingRequest)
-          } catch {
-            case e: Exception =>
-              logger.error("Failed while calling onSuccessFn", e)
-              mahaRequestLogHelper.logFailed(e.getMessage)
+        (curatorResult: CuratorResult) => {
+          val model = curatorResult.requestModelReference
+          if (curatorResult.requestResultTry.isFailure) {
+            val message = "Failed to execute the query pipeline"
+            val generalError = GeneralError.from(message, processingLabel, curatorResult.requestResultTry.failed.get)
+            callOnFailureFn(mahaRequestLogHelper, reportingRequest)(generalError)
+          } else {
+            try {
+              onSuccessFn.foreach(_ (curatorResult.requestModelReference.model, curatorResult.requestResultTry.get))
+              mahaRequestLogHelper.logSuccess()
               mahaServiceMonitor.stop(reportingRequest)
+            } catch {
+              case e: Exception =>
+                val message = s"Failed while calling onSuccessFn ${e.getMessage}"
+                logger.error(message, e)
+                mahaRequestLogHelper.logFailed(message)
+                mahaServiceMonitor.stop(reportingRequest)
+            }
           }
         }
       )
-      parRequestResult.prodRun.map[RequestResult]("resultValidation", validationParFunction)
-        .fold[Unit](errParFunction, successParFunction)
-    }
+
+    parRequest.fold[Unit](errParFunction, successParFunction)
+
   }
 
   private[this] def callOnFailureFn(mahaRequestLogHelper: MahaRequestLogHelper, reportingRequest: ReportingRequest)(err: GeneralError) : Unit = {

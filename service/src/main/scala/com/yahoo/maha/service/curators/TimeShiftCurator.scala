@@ -25,7 +25,7 @@ object TimeShiftCurator {
   val PCT_CHANGE_STRING: String = " Pct Change"
 }
 
-class TimeShiftCurator extends Curator with Logging {
+class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelValidator = NoopCuratorRequestModelValidator) extends Curator with Logging {
 
   override val name: String = TimeShiftCurator.name
   override val level: Int = 1
@@ -135,7 +135,7 @@ class TimeShiftCurator extends Curator with Logging {
 
             val derivedRowList: DerivedRowList = createDerivedRowList(defaultWindowRequestModel, defaultWindowRowList, previousWindowRowList, dimensionKeySet)
 
-            return new Right[GeneralError, CuratorResult](CuratorResult(Try(RequestResult(derivedRowList, defaultWindowRequestResultTry.get.queryAttributes, defaultWindowRequestResultTry.get.totalRowsOption))))
+            return new Right[GeneralError, CuratorResult](CuratorResult(Try(RequestResult(derivedRowList, defaultWindowRequestResultTry.get.queryAttributes, defaultWindowRequestResultTry.get.totalRowsOption)), defaultWindowRequestModelResultTry.get))
           }
         }
       )).build()
@@ -203,4 +203,5 @@ class TimeShiftCurator extends Curator with Logging {
     })
     derivedRowList
   }
+
 }

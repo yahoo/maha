@@ -8,7 +8,7 @@ import com.google.protobuf.ByteString
 import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
-import com.yahoo.maha.service.MahaService
+import com.yahoo.maha.service.MahaServiceConfig
 import org.mockito.Mockito._
 import org.scalatest.{FunSuite, Matchers}
 import org.slf4j.MDC
@@ -43,9 +43,9 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
   }
 
   test("Test MahaRequestLogHelper") {
-    val mahaService = mock(classOf[MahaService])
+    val mahaServiceConf = mock(classOf[MahaServiceConfig])
     val mahaRequestLogWriter = mock(classOf[MahaRequestLogWriter])
-    val mahaRequestLogHelper = MahaRequestLogHelper("ir", mahaService)
+    val mahaRequestLogHelper = MahaRequestLogHelper("ir", mahaServiceConf.mahaRequestLogWriter)
     val proto = mahaRequestLogHelper.getbuilder()
     MDC.put(MahaConstants.REQUEST_ID,"123")
     MDC.put(MahaConstants.USER_ID,"abc")
@@ -53,7 +53,7 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     MahaRequestProto.RequestType.SYNC, ByteString.copyFrom(jsonString.getBytes(StandardCharsets.UTF_8)))
     mahaRequestLogHelper.setDryRun()
     mahaRequestLogHelper.setAsyncQueueParams()
-    when(mahaService.mahaRequestLogWriter).thenReturn(mahaRequestLogWriter)
+    when(mahaServiceConf.mahaRequestLogWriter).thenReturn(mahaRequestLogWriter)
     when(mahaRequestLogWriter.write(proto.build())).thenAnswer(_)
     mahaRequestLogHelper.logSuccess()
     assert(proto.getStatus == 200)
@@ -62,9 +62,9 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
   }
 
   test("Test MahaRequestLogHelper LogFailed with status") {
-    val mahaService = mock(classOf[MahaService])
+    val mahaServiceConf = mock(classOf[MahaServiceConfig])
     val mahaRequestLogWriter = mock(classOf[MahaRequestLogWriter])
-    val mahaRequestLogHelper = MahaRequestLogHelper("ir", mahaService)
+    val mahaRequestLogHelper = MahaRequestLogHelper("ir", mahaServiceConf.mahaRequestLogWriter)
     val proto = mahaRequestLogHelper.getbuilder()
     MDC.put(MahaConstants.REQUEST_ID,"123")
     MDC.put(MahaConstants.USER_ID,"abc")
@@ -72,7 +72,7 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
       MahaRequestProto.RequestType.SYNC, ByteString.copyFrom(jsonString.getBytes(StandardCharsets.UTF_8)))
     mahaRequestLogHelper.setDryRun()
     mahaRequestLogHelper.setAsyncQueueParams()
-    when(mahaService.mahaRequestLogWriter).thenReturn(mahaRequestLogWriter)
+    when(mahaServiceConf.mahaRequestLogWriter).thenReturn(mahaRequestLogWriter)
     when(mahaRequestLogWriter.write(proto.build())).thenAnswer(_)
     mahaRequestLogHelper.logFailed("Test Failed", Some(400))
     assert(proto.getStatus == 400)
