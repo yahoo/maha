@@ -84,7 +84,7 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
             if(defaultWindowRequestModelResultTry.isFailure) {
               val message = defaultWindowRequestModelResultTry.failed.get.getMessage
               mahaRequestLogHelper.logFailed(message)
-              return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceBadRequestException(message))
+              return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceBadRequestException(message, defaultWindowRequestModelResultTry.failed.toOption))
             } else {
               requestModelValidator.validate(defaultWindowRequestModelResultTry.get)
             }

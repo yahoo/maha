@@ -75,7 +75,7 @@ class DefaultCurator(protected val requestModelValidator: CuratorRequestModelVal
             if(requestModelResultTry.isFailure) {
               val message = requestModelResultTry.failed.get.getMessage
               mahaRequestLogHelper.logFailed(message)
-              return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceBadRequestException(message))
+              return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceBadRequestException(message, requestModelResultTry.failed.toOption))
             } else {
               requestModelValidator.validate(requestModelResultTry.get)
               val requestResultTry = mahaService.processRequestModel(registryName, requestModelResultTry.get.model, mahaRequestLogHelper)

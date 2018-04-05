@@ -13,7 +13,7 @@ import com.yahoo.maha.core.request.{BaseRequest, ReportingRequest}
 import com.yahoo.maha.core.{RequestModel, Schema}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.service.utils.MahaConstants
-import com.yahoo.maha.service.{MahaRequestProcessor, MahaService, RequestResult}
+import com.yahoo.maha.service.{DefaultRequestCoordinator, MahaRequestProcessor, MahaService, RequestResult}
 import grizzled.slf4j.Logging
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
@@ -107,7 +107,9 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
 
     val (reportingRequest: ReportingRequest, rawJson: Array[Byte]) = createReportingRequest(httpServletRequest, schemaOption.get, debug, forceEngine)
     val bucketParams: BucketParams = BucketParams(UserInfo(MDC.get(MahaConstants.USER_ID), Try(MDC.get(MahaConstants.IS_INTERNAL).toBoolean).getOrElse(false)), forceRevision = Option(forceRevision))
-    val mahaRequestProcessor: MahaRequestProcessor = MahaRequestProcessor(registryName, mahaService)
+
+    val defaultRequestCoordinator = DefaultRequestCoordinator(mahaService)
+    val mahaRequestProcessor: MahaRequestProcessor = MahaRequestProcessor(registryName, defaultRequestCoordinator, mahaService.mahaRequestLogWriter)
 
     mahaRequestProcessor.onSuccess((requestModel: RequestModel, requestResult: RequestResult) => {
       val dimCols : Set[String]  = if(requestModel.bestCandidates.isDefined) {

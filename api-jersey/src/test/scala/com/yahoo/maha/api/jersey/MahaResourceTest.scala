@@ -300,7 +300,7 @@ class MahaResourceTest {
     assertEquals(s"should return status 500, ${httpResponse.getStatusLine}", 500, httpResponse.getStatusLine.getStatusCode)
     val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
     println("500Response:"+responseJson)
-    assert(responseJson.contains("""{"errorMsg":"Failed to execute the query pipeline"}"""))
+    assert(responseJson.contains("""Failed to execute the query pipeline"""))
   }
 
   @Test
