@@ -13,6 +13,7 @@
 
 
     <properties>
+        <redirectLogsToFileSilently>true</redirectLogsToFileSilently>
         <maven.compiler.target>1.8</maven.compiler.target>
         <hikaricp.version>2.4.5</hikaricp.version>
         <spring.version>4.1.6.RELEASE</spring.version>
@@ -547,7 +548,7 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
-                        <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                        <redirectTestOutputToFile>false</redirectTestOutputToFile>
                         <argLine>-Djava.library.path=/home/y/lib64</argLine>
                         <properties>
                             <property>

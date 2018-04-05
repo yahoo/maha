@@ -70,10 +70,11 @@ class MahaRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAfterAl
     val reportingRequest = reportingRequestResult.toOption.get
     var assertCount = 0
 
-    val mahaRequestProcessor = new MahaRequestProcessor(REGISTRY,
-      DefaultRequestCoordinator(mahaService),
-      mahaServiceConfig.mahaRequestLogWriter
-    )
+    val processorFactory = MahaRequestProcessorFactory(DefaultRequestCoordinator(mahaService),
+      mahaService,
+      mahaServiceConfig.mahaRequestLogWriter)
+
+    val mahaRequestProcessor = processorFactory.create(REGISTRY, "test", MahaRequestLogHelper(REGISTRY, mahaService.mahaRequestLogWriter))
 
     mahaRequestProcessor.onSuccess((requestModel, requestResult) => {
       assertCount+=1
@@ -107,13 +108,11 @@ class MahaRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAfterAl
     val reportingRequest = reportingRequestResult.toOption.get
     var assertCount = 0;
 
-    val mahaRequestLogHelper = MahaRequestLogHelper(REGISTRY, mahaServiceConfig.mahaRequestLogWriter)
+    val processorFactory = MahaRequestProcessorFactory(DefaultRequestCoordinator(mahaService),
+      mahaService,
+      mahaServiceConfig.mahaRequestLogWriter)
 
-    val mahaRequestProcessor = new MahaRequestProcessor(REGISTRY,
-      DefaultRequestCoordinator(mahaService),
-      mahaServiceConfig.mahaRequestLogWriter,
-      mahaRequestLogHelperOption = Some(mahaRequestLogHelper)
-    )
+    val mahaRequestProcessor = processorFactory.create(REGISTRY, "test")
 
     mahaRequestProcessor.onSuccess((requestModel, requestResult) => {
       throw new IllegalArgumentException("failed in success function")

@@ -30,7 +30,7 @@ trait BaseMahaRequestProcessor {
 case class MahaRequestProcessorFactory(requestCoordinator: RequestCoordinator
                                        , mahaService: MahaService
                                        , mahaRequestLogWriter: MahaRequestLogWriter
-                                       , mahaServiceMonitor: MahaServiceMonitor) {
+                                       , mahaServiceMonitor: MahaServiceMonitor= DefaultMahaServiceMonitor) {
   def create(registryName: String, processingLabel: String, mahaRequestLogHelper: MahaRequestLogHelper) : MahaRequestProcessor = {
     MahaRequestProcessor(registryName
       , requestCoordinator, mahaRequestLogWriter, mahaServiceMonitor, processingLabel, Option(mahaRequestLogHelper))
