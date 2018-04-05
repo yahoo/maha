@@ -112,7 +112,14 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
     assert(!mahaService.getDomainForCube("temp", "inexistent").isDefined)
     assert(!mahaService.getFlattenDomainForCube("temp", "inexistent").isDefined)
 
-    val mahaRequestProcessor = new MahaRequestProcessor(REGISTRY,
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty)
+
+
+    val mahaRequestProcessor = new MahaRequestProcessor(mahaRequestContext,
       DefaultRequestCoordinator(mahaService),
       mahaServiceConfig.mahaRequestLogWriter
     )
@@ -128,10 +135,10 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
     mahaRequestProcessor.onSuccess(fn)
     mahaRequestProcessor.onFailure((error: GeneralError) => println(error.message))
 
-    mahaRequestProcessor.process(bucketParams, reportingRequest, jsonRequest.getBytes)
+    mahaRequestProcessor.process()
     val thrown = intercept[IllegalArgumentException] {
-      val failedProcessor = MahaRequestProcessor(REGISTRY, DefaultRequestCoordinator(mahaService), mahaServiceConfig.mahaRequestLogWriter)
-      failedProcessor.process(bucketParams, reportingRequest, jsonRequest.getBytes)
+      val failedProcessor = MahaRequestProcessor(mahaRequestContext, DefaultRequestCoordinator(mahaService), mahaServiceConfig.mahaRequestLogWriter)
+      failedProcessor.process()
     }
   }
 

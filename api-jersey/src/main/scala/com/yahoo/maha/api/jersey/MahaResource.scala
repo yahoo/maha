@@ -136,7 +136,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
       }
     })
 
-    mahaRequestProcessor.process(bucketParams, reportingRequest, rawJson)
+    mahaRequestProcessor.process()
 
   }
 

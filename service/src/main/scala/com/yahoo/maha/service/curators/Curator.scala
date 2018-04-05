@@ -5,8 +5,6 @@ package com.yahoo.maha.service.curators
 import java.util.concurrent.Callable
 
 import com.yahoo.maha.core.RequestModelResult
-import com.yahoo.maha.core.bucketing.BucketParams
-import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
@@ -23,6 +21,7 @@ trait Curator extends Ordered[Curator] {
   val level: Int
   val priority: Int
   def process(mahaRequestContext: MahaRequestContext
+              , mahaService: MahaService
               , mahaRequestLogHelper: MahaRequestLogHelper) : ParRequest[CuratorResult]
   def compare(that: Curator) = {
     if(this.level == that.level) {
@@ -30,7 +29,6 @@ trait Curator extends Ordered[Curator] {
     } else Integer.compare(this.level, that.level)
   }
   protected def requestModelValidator: CuratorRequestModelValidator
-  protected def mahaService: MahaService
 }
 
 object DefaultCurator {
@@ -47,15 +45,14 @@ object NoopCuratorRequestModelValidator extends CuratorRequestModelValidator {
   }
 }
 
-case class DefaultCurator(protected val requestModelValidator: CuratorRequestModelValidator = NoopCuratorRequestModelValidator
-                         , protected val mahaService: MahaService
-                         ) extends Curator with Logging {
+case class DefaultCurator(protected val requestModelValidator: CuratorRequestModelValidator = NoopCuratorRequestModelValidator) extends Curator with Logging {
 
   override val name: String = DefaultCurator.name
   override val level: Int = 0
   override val priority: Int = 0
 
   override def process(mahaRequestContext: MahaRequestContext
+                       , mahaService: MahaService
                        , mahaRequestLogHelper: MahaRequestLogHelper): ParRequest[CuratorResult] = {
 
     val registryConfig = mahaService.getMahaServiceConfig.registry.get(mahaRequestContext.registryName).get

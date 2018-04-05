@@ -1,7 +1,6 @@
 package com.yahoo.maha.service
 
-import com.yahoo.maha.core.bucketing.BucketParams
-import com.yahoo.maha.core.request.{CuratorJsonConfig, ReportingRequest}
+import com.yahoo.maha.core.request.CuratorJsonConfig
 import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.service.curators.{Curator, CuratorResult}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
@@ -21,7 +20,7 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
     val curatorJsonConfigMapFromRequest: Map[String, CuratorJsonConfig] = mahaRequestContext.reportingRequest.curatorJsonConfigMap
     // for now supporting only one curator
     val curator: Curator = mahaService.getMahaServiceConfig.curatorMap(curatorJsonConfigMapFromRequest.head._1)
-    curator.process(mahaRequestContext, mahaRequestLogHelper)
+    curator.process(mahaRequestContext,mahaService, mahaRequestLogHelper)
 
   }
 

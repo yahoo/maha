@@ -4,7 +4,6 @@ package com.yahoo.maha.service
 
 import com.google.protobuf.ByteString
 import com.yahoo.maha.core.RequestModel
-import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
@@ -19,9 +18,7 @@ trait BaseMahaRequestProcessor {
   def mahaServiceMonitor : MahaServiceMonitor
   def mahaRequestLogHelperOption: Option[MahaRequestLogHelper]
 
-  def process(bucketParams: BucketParams,
-              reportingRequest: ReportingRequest,
-              rawJson: Array[Byte]): Unit
+  def process(): Unit
   def onSuccess(fn: (RequestModel, RequestResult) => Unit)
   def onFailure(fn: (GeneralError) => Unit)
 
@@ -65,7 +62,7 @@ case class MahaRequestProcessor(mahaRequestContext: MahaRequestContext
     onFailureFn = Some(fn)
   }
 
-  def process() : Unit = {
+  def process(): Unit = {
 
     require(onSuccessFn.isDefined || onFailureFn.isDefined, "Nothing to do after processing!")
     mahaRequestLogHelper.init(mahaRequestContext.reportingRequest

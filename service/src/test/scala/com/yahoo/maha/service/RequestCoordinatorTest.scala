@@ -73,8 +73,14 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val bucketParams = BucketParams(UserInfo("uid", true))
 
     val mahaRequestLogHelper = MahaRequestLogHelper(REGISTRY, mahaServiceConfig.mahaRequestLogWriter)
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty)
 
-    val mahaRequestProcessor = new MahaRequestProcessor(REGISTRY,
+
+    val mahaRequestProcessor = new MahaRequestProcessor(mahaRequestContext,
       DefaultRequestCoordinator(mahaService),
       mahaServiceConfig.mahaRequestLogWriter,
       mahaRequestLogHelperOption= Some(mahaRequestLogHelper)
@@ -82,7 +88,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator(mahaService)
 
-    val defaultCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute("er", bucketParams, reportingRequest, mahaRequestLogHelper)
+    val defaultCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
 
     val defaultCuratorResultEither = defaultCuratorResult.resultMap((t: CuratorResult) => t)
     defaultCuratorResultEither.fold((t: GeneralError) => {
@@ -141,7 +147,13 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator(mahaService)
 
-    val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute("er", bucketParams, reportingRequest, mahaRequestLogHelper)
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty)
+
+    val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
 
     val timeShiftCuratorResultEither = timeShiftCuratorResult.resultMap((t: CuratorResult) => t)
     timeShiftCuratorResultEither.fold((t: GeneralError) => {
