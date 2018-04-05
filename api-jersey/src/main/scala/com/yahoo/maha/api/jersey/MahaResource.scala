@@ -114,7 +114,10 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
     val (reportingRequest: ReportingRequest, rawJson: Array[Byte]) = createReportingRequest(httpServletRequest, schemaOption.get, debug, forceEngine)
     val bucketParams: BucketParams = BucketParams(UserInfo(MDC.get(MahaConstants.USER_ID), Try(MDC.get(MahaConstants.IS_INTERNAL).toBoolean).getOrElse(false)), forceRevision = Option(forceRevision))
 
-    val mahaRequestProcessor: MahaRequestProcessor = mahaRequestProcessorFactory.create(registryName, MahaServiceConstants.MahaRequestLabel)
+    val mahaRequestContext: MahaRequestContext = MahaRequestContext(registryName
+      , bucketParams, reportingRequest, rawJson, Map.empty)
+    val mahaRequestProcessor: MahaRequestProcessor = mahaRequestProcessorFactory
+      .create(mahaRequestContext, MahaServiceConstants.MahaRequestLabel)
 
     mahaRequestProcessor.onSuccess((requestModel: RequestModel, requestResult: RequestResult) => {
       val dimCols : Set[String]  = if(requestModel.bestCandidates.isDefined) {
@@ -133,7 +136,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
       }
     })
 
-    mahaRequestProcessor.process(bucketParams, reportingRequest, rawJson)
+    mahaRequestProcessor.process()
 
   }
 

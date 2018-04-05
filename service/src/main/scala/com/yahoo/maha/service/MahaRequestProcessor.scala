@@ -4,7 +4,6 @@ package com.yahoo.maha.service
 
 import com.google.protobuf.ByteString
 import com.yahoo.maha.core.RequestModel
-import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
@@ -14,14 +13,12 @@ import com.yahoo.maha.service.utils.{MahaRequestLogHelper, MahaRequestLogWriter}
 import grizzled.slf4j.Logging
 
 trait BaseMahaRequestProcessor {
-  def registryName: String
+  def mahaRequestContext: MahaRequestContext
   def requestCoordinator: RequestCoordinator
   def mahaServiceMonitor : MahaServiceMonitor
   def mahaRequestLogHelperOption: Option[MahaRequestLogHelper]
 
-  def process(bucketParams: BucketParams,
-              reportingRequest: ReportingRequest,
-              rawJson: Array[Byte]): Unit
+  def process(): Unit
   def onSuccess(fn: (RequestModel, RequestResult) => Unit)
   def onFailure(fn: (GeneralError) => Unit)
 
@@ -31,17 +28,17 @@ case class MahaRequestProcessorFactory(requestCoordinator: RequestCoordinator
                                        , mahaService: MahaService
                                        , mahaRequestLogWriter: MahaRequestLogWriter
                                        , mahaServiceMonitor: MahaServiceMonitor= DefaultMahaServiceMonitor) {
-  def create(registryName: String, processingLabel: String, mahaRequestLogHelper: MahaRequestLogHelper) : MahaRequestProcessor = {
-    MahaRequestProcessor(registryName
+  def create(mahaRequestContext: MahaRequestContext, processingLabel: String, mahaRequestLogHelper: MahaRequestLogHelper) : MahaRequestProcessor = {
+    MahaRequestProcessor(mahaRequestContext
       , requestCoordinator, mahaRequestLogWriter, mahaServiceMonitor, processingLabel, Option(mahaRequestLogHelper))
   }
-  def create(registryName: String, processingLabel: String): MahaRequestProcessor = {
-    MahaRequestProcessor(registryName
+  def create(mahaRequestContext: MahaRequestContext, processingLabel: String): MahaRequestProcessor = {
+    MahaRequestProcessor(mahaRequestContext
       , requestCoordinator, mahaRequestLogWriter, mahaServiceMonitor, processingLabel, None)
   }
 }
 
-case class MahaRequestProcessor(registryName: String
+case class MahaRequestProcessor(mahaRequestContext: MahaRequestContext
                                 , requestCoordinator: RequestCoordinator
                                 , mahaRequestLogWriter: MahaRequestLogWriter
                                 , mahaServiceMonitor : MahaServiceMonitor = DefaultMahaServiceMonitor
@@ -49,7 +46,7 @@ case class MahaRequestProcessor(registryName: String
                                 , mahaRequestLogHelperOption:Option[MahaRequestLogHelper] = None
                                ) extends BaseMahaRequestProcessor with Logging {
   private[this] val mahaRequestLogHelper = if(mahaRequestLogHelperOption.isEmpty) {
-     MahaRequestLogHelper(registryName, mahaRequestLogWriter)
+     MahaRequestLogHelper(mahaRequestContext.registryName, mahaRequestLogWriter)
   } else {
     mahaRequestLogHelperOption.get
   }
@@ -65,18 +62,17 @@ case class MahaRequestProcessor(registryName: String
     onFailureFn = Some(fn)
   }
 
-  def process(bucketParams: BucketParams,
-               reportingRequest: ReportingRequest,
-               rawJson: Array[Byte]) : Unit = {
+  def process(): Unit = {
 
     require(onSuccessFn.isDefined || onFailureFn.isDefined, "Nothing to do after processing!")
-    mahaRequestLogHelper.init(reportingRequest, None, MahaRequestProto.RequestType.SYNC, ByteString.copyFrom(rawJson))
+    mahaRequestLogHelper.init(mahaRequestContext.reportingRequest
+      , None, MahaRequestProto.RequestType.SYNC, ByteString.copyFrom(mahaRequestContext.rawJson))
     //Starting Service Monitor
-    mahaServiceMonitor.start(reportingRequest)
+    mahaServiceMonitor.start(mahaRequestContext.reportingRequest)
 
-    val parRequest: ParRequest[CuratorResult] = requestCoordinator.execute(registryName, bucketParams, reportingRequest, mahaRequestLogHelper)
+    val parRequest: ParRequest[CuratorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
 
-    val errParFunction: ParFunction[GeneralError, Unit] = ParFunction.fromScala(callOnFailureFn(mahaRequestLogHelper, reportingRequest))
+    val errParFunction: ParFunction[GeneralError, Unit] = ParFunction.fromScala(callOnFailureFn(mahaRequestLogHelper, mahaRequestContext.reportingRequest))
 
     val successParFunction: ParFunction[CuratorResult, Unit] =
       ParFunction.fromScala(
@@ -85,18 +81,18 @@ case class MahaRequestProcessor(registryName: String
           if (curatorResult.requestResultTry.isFailure) {
             val message = "Failed to execute the query pipeline"
             val generalError = GeneralError.from(message, processingLabel, curatorResult.requestResultTry.failed.get)
-            callOnFailureFn(mahaRequestLogHelper, reportingRequest)(generalError)
+            callOnFailureFn(mahaRequestLogHelper,mahaRequestContext.reportingRequest)(generalError)
           } else {
             try {
               onSuccessFn.foreach(_ (curatorResult.requestModelReference.model, curatorResult.requestResultTry.get))
               mahaRequestLogHelper.logSuccess()
-              mahaServiceMonitor.stop(reportingRequest)
+              mahaServiceMonitor.stop(mahaRequestContext.reportingRequest)
             } catch {
               case e: Exception =>
                 val message = s"Failed while calling onSuccessFn ${e.getMessage}"
                 logger.error(message, e)
                 mahaRequestLogHelper.logFailed(message)
-                mahaServiceMonitor.stop(reportingRequest)
+                mahaServiceMonitor.stop(mahaRequestContext.reportingRequest)
             }
           }
         }
