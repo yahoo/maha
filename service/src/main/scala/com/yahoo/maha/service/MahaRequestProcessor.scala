@@ -74,15 +74,6 @@ case class MahaRequestProcessor(registryName: String
     //Starting Service Monitor
     mahaServiceMonitor.start(reportingRequest)
 
-    /*
-    val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams , mahaRequestLogHelper)
-    // Custom validation for RequestModel
-    val requestModelValidationTry = for {
-      requestModelResult <- requestModelResultTry
-    } yield requestModelValidationFn.foreach(_ (requestModelResult))
-    */
-
-
     val parRequest: ParRequest[CuratorResult] = requestCoordinator.execute(registryName, bucketParams, reportingRequest, mahaRequestLogHelper)
 
     val errParFunction: ParFunction[GeneralError, Unit] = ParFunction.fromScala(callOnFailureFn(mahaRequestLogHelper, reportingRequest))

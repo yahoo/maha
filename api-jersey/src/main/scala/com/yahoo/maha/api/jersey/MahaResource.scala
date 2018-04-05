@@ -7,13 +7,12 @@ import javax.ws.rs.container.{AsyncResponse, Suspended}
 import javax.ws.rs.core.{Context, MediaType}
 import javax.ws.rs.{Path, Produces, _}
 
-import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request.{BaseRequest, ReportingRequest}
-import com.yahoo.maha.core.{RequestModel, Schema}
+import com.yahoo.maha.core.{RequestModel, Schema, _}
 import com.yahoo.maha.parrequest2.GeneralError
+import com.yahoo.maha.service._
 import com.yahoo.maha.service.utils.MahaConstants
-import com.yahoo.maha.service.{DefaultRequestCoordinator, MahaRequestProcessor, MahaService, RequestResult}
 import grizzled.slf4j.Logging
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
@@ -25,6 +24,13 @@ import scala.util.Try
 @Path("/registry")
 @Component
 class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends Logging {
+
+  private[this] val defaultRequestCoordinator = DefaultRequestCoordinator(mahaService)
+  private[this] val mahaRequestProcessorFactory = MahaRequestProcessorFactory(defaultRequestCoordinator
+    , mahaService
+    , mahaService.mahaRequestLogWriter
+    , mahaServiceMonitor = DefaultMahaServiceMonitor)
+
 
   @GET
   @Path("/{registryName}/domain")
@@ -108,8 +114,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
     val (reportingRequest: ReportingRequest, rawJson: Array[Byte]) = createReportingRequest(httpServletRequest, schemaOption.get, debug, forceEngine)
     val bucketParams: BucketParams = BucketParams(UserInfo(MDC.get(MahaConstants.USER_ID), Try(MDC.get(MahaConstants.IS_INTERNAL).toBoolean).getOrElse(false)), forceRevision = Option(forceRevision))
 
-    val defaultRequestCoordinator = DefaultRequestCoordinator(mahaService)
-    val mahaRequestProcessor: MahaRequestProcessor = MahaRequestProcessor(registryName, defaultRequestCoordinator, mahaService.mahaRequestLogWriter)
+    val mahaRequestProcessor: MahaRequestProcessor = mahaRequestProcessorFactory.create(registryName, MahaServiceConstants.MahaRequestLabel)
 
     mahaRequestProcessor.onSuccess((requestModel: RequestModel, requestResult: RequestResult) => {
       val dimCols : Set[String]  = if(requestModel.bestCandidates.isDefined) {
