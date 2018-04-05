@@ -548,7 +548,7 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
-                        <redirectTestOutputToFile>false</redirectTestOutputToFile>
+                        <redirectTestOutputToFile>${redirectLogsToFileSilently}</redirectTestOutputToFile>
                         <argLine>-Djava.library.path=/home/y/lib64</argLine>
                         <properties>
                             <property>
