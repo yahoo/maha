@@ -3,6 +3,7 @@ package com.yahoo.maha.service
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
+import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.scalatest.BeforeAndAfterAll
 
 /**
@@ -33,7 +34,10 @@ class MahaRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAfterAl
     val reportingRequest = reportingRequestResult.toOption.get
     var assertCount = 0
 
-    val mahaRequestProcessor = new MahaRequestProcessor(REGISTRY, mahaService)
+    val mahaRequestProcessor = new MahaRequestProcessor(REGISTRY,
+      DefaultRequestCoordinator(mahaService),
+      mahaServiceConfig.mahaRequestLogWriter
+    )
     mahaRequestProcessor.onSuccess((requestModel, requestResult) => {
       assert(requestResult.rowList.columns.nonEmpty)
       assertCount+=1
@@ -66,23 +70,23 @@ class MahaRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAfterAl
     val reportingRequest = reportingRequestResult.toOption.get
     var assertCount = 0
 
-    val mahaRequestProcessor = new MahaRequestProcessor(REGISTRY, mahaService)
-    mahaRequestProcessor.withRequestModelValidator((reportingRequestResult) => {
-      assertCount+=1
-      throw new IllegalArgumentException("Test Exception Incorrect Model")
-    }
-    )
+    val processorFactory = MahaRequestProcessorFactory(DefaultRequestCoordinator(mahaService),
+      mahaService,
+      mahaServiceConfig.mahaRequestLogWriter)
+
+    val mahaRequestProcessor = processorFactory.create(REGISTRY, "test", MahaRequestLogHelper(REGISTRY, mahaService.mahaRequestLogWriter))
+
     mahaRequestProcessor.onSuccess((requestModel, requestResult) => {
-      assertCount-=1
+      assertCount+=1
     })
 
     mahaRequestProcessor.onFailure((ge) => {
-      assertCount+=1
+      assertCount-=1
     })
     mahaRequestProcessor.process(BucketParams(UserInfo("uid", true)), reportingRequest, jsonRequest.getBytes)
 
     Thread.sleep(900)
-    assert(assertCount == 2)
+    assert(assertCount == 1)
   }
 
   test("Test MahaRequestProcessor RequestResult Validation Failure") {
@@ -104,13 +108,14 @@ class MahaRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAfterAl
     val reportingRequest = reportingRequestResult.toOption.get
     var assertCount = 0;
 
-    val mahaRequestProcessor = new MahaRequestProcessor(REGISTRY, mahaService)
-    mahaRequestProcessor.withRequestResultValidator((requestResult) => {
-      assertCount+=1
-      throw new IllegalArgumentException("Test Exception Incorrect Request Result")
-    }
-    )
+    val processorFactory = MahaRequestProcessorFactory(DefaultRequestCoordinator(mahaService),
+      mahaService,
+      mahaServiceConfig.mahaRequestLogWriter)
+
+    val mahaRequestProcessor = processorFactory.create(REGISTRY, "test")
+
     mahaRequestProcessor.onSuccess((requestModel, requestResult) => {
+      throw new IllegalArgumentException("failed in success function")
       assertCount-=1
     })
 
@@ -120,7 +125,7 @@ class MahaRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAfterAl
     mahaRequestProcessor.process(BucketParams(UserInfo("uid", true)), reportingRequest, jsonRequest.getBytes)
 
     Thread.sleep(900)
-    assert(assertCount == 2)
+    assert(assertCount == 0)
   }
 
 }

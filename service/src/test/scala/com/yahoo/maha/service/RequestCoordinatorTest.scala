@@ -7,7 +7,7 @@ import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc.{Seq, _}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParRequest
-import com.yahoo.maha.service.curators.{CuratorResult, DefaultCurator, TimeShiftCurator}
+import com.yahoo.maha.service.curators.{TimeShiftCurator, DefaultCurator, CuratorResult}
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.joda.time.DateTime
@@ -72,11 +72,17 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val bucketParams = BucketParams(UserInfo("uid", true))
 
-    val mahaRequestLogHelper = MahaRequestLogHelper("er", mahaService)
+    val mahaRequestLogHelper = MahaRequestLogHelper(REGISTRY, mahaServiceConfig.mahaRequestLogWriter)
 
-    val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator()
+    val mahaRequestProcessor = new MahaRequestProcessor(REGISTRY,
+      DefaultRequestCoordinator(mahaService),
+      mahaServiceConfig.mahaRequestLogWriter,
+      mahaRequestLogHelperOption= Some(mahaRequestLogHelper)
+    )
 
-    val defaultCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute("er", bucketParams, reportingRequest, mahaService, mahaRequestLogHelper)
+    val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator(mahaService)
+
+    val defaultCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute("er", bucketParams, reportingRequest, mahaRequestLogHelper)
 
     val defaultCuratorResultEither = defaultCuratorResult.resultMap((t: CuratorResult) => t)
     defaultCuratorResultEither.fold((t: GeneralError) => {
@@ -131,11 +137,11 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val bucketParams = BucketParams(UserInfo("uid", true))
 
-    val mahaRequestLogHelper = MahaRequestLogHelper("er", mahaService)
+    val mahaRequestLogHelper = MahaRequestLogHelper("er", mahaServiceConfig.mahaRequestLogWriter)
 
-    val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator()
+    val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator(mahaService)
 
-    val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute("er", bucketParams, reportingRequest, mahaService, mahaRequestLogHelper)
+    val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute("er", bucketParams, reportingRequest, mahaRequestLogHelper)
 
     val timeShiftCuratorResultEither = timeShiftCuratorResult.resultMap((t: CuratorResult) => t)
     timeShiftCuratorResultEither.fold((t: GeneralError) => {
@@ -158,6 +164,13 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       assert(expectedSet.size == cnt)
     })
 
+  }
+
+  test("Curator compare test") {
+    val defaultCurator = new DefaultCurator()
+    val timeShiftCurator = new TimeShiftCurator()
+    assert(defaultCurator.compare(timeShiftCurator) == -1)
+    assert(defaultCurator.compare(defaultCurator) == 0)
   }
 
 }

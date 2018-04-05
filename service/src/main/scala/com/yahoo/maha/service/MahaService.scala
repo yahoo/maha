@@ -259,10 +259,10 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
 
     requestResultEither.fold(
       (t: GeneralError) => {
-        val error = t.throwableOption
+        val errorOption = t.throwableOption
         val message = s"Failed to execute the Request Model: ${t.message} "
-        val exception = if (error.isDefined) {
-          new MahaServiceExecutionException(message, error)
+        val exception = if (errorOption.isDefined) {
+          errorOption.get
         } else {
           new MahaServiceExecutionException(message)
         }

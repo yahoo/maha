@@ -41,7 +41,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
 
     val bucketParams = BucketParams(UserInfo("uid", true))
 
-    val mahaRequestLogHelper = MahaRequestLogHelper("er", mahaService)
+    val mahaRequestLogHelper = MahaRequestLogHelper("er", mahaServiceConfig.mahaRequestLogWriter)
     mahaRequestLogHelper.init(reportingRequest, None, MahaRequestProto.RequestType.SYNC, ByteString.copyFrom(jsonRequest.getBytes))
 
     val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams, mahaRequestLogHelper)
@@ -112,8 +112,10 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
     assert(!mahaService.getDomainForCube("temp", "inexistent").isDefined)
     assert(!mahaService.getFlattenDomainForCube("temp", "inexistent").isDefined)
 
-    // test MahaRequestProcessor
-    val mahaRequestProcessor : MahaRequestProcessor = MahaRequestProcessor("er", mahaService)
+    val mahaRequestProcessor = new MahaRequestProcessor(REGISTRY,
+      DefaultRequestCoordinator(mahaService),
+      mahaServiceConfig.mahaRequestLogWriter
+    )
 
     def fn = {
       (requestModel: RequestModel, requestResult: RequestResult) => {
@@ -125,30 +127,10 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
 
     mahaRequestProcessor.onSuccess(fn)
     mahaRequestProcessor.onFailure((error: GeneralError) => println(error.message))
-    mahaRequestProcessor.withRequestModelValidator(
-      (requestModelResult) => {
-        // Defining the sample/custom post requestModelResultTry execution steps to be executed
-        val model = requestModelResultTry.get.model
-        if (model.hasNonDrivingDimNonFKNonPKFilter && model.hasLowCardinalityDimFilters && model.isSyncRequest) {
-          warn("Costly Outer group by request with high SLA, should not be the SYNC request"+model)
-        }
-      }
-    )
-
-    mahaRequestProcessor.withRequestResultValidator(
-      (requestResult) => {
-        // Defining the sample/custom post requestResultTry execution steps to be executed
-        val model = requestResult.rowList.asInstanceOf[QueryRowList].query.queryContext.requestModel
-        val isFactOnlyOperation = model.dimensionsCandidates.isEmpty
-        if(isFactOnlyOperation && model.includeRowCount) {
-          requestResult.copy(totalRowsOption = Some(5000))
-        }
-      }
-    )
 
     mahaRequestProcessor.process(bucketParams, reportingRequest, jsonRequest.getBytes)
     val thrown = intercept[IllegalArgumentException] {
-      val failedProcessor = MahaRequestProcessor("er", mahaService)
+      val failedProcessor = MahaRequestProcessor(REGISTRY, DefaultRequestCoordinator(mahaService), mahaServiceConfig.mahaRequestLogWriter)
       failedProcessor.process(bucketParams, reportingRequest, jsonRequest.getBytes)
     }
   }
@@ -179,12 +161,16 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
 
     val bucketParams = BucketParams(UserInfo("uid", true))
 
-    val mahaRequestLogHelper = MahaRequestLogHelper("er", mahaService)
+    val mahaRequestLogHelper = MahaRequestLogHelper(REGISTRY, mahaServiceConfig.mahaRequestLogWriter)
 
     val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams, mahaRequestLogHelper)
     assert(requestModelResultTry.isSuccess)
 
     val processRequestResult = mahaService.processRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
     assert(processRequestResult.isFailure, "Request should fail with invalid SQL syntax.")
-    }
+
+    val parRequestResult = mahaService.executeRequest(REGISTRY, ReportingRequest.forceHive(reportingRequest),bucketParams, mahaRequestLogHelper)
+    assert(parRequestResult.prodRun.get(800).isLeft)
+
+  }
 }

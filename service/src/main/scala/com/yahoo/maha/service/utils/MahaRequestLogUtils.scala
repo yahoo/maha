@@ -29,8 +29,6 @@ trait MahaRequestLogBuilder {
 
   protected[this] val protoBuilder: MahaRequestProto.Builder = MahaRequestProto.newBuilder()
 
-  def mahaService: MahaService
-
   def registryName: String
 
   def init(reportingRequest: ReportingRequest, jobIdOption: Option[Long], requestType: MahaRequestProto.RequestType, rawJson: ByteString)
@@ -47,7 +45,7 @@ trait MahaRequestLogBuilder {
 object MahaRequestLogHelper {
   val logger: org.slf4j.Logger = LoggerFactory.getLogger(classOf[MahaRequestLogHelper])
 }
-case class MahaRequestLogHelper(registryName: String, mahaService: MahaService) extends MahaRequestLogBuilder {
+case class MahaRequestLogHelper(registryName: String, mahaRequestLogWriter: MahaRequestLogWriter) extends MahaRequestLogBuilder {
 
   private[this] val complete: AtomicBoolean = new AtomicBoolean(false)
   import MahaRequestLogHelper._
@@ -187,7 +185,7 @@ case class MahaRequestLogHelper(registryName: String, mahaService: MahaService) 
 
   private[this] def writeLog(): Unit = {
     try {
-      mahaService.mahaRequestLogWriter.write(protoBuilder.build())
+      mahaRequestLogWriter.write(protoBuilder.build())
     } catch {
       case e=>
         logger.warn(s"Failed to log the event to kafka ${e.getMessage} $e")
