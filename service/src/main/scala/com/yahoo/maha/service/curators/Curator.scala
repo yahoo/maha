@@ -36,11 +36,11 @@ object DefaultCurator {
 }
 
 trait CuratorRequestModelValidator {
-  def validate(requestModelResult: RequestModelResult) : Unit
+  def validate(mahaRequestContext: MahaRequestContext, requestModelResult: RequestModelResult) : Unit
 }
 
 object NoopCuratorRequestModelValidator extends CuratorRequestModelValidator {
-  def validate(requestModelResult: RequestModelResult) : Unit = {
+  def validate(mahaRequestContext: MahaRequestContext, requestModelResult: RequestModelResult) : Unit = {
     //do nothing
   }
 }
@@ -73,7 +73,7 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
               mahaRequestLogHelper.logFailed(message)
               return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceBadRequestException(message, requestModelResultTry.failed.toOption))
             } else {
-              requestModelValidator.validate(requestModelResultTry.get)
+              requestModelValidator.validate(mahaRequestContext, requestModelResultTry.get)
               val requestResultTry = mahaService.processRequestModel(mahaRequestContext.registryName
                 , requestModelResultTry.get.model, mahaRequestLogHelper)
               return new Right[GeneralError, CuratorResult](CuratorResult(requestResultTry, requestModelResultTry.get))
