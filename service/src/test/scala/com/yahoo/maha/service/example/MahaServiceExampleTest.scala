@@ -168,5 +168,9 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
 
     val processRequestResult = mahaService.processRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
     assert(processRequestResult.isFailure, "Request should fail with invalid SQL syntax.")
-    }
+
+    val parRequestResult = mahaService.executeRequest(REGISTRY, ReportingRequest.forceHive(reportingRequest),bucketParams, mahaRequestLogHelper)
+    assert(parRequestResult.prodRun.get(800).isLeft)
+
+  }
 }

@@ -7,7 +7,7 @@ import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc.{Seq, _}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParRequest
-import com.yahoo.maha.service.curators.CuratorResult
+import com.yahoo.maha.service.curators.{TimeShiftCurator, DefaultCurator, CuratorResult}
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.joda.time.DateTime
@@ -164,6 +164,13 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       assert(expectedSet.size == cnt)
     })
 
+  }
+
+  test("Curator compare test") {
+    val defaultCurator = new DefaultCurator()
+    val timeShiftCurator = new TimeShiftCurator()
+    assert(defaultCurator.compare(timeShiftCurator) == -1)
+    assert(defaultCurator.compare(defaultCurator) == 0)
   }
 
 }
