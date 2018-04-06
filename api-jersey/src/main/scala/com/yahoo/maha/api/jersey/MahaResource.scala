@@ -2,13 +2,14 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.api.jersey
 
+import java.util.UUID
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.container.{AsyncResponse, Suspended}
 import javax.ws.rs.core.{Context, MediaType}
 import javax.ws.rs.{Path, Produces, _}
 
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
-import com.yahoo.maha.core.request.{BaseRequest, ReportingRequest}
+import com.yahoo.maha.core.request.{BaseRequest, ReportingRequest, RequestContext}
 import com.yahoo.maha.core.{RequestModel, Schema, _}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.service._
@@ -111,11 +112,14 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
       throw NotFoundException(Error(s"schema $schema not found"))
     }
 
-    val (reportingRequest: ReportingRequest, rawJson: Array[Byte]) = createReportingRequest(httpServletRequest, schemaOption.get, debug, forceEngine)
-    val bucketParams: BucketParams = BucketParams(UserInfo(MDC.get(MahaConstants.USER_ID), Try(MDC.get(MahaConstants.IS_INTERNAL).toBoolean).getOrElse(false)), forceRevision = Option(forceRevision))
+    val userId: String = Option(MDC.get(MahaConstants.USER_ID)).getOrElse("unknown")
+    val requestId: String = Option(MDC.get(MahaConstants.REQUEST_ID)).getOrElse(UUID.randomUUID().toString)
+    val (reportingRequest: ReportingRequest, rawJson: Array[Byte]) = createReportingRequest(requestId, userId, httpServletRequest, schemaOption.get, debug, forceEngine)
+
+    val bucketParams: BucketParams = BucketParams(UserInfo(userId, Try(MDC.get(MahaConstants.IS_INTERNAL).toBoolean).getOrElse(false)), forceRevision = Option(forceRevision))
 
     val mahaRequestContext: MahaRequestContext = MahaRequestContext(registryName
-      , bucketParams, reportingRequest, rawJson, Map.empty)
+      , bucketParams, reportingRequest, rawJson, Map.empty, requestId, userId)
     val mahaRequestProcessor: MahaRequestProcessor = mahaRequestProcessorFactory
       .create(mahaRequestContext, MahaServiceConstants.MahaRequestLabel)
 
@@ -140,7 +144,12 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
 
   }
 
-  private def createReportingRequest(httpServletRequest: HttpServletRequest, schema: Schema, debug: Boolean = false, forceEngine: String = "") : (ReportingRequest, Array[Byte]) = {
+  private def createReportingRequest(requestId:String
+                                     , userId:String
+                                     , httpServletRequest: HttpServletRequest
+                                     , schema: Schema
+                                     , debug: Boolean = false
+                                     , forceEngine: String = "") : (ReportingRequest, Array[Byte]) = {
     val rawJson = IOUtils.toByteArray(httpServletRequest.getInputStream)
     val reportingRequestResult = baseRequest.deserializeSync(rawJson, schema)
     require(reportingRequestResult.isSuccess, reportingRequestResult.toString)
@@ -167,7 +176,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
         withEngine
       }
     }
-    (request, rawJson)
+    (ReportingRequest.addRequestContext(request, RequestContext(requestId, userId)), rawJson)
   }
 
 }

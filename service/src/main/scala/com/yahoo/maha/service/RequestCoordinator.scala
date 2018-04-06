@@ -6,6 +6,8 @@ import com.yahoo.maha.service.curators.{Curator, CuratorResult}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import grizzled.slf4j.Logging
 
+import scala.collection.SortedSet
+
 trait RequestCoordinator {
   protected def mahaService: MahaService
 
@@ -18,8 +20,13 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
   override def execute(mahaRequestContext: MahaRequestContext
               , mahaRequestLogHelper: MahaRequestLogHelper): ParRequest[CuratorResult] = {
     val curatorJsonConfigMapFromRequest: Map[String, CuratorJsonConfig] = mahaRequestContext.reportingRequest.curatorJsonConfigMap
+    val curatorsOrdered: SortedSet[Curator] = curatorJsonConfigMapFromRequest
+      .keys
+      .flatMap(mahaService.getMahaServiceConfig.curatorMap.get)
+      .to[SortedSet]
+
     // for now supporting only one curator
-    val curator: Curator = mahaService.getMahaServiceConfig.curatorMap(curatorJsonConfigMapFromRequest.head._1)
+    val curator = curatorsOrdered.head
     curator.process(mahaRequestContext,mahaService, mahaRequestLogHelper)
 
   }

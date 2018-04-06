@@ -116,7 +116,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
       bucketParams,
       reportingRequest,
       jsonRequest.getBytes,
-      Map.empty)
+      Map.empty, "rid", "uid")
 
 
     val mahaRequestProcessor = new MahaRequestProcessor(mahaRequestContext,

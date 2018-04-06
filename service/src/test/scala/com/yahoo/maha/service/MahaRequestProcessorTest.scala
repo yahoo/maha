@@ -38,7 +38,7 @@ class MahaRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAfterAl
       BucketParams(UserInfo("uid", true)),
       reportingRequest,
       jsonRequest.getBytes,
-      Map.empty)
+      Map.empty, "rid", "uid")
 
     val mahaRequestProcessor = new MahaRequestProcessor(mahaRequestContext,
       DefaultRequestCoordinator(mahaService),
@@ -80,7 +80,7 @@ class MahaRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAfterAl
       BucketParams(UserInfo("uid", true)),
       reportingRequest,
       jsonRequest.getBytes,
-      Map.empty)
+      Map.empty, "rid", "uid")
 
     val processorFactory = MahaRequestProcessorFactory(DefaultRequestCoordinator(mahaService),
       mahaService,
@@ -124,7 +124,7 @@ class MahaRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAfterAl
       BucketParams(UserInfo("uid", true)),
       reportingRequest,
       jsonRequest.getBytes,
-      Map.empty)
+      Map.empty, "rid", "uid")
 
     val processorFactory = MahaRequestProcessorFactory(DefaultRequestCoordinator(mahaService),
       mahaService,
