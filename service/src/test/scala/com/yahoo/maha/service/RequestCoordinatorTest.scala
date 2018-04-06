@@ -7,7 +7,7 @@ import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc.{Seq, _}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParRequest
-import com.yahoo.maha.service.curators.{TimeShiftCurator, DefaultCurator, CuratorResult}
+import com.yahoo.maha.service.curators.{CuratorResult, DefaultCurator, DrilldownCurator, TimeShiftCurator}
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.joda.time.DateTime
@@ -171,6 +171,69 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val timeShiftCurator = new TimeShiftCurator()
     assert(defaultCurator.compare(timeShiftCurator) == -1)
     assert(defaultCurator.compare(defaultCurator) == 0)
+  }
+
+  test("Test successful processing of Drilldown curator") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : {
+                                "field": "Section ID"
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", true))
+
+    val mahaRequestLogHelper = MahaRequestLogHelper("er", mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator(mahaService)
+
+    /*val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute("er", bucketParams, reportingRequest, mahaRequestLogHelper)
+
+    val timeShiftCuratorResultEither = timeShiftCuratorResult.resultMap((t: CuratorResult) => t)
+    timeShiftCuratorResultEither.fold((t: GeneralError) => {
+      fail(t.message)
+    },(curatorResult: CuratorResult) => {
+      assert(curatorResult.requestResultTry.isSuccess)
+      val expectedSet = Set(
+        "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 200, 100, 125, 135, -7.41))",
+        "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 198, 100, 180, 120, 50.0))",
+        "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 199, 200, 175, 0, 100.0))"
+      )
+
+      var cnt = 0
+      curatorResult.requestResultTry.get.rowList.foreach( row => {
+        println(row.toString)
+        assert(expectedSet.contains(row.toString))
+        cnt+=1
+      })
+
+      assert(expectedSet.size == cnt)
+    })*/
+
+    val retval = (new DrilldownCurator).implementDrilldownRequestMinimization("er", bucketParams, reportingRequest, mahaService, mahaRequestLogHelper)
+    println(retval)
+
   }
 
 }

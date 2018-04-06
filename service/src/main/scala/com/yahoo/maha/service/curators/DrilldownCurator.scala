@@ -7,7 +7,7 @@ import java.util.concurrent.Callable
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.query.{DerivedRowList, Row, RowList}
-import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.core.request.{Field, ReportingRequest}
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.service.error.{MahaServiceBadRequestException, MahaServiceExecutionException}
@@ -45,10 +45,13 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                                        bucketParams: BucketParams,
                                        reportingRequest: ReportingRequest,
                                        mahaService: MahaService,
-                                       mahaRequestLogHelper: MahaRequestLogHelper): RequestModel = {
+                                       mahaRequestLogHelper: MahaRequestLogHelper): (RequestModel, IndexedSeq[Field]) = {
     val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams, mahaRequestLogHelper)
     require(requestModelResultTry.isSuccess, "Input ReportingRequest was invalid due to " + requestModelResultTry.failed.get.getMessage)
-    requestModelResultTry.get.model
+    (requestModelResultTry.get.model,
+      (for(col <- requestModelResultTry.get.model.bestCandidates.get.requestCols;
+          if requestModelResultTry.get.model.bestCandidates.get.factColMapping.contains(col))
+            yield Field(requestModelResultTry.get.model.bestCandidates.get.factColMapping(col), None, None)).toIndexedSeq)
   }
 
   /**
@@ -59,9 +62,20 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     * @param requestModel
     * @return primaryKeyAlias
     */
-  private def validateSelectedGranularPrimaryKey(requestModel: RequestModel): String = {
-    require(requestModel.requestColsSet.contains(requestModel.dimensionsCandidates.head.dim.primaryKeyByAlias), "Requested columns should include drilldown table primary key!")
-    requestModel.dimensionsCandidates.head.dim.primaryKeyByAlias
+  private def validateSelectedGranularPrimaryKey(requestModel: RequestModel): Field = {
+    val bestCandidates = requestModel.bestCandidates.get
+    var primaryKeyAliasSet : Set[String] = Set.empty
+    for(col <- bestCandidates.facts.head._2.fact.dimCols; if col.isKey && !col.isForeignKey) {
+      primaryKeyAliasSet = bestCandidates.facts.head._2.publicFact.nameToAliasColumnMap(col.name) //get the alias set of the primary key
+    }
+
+    //Check the current granular primary key against requested columns.
+    //Be virtue of RM generation, only one of its aliases will be requested however multiple
+    //may be defined to check against.
+    val primaryAliasRequest = requestModel.requestColsSet.intersect(primaryKeyAliasSet)
+    require(primaryAliasRequest != Set.empty, "Requested cols should include primary key of most granular request table.")
+
+    Field(primaryAliasRequest.head, None, None)
   }
 
   /**
@@ -70,13 +84,44 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     * - Primary key of primary table.
     * - All metrics (facts).
     * @param reportingRequest
-    * @param drillDownAlias
-    * @param primaryKeyAlias
+    * @param factFields
+    * @param primaryKeyField
     */
   private def newRequestWithFactsAndRequestedDrilldown(reportingRequest: ReportingRequest,
-                                                       drillDownAlias: String,
-                                                       primaryKeyAlias: String): Unit = {
+                                                       factFields: IndexedSeq[Field],
+                                                       primaryKeyField: Field): ReportingRequest = {
+    val allSelectedFields : IndexedSeq[Field] = factFields ++ IndexedSeq(primaryKeyField, extractField(reportingRequest))
+    reportingRequest.copy(selectFields = allSelectedFields)
+  }
 
+  /**
+    * With the returned values on the drilldown, create a
+    * new reporting request.
+    * @param reportingRequest
+    * @param drilldownDimName
+    * @param inputFieldValues
+    */
+  def insertValuesIntoDrilldownRequest(reportingRequest: ReportingRequest,
+                                       drilldownDimName: String,
+                                       inputFieldValues: List[String]): Unit = {
+    reportingRequest.copy(filterExpressions = reportingRequest.filterExpressions ++ IndexedSeq(InFilter(drilldownDimName, inputFieldValues)))
+  }
+
+  def extractField(reportingRequest: ReportingRequest): Field = {
+    val config = reportingRequest.curatorJsonConfigMap("drilldown")
+    val field = config.json.values.asInstanceOf[Map[String, String]]("field")
+    Field(field, None, None)
+  }
+
+  def implementDrilldownRequestMinimization(registryName: String, //TODO: Implement parrequest and return CuratorResult
+              bucketParams: BucketParams,
+              reportingRequest: ReportingRequest,
+              mahaService: MahaService,
+              mahaRequestLogHelper: MahaRequestLogHelper): ReportingRequest = {
+    val (rm, fields) : (RequestModel, IndexedSeq[Field]) = validateReportingRequest(registryName, bucketParams, reportingRequest, mahaService, mahaRequestLogHelper)
+    val primaryField = validateSelectedGranularPrimaryKey(rm)
+    val rr = newRequestWithFactsAndRequestedDrilldown(reportingRequest, fields, primaryField)
+    rr
   }
 
 
