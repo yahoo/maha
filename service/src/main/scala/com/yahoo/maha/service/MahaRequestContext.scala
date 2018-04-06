@@ -10,4 +10,7 @@ case class MahaRequestContext(registryName: String
                               , bucketParams: BucketParams
                               , reportingRequest: ReportingRequest
                               , rawJson: Array[Byte]
-                              , context: Map[String, Any])
+                              , context: Map[String, Any]
+                              , requestId: String
+                              , userId: String
+                             )
