@@ -114,7 +114,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
 
     val userId: String = Option(MDC.get(MahaConstants.USER_ID)).getOrElse("unknown")
     val requestId: String = Option(MDC.get(MahaConstants.REQUEST_ID)).getOrElse(UUID.randomUUID().toString)
-    val (reportingRequest: ReportingRequest, rawJson: Array[Byte]) = createReportingRequest(requestId, userId, httpServletRequest, schemaOption.get, debug, forceEngine), RequestContext(requestId, userId)
+    val (reportingRequest: ReportingRequest, rawJson: Array[Byte]) = createReportingRequest(requestId, userId, httpServletRequest, schemaOption.get, debug, forceEngine)
 
     val bucketParams: BucketParams = BucketParams(UserInfo(userId, Try(MDC.get(MahaConstants.IS_INTERNAL).toBoolean).getOrElse(false)), forceRevision = Option(forceRevision))
 

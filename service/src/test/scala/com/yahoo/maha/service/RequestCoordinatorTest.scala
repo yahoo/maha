@@ -77,7 +77,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       bucketParams,
       reportingRequest,
       jsonRequest.getBytes,
-      Map.empty)
+      Map.empty, "rid", "uid")
 
 
     val mahaRequestProcessor = new MahaRequestProcessor(mahaRequestContext,
@@ -151,7 +151,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       bucketParams,
       reportingRequest,
       jsonRequest.getBytes,
-      Map.empty)
+      Map.empty, "rid", "uid")
 
     val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
 

@@ -17,9 +17,9 @@ import scala.util.Try
 case class CuratorResult(requestResultTry: Try[RequestResult], requestModelReference: RequestModelResult)
 
 trait Curator extends Ordered[Curator] {
-  val name: String
-  val level: Int
-  val priority: Int
+  def name: String
+  def level: Int
+  def priority: Int
   def process(mahaRequestContext: MahaRequestContext
               , mahaService: MahaService
               , mahaRequestLogHelper: MahaRequestLogHelper) : ParRequest[CuratorResult]
@@ -28,6 +28,7 @@ trait Curator extends Ordered[Curator] {
       Integer.compare(this.priority, that.priority)
     } else Integer.compare(this.level, that.level)
   }
+  def isSingleton: Boolean
   protected def requestModelValidator: CuratorRequestModelValidator
 }
 
@@ -50,6 +51,7 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
   override val name: String = DefaultCurator.name
   override val level: Int = 0
   override val priority: Int = 0
+  override val isSingleton: Boolean = false
 
   override def process(mahaRequestContext: MahaRequestContext
                        , mahaService: MahaService
