@@ -1,11 +1,8 @@
 package com.yahoo.maha.service.curators
 
-import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.service.{BaseMahaServiceTest, DefaultRequestCoordinator, RequestCoordinator}
+import com.yahoo.maha.service.BaseMahaServiceTest
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
-import com.yahoo.maha.service.utils.MahaRequestLogHelper
-import org.scalatest.FunSuite
 
 class DrilldownConfigTest extends BaseMahaServiceTest {
   test("Create a valid DrilldownConfig") {
@@ -42,12 +39,6 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(json.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
-
-    val bucketParams = BucketParams(UserInfo("uid", true))
-
-    val mahaRequestLogHelper = MahaRequestLogHelper("er", mahaServiceConfig.mahaRequestLogWriter)
-
-    val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator(mahaService)
 
     val drilldownConfig = DrilldownConfig
     drilldownConfig.validateCuratorConfig(reportingRequest.curatorJsonConfigMap, reportingRequest)
