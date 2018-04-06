@@ -6,7 +6,7 @@ import java.util.concurrent.Callable
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.BucketParams
-import com.yahoo.maha.core.query.{DerivedRowList, InMemRowList, Row, RowList}
+import com.yahoo.maha.core.query.{DerivedRowList, InMemRowList, Row}
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
