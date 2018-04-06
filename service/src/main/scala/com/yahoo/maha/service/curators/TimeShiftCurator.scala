@@ -6,13 +6,13 @@ import java.util.concurrent.Callable
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.BucketParams
-import com.yahoo.maha.core.query.{DerivedRowList, Row, RowList}
+import com.yahoo.maha.core.query.{DerivedRowList, InMemRowList, Row, RowList}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.parrequest2.future.ParRequest
+import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.service.error.{MahaServiceBadRequestException, MahaServiceExecutionException}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
-import com.yahoo.maha.service.{MahaService, RequestResult}
+import com.yahoo.maha.service.{MahaRequestContext, MahaService, RequestResult}
 import grizzled.slf4j.Logging
 
 import scala.collection.mutable
@@ -30,6 +30,7 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
   override val name: String = TimeShiftCurator.name
   override val level: Int = 1
   override val priority: Int = 0
+  override val isSingleton: Boolean = true
 
   private[this] def getRequestModelForPreviousWindow(registryName: String,
                                                      bucketParams: BucketParams,
@@ -65,13 +66,11 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
     requestModelResultTry
   }
 
-  override def process(registryName: String,
-                       bucketParams: BucketParams,
-                       reportingRequest: ReportingRequest,
+  override def process(mahaRequestContext: MahaRequestContext,
                        mahaService: MahaService,
                        mahaRequestLogHelper: MahaRequestLogHelper): ParRequest[CuratorResult] = {
 
-    val registryConfig = mahaService.getMahaServiceConfig.registry.get(registryName).get
+    val registryConfig = mahaService.getMahaServiceConfig.registry.get(mahaRequestContext.registryName).get
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
     val parRequestLabel = "processTimeshiftCurator"
 
@@ -80,24 +79,29 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
         new Callable[Either[GeneralError, CuratorResult]](){
           override def call(): Either[GeneralError, CuratorResult] = {
 
-            val defaultWindowRequestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams , mahaRequestLogHelper)
+            val defaultWindowRequestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(mahaRequestContext.registryName, mahaRequestContext.reportingRequest, mahaRequestContext.bucketParams , mahaRequestLogHelper)
             if(defaultWindowRequestModelResultTry.isFailure) {
               val message = defaultWindowRequestModelResultTry.failed.get.getMessage
               mahaRequestLogHelper.logFailed(message)
               return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceBadRequestException(message, defaultWindowRequestModelResultTry.failed.toOption))
             } else {
-              requestModelValidator.validate(defaultWindowRequestModelResultTry.get)
+              requestModelValidator.validate(mahaRequestContext, defaultWindowRequestModelResultTry.get)
             }
 
             val defaultWindowRequestModel: RequestModel = defaultWindowRequestModelResultTry.get.model
-            val defaultWindowRequestResultTry = mahaService.processRequestModel(registryName, defaultWindowRequestModel, mahaRequestLogHelper)
+            val defaultWindowRequestResultTry = mahaService.processRequestModel(mahaRequestContext.registryName, defaultWindowRequestModel, mahaRequestLogHelper)
             if(defaultWindowRequestResultTry.isFailure) {
               val message = defaultWindowRequestResultTry.failed.get.getMessage
               mahaRequestLogHelper.logFailed(message)
               return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceExecutionException(message))
             }
 
-            val defaultWindowRowList: RowList = defaultWindowRequestResultTry.get.rowList
+            val defaultWindowRowList: InMemRowList = {
+              defaultWindowRequestResultTry.get.rowList match {
+                case inMemRowList: InMemRowList => inMemRowList
+                case rl => return GeneralError.either("defaultWindowRowList", s"Unsupported row list ${Option(rl).map(_.getClass.getSimpleName)}")
+              }
+            }
 
             val dimensionKeySet: Set[String] = defaultWindowRequestModel.bestCandidates.get.publicFact.dimCols.map(_.alias)
               .intersect(defaultWindowRequestModel.reportingRequest.selectFields.map(_.field).toSet)
@@ -113,9 +117,9 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
             }
 
             val previousWindowRequestModelResultTry: Try[RequestModelResult] =
-              getRequestModelForPreviousWindow(registryName,
-                bucketParams,
-                reportingRequest,
+              getRequestModelForPreviousWindow(mahaRequestContext.registryName,
+                mahaRequestContext.bucketParams,
+                mahaRequestContext.reportingRequest,
                 mahaService,
                 mahaRequestLogHelper,
                 dimensionAndItsValuesMap.map(e => (e._1, e._2.toSet)).toList)
@@ -126,18 +130,24 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
               return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceBadRequestException(message))
             }
 
-            val previousWindowRequestResultTry = mahaService.processRequestModel(registryName, previousWindowRequestModelResultTry.get.model, mahaRequestLogHelper)
+            val previousWindowRequestResultTry = mahaService.processRequestModel(mahaRequestContext.registryName, previousWindowRequestModelResultTry.get.model, mahaRequestLogHelper)
             if(previousWindowRequestResultTry.isFailure) {
               val message = previousWindowRequestResultTry.failed.get.getMessage
               mahaRequestLogHelper.logFailed(message)
               return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceExecutionException(message))
             }
 
-            val previousWindowRowList: RowList = previousWindowRequestResultTry.get.rowList
+            val previousWindowRowList: InMemRowList = {
+              previousWindowRequestResultTry.get.rowList match {
+                case inMemRowList: InMemRowList => inMemRowList
+                case rl => return GeneralError.either("previousWindowRowList", s"Unsupported row list ${Option(rl).map(_.getClass.getSimpleName)}")
+              }
+            }
 
-            val derivedRowList: DerivedRowList = createDerivedRowList(defaultWindowRequestModel, defaultWindowRowList, previousWindowRowList, dimensionKeySet)
+            val derivedRowList: DerivedRowList = createDerivedRowList(
+              defaultWindowRequestModel, defaultWindowRowList, previousWindowRowList, dimensionKeySet)
 
-            return new Right[GeneralError, CuratorResult](CuratorResult(Try(RequestResult(derivedRowList, defaultWindowRequestResultTry.get.queryAttributes, defaultWindowRequestResultTry.get.totalRowsOption)), defaultWindowRequestModelResultTry.get))
+            new Right[GeneralError, CuratorResult](CuratorResult(Try(RequestResult(derivedRowList, defaultWindowRequestResultTry.get.queryAttributes, defaultWindowRequestResultTry.get.totalRowsOption)), defaultWindowRequestModelResultTry.get))
           }
         }
       )).build()
@@ -147,8 +157,8 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
   }
 
   private[this] def createDerivedRowList(defaultWindowRequestModel: RequestModel,
-                                   defaultWindowRowList: RowList,
-                                   previousWindowRowList: RowList,
+                                   defaultWindowRowList: InMemRowList,
+                                   previousWindowRowList: InMemRowList,
                                    dimensionKeySet: Set[String]) : DerivedRowList = {
 
     val injectableColumns: ArrayBuffer[ColumnInfo] = new collection.mutable.ArrayBuffer[ColumnInfo]()
@@ -167,7 +177,7 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
       primaryKeyToRowMap.put(primaryKey, timeShiftRow)
     })
 
-    val derivedRowList: DerivedRowList = new DerivedRowList(columns)
+    val unsortedRows: ArrayBuffer[Row] = new ArrayBuffer[Row](defaultWindowRowList.size)
 
     defaultWindowRowList.foreach(defaultRow => {
       val primaryKey: String = dimensionKeySet.map(alias => alias + defaultRow.getValue(alias)).mkString
@@ -200,10 +210,26 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
           }
         }
       }
-      derivedRowList.addRow(row)
+      unsortedRows+=row
 
     })
-    derivedRowList
+    val sortedList = {
+      if(aliasMap.contains(TimeShiftCurator.PCT_CHANGE_STRING)) {
+        val pos = aliasMap(TimeShiftCurator.PCT_CHANGE_STRING)
+        unsortedRows.sortBy {
+          row =>
+            val value = row.getValue(pos)
+            if(value != null && value.isInstanceOf[Double]) {
+              value.asInstanceOf[Double]
+            } else {
+              0D
+            }
+        }
+      } else {
+        unsortedRows
+      }
+    }
+    new DerivedRowList(columns, sortedList = sortedList)
   }
 
 }
