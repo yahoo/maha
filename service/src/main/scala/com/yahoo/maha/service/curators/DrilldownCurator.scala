@@ -31,8 +31,16 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
   override val level: Int = 1
   override val priority: Int = 0
 
-  //validate request
-  //generate basic request
+  /**
+    * Verify the input reportingRequest generates a valid requestModel.
+    * If so, return this requestModel for the primary request.
+    * @param registryName
+    * @param bucketParams
+    * @param reportingRequest
+    * @param mahaService
+    * @param mahaRequestLogHelper
+    * @return requestModel
+    */
   private def validateReportingRequest(registryName: String,
                                        bucketParams: BucketParams,
                                        reportingRequest: ReportingRequest,
@@ -43,17 +51,28 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     requestModelResultTry.get.model
   }
 
-  //check if request includes primary key to this table for the drilldown.  If not, throw an error.
+  /**
+    * Check if generated requestModel requestCols includes
+    * the primary key for its own most granular requested table.
+    * If this primary key exists in the request, return its alias
+    * to be used in the secondary request's included columns.
+    * @param requestModel
+    * @return primaryKeyAlias
+    */
   private def validateSelectedGranularPrimaryKey(requestModel: RequestModel): String = {
     require(requestModel.requestColsSet.contains(requestModel.dimensionsCandidates.head.dim.primaryKeyByAlias), "Requested columns should include drilldown table primary key!")
     requestModel.dimensionsCandidates.head.dim.primaryKeyByAlias
   }
 
-    //propagate basic request to most granular table
-
-    //If request is fully valid, begin to execute while in parallel building second request
-
-    //Find every row that will need to be requested, tables, etc.
+  /**
+    * Copy the current ReportingRequest with:
+    * - Requested Drilldown Dim as primary.
+    * - Primary key of primary table.
+    * - All metrics (facts).
+    * @param reportingRequest
+    * @param drillDownAlias
+    * @param primaryKeyAlias
+    */
   private def newRequestWithFactsAndRequestedDrilldown(reportingRequest: ReportingRequest,
                                                        drillDownAlias: String,
                                                        primaryKeyAlias: String): Unit = {
