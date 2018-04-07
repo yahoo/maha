@@ -18,6 +18,8 @@ import scala.util.Try
 /**
  * Created by jians on 10/22/15.
  */
+case class QueryPipelineResult(queryChain: QueryChain, rowList: RowList, queryAttributes: QueryAttributes)
+
 trait QueryPipeline {
   def queryChain: QueryChain
 
@@ -29,9 +31,9 @@ trait QueryPipeline {
 
   def bestDimCandidates: SortedSet[DimensionBundle]
 
-  def execute(executorContext: QueryExecutorContext): Try[(RowList, QueryAttributes)]
+  def execute(executorContext: QueryExecutorContext): Try[QueryPipelineResult]
 
-  def execute(executorContext: QueryExecutorContext, queryAttributes: QueryAttributes): Try[(RowList, QueryAttributes)]
+  def execute(executorContext: QueryExecutorContext, queryAttributes: QueryAttributes): Try[QueryPipelineResult]
 }
 
 object QueryPipeline extends Logging {
@@ -104,21 +106,29 @@ case class QueryPipelineWithFallback(queryChain: QueryChain
 
   val fallbackQueryChainOption: Option[QueryChain] = Option(fallbackQueryChain)
 
-  def execute(executorContext: QueryExecutorContext): Try[(RowList, QueryAttributes)] = {
+  def execute(executorContext: QueryExecutorContext): Try[QueryPipelineResult] = {
     val stats = new EngineQueryStats
-    Try(queryChain.execute(executorContext, rowListFn, QueryAttributes.empty, stats)).recover {
+    Try {
+      val result = queryChain.execute(executorContext, rowListFn, QueryAttributes.empty, stats)
+      QueryPipelineResult(queryChain, result._1, result._2)
+    }.recover {
       case throwable =>
         QueryPipelineWithFallback.logger.error("Primary query chain failed, recovering with fall back", throwable)
-        fallbackQueryChain.execute(executorContext, fallbackRowListFn, QueryAttributes.empty, stats)
+        val result = fallbackQueryChain.execute(executorContext, fallbackRowListFn, QueryAttributes.empty, stats)
+        QueryPipelineResult(fallbackQueryChain, result._1, result._2)
     }
   }
 
-  def execute(executorContext: QueryExecutorContext, queryAttributes: QueryAttributes): Try[(RowList, QueryAttributes)] = {
+  def execute(executorContext: QueryExecutorContext, queryAttributes: QueryAttributes): Try[QueryPipelineResult] = {
     val stats = new EngineQueryStats
-    Try(queryChain.execute(executorContext, rowListFn, queryAttributes, stats)).recover {
+    Try{
+      val result = queryChain.execute(executorContext, rowListFn, queryAttributes, stats)
+      QueryPipelineResult(queryChain, result._1, result._2)
+    }.recover {
       case throwable =>
         QueryPipelineWithFallback.logger.error("Primary query chain failed, recovering with fall back", throwable)
-        fallbackQueryChain.execute(executorContext, fallbackRowListFn, queryAttributes, stats)
+        val result = fallbackQueryChain.execute(executorContext, fallbackRowListFn, queryAttributes, stats)
+        QueryPipelineResult(fallbackQueryChain, result._1, result._2)
     }
   }
 
@@ -132,14 +142,20 @@ case class DefaultQueryPipeline(queryChain: QueryChain
 
   val fallbackQueryChainOption: Option[QueryChain] = None
 
-  def execute(executorContext: QueryExecutorContext): Try[(RowList, QueryAttributes)] = {
+  def execute(executorContext: QueryExecutorContext): Try[QueryPipelineResult] = {
     val stats = new EngineQueryStats
-    Try(queryChain.execute(executorContext, rowListFn, QueryAttributes.empty, stats))
+    Try {
+      val result = queryChain.execute(executorContext, rowListFn, QueryAttributes.empty, stats)
+      QueryPipelineResult(queryChain, result._1, result._2)
+    }
   }
 
-  def execute(executorContext: QueryExecutorContext, queryAttributes: QueryAttributes): Try[(RowList, QueryAttributes)] = {
+  def execute(executorContext: QueryExecutorContext, queryAttributes: QueryAttributes): Try[QueryPipelineResult] = {
     val stats = new EngineQueryStats
-    Try(queryChain.execute(executorContext, rowListFn, queryAttributes, stats))
+    Try {
+      val result = queryChain.execute(executorContext, rowListFn, queryAttributes, stats)
+      QueryPipelineResult(queryChain, result._1, result._2)
+    }
   }
 
   override def requestModel: RequestModel = queryChain.drivingQuery.queryContext.requestModel

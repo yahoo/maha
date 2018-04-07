@@ -36,7 +36,7 @@ object DefaultQueryPipelineFactoryTest {
       queryExecutorContext.register(e)
       this
     }
-    def run(queryAttributes: QueryAttributes = QueryAttributes.empty) : Try[(RowList, QueryAttributes)] = {
+    def run(queryAttributes: QueryAttributes = QueryAttributes.empty) : Try[QueryPipelineResult] = {
       pipeline.execute(queryExecutorContext, queryAttributes)
     }
   }
@@ -469,7 +469,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isSuccess, result)
-    result.toOption.get._1.foreach {
+    result.toOption.get.rowList.foreach {
       row =>
         assert(row.getValue("Impressions") === 100)
         assert(row.getValue("Clicks") === 1)
@@ -505,7 +505,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
     
     assert(result.isSuccess, result)
-    result.toOption.get._1.foreach {
+    result.toOption.get.rowList.foreach {
       row =>
         assert(row.getValue("Impressions") === 100)
         assert(row.getValue("Clicks") === 1)
@@ -557,7 +557,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isSuccess, result)
-    result.toOption.get._1.foreach {
+    result.toOption.get.rowList.foreach {
       row =>
         assert(row.getValue("Advertiser ID") === 1)
         assert(row.getValue("Advertiser Status") === "ON")
@@ -598,7 +598,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isSuccess, result)
-    result.toOption.get._1.foreach {
+    result.toOption.get.rowList.foreach {
       row =>
         assert(row.getValue("Impressions") === 100)
         assert(row.getValue("Clicks") === 1)
@@ -636,7 +636,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     val subsequentQuery = pipeline.queryChain.subsequentQueryList.head.asString
     assert(subsequentQuery contains("Keyword ID"))
     assert(result.isSuccess, result)
-    result.toOption.get._1.foreach {
+    result.toOption.get.rowList.foreach {
       row =>
         assert(row.getValue("Keyword Value") === "value")
         assert(row.getValue("Impressions") === 100)
@@ -675,7 +675,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isSuccess, result)
-    result.toOption.get._1.foreach {
+    result.toOption.get.rowList.foreach {
       row =>
         assert(row.getValue("Impressions") === 100)
         assert(row.getValue("Clicks") === 1)
@@ -710,7 +710,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     val subsequentQuery = pipeline.queryChain.subsequentQueryList.head.asString
     assert(subsequentQuery contains("Keyword ID"))
     assert(result.isSuccess, result)
-    result.toOption.get._1.foreach {
+    result.toOption.get.rowList.foreach {
       row =>
         assert(row.getValue("Keyword Value") === "value")
         assert(row.getValue("Impressions") === 100)
@@ -743,7 +743,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isSuccess, result)
-    result.toOption.get._1.foreach {
+    result.toOption.get.rowList.foreach {
       row =>
         assert(row.getValue("Impressions") === 100)
         assert(row.getValue("Clicks") === 1)
@@ -776,7 +776,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isSuccess, result)
-    result.toOption.get._1.foreach {
+    result.toOption.get.rowList.foreach {
       row =>
         assert(row.getValue("Impressions") === 100)
         assert(row.getValue("Clicks") === 1)
@@ -817,7 +817,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isSuccess, result)
-    result.toOption.get._1.foreach {
+    result.toOption.get.rowList.foreach {
       row =>
         assert(row.getValue("Impressions") === 100)
         assert(row.getValue("Clicks") === 1)
@@ -842,7 +842,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isSuccess, result)
-    assert(result.toOption.get._1.isEmpty)
+    assert(result.toOption.get.rowList.isEmpty)
     assert(pipeline.queryChain.subsequentQueryList.isEmpty)
   }
   test("successfully generate sync multi engine query for druid + oracle with rerun on oracle when no data from druid") {
@@ -874,7 +874,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isSuccess, result)
-    result.toOption.get._1.foreach {
+    result.toOption.get.rowList.foreach {
       row =>
         assert(row.getValue("Impressions") === 100)
         assert(row.getValue("Clicks") === 1)
@@ -929,7 +929,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isSuccess, result)
-    result.toOption.get._1.foreach {
+    result.toOption.get.rowList.foreach {
       row =>
         if(row.getValue("Ad Group ID") == 10) {
           assert(row.getValue("Impressions") === 100)
@@ -988,7 +988,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
     assert(result.isSuccess, result)
     assert(oracleExecutorRunCount === 2)
-    result.toOption.get._1.foreach {
+    result.toOption.get.rowList.foreach {
       row =>
         assert(row.getValue("Ad Group ID") === 12)
         assert(row.getValue("Impressions") === 101)
@@ -1123,7 +1123,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isSuccess, result)
-    result.toOption.get._1.foreach {
+    result.toOption.get.rowList.foreach {
       row =>
         assert(row.getValue("Impressions") === 100)
         assert(row.getValue("Clicks") === 1)
@@ -1371,7 +1371,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isSuccess, result)
-    assert(!result.toOption.get._1.isEmpty)
+    assert(!result.toOption.get.rowList.isEmpty)
   }
 
   test("successfully generate fallback query on sync request with force engine and execute it") {
@@ -1405,7 +1405,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isSuccess, result)
-    assert(!result.toOption.get._1.isEmpty)
+    assert(!result.toOption.get.rowList.isEmpty)
   }
 
   test("successfully generate fallback query on sync request and fail to execute it due to missing executor") {
@@ -1463,7 +1463,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isSuccess, result)
-    assert(!result.toOption.get._1.isEmpty)
+    assert(!result.toOption.get.rowList.isEmpty)
   }
 
   test("successfully generate fallback query on async request with force engine and execute it") {
@@ -1497,7 +1497,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isSuccess, result)
-    assert(!result.toOption.get._1.isEmpty)
+    assert(!result.toOption.get.rowList.isEmpty)
   }
 
   test("successfully execute pipeline while failing to create fallback query") {
@@ -1555,6 +1555,6 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isSuccess, result)
-    assert(!result.toOption.get._1.isEmpty)
+    assert(!result.toOption.get.rowList.isEmpty)
   }
 }

@@ -797,7 +797,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
     var str: String = ""
     var count: Int = 0
-    result.get._1.foreach{
+    result.get.rowList.foreach{
       row => {
         count += 1
         str= str+s"$row"
@@ -1275,12 +1275,14 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         }
 
     }))
-    val result=  queryPipelineTry.toOption.get.execute(executorContext, QueryAttributes.empty).toOption.get
-    assert(!result._1.isEmpty)
-    result._1.foreach{
+    val result =  queryPipelineTry.toOption.get.execute(executorContext, QueryAttributes.empty).toOption.get
+
+    assert(!result.rowList.isEmpty)
+    result.rowList.foreach {
       row=> println(s"partial groupby query => Result row after: $row")
     }
-    result._1.foreach{row =>
+    result.rowList.foreach {
+      row =>
       val map = row.aliasMap
       for((key,value)<-map) {
         assert(row.getValue(key)!=null)
@@ -1360,11 +1362,11 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     assert(resultTry.isSuccess, resultTry.errorMessage("Fail to execute pipeline"))
 
     val result =  resultTry.toOption.get
-    assert(!result._1.isEmpty)
-    result._1.foreach{
+    assert(!result.rowList.isEmpty)
+    result.rowList.foreach{
       row=> println(s"partial groupby query => Result row after: $row")
     }
-    result._1.foreach{row =>
+    result.rowList.foreach{row =>
       val map = row.aliasMap
       for((key,value)<-map) {
         assert(row.getValue(key)!=null)
@@ -1448,14 +1450,15 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     assert(resultTry.isSuccess, resultTry.errorMessage("Fail to execute pipeline"))
 
     val result =  resultTry.toOption.get
-    assert(!result._1.isEmpty)
+    assert(!result.rowList.isEmpty)
     var rowCount = 0
-    result._1.foreach( row => rowCount = rowCount + 1)
+    result.rowList.foreach( row => rowCount = rowCount + 1)
     assert(rowCount == 2)
-    result._1.foreach{
+    result.rowList.foreach {
       row=> println(s"partial groupby query => Result row after: $row")
     }
-    result._1.foreach{row =>
+    result.rowList.foreach {
+      row =>
       val map = row.aliasMap
       for((key,value)<-map) {
         assert(row.getValue(key)!=null)
@@ -1608,10 +1611,10 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val result = queryPipelineTry.toOption.get.execute(queryExecContext)
     assert(result.isSuccess)
 
-    result.toOption.get._1.foreach(println)
+    result.toOption.get.rowList.foreach(println)
     //var result = oracleExecutor.execute(oraclQuery.head, rowList, QueryAttributes.empty)
     val oracleQuery = queryPipelineTry.toOption.get.queryChain.subsequentQueryList.head
-    //require(result._1, "Failed to execute MultiEngine Query")
+    //require(result.rowList, "Failed to execute MultiEngine Query")
     println(oracleQuery.asString)
     val expected =
     """
@@ -1696,7 +1699,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val result = queryPipelineTry.toOption.get.execute(queryExecContext)
     assert(result.isSuccess)
 
-    result.toOption.get._1.foreach(println)
+    result.toOption.get.rowList.foreach(println)
     val oracleQuery = queryPipelineTry.toOption.get.queryChain.subsequentQueryList.head
     println(oracleQuery.asString)
     val expected = s"""
@@ -1927,7 +1930,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     ,"Row(Map(Is Adjustment -> 2, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(199, 2012-01-01, Y, 100, 10))"
     )
     var count = 0
-    result.get._1.foreach {
+    result.get.rowList.foreach {
       row =>
         println(row)
         assert(expectedSet.contains(row.toString))
@@ -2009,7 +2012,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
       ,"Row(Map(Is Adjustment -> 2, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(199, 2012-01-01, Y, 100, 10))"
     )
     var count = 0
-    result.get._1.foreach {
+    result.get.rowList.foreach {
       row =>
         println(row)
         assert(expectedSet.contains(row.toString))
@@ -2123,7 +2126,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         "Row(Map(Day -> 0, Hour -> 1, Spend Usd -> 2),ArrayBuffer(2017-05-01, 03, 31223.5407607555))"
     )
     var count = 0
-    result.get._1.foreach {
+    result.get.rowList.foreach {
       row =>
         assert(expectedSet.contains(row.toString))
         count+=1
@@ -2220,7 +2223,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val expected = List("Row(Map(Day -> 0, Keyword ID -> 1, Impressions -> 2, Advertiser Status -> 3),ArrayBuffer(null, 10, 175, null))"
     , "Row(Map(Day -> 0, Keyword ID -> 1, Impressions -> 2, Advertiser Status -> 3),ArrayBuffer(null, 14, 17, null))")
 
-    result.get._1.foreach {
+    result.get.rowList.foreach {
       row =>
         println(row)
         assert(expected.contains(row.toString))
@@ -2285,10 +2288,10 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val result = queryPipelineTry.toOption.get.execute(queryExecContext)
     assert(result.isSuccess)
 
-    result.toOption.get._1.foreach(println)
+    result.toOption.get.rowList.foreach(println)
     //var result = oracleExecutor.execute(oraclQuery.head, rowList, QueryAttributes.empty)
     val oracleQuery = queryPipelineTry.toOption.get.queryChain.subsequentQueryList.head
-    //require(result._1, "Failed to execute MultiEngine Query")
+    //require(result.rowList, "Failed to execute MultiEngine Query")
     println(oracleQuery.asString)
     val expected =
       """

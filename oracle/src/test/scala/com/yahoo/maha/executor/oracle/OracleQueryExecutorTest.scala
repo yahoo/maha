@@ -567,9 +567,9 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     println(sqlQuery)
     val result = queryPipeline.execute(queryExecutorContext)
     result match {
-      case scala.util.Success((inmem: InMemRowList, _)) =>
-        inmem.foreach(println)
-        assert(!inmem.isEmpty)
+      case scala.util.Success(queryPipelineResult) =>
+        queryPipelineResult.rowList.foreach(println)
+        assert(!queryPipelineResult.rowList.isEmpty)
       case any =>
         throw new UnsupportedOperationException(s"unexpected row list : $any")
     }
@@ -622,9 +622,9 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     println(sqlQuery)
     val result = queryPipeline.execute(queryExecutorContext)
     result match {
-      case scala.util.Success((inmem: InMemRowList, _)) =>
-        inmem.foreach(println)
-        assert(!inmem.isEmpty)
+      case scala.util.Success(queryPipelineResult) =>
+        queryPipelineResult.rowList.foreach(println)
+        assert(!queryPipelineResult.rowList.isEmpty)
       case any =>
         throw new UnsupportedOperationException(s"unexpected row list : $any")
     }
@@ -676,9 +676,9 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
       println(sqlQuery)
       val result = queryPipeline.execute(queryExecutorContext)
       result match {
-        case scala.util.Success((inmem: InMemRowList, _)) =>
-          assert(!inmem.isEmpty)
-          inmem.foreach(println)
+        case scala.util.Success(queryPipelineResult) =>
+          queryPipelineResult.rowList.foreach(println)
+          assert(!queryPipelineResult.rowList.isEmpty)
         case any =>
           throw new UnsupportedOperationException(s"unexpected row list : $any")
       }
@@ -736,7 +736,8 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
       val queryPipeline = queryPipelineTry.toOption.get
       val result = queryPipeline.execute(queryExecutorContext)
       result match {
-        case scala.util.Success((inmem: InMemRowList, _)) =>
+        case scala.util.Success(queryPipelineResult) =>
+          val inmem = queryPipelineResult.rowList
           assert(!inmem.isEmpty)
           inmem.foreach {
             row =>
@@ -792,7 +793,8 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     println(sqlQuery)
     val result = queryPipeline.execute(queryExecutorContext)
     result match {
-      case scala.util.Success((inmem: InMemRowList, _)) =>
+      case scala.util.Success(queryPipelineResult) =>
+        val inmem = queryPipelineResult.rowList
         assert(!inmem.isEmpty)
         inmem.foreach(println)
       case any =>
