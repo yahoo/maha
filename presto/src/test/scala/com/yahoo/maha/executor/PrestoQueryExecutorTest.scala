@@ -2,28 +2,22 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.executor.presto
 
-import java.io.{BufferedWriter, FileWriter, OutputStreamWriter}
 import java.sql.{Date, ResultSet, Timestamp}
 import java.util.UUID
-
 
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{HivePartDimCol, _}
+import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
-import com.yahoo.maha.core.query.druid.DruidQueryGenerator
 import com.yahoo.maha.core.query.presto.PrestoQueryGenerator
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request._
-import com.yahoo.maha.executor.MockDruidQueryExecutor
 import com.yahoo.maha.jdbc._
-import com.yahoo.maha.report.RowCSVWriter
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
-import org.h2.jdbc.JdbcResultSet
-import org.mockito.Mockito
 import org.mockito.Matchers._
+import org.mockito.Mockito
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest {
@@ -535,7 +529,8 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val result = queryPipeline.execute(queryExecutorContext)
 
     result match {
-      case scala.util.Success((inmem: InMemRowList, _)) =>
+      case scala.util.Success(queryPipelineResult) =>
+        val inmem = queryPipelineResult.rowList
         inmem.foreach(println)
         assert(!inmem.isEmpty)
       case any =>
@@ -574,7 +569,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val result = queryPipeline.execute(queryExecutorContext)
 
     result match {
-      case scala.util.Success((inmem: InMemRowList, _)) =>
+      case scala.util.Success(queryPipelineResult) =>
         fail("Expected to fail")
       case any =>
         assert(any.isFailure)
