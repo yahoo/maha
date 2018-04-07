@@ -36,10 +36,11 @@ object DrilldownConfig extends JsonCurator {
 
     if(drillDownMap.contains("mr") && Try(drillDownMap("mr").asInstanceOf[BigInt]).isSuccess) {
       require(drillDownMap("mr").asInstanceOf[BigInt] <= 1000, "Max Rows limit of 1000 exceeded.")
-      maxRows = Try(drillDownMap("mr").asInstanceOf[BigInt]).getOrElse(1000)
+      maxRows = Try(drillDownMap("mr").asInstanceOf[BigInt]).get
     }
 
-    if(drillDownMap.contains("enforceFilters") && Try(drillDownMap("enforceFilters").asInstanceOf[Boolean]).isSuccess) enforceFilters = Try(drillDownMap("enforceFilters").asInstanceOf[Boolean]).getOrElse(false)
+    if(drillDownMap.contains("enforceFilters") && Try(drillDownMap("enforceFilters").asInstanceOf[Boolean]).isSuccess)
+      enforceFilters = Try(drillDownMap("enforceFilters").asInstanceOf[Boolean]).getOrElse(false)
 
     if(drillDownMap.contains("ordering") && Try(drillDownMap("ordering").asInstanceOf[List[Map[String, String]]]).isSuccess){
       val orderList = drillDownMap("ordering").asInstanceOf[List[Map[String, String]]]
