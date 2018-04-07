@@ -11,6 +11,7 @@ import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParFunction
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service._
+import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import grizzled.slf4j.Logging
@@ -179,5 +180,48 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
     val parRequestResult = mahaService.executeRequest(REGISTRY, ReportingRequest.forceHive(reportingRequest),bucketParams, mahaRequestLogHelper)
     assert(parRequestResult.prodRun.get(800).isLeft)
 
+  }
+
+  test("Test RequestModel Failure using mahaService") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Student Name"},
+                            {"field": "Admitted Year"},
+                            {"field": "Student Status Unknown Column"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                         "sortBy": [
+                            {"field": "Admitted Year", "order": "Asc"},
+                            {"field": "Student ID", "order": "Desc"}
+                          ]
+                        }"""
+
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", true))
+
+    val mahaRequestLogHelper = MahaRequestLogHelper(REGISTRY, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams, mahaRequestLogHelper)
+    assert(requestModelResultTry.isFailure)
+
+    val exception = intercept[MahaServiceBadRequestException] {
+      mahaService.processRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
+    }
+    assert(exception.source.get.getMessage.contains("ERROR_CODE:10005 Failed to find primary key alias for Student Status Unknown Column"))
+
+    val executionException = intercept[MahaServiceBadRequestException] {
+          val parRequestResult = mahaService.executeRequest(REGISTRY, ReportingRequest.forceHive(reportingRequest),bucketParams, mahaRequestLogHelper)
+       assert(parRequestResult.prodRun.get(800).isLeft)
+    }
+    assert(executionException.source.get.getMessage.contains("ERROR_CODE:10005 Failed to find primary key alias for Student Status Unknown Column"))
   }
 }
