@@ -102,7 +102,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       )
 
       var defaultCount = 0
-      curatorResult.requestResultTry.get.rowList.foreach( row => {
+      curatorResult.requestResultTry.get.queryPipelineResult.rowList.foreach( row => {
         println(row.toString)
         assert(defaultExpectedSet.contains(row.toString))
         defaultCount+=1
@@ -167,7 +167,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       )
 
       var cnt = 0
-      curatorResult.requestResultTry.get.rowList.foreach( row => {
+      curatorResult.requestResultTry.get.queryPipelineResult.rowList.foreach( row => {
         println(row.toString)
         assert(expectedSet.contains(row.toString))
         cnt+=1

@@ -6,7 +6,7 @@ import java.util.concurrent.Callable
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.BucketParams
-import com.yahoo.maha.core.query.{DerivedRowList, InMemRowList, Row}
+import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
@@ -97,7 +97,7 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
             }
 
             val defaultWindowRowList: InMemRowList = {
-              defaultWindowRequestResultTry.get.rowList match {
+              defaultWindowRequestResultTry.get.queryPipelineResult.rowList match {
                 case inMemRowList: InMemRowList => inMemRowList
                 case rl => return GeneralError.either("defaultWindowRowList", s"Unsupported row list ${Option(rl).map(_.getClass.getSimpleName)}")
               }
@@ -138,16 +138,26 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
             }
 
             val previousWindowRowList: InMemRowList = {
-              previousWindowRequestResultTry.get.rowList match {
+              previousWindowRequestResultTry.get.queryPipelineResult.rowList match {
                 case inMemRowList: InMemRowList => inMemRowList
                 case rl => return GeneralError.either("previousWindowRowList", s"Unsupported row list ${Option(rl).map(_.getClass.getSimpleName)}")
               }
             }
 
             val derivedRowList: DerivedRowList = createDerivedRowList(
-              defaultWindowRequestModel, defaultWindowRowList, previousWindowRowList, dimensionKeySet)
+              defaultWindowRequestResultTry.get.queryPipelineResult
+              , defaultWindowRequestModel
+              , defaultWindowRowList
+              , previousWindowRowList
+              , dimensionKeySet)
 
-            new Right[GeneralError, CuratorResult](CuratorResult(Try(RequestResult(derivedRowList, defaultWindowRequestResultTry.get.queryAttributes, defaultWindowRequestResultTry.get.totalRowsOption)), defaultWindowRequestModelResultTry.get))
+            new Right[GeneralError, CuratorResult](CuratorResult(
+              Try(
+                RequestResult(defaultWindowRequestResultTry.get.queryPipelineResult.copy(rowList = derivedRowList)
+                  , defaultWindowRequestResultTry.get.totalRowsOption)
+              )
+              , defaultWindowRequestModelResultTry.get
+            ))
           }
         }
       )).build()
@@ -156,7 +166,8 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
 
   }
 
-  private[this] def createDerivedRowList(defaultWindowRequestModel: RequestModel,
+  private[this] def createDerivedRowList( defaultWindowResult: QueryPipelineResult,
+                                          defaultWindowRequestModel: RequestModel,
                                    defaultWindowRowList: InMemRowList,
                                    previousWindowRowList: InMemRowList,
                                    dimensionKeySet: Set[String]) : DerivedRowList = {
@@ -229,7 +240,10 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
         unsortedRows
       }
     }
-    new DerivedRowList(columns, sortedList = sortedList)
+    new DerivedRowList(columns
+      , sortedList = sortedList
+      , drivingQuery = defaultWindowResult.queryChain.drivingQuery
+    )
   }
 
 }
