@@ -67,7 +67,7 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
           override def call(): Either[GeneralError, CuratorResult] = {
 
             val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(
-              mahaRequestContext.registryName, mahaRequestContext.reportingRequest, mahaRequestContext.bucketParams
+                mahaRequestContext.registryName, mahaRequestContext.reportingRequest, mahaRequestContext.bucketParams
               , mahaRequestLogHelper)
 
             if(requestModelResultTry.isFailure) {

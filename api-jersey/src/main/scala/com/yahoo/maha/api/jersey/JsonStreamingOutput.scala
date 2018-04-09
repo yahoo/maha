@@ -7,7 +7,7 @@ import javax.ws.rs.core.StreamingOutput
 
 import com.fasterxml.jackson.core.{JsonEncoding, JsonGenerator}
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.yahoo.maha.core.{ColumnInfo, DimColumnInfo, FactColumnInfo}
+import com.yahoo.maha.core._
 import com.yahoo.maha.core.query.RowList
 import com.yahoo.maha.core.request.ReportingRequest
 
@@ -15,7 +15,23 @@ object JsonStreamingOutput {
   val objectMapper: ObjectMapper = new ObjectMapper()
 }
 
-case class JsonStreamingOutput(reportingRequest: ReportingRequest, dimCols : Set[String], rowList: RowList) extends StreamingOutput {
+trait RowListToJsonStream {
+  def reportingRequest: ReportingRequest
+  def dimCols: Set[String]
+  def rowList: RowList
+  def engine: Engine
+  def factName: String
+  def ingestionTimeUpdaterMap : Map[Engine, IngestionTimeUpdater]
+}
+
+case class JsonStreamingOutput(reportingRequest: ReportingRequest,
+                               dimCols : Set[String],
+                               rowList: RowList,
+                               engine: Engine,
+                               factName : String,
+                               ingestionTimeUpdaterMap : Map[Engine, IngestionTimeUpdater] = Map.empty) extends StreamingOutput with RowListToJsonStream {
+
+  val ingestionTimeUpdater:IngestionTimeUpdater = ingestionTimeUpdaterMap.get(engine).getOrElse(NoopIngestionTimeUpdater(engine, engine.toString))
 
   override def write(outputStream: OutputStream): Unit = {
     val jsonGenerator: JsonGenerator = JsonStreamingOutput.objectMapper.getFactory().createGenerator(outputStream, JsonEncoding.UTF8)
@@ -30,7 +46,13 @@ case class JsonStreamingOutput(reportingRequest: ReportingRequest, dimCols : Set
   private def writeHeader(jsonGenerator: JsonGenerator, columns: IndexedSeq[ColumnInfo]) {
     jsonGenerator.writeFieldName("header") // "header":
     jsonGenerator.writeStartObject() // {
-
+    val ingestionTimeOption = ingestionTimeUpdater.getIngestionTime(factName)
+    if (ingestionTimeOption.isDefined) {
+      jsonGenerator.writeFieldName("lastIngestTime")
+      jsonGenerator.writeString(ingestionTimeOption.get)
+      jsonGenerator.writeFieldName("source")
+      jsonGenerator.writeString(factName)
+    }
     jsonGenerator.writeFieldName("cube") // "cube":
     jsonGenerator.writeString(reportingRequest.cube) // <cube_name>
     jsonGenerator.writeFieldName("fields") // "fields":

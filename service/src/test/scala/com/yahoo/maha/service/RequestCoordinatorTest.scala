@@ -253,5 +253,5 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     println(retval)
 
   }
-
 }
+
