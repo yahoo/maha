@@ -264,6 +264,54 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     assert(thrown.getMessage.contains("DrillDown may not be created without a declaration"))
   }
 
+  test("Create a valid DrillDownConfig with Descending order and multiple orderings") {
+    val json : String =
+      s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drillDown" : {
+                              "config" : {
+                                "dimension": "Section ID",
+                                "ordering": [{
+                                              "field": "Class ID",
+                                              "order": "asc"
+                                              },
+                                              {
+                                               "field": "Section ID",
+                                               "order": "Desc"
+                                              }]
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "2018-01-01", "to": "2018-01-02"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(json.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val drilldownConfig = new DrilldownConfig(false, null, "", IndexedSeq.empty, 0)
+    DrilldownConfig.validateCuratorConfig(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
+
+    println(drilldownConfig)
+    assert(drilldownConfig.enforceFilters == DrilldownConfig.DEFAULT_ENFORCE_FILTERS)
+    assert(drilldownConfig.maxRows == DrilldownConfig.MAXIMUM_ROWS)
+    assert(drilldownConfig.ordering.contains(SortBy("Section ID", DESC)))
+    assert(drilldownConfig.dimension == Field("Section ID", None, None))
+    assert(drilldownConfig.cube == "student_performance")
+  }
+
   test("Create a valid DrillDownConfig with Descending order and no given ordering") {
     val json : String =
       s"""{
