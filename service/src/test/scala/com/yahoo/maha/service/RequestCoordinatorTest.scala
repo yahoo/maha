@@ -184,5 +184,5 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(defaultCurator.compare(timeShiftCurator) == -1)
     assert(defaultCurator.compare(defaultCurator) == 0)
   }
-
 }
+

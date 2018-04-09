@@ -24,7 +24,7 @@ class MahaResourceTest {
   def successfulDomainEndpoint(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/er/domain")
+    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/academic/domain")
     val httpResponse: HttpResponse = httpClient.execute(httpGet)
     assertEquals("should return status 200", 200, httpResponse.getStatusLine.getStatusCode)
     val domainJson: String = EntityUtils.toString(httpResponse.getEntity)
@@ -48,7 +48,7 @@ class MahaResourceTest {
   def successfulDomainForCubeEndpoint(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/er/domain/cubes/student_performance")
+    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/academic/domain/cubes/student_performance")
     val httpResponse: HttpResponse = httpClient.execute(httpGet)
     assertEquals("should return status 200", 200, httpResponse.getStatusLine.getStatusCode)
     val domainJson: String = EntityUtils.toString(httpResponse.getEntity)
@@ -70,7 +70,7 @@ class MahaResourceTest {
   def testDomainForCubeEndpointWithInvalidCube(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/er/domain/cubes/dummy")
+    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/academic/domain/cubes/dummy")
     val httpResponse: HttpResponse = httpClient.execute(httpGet)
 //    assertEquals("should return status 400", 400, httpResponse.getStatusLine.getStatusCode)
     val domainJson: String = EntityUtils.toString(httpResponse.getEntity)
@@ -82,7 +82,7 @@ class MahaResourceTest {
   def successfulFlattenDomainEndpoint(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/er/flattenDomain")
+    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/academic/flattenDomain")
     val httpResponse: HttpResponse = httpClient.execute(httpGet)
     assertEquals("should return status 200", 200, httpResponse.getStatusLine.getStatusCode)
     val flattenDomainJson: String = EntityUtils.toString(httpResponse.getEntity)
@@ -104,7 +104,7 @@ class MahaResourceTest {
   def successfulFlattenDomainForCubeEndpoint(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/er/flattenDomain/cubes/student_performance")
+    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/academic/flattenDomain/cubes/student_performance")
     val httpResponse: HttpResponse = httpClient.execute(httpGet)
     assertEquals("should return status 200", 200, httpResponse.getStatusLine.getStatusCode)
     val flattenDomainJson: String = EntityUtils.toString(httpResponse.getEntity)
@@ -115,7 +115,7 @@ class MahaResourceTest {
   def successfulFlattenDomainForCubeEndpointWithRevision(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/er/flattenDomain/cubes/student_performance/0")
+    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/academic/flattenDomain/cubes/student_performance/0")
     val httpResponse: HttpResponse = httpClient.execute(httpGet)
     assertEquals("should return status 200", 200, httpResponse.getStatusLine.getStatusCode)
     val flattenDomainJson: String = EntityUtils.toString(httpResponse.getEntity)
@@ -138,7 +138,7 @@ class MahaResourceTest {
   def testFlattenDomainForCubeEndpointWithInvalidCube(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/er/flattenDomain/cubes/blah")
+    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/academic/flattenDomain/cubes/blah")
     val httpResponse: HttpResponse = httpClient.execute(httpGet)
     assertEquals("should return status 400", 400, httpResponse.getStatusLine.getStatusCode)
     val flattenDomainJson: String = EntityUtils.toString(httpResponse.getEntity)
@@ -150,7 +150,7 @@ class MahaResourceTest {
   def testFlattenDomainForCubeEndpointWithInvalidRevision(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/er/flattenDomain/cubes/student_performance/1")
+    val httpGet : HttpGet = new HttpGet("http://localhost:7875/appName/registry/academic/flattenDomain/cubes/student_performance/1")
     val httpResponse: HttpResponse = httpClient.execute(httpGet)
     assertEquals("should return status 400", 400, httpResponse.getStatusLine.getStatusCode)
     val flattenDomainJson: String = EntityUtils.toString(httpResponse.getEntity)
@@ -162,7 +162,7 @@ class MahaResourceTest {
   def failedDruidRequest(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/er/schemas/student/query?debug=true&forceEngine=druid")
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/academic/schemas/student/query?debug=true&forceEngine=druid")
     val jsonRequest = s"""{
                           "cube": "student_performance",
                           "selectFields": [
@@ -189,7 +189,7 @@ class MahaResourceTest {
   def successfulSyncRequest(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/er/schemas/student/query?debug=true&forceEngine=oracle")
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/academic/schemas/student/query?debug=true&forceEngine=oracle")
     val jsonRequest = s"""{
                           "cube": "student_performance",
                           "selectFields": [
@@ -219,7 +219,7 @@ class MahaResourceTest {
   def failedHiveRequest(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/er/schemas/student/query?debug=true&forceEngine=hive")
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/academic/schemas/student/query?debug=true&forceEngine=hive")
     val jsonRequest = s"""{
                           "cube": "student_performance",
                           "selectFields": [
@@ -246,7 +246,7 @@ class MahaResourceTest {
   def requestWithoutForcedEngine(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/er/schemas/student/query?debug=true")
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/academic/schemas/student/query?debug=true")
     val jsonRequest = s"""{
                           "cube": "student_performance",
                           "selectFields": [
@@ -276,7 +276,7 @@ class MahaResourceTest {
   def requestReturns500(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/er/schemas/student/query?debug=true")
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/academic/schemas/student/query?debug=true")
     val jsonRequest = s"""{
                           "cube": "student_performance",
                           "selectFields": [
@@ -307,7 +307,7 @@ class MahaResourceTest {
   def testInvalidSchemaSyncRequest(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/er/schemas/blah/query")
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/academic/schemas/blah/query")
     val jsonRequest = s"""{
                           "cube": "student_performance",
                           "selectFields": [
@@ -336,7 +336,7 @@ class MahaResourceTest {
   def testInvalidCubeRequestSyncRequest(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/er/schemas/student/query")
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/academic/schemas/student/query")
     val jsonRequest = s"""{
                           "cube": "blah_performance",
                           "selectFields": [
@@ -365,7 +365,7 @@ class MahaResourceTest {
   def testInvalidRequestSyncRequest(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/er/schemas/student/query")
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/academic/schemas/student/query")
     val jsonRequest = s"""{
                           "cube": "student_performance",
                           "selectFields": [
@@ -393,7 +393,7 @@ class MahaResourceTest {
   def testMaxWindowExceededError(){
     assertNotNull("jetty must be initialised", MahaResourceTest.server)
     val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
-    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/er/schemas/student/query")
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/academic/schemas/student/query")
     val jsonRequest = s"""{
                           "cube": "student_performance",
                           "selectFields": [

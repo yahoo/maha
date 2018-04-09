@@ -16,6 +16,8 @@ import org.joda.time.format.DateTimeFormat
 
 object ExampleMahaService extends Logging {
 
+  val REGISTRY_NAME = "academic";
+
   private var dataSource: Option[HikariDataSource] = None
   private var jdbcConnection: Option[JdbcConnection] = None
   val h2dbId = UUID.randomUUID().toString.replace("-","")
@@ -55,7 +57,7 @@ object ExampleMahaService extends Logging {
   def stageStudentData(mahaServiceConfig: MahaServiceConfig) : Unit = {
 
     val ddlGenerator = new OracleDDLGenerator
-    val erRegistryConfig = mahaServiceConfig.registry.get("er").get
+    val erRegistryConfig = mahaServiceConfig.registry.get(ExampleMahaService.REGISTRY_NAME).get
     val erRegistry= erRegistryConfig.registry
     erRegistry.factMap.values.foreach {
       publicFact =>
