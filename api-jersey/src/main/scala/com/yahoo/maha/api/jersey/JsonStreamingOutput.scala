@@ -13,7 +13,6 @@ import com.yahoo.maha.core.request.ReportingRequest
 
 object JsonStreamingOutput {
   val objectMapper: ObjectMapper = new ObjectMapper()
-  val noopIngestionTimeUpdaterMap:Map[Engine, IngestionTimeUpdater] = Map.empty
 }
 
 trait RowListToJsonStream {
@@ -30,7 +29,7 @@ case class JsonStreamingOutput(reportingRequest: ReportingRequest,
                                rowList: RowList,
                                engine: Engine,
                                factName : String,
-                               ingestionTimeUpdaterMap : Map[Engine, IngestionTimeUpdater] = JsonStreamingOutput.noopIngestionTimeUpdaterMap) extends StreamingOutput with RowListToJsonStream {
+                               ingestionTimeUpdaterMap : Map[Engine, IngestionTimeUpdater] = Map.empty) extends StreamingOutput with RowListToJsonStream {
 
   val ingestionTimeUpdater:IngestionTimeUpdater = ingestionTimeUpdaterMap.get(engine).getOrElse(NoopIngestionTimeUpdater(engine, engine.toString))
 

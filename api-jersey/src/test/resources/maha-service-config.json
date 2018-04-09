@@ -1,6 +1,6 @@
 {
   "registryMap": {
-    "er": {
+    "academic": {
       "factRegistrationClass": "com.yahoo.maha.api.jersey.example.student.SampleFactSchemaRegistrationFactory",
       "dimensionRegistrationClass": "com.yahoo.maha.api.jersey.example.student.SampleDimensionSchemaRegistrationFactory",
       "executors": [
@@ -11,9 +11,9 @@
         "oracle",
         "druid"
       ],
-      "bucketingConfigName": "erBucket",
-      "utcTimeProviderName": "erUTC",
-      "parallelServiceExecutorName": "erParallelExec",
+      "bucketingConfigName": "academicBucket",
+      "utcTimeProviderName": "academicUTC",
+      "parallelServiceExecutorName": "academicParallelExec",
       "dimEstimatorFactoryClass": "com.yahoo.maha.service.factory.DefaultDimCostEstimatorFactory",
       "dimEstimatorFactoryConfig": "",
       "factEstimatorFactoryClass": "com.yahoo.maha.service.factory.DefaultFactCostEstimatorFactory",
@@ -44,11 +44,11 @@
           "passwordKey": "h2.test.database.password",
           "poolName": "test-pool",
           "maximumPoolSize": 10,
-          "minimumIdle": 1,
+          "minimumIdle": 3,
           "autoCommit": true,
           "connectionTestQuery": "SELECT 1 FROM DUAL",
-          "validationTimeout": 1000000,
-          "idleTimeout": 1000000,
+          "validationTimeout": 10000,
+          "idleTimeout": 10000,
           "maxLifetime": 10000000,
           "dataSourceProperties": [
             {
@@ -140,7 +140,7 @@
     }
   },
   "bucketingConfigMap": {
-    "erBucket": {
+    "academicBucket": {
       "factoryClass": "com.yahoo.maha.service.factory.DefaultBucketingConfigFactory",
       "config": [
         {
@@ -187,7 +187,7 @@
     }
   },
   "utcTimeProviderMap": {
-    "erUTC": {
+    "academicUTC": {
       "factoryClass": "com.yahoo.maha.service.factory.PassThroughUTCTimeProviderFactory",
       "config": {
         "k": "v"
@@ -195,7 +195,7 @@
     }
   },
   "parallelServiceExecutorConfigMap": {
-    "erParallelExec": {
+    "academicParallelExec": {
       "factoryClass": "com.yahoo.maha.service.factory.DefaultParallelServiceExecutoryFactory",
       "config": {
         "rejectedExecutionHandlerClass": "com.yahoo.maha.service.factory.DefaultRejectedExecutionHandlerFactory",

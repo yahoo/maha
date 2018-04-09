@@ -1,12 +1,15 @@
 package com.yahoo.maha.api.jersey
 
 import java.io.OutputStream
+import java.util.Date
 
 import com.yahoo.maha.api.jersey.example.ExampleMahaService
 import com.yahoo.maha.api.jersey.example.ExampleSchema.StudentSchema
-import com.yahoo.maha.core.OracleEngine
+import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.core.{Engine, OracleEngine}
+import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.scalatest.FunSuite
 
 /**
@@ -27,7 +30,19 @@ class JsonStreamingOutputTest extends FunSuite {
                             {"field": "Student ID", "operator": "=", "value": "213"}
                           ]
                         }"""
+
   val reportingRequest = ReportingRequest.deserializeSync(jsonRequest.getBytes, StudentSchema).toOption.get
+
+  val query  = {
+    val mahaService = ExampleMahaService.getMahaService("test")
+    val mahaServiceConfig = mahaService.getMahaServiceConfig
+    val registry = mahaServiceConfig.registry.get(ExampleMahaService.REGISTRY_NAME).get
+    val requestModel = mahaService.generateRequestModel(ExampleMahaService.REGISTRY_NAME, reportingRequest, BucketParams(UserInfo("test", false)), MahaRequestLogHelper(ExampleMahaService.REGISTRY_NAME, mahaService.mahaRequestLogWriter)).toOption.get
+    val factory = registry.queryPipelineFactory.from(requestModel.model, QueryAttributes.empty)
+    factory.get.queryChain.drivingQuery
+  }
+
+  val timeStampString = new Date().toString
 
   class StringStream extends OutputStream {
     val stringBuilder = new StringBuilder()
@@ -37,11 +52,15 @@ class JsonStreamingOutputTest extends FunSuite {
     override def toString() : String = stringBuilder.toString()
   }
 
+  case class TestOracleIngestionTimeUpdater(engine: Engine, source: String) extends IngestionTimeUpdater {
+    override def getIngestionTime(dataSource: String): Option[String] = {
+      Some(timeStampString)
+    }
+  }
+
   test("Test JsonStreamingOutput") {
 
-    val rowList = new InMemRowList() {
-      override def query: Query = NoopQuery
-    }
+    val rowList = CompleteRowList(query)
 
     val row = rowList.newRow
     row.addValue("Student ID", 123)
@@ -50,12 +69,20 @@ class JsonStreamingOutputTest extends FunSuite {
     row.addValue("Total Marks", 99)
     rowList.addRow(row)
 
-    val jsonStreamingOutput = JsonStreamingOutput(reportingRequest, Set("Student ID", "Class ID", "Section ID"), rowList, OracleEngine, "student_grade_sheet")
+    val jsonStreamingOutput = JsonStreamingOutput(reportingRequest,
+      Set("Student ID", "Class ID", "Section ID"),
+      rowList,
+      OracleEngine,
+      "student_grade_sheet",
+      Map(OracleEngine-> TestOracleIngestionTimeUpdater(OracleEngine, "testSource")))
 
-    val stringStream = new StringStream
+    val stringStream =  new StringStream()
+
     jsonStreamingOutput.write(stringStream)
-
-    println(stringStream.toString())
+    val result = stringStream.toString()
+    println(result)
+    stringStream.close()
+    assert(result.equals(s"""{"header":{"lastIngestTime":"$timeStampString","source":"student_grade_sheet","cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[123,234,345,99]]}"""))
   }
 
 }
