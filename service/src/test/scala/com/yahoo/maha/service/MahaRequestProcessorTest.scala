@@ -45,7 +45,7 @@ class MahaRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAfterAl
       mahaServiceConfig.mahaRequestLogWriter
     )
     mahaRequestProcessor.onSuccess((requestModel, requestResult) => {
-      assert(requestResult.rowList.columns.nonEmpty)
+      assert(requestResult.queryPipelineResult.rowList.columns.nonEmpty)
       assertCount+=1
     })
     mahaRequestProcessor.onFailure((ge) => {

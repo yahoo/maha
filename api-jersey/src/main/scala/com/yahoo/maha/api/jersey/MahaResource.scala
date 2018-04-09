@@ -127,7 +127,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
       val dimCols : Set[String]  = if(requestModel.bestCandidates.isDefined) {
         requestModel.bestCandidates.get.publicFact.dimCols.map(_.alias)
       } else Set.empty
-      response.resume(JsonStreamingOutput(reportingRequest, dimCols, requestResult.rowList))
+      response.resume(JsonStreamingOutput(reportingRequest, dimCols, requestResult.queryPipelineResult.rowList))
     })
 
     mahaRequestProcessor.onFailure((ge: GeneralError) => {

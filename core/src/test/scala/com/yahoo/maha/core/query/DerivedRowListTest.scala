@@ -183,7 +183,7 @@ class DerivedRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTe
     row.addValue("Campaign Status","on")
     row.addValue("CTR", java.lang.Double.valueOf(2.11D))
 
-    val derivedRowList = new DerivedRowList(columns)
+    val derivedRowList = new DerivedRowList(columns, drivingQuery = NoopQuery)
     derivedRowList.addRow(row)
 
     assert(!derivedRowList.isEmpty)

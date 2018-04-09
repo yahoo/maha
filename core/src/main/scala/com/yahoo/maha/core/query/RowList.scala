@@ -678,7 +678,11 @@ class CSVRowList(val query: Query, csvWriterProvider: RowCSVWriterProvider, writ
   }
 }
 
-class DerivedRowList(override val columns: IndexedSeq[ColumnInfo], val initialSize: Int = 1, val sortedList: collection.mutable.ArrayBuffer[Row] = ArrayBuffer.empty) extends RowList {
+class DerivedRowList(override val columns: IndexedSeq[ColumnInfo]
+                     , val initialSize: Int = 1
+                     , val sortedList: collection.mutable.ArrayBuffer[Row] = ArrayBuffer.empty
+                     , val drivingQuery: Query
+                    ) extends RowList {
 
   val list: collection.mutable.ArrayBuffer[Row] = {
     if(sortedList.nonEmpty) {

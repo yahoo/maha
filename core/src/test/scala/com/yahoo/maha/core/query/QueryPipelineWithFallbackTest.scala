@@ -36,7 +36,7 @@ object QueryPipelineWithFallbackTest {
       queryExecutorContext.register(e)
       this
     }
-    def run(queryAttributes: QueryAttributes = QueryAttributes.empty) : Try[(RowList, QueryAttributes)] = {
+    def run(queryAttributes: QueryAttributes = QueryAttributes.empty) : Try[QueryPipelineResult] = {
       pipeline.execute(queryExecutorContext, queryAttributes)
     }
   }

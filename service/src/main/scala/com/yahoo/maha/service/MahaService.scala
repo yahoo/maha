@@ -38,7 +38,7 @@ case class RegistryConfig(name: String, registry: Registry, queryPipelineFactory
 
 case class MahaServiceConfig(registry: Map[String, RegistryConfig], mahaRequestLogWriter: MahaRequestLogWriter, curatorMap: Map[String, Curator])
 
-case class RequestResult(rowList: RowList, queryAttributes: QueryAttributes, totalRowsOption: Option[Int] = None)
+case class RequestResult(queryPipelineResult: QueryPipelineResult, totalRowsOption: Option[Int] = None)
 
 case class ParRequestResult(prodRun: ParRequest[RequestResult], dryRunOption: Option[ParRequest[RequestResult]])
 
@@ -210,9 +210,9 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
           val queryPipeline = queryPipelineTry.get
           mahaRequestLogHelper.logQueryPipeline(queryPipeline)
 
-          val rowListTry = queryPipeline.execute(registryConfig.queryExecutorContext, QueryAttributes.empty)
-          if(rowListTry.isFailure) {
-            val error = rowListTry.failed.get
+          val triedQueryPipelineResult = queryPipeline.execute(registryConfig.queryExecutorContext, QueryAttributes.empty)
+          if(triedQueryPipelineResult.isFailure) {
+            val error = triedQueryPipelineResult.failed.get
             val message = s"Failed to execute the query pipeline"
             logger.error(message, error)
             error.printStackTrace()
@@ -238,11 +238,9 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
               }
            } else None
           }
-          val rowList = rowListTry.get
-          mahaRequestLogHelper.logQueryStats(rowList._2)
-          mahaRequestLogHelper.logSuccess()
-
-          return new Right[GeneralError, RequestResult](RequestResult(rowList._1, rowList._2, totalRowsOption))
+          val queryPipelineResult = triedQueryPipelineResult.get
+          mahaRequestLogHelper.logQueryStats(queryPipelineResult.queryAttributes)
+          return new Right[GeneralError, RequestResult](RequestResult(queryPipelineResult, totalRowsOption))
       }
     }
     )).build()
