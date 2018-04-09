@@ -40,15 +40,14 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val drilldownConfig = new DrilldownConfig(false, null, "", IndexedSeq.empty, 0)
-    DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
+    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest)
 
-    println(drilldownConfig)
-    assert(!drilldownConfig.enforceFilters)
-    assert(drilldownConfig.maxRows == 1000)
-    assert(drilldownConfig.ordering.contains(SortBy("Class ID", ASC)))
-    assert(drilldownConfig.dimension == Field("Section ID", None, None))
-    assert(drilldownConfig.cube == "student_performance")
+    println(drillDownConfig)
+    assert(!drillDownConfig.enforceFilters)
+    assert(drillDownConfig.maxRows == 1000)
+    assert(drillDownConfig.ordering.contains(SortBy("Class ID", ASC)))
+    assert(drillDownConfig.dimension == Field("Section ID", None, None))
+    assert(drillDownConfig.cube == "student_performance")
   }
 
   test("Create a valid DrillDownConfig with reversed ordering") {
@@ -86,15 +85,14 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val drilldownConfig = new DrilldownConfig(false, null, "", IndexedSeq.empty, 0)
-    DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
+    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest)
 
-    println(drilldownConfig)
-    assert(!drilldownConfig.enforceFilters)
-    assert(drilldownConfig.maxRows == 1000)
-    assert(drilldownConfig.ordering.contains(SortBy("Class ID", DESC)))
-    assert(drilldownConfig.dimension == Field("Section ID", None, None))
-    assert(drilldownConfig.cube == "student_performance")
+    println(drillDownConfig)
+    assert(!drillDownConfig.enforceFilters)
+    assert(drillDownConfig.maxRows == 1000)
+    assert(drillDownConfig.ordering.contains(SortBy("Class ID", DESC)))
+    assert(drillDownConfig.dimension == Field("Section ID", None, None))
+    assert(drillDownConfig.cube == "student_performance")
   }
 
   test("Create a valid DrillDownConfig with invalid ordering") {
@@ -133,8 +131,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     val reportingRequest = reportingRequestResult.toOption.get
 
     val thrown = intercept[Exception] {
-      val drilldownConfig = new DrilldownConfig(false, null, "", IndexedSeq.empty, 0)
-      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
+      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest)
     }
     assert(thrown.getMessage.contains("Expected either asc or desc, not willfail"))
   }
@@ -175,8 +172,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     val reportingRequest = reportingRequestResult.toOption.get
 
     val thrown = intercept[Exception] {
-      val drilldownConfig = new DrilldownConfig(false, null, "", IndexedSeq.empty, 0)
-      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
+      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest)
     }
     assert(thrown.getMessage.contains("Max Rows limit of 1000 exceeded"))
   }
@@ -216,8 +212,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     val reportingRequest = reportingRequestResult.toOption.get
 
     val thrown = intercept[Exception] {
-      val drilldownConfig = new DrilldownConfig(false, null, "", IndexedSeq.empty, 0)
-      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
+      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest)
     }
     assert(thrown.getMessage.contains("CuratorConfig for a DrillDown should have a dimension declared"))
   }
@@ -258,8 +253,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     val reportingRequest = reportingRequestResult.toOption.get
 
     val thrown = intercept[Exception] {
-      val drilldownConfig = new DrilldownConfig(false, null, "", IndexedSeq.empty, 0)
-      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
+      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest)
     }
     assert(thrown.getMessage.contains("DrillDown may not be created without a declaration"))
   }
@@ -301,15 +295,14 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val drilldownConfig = new DrilldownConfig(false, null, "", IndexedSeq.empty, 0)
-    DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
+    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest)
 
-    println(drilldownConfig)
-    assert(drilldownConfig.enforceFilters == DrilldownConfig.DEFAULT_ENFORCE_FILTERS)
-    assert(drilldownConfig.maxRows == DrilldownConfig.MAXIMUM_ROWS)
-    assert(drilldownConfig.ordering.contains(SortBy("Section ID", DESC)))
-    assert(drilldownConfig.dimension == Field("Section ID", None, None))
-    assert(drilldownConfig.cube == "student_performance")
+    println(drillDownConfig)
+    assert(drillDownConfig.enforceFilters == DrilldownConfig.DEFAULT_ENFORCE_FILTERS)
+    assert(drillDownConfig.maxRows == DrilldownConfig.MAXIMUM_ROWS)
+    assert(drillDownConfig.ordering.contains(SortBy("Section ID", DESC)))
+    assert(drillDownConfig.dimension == Field("Section ID", None, None))
+    assert(drillDownConfig.cube == "student_performance")
   }
 
   test("Create a valid DrillDownConfig with Descending order and no given ordering") {
@@ -343,14 +336,13 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val drilldownConfig = new DrilldownConfig(false, null, "", IndexedSeq.empty, 0)
-    DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
+    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest)
 
-    println(drilldownConfig)
-    assert(drilldownConfig.enforceFilters)
-    assert(drilldownConfig.maxRows == 1000)
-    assert(drilldownConfig.ordering.contains(SortBy("Total Marks", DESC)))
-    assert(drilldownConfig.dimension == Field("Section ID", None, None))
-    assert(drilldownConfig.cube == "student_performance")
+    println(drillDownConfig)
+    assert(drillDownConfig.enforceFilters)
+    assert(drillDownConfig.maxRows == 1000)
+    assert(drillDownConfig.ordering.contains(SortBy("Total Marks", DESC)))
+    assert(drillDownConfig.dimension == Field("Section ID", None, None))
+    assert(drillDownConfig.cube == "student_performance")
   }
 }
