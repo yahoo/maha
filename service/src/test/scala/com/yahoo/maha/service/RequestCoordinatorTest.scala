@@ -7,7 +7,7 @@ import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc.{Seq, _}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParRequest
-import com.yahoo.maha.service.curators.{CuratorResult, DefaultCurator, DrilldownCurator, TimeShiftCurator}
+import com.yahoo.maha.service.curators.{CuratorResult, DefaultCurator, TimeShiftCurator}
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.joda.time.DateTime
@@ -70,7 +70,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val bucketParams = BucketParams(UserInfo("uid", true))
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
 
     val mahaRequestLogHelper = MahaRequestLogHelper(REGISTRY, mahaServiceConfig.mahaRequestLogWriter)
     val mahaRequestContext = MahaRequestContext(REGISTRY,
@@ -79,14 +79,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       jsonRequest.getBytes,
       Map.empty, "rid", "uid")
 
-
-    val mahaRequestProcessor = new MahaRequestProcessor(mahaRequestContext,
-      DefaultRequestCoordinator(mahaService),
-      mahaServiceConfig.mahaRequestLogWriter,
-      mahaRequestLogHelperOption= Some(mahaRequestLogHelper)
-    )
-
-    val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator(mahaService)
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
 
     val defaultCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
 
@@ -141,11 +134,11 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val bucketParams = BucketParams(UserInfo("uid", true))
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
 
     val mahaRequestLogHelper = MahaRequestLogHelper("er", mahaServiceConfig.mahaRequestLogWriter)
 
-    val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator(mahaService)
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
 
     val mahaRequestContext = MahaRequestContext(REGISTRY,
       bucketParams,
@@ -214,11 +207,11 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val bucketParams = BucketParams(UserInfo("uid", true))
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
 
     val mahaRequestLogHelper = MahaRequestLogHelper("er", mahaServiceConfig.mahaRequestLogWriter)
 
-    val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator(mahaService)
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
 
     val mahaRequestContext = MahaRequestContext(REGISTRY,
       bucketParams,
@@ -248,9 +241,6 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
       assert(expectedSet.size == cnt)
     })
-
-    val retval = (new DrilldownCurator).implementDrilldownRequestMinimization("er", bucketParams, reportingRequest, mahaService, mahaRequestLogHelper)
-    println(retval)
 
   }
 }

@@ -6,23 +6,33 @@ import java.util.concurrent.Callable
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.BucketParams
-import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.{Field, ReportingRequest}
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.parrequest2.future.ParRequest
-import com.yahoo.maha.service.error.{MahaServiceBadRequestException, MahaServiceExecutionException}
+import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
-import com.yahoo.maha.service.{MahaRequestContext, MahaService, RequestResult}
+import com.yahoo.maha.service.{MahaRequestContext, MahaService}
 import grizzled.slf4j.Logging
 
-import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
 
+/**
+  * DrilldownCurator : Given an input Request with a Drilldown Json config,
+  * create a new Request using the input Drilldown primary dimension.
+  * @author ryanwagner
+  */
+
+/**
+  *
+  */
 object DrilldownCurator {
   val name: String = "drilldown"
 }
 
+/**
+  *
+  * @param requestModelValidator: Used to validate the input RequestModel
+  */
 class DrilldownCurator (override val requestModelValidator: CuratorRequestModelValidator = NoopCuratorRequestModelValidator) extends Curator with Logging {
 
   override val name: String = DrilldownCurator.name
@@ -34,11 +44,11 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
   /**
     * Verify the input reportingRequest generates a valid requestModel.
     * If so, return this requestModel for the primary request.
-    * @param registryName
-    * @param bucketParams
-    * @param reportingRequest
-    * @param mahaService
-    * @param mahaRequestLogHelper
+    * @param registryName: Name of the current registry
+    * @param bucketParams: Request bucketing configuration
+    * @param reportingRequest: Input reporting request
+    * @param mahaService: Service used to generate the request model
+    * @param mahaRequestLogHelper: For error logging
     * @return requestModel
     */
   private def validateReportingRequest(registryName: String,
@@ -51,7 +61,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams, mahaRequestLogHelper)
     require(requestModelResultTry.isSuccess, "Input ReportingRequest was invalid due to " + requestModelResultTry.failed.get.getMessage)
     (requestModelResultTry.get.model,
-      (for(col <- requestModelResultTry.get.model.bestCandidates.get.requestCols;
+      (for(col <- requestModelResultTry.get.model.bestCandidates.get.requestCols
           if requestModelResultTry.get.model.bestCandidates.get.factColMapping.contains(col))
             yield Field(requestModelResultTry.get.model.bestCandidates.get.factColMapping(col), None, None)).toIndexedSeq)
   }
@@ -61,7 +71,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     * the primary key for its own most granular requested table.
     * If this primary key exists in the request, return its alias
     * to be used in the secondary request's included columns.
-    * @param requestModel
+    * @param requestModel: Request model with tree of granular tables
     * @return primaryKeyAlias
     */
   private def mostGranularPrimaryKey(requestModel: RequestModel): Field = {
@@ -85,9 +95,9 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     * - Requested DrillDown Dim as primary.
     * - Primary key of primary table.
     * - All metrics (facts).
-    * @param reportingRequest
-    * @param factFields
-    * @param primaryKeyField
+    * @param reportingRequest: Original reporting request to transform
+    * @param factFields: All fact fields from the request model
+    * @param primaryKeyField: Primary key from most granular table
     */
   private def drilldownReportingRequest(reportingRequest: ReportingRequest,
                                                        factFields: IndexedSeq[Field],
@@ -105,9 +115,9 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
   /**
     * With the returned values on the drilldown, create a
     * new reporting request.
-    * @param reportingRequest
-    * @param drilldownDimName
-    * @param inputFieldValues
+    * @param reportingRequest: ReportingRequest to add primary key filter
+    * @param drilldownDimName: Name of primary drilldown dimension
+    * @param inputFieldValues: All values found in the initial request
     */
   def insertValuesIntoDrilldownRequest(reportingRequest: ReportingRequest,
                                        drilldownDimName: String,
@@ -116,27 +126,36 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     , includeRowCount = INCLUDE_ROW_COUNT_DRILLDOWN)
   }
 
-  def implementDrilldownRequestMinimization(registryName: String, //TODO: Implement parrequest and return CuratorResult
+  /**
+    *
+    * @param registryName: Name of current reporting registry
+    * @param bucketParams: Bucket configuration parameters
+    * @param reportingRequest: Original reporting request to modify
+    * @param mahaService: Service with registry and all initial parameters
+    * @param mahaRequestLogHelper: Error logging
+    * @return Modified reporting request with drilldown
+    */
+  def implementDrilldownRequestMinimization(registryName: String,
               bucketParams: BucketParams,
               reportingRequest: ReportingRequest,
               mahaService: MahaService,
               mahaRequestLogHelper: MahaRequestLogHelper): ReportingRequest = {
-
-    //Validate reportingRequest is valid,
-    //Grab its primary key, and
-    //Grab the most granular table's primary key.
     val (rm, fields) : (RequestModel, IndexedSeq[Field]) = validateReportingRequest(registryName, bucketParams, reportingRequest, mahaService, mahaRequestLogHelper)
     val primaryField = mostGranularPrimaryKey(rm)
 
-    //Generate a new reporting request with
-    //drillDown specs.
     val rr = drilldownReportingRequest(reportingRequest, fields, primaryField)
     rr
-
-    //Generate a final reportingRequest with
-    //drillDown col's values from first request.
   }
 
+  /**
+    *
+    * @param requestModelResultTry: Attempted request model execution
+    * @param mahaRequestLogHelper: For error logging
+    * @param mahaRequestContext: Local request context for the maha Service
+    * @param mahaService: Service with all initial parameters
+    * @param parRequestLabel: Label for the parallel request, in case of error logging
+    * @return
+    */
   def verifyRequestModelResult(requestModelResultTry: Try[RequestModelResult],
                                mahaRequestLogHelper: MahaRequestLogHelper,
                                mahaRequestContext: MahaRequestContext,
@@ -145,7 +164,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     if(requestModelResultTry.isFailure) {
       val message = requestModelResultTry.failed.get.getMessage
       mahaRequestLogHelper.logFailed(message)
-      GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceBadRequestException(message, requestModelResultTry.failed.toOption))
+      GeneralError.either[CuratorResult](parRequestLabel, message, MahaServiceBadRequestException(message, requestModelResultTry.failed.toOption))
     } else {
       requestModelValidator.validate(mahaRequestContext, requestModelResultTry.get)
       val requestResultTry = mahaService.processRequestModel(mahaRequestContext.registryName
@@ -154,12 +173,18 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     }
   }
 
-
+  /**
+    *
+    * @param mahaRequestContext: Context for the current reporting request
+    * @param mahaService: Service with all reporting request configurations
+    * @param mahaRequestLogHelper: For error logging
+    * @return result of the reportingRequest report generation attempt
+    */
   override def process(mahaRequestContext: MahaRequestContext
                        , mahaService: MahaService
                        , mahaRequestLogHelper: MahaRequestLogHelper): ParRequest[CuratorResult] = {
 
-    val registryConfig = mahaService.getMahaServiceConfig.registry.get(mahaRequestContext.registryName).get
+    val registryConfig = mahaService.getMahaServiceConfig.registry(mahaRequestContext.registryName)
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
     val parRequestLabel = "processDrillDownCurator"
 
@@ -187,7 +212,6 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
 
             val drillDownConfig = DrilldownConfig.parse(mahaRequestContext.reportingRequest)
 
-            //pick the drilldown col values to use as filters in the second request.
             val rowList = firstRequest.get.right.get.requestResultTry.get.queryPipelineResult.rowList
             var values : Set[String] = Set.empty
             rowList.foreach{
@@ -208,14 +232,6 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
       )).build()
 
     parRequest2
-  }
-
-  private def createDerivedRowList(originalRowList : RowList,
-                                   secondRowList : RowList) : RowList = {
-    secondRowList.foreach(
-      row => originalRowList.addRow(row)
-    )
-    originalRowList
   }
 
 }
