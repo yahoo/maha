@@ -308,6 +308,11 @@ trait BaseMahaServiceTest extends FunSuite {
                       |         "factoryClass": "com.yahoo.maha.service.factory.TimeShiftCuratorFactory",
                       |         "config": {
                       |         }
+                      |      },
+                      |      "drilldown": {
+                      |         "factoryClass": "com.yahoo.maha.service.factory.DrillDownCuratorFactory",
+                      |         "config": {
+                      |         }
                       |      }
                       |   }
                       |}

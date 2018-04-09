@@ -224,7 +224,7 @@
       }
     },
     "drilldown": {
-      "factoryClass": "com.yahoo.maha.service.factory.DrilldownCuratorFactory",
+      "factoryClass": "com.yahoo.maha.service.factory.DrillDownCuratorFactory",
       "config": {
       }
     }

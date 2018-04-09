@@ -26,7 +26,7 @@ class TimeShiftCuratorFactory extends CuratorFactory {
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }
 
-class DrilldownCuratorFactory extends CuratorFactory {
+class DrillDownCuratorFactory extends CuratorFactory {
 
   override def fromJson(configJson: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[Curator] = {
     new DrilldownCurator().successNel

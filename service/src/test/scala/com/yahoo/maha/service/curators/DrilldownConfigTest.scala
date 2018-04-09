@@ -10,7 +10,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
       s"""{
                           "cube": "student_performance",
                           "curators" : {
-                            "drillDown" : {
+                            "drilldown" : {
                               "config" : {
                                 "enforceFilters": "true",
                                 "dimension": "Section ID",
@@ -40,7 +40,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest)
+    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest)
 
     println(drillDownConfig)
     assert(!drillDownConfig.enforceFilters)
@@ -55,7 +55,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
       s"""{
                           "cube": "student_performance",
                           "curators" : {
-                            "drillDown" : {
+                            "drilldown" : {
                               "config" : {
                                 "enforceFilters": "true",
                                 "dimension": "Section ID",
@@ -85,7 +85,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest)
+    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest)
 
     println(drillDownConfig)
     assert(!drillDownConfig.enforceFilters)
@@ -100,7 +100,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
       s"""{
                           "cube": "student_performance",
                           "curators" : {
-                            "drillDown" : {
+                            "drilldown" : {
                               "config" : {
                                 "enforceFilters": "true",
                                 "dimension": "Section ID",
@@ -131,7 +131,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     val reportingRequest = reportingRequestResult.toOption.get
 
     val thrown = intercept[Exception] {
-      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest)
+      DrilldownConfig.parse(reportingRequest)
     }
     assert(thrown.getMessage.contains("Expected either asc or desc, not willfail"))
   }
@@ -141,7 +141,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
       s"""{
                           "cube": "student_performance",
                           "curators" : {
-                            "drillDown" : {
+                            "drilldown" : {
                               "config" : {
                                 "enforceFilters": "true",
                                 "dimension": "Section ID",
@@ -172,7 +172,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     val reportingRequest = reportingRequestResult.toOption.get
 
     val thrown = intercept[Exception] {
-      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest)
+      DrilldownConfig.parse(reportingRequest)
     }
     assert(thrown.getMessage.contains("Max Rows limit of 1000 exceeded"))
   }
@@ -182,7 +182,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
       s"""{
                           "cube": "student_performance",
                           "curators" : {
-                            "drillDown" : {
+                            "drilldown" : {
                               "config" : {
                                 "enforceFilters": "true",
                                 "ordering": [{
@@ -212,7 +212,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     val reportingRequest = reportingRequestResult.toOption.get
 
     val thrown = intercept[Exception] {
-      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest)
+      DrilldownConfig.parse(reportingRequest)
     }
     assert(thrown.getMessage.contains("CuratorConfig for a DrillDown should have a dimension declared"))
   }
@@ -253,7 +253,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     val reportingRequest = reportingRequestResult.toOption.get
 
     val thrown = intercept[Exception] {
-      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest)
+      DrilldownConfig.parse(reportingRequest)
     }
     assert(thrown.getMessage.contains("DrillDown may not be created without a declaration"))
   }
@@ -263,7 +263,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
       s"""{
                           "cube": "student_performance",
                           "curators" : {
-                            "drillDown" : {
+                            "drilldown" : {
                               "config" : {
                                 "dimension": "Section ID",
                                 "ordering": [{
@@ -295,7 +295,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest)
+    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest)
 
     println(drillDownConfig)
     assert(drillDownConfig.enforceFilters == DrilldownConfig.DEFAULT_ENFORCE_FILTERS)
@@ -310,7 +310,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
       s"""{
                           "cube": "student_performance",
                           "curators" : {
-                            "drillDown" : {
+                            "drilldown" : {
                               "config" : {
                                 "enforceFilters": true,
                                 "dimension": "Section ID",
@@ -336,7 +336,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest)
+    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest)
 
     println(drillDownConfig)
     assert(drillDownConfig.enforceFilters)

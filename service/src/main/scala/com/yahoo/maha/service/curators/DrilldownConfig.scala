@@ -11,15 +11,15 @@ import scala.util.Try
 object DrilldownConfig {
   val MAXIMUM_ROWS : BigInt = 1000
   val DEFAULT_ENFORCE_FILTERS : Boolean = false
+  val validCubes : List[String] = List("performance_stats", "user_stats", "student_performance")
 
   implicit val formats: DefaultFormats.type = DefaultFormats
 
-  def parse(curatorConfigMap: Map[String, CuratorJsonConfig],
-                            reportingRequest: ReportingRequest) : DrilldownConfig = {
+  def parse(reportingRequest: ReportingRequest) : DrilldownConfig = {
 
-    require(curatorConfigMap.contains("drillDown"), "DrillDown may not be created without a declaration!")
+    require(reportingRequest.curatorJsonConfigMap.contains("drilldown"), "DrillDown may not be created without a declaration!")
 
-    val drillDownConfigJson = curatorConfigMap("drillDown")
+    val drillDownConfigJson = reportingRequest.curatorJsonConfigMap("drilldown")
     val drillDownMap : Map[String, Any] = drillDownConfigJson.json.extract[Map[String, Any]]
 
     val dimension = assignDim(drillDownMap)
@@ -30,7 +30,21 @@ object DrilldownConfig {
 
     val ordering = assignOrdering(drillDownMap, reportingRequest)
 
-    DrilldownConfig(enforceFilters, dimension, reportingRequest.cube, ordering, maxRows)
+    val cube = assignCube(drillDownMap, reportingRequest.cube)
+
+    DrilldownConfig(enforceFilters, dimension, cube, ordering, maxRows)
+  }
+
+  private def assignCube(drillDownMap : Map[String, Any], default: String) : String = {
+    if (drillDownMap.contains("cube") && validCubes.contains(drillDownMap("cube"))) {
+      drillDownMap("cube").toString
+    }
+    else if(drillDownMap.contains("cube")){
+      throw new IllegalArgumentException("Declared cube is not a valid drillDown Cube!")
+    }
+    else{
+      default
+    }
   }
 
   private def assignDim(drillDownMap: Map[String, Any]): Field = {

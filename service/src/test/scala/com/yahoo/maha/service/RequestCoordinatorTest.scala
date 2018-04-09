@@ -192,7 +192,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                           "curators" : {
                             "drilldown" : {
                               "config" : {
-                                "field": "Section ID"
+                                "dimension": "Section ID"
                               }
                             }
                           },
@@ -220,7 +220,13 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator(mahaService)
 
-    /*val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute("er", bucketParams, reportingRequest, mahaRequestLogHelper)
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+
+    val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
 
     val timeShiftCuratorResultEither = timeShiftCuratorResult.resultMap((t: CuratorResult) => t)
     timeShiftCuratorResultEither.fold((t: GeneralError) => {
@@ -228,20 +234,20 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     },(curatorResult: CuratorResult) => {
       assert(curatorResult.requestResultTry.isSuccess)
       val expectedSet = Set(
-        "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 200, 100, 125, 135, -7.41))",
-        "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 198, 100, 180, 120, 50.0))",
-        "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 199, 200, 175, 0, 100.0))"
+        "Row(Map(Section ID -> 0, Total Marks -> 1, Class ID -> 2),ArrayBuffer(100, 125, 200))",
+        "Row(Map(Section ID -> 0, Total Marks -> 1, Class ID -> 2),ArrayBuffer(100, 180, 198))",
+        "Row(Map(Section ID -> 0, Total Marks -> 1, Class ID -> 2),ArrayBuffer(200, 175, 199))"
       )
 
       var cnt = 0
-      curatorResult.requestResultTry.get.rowList.foreach( row => {
+      curatorResult.requestResultTry.get.queryPipelineResult.rowList.foreach( row => {
         println(row.toString)
         assert(expectedSet.contains(row.toString))
         cnt+=1
       })
 
       assert(expectedSet.size == cnt)
-    })*/
+    })
 
     val retval = (new DrilldownCurator).implementDrilldownRequestMinimization("er", bucketParams, reportingRequest, mahaService, mahaRequestLogHelper)
     println(retval)
