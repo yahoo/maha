@@ -14,7 +14,7 @@ object DrilldownConfig {
 
   implicit val formats: DefaultFormats.type = DefaultFormats
 
-  def validateCuratorConfig(curatorConfigMap: Map[String, CuratorJsonConfig],
+  def parse(curatorConfigMap: Map[String, CuratorJsonConfig],
                             reportingRequest: ReportingRequest,
                             drilldownConfig: DrilldownConfig) : Unit = {
     require(curatorConfigMap.contains("drillDown"), "DrillDown may not be created without a declaration!")

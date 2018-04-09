@@ -41,7 +41,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     val reportingRequest = reportingRequestResult.toOption.get
 
     val drilldownConfig = new DrilldownConfig(false, null, "", IndexedSeq.empty, 0)
-    DrilldownConfig.validateCuratorConfig(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
+    DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
 
     println(drilldownConfig)
     assert(!drilldownConfig.enforceFilters)
@@ -87,7 +87,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     val reportingRequest = reportingRequestResult.toOption.get
 
     val drilldownConfig = new DrilldownConfig(false, null, "", IndexedSeq.empty, 0)
-    DrilldownConfig.validateCuratorConfig(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
+    DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
 
     println(drilldownConfig)
     assert(!drilldownConfig.enforceFilters)
@@ -134,7 +134,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
 
     val thrown = intercept[Exception] {
       val drilldownConfig = new DrilldownConfig(false, null, "", IndexedSeq.empty, 0)
-      DrilldownConfig.validateCuratorConfig(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
+      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
     }
     assert(thrown.getMessage.contains("Expected either asc or desc, not willfail"))
   }
@@ -176,7 +176,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
 
     val thrown = intercept[Exception] {
       val drilldownConfig = new DrilldownConfig(false, null, "", IndexedSeq.empty, 0)
-      DrilldownConfig.validateCuratorConfig(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
+      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
     }
     assert(thrown.getMessage.contains("Max Rows limit of 1000 exceeded"))
   }
@@ -217,7 +217,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
 
     val thrown = intercept[Exception] {
       val drilldownConfig = new DrilldownConfig(false, null, "", IndexedSeq.empty, 0)
-      DrilldownConfig.validateCuratorConfig(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
+      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
     }
     assert(thrown.getMessage.contains("CuratorConfig for a DrillDown should have a dimension declared"))
   }
@@ -259,7 +259,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
 
     val thrown = intercept[Exception] {
       val drilldownConfig = new DrilldownConfig(false, null, "", IndexedSeq.empty, 0)
-      DrilldownConfig.validateCuratorConfig(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
+      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
     }
     assert(thrown.getMessage.contains("DrillDown may not be created without a declaration"))
   }
@@ -302,7 +302,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     val reportingRequest = reportingRequestResult.toOption.get
 
     val drilldownConfig = new DrilldownConfig(false, null, "", IndexedSeq.empty, 0)
-    DrilldownConfig.validateCuratorConfig(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
+    DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
 
     println(drilldownConfig)
     assert(drilldownConfig.enforceFilters == DrilldownConfig.DEFAULT_ENFORCE_FILTERS)
@@ -344,7 +344,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     val reportingRequest = reportingRequestResult.toOption.get
 
     val drilldownConfig = new DrilldownConfig(false, null, "", IndexedSeq.empty, 0)
-    DrilldownConfig.validateCuratorConfig(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
+    DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap, reportingRequest, drilldownConfig)
 
     println(drilldownConfig)
     assert(drilldownConfig.enforceFilters)
