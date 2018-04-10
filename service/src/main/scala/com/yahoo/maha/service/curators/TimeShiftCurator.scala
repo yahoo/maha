@@ -31,6 +31,7 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
   override val level: Int = 1
   override val priority: Int = 0
   override val isSingleton: Boolean = true
+  override def requiresDefaultCurator: Boolean = false
 
   private[this] def getRequestModelForPreviousWindow(registryName: String,
                                                      bucketParams: BucketParams,
@@ -66,9 +67,10 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
     requestModelResultTry
   }
 
-  override def process(mahaRequestContext: MahaRequestContext,
-                       mahaService: MahaService,
-                       mahaRequestLogHelper: MahaRequestLogHelper): ParRequest[CuratorResult] = {
+  override def process(resultMap: Map[String, ParRequest[CuratorResult]]
+                       , mahaRequestContext: MahaRequestContext
+                       , mahaService: MahaService
+                       , mahaRequestLogHelper: MahaRequestLogHelper): ParRequest[CuratorResult] = {
 
     val registryConfig = mahaService.getMahaServiceConfig.registry.get(mahaRequestContext.registryName).get
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
@@ -151,10 +153,10 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
               , previousWindowRowList
               , dimensionKeySet)
 
-            new Right[GeneralError, CuratorResult](CuratorResult(
+            new Right[GeneralError, CuratorResult](CuratorResult(TimeShiftCurator.this,
               Try(
                 RequestResult(defaultWindowRequestResultTry.get.queryPipelineResult.copy(rowList = derivedRowList)
-                  , defaultWindowRequestResultTry.get.totalRowsOption)
+                  , defaultWindowRequestResultTry.get.rowCountOption)
               )
               , defaultWindowRequestModelResultTry.get
             ))

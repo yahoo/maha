@@ -11,6 +11,7 @@ import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParFunction
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service._
+import com.yahoo.maha.service.curators.CuratorResult
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
@@ -120,13 +121,14 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
       Map.empty, "rid", "uid")
 
 
-    val mahaRequestProcessor = new MahaRequestProcessor(mahaRequestContext,
+    val mahaRequestProcessor = new MahaSyncRequestProcessor(mahaRequestContext,
       DefaultRequestCoordinator(mahaService),
       mahaServiceConfig.mahaRequestLogWriter
     )
 
     def fn = {
-      (requestModel: RequestModel, requestResult: RequestResult) => {
+      (resultList: IndexedSeq[CuratorResult]) => {
+        val requestResult = resultList.head.requestResultTry.get
         assert(requestResult.queryPipelineResult.rowList.columns.size  ==  4)
         assert(requestResult.queryPipelineResult.rowList.asInstanceOf[QueryRowList].columnNames.contains("Total Marks"))
         println("Inside onSuccess function")
@@ -138,7 +140,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
 
     mahaRequestProcessor.process()
     val thrown = intercept[IllegalArgumentException] {
-      val failedProcessor = MahaRequestProcessor(mahaRequestContext, DefaultRequestCoordinator(mahaService), mahaServiceConfig.mahaRequestLogWriter)
+      val failedProcessor = MahaSyncRequestProcessor(mahaRequestContext, DefaultRequestCoordinator(mahaService), mahaServiceConfig.mahaRequestLogWriter)
       failedProcessor.process()
     }
   }

@@ -80,7 +80,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       Map.empty, "rid", "uid")
 
 
-    val mahaRequestProcessor = new MahaRequestProcessor(mahaRequestContext,
+    val mahaRequestProcessor = new MahaSyncRequestProcessor(mahaRequestContext,
       DefaultRequestCoordinator(mahaService),
       mahaServiceConfig.mahaRequestLogWriter,
       mahaRequestLogHelperOption= Some(mahaRequestLogHelper)
@@ -88,7 +88,8 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator(mahaService)
 
-    val defaultCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val requestCoordinatorResult: RequestCoordinatorResult = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val defaultCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.resultMap(DefaultCurator.name)
 
     val defaultCuratorResultEither = defaultCuratorResult.resultMap((t: CuratorResult) => t)
     defaultCuratorResultEither.fold((t: GeneralError) => {
@@ -153,7 +154,8 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       jsonRequest.getBytes,
       Map.empty, "rid", "uid")
 
-    val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val requestCoordinatorResult: RequestCoordinatorResult = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.resultMap(TimeShiftCurator.name)
 
     val timeShiftCuratorResultEither = timeShiftCuratorResult.resultMap((t: CuratorResult) => t)
     timeShiftCuratorResultEither.fold((t: GeneralError) => {

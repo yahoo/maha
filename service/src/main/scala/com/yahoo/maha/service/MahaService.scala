@@ -38,11 +38,19 @@ case class RegistryConfig(name: String, registry: Registry, queryPipelineFactory
 
 case class MahaServiceConfig(registry: Map[String, RegistryConfig], mahaRequestLogWriter: MahaRequestLogWriter, curatorMap: Map[String, Curator])
 
-case class RequestResult(queryPipelineResult: QueryPipelineResult, totalRowsOption: Option[Int] = None)
+case class RequestResult(queryPipelineResult: QueryPipelineResult, rowCountOption: Option[Int] = None)
 
 case class ParRequestResult(prodRun: ParRequest[RequestResult], dryRunOption: Option[ParRequest[RequestResult]])
 
 trait MahaService {
+
+  /**
+    * validate a registry name
+    * @param name
+    * @return
+    */
+  def isValidRegistry(name: String): Boolean
+
   /*
    Kafka logger for every Maha Reporting Request
  */
@@ -97,10 +105,26 @@ trait MahaService {
   def rowCountIncomputableEngineSet: Set[Engine]
 
   def getMahaServiceConfig: MahaServiceConfig
+
+  /**
+    * Note, it is assumed the context has been validated already, e.g. registry name is valid
+    * @param mahaRequestContext
+    * @return
+    */
+  def getParallelServiceExecutor(mahaRequestContext: MahaRequestContext) : ParallelServiceExecutor
+
+
+  protected def validateRegistry(mahaRequestContext: MahaRequestContext): Unit = {
+    validateRegistry(mahaRequestContext.registryName)
+  }
+  protected def validateRegistry(name: String): Unit = {
+    require(isValidRegistry(name), s"Unknown registry : $name")
+  }
 }
 
 case class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Logging {
 
+  override def isValidRegistry(name: String): Boolean = config.registry.contains(name)
   override val mahaRequestLogWriter: MahaRequestLogWriter = config.mahaRequestLogWriter
   val rowCountIncomputableEngineSet: Set[Engine] = Set(DruidEngine)
 
@@ -160,7 +184,8 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
   }
 
   override def generateRequestModel(registryName: String, reportingRequest: ReportingRequest, bucketParams: BucketParams, mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestModelResult] = {
-    val registryConfig = config.registry.get(registryName).get
+    validateRegistry(registryName)
+    val registryConfig = config.registry(registryName)
     return RequestModelFactory.fromBucketSelector(reportingRequest, bucketParams, registryConfig.registry, registryConfig.bucketSelector, utcTimeProvider = registryConfig.utcTimeProvider)
   }
 
@@ -190,7 +215,8 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
   }
 
   private def createParRequest(registryName: String, requestModel: RequestModel, parRequestLabel: String, mahaRequestLogHelper: MahaRequestLogHelper): ParRequest[RequestResult] = {
-    val registryConfig = config.registry.get(registryName).get
+    validateRegistry(registryName)
+    val registryConfig = config.registry(registryName)
     val queryPipelineFactory = registryConfig.queryPipelineFactory
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
 
@@ -288,32 +314,41 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
 
   override def getDomain(registryName: String): Option[String] = {
     if (config.registry.contains(registryName)) {
-      Some(config.registry.get(registryName).get.registry.domainJsonAsString)
+      Some(config.registry(registryName).registry.domainJsonAsString)
     } else None
   }
 
   override def getFlattenDomain(registryName: String): Option[String] = {
     if (config.registry.contains(registryName)) {
-      Some(config.registry.get(registryName).get.registry.flattenDomainJsonAsString)
+      Some(config.registry(registryName).registry.flattenDomainJsonAsString)
     } else None
   }
 
   override def getDomainForCube(registryName: String, cube: String): Option[String] = {
     if (config.registry.contains(registryName)) {
-      Some(config.registry.get(registryName).get.registry.getCubeJsonAsStringForCube(cube))
+      Some(config.registry(registryName).registry.getCubeJsonAsStringForCube(cube))
     } else None
   }
 
   override def getFlattenDomainForCube(registryName: String, cube: String, revision: Option[Int]): Option[String] = {
     if (config.registry.contains(registryName)) {
       if(revision.isDefined) {
-        Some(config.registry.get(registryName).get.registry.getFlattenCubeJsonAsStringForCube(cube, revision.get))
+        Some(config.registry(registryName).registry.getFlattenCubeJsonAsStringForCube(cube, revision.get))
       } else {
-        Some(config.registry.get(registryName).get.registry.getFlattenCubeJsonAsStringForCube(cube))
+        Some(config.registry(registryName).registry.getFlattenCubeJsonAsStringForCube(cube))
       }
     } else None
   }
 
+  /**
+    * Note, it is assumed the context has been validated already, e.g. registry name is valid
+    * @param mahaRequestContext
+    * @return
+    */
+  override def getParallelServiceExecutor(mahaRequestContext: MahaRequestContext) : ParallelServiceExecutor = {
+    validateRegistry(mahaRequestContext)
+    config.registry(mahaRequestContext.registryName).parallelServiceExecutor
+  }
 }
 
 object MahaServiceConfig {

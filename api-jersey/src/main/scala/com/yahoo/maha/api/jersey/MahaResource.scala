@@ -13,6 +13,7 @@ import com.yahoo.maha.core.request.{BaseRequest, ReportingRequest, RequestContex
 import com.yahoo.maha.core.{RequestModel, Schema, _}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.service._
+import com.yahoo.maha.service.curators.CuratorResult
 import com.yahoo.maha.service.utils.MahaConstants
 import grizzled.slf4j.Logging
 import org.apache.commons.io.IOUtils
@@ -27,7 +28,7 @@ import scala.util.Try
 class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends Logging {
 
   private[this] val defaultRequestCoordinator = DefaultRequestCoordinator(mahaService)
-  private[this] val mahaRequestProcessorFactory = MahaRequestProcessorFactory(defaultRequestCoordinator
+  private[this] val mahaRequestProcessorFactory = MahaSyncRequestProcessorFactory(defaultRequestCoordinator
     , mahaService
     , mahaService.mahaRequestLogWriter
     , mahaServiceMonitor = DefaultMahaServiceMonitor)
@@ -120,17 +121,11 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
 
     val mahaRequestContext: MahaRequestContext = MahaRequestContext(registryName
       , bucketParams, reportingRequest, rawJson, Map.empty, requestId, userId)
-    val mahaRequestProcessor: MahaRequestProcessor = mahaRequestProcessorFactory
+    val mahaRequestProcessor: MahaSyncRequestProcessor = mahaRequestProcessorFactory
       .create(mahaRequestContext, MahaServiceConstants.MahaRequestLabel)
 
-    mahaRequestProcessor.onSuccess((requestModel: RequestModel, requestResult: RequestResult) => {
-      val dimCols : Set[String]  = if(requestModel.bestCandidates.isDefined) {
-        requestModel.bestCandidates.get.publicFact.dimCols.map(_.alias)
-      } else Set.empty
-      val queryChain = requestResult.queryPipelineResult.queryChain
-      val factName = queryChain.drivingQuery.tableName
-      val engine = queryChain.drivingQuery.engine
-      response.resume(JsonStreamingOutput(reportingRequest, dimCols, requestResult.queryPipelineResult.rowList,engine, factName))
+    mahaRequestProcessor.onSuccess((resultList: IndexedSeq[CuratorResult]) => {
+      response.resume(JsonStreamingOutput(resultList))
     })
 
     mahaRequestProcessor.onFailure((ge: GeneralError) => {

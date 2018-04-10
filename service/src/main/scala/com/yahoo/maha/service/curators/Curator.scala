@@ -14,13 +14,14 @@ import grizzled.slf4j.Logging
 
 import scala.util.Try
 
-case class CuratorResult(requestResultTry: Try[RequestResult], requestModelReference: RequestModelResult)
+case class CuratorResult(curator: Curator, requestResultTry: Try[RequestResult], requestModelReference: RequestModelResult)
 
 trait Curator extends Ordered[Curator] {
   def name: String
   def level: Int
   def priority: Int
-  def process(mahaRequestContext: MahaRequestContext
+  def process(resultMap: Map[String, ParRequest[CuratorResult]]
+              , mahaRequestContext: MahaRequestContext
               , mahaService: MahaService
               , mahaRequestLogHelper: MahaRequestLogHelper) : ParRequest[CuratorResult]
   def compare(that: Curator) = {
@@ -29,6 +30,7 @@ trait Curator extends Ordered[Curator] {
     } else Integer.compare(this.level, that.level)
   }
   def isSingleton: Boolean
+  def requiresDefaultCurator: Boolean
   protected def requestModelValidator: CuratorRequestModelValidator
 }
 
@@ -52,8 +54,10 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
   override val level: Int = 0
   override val priority: Int = 0
   override val isSingleton: Boolean = false
+  override val requiresDefaultCurator: Boolean = false
 
-  override def process(mahaRequestContext: MahaRequestContext
+  override def process(resultMap: Map[String, ParRequest[CuratorResult]]
+                       , mahaRequestContext: MahaRequestContext
                        , mahaService: MahaService
                        , mahaRequestLogHelper: MahaRequestLogHelper): ParRequest[CuratorResult] = {
 
@@ -78,7 +82,7 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
               requestModelValidator.validate(mahaRequestContext, requestModelResultTry.get)
               val requestResultTry = mahaService.processRequestModel(mahaRequestContext.registryName
                 , requestModelResultTry.get.model, mahaRequestLogHelper)
-              return new Right[GeneralError, CuratorResult](CuratorResult(requestResultTry, requestModelResultTry.get))
+              return new Right[GeneralError, CuratorResult](CuratorResult(DefaultCurator.this, requestResultTry, requestModelResultTry.get))
             }
           }
         }
