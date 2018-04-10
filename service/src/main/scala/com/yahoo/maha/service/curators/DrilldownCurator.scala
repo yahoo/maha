@@ -74,20 +74,10 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     * @param requestModel: Request model with tree of granular tables
     * @return primaryKeyAlias
     */
-  private def mostGranularPrimaryKey(requestModel: RequestModel): Field = {
-    val bestCandidates = requestModel.bestCandidates.get
-    var primaryKeyAliasSet : Set[String] = Set.empty
-    for(col <- bestCandidates.facts.head._2.fact.dimCols; if col.isKey && !col.isForeignKey) {
-      primaryKeyAliasSet = bestCandidates.facts.head._2.publicFact.nameToAliasColumnMap(col.name) //get the alias set of the primary key
-    }
+  private def mostGranularPrimaryKey(requestModel: RequestModel): Option[Field] = {
+    val mostGranularPrimaryKey : String = if (requestModel.dimensionsCandidates.nonEmpty) requestModel.dimensionsCandidates.last.dim.primaryKeyByAlias else ""
 
-    //Check the current granular primary key against requested columns.
-    //Be virtue of RM generation, only one of its aliases will be requested however multiple
-    //may be defined to check against.
-    val primaryAliasRequest = requestModel.requestColsSet.intersect(primaryKeyAliasSet)
-    require(primaryAliasRequest != Set.empty, "Requested cols should include primary key of most granular request table.")
-
-    Field(primaryAliasRequest.head, None, None)
+    if (mostGranularPrimaryKey.isEmpty) None else Some(Field(mostGranularPrimaryKey, None, None))
   }
 
   /**
@@ -103,7 +93,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                                                        factFields: IndexedSeq[Field],
                                                        primaryKeyField: Field): ReportingRequest = {
     val drilldownConfig: DrilldownConfig = DrilldownConfig.parse(reportingRequest)
-    val allSelectedFields : IndexedSeq[Field] = (IndexedSeq(DrilldownConfig.parse(reportingRequest).dimension) ++ factFields ++ IndexedSeq(primaryKeyField)).distinct
+    val allSelectedFields : IndexedSeq[Field] = (IndexedSeq(DrilldownConfig.parse(reportingRequest).dimension, primaryKeyField).filter{_!=null} ++ factFields).distinct
     reportingRequest.copy(cube = drilldownConfig.cube
       , selectFields = allSelectedFields
       , sortBy = drilldownConfig.ordering
@@ -141,7 +131,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
               mahaService: MahaService,
               mahaRequestLogHelper: MahaRequestLogHelper): ReportingRequest = {
     val (rm, fields) : (RequestModel, IndexedSeq[Field]) = validateReportingRequest(registryName, bucketParams, reportingRequest, mahaService, mahaRequestLogHelper)
-    val primaryField = mostGranularPrimaryKey(rm)
+    val primaryField : Field = mostGranularPrimaryKey(rm).orNull
 
     val rr = drilldownReportingRequest(reportingRequest, fields, primaryField)
     rr
