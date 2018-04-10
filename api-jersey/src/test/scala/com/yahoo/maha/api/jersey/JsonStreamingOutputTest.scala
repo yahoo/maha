@@ -28,7 +28,8 @@ class JsonStreamingOutputTest extends FunSuite {
                           "filterExpressions": [
                             {"field": "Day", "operator": "between", "from": "${ExampleMahaService.yesterday}", "to": "${ExampleMahaService.today}"},
                             {"field": "Student ID", "operator": "=", "value": "213"}
-                          ]
+                          ],
+                          "includeRowCount" : true
                         }"""
 
   val reportingRequest = ReportingRequest.deserializeSync(jsonRequest.getBytes, StudentSchema).toOption.get
@@ -70,19 +71,41 @@ class JsonStreamingOutputTest extends FunSuite {
     rowList.addRow(row)
 
     val jsonStreamingOutput = JsonStreamingOutput(reportingRequest,
-      Set("Student ID", "Class ID", "Section ID"),
+      query,
       rowList,
-      OracleEngine,
-      "student_grade_sheet",
+      None,
       Map(OracleEngine-> TestOracleIngestionTimeUpdater(OracleEngine, "testSource")))
 
     val stringStream =  new StringStream()
 
     jsonStreamingOutput.write(stringStream)
     val result = stringStream.toString()
-    println(result)
     stringStream.close()
     assert(result.equals(s"""{"header":{"lastIngestTime":"$timeStampString","source":"student_grade_sheet","cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[123,234,345,99]]}"""))
+  }
+
+  test("Test JsonStreamingOutput with Inject Total Row Option") {
+
+    val rowList = CompleteRowList(query)
+
+    val row = rowList.newRow
+    row.addValue("Student ID", 123)
+    row.addValue("Class ID", 234)
+    row.addValue("Section ID", 345)
+    row.addValue("Total Marks", 99)
+    rowList.addRow(row)
+
+    val jsonStreamingOutput = JsonStreamingOutput(reportingRequest,
+      query,
+      rowList,
+      injectTotalRowsOption = Some(1))
+
+    val stringStream =  new StringStream()
+
+    jsonStreamingOutput.write(stringStream)
+    val result = stringStream.toString()
+    stringStream.close()
+    assert(result.equals(s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"TotalRows","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,1]]}"""))
   }
 
 }
