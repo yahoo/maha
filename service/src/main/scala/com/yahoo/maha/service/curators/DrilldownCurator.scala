@@ -77,7 +77,13 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
   private def mostGranularPrimaryKey(requestModel: RequestModel): Option[Field] = {
     val mostGranularPrimaryKey : String = if (requestModel.dimensionsCandidates.nonEmpty) requestModel.dimensionsCandidates.last.dim.primaryKeyByAlias else ""
 
-    if (mostGranularPrimaryKey.isEmpty) None else Some(Field(mostGranularPrimaryKey, None, None))
+    if (mostGranularPrimaryKey.nonEmpty){
+      require(requestModel.requestColsSet.contains(mostGranularPrimaryKey), "Primary key of most granular dim MUST be present in requested cols to join against!")
+      Some(Field(mostGranularPrimaryKey, None, None))
+    }
+    else{
+      None
+    }
   }
 
   /**
