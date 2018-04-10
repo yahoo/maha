@@ -14,7 +14,12 @@ import grizzled.slf4j.Logging
 
 import scala.util.Try
 
-case class CuratorResult(requestResultTry: Try[RequestResult], requestModelReference: RequestModelResult)
+trait CuratorResult {
+  def requestResultTry: Try[RequestResult]
+  def requestModelReference: RequestModelResult
+}
+
+case class DefaultCuratorResult(requestResultTry: Try[RequestResult], requestModelReference: RequestModelResult) extends CuratorResult
 
 trait Curator extends Ordered[Curator] {
   def name: String
@@ -78,7 +83,7 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
               requestModelValidator.validate(mahaRequestContext, requestModelResultTry.get)
               val requestResultTry = mahaService.processRequestModel(mahaRequestContext.registryName
                 , requestModelResultTry.get.model, mahaRequestLogHelper)
-              return new Right[GeneralError, CuratorResult](CuratorResult(requestResultTry, requestModelResultTry.get))
+              return new Right[GeneralError, CuratorResult](DefaultCuratorResult(requestResultTry, requestModelResultTry.get))
             }
           }
         }
