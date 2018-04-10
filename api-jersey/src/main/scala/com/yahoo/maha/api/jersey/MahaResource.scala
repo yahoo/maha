@@ -124,13 +124,11 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
       .create(mahaRequestContext, MahaServiceConstants.MahaRequestLabel)
 
     mahaRequestProcessor.onSuccess((requestModel: RequestModel, requestResult: RequestResult) => {
-      val dimCols : Set[String]  = if(requestModel.bestCandidates.isDefined) {
-        requestModel.bestCandidates.get.publicFact.dimCols.map(_.alias)
-      } else Set.empty
       val queryChain = requestResult.queryPipelineResult.queryChain
-      val factName = queryChain.drivingQuery.tableName
-      val engine = queryChain.drivingQuery.engine
-      response.resume(JsonStreamingOutput(reportingRequest, dimCols, requestResult.queryPipelineResult.rowList,engine, factName))
+      response.resume(JsonStreamingOutput(reportingRequest,
+        queryChain.drivingQuery,
+        requestResult.queryPipelineResult.rowList,
+        requestResult.totalRowsOption))
     })
 
     mahaRequestProcessor.onFailure((ge: GeneralError) => {

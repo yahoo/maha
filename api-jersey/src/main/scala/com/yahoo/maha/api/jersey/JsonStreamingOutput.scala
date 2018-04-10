@@ -8,14 +8,14 @@ import javax.ws.rs.core.StreamingOutput
 import com.fasterxml.jackson.core.{JsonEncoding, JsonGenerator}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.query.RowList
+import com.yahoo.maha.core.query.{Query, RowList}
 import com.yahoo.maha.core.request.ReportingRequest
 
 object JsonStreamingOutput {
   val objectMapper: ObjectMapper = new ObjectMapper()
 }
 
-trait RowListToJsonStream {
+trait RowListToJsonStream extends StreamingOutput {
   def reportingRequest: ReportingRequest
   def dimCols: Set[String]
   def rowList: RowList
@@ -25,13 +25,29 @@ trait RowListToJsonStream {
 }
 
 case class JsonStreamingOutput(reportingRequest: ReportingRequest,
-                               dimCols : Set[String],
+                               query : Query,
                                rowList: RowList,
-                               engine: Engine,
-                               factName : String,
-                               ingestionTimeUpdaterMap : Map[Engine, IngestionTimeUpdater] = Map.empty) extends StreamingOutput with RowListToJsonStream {
+                               injectTotalRowsOption : Option[Int] = None,
+                               ingestionTimeUpdaterMap : Map[Engine, IngestionTimeUpdater] = Map.empty) extends RowListToJsonStream {
+  val TOTAL_ROWS = "TotalRows"
 
-  val ingestionTimeUpdater:IngestionTimeUpdater = ingestionTimeUpdaterMap.get(engine).getOrElse(NoopIngestionTimeUpdater(engine, engine.toString))
+  val factName = query.tableName
+  val engine = query.engine
+
+  val ingestionTimeUpdater:IngestionTimeUpdater = {
+    if (ingestionTimeUpdaterMap.isEmpty || !ingestionTimeUpdaterMap.contains(engine)) {
+      NoopIngestionTimeUpdater(engine, factName)
+    } else ingestionTimeUpdaterMap.get(engine).get
+  }
+
+  val requestModel = query.queryContext.requestModel
+
+  val dimCols : Set[String]  = if(requestModel.bestCandidates.isDefined) {
+    requestModel.bestCandidates.get.publicFact.dimCols.map(_.alias)
+  } else Set.empty
+
+  val includeRowCount : Boolean = injectTotalRowsOption.isDefined && requestModel.includeRowCount
+
 
   override def write(outputStream: OutputStream): Unit = {
     val jsonGenerator: JsonGenerator = JsonStreamingOutput.objectMapper.getFactory().createGenerator(outputStream, JsonEncoding.UTF8)
@@ -76,6 +92,16 @@ case class JsonStreamingOutput(reportingRequest: ReportingRequest,
         jsonGenerator.writeEndObject() // }
       }
     }
+
+    if (includeRowCount) {
+      jsonGenerator.writeStartObject(); // {
+      jsonGenerator.writeFieldName("fieldName"); // "fieldName":
+      jsonGenerator.writeString(TOTAL_ROWS);
+      jsonGenerator.writeFieldName("fieldType"); // "fieldType":
+      jsonGenerator.writeString("CONSTANT");
+      jsonGenerator.writeEndObject(); // }
+    }
+
     jsonGenerator.writeEndArray() // ]
     jsonGenerator.writeFieldName("maxRows")
     jsonGenerator.writeNumber(reportingRequest.rowsPerPage)
@@ -94,6 +120,9 @@ case class JsonStreamingOutput(reportingRequest: ReportingRequest,
         while(i < numColumns) {
           jsonGenerator.writeObject(row.getValue(i))
           i+=1
+        }
+        if (includeRowCount) {
+          jsonGenerator.writeObject(injectTotalRowsOption.get)
         }
         jsonGenerator.writeEndArray()
       }
