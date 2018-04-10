@@ -14,10 +14,12 @@ import com.yahoo.maha.service.error.{MahaServiceBadRequestException, MahaService
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{MahaRequestContext, MahaService, RequestResult}
 import grizzled.slf4j.Logging
+import org.json4s.scalaz.JsonScalaz
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
+import scalaz.{NonEmptyList, Validation}
 
 object TimeShiftCurator {
   val name: String = "timeshift"
@@ -70,7 +72,9 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
   override def process(resultMap: Map[String, ParRequest[CuratorResult]]
                        , mahaRequestContext: MahaRequestContext
                        , mahaService: MahaService
-                       , mahaRequestLogHelper: MahaRequestLogHelper): ParRequest[CuratorResult] = {
+                       , mahaRequestLogHelper: MahaRequestLogHelper
+                       , curatorConfig: Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig]
+                      ): ParRequest[CuratorResult] = {
 
     val registryConfig = mahaService.getMahaServiceConfig.registry.get(mahaRequestContext.registryName).get
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
@@ -153,7 +157,7 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
               , previousWindowRowList
               , dimensionKeySet)
 
-            new Right[GeneralError, CuratorResult](CuratorResult(TimeShiftCurator.this,
+            new Right[GeneralError, CuratorResult](CuratorResult(TimeShiftCurator.this, NoConfig,
               Try(
                 RequestResult(defaultWindowRequestResultTry.get.queryPipelineResult.copy(rowList = derivedRowList)
                   , defaultWindowRequestResultTry.get.rowCountOption)

@@ -5,16 +5,24 @@ package com.yahoo.maha.service.curators
 import java.util.concurrent.Callable
 
 import com.yahoo.maha.core.RequestModelResult
+import com.yahoo.maha.core.request.{CuratorJsonConfig, ReportingRequest}
 import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{MahaRequestContext, MahaService, RequestResult}
 import grizzled.slf4j.Logging
+import org.json4s.scalaz.JsonScalaz
 
 import scala.util.Try
+import scalaz.{NonEmptyList, Validation}
 
-case class CuratorResult(curator: Curator, requestResultTry: Try[RequestResult], requestModelReference: RequestModelResult)
+case class CuratorResult(curator: Curator
+                         , curatorConfig: CuratorConfig
+                         , requestResultTry: Try[RequestResult], requestModelReference: RequestModelResult)
+
+trait CuratorConfig
+object NoConfig extends CuratorConfig
 
 trait Curator extends Ordered[Curator] {
   def name: String
@@ -23,7 +31,9 @@ trait Curator extends Ordered[Curator] {
   def process(resultMap: Map[String, ParRequest[CuratorResult]]
               , mahaRequestContext: MahaRequestContext
               , mahaService: MahaService
-              , mahaRequestLogHelper: MahaRequestLogHelper) : ParRequest[CuratorResult]
+              , mahaRequestLogHelper: MahaRequestLogHelper
+              , curatorConfig: Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig]
+             ) : ParRequest[CuratorResult]
   def compare(that: Curator) = {
     if(this.level == that.level) {
       Integer.compare(this.priority, that.priority)
@@ -31,6 +41,10 @@ trait Curator extends Ordered[Curator] {
   }
   def isSingleton: Boolean
   def requiresDefaultCurator: Boolean
+  def parseConfig(config: CuratorJsonConfig): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
+    import scalaz.syntax.validation._
+    NoConfig.successNel
+  }
   protected def requestModelValidator: CuratorRequestModelValidator
 }
 
@@ -59,7 +73,9 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
   override def process(resultMap: Map[String, ParRequest[CuratorResult]]
                        , mahaRequestContext: MahaRequestContext
                        , mahaService: MahaService
-                       , mahaRequestLogHelper: MahaRequestLogHelper): ParRequest[CuratorResult] = {
+                       , mahaRequestLogHelper: MahaRequestLogHelper
+                       , curatorConfig: Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig]
+                      ): ParRequest[CuratorResult] = {
 
     val registryConfig = mahaService.getMahaServiceConfig.registry.get(mahaRequestContext.registryName).get
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
@@ -82,7 +98,7 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
               requestModelValidator.validate(mahaRequestContext, requestModelResultTry.get)
               val requestResultTry = mahaService.processRequestModel(mahaRequestContext.registryName
                 , requestModelResultTry.get.model, mahaRequestLogHelper)
-              return new Right[GeneralError, CuratorResult](CuratorResult(DefaultCurator.this, requestResultTry, requestModelResultTry.get))
+              return new Right[GeneralError, CuratorResult](CuratorResult(DefaultCurator.this, NoConfig, requestResultTry, requestModelResultTry.get))
             }
           }
         }
