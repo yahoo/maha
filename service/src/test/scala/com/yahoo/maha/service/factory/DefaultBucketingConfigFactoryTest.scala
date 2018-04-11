@@ -49,5 +49,6 @@ class DefaultBucketingConfigFactoryTest extends BaseFactoryTest {
     val json = parse(jsonString)
     val bucketingConfigResult = factory.fromJson(json)
     assert(bucketingConfigResult.isSuccess, bucketingConfigResult)
+    assert(factory.supportedProperties == List.empty)
   }
 }

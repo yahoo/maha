@@ -412,9 +412,9 @@ class MahaResourceTest {
     httpPost.setHeader(HttpHeaders.ACCEPT,MediaType.APPLICATION_JSON)
     httpPost.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
     val httpResponse: HttpResponse = httpClient.execute(httpPost)
-    assertEquals("should return status 400", 400, httpResponse.getStatusLine.getStatusCode)
     val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
     println(responseJson)
+    assertEquals("should return status 400", 400, httpResponse.getStatusLine.getStatusCode)
     assert(responseJson.contains("""{"errorMsg":"requirement failed: ERROR_CODE:10001 Max days window exceeded"""))
   }
 }

@@ -45,5 +45,12 @@ class FactoryTest extends BaseFactoryTest {
     assert(generatorResult.toList.head.isInstanceOf[ExecutionLifecycleListener])
   }
 
+  test("Create a BaseUTCTimeProviderFactory") {
+    val factoryResult = getFactory[UTCTimeProvideryFactory]("com.yahoo.maha.service.factory.BaseUTCTimeProviderFactory", closer)
+    factoryResult.toOption.get.fromJson(parse("{}"))
+    assert(factoryResult.isSuccess, "should successfully instantiate base factory.")
+    assert(factoryResult.toOption.get.supportedProperties == List.empty, "No currently supported properties.")
+  }
+
 
 }
