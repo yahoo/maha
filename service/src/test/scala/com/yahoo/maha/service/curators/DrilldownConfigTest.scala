@@ -133,7 +133,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     val thrown = intercept[Exception] {
       DrilldownConfig.parse(reportingRequest)
     }
-    assert(thrown.getMessage.contains("Expected either asc or desc, not willfail"))
+    assert(thrown.getMessage.contains("order must be asc|desc not willfail"))
   }
 
   test("DrillDownConfig should throw error on max rows.") {
