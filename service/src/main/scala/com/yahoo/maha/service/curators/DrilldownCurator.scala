@@ -197,6 +197,10 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
 
               val drillDownConfig = DrilldownConfig.parse(mahaRequestContext.reportingRequest)
 
+              if(defaultCuratorResult.requestResultTry.isFailure){
+                return GeneralError.either(parRequestLabel, "RequestResult failed with " + defaultCuratorResult.requestResultTry.failed.get.getMessage)
+              }
+
               val rowList = defaultCuratorResult.requestResultTry.get.queryPipelineResult.rowList
               var values : Set[String] = Set.empty
               rowList.foreach{
