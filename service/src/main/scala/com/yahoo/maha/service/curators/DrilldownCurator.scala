@@ -188,9 +188,8 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
     val parRequestLabel = "processDrillDownCurator"
     val firstRequest = resultMap(DefaultCurator.name)
-    require(firstRequest.get.isRight, "First par request failed, cannot build the second! ")
 
-    val fromScala = ParFunction.fromScala[CuratorResult, CombinableRequest[CuratorResult]]((_) => {
+    val fromScala = ParFunction.fromScala[CuratorResult, CombinableRequest[CuratorResult]]((defaultCuratorResult) => {
       val parRequest = parallelServiceExecutor.parRequestBuilder[CuratorResult].setLabel(parRequestLabel).
         setParCallable(ParCallable.from[Either[GeneralError, CuratorResult]](
           new Callable[Either[GeneralError, CuratorResult]](){
@@ -198,7 +197,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
 
               val drillDownConfig = DrilldownConfig.parse(mahaRequestContext.reportingRequest)
 
-              val rowList = firstRequest.get.right.get.requestResultTry.get.queryPipelineResult.rowList
+              val rowList = defaultCuratorResult.requestResultTry.get.queryPipelineResult.rowList
               var values : Set[String] = Set.empty
               rowList.foreach{
                 row => values = values ++ List(row.cols(row.aliasMap(drillDownConfig.dimension.field)).toString)
