@@ -18,7 +18,7 @@ import com.yahoo.maha.service.config._
 import com.yahoo.maha.service.curators.Curator
 import com.yahoo.maha.service.error._
 import com.yahoo.maha.service.factory._
-import com.yahoo.maha.service.utils.{MahaRequestLogHelper, MahaRequestLogWriter}
+import com.yahoo.maha.service.utils.{BaseMahaRequestLogBuilder, MahaRequestLogWriter}
 import com.yahoo.maha.utils.GetTotalRowsRequest
 import grizzled.slf4j.Logging
 import org.json4s.jackson.JsonMethods.parse
@@ -38,11 +38,19 @@ case class RegistryConfig(name: String, registry: Registry, queryPipelineFactory
 
 case class MahaServiceConfig(registry: Map[String, RegistryConfig], mahaRequestLogWriter: MahaRequestLogWriter, curatorMap: Map[String, Curator])
 
-case class RequestResult(queryPipelineResult: QueryPipelineResult, totalRowsOption: Option[Int] = None)
+case class RequestResult(queryPipelineResult: QueryPipelineResult, rowCountOption: Option[Int] = None)
 
 case class ParRequestResult(prodRun: ParRequest[RequestResult], dryRunOption: Option[ParRequest[RequestResult]])
 
 trait MahaService {
+
+  /**
+    * validate a registry name
+    * @param name
+    * @return
+    */
+  def isValidRegistry(name: String): Boolean
+
   /*
    Kafka logger for every Maha Reporting Request
  */
@@ -54,7 +62,7 @@ trait MahaService {
   def processRequest(registryName: String
                      , reportingRequest: ReportingRequest
                      , bucketParams: BucketParams
-                     , mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestResult]
+                     , mahaRequestLogHelper: BaseMahaRequestLogBuilder): Try[RequestResult]
 
   /**
    * Generates own model, create ParRequestResult. Invocation is left on the user's implementation details.
@@ -62,7 +70,7 @@ trait MahaService {
   def executeRequest(registryName: String
                      , reportingRequest: ReportingRequest
                      , bucketParams: BucketParams
-                     , mahaRequestLogHelper: MahaRequestLogHelper): ParRequestResult
+                     , mahaRequestLogHelper: BaseMahaRequestLogBuilder): ParRequestResult
 
   /*
    Generates the RequestModelResult for given ReportingRequest
@@ -70,21 +78,21 @@ trait MahaService {
   def generateRequestModel(registryName: String,
                            reportingRequest: ReportingRequest,
                            bucketParams: BucketParams,
-                           mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestModelResult]
+                           mahaRequestLogHelper: BaseMahaRequestLogBuilder): Try[RequestModelResult]
 
   /**
    * Executes the RequestModel and provide the RequestResult
    */
   def processRequestModel(registryName: String,
                           requestModel: RequestModel,
-                          mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestResult]
+                          mahaRequestLogHelper: BaseMahaRequestLogBuilder): Try[RequestResult]
 
   /**
    * Prepare the ParRequests for given RequestModel. Invocation is left on the user's implementation details.
    */
   def executeRequestModelResult(registryName: String,
                                 requestModelResult: RequestModelResult,
-                                mahaRequestLogHelper: MahaRequestLogHelper): ParRequestResult
+                                mahaRequestLogHelper: BaseMahaRequestLogBuilder): ParRequestResult
 
   def getDomain(registryName: String) : Option[String]
   def getDomainForCube(registryName: String, cube : String) : Option[String]
@@ -97,10 +105,26 @@ trait MahaService {
   def rowCountIncomputableEngineSet: Set[Engine]
 
   def getMahaServiceConfig: MahaServiceConfig
+
+  /**
+    * Note, it is assumed the context has been validated already, e.g. registry name is valid
+    * @param mahaRequestContext
+    * @return
+    */
+  def getParallelServiceExecutor(mahaRequestContext: MahaRequestContext) : ParallelServiceExecutor
+
+
+  protected def validateRegistry(mahaRequestContext: MahaRequestContext): Unit = {
+    validateRegistry(mahaRequestContext.registryName)
+  }
+  protected def validateRegistry(name: String): Unit = {
+    require(isValidRegistry(name), s"Unknown registry : $name")
+  }
 }
 
 case class DefaultMahaService(config: MahaServiceConfig) extends MahaService with Logging {
 
+  override def isValidRegistry(name: String): Boolean = config.registry.contains(name)
   override val mahaRequestLogWriter: MahaRequestLogWriter = config.mahaRequestLogWriter
   val rowCountIncomputableEngineSet: Set[Engine] = Set(DruidEngine)
 
@@ -112,7 +136,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
   override def processRequest(registryName: String
                               , reportingRequest: ReportingRequest
                               , bucketParams: BucketParams
-                              , mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestResult] = {
+                              , mahaRequestLogHelper: BaseMahaRequestLogBuilder): Try[RequestResult] = {
     val requestModelResultTry = generateRequestModel(registryName, reportingRequest, bucketParams, mahaRequestLogHelper)
 
     if (requestModelResultTry.isFailure) {
@@ -136,7 +160,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
   override def executeRequest(registryName: String
                               , reportingRequest: ReportingRequest
                               , bucketParams: BucketParams
-                              , mahaRequestLogHelper: MahaRequestLogHelper): ParRequestResult = {
+                              , mahaRequestLogHelper: BaseMahaRequestLogBuilder): ParRequestResult = {
     val parLabel = "executeRequest"
     val requestModelResultTry = generateRequestModel(registryName, reportingRequest, bucketParams, mahaRequestLogHelper)
     if (requestModelResultTry.isFailure) {
@@ -159,15 +183,16 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
     ParRequestResult(finalResult, dryRunResult)
   }
 
-  override def generateRequestModel(registryName: String, reportingRequest: ReportingRequest, bucketParams: BucketParams, mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestModelResult] = {
-    val registryConfig = config.registry.get(registryName).get
+  override def generateRequestModel(registryName: String, reportingRequest: ReportingRequest, bucketParams: BucketParams, mahaRequestLogHelper: BaseMahaRequestLogBuilder): Try[RequestModelResult] = {
+    validateRegistry(registryName)
+    val registryConfig = config.registry(registryName)
     return RequestModelFactory.fromBucketSelector(reportingRequest, bucketParams, registryConfig.registry, registryConfig.bucketSelector, utcTimeProvider = registryConfig.utcTimeProvider)
   }
 
   /**
    * Executes the RequestModel and provide the RequestResult
    */
-  override def processRequestModel(registryName: String, requestModel: RequestModel, mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestResult] = {
+  override def processRequestModel(registryName: String, requestModel: RequestModel, mahaRequestLogHelper: BaseMahaRequestLogBuilder): Try[RequestResult] = {
     val parLabel = "processRequestModel"
     val parRequest = createParRequest(registryName, requestModel, parLabel, mahaRequestLogHelper)
     syncParRequestExecutor(parRequest, mahaRequestLogHelper)
@@ -176,7 +201,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
   /**
    * Prepare the ParRequests for given RequestModel. Invocation is left on the user's implementation details.
    */
-  override def executeRequestModelResult(registryName: String, requestModelResult: RequestModelResult, mahaRequestLogHelper: MahaRequestLogHelper): ParRequestResult = {
+  override def executeRequestModelResult(registryName: String, requestModelResult: RequestModelResult, mahaRequestLogHelper: BaseMahaRequestLogBuilder): ParRequestResult = {
     val parLabel = "executeRequestModelResult"
     val reportingModel = requestModelResult.model
     val finalResult = createParRequest(registryName, reportingModel, parLabel, mahaRequestLogHelper)
@@ -189,8 +214,9 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
     ParRequestResult(finalResult, dryRunResult)
   }
 
-  private def createParRequest(registryName: String, requestModel: RequestModel, parRequestLabel: String, mahaRequestLogHelper: MahaRequestLogHelper): ParRequest[RequestResult] = {
-    val registryConfig = config.registry.get(registryName).get
+  private def createParRequest(registryName: String, requestModel: RequestModel, parRequestLabel: String, mahaRequestLogHelper: BaseMahaRequestLogBuilder): ParRequest[RequestResult] = {
+    validateRegistry(registryName)
+    val registryConfig = config.registry(registryName)
     val queryPipelineFactory = registryConfig.queryPipelineFactory
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
 
@@ -250,7 +276,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
   /*
   Blocking call for ParRequest Execution as it using resultMap
    */
-  private def syncParRequestExecutor(parRequest: ParRequest[RequestResult], mahaRequestLogHelper: MahaRequestLogHelper): Try[RequestResult] = {
+  private def syncParRequestExecutor(parRequest: ParRequest[RequestResult], mahaRequestLogHelper: BaseMahaRequestLogBuilder): Try[RequestResult] = {
     val requestResultEither = {
       parRequest.resultMap(ParFunction.from((t: RequestResult) => t))
     }
@@ -276,7 +302,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
   /*
   Non Blocking call for ParRequest Execution as it is using fold/map
   */
-  private def asyncParRequestExecutor(parRequest: ParRequest[RequestResult], mahaRequestLogHelper: MahaRequestLogHelper): Try[NoopRequest[Unit]] = {
+  private def asyncParRequestExecutor(parRequest: ParRequest[RequestResult], mahaRequestLogHelper: BaseMahaRequestLogBuilder): Try[NoopRequest[Unit]] = {
 
     Try(parRequest.fold[Unit](ParFunction.from((ge: GeneralError) => {
           val warnMessage= s"Failed to execute the dryRun Model ${ge.message} ${ge.throwableOption.get.getStackTrace}"
@@ -288,32 +314,41 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
 
   override def getDomain(registryName: String): Option[String] = {
     if (config.registry.contains(registryName)) {
-      Some(config.registry.get(registryName).get.registry.domainJsonAsString)
+      Some(config.registry(registryName).registry.domainJsonAsString)
     } else None
   }
 
   override def getFlattenDomain(registryName: String): Option[String] = {
     if (config.registry.contains(registryName)) {
-      Some(config.registry.get(registryName).get.registry.flattenDomainJsonAsString)
+      Some(config.registry(registryName).registry.flattenDomainJsonAsString)
     } else None
   }
 
   override def getDomainForCube(registryName: String, cube: String): Option[String] = {
     if (config.registry.contains(registryName)) {
-      Some(config.registry.get(registryName).get.registry.getCubeJsonAsStringForCube(cube))
+      Some(config.registry(registryName).registry.getCubeJsonAsStringForCube(cube))
     } else None
   }
 
   override def getFlattenDomainForCube(registryName: String, cube: String, revision: Option[Int]): Option[String] = {
     if (config.registry.contains(registryName)) {
       if(revision.isDefined) {
-        Some(config.registry.get(registryName).get.registry.getFlattenCubeJsonAsStringForCube(cube, revision.get))
+        Some(config.registry(registryName).registry.getFlattenCubeJsonAsStringForCube(cube, revision.get))
       } else {
-        Some(config.registry.get(registryName).get.registry.getFlattenCubeJsonAsStringForCube(cube))
+        Some(config.registry(registryName).registry.getFlattenCubeJsonAsStringForCube(cube))
       }
     } else None
   }
 
+  /**
+    * Note, it is assumed the context has been validated already, e.g. registry name is valid
+    * @param mahaRequestContext
+    * @return
+    */
+  override def getParallelServiceExecutor(mahaRequestContext: MahaRequestContext) : ParallelServiceExecutor = {
+    validateRegistry(mahaRequestContext)
+    config.registry(mahaRequestContext.registryName).parallelServiceExecutor
+  }
 }
 
 object MahaServiceConfig {

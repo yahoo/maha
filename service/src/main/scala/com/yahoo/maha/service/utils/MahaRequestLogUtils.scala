@@ -7,12 +7,12 @@ import java.util.concurrent.atomic.AtomicBoolean
 import com.google.common.annotations.VisibleForTesting
 import com.google.protobuf.ByteString
 import com.yahoo.maha.core.query._
-import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.core.request.{AsyncRequest, ReportingRequest, SyncRequest}
 import com.yahoo.maha.core.{DimensionCandidate, RequestModel, SortByColumnInfo}
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
-import com.yahoo.maha.service.MahaService
+import com.yahoo.maha.service.MahaRequestContext
+import com.yahoo.maha.service.curators.Curator
 import org.apache.commons.lang.StringUtils
-import org.apache.log4j.MDC
 import org.slf4j.LoggerFactory
 
 /**
@@ -25,40 +25,54 @@ object MahaConstants {
   val IS_INTERNAL: String = "isInternal"
 }
 
-trait MahaRequestLogBuilder {
-
+trait BaseMahaRequestLogBuilder {
   protected[this] val protoBuilder: MahaRequestProto.Builder = MahaRequestProto.newBuilder()
-
-  def registryName: String
-
-  def init(reportingRequest: ReportingRequest, jobIdOption: Option[Long], requestType: MahaRequestProto.RequestType, rawJson: ByteString)
 
   def logQueryPipeline(queryPipeline: QueryPipeline)
 
   def logQueryStats(queryAttributes: QueryAttributes)
 
-  def logFailed(errorMessage: String, httpStatusOption: Option[Int])
+  def logFailed(errorMessage: String, httpStatusOption: Option[Int] = None)
 
   def logSuccess()
+}
+
+trait CuratorMahaRequestLogBuilder extends BaseMahaRequestLogBuilder
+
+trait MahaRequestLogBuilder extends BaseMahaRequestLogBuilder {
+
+  def curatorLogBuilder(curator: Curator): CuratorMahaRequestLogBuilder
+}
+
+case class CuratorMahaRequestLogHelper(delegate: BaseMahaRequestLogBuilder) extends CuratorMahaRequestLogBuilder {
+  override def logQueryPipeline(queryPipeline: QueryPipeline): Unit =
+    delegate.logQueryPipeline(queryPipeline)
+
+  override def logQueryStats(queryAttributes: QueryAttributes): Unit =
+    delegate.logQueryStats(queryAttributes)
+
+  override def logFailed(errorMessage: String, httpStatusOption: Option[Int] = None): Unit =
+    delegate.logFailed(errorMessage, httpStatusOption)
+
+  override def logSuccess(): Unit = delegate.logSuccess()
 }
 
 object MahaRequestLogHelper {
   val logger: org.slf4j.Logger = LoggerFactory.getLogger(classOf[MahaRequestLogHelper])
 }
-case class MahaRequestLogHelper(registryName: String, mahaRequestLogWriter: MahaRequestLogWriter) extends MahaRequestLogBuilder {
+case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequestLogWriter: MahaRequestLogWriter, curator: String = "none") extends MahaRequestLogBuilder {
 
   private[this] val complete: AtomicBoolean = new AtomicBoolean(false)
   import MahaRequestLogHelper._
 
-  override def init(reportingRequest: ReportingRequest,
-                    jobIdOption: Option[Long],
-                    requestType: MahaRequestProto.RequestType,
-                    rawJson: ByteString): Unit = {
-    protoBuilder.setMahaServiceRegistryName(registryName)
-    protoBuilder.setRequestStartTime(System.currentTimeMillis())
+  init(protoBuilder)
 
-    val requestId = MDC.get(MahaConstants.REQUEST_ID)
-    val userId = MDC.get(MahaConstants.USER_ID)
+  protected def init(protoBuilder: MahaRequestProto.Builder) : Unit = {
+    protoBuilder.setMahaServiceRegistryName(mahaRequestContext.registryName)
+    protoBuilder.setRequestStartTime(mahaRequestContext.requestStartTime)
+
+    val requestId = mahaRequestContext.requestId
+    val userId = mahaRequestContext.userId
 
     if (requestId != null && StringUtils.isNotBlank(requestId.toString)) {
       protoBuilder.setRequestId(requestId.toString)
@@ -66,11 +80,20 @@ case class MahaRequestLogHelper(registryName: String, mahaRequestLogWriter: Maha
     if (userId != null && StringUtils.isNotBlank(userId.toString)) {
       protoBuilder.setUserId(userId.toString)
     }
-    protoBuilder.setRequestType(requestType)
-    protoBuilder.setCube(reportingRequest.cube)
-    protoBuilder.setSchema(reportingRequest.schema.toString)
-    protoBuilder.setJson(rawJson)
-    logger.info(s"init MahaRequestLog requestId = $requestId , userId = $userId")
+    protoBuilder.setRequestType(getRequestType(mahaRequestContext.reportingRequest))
+    protoBuilder.setCube(mahaRequestContext.reportingRequest.cube)
+    protoBuilder.setSchema(mahaRequestContext.reportingRequest.schema.toString)
+    protoBuilder.setJson(ByteString.copyFrom(mahaRequestContext.rawJson))
+    if(curator != null) {
+      protoBuilder.setCurator(curator)
+    }
+  }
+
+  protected def getRequestType(reportingRequest: ReportingRequest) : MahaRequestProto.RequestType = {
+    reportingRequest.requestType match {
+      case SyncRequest => MahaRequestProto.RequestType.SYNC
+      case AsyncRequest => MahaRequestProto.RequestType.ASYNC
+    }
   }
 
   def setDryRun(): Unit = {
@@ -197,4 +220,9 @@ case class MahaRequestLogHelper(registryName: String, mahaRequestLogWriter: Maha
     protoBuilder
   }
 
+  def curatorLogBuilder(curator: Curator): CuratorMahaRequestLogBuilder = {
+    CuratorMahaRequestLogHelper(
+      new MahaRequestLogHelper(mahaRequestContext, mahaRequestLogWriter, curator.name)
+    )
+  }
 }
