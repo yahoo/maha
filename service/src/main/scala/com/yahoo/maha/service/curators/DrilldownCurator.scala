@@ -186,28 +186,13 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     val registryConfig = mahaService.getMahaServiceConfig.registry(mahaRequestContext.registryName)
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
     val parRequestLabel = "processDrillDownCurator"
-
-    /*val parRequest = parallelServiceExecutor.parRequestBuilder[CuratorResult].setLabel(parRequestLabel).
-      setParCallable(ParCallable.from[Either[GeneralError, CuratorResult]](
-        new Callable[Either[GeneralError, CuratorResult]](){
-          override def call(): Either[GeneralError, CuratorResult] = {
-
-            val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(
-              mahaRequestContext.registryName, mahaRequestContext.reportingRequest, mahaRequestContext.bucketParams
-              , mahaRequestLogBuilder)
-
-            verifyRequestModelResult(requestModelResultTry, mahaRequestLogBuilder, mahaRequestContext, mahaService, parRequestLabel)
-          }
-        }
-      )).build()*/
     val firstRequest : ParRequest[CuratorResult] = resultMap(DefaultCurator.name)
+    require(firstRequest.get.isRight, "First par request failed, cannot build the second! ")
 
-    val parRequest2 : ParRequest[CuratorResult] = parallelServiceExecutor.parRequestBuilder[CuratorResult].setLabel(parRequestLabel).
+    val parRequest : ParRequest[CuratorResult] = parallelServiceExecutor.parRequestBuilder[CuratorResult].setLabel(parRequestLabel).
       setParCallable(ParCallable.from[Either[GeneralError, CuratorResult]](
         new Callable[Either[GeneralError, CuratorResult]](){
           override def call(): Either[GeneralError, CuratorResult] = {
-
-            require(firstRequest.get.isRight, "First par request failed, cannot build the second! ")// + firstRequest.get.left.get.message)
 
             val drillDownConfig = DrilldownConfig.parse(mahaRequestContext.reportingRequest)
 
@@ -230,7 +215,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
         }
       )).build()
 
-    parRequest2
+    parRequest
   }
 
 }
