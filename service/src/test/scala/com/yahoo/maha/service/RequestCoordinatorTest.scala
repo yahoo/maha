@@ -7,7 +7,7 @@ import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc.{Seq, _}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParRequest
-import com.yahoo.maha.service.curators.{TimeShiftCurator, DefaultCurator, CuratorResult}
+import com.yahoo.maha.service.curators.{CuratorResult, DefaultCurator, DrilldownCurator, TimeShiftCurator}
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.joda.time.DateTime
@@ -70,25 +70,19 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val bucketParams = BucketParams(UserInfo("uid", true))
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
 
-    val mahaRequestLogHelper = MahaRequestLogHelper(REGISTRY, mahaServiceConfig.mahaRequestLogWriter)
     val mahaRequestContext = MahaRequestContext(REGISTRY,
       bucketParams,
       reportingRequest,
       jsonRequest.getBytes,
       Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
 
-    val mahaRequestProcessor = new MahaRequestProcessor(mahaRequestContext,
-      DefaultRequestCoordinator(mahaService),
-      mahaServiceConfig.mahaRequestLogWriter,
-      mahaRequestLogHelperOption= Some(mahaRequestLogHelper)
-    )
-
-    val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator(mahaService)
-
-    val defaultCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val defaultCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(DefaultCurator.name)
 
     val defaultCuratorResultEither = defaultCuratorResult.resultMap((t: CuratorResult) => t)
     defaultCuratorResultEither.fold((t: GeneralError) => {
@@ -141,19 +135,20 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val bucketParams = BucketParams(UserInfo("uid", true))
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
 
-    val mahaRequestLogHelper = MahaRequestLogHelper("er", mahaServiceConfig.mahaRequestLogWriter)
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
 
-    val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator(mahaService)
 
     val mahaRequestContext = MahaRequestContext(REGISTRY,
       bucketParams,
       reportingRequest,
       jsonRequest.getBytes,
       Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
-    val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(TimeShiftCurator.name)
 
     val timeShiftCuratorResultEither = timeShiftCuratorResult.resultMap((t: CuratorResult) => t)
     timeShiftCuratorResultEither.fold((t: GeneralError) => {
@@ -183,6 +178,71 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val timeShiftCurator = new TimeShiftCurator()
     assert(defaultCurator.compare(timeShiftCurator) == -1)
     assert(defaultCurator.compare(defaultCurator) == 0)
+  }
+
+  test("Test successful processing of Drilldown curator") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : {
+                                "dimension": "Section ID"
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val drillDownCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(DrilldownCurator.name)
+
+    val timeShiftCuratorResultEither = drillDownCuratorResult.resultMap((t: CuratorResult) => t)
+    timeShiftCuratorResultEither.fold((t: GeneralError) => {
+      fail(t.message)
+    },(curatorResult: CuratorResult) => {
+      assert(curatorResult.requestResultTry.isSuccess)
+      val expectedSet = Set(
+        "Row(Map(Section ID -> 0, Total Marks -> 1),ArrayBuffer(100, 305))",
+        "Row(Map(Section ID -> 0, Total Marks -> 1),ArrayBuffer(200, 175))"
+      )
+
+      var cnt = 0
+      curatorResult.requestResultTry.get.queryPipelineResult.rowList.foreach( row => {
+        println(row.toString)
+        assert(expectedSet.contains(row.toString))
+        cnt+=1
+      })
+
+      assert(expectedSet.size == cnt)
+    })
+
   }
 }
 

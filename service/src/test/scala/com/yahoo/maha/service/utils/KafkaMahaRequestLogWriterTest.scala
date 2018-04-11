@@ -8,6 +8,7 @@ import java.util.Properties
 
 import com.google.protobuf.{ByteString, UninitializedMessageException}
 import com.yahoo.maha.proto.MahaRequestLog
+import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service.config.JsonKafkaRequestLoggingConfig
 import grizzled.slf4j.Logging
 import kafka.server.{KafkaConfig, KafkaServer}
