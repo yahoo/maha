@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets
 import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.service.curators.DefaultCurator
 import com.yahoo.maha.service.{MahaRequestContext, MahaServiceConfig}
 import org.mockito.Mockito._
 import org.scalatest.{FunSuite, Matchers}
@@ -85,5 +86,23 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     assert(proto.getStatus == 400)
     assert(proto.getRequestId == "123")
     assert(proto.getUserId == "abc")
+  }
+
+  test("Create curatorMahaRequestLogHelper to check logging") {
+    val mahaServiceConf = mock(classOf[MahaServiceConfig])
+    val mahaRequestLogWriter = mock(classOf[MahaRequestLogWriter])
+    val asyncRequest : ReportingRequest = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
+    val mahaRequestContext = MahaRequestContext("ir",
+      bucketParams,
+      asyncRequest,
+      jsonString.getBytes,
+      Map.empty, "123", "abc")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConf.mahaRequestLogWriter)
+    val failedLog = mahaRequestLogHelper.logFailed("new error message")
+    mahaRequestLogHelper.logSuccess()
+    mahaRequestLogHelper.logSuccess()
+    val curatorLogBuilder = mahaRequestLogHelper.curatorLogBuilder(new DefaultCurator())
+    val curatorHelper = CuratorMahaRequestLogHelper(curatorLogBuilder)
+    curatorHelper.logFailed("a second new error message")
   }
 }

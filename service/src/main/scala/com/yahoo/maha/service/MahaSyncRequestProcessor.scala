@@ -59,7 +59,7 @@ case class MahaSyncRequestProcessor(mahaRequestContext: MahaRequestContext
     onFailureFn = Some(fn)
   }
 
-  def process() {
+  def process() : Unit = {
 
     mahaServiceMonitor.start(mahaRequestContext.reportingRequest)
     require(onSuccessFn.isDefined || onFailureFn.isDefined, "Nothing to do after processing!")

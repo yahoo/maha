@@ -154,6 +154,23 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
     mahaRequestLogWriter.callback.onCompletion(null, new Exception)
   }
 
+  test("Create a kafkaMahaRequestLogWriter") {
+    val jsonKafkaRequestLoggingConfig = new JsonKafkaRequestLoggingConfig(
+      kafkaBroker,
+      kafkaBroker,
+      "test",
+      "org.apache.kafka.common.serialization.ByteArraySerializer",
+      "1",
+      "true",
+      "1",
+      TOPIC,
+      "999999",
+      "1000"
+    )
+    val writer = new KafkaMahaRequestLogWriter(jsonKafkaRequestLoggingConfig, true)
+    writer.validate(null)
+  }
+
   test("Create blank, invalid requestLog") {
     val jsonKafkaRequestLoggingConfig = new JsonKafkaRequestLoggingConfig(
       kafkaBroker,
