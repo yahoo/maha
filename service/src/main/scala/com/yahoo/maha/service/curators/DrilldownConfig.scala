@@ -1,21 +1,12 @@
 package com.yahoo.maha.service.curators
 
-import com.oracle.javafx.jmx.json.JSONException
-import com.yahoo.maha.core.request._
-import com.yahoo.maha.service.MahaServiceConfig
-import org.json4s.{DefaultFormats, JValue}
-import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
-import org.json4s.scalaz.JsonScalaz
+import org.json4s.DefaultFormats
 import org.json4s.scalaz.JsonScalaz._
 
-import scala.util.Try
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.service.MahaServiceConfig
-import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
-import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.factory._
 import org.json4s.JValue
-import org.json4s.JsonAST.{JArray, JObject}
 
 /**
   * Parse an input JSON and convert it to a DrilldownConfig object.
