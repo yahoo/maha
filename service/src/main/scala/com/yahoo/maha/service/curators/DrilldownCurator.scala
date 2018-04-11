@@ -10,7 +10,7 @@ import com.yahoo.maha.core.request.{Field, ReportingRequest}
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
-import com.yahoo.maha.service.utils.MahaRequestLogHelper
+import com.yahoo.maha.service.utils.CuratorMahaRequestLogBuilder
 import com.yahoo.maha.service.{MahaRequestContext, MahaService}
 import grizzled.slf4j.Logging
 
@@ -39,7 +39,8 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
   override val level: Int = 1
   override val priority: Int = 0
   override val isSingleton: Boolean = true
-  private val INCLUDE_ROW_COUNT_DRILLDOWN = false
+  private val INCLUDE_ROW_COUNT_DRILLDOWN : Boolean = false
+  override val requiresDefaultCurator : Boolean = true
 
   /**
     * Verify the input reportingRequest generates a valid requestModel.
@@ -48,17 +49,17 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     * @param bucketParams: Request bucketing configuration
     * @param reportingRequest: Input reporting request
     * @param mahaService: Service used to generate the request model
-    * @param mahaRequestLogHelper: For error logging
+    * @param mahaRequestLogBuilder: For error logging
     * @return requestModel
     */
   private def validateReportingRequest(registryName: String,
                                        bucketParams: BucketParams,
                                        reportingRequest: ReportingRequest,
                                        mahaService: MahaService,
-                                       mahaRequestLogHelper: MahaRequestLogHelper): (RequestModel, IndexedSeq[Field]) = {
+                                       mahaRequestLogBuilder: CuratorMahaRequestLogBuilder): (RequestModel, IndexedSeq[Field]) = {
     require(DrilldownConfig.validCubes.contains(reportingRequest.cube), "Cannot drillDown using given source cube " + reportingRequest.cube)
 
-    val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams, mahaRequestLogHelper)
+    val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams, mahaRequestLogBuilder)
     require(requestModelResultTry.isSuccess, "Input ReportingRequest was invalid due to " + requestModelResultTry.failed.get.getMessage)
     (requestModelResultTry.get.model,
       (for(col <- requestModelResultTry.get.model.bestCandidates.get.requestCols
@@ -128,15 +129,15 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     * @param bucketParams: Bucket configuration parameters
     * @param reportingRequest: Original reporting request to modify
     * @param mahaService: Service with registry and all initial parameters
-    * @param mahaRequestLogHelper: Error logging
+    * @param mahaRequestLogBuilder: Error logging
     * @return Modified reporting request with drilldown
     */
   def implementDrilldownRequestMinimization(registryName: String,
               bucketParams: BucketParams,
               reportingRequest: ReportingRequest,
               mahaService: MahaService,
-              mahaRequestLogHelper: MahaRequestLogHelper): ReportingRequest = {
-    val (rm, fields) : (RequestModel, IndexedSeq[Field]) = validateReportingRequest(registryName, bucketParams, reportingRequest, mahaService, mahaRequestLogHelper)
+              mahaRequestLogBuilder: CuratorMahaRequestLogBuilder): ReportingRequest = {
+    val (rm, fields) : (RequestModel, IndexedSeq[Field]) = validateReportingRequest(registryName, bucketParams, reportingRequest, mahaService, mahaRequestLogBuilder)
     val primaryField : Field = mostGranularPrimaryKey(rm).orNull
 
     val rr = drilldownReportingRequest(reportingRequest, fields, primaryField)
@@ -146,26 +147,26 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
   /**
     *
     * @param requestModelResultTry: Attempted request model execution
-    * @param mahaRequestLogHelper: For error logging
+    * @param mahaRequestLogBuilder: For error logging
     * @param mahaRequestContext: Local request context for the maha Service
     * @param mahaService: Service with all initial parameters
     * @param parRequestLabel: Label for the parallel request, in case of error logging
     * @return
     */
   def verifyRequestModelResult(requestModelResultTry: Try[RequestModelResult],
-                               mahaRequestLogHelper: MahaRequestLogHelper,
+                               mahaRequestLogBuilder: CuratorMahaRequestLogBuilder,
                                mahaRequestContext: MahaRequestContext,
                                mahaService: MahaService,
                                parRequestLabel: String) : Either[GeneralError, CuratorResult] = {
     if(requestModelResultTry.isFailure) {
       val message = requestModelResultTry.failed.get.getMessage
-      mahaRequestLogHelper.logFailed(message)
+      mahaRequestLogBuilder.logFailed(message)
       GeneralError.either[CuratorResult](parRequestLabel, message, MahaServiceBadRequestException(message, requestModelResultTry.failed.toOption))
     } else {
       requestModelValidator.validate(mahaRequestContext, requestModelResultTry.get)
       val requestResultTry = mahaService.processRequestModel(mahaRequestContext.registryName
-        , requestModelResultTry.get.model, mahaRequestLogHelper)
-      new Right[GeneralError, CuratorResult](CuratorResult(requestResultTry, requestModelResultTry.get))
+        , requestModelResultTry.get.model, mahaRequestLogBuilder)
+      new Right[GeneralError, CuratorResult](CuratorResult(DrilldownCurator.this, NoConfig, requestResultTry, requestModelResultTry.get))
     }
   }
 
@@ -173,38 +174,40 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     *
     * @param mahaRequestContext: Context for the current reporting request
     * @param mahaService: Service with all reporting request configurations
-    * @param mahaRequestLogHelper: For error logging
+    * @param mahaRequestLogBuilder: For error logging
     * @return result of the reportingRequest report generation attempt
     */
-  override def process(mahaRequestContext: MahaRequestContext
+  override def process(resultMap: Map[String, ParRequest[CuratorResult]]
+                       , mahaRequestContext: MahaRequestContext
                        , mahaService: MahaService
-                       , mahaRequestLogHelper: MahaRequestLogHelper): ParRequest[CuratorResult] = {
+                       , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
+                       , curatorConfig: CuratorConfig): ParRequest[CuratorResult] = {
 
     val registryConfig = mahaService.getMahaServiceConfig.registry(mahaRequestContext.registryName)
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
     val parRequestLabel = "processDrillDownCurator"
 
-    val parRequest = parallelServiceExecutor.parRequestBuilder[CuratorResult].setLabel(parRequestLabel).
+    /*val parRequest = parallelServiceExecutor.parRequestBuilder[CuratorResult].setLabel(parRequestLabel).
       setParCallable(ParCallable.from[Either[GeneralError, CuratorResult]](
         new Callable[Either[GeneralError, CuratorResult]](){
           override def call(): Either[GeneralError, CuratorResult] = {
 
             val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(
               mahaRequestContext.registryName, mahaRequestContext.reportingRequest, mahaRequestContext.bucketParams
-              , mahaRequestLogHelper)
+              , mahaRequestLogBuilder)
 
-            verifyRequestModelResult(requestModelResultTry, mahaRequestLogHelper, mahaRequestContext, mahaService, parRequestLabel)
+            verifyRequestModelResult(requestModelResultTry, mahaRequestLogBuilder, mahaRequestContext, mahaService, parRequestLabel)
           }
         }
-      )).build()
-    val firstRequest : ParRequest[CuratorResult] = parRequest
+      )).build()*/
+    val firstRequest : ParRequest[CuratorResult] = resultMap(DefaultCurator.name)
 
     val parRequest2 : ParRequest[CuratorResult] = parallelServiceExecutor.parRequestBuilder[CuratorResult].setLabel(parRequestLabel).
       setParCallable(ParCallable.from[Either[GeneralError, CuratorResult]](
         new Callable[Either[GeneralError, CuratorResult]](){
           override def call(): Either[GeneralError, CuratorResult] = {
 
-            require(firstRequest.get.isRight, "First par request failed, cannot build the second! " + firstRequest.get.left.get.message)
+            require(firstRequest.get.isRight, "First par request failed, cannot build the second! ")// + firstRequest.get.left.get.message)
 
             val drillDownConfig = DrilldownConfig.parse(mahaRequestContext.reportingRequest)
 
@@ -214,15 +217,15 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
               row => values = values ++ List(row.cols(row.aliasMap(drillDownConfig.dimension.field)).toString)
             }
 
-            val newReportingRequest = implementDrilldownRequestMinimization(mahaRequestContext.registryName, mahaRequestContext.bucketParams, mahaRequestContext.reportingRequest, mahaService, mahaRequestLogHelper)
+            val newReportingRequest = implementDrilldownRequestMinimization(mahaRequestContext.registryName, mahaRequestContext.bucketParams, mahaRequestContext.reportingRequest, mahaService, mahaRequestLogBuilder)
 
             val newRequestWithInsertedFilter = insertValuesIntoDrilldownRequest(newReportingRequest, drillDownConfig.dimension.field, values.toList)
 
             val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(
               mahaRequestContext.registryName, newRequestWithInsertedFilter, mahaRequestContext.bucketParams
-              , mahaRequestLogHelper)
+              , mahaRequestLogBuilder)
 
-            verifyRequestModelResult(requestModelResultTry, mahaRequestLogHelper, mahaRequestContext, mahaService, parRequestLabel)
+            verifyRequestModelResult(requestModelResultTry, mahaRequestLogBuilder, mahaRequestContext, mahaService, parRequestLabel)
           }
         }
       )).build()

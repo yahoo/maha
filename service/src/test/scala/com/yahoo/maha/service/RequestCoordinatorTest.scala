@@ -7,7 +7,7 @@ import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc.{Seq, _}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParRequest
-import com.yahoo.maha.service.curators.{CuratorResult, DefaultCurator, TimeShiftCurator}
+import com.yahoo.maha.service.curators.{CuratorResult, DefaultCurator, DrilldownCurator, TimeShiftCurator}
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.joda.time.DateTime
@@ -221,9 +221,9 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
     val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
-    val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(TimeShiftCurator.name)
+    val drillDownCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(DrilldownCurator.name)
 
-    val timeShiftCuratorResultEither = timeShiftCuratorResult.resultMap((t: CuratorResult) => t)
+    val timeShiftCuratorResultEither = drillDownCuratorResult.resultMap((t: CuratorResult) => t)
     timeShiftCuratorResultEither.fold((t: GeneralError) => {
       fail(t.message)
     },(curatorResult: CuratorResult) => {
