@@ -349,6 +349,14 @@ trait BaseMahaServiceTest extends FunSuite {
             assert(jdbcConnection.get.executeUpdate(ddl).isSuccess)
         }
     }
+    erRegistry.dimMap.values.foreach {
+      publicDim =>
+        publicDim.dimList.foreach {
+          fact=>
+            val ddl = ddlGenerator.toDDL(fact)
+            assert(jdbcConnection.get.executeUpdate(ddl).isSuccess)
+        }
+    }
   }
 
 }

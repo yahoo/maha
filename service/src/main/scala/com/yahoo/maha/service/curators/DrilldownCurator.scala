@@ -9,7 +9,7 @@ import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.request.{Field, ReportingRequest}
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.parrequest2.future.{CombinableRequest, ParFunction, ParRequest}
-import com.yahoo.maha.service.error.MahaServiceBadRequestException
+import com.yahoo.maha.service.error.{MahaServiceBadRequestException, MahaServiceException}
 import com.yahoo.maha.service.utils.CuratorMahaRequestLogBuilder
 import com.yahoo.maha.service.{MahaRequestContext, MahaService}
 import grizzled.slf4j.Logging
@@ -198,7 +198,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
               val drillDownConfig = DrilldownConfig.parse(mahaRequestContext.reportingRequest)
 
               if(defaultCuratorResult.requestResultTry.isFailure){
-                return GeneralError.either(parRequestLabel, "RequestResult failed with " + defaultCuratorResult.requestResultTry.failed.get.getMessage)
+                return GeneralError.either(parRequestLabel, "RequestResult failed with " + defaultCuratorResult.requestResultTry.toString)
               }
 
               val rowList = defaultCuratorResult.requestResultTry.get.queryPipelineResult.rowList
