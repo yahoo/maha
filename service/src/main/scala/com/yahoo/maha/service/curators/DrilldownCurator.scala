@@ -8,7 +8,7 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.request.{Field, ReportingRequest}
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
-import com.yahoo.maha.parrequest2.future.ParRequest
+import com.yahoo.maha.parrequest2.future.{CombinableRequest, ParFunction, ParRequest}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.utils.CuratorMahaRequestLogBuilder
 import com.yahoo.maha.service.{MahaRequestContext, MahaService}
@@ -170,6 +170,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     }
   }
 
+
   /**
     *
     * @param mahaRequestContext: Context for the current reporting request
@@ -186,36 +187,44 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     val registryConfig = mahaService.getMahaServiceConfig.registry(mahaRequestContext.registryName)
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
     val parRequestLabel = "processDrillDownCurator"
-    val firstRequest : ParRequest[CuratorResult] = resultMap(DefaultCurator.name)
+    val firstRequest = resultMap(DefaultCurator.name)
     require(firstRequest.get.isRight, "First par request failed, cannot build the second! ")
 
-    val parRequest : ParRequest[CuratorResult] = parallelServiceExecutor.parRequestBuilder[CuratorResult].setLabel(parRequestLabel).
-      setParCallable(ParCallable.from[Either[GeneralError, CuratorResult]](
-        new Callable[Either[GeneralError, CuratorResult]](){
-          override def call(): Either[GeneralError, CuratorResult] = {
+    val fromScala = ParFunction.fromScala[CuratorResult, CombinableRequest[CuratorResult]]((_) => {
+      val parRequest = parallelServiceExecutor.parRequestBuilder[CuratorResult].setLabel(parRequestLabel).
+        setParCallable(ParCallable.from[Either[GeneralError, CuratorResult]](
+          new Callable[Either[GeneralError, CuratorResult]](){
+            override def call(): Either[GeneralError, CuratorResult] = {
 
-            val drillDownConfig = DrilldownConfig.parse(mahaRequestContext.reportingRequest)
+              val drillDownConfig = DrilldownConfig.parse(mahaRequestContext.reportingRequest)
 
-            val rowList = firstRequest.get.right.get.requestResultTry.get.queryPipelineResult.rowList
-            var values : Set[String] = Set.empty
-            rowList.foreach{
-              row => values = values ++ List(row.cols(row.aliasMap(drillDownConfig.dimension.field)).toString)
+              val rowList = firstRequest.get.right.get.requestResultTry.get.queryPipelineResult.rowList
+              var values : Set[String] = Set.empty
+              rowList.foreach{
+                row => values = values ++ List(row.cols(row.aliasMap(drillDownConfig.dimension.field)).toString)
+              }
+
+              val newReportingRequest = implementDrilldownRequestMinimization(mahaRequestContext.registryName, mahaRequestContext.bucketParams, mahaRequestContext.reportingRequest, mahaService, mahaRequestLogBuilder)
+
+              val newRequestWithInsertedFilter = insertValuesIntoDrilldownRequest(newReportingRequest, drillDownConfig.dimension.field, values.toList)
+
+              val requestModelResultTry = mahaService.generateRequestModel(
+                mahaRequestContext.registryName, newRequestWithInsertedFilter, mahaRequestContext.bucketParams
+                , mahaRequestLogBuilder)
+
+              verifyRequestModelResult(requestModelResultTry, mahaRequestLogBuilder, mahaRequestContext, mahaService, parRequestLabel)
             }
-
-            val newReportingRequest = implementDrilldownRequestMinimization(mahaRequestContext.registryName, mahaRequestContext.bucketParams, mahaRequestContext.reportingRequest, mahaService, mahaRequestLogBuilder)
-
-            val newRequestWithInsertedFilter = insertValuesIntoDrilldownRequest(newReportingRequest, drillDownConfig.dimension.field, values.toList)
-
-            val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(
-              mahaRequestContext.registryName, newRequestWithInsertedFilter, mahaRequestContext.bucketParams
-              , mahaRequestLogBuilder)
-
-            verifyRequestModelResult(requestModelResultTry, mahaRequestLogBuilder, mahaRequestContext, mahaService, parRequestLabel)
           }
-        }
-      )).build()
+        )).build()
 
-    parRequest
+      parRequest
+    })
+
+    val nonBlockingParRequest: ParRequest[CuratorResult] = firstRequest.flatMap (
+      "flatMapFirstRequest"
+      , fromScala)
+
+    nonBlockingParRequest
   }
 
 }

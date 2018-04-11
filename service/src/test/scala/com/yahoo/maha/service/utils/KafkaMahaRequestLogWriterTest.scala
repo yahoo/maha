@@ -8,6 +8,7 @@ import java.util.Properties
 
 import com.google.protobuf.{ByteString, UninitializedMessageException}
 import com.yahoo.maha.proto.MahaRequestLog
+import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service.config.JsonKafkaRequestLoggingConfig
 import grizzled.slf4j.Logging
 import kafka.server.{KafkaConfig, KafkaServer}
@@ -152,23 +153,6 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
     writer.write(null)
     writer.validate(null)
     mahaRequestLogWriter.callback.onCompletion(null, new Exception)
-  }
-
-  test("Create a kafkaMahaRequestLogWriter") {
-    val jsonKafkaRequestLoggingConfig = new JsonKafkaRequestLoggingConfig(
-      kafkaBroker,
-      kafkaBroker,
-      "test",
-      "org.apache.kafka.common.serialization.ByteArraySerializer",
-      "1",
-      "true",
-      "1",
-      TOPIC,
-      "999999",
-      "1000"
-    )
-    val writer = new KafkaMahaRequestLogWriter(jsonKafkaRequestLoggingConfig, true)
-    writer.validate(null)
   }
 
   test("Create blank, invalid requestLog") {
