@@ -9,7 +9,7 @@ import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.request.{Field, ReportingRequest}
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.parrequest2.future.{CombinableRequest, ParFunction, ParRequest}
-import com.yahoo.maha.service.error.{MahaServiceBadRequestException, MahaServiceException}
+import com.yahoo.maha.service.error.{MahaServiceBadRequestException}
 import com.yahoo.maha.service.utils.CuratorMahaRequestLogBuilder
 import com.yahoo.maha.service.{MahaRequestContext, MahaService}
 import grizzled.slf4j.Logging
@@ -116,7 +116,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     * @param drilldownDimName: Name of primary drilldown dimension
     * @param inputFieldValues: All values found in the initial request
     */
-  def insertValuesIntoDrilldownRequest(reportingRequest: ReportingRequest,
+  private def insertValuesIntoDrilldownRequest(reportingRequest: ReportingRequest,
                                        drilldownDimName: String,
                                        inputFieldValues: List[String]): ReportingRequest = {
     reportingRequest.copy(filterExpressions = (reportingRequest.filterExpressions ++ IndexedSeq(InFilter(drilldownDimName, inputFieldValues))).distinct
@@ -132,7 +132,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     * @param mahaRequestLogBuilder: Error logging
     * @return Modified reporting request with drilldown
     */
-  def implementDrilldownRequestMinimization(registryName: String,
+  private def implementDrilldownRequestMinimization(registryName: String,
               bucketParams: BucketParams,
               reportingRequest: ReportingRequest,
               mahaService: MahaService,
@@ -153,7 +153,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     * @param parRequestLabel: Label for the parallel request, in case of error logging
     * @return
     */
-  def verifyRequestModelResult(requestModelResultTry: Try[RequestModelResult],
+  private def verifyRequestModelResult(requestModelResultTry: Try[RequestModelResult],
                                mahaRequestLogBuilder: CuratorMahaRequestLogBuilder,
                                mahaRequestContext: MahaRequestContext,
                                mahaService: MahaService,
