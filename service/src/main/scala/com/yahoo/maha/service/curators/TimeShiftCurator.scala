@@ -151,7 +151,7 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
               , previousWindowRowList
               , dimensionKeySet)
 
-            new Right[GeneralError, CuratorResult](CuratorResult(
+            new Right[GeneralError, CuratorResult](DefaultCuratorResult(
               Try(
                 RequestResult(defaultWindowRequestResultTry.get.queryPipelineResult.copy(rowList = derivedRowList)
                   , defaultWindowRequestResultTry.get.totalRowsOption)

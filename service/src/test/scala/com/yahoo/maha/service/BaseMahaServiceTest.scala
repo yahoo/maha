@@ -31,7 +31,7 @@ trait BaseMahaServiceTest extends FunSuite {
     config.setJdbcUrl(s"jdbc:h2:mem:$h2dbId;MODE=Oracle;DB_CLOSE_DELAY=-1")
     config.setUsername("sa")
     config.setPassword("h2.test.database.password")
-    config.setMaximumPoolSize(1)
+    config.setMaximumPoolSize(2)
     dataSource = Option(new HikariDataSource(config))
     jdbcConnection = dataSource.map(new JdbcConnection(_))
   }
@@ -265,9 +265,9 @@ trait BaseMahaServiceTest extends FunSuite {
                       |            "rejectedExecutionHandlerClass": "com.yahoo.maha.service.factory.DefaultRejectedExecutionHandlerFactory",
                       |            "rejectedExecutionHandlerConfig": "",
                       |            "poolName": "maha-test-pool",
-                      |            "defaultTimeoutMillis": 10000,
-                      |            "threadPoolSize": 3,
-                      |            "queueSize": 3
+                      |            "defaultTimeoutMillis": 20000,
+                      |            "threadPoolSize": 10,
+                      |            "queueSize": 10
                       |         }
                       |      },
                       |      "irParallelExec": {
@@ -276,7 +276,7 @@ trait BaseMahaServiceTest extends FunSuite {
                       |            "rejectedExecutionHandlerClass": "com.yahoo.maha.service.factory.DefaultRejectedExecutionHandlerFactory",
                       |            "rejectedExecutionHandlerConfig": "",
                       |            "poolName": "maha-test-pool",
-                      |            "defaultTimeoutMillis": 10000,
+                      |            "defaultTimeoutMillis": 20000,
                       |            "threadPoolSize": 3,
                       |            "queueSize": 3
                       |         }
@@ -306,6 +306,11 @@ trait BaseMahaServiceTest extends FunSuite {
                       |      },
                       |      "timeshift": {
                       |         "factoryClass": "com.yahoo.maha.service.factory.TimeShiftCuratorFactory",
+                      |         "config": {
+                      |         }
+                      |      },
+                      |      "totalMetrics": {
+                      |         "factoryClass": "com.yahoo.maha.service.factory.TotalMetricsCuratorFactory",
                       |         "config": {
                       |         }
                       |      }

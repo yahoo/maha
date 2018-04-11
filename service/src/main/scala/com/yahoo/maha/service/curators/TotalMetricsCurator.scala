@@ -23,7 +23,7 @@ case class TotalMetricsCuratorResult(requestResultTry: Try[RequestResult],
                                      requestModelReference: RequestModelResult,
                                      totalMetricsResultTry: Try[RequestResult]) extends CuratorResult
 
-class TotalMetricsCurator(override val requestModelValidator: CuratorRequestModelValidator = NoopCuratorRequestModelValidator) extends Curator with Logging {
+case class TotalMetricsCurator(override val requestModelValidator: CuratorRequestModelValidator = NoopCuratorRequestModelValidator) extends Curator with Logging {
 
   override val name: String = TotalMetricsCurator.name
   override val level: Int = 1
@@ -90,7 +90,9 @@ class TotalMetricsCurator(override val requestModelValidator: CuratorRequestMode
 
             val totalMetricsRequestModel: RequestModel = totalMetricsRequestModelResultTry.get.model
 
+
             val totalMetricsRequestResultTry = mahaService.processRequestModel(mahaRequestContext.registryName, totalMetricsRequestModel, mahaRequestLogHelper)
+
             if(totalMetricsRequestResultTry.isFailure) {
               val message = totalMetricsRequestResultTry.failed.get.getMessage
               mahaRequestLogHelper.logFailed(message)
@@ -120,6 +122,7 @@ class TotalMetricsCurator(override val requestModelValidator: CuratorRequestMode
         (result) => {
           val message = s"Failed to execute the totalMetricsCurator, ${result.message}"
           if (result.throwableOption.isDefined) {
+            result.throwableOption.get.printStackTrace()
             throw result.throwableOption.get
           } else {
             throw new MahaServiceExecutionException(message)
@@ -134,18 +137,20 @@ class TotalMetricsCurator(override val requestModelValidator: CuratorRequestMode
         ParCallable.from[Either[GeneralError, CuratorResult]](
         new Callable[Either[GeneralError, CuratorResult]](){
           override def call(): Either[GeneralError, CuratorResult] = {
-               val combinedResult =  parRequest2Builder.build().fold(errorFunction, sucessFunction).get()
+               val combinedResult =  parRequest2Builder.build().get()
                val curatorResult: CuratorResult = {
                    if (combinedResult.isLeft) {
                       val error = combinedResult.left.get
                       val message = s"Failed to execute combine result of totalMetricsCurator, ${error.message}"
                       if (error.throwableOption.isDefined) {
+                         error.throwableOption.get.printStackTrace()
                          throw error.throwableOption.get
                       } else {
                         throw new MahaServiceExecutionException(message)
                       }
                  } else {
-                   combinedResult.right.get
+                 val curatorResult = combinedResult.right.get
+                   TotalMetricsCuratorResult(curatorResult._1.requestResultTry, curatorResult._1.requestModelReference, curatorResult._2.requestResultTry)
                  }
                }
                new Right(curatorResult)
