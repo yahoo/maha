@@ -87,7 +87,8 @@ class MahaSyncRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAft
       mahaService,
       mahaServiceConfig.mahaRequestLogWriter)
 
-    val mahaRequestProcessor = processorFactory.create(mahaRequestContext, "test", MahaRequestLogHelper(REGISTRY, mahaService.mahaRequestLogWriter))
+    val mahaRequestProcessor = processorFactory.create(mahaRequestContext
+      , "test", MahaRequestLogHelper(mahaRequestContext, mahaService.mahaRequestLogWriter))
 
     mahaRequestProcessor.onSuccess((resultList: IndexedSeq[CuratorResult]) => {
       assertCount+=1

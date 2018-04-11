@@ -85,4 +85,5 @@ message MahaRequestProto{
   optional string mahaServiceHostname = 46;
   optional bool isGrainOptimized = 47;
   optional bool isIndexOptimized = 48;
+  optional string curator = 49;
 }

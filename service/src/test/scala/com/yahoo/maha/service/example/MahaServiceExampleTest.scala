@@ -43,8 +43,13 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
 
     val bucketParams = BucketParams(UserInfo("uid", true))
 
-    val mahaRequestLogHelper = MahaRequestLogHelper("er", mahaServiceConfig.mahaRequestLogWriter)
-    mahaRequestLogHelper.init(reportingRequest, None, MahaRequestProto.RequestType.SYNC, ByteString.copyFrom(jsonRequest.getBytes))
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
     val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams, mahaRequestLogHelper)
     assert(requestModelResultTry.isSuccess)
@@ -114,13 +119,6 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
     assert(!mahaService.getDomainForCube("temp", "inexistent").isDefined)
     assert(!mahaService.getFlattenDomainForCube("temp", "inexistent").isDefined)
 
-    val mahaRequestContext = MahaRequestContext(REGISTRY,
-      bucketParams,
-      reportingRequest,
-      jsonRequest.getBytes,
-      Map.empty, "rid", "uid")
-
-
     val mahaRequestProcessor = new MahaSyncRequestProcessor(mahaRequestContext,
       DefaultRequestCoordinator(mahaService),
       mahaServiceConfig.mahaRequestLogWriter
@@ -171,7 +169,12 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
 
     val bucketParams = BucketParams(UserInfo("uid", true))
 
-    val mahaRequestLogHelper = MahaRequestLogHelper(REGISTRY, mahaServiceConfig.mahaRequestLogWriter)
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
     val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams, mahaRequestLogHelper)
     assert(requestModelResultTry.isSuccess)
@@ -210,7 +213,12 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
 
     val bucketParams = BucketParams(UserInfo("uid", true))
 
-    val mahaRequestLogHelper = MahaRequestLogHelper(REGISTRY, mahaServiceConfig.mahaRequestLogWriter)
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
     val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams, mahaRequestLogHelper)
     assert(requestModelResultTry.isFailure)

@@ -2,11 +2,9 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service
 
-import com.google.protobuf.ByteString
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParFunction
-import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service.curators.{CuratorResult, DefaultCurator}
 import com.yahoo.maha.service.utils.{MahaRequestLogHelper, MahaRequestLogWriter}
 import grizzled.slf4j.Logging
@@ -45,7 +43,7 @@ case class MahaSyncRequestProcessor(mahaRequestContext: MahaRequestContext
                                     , mahaRequestLogHelperOption:Option[MahaRequestLogHelper] = None
                                ) extends BaseMahaRequestProcessor with Logging {
   private[this] val mahaRequestLogHelper = if(mahaRequestLogHelperOption.isEmpty) {
-     MahaRequestLogHelper(mahaRequestContext.registryName, mahaRequestLogWriter)
+     MahaRequestLogHelper(mahaRequestContext, mahaRequestLogWriter)
   } else {
     mahaRequestLogHelperOption.get
   }
@@ -61,15 +59,12 @@ case class MahaSyncRequestProcessor(mahaRequestContext: MahaRequestContext
     onFailureFn = Some(fn)
   }
 
-  def process(): Unit = {
+  def process() {
 
-    require(onSuccessFn.isDefined || onFailureFn.isDefined, "Nothing to do after processing!")
-    mahaRequestLogHelper.init(mahaRequestContext.reportingRequest
-      , None, MahaRequestProto.RequestType.SYNC, ByteString.copyFrom(mahaRequestContext.rawJson))
-    //Starting Service Monitor
     mahaServiceMonitor.start(mahaRequestContext.reportingRequest)
+    require(onSuccessFn.isDefined || onFailureFn.isDefined, "Nothing to do after processing!")
 
-    val requestCoordinatorResult: RequestCoordinatorResult = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val requestCoordinatorResultEither: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
 
     val errParFunction: ParFunction[GeneralError, Unit] = ParFunction.fromScala(callOnFailureFn(mahaRequestLogHelper, mahaRequestContext.reportingRequest))
 
@@ -99,8 +94,13 @@ case class MahaSyncRequestProcessor(mahaRequestContext: MahaRequestContext
         }
       )
 
-    requestCoordinatorResult.combinedResultList.fold[Unit](errParFunction, successParFunction)
-
+    requestCoordinatorResultEither.fold({
+      err: GeneralError =>
+        callOnFailureFn(mahaRequestLogHelper, mahaRequestContext.reportingRequest)(err)
+    }, {
+      (requestCoordinatorResult: RequestCoordinatorResult) =>
+        requestCoordinatorResult.combinedResultList.fold[Unit](errParFunction, successParFunction)
+    })
   }
 
   private[this] def callOnFailureFn(mahaRequestLogHelper: MahaRequestLogHelper, reportingRequest: ReportingRequest)(err: GeneralError) : Unit = {

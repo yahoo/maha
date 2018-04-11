@@ -13,4 +13,6 @@ case class MahaRequestContext(registryName: String
                               , context: Map[String, Any]
                               , requestId: String
                               , userId: String
-                             )
+                             ) {
+  val requestStartTime: Long = System.currentTimeMillis()
+}

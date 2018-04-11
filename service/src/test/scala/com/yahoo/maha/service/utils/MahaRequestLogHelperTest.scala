@@ -4,11 +4,10 @@ package com.yahoo.maha.service.utils
 
 import java.nio.charset.StandardCharsets
 
-import com.google.protobuf.ByteString
 import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
+import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
-import com.yahoo.maha.service.MahaServiceConfig
+import com.yahoo.maha.service.{MahaRequestContext, MahaServiceConfig}
 import org.mockito.Mockito._
 import org.scalatest.{FunSuite, Matchers}
 import org.slf4j.MDC
@@ -42,15 +41,20 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     result.toOption.get
   }
 
+  val bucketParams: BucketParams = BucketParams(UserInfo("uid", true))
+
   test("Test MahaRequestLogHelper") {
     val mahaServiceConf = mock(classOf[MahaServiceConfig])
     val mahaRequestLogWriter = mock(classOf[MahaRequestLogWriter])
-    val mahaRequestLogHelper = MahaRequestLogHelper("ir", mahaServiceConf.mahaRequestLogWriter)
+    val mahaRequestContext = MahaRequestContext("ir",
+      bucketParams,
+      request,
+      jsonString.getBytes,
+      Map.empty, "123", "abc")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConf.mahaRequestLogWriter)
     val proto = mahaRequestLogHelper.getbuilder()
     MDC.put(MahaConstants.REQUEST_ID,"123")
     MDC.put(MahaConstants.USER_ID,"abc")
-    mahaRequestLogHelper.init(request,Option(123L),
-    MahaRequestProto.RequestType.SYNC, ByteString.copyFrom(jsonString.getBytes(StandardCharsets.UTF_8)))
     mahaRequestLogHelper.setDryRun()
     mahaRequestLogHelper.setAsyncQueueParams()
     when(mahaServiceConf.mahaRequestLogWriter).thenReturn(mahaRequestLogWriter)
@@ -64,12 +68,15 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
   test("Test MahaRequestLogHelper LogFailed with status") {
     val mahaServiceConf = mock(classOf[MahaServiceConfig])
     val mahaRequestLogWriter = mock(classOf[MahaRequestLogWriter])
-    val mahaRequestLogHelper = MahaRequestLogHelper("ir", mahaServiceConf.mahaRequestLogWriter)
+    val mahaRequestContext = MahaRequestContext("ir",
+      bucketParams,
+      request,
+      jsonString.getBytes,
+      Map.empty, "123", "abc")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConf.mahaRequestLogWriter)
     val proto = mahaRequestLogHelper.getbuilder()
     MDC.put(MahaConstants.REQUEST_ID,"123")
     MDC.put(MahaConstants.USER_ID,"abc")
-    mahaRequestLogHelper.init(request,Option(123L),
-      MahaRequestProto.RequestType.SYNC, ByteString.copyFrom(jsonString.getBytes(StandardCharsets.UTF_8)))
     mahaRequestLogHelper.setDryRun()
     mahaRequestLogHelper.setAsyncQueueParams()
     when(mahaServiceConf.mahaRequestLogWriter).thenReturn(mahaRequestLogWriter)

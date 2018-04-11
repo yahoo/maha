@@ -72,12 +72,12 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val bucketParams = BucketParams(UserInfo("uid", true))
 
-    val mahaRequestLogHelper = MahaRequestLogHelper(REGISTRY, mahaServiceConfig.mahaRequestLogWriter)
     val mahaRequestContext = MahaRequestContext(REGISTRY,
       bucketParams,
       reportingRequest,
       jsonRequest.getBytes,
       Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
 
     val mahaRequestProcessor = new MahaSyncRequestProcessor(mahaRequestContext,
@@ -88,8 +88,8 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator(mahaService)
 
-    val requestCoordinatorResult: RequestCoordinatorResult = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
-    val defaultCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.resultMap(DefaultCurator.name)
+    val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val defaultCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(DefaultCurator.name)
 
     val defaultCuratorResultEither = defaultCuratorResult.resultMap((t: CuratorResult) => t)
     defaultCuratorResultEither.fold((t: GeneralError) => {
@@ -144,8 +144,6 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val bucketParams = BucketParams(UserInfo("uid", true))
 
-    val mahaRequestLogHelper = MahaRequestLogHelper("er", mahaServiceConfig.mahaRequestLogWriter)
-
     val requestCoordinator: RequestCoordinator = new DefaultRequestCoordinator(mahaService)
 
     val mahaRequestContext = MahaRequestContext(REGISTRY,
@@ -153,9 +151,10 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       reportingRequest,
       jsonRequest.getBytes,
       Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
-    val requestCoordinatorResult: RequestCoordinatorResult = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
-    val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.resultMap(TimeShiftCurator.name)
+    val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(TimeShiftCurator.name)
 
     val timeShiftCuratorResultEither = timeShiftCuratorResult.resultMap((t: CuratorResult) => t)
     timeShiftCuratorResultEither.fold((t: GeneralError) => {

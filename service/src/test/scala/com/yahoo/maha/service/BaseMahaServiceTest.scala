@@ -9,7 +9,7 @@ import com.yahoo.maha.jdbc.JdbcConnection
 import com.yahoo.maha.service.utils.MahaConstants
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.apache.log4j.MDC
-import org.joda.time.{DateTimeZone, DateTime}
+import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.FunSuite
 
 /**

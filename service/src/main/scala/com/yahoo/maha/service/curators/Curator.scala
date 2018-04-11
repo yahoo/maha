@@ -5,11 +5,11 @@ package com.yahoo.maha.service.curators
 import java.util.concurrent.Callable
 
 import com.yahoo.maha.core.RequestModelResult
-import com.yahoo.maha.core.request.{CuratorJsonConfig, ReportingRequest}
+import com.yahoo.maha.core.request.CuratorJsonConfig
 import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
-import com.yahoo.maha.service.utils.MahaRequestLogHelper
+import com.yahoo.maha.service.utils.{CuratorMahaRequestLogBuilder, MahaRequestLogBuilder, MahaRequestLogHelper}
 import com.yahoo.maha.service.{MahaRequestContext, MahaService, RequestResult}
 import grizzled.slf4j.Logging
 import org.json4s.scalaz.JsonScalaz
@@ -31,8 +31,8 @@ trait Curator extends Ordered[Curator] {
   def process(resultMap: Map[String, ParRequest[CuratorResult]]
               , mahaRequestContext: MahaRequestContext
               , mahaService: MahaService
-              , mahaRequestLogHelper: MahaRequestLogHelper
-              , curatorConfig: Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig]
+              , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
+              , curatorConfig: CuratorConfig
              ) : ParRequest[CuratorResult]
   def compare(that: Curator) = {
     if(this.level == that.level) {
@@ -73,8 +73,8 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
   override def process(resultMap: Map[String, ParRequest[CuratorResult]]
                        , mahaRequestContext: MahaRequestContext
                        , mahaService: MahaService
-                       , mahaRequestLogHelper: MahaRequestLogHelper
-                       , curatorConfig: Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig]
+                       , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
+                       , curatorConfig: CuratorConfig
                       ): ParRequest[CuratorResult] = {
 
     val registryConfig = mahaService.getMahaServiceConfig.registry.get(mahaRequestContext.registryName).get
@@ -88,16 +88,21 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
 
             val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(
                 mahaRequestContext.registryName, mahaRequestContext.reportingRequest, mahaRequestContext.bucketParams
-              , mahaRequestLogHelper)
+              , mahaRequestLogBuilder)
 
             if(requestModelResultTry.isFailure) {
               val message = requestModelResultTry.failed.get.getMessage
-              mahaRequestLogHelper.logFailed(message)
+              mahaRequestLogBuilder.logFailed(message)
               return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceBadRequestException(message, requestModelResultTry.failed.toOption))
             } else {
               requestModelValidator.validate(mahaRequestContext, requestModelResultTry.get)
               val requestResultTry = mahaService.processRequestModel(mahaRequestContext.registryName
-                , requestModelResultTry.get.model, mahaRequestLogHelper)
+                , requestModelResultTry.get.model, mahaRequestLogBuilder)
+              if(requestResultTry.isSuccess) {
+                mahaRequestLogBuilder.logSuccess()
+              } else {
+                mahaRequestLogBuilder.logFailed(requestResultTry.failed.get.getMessage)
+              }
               return new Right[GeneralError, CuratorResult](CuratorResult(DefaultCurator.this, NoConfig, requestResultTry, requestModelResultTry.get))
             }
           }
