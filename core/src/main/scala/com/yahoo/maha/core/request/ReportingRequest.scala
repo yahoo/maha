@@ -348,7 +348,11 @@ object ReportingRequest extends BaseRequest {
     val curatorJsonConfigMap: Result[Map[String, CuratorJsonConfig]] =
       json
         .findField(_._1 == "curators")
-        .map(_ => fieldExtended[Map[String, CuratorJsonConfig]]("curators")(json))
+        .map {
+          _ =>
+            val result = fieldExtended[Map[String, CuratorJsonConfig]]("curators")(json)
+            result
+        }
         .fold(DEFAULT_CURATOR_JSON_CONFIG_MAP)(r => r)
 
     for {

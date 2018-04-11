@@ -368,6 +368,84 @@ public class TestParallelServiceExecutor {
     }
 
     @Test
+    public void testCombineListEither() throws Exception {
+        ParRequest.Builder<Integer> builder = executor.parRequestBuilder();
+        builder.setParCallable(ParCallable.from(() -> {
+            Thread.sleep(300);
+            return new Right<GeneralError, Integer>(10);
+        }));
+        ParRequest.Builder<Integer> builder2 = executor.parRequestBuilder();
+        builder2.setParCallable(ParCallable.from(() -> {
+            Thread.sleep(300);
+            return new Right<GeneralError, Integer>(11);
+        }));
+        ParRequest<Integer> request = builder.build();
+        ParRequest<Integer> request2 = builder2.build();
+
+        List<CombinableRequest<Integer>> parRequestList = new ArrayList<>();
+        parRequestList.add(request);
+        parRequestList.add(request2);
+
+        ParRequestListEither<Integer> parRequestListOption = executor.combineListEither(parRequestList);
+        final TestResponse response = new TestResponse();
+        NoopRequest<String> composedRequest = parRequestListOption.fold(ParFunction.from((input) -> {
+            response.err = input.toString();
+            return response.err;
+        }), ParFunction.from((input) -> {
+            response.success = String.join("-", input.stream().map((either) -> {
+                if (either.isLeft()) {
+                    return "Empty";
+                } else {
+                    return either.right().get().toString();
+                }
+            }).collect(Collectors.toList()));
+            return response.success;
+        }));
+        Either<GeneralError, String> result = composedRequest.get();
+        assertTrue(result.isRight());
+        assertTrue(response.success.equals("10-11"));
+    }
+
+
+    @Test
+    public void testCombineListEitherWithFailure() {
+        ParRequest.Builder<Integer> builder = executor.parRequestBuilder();
+        builder.setParCallable(ParCallable.from(() -> {
+            Thread.sleep(300);
+            throw new IllegalArgumentException("failed");
+        }));
+        ParRequest.Builder<Integer> builder2 = executor.parRequestBuilder();
+        builder2.setParCallable(ParCallable.from(() -> {
+            Thread.sleep(300);
+            return new Right<GeneralError, Integer>(11);
+        }));
+        List<CombinableRequest<Integer>> parRequestList = new ArrayList<>();
+        ParRequest<Integer> request = builder.build();
+        ParRequest<Integer> request2 = builder2.build();
+        parRequestList.add(request);
+        parRequestList.add(request2);
+
+        ParRequestListEither<Integer> parRequestListOption = executor.combineListEither(parRequestList);
+        final TestResponse response = new TestResponse();
+        NoopRequest<String> composedRequest = parRequestListOption.fold(ParFunction.from((input) -> {
+            response.err = input.toString();
+            return response.err;
+        }), ParFunction.from((input) -> {
+            response.success = String.join("-", input.stream().map((either) -> {
+                if (either.isLeft()) {
+                    return "Empty";
+                } else {
+                    return either.right().get().toString();
+                }
+            }).collect(Collectors.toList()));
+            return response.success;
+        }));
+        Either<GeneralError, String> result = composedRequest.get();
+        assertTrue(result.isRight());
+        assertTrue(response.success.equals("Empty-11"));
+    }
+
+    @Test
     public void testCombineList() throws Exception {
         ParRequest.Builder<Integer> builder = executor.parRequestBuilder();
         builder.setParCallable(ParCallable.from(() -> {

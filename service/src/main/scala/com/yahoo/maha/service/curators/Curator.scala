@@ -100,10 +100,12 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
                 , requestModelResultTry.get.model, mahaRequestLogBuilder)
               if(requestResultTry.isSuccess) {
                 mahaRequestLogBuilder.logSuccess()
+                return new Right[GeneralError, CuratorResult](CuratorResult(DefaultCurator.this, NoConfig, requestResultTry, requestModelResultTry.get))
               } else {
-                mahaRequestLogBuilder.logFailed(requestResultTry.failed.get.getMessage)
+                val t = requestResultTry.failed.get
+                mahaRequestLogBuilder.logFailed(t.getMessage)
+                return GeneralError.either(parRequestLabel, t.getMessage, t)
               }
-              return new Right[GeneralError, CuratorResult](CuratorResult(DefaultCurator.this, NoConfig, requestResultTry, requestModelResultTry.get))
             }
           }
         }

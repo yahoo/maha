@@ -1,7 +1,7 @@
 package com.yahoo.maha.service
 
 import com.yahoo.maha.parrequest2.GeneralError
-import com.yahoo.maha.parrequest2.future.{CombinableRequest, ParRequest, ParRequestListOption, ParallelServiceExecutor}
+import com.yahoo.maha.parrequest2.future.{CombinableRequest, ParRequest, ParRequestListEither, ParallelServiceExecutor}
 import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import grizzled.slf4j.Logging
@@ -13,11 +13,11 @@ case class RequestCoordinatorResult(orderedList: IndexedSeq[ParRequest[CuratorRe
                                     , resultMap: Map[String, ParRequest[CuratorResult]]
                                     , private val pse: ParallelServiceExecutor
                                    ) {
-  lazy val combinedResultList: ParRequestListOption[CuratorResult] = {
+  lazy val combinedResultList: ParRequestListEither[CuratorResult] = {
     import collection.JavaConverters._
     val futures : java.util.List[CombinableRequest[CuratorResult]] = resultMap
       .values.view.map(_.asInstanceOf[CombinableRequest[CuratorResult]]).toList.asJava
-    pse.combineList(futures)
+    pse.combineListEither(futures)
   }
 }
 
@@ -54,8 +54,8 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
       info(s"Curators not found : ${mahaRequestContext.reportingRequest.curatorJsonConfigMap.keySet -- curatorConfigMapFromRequest.keySet}")
     }
 
-    if(curatorsOrdered.size == 1 || curatorsOrdered.forall(!_.isSingleton)) {
-      GeneralError.either("singletonCheck"
+    if(curatorsOrdered.size > 1 && curatorsOrdered.exists(_.isSingleton)) {
+      return GeneralError.either("singletonCheck"
         , s"Singleton curators can only be requested by themselves but found ${curatorsOrdered.map(c => (c.name, c.isSingleton))}")
     }
 
