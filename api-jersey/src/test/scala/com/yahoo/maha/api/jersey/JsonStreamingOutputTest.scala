@@ -32,8 +32,7 @@ class JsonStreamingOutputTest extends FunSuite {
                           "filterExpressions": [
                             {"field": "Day", "operator": "between", "from": "${ExampleMahaService.yesterday}", "to": "${ExampleMahaService.today}"},
                             {"field": "Student ID", "operator": "=", "value": "213"}
-                          ],
-                          "includeRowCount" : true
+                          ]
                         }"""
 
   val reportingRequest = ReportingRequest.deserializeSync(jsonRequest.getBytes, StudentSchema).toOption.get
@@ -105,7 +104,7 @@ class JsonStreamingOutputTest extends FunSuite {
     val result = stringStream.toString()
     println(result)
     stringStream.close()
-    assert(result.equals(s"""{"header":{"lastIngestTime":"$timeStampString","source":"student_grade_sheet","cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,1]],"curators":{}}"""))
+    assert(result.equals(s"""{"header":{"lastIngestTime":"$timeStampString","source":"student_grade_sheet","cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[123,234,345,99,1]],"curators":{}}"""))
   }
 
   test("Test JsonStreamingOutput with DefaultCurator and valid other curator result") {
