@@ -254,13 +254,42 @@ public class ParallelServiceExecutor {
         return new ParRequestListOption.Builder<T>(this);
     }
 
+    public <T> ParRequestListEither.Builder<T> parRequestListEitherBuilder() {
+        return new ParRequestListEither.Builder<T>(this);
+    }
+
     /**
      * Combine list of combinable requests, meaning the result ParRequestListOption will finish when all combinable requests in the list finish
      */
     public <T> ParRequestListOption<T> combineList(
             final List<CombinableRequest<T>> requestList) {
+        return combineList(requestList, false);
+    }
+
+    /**
+     * Combine list of combinable requests, meaning the result ParRequestListOption will finish when all combinable requests in the list finish
+     */
+    public <T> ParRequestListOption<T> combineList(
+            final List<CombinableRequest<T>> requestList, boolean allMustSucceed) {
         String joinedLabel = requestList.stream().map(x -> x.label).collect(Collectors.joining("-"));
-        return new ParRequestListOption<T>(joinedLabel, this, new ArrayList<CombinableRequest<T>>(requestList), false);
+        return new ParRequestListOption<T>(joinedLabel, this, new ArrayList<CombinableRequest<T>>(requestList), allMustSucceed);
+    }
+
+    /**
+     * Combine list of combinable requests, meaning the result ParRequestListEither will finish when all combinable requests in the list finish
+     */
+    public <T> ParRequestListEither<T> combineListEither(
+            final List<CombinableRequest<T>> requestList) {
+        return combineListEither(requestList, false);
+    }
+
+    /**
+     * Combine list of combinable requests, meaning the result ParRequestListOption will finish when all combinable requests in the list finish
+     */
+    public <T> ParRequestListEither<T> combineListEither(
+            final List<CombinableRequest<T>> requestList, boolean allMustSucceed) {
+        String joinedLabel = requestList.stream().map(x -> x.label).collect(Collectors.joining("-"));
+        return new ParRequestListEither<T>(joinedLabel, this, new ArrayList<CombinableRequest<T>>(requestList), allMustSucceed);
     }
 
     /**

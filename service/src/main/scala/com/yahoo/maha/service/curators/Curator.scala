@@ -9,7 +9,7 @@ import com.yahoo.maha.core.request.CuratorJsonConfig
 import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
-import com.yahoo.maha.service.utils.{CuratorMahaRequestLogBuilder, MahaRequestLogBuilder, MahaRequestLogHelper}
+import com.yahoo.maha.service.utils.CuratorMahaRequestLogBuilder
 import com.yahoo.maha.service.{MahaRequestContext, MahaService, RequestResult}
 import grizzled.slf4j.Logging
 import org.json4s.scalaz.JsonScalaz
@@ -100,10 +100,12 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
                 , requestModelResultTry.get.model, mahaRequestLogBuilder)
               if(requestResultTry.isSuccess) {
                 mahaRequestLogBuilder.logSuccess()
+                return new Right[GeneralError, CuratorResult](CuratorResult(DefaultCurator.this, NoConfig, requestResultTry, requestModelResultTry.get))
               } else {
-                mahaRequestLogBuilder.logFailed(requestResultTry.failed.get.getMessage)
+                val t = requestResultTry.failed.get
+                mahaRequestLogBuilder.logFailed(t.getMessage)
+                return GeneralError.either(parRequestLabel, t.getMessage, t)
               }
-              return new Right[GeneralError, CuratorResult](CuratorResult(DefaultCurator.this, NoConfig, requestResultTry, requestModelResultTry.get))
             }
           }
         }

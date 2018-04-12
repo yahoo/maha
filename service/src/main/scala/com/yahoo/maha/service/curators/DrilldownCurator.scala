@@ -36,7 +36,7 @@ object DrilldownCurator {
 class DrilldownCurator (override val requestModelValidator: CuratorRequestModelValidator = NoopCuratorRequestModelValidator) extends Curator with Logging {
 
   override val name: String = DrilldownCurator.name
-  override val level: Int = 1
+  override val level: Int = 10
   override val priority: Int = 0
   override val isSingleton: Boolean = true
   private val INCLUDE_ROW_COUNT_DRILLDOWN : Boolean = false
