@@ -40,7 +40,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest)
+    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest).toOption.get
 
     println(drillDownConfig)
     assert(!drillDownConfig.enforceFilters)
@@ -85,7 +85,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest)
+    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest).toOption.get
 
     println(drillDownConfig)
     assert(!drillDownConfig.enforceFilters)
@@ -295,11 +295,11 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest)
+    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest).toOption.get
 
     println(drillDownConfig)
-    assert(drillDownConfig.enforceFilters == DrilldownConfig.DEFAULT_ENFORCE_FILTERS)
-    assert(drillDownConfig.maxRows == DrilldownConfig.MAXIMUM_ROWS)
+    assert(drillDownConfig.enforceFilters == false)
+    assert(drillDownConfig.maxRows == 1000)
     assert(drillDownConfig.ordering.contains(SortBy("Section ID", DESC)))
     assert(drillDownConfig.dimension == Field("Section ID", None, None))
     assert(drillDownConfig.cube == "student_performance")
@@ -313,7 +313,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
                             "drilldown" : {
                               "config" : {
                                 "enforceFilters": true,
-                                "dimension": "Section ID",
+                                "dimension": "Day",
                                 "mr": 1000
                               }
                             }
@@ -336,13 +336,89 @@ class DrilldownConfigTest extends BaseMahaServiceTest {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest)
+    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest).toOption.get
 
     println(drillDownConfig)
     assert(drillDownConfig.enforceFilters)
     assert(drillDownConfig.maxRows == 1000)
     assert(drillDownConfig.ordering.contains(SortBy("Total Marks", DESC)))
-    assert(drillDownConfig.dimension == Field("Section ID", None, None))
+    assert(drillDownConfig.dimension == Field("Day", None, None))
     assert(drillDownConfig.cube == "student_performance")
+  }
+
+  test("Create an invalid DrillDownConfig with Day and greater than one week range") {
+    val json : String =
+      s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : {
+                                "enforceFilters": true,
+                                "dimension": "Day",
+                                "mr": 1000
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "2018-01-01", "to": "2018-02-02"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(json.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val getThrown = intercept[IllegalArgumentException] {
+      DrilldownConfig.parse(reportingRequest)
+    }
+
+    assert(getThrown.getMessage.contains("day range may be queried on Date DrillDown"))
+  }
+
+  test("Create an invalid DrillDownConfig with Month and greater than one year range") {
+    val json : String =
+      s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : {
+                                "enforceFilters": true,
+                                "dimension": "Month",
+                                "mr": 1000
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "2017-01-01", "to": "2018-02-02"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(json.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val getThrown = intercept[IllegalArgumentException] {
+      DrilldownConfig.parse(reportingRequest)
+    }
+
+    assert(getThrown.getMessage.contains("day range may be queried on Month DrillDown"))
   }
 }

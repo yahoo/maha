@@ -37,7 +37,7 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
     val curatorConfigMapFromRequest: Map[String, CuratorConfig] = {
       mahaRequestContext.reportingRequest.curatorJsonConfigMap.collect {
         case (name, json) if curatorMap.contains(name) =>
-          val result = curatorMap(name).parseConfig(json)
+          val result = curatorMap(name).parseConfig(mahaRequestContext.reportingRequest)
           if(result.isFailure) {
             return GeneralError.either("curatorJsonParse", result.toString)
           }

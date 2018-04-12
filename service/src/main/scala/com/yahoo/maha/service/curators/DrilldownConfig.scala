@@ -2,29 +2,37 @@ package com.yahoo.maha.service.curators
 
 import org.json4s.DefaultFormats
 import org.json4s.scalaz.JsonScalaz._
-
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.service.MahaServiceConfig
 import com.yahoo.maha.service.factory._
 import org.json4s.JValue
+import org.json4s.scalaz.JsonScalaz
 
 /**
   * Parse an input JSON and convert it to a DrilldownConfig object.
   **/
-object DrilldownConfig {
-  val MAXIMUM_ROWS : BigInt = 1000
-  val DEFAULT_ENFORCE_FILTERS : Boolean = false
-  val validCubes : List[String] = List("performance_stats", "user_stats", "student_performance")
+object DrilldownConfig extends CuratorConfig {
+  protected val MAXIMUM_ROWS : BigInt = 1000
+  protected val MAX_DATE_SELECTED : Int = 7
+  protected val MAX_DAYS_MONTH_SELECTED : Int = 366
+  protected val DEFAULT_ENFORCE_FILTERS : Boolean = false
+  protected val validCubes : List[String] = List("performance_stats", "user_stats", "student_performance")
+  protected val validDims : List[String] = List("Device Type", "Age", "Date", "Day", "Month", "Gender", "Location", "Section ID")
+
 
   implicit val formats: DefaultFormats.type = DefaultFormats
 
-  def parse(reportingRequest: ReportingRequest) : DrilldownConfig = {
+  def parse(reportingRequest: ReportingRequest) : JsonScalaz.Result[DrilldownConfig] = {
+    import _root_.scalaz.syntax.validation._
+
+    require(validCubes.contains(reportingRequest.cube), "Cannot drillDown using given source cube " + reportingRequest.cube)
 
     require(reportingRequest.curatorJsonConfigMap.contains("drilldown"), "DrillDown may not be created without a declaration!")
 
     val config: JValue = reportingRequest.curatorJsonConfigMap("drilldown").json
 
     val dimension : Field = assignDim(config)
+    checkDim(dimension, reportingRequest)
 
     val maxRows : BigInt = assignMaxRows(config)
 
@@ -34,7 +42,25 @@ object DrilldownConfig {
 
     val cube : String = assignCube(config, reportingRequest.cube)
 
-    DrilldownConfig(enforceFilters, dimension, cube, ordering, maxRows)
+    DrilldownConfig(enforceFilters, dimension, cube, ordering, maxRows).successNel
+  }
+
+  private def expandDate(reportingRequest: ReportingRequest): Unit = {
+    require(reportingRequest.numDays < MAX_DATE_SELECTED, s"Only $MAX_DATE_SELECTED day range may be queried on Date DrillDown.")
+  }
+
+  private def expandMonth(reportingRequest: ReportingRequest): Unit = {
+    require(reportingRequest.numDays < MAX_DAYS_MONTH_SELECTED, s"Only $MAX_DAYS_MONTH_SELECTED day range may be queried on Month DrillDown.")
+  }
+
+  private def checkDim(field: Field, reportingRequest: ReportingRequest): Unit = {
+    field.field match{
+      case "Date" | "Day" => expandDate(reportingRequest)
+      case "Month" => expandMonth(reportingRequest)
+      case other : String =>
+        if (!validDims.contains(other))
+          throw new IllegalArgumentException(s"DrillDown Dimension not within validDims, found: $other but required one of: $validDims")
+    }
   }
 
   private def assignCube(config: JValue, default: String) : String = {
@@ -96,4 +122,4 @@ case class DrilldownConfig(enforceFilters: Boolean,
                             dimension: Field,
                             cube: String,
                             ordering: IndexedSeq[SortBy],
-                            maxRows: BigInt)
+                            maxRows: BigInt) extends CuratorConfig

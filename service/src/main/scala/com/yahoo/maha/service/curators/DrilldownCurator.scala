@@ -6,15 +6,17 @@ import java.util.concurrent.Callable
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.BucketParams
-import com.yahoo.maha.core.request.{Field, ReportingRequest}
+import com.yahoo.maha.core.request.{CuratorJsonConfig, Field, ReportingRequest}
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.parrequest2.future.{CombinableRequest, ParFunction, ParRequest}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.utils.CuratorMahaRequestLogBuilder
 import com.yahoo.maha.service.{MahaRequestContext, MahaService}
 import grizzled.slf4j.Logging
+import org.json4s.scalaz.JsonScalaz
 
 import scala.util.Try
+import scalaz.{NonEmptyList, Validation}
 
 /**
   * DrilldownCurator : Given an input Request with a Drilldown Json config,
@@ -42,6 +44,15 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
   private val INCLUDE_ROW_COUNT_DRILLDOWN : Boolean = false
   override val requiresDefaultCurator : Boolean = true
 
+  override def parseConfig(reportingRequest: ReportingRequest): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
+    val drilldownConfigTry : JsonScalaz.Result[DrilldownConfig] = DrilldownConfig.parse(reportingRequest)
+    Validation
+      .fromTryCatchNonFatal{
+        require(drilldownConfigTry.isSuccess, "Must succeed in creating a drilldownConfig " + drilldownConfigTry)
+      drilldownConfigTry.toOption.get}
+      .leftMap[JsonScalaz.Error](t => JsonScalaz.UncategorizedError("parseDrillDownConfigValidation", t.getMessage, List.empty)).toValidationNel
+  }
+
   /**
     * Verify the input reportingRequest generates a valid requestModel.
     * If so, return this requestModel for the primary request.
@@ -57,8 +68,6 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                                        reportingRequest: ReportingRequest,
                                        mahaService: MahaService,
                                        mahaRequestLogBuilder: CuratorMahaRequestLogBuilder): (RequestModel, IndexedSeq[Field]) = {
-    require(DrilldownConfig.validCubes.contains(reportingRequest.cube), "Cannot drillDown using given source cube " + reportingRequest.cube)
-
     val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams, mahaRequestLogBuilder)
     require(requestModelResultTry.isSuccess, "Input ReportingRequest was invalid due to " + requestModelResultTry.failed.get.getMessage)
     (requestModelResultTry.get.model,
@@ -97,10 +106,10 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     * @param primaryKeyField: Primary key from most granular table
     */
   private def drilldownReportingRequest(reportingRequest: ReportingRequest,
-                                                       factFields: IndexedSeq[Field],
-                                                       primaryKeyField: Field): ReportingRequest = {
-    val drilldownConfig: DrilldownConfig = DrilldownConfig.parse(reportingRequest)
-    val allSelectedFields : IndexedSeq[Field] = (IndexedSeq(DrilldownConfig.parse(reportingRequest).dimension, primaryKeyField).filter{_!=null} ++ factFields).distinct
+                                        factFields: IndexedSeq[Field],
+                                        primaryKeyField: Field,
+                                        drilldownConfig: DrilldownConfig): ReportingRequest = {
+    val allSelectedFields : IndexedSeq[Field] = (IndexedSeq(drilldownConfig.dimension, primaryKeyField).filter{_!=null} ++ factFields).distinct
     reportingRequest.copy(cube = drilldownConfig.cube
       , selectFields = allSelectedFields
       , sortBy = drilldownConfig.ordering
@@ -133,14 +142,15 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     * @return Modified reporting request with drilldown
     */
   def implementDrilldownRequestMinimization(registryName: String,
-              bucketParams: BucketParams,
-              reportingRequest: ReportingRequest,
-              mahaService: MahaService,
-              mahaRequestLogBuilder: CuratorMahaRequestLogBuilder): ReportingRequest = {
+                                            bucketParams: BucketParams,
+                                            reportingRequest: ReportingRequest,
+                                            mahaService: MahaService,
+                                            mahaRequestLogBuilder: CuratorMahaRequestLogBuilder,
+                                            drilldownConfig: DrilldownConfig): ReportingRequest = {
     val (rm, fields) : (RequestModel, IndexedSeq[Field]) = validateReportingRequest(registryName, bucketParams, reportingRequest, mahaService, mahaRequestLogBuilder)
     val primaryField : Field = mostGranularPrimaryKey(rm).orNull
 
-    val rr = drilldownReportingRequest(reportingRequest, fields, primaryField)
+    val rr = drilldownReportingRequest(reportingRequest, fields, primaryField, drilldownConfig)
     rr
   }
 
@@ -195,8 +205,6 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
           new Callable[Either[GeneralError, CuratorResult]](){
             override def call(): Either[GeneralError, CuratorResult] = {
 
-              val drillDownConfig = DrilldownConfig.parse(mahaRequestContext.reportingRequest)
-
               if(defaultCuratorResult.requestResultTry.isFailure){
                 return GeneralError.either(parRequestLabel, "RequestResult failed with " + defaultCuratorResult.requestResultTry.failed.get.getMessage)
               }
@@ -204,12 +212,12 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
               val rowList = defaultCuratorResult.requestResultTry.get.queryPipelineResult.rowList
               var values : Set[String] = Set.empty
               rowList.foreach{
-                row => values = values ++ List(row.cols(row.aliasMap(drillDownConfig.dimension.field)).toString)
+                row => values = values ++ List(row.cols(row.aliasMap(curatorConfig.asInstanceOf[DrilldownConfig].dimension.field)).toString)
               }
 
-              val newReportingRequest = implementDrilldownRequestMinimization(mahaRequestContext.registryName, mahaRequestContext.bucketParams, mahaRequestContext.reportingRequest, mahaService, mahaRequestLogBuilder)
+              val newReportingRequest = implementDrilldownRequestMinimization(mahaRequestContext.registryName, mahaRequestContext.bucketParams, mahaRequestContext.reportingRequest, mahaService, mahaRequestLogBuilder, curatorConfig.asInstanceOf[DrilldownConfig])
 
-              val newRequestWithInsertedFilter = insertValuesIntoDrilldownRequest(newReportingRequest, drillDownConfig.dimension.field, values.toList)
+              val newRequestWithInsertedFilter = insertValuesIntoDrilldownRequest(newReportingRequest, curatorConfig.asInstanceOf[DrilldownConfig].dimension.field, values.toList)
 
               val requestModelResultTry = mahaService.generateRequestModel(
                 mahaRequestContext.registryName, newRequestWithInsertedFilter, mahaRequestContext.bucketParams
