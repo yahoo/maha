@@ -438,5 +438,99 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     })
 
   }
+
+  test("Test unsuccessful processing of incorrectly declared Drilldown curator with long Month range") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : {
+                                "dimension": "Month"
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "2017-01-01", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val thrown = intercept[IllegalArgumentException] {
+      requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    }
+    assert(thrown.getMessage.contains("Only 366 day range may be queried on Month DrillDown."))
+
+  }
+
+  test("Test unsuccessful processing of incorrectly declared Drilldown curator with long Date range") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : {
+                                "dimension": "Day"
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "2017-01-01", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val thrown = intercept[IllegalArgumentException] {
+      requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    }
+    assert(thrown.getMessage.contains("Only 7 day range may be queried on Date DrillDown."))
+
+  }
 }
 

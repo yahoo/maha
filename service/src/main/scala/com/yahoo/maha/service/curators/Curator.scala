@@ -41,7 +41,7 @@ trait Curator extends Ordered[Curator] {
   }
   def isSingleton: Boolean
   def requiresDefaultCurator: Boolean
-  def parseConfig(reportingRequest: ReportingRequest): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
+  def parseConfig(curatorJsonConfig: CuratorJsonConfig): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
     import scalaz.syntax.validation._
     NoConfig.successNel
   }

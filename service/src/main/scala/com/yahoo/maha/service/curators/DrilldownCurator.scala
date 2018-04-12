@@ -9,6 +9,7 @@ import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.request.{CuratorJsonConfig, Field, ReportingRequest}
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.parrequest2.future.{CombinableRequest, ParFunction, ParRequest}
+import com.yahoo.maha.service.curators.DrilldownConfig.{MAX_DATE_SELECTED, MAX_DAYS_MONTH_SELECTED, validCubes, validDims}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.utils.CuratorMahaRequestLogBuilder
 import com.yahoo.maha.service.{MahaRequestContext, MahaService}
@@ -44,8 +45,8 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
   private val INCLUDE_ROW_COUNT_DRILLDOWN : Boolean = false
   override val requiresDefaultCurator : Boolean = true
 
-  override def parseConfig(reportingRequest: ReportingRequest): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
-    val drilldownConfigTry : JsonScalaz.Result[DrilldownConfig] = DrilldownConfig.parse(reportingRequest)
+  override def parseConfig(curatorJsonConfig: CuratorJsonConfig): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
+    val drilldownConfigTry : JsonScalaz.Result[DrilldownConfig] = DrilldownConfig.parse(curatorJsonConfig)
     Validation
       .fromTryCatchNonFatal{
         require(drilldownConfigTry.isSuccess, "Must succeed in creating a drilldownConfig " + drilldownConfigTry)
@@ -110,9 +111,9 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                                         primaryKeyField: Field,
                                         drilldownConfig: DrilldownConfig): ReportingRequest = {
     val allSelectedFields : IndexedSeq[Field] = (IndexedSeq(drilldownConfig.dimension, primaryKeyField).filter{_!=null} ++ factFields).distinct
-    reportingRequest.copy(cube = drilldownConfig.cube
+    reportingRequest.copy(cube = if (drilldownConfig.cube.nonEmpty) drilldownConfig.cube else reportingRequest.cube
       , selectFields = allSelectedFields
-      , sortBy = drilldownConfig.ordering
+      , sortBy = if (drilldownConfig.ordering != IndexedSeq.empty) drilldownConfig.ordering else reportingRequest.sortBy
       , rowsPerPage = drilldownConfig.maxRows.toInt
     , filterExpressions = reportingRequest.filterExpressions
     , includeRowCount = INCLUDE_ROW_COUNT_DRILLDOWN)
@@ -180,6 +181,23 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     }
   }
 
+  private def expandDate(numDays : Int): Unit = {
+    require(numDays < MAX_DATE_SELECTED, s"Only $MAX_DATE_SELECTED day range may be queried on Date DrillDown.")
+  }
+
+  private def expandMonth(numDays : Int): Unit = {
+    require(numDays < MAX_DAYS_MONTH_SELECTED, s"Only $MAX_DAYS_MONTH_SELECTED day range may be queried on Month DrillDown.")
+  }
+
+  private def checkDim(field: Field, numDays : Int): Unit = {
+    field.field match{
+      case "Date" | "Day" => expandDate(numDays)
+      case "Month" => expandMonth(numDays)
+      case other : String =>
+        if (!validDims.contains(other))
+          throw new IllegalArgumentException(s"DrillDown Dimension not within validDims, found: $other but required one of: $validDims")
+    }
+  }
 
   /**
     *
@@ -198,6 +216,10 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
     val parRequestLabel = "processDrillDownCurator"
     val firstRequest = resultMap(DefaultCurator.name)
+
+    require(DrilldownConfig.validCubes.contains(mahaRequestContext.reportingRequest.cube), "Cannot drillDown using given source cube " + mahaRequestContext.reportingRequest.cube)
+
+    checkDim(curatorConfig.asInstanceOf[DrilldownConfig].dimension, mahaRequestContext.reportingRequest.numDays)
 
     val fromScala = ParFunction.fromScala[CuratorResult, CombinableRequest[CuratorResult]]((defaultCuratorResult) => {
       val parRequest = parallelServiceExecutor.parRequestBuilder[CuratorResult].setLabel(parRequestLabel).
