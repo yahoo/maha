@@ -125,7 +125,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
       .create(mahaRequestContext, MahaServiceConstants.MahaRequestLabel)
 
     mahaRequestProcessor.onSuccess((resultList: IndexedSeq[CuratorResult]) => {
-      response.resume(JsonStreamingOutput(resultList))
+      response.resume(new JsonStreamingOutput(resultList))
     })
 
     mahaRequestProcessor.onFailure((ge: GeneralError) => {
