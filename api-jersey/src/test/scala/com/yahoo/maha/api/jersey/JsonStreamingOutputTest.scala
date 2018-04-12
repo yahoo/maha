@@ -8,10 +8,13 @@ import com.yahoo.maha.api.jersey.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.core.{Engine, OracleEngine}
-import com.yahoo.maha.service.MahaRequestContext
+import com.yahoo.maha.core.{Engine, OracleEngine, RequestModelResult}
+import com.yahoo.maha.service.curators.{DrilldownCurator, NoConfig, CuratorResult, DefaultCurator}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
+import com.yahoo.maha.service.{MahaRequestContext, RequestResult}
 import org.scalatest.FunSuite
+
+import scala.util.Try
 
 /**
  * Created by pranavbhole on 06/04/18.
@@ -34,7 +37,7 @@ class JsonStreamingOutputTest extends FunSuite {
 
   val reportingRequest = ReportingRequest.deserializeSync(jsonRequest.getBytes, StudentSchema).toOption.get
 
-  val query  = {
+  val (query, queryChain)  = {
     val mahaService = ExampleMahaService.getMahaService("test")
     val mahaServiceConfig = mahaService.getMahaServiceConfig
     val registry = mahaServiceConfig.registry.get(ExampleMahaService.REGISTRY_NAME).get
@@ -49,7 +52,8 @@ class JsonStreamingOutputTest extends FunSuite {
 
     val requestModel = mahaService.generateRequestModel(ExampleMahaService.REGISTRY_NAME, reportingRequest, BucketParams(UserInfo("test", false)), MahaRequestLogHelper(mahaRequestContext, mahaService.mahaRequestLogWriter)).toOption.get
     val factory = registry.queryPipelineFactory.from(requestModel.model, QueryAttributes.empty)
-    factory.get.queryChain.drivingQuery
+    val queryChain = factory.get.queryChain
+    (queryChain.drivingQuery, queryChain)
   }
 
   val timeStampString = new Date().toString
@@ -68,9 +72,14 @@ class JsonStreamingOutputTest extends FunSuite {
     }
   }
 
-  test("Test JsonStreamingOutput") {
+  class TestCurator extends DrilldownCurator {
+    override val name = "TestCurator"
+    override val isSingleton = false
+  }
 
-    /*val rowList = CompleteRowList(query)
+  test("Test JsonStreamingOutput with DefaultCurator, totalRow Option, empty curator result") {
+
+    val rowList = CompleteRowList(query)
 
     val row = rowList.newRow
     row.addValue("Student ID", 123)
@@ -79,9 +88,15 @@ class JsonStreamingOutputTest extends FunSuite {
     row.addValue("Total Marks", 99)
     rowList.addRow(row)
 
-    val jsonStreamingOutput = JsonStreamingOutput(
-      query.queryContext.requestModel.reportingRequest.,
-      Map(OracleEngine-> TestOracleIngestionTimeUpdater(OracleEngine, "testSource")))
+    val queryPipelineResult = QueryPipelineResult(queryChain, rowList, QueryAttributes.empty)
+    val requestResult = Try(RequestResult(queryPipelineResult, Some(1)))
+    val requestModelResult = RequestModelResult(query.queryContext.requestModel, None)
+    val defaultCurator = DefaultCurator()
+    val curatorResult = CuratorResult(defaultCurator, NoConfig, requestResult, requestModelResult)
+
+    val curatorResults= IndexedSeq(curatorResult)
+
+    val jsonStreamingOutput = JsonStreamingOutput(curatorResults, Map(OracleEngine-> TestOracleIngestionTimeUpdater(OracleEngine, "testSource")))
 
     val stringStream =  new StringStream()
 
@@ -89,7 +104,41 @@ class JsonStreamingOutputTest extends FunSuite {
     val result = stringStream.toString()
     println(result)
     stringStream.close()
-    assert(result.equals(s"""{"header":{"lastIngestTime":"$timeStampString","source":"student_grade_sheet","cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[123,234,345,99]]}"""))*/
+    assert(result.equals(s"""{"header":{"lastIngestTime":"$timeStampString","source":"student_grade_sheet","cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[123,234,345,99,1]],"curators":{}}"""))
+  }
+
+  test("Test JsonStreamingOutput with DefaultCurator and valid other curator result") {
+
+    val rowList = CompleteRowList(query)
+
+    val row = rowList.newRow
+    row.addValue("Student ID", 123)
+    row.addValue("Class ID", 234)
+    row.addValue("Section ID", 345)
+    row.addValue("Total Marks", 99)
+    rowList.addRow(row)
+
+    val queryPipelineResult = QueryPipelineResult(queryChain, rowList, QueryAttributes.empty)
+    val requestResult = Try(RequestResult(queryPipelineResult, None))
+    val requestModelResult = RequestModelResult(query.queryContext.requestModel, None)
+    val defaultCurator = DefaultCurator()
+    val curatorResult1 = CuratorResult(defaultCurator, NoConfig, requestResult, requestModelResult)
+
+    val testCurator = new TestCurator()
+    val curatorResult2 = CuratorResult(testCurator, NoConfig, requestResult, requestModelResult)
+
+
+    val curatorResults= IndexedSeq(curatorResult1, curatorResult2)
+
+    val jsonStreamingOutput = JsonStreamingOutput(curatorResults)
+
+    val stringStream =  new StringStream()
+
+    jsonStreamingOutput.write(stringStream)
+    val result = stringStream.toString()
+    println(result)
+    stringStream.close()
+    assert(result.equals(s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[123,234,345,99]],"curators":{"TestCurator":{"result":{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[123,234,345,99]]}}}}""".stripMargin))
   }
 
 }

@@ -9,7 +9,7 @@ import com.yahoo.maha.core.request.CuratorJsonConfig
 import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
-import com.yahoo.maha.service.utils.{CuratorMahaRequestLogBuilder, MahaRequestLogBuilder, MahaRequestLogHelper}
+import com.yahoo.maha.service.utils.CuratorMahaRequestLogBuilder
 import com.yahoo.maha.service.{MahaRequestContext, MahaService, RequestResult}
 import grizzled.slf4j.Logging
 import org.json4s.scalaz.JsonScalaz
