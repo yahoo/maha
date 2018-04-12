@@ -5,7 +5,7 @@ package com.yahoo.maha.service.curators
 import java.util.concurrent.Callable
 
 import com.yahoo.maha.core.RequestModelResult
-import com.yahoo.maha.core.request.{CuratorJsonConfig, ReportingRequest}
+import com.yahoo.maha.core.request.CuratorJsonConfig
 import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
@@ -41,7 +41,7 @@ trait Curator extends Ordered[Curator] {
   }
   def isSingleton: Boolean
   def requiresDefaultCurator: Boolean
-  def parseConfig(curatorJsonConfig: CuratorJsonConfig): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
+  def parseConfig(config: CuratorJsonConfig): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
     import scalaz.syntax.validation._
     NoConfig.successNel
   }

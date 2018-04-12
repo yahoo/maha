@@ -45,8 +45,8 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
   private val INCLUDE_ROW_COUNT_DRILLDOWN : Boolean = false
   override val requiresDefaultCurator : Boolean = true
 
-  override def parseConfig(curatorJsonConfig: CuratorJsonConfig): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
-    val drilldownConfigTry : JsonScalaz.Result[DrilldownConfig] = DrilldownConfig.parse(curatorJsonConfig)
+  override def parseConfig(config: CuratorJsonConfig): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
+    val drilldownConfigTry : JsonScalaz.Result[DrilldownConfig] = DrilldownConfig.parse(config)
     Validation
       .fromTryCatchNonFatal{
         require(drilldownConfigTry.isSuccess, "Must succeed in creating a drilldownConfig " + drilldownConfigTry)
