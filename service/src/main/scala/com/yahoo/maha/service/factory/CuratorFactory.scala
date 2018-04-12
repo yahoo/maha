@@ -3,7 +3,7 @@
 package com.yahoo.maha.service.factory
 
 import com.yahoo.maha.service.MahaServiceConfig
-import com.yahoo.maha.service.curators.{TotalMetricsCurator, Curator, DefaultCurator, TimeShiftCurator}
+import com.yahoo.maha.service.curators._
 
 import scalaz.syntax.validation._
 
@@ -24,6 +24,16 @@ class TimeShiftCuratorFactory extends CuratorFactory {
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }
+
+class DrillDownCuratorFactory extends CuratorFactory {
+
+  override def fromJson(configJson: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[Curator] = {
+    new DrilldownCurator().successNel
+  }
+
+  override def supportedProperties: List[(String, Boolean)] = List.empty
+}
+
 
 class TotalMetricsCuratorFactory extends CuratorFactory {
 

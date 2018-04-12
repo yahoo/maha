@@ -128,6 +128,11 @@ class JsonMahaServiceConfigTest extends FunSuite with Matchers {
                        |         "factoryClass": "com.yahoo.maha.service.factory.TimeShiftCuratorFactory",
                        |         "config": {
                        |         }
+                       |      },
+                       |      "drilldown": {
+                       |         "factoryClass": "com.yahoo.maha.service.factory.DrillDownCuratorFactory",
+                       |         "config": {
+                       |         }
                        |      }
                        |   }
                        |}""".stripMargin

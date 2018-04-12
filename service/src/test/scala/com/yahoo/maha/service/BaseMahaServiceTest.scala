@@ -9,7 +9,7 @@ import com.yahoo.maha.jdbc.JdbcConnection
 import com.yahoo.maha.service.utils.MahaConstants
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.apache.log4j.MDC
-import org.joda.time.{DateTimeZone, DateTime}
+import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.FunSuite
 
 /**
@@ -31,7 +31,7 @@ trait BaseMahaServiceTest extends FunSuite {
     config.setJdbcUrl(s"jdbc:h2:mem:$h2dbId;MODE=Oracle;DB_CLOSE_DELAY=-1")
     config.setUsername("sa")
     config.setPassword("h2.test.database.password")
-    config.setMaximumPoolSize(2)
+    config.setMaximumPoolSize(1)
     dataSource = Option(new HikariDataSource(config))
     jdbcConnection = dataSource.map(new JdbcConnection(_))
   }
@@ -265,9 +265,9 @@ trait BaseMahaServiceTest extends FunSuite {
                       |            "rejectedExecutionHandlerClass": "com.yahoo.maha.service.factory.DefaultRejectedExecutionHandlerFactory",
                       |            "rejectedExecutionHandlerConfig": "",
                       |            "poolName": "maha-test-pool",
-                      |            "defaultTimeoutMillis": 20000,
-                      |            "threadPoolSize": 10,
-                      |            "queueSize": 10
+                      |            "defaultTimeoutMillis": 10000,
+                      |            "threadPoolSize": 3,
+                      |            "queueSize": 3
                       |         }
                       |      },
                       |      "irParallelExec": {
@@ -276,7 +276,7 @@ trait BaseMahaServiceTest extends FunSuite {
                       |            "rejectedExecutionHandlerClass": "com.yahoo.maha.service.factory.DefaultRejectedExecutionHandlerFactory",
                       |            "rejectedExecutionHandlerConfig": "",
                       |            "poolName": "maha-test-pool",
-                      |            "defaultTimeoutMillis": 20000,
+                      |            "defaultTimeoutMillis": 10000,
                       |            "threadPoolSize": 3,
                       |            "queueSize": 3
                       |         }
@@ -299,6 +299,11 @@ trait BaseMahaServiceTest extends FunSuite {
                       |    "isLoggingEnabled" : false
                       |   },
                       |   "curatorMap": {
+                      |      "fail": {
+                      |         "factoryClass": "com.yahoo.maha.service.factory.FailingCuratorFactory",
+                      |         "config": {
+                      |         }
+                      |      },
                       |      "default": {
                       |         "factoryClass": "com.yahoo.maha.service.factory.DefaultCuratorFactory",
                       |         "config": {
@@ -309,8 +314,8 @@ trait BaseMahaServiceTest extends FunSuite {
                       |         "config": {
                       |         }
                       |      },
-                      |      "totalMetrics": {
-                      |         "factoryClass": "com.yahoo.maha.service.factory.TotalMetricsCuratorFactory",
+                      |      "drilldown": {
+                      |         "factoryClass": "com.yahoo.maha.service.factory.DrillDownCuratorFactory",
                       |         "config": {
                       |         }
                       |      }
