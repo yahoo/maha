@@ -59,8 +59,7 @@ case class MahaSyncRequestProcessor(mahaRequestContext: MahaRequestContext
     onFailureFn = Some(fn)
   }
 
-  def process() : Unit = {
-
+  def process() {
     mahaServiceMonitor.start(mahaRequestContext.reportingRequest)
     require(onSuccessFn.isDefined || onFailureFn.isDefined, "Nothing to do after processing!")
 
@@ -68,19 +67,25 @@ case class MahaSyncRequestProcessor(mahaRequestContext: MahaRequestContext
 
     val errParFunction: ParFunction[GeneralError, Unit] = ParFunction.fromScala(callOnFailureFn(mahaRequestLogHelper, mahaRequestContext.reportingRequest))
 
-    val successParFunction: ParFunction[java.util.List[Option[CuratorResult]], Unit] =
+    val successParFunction: ParFunction[java.util.List[Either[GeneralError, CuratorResult]], Unit] =
       ParFunction.fromScala(
-        (javaResult: java.util.List[Option[CuratorResult]]) => {
+        (javaResult: java.util.List[Either[GeneralError, CuratorResult]]) => {
           import collection.JavaConverters._
-          val seq = javaResult.asScala.toIndexedSeq.flatten
-          val firstFailure = seq.find(_.requestResultTry.isFailure)
-          if(firstFailure.isDefined && firstFailure.get.curator.name == DefaultCurator.name) {
+          val seq = javaResult.asScala.toIndexedSeq
+          val firstFailure = seq.head
+          if(firstFailure.isLeft) {
             val message = "Failed to execute the query pipeline"
-            val generalError = GeneralError.from(message, processingLabel, firstFailure.get.requestResultTry.failed.get)
+            val generalError = {
+              if(firstFailure.left.get.throwableOption.isDefined) {
+                GeneralError.from(processingLabel, message, firstFailure.left.get.throwableOption.get)
+              } else {
+                GeneralError.from(processingLabel, message)
+              }
+            }
             callOnFailureFn(mahaRequestLogHelper,mahaRequestContext.reportingRequest)(generalError)
           } else {
             try {
-              onSuccessFn.foreach(_ (seq))
+              onSuccessFn.foreach(_ (seq.view.filter(_.isRight).map(_.right.get).toIndexedSeq))
               mahaRequestLogHelper.logSuccess()
               mahaServiceMonitor.stop(mahaRequestContext.reportingRequest)
             } catch {

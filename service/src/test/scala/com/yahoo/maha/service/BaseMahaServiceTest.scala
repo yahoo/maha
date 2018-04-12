@@ -299,6 +299,11 @@ trait BaseMahaServiceTest extends FunSuite {
                       |    "isLoggingEnabled" : false
                       |   },
                       |   "curatorMap": {
+                      |      "fail": {
+                      |         "factoryClass": "com.yahoo.maha.service.factory.FailingCuratorFactory",
+                      |         "config": {
+                      |         }
+                      |      },
                       |      "default": {
                       |         "factoryClass": "com.yahoo.maha.service.factory.DefaultCuratorFactory",
                       |         "config": {

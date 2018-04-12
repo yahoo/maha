@@ -148,4 +148,51 @@ class MahaSyncRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAft
     assert(assertCount == 0)
   }
 
+  test("Test MahaRequestProcessor request model failure") {
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student Blah"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+    var assertCount = 0;
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      BucketParams(UserInfo("uid", true)),
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+
+    val processorFactory = MahaSyncRequestProcessorFactory(DefaultRequestCoordinator(mahaService),
+      mahaService,
+      mahaServiceConfig.mahaRequestLogWriter)
+
+    val mahaRequestProcessor = processorFactory.create(mahaRequestContext, "test")
+
+    mahaRequestProcessor.onSuccess((resultList: IndexedSeq[CuratorResult]) => {
+      throw new IllegalArgumentException("failed in success function")
+      assertCount-=1
+    })
+
+    mahaRequestProcessor.onFailure((ge) => {
+      println(ge.message)
+      ge.throwableOption.foreach(_.printStackTrace())
+      assertCount+=1
+    })
+    mahaRequestProcessor.process()
+
+    Thread.sleep(900)
+    assert(assertCount == 1)
+  }
+
 }
