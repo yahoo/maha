@@ -10,7 +10,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.99-SNAPSHOT</version>
+        <version>5.100-SNAPSHOT</version>
     </parent>
 
     <name>maha oracle executor</name>
