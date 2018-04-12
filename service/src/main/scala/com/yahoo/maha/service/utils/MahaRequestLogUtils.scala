@@ -80,10 +80,14 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     if (userId != null && StringUtils.isNotBlank(userId.toString)) {
       protoBuilder.setUserId(userId.toString)
     }
-    protoBuilder.setRequestType(getRequestType(mahaRequestContext.reportingRequest))
-    protoBuilder.setCube(mahaRequestContext.reportingRequest.cube)
-    protoBuilder.setSchema(mahaRequestContext.reportingRequest.schema.toString)
-    protoBuilder.setJson(ByteString.copyFrom(mahaRequestContext.rawJson))
+    if(mahaRequestContext.reportingRequest != null) {
+      protoBuilder.setRequestType(getRequestType(mahaRequestContext.reportingRequest))
+      protoBuilder.setCube(mahaRequestContext.reportingRequest.cube)
+      protoBuilder.setSchema(mahaRequestContext.reportingRequest.schema.toString)
+    }
+    if(mahaRequestContext.rawJson != null) {
+      protoBuilder.setJson(ByteString.copyFrom(mahaRequestContext.rawJson))
+    }
     if(curator != null) {
       protoBuilder.setCurator(curator)
     }
