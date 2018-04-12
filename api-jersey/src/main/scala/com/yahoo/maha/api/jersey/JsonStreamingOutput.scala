@@ -58,14 +58,17 @@ case class JsonStreamingOutput(resultList: IndexedSeq[CuratorResult],
         val dimCols : Set[String]  = if(curatorResult.requestModelReference.model.bestCandidates.isDefined) {
           curatorResult.requestModelReference.model.bestCandidates.get.publicFact.dimCols.map(_.alias)
         } else Set.empty
+
+        val includeRowCount: Boolean = curatorResult.requestModelReference.model.includeRowCount && rowCountOption.isDefined
         writeHeader(jsonGenerator
           , qpr.rowList.columns
           , curatorResult.requestModelReference.model.reportingRequest
           , ingestionTimeUpdater
           , tableName
           , dimCols
+          , includeRowCount
         )
-        writeDataRows(jsonGenerator, qpr.rowList, rowCountOption)
+        writeDataRows(jsonGenerator, qpr.rowList, rowCountOption, includeRowCount)
       } else {
         //log error
       }
@@ -93,8 +96,9 @@ case class JsonStreamingOutput(resultList: IndexedSeq[CuratorResult],
         , ingestionTimeUpdater
         , tableName
         , dimCols
+        , false
       )
-      writeDataRows(jsonGenerator, qpr.rowList, None)
+      writeDataRows(jsonGenerator, qpr.rowList, None, false)
       jsonGenerator.writeEndObject() //}
       jsonGenerator.writeEndObject() //}
 
@@ -107,6 +111,7 @@ case class JsonStreamingOutput(resultList: IndexedSeq[CuratorResult],
                           , ingestionTimeUpdater: IngestionTimeUpdater
                           , tableName: String
                           , dimCols: Set[String]
+                          , includeRowCount: Boolean
                          ) {
     jsonGenerator.writeFieldName("header") // "header":
     jsonGenerator.writeStartObject() // {
@@ -140,7 +145,7 @@ case class JsonStreamingOutput(resultList: IndexedSeq[CuratorResult],
         jsonGenerator.writeEndObject() // }
       }
     }
-    if (reportingRequest.includeRowCount) {
+    if (includeRowCount) {
       jsonGenerator.writeStartObject() // {
       jsonGenerator.writeFieldName("fieldName") // "fieldName":
       jsonGenerator.writeString(JsonStreamingOutput.ROW_COUNT)
@@ -156,7 +161,7 @@ case class JsonStreamingOutput(resultList: IndexedSeq[CuratorResult],
     jsonGenerator.writeEndObject()
   }
 
-  private def writeDataRows(jsonGenerator: JsonGenerator, rowList: RowList, rowCountOption: Option[Int]): Unit = {
+  private def writeDataRows(jsonGenerator: JsonGenerator, rowList: RowList, rowCountOption: Option[Int], includeRowCount: Boolean): Unit = {
     jsonGenerator.writeFieldName("rows") // "rows":
     jsonGenerator.writeStartArray() // [
     val numColumns = rowList.columns.size
@@ -169,7 +174,7 @@ case class JsonStreamingOutput(resultList: IndexedSeq[CuratorResult],
           jsonGenerator.writeObject(row.getValue(i))
           i+=1
         }
-        if (rowCountOption.isDefined) {
+        if (includeRowCount) {
           jsonGenerator.writeObject(rowCountOption.get)
         }
         jsonGenerator.writeEndArray()
