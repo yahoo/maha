@@ -88,6 +88,24 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     assert(proto.getUserId == "abc")
   }
 
+  test("Test MahaRequestLogHelper LogFailed with status and null request context") {
+    val mahaServiceConf = mock(classOf[MahaServiceConfig])
+    val mahaRequestLogWriter = mock(classOf[MahaRequestLogWriter])
+    val mahaRequestContext = MahaRequestContext("ir",
+      null,
+      null,
+      null,
+      null, null, null)
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConf.mahaRequestLogWriter)
+    val proto = mahaRequestLogHelper.getbuilder()
+    mahaRequestLogHelper.setDryRun()
+    mahaRequestLogHelper.setAsyncQueueParams()
+    when(mahaServiceConf.mahaRequestLogWriter).thenReturn(mahaRequestLogWriter)
+    when(mahaRequestLogWriter.write(proto.build())).thenAnswer(_)
+    mahaRequestLogHelper.logFailed("Test Failed", Some(400))
+    assert(proto.getStatus == 400)
+  }
+
   test("Create curatorMahaRequestLogHelper to check logging") {
     val mahaServiceConf = mock(classOf[MahaServiceConfig])
     val mahaRequestLogWriter = mock(classOf[MahaRequestLogWriter])
