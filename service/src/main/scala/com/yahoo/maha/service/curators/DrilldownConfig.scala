@@ -13,11 +13,7 @@ import org.json4s.scalaz.JsonScalaz
   **/
 object DrilldownConfig {
   val MAXIMUM_ROWS : BigInt = 1000
-  val MAX_DATE_SELECTED : Int = 7
-  val MAX_DAYS_MONTH_SELECTED : Int = 366
   val DEFAULT_ENFORCE_FILTERS : Boolean = false
-  val validCubes : List[String] = List("performance_stats", "user_stats", "student_performance")
-  val validDims : List[String] = List("Device Type", "Age", "Date", "Day", "Month", "Gender", "Location", "Section ID")
 
 
   implicit val formats: DefaultFormats.type = DefaultFormats
@@ -42,11 +38,8 @@ object DrilldownConfig {
 
   private def assignCube(config: JValue, default: String) : String = {
     val cubeResult : MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("cube")(config)
-    if (cubeResult.isSuccess && validCubes.contains(cubeResult.toOption.get)) {
+    if (cubeResult.isSuccess) {
       cubeResult.toOption.get
-    }
-    else if(cubeResult.isSuccess){
-      throw new IllegalArgumentException("Declared cube is not a valid drillDown Cube!")
     }
     else{
       default
@@ -62,7 +55,6 @@ object DrilldownConfig {
   private def assignMaxRows(config: JValue): BigInt = {
     val maxRowsLimitResult : MahaServiceConfig.MahaConfigResult[Int] = fieldExtended[Int]("mr")(config)
     if(maxRowsLimitResult.isSuccess) {
-      require(maxRowsLimitResult.toOption.get <= MAXIMUM_ROWS, s"Max Rows limit of $MAXIMUM_ROWS exceeded.  Saw ${maxRowsLimitResult.toOption.get}")
       maxRowsLimitResult.toOption.get
     }
     else{
