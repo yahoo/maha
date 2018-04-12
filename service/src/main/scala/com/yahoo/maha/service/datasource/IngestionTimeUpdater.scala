@@ -1,4 +1,4 @@
-package com.yahoo.maha.api.jersey
+package com.yahoo.maha.service.datasource
 
 import com.yahoo.maha.core.Engine
 
