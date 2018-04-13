@@ -3,7 +3,7 @@ package com.yahoo.maha.service
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{CombinableRequest, ParRequest, ParRequestListEither, ParallelServiceExecutor}
 import com.yahoo.maha.service.curators._
-import com.yahoo.maha.service.utils.MahaRequestLogHelper
+import com.yahoo.maha.service.utils.MahaRequestLogBuilder
 import grizzled.slf4j.Logging
 
 import scala.collection.SortedSet
@@ -25,7 +25,7 @@ trait RequestCoordinator {
   protected def mahaService: MahaService
 
   def execute(mahaRequestContext: MahaRequestContext
-              , mahaRequestLogHelper: MahaRequestLogHelper): Either[GeneralError, RequestCoordinatorResult]
+              , mahaRequestLogBuilder: MahaRequestLogBuilder): Either[GeneralError, RequestCoordinatorResult]
 }
 
 case class DefaultRequestCoordinator(protected val mahaService: MahaService) extends RequestCoordinator with Logging {
@@ -33,7 +33,7 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
   def curatorMap: Map[String, Curator] = mahaService.getMahaServiceConfig.curatorMap
 
   override def execute(mahaRequestContext: MahaRequestContext
-              , mahaRequestLogHelper: MahaRequestLogHelper): Either[GeneralError, RequestCoordinatorResult] = {
+              , mahaRequestLogBuilder: MahaRequestLogBuilder): Either[GeneralError, RequestCoordinatorResult] = {
     val curatorConfigMapFromRequest: Map[String, CuratorConfig] = {
       mahaRequestContext.reportingRequest.curatorJsonConfigMap.collect {
         case (name, json) if curatorMap.contains(name) =>
@@ -66,7 +66,7 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
     val initialResultMap: Map[String, ParRequest[CuratorResult]] = {
       if (curatorsOrdered.exists(_.requiresDefaultCurator)) {
         val curator = curatorMap(DefaultCurator.name)
-        val logHelper = mahaRequestLogHelper.curatorLogBuilder(curator)
+        val logHelper = mahaRequestLogBuilder.curatorLogBuilder(curator)
         val result = curator
           .process(Map.empty, mahaRequestContext, mahaService, logHelper, NoConfig)
         orderedResultList += result
@@ -77,7 +77,7 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
     val finalResultMap: Map[String, ParRequest[CuratorResult]] = curatorsOrdered.foldLeft(initialResultMap) {
       (prevResult, curator) =>
         val config = curatorConfigMapFromRequest(curator.name)
-        val logHelper = mahaRequestLogHelper.curatorLogBuilder(curator)
+        val logHelper = mahaRequestLogBuilder.curatorLogBuilder(curator)
         val result = curator.process(prevResult, mahaRequestContext, mahaService, logHelper, config)
         orderedResultList += result
         prevResult.+(curator.name -> result)
