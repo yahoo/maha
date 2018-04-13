@@ -64,10 +64,11 @@ object NoopCuratorRequestModelValidator extends CuratorRequestModelValidator {
 }
 
 trait CuratorResultPostProcessor {
-  def process(curatorResult: CuratorResult) : CuratorResult
+  def process(mahaRequestContext: MahaRequestContext, curatorResult: CuratorResult) : CuratorResult
 }
+
 object NoopCuratorResultPostProcessor extends CuratorResultPostProcessor {
-  override def process(curatorResult: CuratorResult): CuratorResult = {curatorResult}
+  override def process(mahaRequestContext: MahaRequestContext, curatorResult: CuratorResult): CuratorResult = {curatorResult}
 }
 
 case class DefaultCurator(protected val requestModelValidator: CuratorRequestModelValidator = NoopCuratorRequestModelValidator,
@@ -109,7 +110,7 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
                 , requestModelResultTry.get.model, mahaRequestLogBuilder)
               if(requestResultTry.isSuccess) {
                 mahaRequestLogBuilder.logSuccess()
-                val curatorResult = validateWithTry(CuratorResult(DefaultCurator.this, NoConfig, requestResultTry, requestModelResultTry.get))
+                val curatorResult = validateWithTry(mahaRequestContext, CuratorResult(DefaultCurator.this, NoConfig, requestResultTry, requestModelResultTry.get))
                 return new Right[GeneralError, CuratorResult](curatorResult)
               } else {
                 val t = requestResultTry.failed.get
@@ -123,9 +124,9 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
     parRequest
   }
 
-  def validateWithTry(curatorResult: CuratorResult): CuratorResult = {
+  def validateWithTry(mahaRequestContext: MahaRequestContext, curatorResult: CuratorResult): CuratorResult = {
     try {
-      curatorResultPostProcessor.process(curatorResult)
+      curatorResultPostProcessor.process(mahaRequestContext, curatorResult)
     }
     catch {
       case e:Exception =>
