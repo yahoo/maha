@@ -64,6 +64,10 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
 
     val filterUpdatedReportingRequest: ReportingRequest = updatedReportingRequest.copy(filterExpressions = newFilters)
 
+    if(reportingRequest.isDebugEnabled) {
+      info(s"previous period day filter : ${filterUpdatedReportingRequest.dayFilter}")
+      info(s"previous period filter expressions : ${filterUpdatedReportingRequest.filterExpressions}")
+    }
     val requestModelResultTry: Try[RequestModelResult] = mahaService
       .generateRequestModel(registryName, filterUpdatedReportingRequest, bucketParams , mahaRequestLogBuilder)
     requestModelResultTry
