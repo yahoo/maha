@@ -47,7 +47,7 @@ class DefaultCuratorTest extends BaseMahaServiceTest {
   test("Default Curator test") {
 
     class CuratorCustomPostProcessor extends CuratorResultPostProcessor {
-      override def process(curatorResult: CuratorResult): CuratorResult =  {
+      override def process(mahaRequestContext: MahaRequestContext, curatorResult: CuratorResult): CuratorResult =  {
         val requestResult = curatorResult.requestResultTry.get
         curatorResult.copy(requestResultTry = Try(requestResult.copy(rowCountOption = Some(1))))
       }
@@ -72,7 +72,7 @@ class DefaultCuratorTest extends BaseMahaServiceTest {
   test("Default Curator test with failing curatorResultPostProcessor") {
 
     class CuratorCustomPostProcessor extends CuratorResultPostProcessor {
-      override def process(curatorResult: CuratorResult): CuratorResult =  {
+      override def process(mahaRequestContext: MahaRequestContext, curatorResult: CuratorResult): CuratorResult =  {
         throw new IllegalArgumentException("CuratorResultPostProcessor failed")
       }
     }
