@@ -161,20 +161,20 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       fail(t.message)
     },(curatorResult: CuratorResult) => {
       assert(curatorResult.requestResultTry.isSuccess)
-      val expectedSet = Set(
-        "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 200, 100, 125, 135, -7.41))",
+      val expectedSeq = IndexedSeq(
+        "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 199, 200, 175, 0, 100.0))",
         "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 198, 100, 180, 120, 50.0))",
-        "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 199, 200, 175, 0, 100.0))"
+        "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 200, 100, 125, 135, -7.41))"
       )
 
       var cnt = 0
       curatorResult.requestResultTry.get.queryPipelineResult.rowList.foreach( row => {
         println(row.toString)
-        assert(expectedSet.contains(row.toString))
+        assert(expectedSeq(cnt) === row.toString)
         cnt+=1
       })
 
-      assert(expectedSet.size == cnt)
+      assert(expectedSeq.size === cnt)
     })
 
   }

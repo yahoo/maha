@@ -23,6 +23,7 @@ object TimeShiftCurator {
   val name: String = "timeshift"
   val PREV_STRING: String = " Prev"
   val PCT_CHANGE_STRING: String = " Pct Change"
+  val descOrdering = Ordering.fromLessThan((a: Double, b:Double) => a > b)
 }
 
 class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelValidator = NoopCuratorRequestModelValidator) extends Curator with Logging {
@@ -231,9 +232,11 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
       unsortedRows+=row
 
     })
+    val sortByAliasOption = aliasMap.find(_._1.contains(TimeShiftCurator.PCT_CHANGE_STRING)).map(_._1)
     val sortedList = {
-      if(aliasMap.contains(TimeShiftCurator.PCT_CHANGE_STRING)) {
-        val pos = aliasMap(TimeShiftCurator.PCT_CHANGE_STRING)
+      if(sortByAliasOption.isDefined && aliasMap.contains(sortByAliasOption.get)) {
+        val sortByAlias = sortByAliasOption.get
+        val pos = aliasMap(sortByAlias)
         unsortedRows.sortBy {
           row =>
             val value = row.getValue(pos)
@@ -242,7 +245,7 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
             } else {
               0D
             }
-        }
+        }(TimeShiftCurator.descOrdering)
       } else {
         unsortedRows
       }
