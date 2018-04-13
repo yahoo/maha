@@ -226,7 +226,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
     assert(requestCoordinatorResult.isLeft)
-    assert(requestCoordinatorResult.left.get.message === "Singleton curators can only be requested by themselves but found TreeSet((drilldown,true), (timeshift,true))")
+    assert(requestCoordinatorResult.left.get.message === "Singleton curators can only be requested by themselves but found TreeSet((drilldown,false), (timeshift,true))")
 
   }
 
@@ -483,24 +483,8 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val drillDownCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(DrilldownCurator.name)
 
     val timeShiftCuratorResultEither = drillDownCuratorResult.resultMap((t: CuratorResult) => t)
-    timeShiftCuratorResultEither.fold((t: GeneralError) => {
-      fail(t.message)
-    },(curatorResult: CuratorResult) => {
-      assert(curatorResult.requestResultTry.isSuccess)
-      val expectedSet = Set(
-        "Row(Map(Section ID -> 0, Total Marks -> 1),ArrayBuffer(100, 305))",
-        "Row(Map(Section ID -> 0, Total Marks -> 1),ArrayBuffer(200, 175))"
-      )
-
-      var cnt = 0
-      curatorResult.requestResultTry.get.queryPipelineResult.rowList.foreach( row => {
-        println(row.toString)
-        assert(expectedSet.contains(row.toString))
-        cnt+=1
-      })
-
-      assert(expectedSet.size == cnt)
-    })
+    assert(timeShiftCuratorResultEither.isLeft)
+    assert(timeShiftCuratorResultEither.left.get.message.contains("Gender"))
 
   }
 }
