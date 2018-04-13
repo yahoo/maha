@@ -5,7 +5,7 @@ import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.jdbc._
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
-import com.yahoo.maha.service.utils.MahaRequestLogHelper
+import com.yahoo.maha.service.utils.{CuratorMahaRequestLogHelper, MahaRequestLogHelper}
 import com.yahoo.maha.service.{BaseMahaServiceTest, MahaRequestContext}
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
@@ -70,7 +70,7 @@ class TotalMetricsCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
-                            {"field": "Student ID", "operator": "=", "value": "123"}
+                            {"field": "Student ID", "operator": "=", "value": "213"}
                           ]
                         }"""
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
@@ -79,7 +79,6 @@ class TotalMetricsCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll
 
     val bucketParams = BucketParams(UserInfo("uid", true))
 
-    val mahaRequestLogHelper = MahaRequestLogHelper(REGISTRY, mahaServiceConfig.mahaRequestLogWriter)
 
     val mahaRequestContext = MahaRequestContext(REGISTRY,
       bucketParams,
@@ -87,40 +86,35 @@ class TotalMetricsCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll
       jsonRequest.getBytes,
       Map.empty, "rid", "uid")
 
+    val mahaRequestLogHelper =  CuratorMahaRequestLogHelper(MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter))
+
+
     val totalMetricsCurator = TotalMetricsCurator()
 
-    val totalMetricsCuratorResult: ParRequest[CuratorResult] = totalMetricsCurator.process(mahaRequestContext, mahaService, mahaRequestLogHelper)
+    val totalMetricsCuratorResult: ParRequest[CuratorResult] = totalMetricsCurator.process(Map.empty, mahaRequestContext, mahaService, mahaRequestLogHelper,  NoConfig)
 
 
     val successFunction : ParFunction[CuratorResult, CuratorResult]  = ParFunction.fromScala(
       (curatorResult) => {
+        assert(curatorResult.requestResultTry.isSuccess)
+        val queryPipelineResult = curatorResult.requestResultTry.get.queryPipelineResult
+        println(queryPipelineResult.queryChain.drivingQuery.asString)
+
+        var rowCount = 0
+        queryPipelineResult.rowList.foreach {
+          row=>
+            rowCount+=1
+            println(row.toString)
+            assert(row.getValue("Total Marks") == 445)
+        }
+        assert(rowCount == 1)
+
         curatorResult
       }
     )
 
     val resultEither = totalMetricsCuratorResult.resultMap[CuratorResult](successFunction)
     assert(resultEither.isRight)
-
-    resultEither.fold[CuratorResult](
-    (error) => {
-        throw new IllegalArgumentException()
-     },
-    (curatorResult) => {
-    assert(curatorResult.isInstanceOf[TotalMetricsCuratorResult])
-    val totalMetricCuratorResult = curatorResult.asInstanceOf[TotalMetricsCuratorResult]
-    assert(totalMetricCuratorResult.totalMetricsResultTry.isSuccess)
-    val rowList = totalMetricCuratorResult.totalMetricsResultTry.get.queryPipelineResult.rowList
-      rowList.foreach {
-        row=>
-           println(row)
-      }
-    totalMetricCuratorResult.requestResultTry.get.queryPipelineResult.rowList.foreach {
-    row=> println(row)
-    }
-
-      curatorResult
-    }
-   )
 
   }
 
