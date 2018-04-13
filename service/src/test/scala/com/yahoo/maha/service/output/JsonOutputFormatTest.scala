@@ -79,7 +79,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
 
   class TestCurator extends DrilldownCurator {
     override val name = "TestCurator"
-    override val isSingleton = true
+    override val isSingleton = false
   }
 
   test("Test JsonOutputFormat with DefaultCurator, totalRow Option, empty curator result") {
