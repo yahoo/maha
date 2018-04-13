@@ -46,6 +46,7 @@ trait Curator extends Ordered[Curator] {
     NoConfig.successNel
   }
   protected def requestModelValidator: CuratorRequestModelValidator
+  protected def curatorResultPostProcessor: CuratorResultPostProcessor = NoopCuratorResultPostProcessor
 }
 
 object DefaultCurator {
@@ -62,7 +63,15 @@ object NoopCuratorRequestModelValidator extends CuratorRequestModelValidator {
   }
 }
 
-case class DefaultCurator(protected val requestModelValidator: CuratorRequestModelValidator = NoopCuratorRequestModelValidator) extends Curator with Logging {
+trait CuratorResultPostProcessor {
+  def process(curatorResult: CuratorResult) : CuratorResult
+}
+object NoopCuratorResultPostProcessor extends CuratorResultPostProcessor {
+  override def process(curatorResult: CuratorResult): CuratorResult = {curatorResult}
+}
+
+case class DefaultCurator(protected val requestModelValidator: CuratorRequestModelValidator = NoopCuratorRequestModelValidator,
+                          override val curatorResultPostProcessor: CuratorResultPostProcessor = NoopCuratorResultPostProcessor) extends Curator with Logging {
 
   override val name: String = DefaultCurator.name
   override val level: Int = 0
@@ -100,7 +109,8 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
                 , requestModelResultTry.get.model, mahaRequestLogBuilder)
               if(requestResultTry.isSuccess) {
                 mahaRequestLogBuilder.logSuccess()
-                return new Right[GeneralError, CuratorResult](CuratorResult(DefaultCurator.this, NoConfig, requestResultTry, requestModelResultTry.get))
+                val curatorResult = validateWithTry(CuratorResult(DefaultCurator.this, NoConfig, requestResultTry, requestModelResultTry.get))
+                return new Right[GeneralError, CuratorResult](curatorResult)
               } else {
                 val t = requestResultTry.failed.get
                 mahaRequestLogBuilder.logFailed(t.getMessage)
@@ -111,6 +121,17 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
         }
       )).build()
     parRequest
+  }
+
+  def validateWithTry(curatorResult: CuratorResult): CuratorResult = {
+    try {
+      curatorResultPostProcessor.process(curatorResult)
+    }
+    catch {
+      case e:Exception =>
+        error("Failure in the curatorResultPostProcessor", e)
+        curatorResult
+    }
   }
 
 }
