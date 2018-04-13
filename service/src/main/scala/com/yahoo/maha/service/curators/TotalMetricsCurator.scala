@@ -25,7 +25,6 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
   override val level: Int = 1
   override val priority: Int = 0
   override val isSingleton: Boolean = true
-
   override val requiresDefaultCurator = true
 
   override def process(resultMap: Map[String, ParRequest[CuratorResult]]
@@ -46,7 +45,6 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
           override def call(): Either[GeneralError, CuratorResult] = {
 
                   val reportingRequest = mahaRequestContext.reportingRequest
-
                   val registry = registryConfig.registry
                   val publicFactOption = registry.getFact(reportingRequest.cube)
                   if (publicFactOption.isEmpty) {
@@ -54,9 +52,7 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
                      return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceBadRequestException(message))
                   }
                   val publicFact = publicFactOption.get
-
                   val factColsSet = publicFact.factCols.map(_.alias)
-
 /*
                   val lowestLevelDimKeyField:Field = {
                       val keyAlias =  publicFact.foreignKeyAliases.map {
@@ -71,7 +67,6 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
                       Field(keyAlias, None, None)
                   }
 */
-
                   val totalMetricsReportingRequest = reportingRequest.copy(selectFields = reportingRequest.selectFields.filter(f=> factColsSet.contains(f.field)))
 
                   val totalMetricsRequestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(mahaRequestContext.registryName, totalMetricsReportingRequest, mahaRequestContext.bucketParams , mahaRequestLogBuilder)
@@ -84,7 +79,6 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
                   }
 
                   val totalMetricsRequestModel: RequestModel = totalMetricsRequestModelResultTry.get.model
-
 
                   val totalMetricsRequestResultTry = mahaService.processRequestModel(mahaRequestContext.registryName, totalMetricsRequestModel, mahaRequestLogBuilder)
 
@@ -103,5 +97,4 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
           )
       ).build()
   }
-
 }
