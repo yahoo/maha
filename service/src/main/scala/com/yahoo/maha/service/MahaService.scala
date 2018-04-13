@@ -286,9 +286,9 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
         val errorOption = t.throwableOption
         val message = s"Failed to execute the Request Model: ${t.message} "
         val exception = if (errorOption.isDefined) {
-          throw errorOption.get
+          errorOption.get
         } else {
-          throw new MahaServiceExecutionException(message)
+          new MahaServiceExecutionException(message)
         }
         mahaRequestLogHelper.logFailed(message)
         scala.util.Failure(exception)
