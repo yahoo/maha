@@ -30,7 +30,7 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
   override val name: String = TimeShiftCurator.name
   override val level: Int = 1
   override val priority: Int = 0
-  override val isSingleton: Boolean = true
+  override val isSingleton: Boolean = false
   override def requiresDefaultCurator: Boolean = false
 
   private[this] def getRequestModelForPreviousWindow(registryName: String,
