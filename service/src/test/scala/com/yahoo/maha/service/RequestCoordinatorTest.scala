@@ -24,16 +24,16 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
   override def beforeAll(): Unit = {
     createTables()
-    val insertSql = """INSERT INTO student_grade_sheet (year, section_id, student_id, class_id, total_marks, date, comment)
-     VALUES (?, ?, ?, ?, ?, ?, ?)"""
+    val insertSql = """INSERT INTO student_grade_sheet (year, section_id, student_id, class_id, total_marks, date, comment, month)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
 
     val rows: List[Seq[Any]] = List(
-      Seq(1, 100, 213, 200, 135, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(9)), "some comment 1"),
-      Seq(1, 100, 213, 198, 120, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 2"),
-      Seq(1, 500, 213, 197, 190, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 3"),
-      Seq(1, 100, 213, 200, 125, today.toString, "some comment 1"),
-      Seq(1, 100, 213, 198, 180, yesterday.toString, "some comment 2"),
-      Seq(1, 200, 213, 199, 175, today.toString, "some comment 3")
+      Seq(1, 100, 213, 200, 135, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(9)), "some comment 1", today.toString),
+      Seq(1, 100, 213, 198, 120, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 2", today.toString),
+      Seq(1, 500, 213, 197, 190, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 3", today.toString),
+      Seq(1, 100, 213, 200, 125, today.toString, "some comment 1", today.toString),
+      Seq(1, 100, 213, 198, 180, yesterday.toString, "some comment 2", today.toString),
+      Seq(1, 200, 213, 199, 175, today.toString, "some comment 3", today.toString)
     )
 
     rows.foreach {
@@ -382,6 +382,71 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                             "drilldown" : {
                               "config" : {
                                 "dimension": "Section ID"
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val drillDownCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(DrilldownCurator.name)
+
+    val timeShiftCuratorResultEither = drillDownCuratorResult.resultMap((t: CuratorResult) => t)
+    timeShiftCuratorResultEither.fold((t: GeneralError) => {
+      fail(t.message)
+    },(curatorResult: CuratorResult) => {
+      assert(curatorResult.requestResultTry.isSuccess)
+      val expectedSet = Set(
+        "Row(Map(Section ID -> 0, Total Marks -> 1),ArrayBuffer(100, 305))",
+        "Row(Map(Section ID -> 0, Total Marks -> 1),ArrayBuffer(200, 175))"
+      )
+
+      var cnt = 0
+      curatorResult.requestResultTry.get.queryPipelineResult.rowList.foreach( row => {
+        println(row.toString)
+        assert(expectedSet.contains(row.toString))
+        cnt+=1
+      })
+
+      assert(expectedSet.size == cnt)
+    })
+
+  }
+
+  test("Test failed processing of Drilldown curator on inexistent DrillDown Dim") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : {
+                                "dimension": "Gender"
                               }
                             }
                           },

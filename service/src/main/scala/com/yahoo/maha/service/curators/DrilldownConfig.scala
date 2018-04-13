@@ -2,11 +2,11 @@ package com.yahoo.maha.service.curators
 
 import org.json4s.DefaultFormats
 import org.json4s.scalaz.JsonScalaz._
-
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.service.MahaServiceConfig
 import com.yahoo.maha.service.factory._
 import org.json4s.JValue
+import org.json4s.scalaz.JsonScalaz
 
 /**
   * Parse an input JSON and convert it to a DrilldownConfig object.
@@ -14,15 +14,14 @@ import org.json4s.JValue
 object DrilldownConfig {
   val MAXIMUM_ROWS : BigInt = 1000
   val DEFAULT_ENFORCE_FILTERS : Boolean = false
-  val validCubes : List[String] = List("performance_stats", "user_stats", "student_performance")
+
 
   implicit val formats: DefaultFormats.type = DefaultFormats
 
-  def parse(reportingRequest: ReportingRequest) : DrilldownConfig = {
+  def parse(curatorJsonConfig: CuratorJsonConfig) : JsonScalaz.Result[DrilldownConfig] = {
+    import _root_.scalaz.syntax.validation._
 
-    require(reportingRequest.curatorJsonConfigMap.contains("drilldown"), "DrillDown may not be created without a declaration!")
-
-    val config: JValue = reportingRequest.curatorJsonConfigMap("drilldown").json
+    val config: JValue = curatorJsonConfig.json
 
     val dimension : Field = assignDim(config)
 
@@ -30,20 +29,17 @@ object DrilldownConfig {
 
     val enforceFilters : Boolean = assignEnforceFilters(config)
 
-    val ordering : IndexedSeq[SortBy] = assignOrdering(config, reportingRequest)
+    val ordering : IndexedSeq[SortBy] = assignOrdering(config)
 
-    val cube : String = assignCube(config, reportingRequest.cube)
+    val cube : String = assignCube(config, "")
 
-    DrilldownConfig(enforceFilters, dimension, cube, ordering, maxRows)
+    DrilldownConfig(enforceFilters, dimension, cube, ordering, maxRows).successNel
   }
 
   private def assignCube(config: JValue, default: String) : String = {
     val cubeResult : MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("cube")(config)
-    if (cubeResult.isSuccess && validCubes.contains(cubeResult.toOption.get)) {
+    if (cubeResult.isSuccess) {
       cubeResult.toOption.get
-    }
-    else if(cubeResult.isSuccess){
-      throw new IllegalArgumentException("Declared cube is not a valid drillDown Cube!")
     }
     else{
       default
@@ -59,7 +55,6 @@ object DrilldownConfig {
   private def assignMaxRows(config: JValue): BigInt = {
     val maxRowsLimitResult : MahaServiceConfig.MahaConfigResult[Int] = fieldExtended[Int]("mr")(config)
     if(maxRowsLimitResult.isSuccess) {
-      require(maxRowsLimitResult.toOption.get <= MAXIMUM_ROWS, s"Max Rows limit of $MAXIMUM_ROWS exceeded.  Saw ${maxRowsLimitResult.toOption.get}")
       maxRowsLimitResult.toOption.get
     }
     else{
@@ -76,8 +71,7 @@ object DrilldownConfig {
     }
   }
 
-  private def assignOrdering(config: JValue,
-                             reportingRequest: ReportingRequest): IndexedSeq[SortBy] = {
+  private def assignOrdering(config: JValue): IndexedSeq[SortBy] = {
     val orderingResult : MahaServiceConfig.MahaConfigResult[List[SortBy]] = fieldExtended[List[SortBy]]("ordering")(config)
     if(orderingResult.isSuccess){
       orderingResult.toOption.get.toIndexedSeq
@@ -86,7 +80,7 @@ object DrilldownConfig {
         throw new IllegalArgumentException (orderingResult.toEither.left.get.head.message)
       }
       else{
-        reportingRequest.sortBy
+        IndexedSeq.empty
       }
     }
   }
@@ -96,4 +90,4 @@ case class DrilldownConfig(enforceFilters: Boolean,
                             dimension: Field,
                             cube: String,
                             ordering: IndexedSeq[SortBy],
-                            maxRows: BigInt)
+                            maxRows: BigInt) extends CuratorConfig
