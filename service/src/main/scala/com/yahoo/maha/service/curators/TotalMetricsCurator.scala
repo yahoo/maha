@@ -16,7 +16,7 @@ import scala.util.Try
  * Created by pranavbhole on 09/04/18.
  */
 object TotalMetricsCurator {
-  val name = "totalMetrics"
+  val name = "totalmetrics"
 }
 
 case class TotalMetricsCurator(override val requestModelValidator: CuratorRequestModelValidator = NoopCuratorRequestModelValidator) extends Curator with Logging {

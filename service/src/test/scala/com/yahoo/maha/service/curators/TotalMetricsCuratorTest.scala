@@ -57,7 +57,7 @@ class TotalMetricsCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll
     val jsonRequest = s"""{
                           "cube": "student_performance",
                           "curators" : {
-                            "totalMetrics" : {
+                            "totalmetrics" : {
                               "config" : {
                               }
                             }
