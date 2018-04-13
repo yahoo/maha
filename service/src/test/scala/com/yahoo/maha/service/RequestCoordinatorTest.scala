@@ -24,16 +24,16 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
   override def beforeAll(): Unit = {
     createTables()
-    val insertSql = """INSERT INTO student_grade_sheet (year, section_id, student_id, class_id, total_marks, date, comment)
-     VALUES (?, ?, ?, ?, ?, ?, ?)"""
+    val insertSql = """INSERT INTO student_grade_sheet (year, section_id, student_id, class_id, total_marks, date, comment, month)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
 
     val rows: List[Seq[Any]] = List(
-      Seq(1, 100, 213, 200, 135, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(9)), "some comment 1"),
-      Seq(1, 100, 213, 198, 120, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 2"),
-      Seq(1, 500, 213, 197, 190, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 3"),
-      Seq(1, 100, 213, 200, 125, today.toString, "some comment 1"),
-      Seq(1, 100, 213, 198, 180, yesterday.toString, "some comment 2"),
-      Seq(1, 200, 213, 199, 175, today.toString, "some comment 3")
+      Seq(1, 100, 213, 200, 135, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(9)), "some comment 1", today.toString),
+      Seq(1, 100, 213, 198, 120, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 2", today.toString),
+      Seq(1, 500, 213, 197, 190, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 3", today.toString),
+      Seq(1, 100, 213, 200, 125, today.toString, "some comment 1", today.toString),
+      Seq(1, 100, 213, 198, 180, yesterday.toString, "some comment 2", today.toString),
+      Seq(1, 200, 213, 199, 175, today.toString, "some comment 3", today.toString)
     )
 
     rows.foreach {
