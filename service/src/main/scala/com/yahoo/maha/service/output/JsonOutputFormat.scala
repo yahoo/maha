@@ -37,7 +37,7 @@ case class JsonOutputFormat(resultList: IndexedSeq[CuratorResult],
     jsonGenerator.writeStartObject() //{
     resultList.foreach {
       result =>
-        if (result.curator.name != DefaultCurator.name && result.curator.isSingleton) {
+        if (result.curator.name != DefaultCurator.name && !result.curator.isSingleton) {
           curatorRender(result, jsonGenerator)
         }
     }
