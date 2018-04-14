@@ -23,7 +23,7 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
 
   override val name: String = TotalMetricsCurator.name
   override val level: Int = 1
-  override val priority: Int = 0
+  override val priority: Int = 2
   override val isSingleton: Boolean = false
   override val requiresDefaultCurator = true
 
