@@ -40,7 +40,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
   override val name: String = DrilldownCurator.name
   override val level: Int = 10
   override val priority: Int = 0
-  override val isSingleton: Boolean = true
+  override val isSingleton: Boolean = false
   private val INCLUDE_ROW_COUNT_DRILLDOWN : Boolean = false
   override val requiresDefaultCurator : Boolean = true
 
