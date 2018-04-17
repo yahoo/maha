@@ -27,6 +27,10 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val insertSql = """INSERT INTO student_grade_sheet (year, section_id, student_id, class_id, total_marks, date, comment, month)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
 
+    val studentInsertSql =
+      """INSERT INTO student (id, name, admitted_year, status, department_id)
+        VALUES (?, ?, ?, ?, ?)"""
+
     val rows: List[Seq[Any]] = List(
       Seq(1, 100, 213, 200, 135, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(9)), "some comment 1", today.toString),
       Seq(1, 100, 213, 198, 120, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 2", today.toString),
@@ -36,11 +40,22 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       Seq(1, 200, 213, 199, 175, today.toString, "some comment 3", today.toString)
     )
 
+    val studentRows: List[Seq[Any]] = List(
+      Seq(213, "Bryant", 2017, "ACTIVE", 54321)
+    )
+
     rows.foreach {
       row =>
         val result = jdbcConnection.get.executeUpdate(insertSql, row)
         assert(result.isSuccess)
     }
+
+    studentRows.foreach{
+      row =>
+        val result = jdbcConnection.get.executeUpdate(studentInsertSql, row)
+        assert(result.isSuccess)
+    }
+
     var count = 0
     jdbcConnection.get.queryForObject("select * from student_grade_sheet") {
       rs =>

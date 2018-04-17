@@ -125,7 +125,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     * @param drilldownDimName: Name of primary drilldown dimension
     * @param inputFieldValues: All values found in the initial request
     */
-  def insertValuesIntoDrilldownRequest(reportingRequest: ReportingRequest,
+  private def insertValuesIntoDrilldownRequest(reportingRequest: ReportingRequest,
                                        drilldownDimName: String,
                                        inputFieldValues: List[String]): ReportingRequest = {
     reportingRequest.copy(filterExpressions = (reportingRequest.filterExpressions ++ IndexedSeq(InFilter(drilldownDimName, inputFieldValues))).distinct
@@ -163,7 +163,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     * @param parRequestLabel: Label for the parallel request, in case of error logging
     * @return
     */
-  def verifyRequestModelResult(requestModelResultTry: Try[RequestModelResult],
+  private def verifyRequestModelResult(requestModelResultTry: Try[RequestModelResult],
                                mahaRequestLogBuilder: CuratorMahaRequestLogBuilder,
                                mahaRequestContext: MahaRequestContext,
                                mahaService: MahaService,
@@ -205,7 +205,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
             override def call(): Either[GeneralError, CuratorResult] = {
 
               if(defaultCuratorResult.requestResultTry.isFailure){
-                return GeneralError.either(parRequestLabel, "RequestResult failed with " + defaultCuratorResult.requestResultTry.failed.get.getMessage)
+                return GeneralError.either(parRequestLabel, "RequestResult failed with " + defaultCuratorResult.requestResultTry.toString)
               }
 
               val rowList = defaultCuratorResult.requestResultTry.get.queryPipelineResult.rowList
