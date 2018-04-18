@@ -42,6 +42,8 @@ case class RequestResult(queryPipelineResult: QueryPipelineResult, rowCountOptio
 
 case class ParRequestResult(prodRun: ParRequest[RequestResult], dryRunOption: Option[ParRequest[RequestResult]])
 
+case class QueryChainResult(queryChain:QueryChain, dryRunQueryChainOption:Option[QueryChain])
+
 trait MahaService {
 
   /**
@@ -79,6 +81,14 @@ trait MahaService {
                            reportingRequest: ReportingRequest,
                            bucketParams: BucketParams,
                            mahaRequestLogHelper: BaseMahaRequestLogBuilder): Try[RequestModelResult]
+
+  /*
+   Generate the query execution metadata for the given RequestModelResult
+   */
+  def generateQueryMetadata(mahaRequestContext: MahaRequestContext,
+                                    requestModelResult: RequestModelResult,
+                                    mahaRequestLogHelper: BaseMahaRequestLogBuilder): QueryChainResult
+
 
   /**
    * Executes the RequestModel and provide the RequestResult
@@ -348,6 +358,54 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
   override def getParallelServiceExecutor(mahaRequestContext: MahaRequestContext) : ParallelServiceExecutor = {
     validateRegistry(mahaRequestContext)
     config.registry(mahaRequestContext.registryName).parallelServiceExecutor
+  }
+
+  /*
+   Generate the query execution metadata for the given RequestModelResult
+   */
+  override def generateQueryMetadata(mahaRequestContext: MahaRequestContext,
+                                             requestModelResult: RequestModelResult,
+                                             mahaRequestLogHelper: BaseMahaRequestLogBuilder): QueryChainResult = {
+    validateRegistry(mahaRequestContext)
+
+    val queryPipeline = generateQueryPipeline(requestModelResult.model, mahaRequestContext.registryName, mahaRequestLogHelper)
+    mahaRequestLogHelper.logQueryPipeline(queryPipeline)
+
+    val dryRunQueryChainOption:Option[QueryChain]  = {
+      if (requestModelResult.dryRunModelTry.isDefined) {
+        val requestModelTry = requestModelResult.dryRunModelTry.get
+        if(requestModelTry.isFailure) {
+          val error = requestModelTry.failed.get
+          val message = s"DryRun, Failed to create the request Model ${error.getMessage}"
+          logger.error(message, error)
+          error.printStackTrace()
+          mahaRequestLogHelper.logFailed(message)
+          throw new MahaServiceBadRequestException(message, Some(error))
+        }
+        Some(generateQueryPipeline(requestModelTry.get, mahaRequestContext.registryName, mahaRequestLogHelper, true).queryChain)
+      } else None
+    }
+    QueryChainResult(queryPipeline.queryChain, dryRunQueryChainOption)
+  }
+
+  private[this] def generateQueryPipeline(requestModel : RequestModel,
+                                          registryName:String,
+                                          mahaRequestLogHelper: BaseMahaRequestLogBuilder,
+                                          isDryRun: Boolean = false): QueryPipeline = {
+    val registry = config.registry.get(registryName).get
+    val queryPipelineFactory = registry.queryPipelineFactory
+    val queryPipelineTry = queryPipelineFactory.from(requestModel, QueryAttributes.empty)
+    if(queryPipelineTry.isFailure) {
+      val error = queryPipelineTry.failed.get
+      val message = if (isDryRun) {
+        s"DryRun, Failed to compile the query pipeline ${error.getMessage}"
+      } else s"Failed to compile the query pipeline ${error.getMessage}"
+      logger.error(message, error)
+      error.printStackTrace()
+      mahaRequestLogHelper.logFailed(message)
+      throw new MahaServiceBadRequestException(message, Some(error))
+    }
+    queryPipelineTry.get
   }
 }
 
