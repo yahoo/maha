@@ -2,14 +2,11 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.example
 
-import com.google.protobuf.ByteString
-import com.yahoo.maha.core.RequestModel
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
-import com.yahoo.maha.core.query.QueryRowList
+import com.yahoo.maha.core.query.{OracleQuery, QueryRowList}
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParFunction
-import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service._
 import com.yahoo.maha.service.curators.CuratorResult
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
@@ -178,6 +175,10 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
 
     val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams, mahaRequestLogHelper)
     assert(requestModelResultTry.isSuccess)
+
+    val queryChainResult = mahaService.generateQueryPipelineMetadata(mahaRequestContext, requestModelResultTry.get, mahaRequestLogHelper)
+
+    assert(queryChainResult.queryChain.drivingQuery.isInstanceOf[OracleQuery])
 
     val processRequestResult = mahaService.processRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
     assert(processRequestResult.isFailure, "Request should fail with invalid SQL syntax.")
