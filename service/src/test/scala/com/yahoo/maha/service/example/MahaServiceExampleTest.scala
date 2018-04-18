@@ -176,7 +176,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
     val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams, mahaRequestLogHelper)
     assert(requestModelResultTry.isSuccess)
 
-    val queryChainResult = mahaService.generateQueryPipelineMetadata(mahaRequestContext, requestModelResultTry.get, mahaRequestLogHelper)
+    val queryChainResult = mahaService.generateQueryMetadata(mahaRequestContext, requestModelResultTry.get, mahaRequestLogHelper)
 
     assert(queryChainResult.queryChain.drivingQuery.isInstanceOf[OracleQuery])
 

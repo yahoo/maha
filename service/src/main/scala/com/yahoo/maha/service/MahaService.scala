@@ -85,7 +85,7 @@ trait MahaService {
   /*
    Generate the query execution metadata for the given RequestModelResult
    */
-  def generateQueryPipelineMetadata(mahaRequestContext: MahaRequestContext,
+  def generateQueryMetadata(mahaRequestContext: MahaRequestContext,
                                     requestModelResult: RequestModelResult,
                                     mahaRequestLogHelper: BaseMahaRequestLogBuilder): QueryChainResult
 
@@ -363,7 +363,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
   /*
    Generate the query execution metadata for the given RequestModelResult
    */
-  override def generateQueryPipelineMetadata(mahaRequestContext: MahaRequestContext,
+  override def generateQueryMetadata(mahaRequestContext: MahaRequestContext,
                                              requestModelResult: RequestModelResult,
                                              mahaRequestLogHelper: BaseMahaRequestLogBuilder): QueryChainResult = {
     validateRegistry(mahaRequestContext)
