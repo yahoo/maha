@@ -166,6 +166,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
             case OracleEngine => ReportingRequest.forceOracle(withDebug)
             case DruidEngine => ReportingRequest.forceDruid(withDebug)
             case HiveEngine => ReportingRequest.forceHive(withDebug)
+            case PrestoEngine => ReportingRequest.forcePresto(withDebug)
             case _ => withDebug
           }
         } else {

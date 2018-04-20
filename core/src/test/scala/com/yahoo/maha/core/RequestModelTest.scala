@@ -4301,7 +4301,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(requestModelResult.get.dryRunModelTry.get.isSuccess)
   }
 
-  test("Multiple requestModels are returned from factory for DryRun with PrestoEngine should FAIL") {
+  test("Multiple requestModels are returned from factory for DryRun with PrestoEngine should succeed") {
     val jsonString = s"""{
                           "cube": "publicFact",
                           "selectFields": [
@@ -4327,7 +4327,7 @@ class RequestModelTest extends FunSuite with Matchers {
         Some(CubeBucketingConfig.builder()
           .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
           .externalBucketPercentage(Map(1 -> 100, 2 -> 0))
-          .dryRunPercentage(Map(1 -> (25, None), 2 -> (100, Some(PrestoEngine))))
+          .dryRunPercentage(Map(2 -> (100, Some(PrestoEngine))))
           .build())
       }
     }
@@ -4340,6 +4340,8 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(requestModelResult.isSuccess)
     assert(requestModelResult.get.model.isInstanceOf[RequestModel])
     assert(requestModelResult.get.dryRunModelTry.isDefined, "Failed to get 2nd Request Model")
+    assert(requestModelResult.get.dryRunModelTry.get.isSuccess, "Failed to get 2nd Request Model")
+    assert(requestModelResult.get.dryRunModelTry.get.get.forceQueryEngine.get.equals(PrestoEngine), "DryRun engine is not Presto")
   }
 
   test("Only one requestModel is returned from factory for NO DryRun") {
