@@ -550,7 +550,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       fail(t.message)
     },(curatorResult: CuratorResult) => {
       assert(curatorResult.requestResultTry.isSuccess)
-      val expectedSet = Set("Row(Map(Total Marks -> 0),ArrayBuffer(480))")
+      val expectedSet = Set("Row(Map(Student ID -> 0, Total Marks -> 1),ArrayBuffer(213, 480))")
 
       var cnt = 0
       curatorResult.requestResultTry.get.queryPipelineResult.rowList.foreach( row => {
