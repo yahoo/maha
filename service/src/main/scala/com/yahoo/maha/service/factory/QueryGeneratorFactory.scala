@@ -109,6 +109,7 @@ class HiveQueryGeneratorFactory extends QueryGeneratorFactory {
     import org.json4s.scalaz.JsonScalaz._
     val partitionColumnRendererClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("partitionColumnRendererClass")(configJson)
     val partitionColumnRendererConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("partitionColumnRendererConfig")(configJson)
+    val udfRegistrationConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("udfRegistrationFactory")(configJson)
 
     val partitionColumnRenderer: MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] = for {
       partitionColumnRendererClass <- partitionColumnRendererClassResult
@@ -119,6 +120,7 @@ class HiveQueryGeneratorFactory extends QueryGeneratorFactory {
 
     val udfStatements: MahaServiceConfig.MahaConfigResult[Set[UDFRegistration]] = for {
       udfStatementsFactory <- getFactory[UDFRegistrationFactory]("com.yahoo.maha.core.DefaultUDFRegistrationFactory")
+      udfStatements <- DefaultUDFRegistrationFactory
     } yield udfStatements
 
     (partitionColumnRenderer |@| udfStatements) {
@@ -141,6 +143,7 @@ class PrestoQueryGeneratorFactory extends QueryGeneratorFactory {
     import org.json4s.scalaz.JsonScalaz._
     val partitionColumnRendererClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("partitionColumnRendererClass")(configJson)
     val partitionColumnRendererConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("partitionColumnRendererConfig")(configJson)
+    val udfRegistrationConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("udfRegistrationFactory")(configJson)
 
     val partitionColumnRenderer: MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] = for {
       partitionColumnRendererClass <- partitionColumnRendererClassResult
@@ -151,6 +154,7 @@ class PrestoQueryGeneratorFactory extends QueryGeneratorFactory {
 
     val udfStatements: MahaServiceConfig.MahaConfigResult[Set[UDFRegistration]] = for {
       udfStatementsFactory <- getFactory[UDFRegistrationFactory]("com.yahoo.maha.core.DefaultUDFRegistrationFactory")
+      udfStatements <- DefaultUDFRegistrationFactory
     } yield udfStatements
 
     (partitionColumnRenderer |@| udfStatements) {
