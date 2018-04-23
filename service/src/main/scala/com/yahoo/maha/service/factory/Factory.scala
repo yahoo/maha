@@ -145,6 +145,11 @@ class PassThroughPasswordProviderFactory  extends  PasswordProviderFactory {
   def supportedProperties: List[(String, Boolean)] = List.empty
 }
 
+class DefaultMahaUDFRegistrationFactory extends MahaUDFRegistrationFactory {
+  def fromJson(config: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[Set[UDFRegistration]] = DefaultUDFRegistrationFactory.apply().successNel
+  def supportedProperties: List[(String, Boolean)] = List.empty
+}
+
 object DefaultBucketingConfigFactory {
   import org.json4s.scalaz.JsonScalaz.{Error, _}
 

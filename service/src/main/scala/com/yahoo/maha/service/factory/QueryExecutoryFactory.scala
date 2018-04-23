@@ -164,18 +164,15 @@ class PrestoQueryExecutoryFactory extends QueryExecutoryFactory {
       lifecycleListener <- lifecycleListenerFactory.fromJson(lifecycleListenerFactoryConfig)
     } yield lifecycleListener
 
-    val prestoQueryTemplate : MahaServiceConfig.MahaConfigResult[PrestoQueryTemplate] = for {
-      //prestoQueryString <- prestoQueryStringResult
-      prestoQueryTemplate <- new PrestoQueryTemplate {
+    val prestoQueryTemplate : PrestoQueryTemplate = new PrestoQueryTemplate {
         override def buildFinalQuery(query: String, queryContext: QueryContext, queryAttributes: QueryAttributes): String = query
-      }
-    } yield prestoQueryTemplate
+    }
 
-    (jdbcConnetionResult |@| prestoQueryTemplate |@| lifecycleListener) {
-      (a, b, c) => {
+    (jdbcConnetionResult |@| lifecycleListener) {
+      (a, c) => {
 
-        val executor = new PrestoQueryExecutor(a, b, c)
-        closer.register(executor)
+        val executor = new PrestoQueryExecutor(a, prestoQueryTemplate, c)
+        //closer.register(executor)
         executor
       }
     }

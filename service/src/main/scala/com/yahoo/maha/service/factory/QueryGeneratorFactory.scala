@@ -122,7 +122,7 @@ class HiveQueryGeneratorFactory extends QueryGeneratorFactory {
     } yield partitionColumnRenderer
 
     val udfStatements: MahaServiceConfig.MahaConfigResult[Set[UDFRegistration]] = for {
-      udfStatementsFactory <- getFactory[MahaUDFRegistrationFactory](udfRegistrationFactoryNameResult.toOption.get)
+      udfStatementsFactory <- getFactory[MahaUDFRegistrationFactory](udfRegistrationFactoryNameResult.toOption.get, this.closer)
       udfRegistrationFactoryConfig <- udfRegistrationFactoryConfigResult
       udfStatements <- udfStatementsFactory.fromJson(udfRegistrationFactoryConfig)
     } yield udfStatements
