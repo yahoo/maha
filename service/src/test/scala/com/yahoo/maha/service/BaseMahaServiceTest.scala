@@ -25,18 +25,8 @@ trait BaseMahaServiceTest extends FunSuite {
   final val REGISTRY = "er"
   protected[this] val fromDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7))
   protected[this] val toDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
-
+  val ddlGenerator : OracleDDLGenerator = new OracleDDLGenerator
   val h2dbId : String = UUID.randomUUID().toString.replace("-","")
-
-  def initJdbcToH2(): Unit = {
-    val config = new HikariConfig()
-    config.setJdbcUrl(s"jdbc:h2:mem:$h2dbId;MODE=Oracle;DB_CLOSE_DELAY=-1")
-    config.setUsername("sa")
-    config.setPassword("h2.test.database.password")
-    config.setMaximumPoolSize(1)
-    dataSource = Option(new HikariDataSource(config))
-    jdbcConnection = dataSource.map(JdbcConnection(_))
-  }
 
   initJdbcToH2()
 
@@ -57,8 +47,16 @@ trait BaseMahaServiceTest extends FunSuite {
   assert(erRegistry.isCubeDefined("student_performance"))
   assert(erRegistry.getDimension("student").isDefined)
 
-  val ddlGenerator = new OracleDDLGenerator
-  assert(jdbcConnection.isDefined)
+  def initJdbcToH2(): Unit = {
+    val config = new HikariConfig()
+    config.setJdbcUrl(s"jdbc:h2:mem:$h2dbId;MODE=Oracle;DB_CLOSE_DELAY=-1")
+    config.setUsername("sa")
+    config.setPassword("h2.test.database.password")
+    config.setMaximumPoolSize(1)
+    dataSource = Option(new HikariDataSource(config))
+    jdbcConnection = dataSource.map(JdbcConnection(_))
+    assert(jdbcConnection.isDefined)
+  }
 
   protected[this] def getJsonStringFromFile(fileName: String) : String = {
     val absolutePath : String = Paths.get(getUserDir + "/src/test/resources/" + fileName).toString
