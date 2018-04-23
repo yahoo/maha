@@ -1089,6 +1089,8 @@ object RequestModelFactory extends Logging {
                     updatedRequest = ReportingRequest.forceOracle(request)
                   case HiveEngine =>
                     updatedRequest = ReportingRequest.forceHive(request)
+                  case PrestoEngine =>
+                    updatedRequest = ReportingRequest.forcePresto(request)
                   case a =>
                     throw new IllegalArgumentException(s"Unknown engine: $a")
                 }
