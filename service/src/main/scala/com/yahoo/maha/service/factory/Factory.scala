@@ -71,6 +71,11 @@ trait PartitionColumnRendererFactory extends BaseFactory {
   def supportedProperties: List[(String, Boolean)]
 }
 
+trait MahaUDFRegistrationFactory extends BaseFactory {
+  def fromJson(config: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[Set[UDFRegistration]]
+  def supportedProperties: List[(String, Boolean)]
+}
+
 trait OracleLiteralMapperFactory extends BaseFactory {
   def fromJson(config: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[OracleLiteralMapper]
   def supportedProperties: List[(String, Boolean)]

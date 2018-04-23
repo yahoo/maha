@@ -141,7 +141,7 @@ class PrestoQueryExecutoryFactory extends QueryExecutoryFactory {
     val jdbcConnectionFetchSizeOptionResult: MahaServiceConfig.MahaConfigResult[Option[Int]] = fieldExtended[Option[Int]]("jdbcConnectionFetchSize")(configJson)
     val lifecycleListenerFactoryClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("lifecycleListenerFactoryClass")(configJson)
     val lifecycleListenerFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("lifecycleListenerFactoryConfig")(configJson)
-    val prestoQueryStringResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("prestoQueryString")(configJson)
+    //val prestoQueryStringResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("prestoQueryString")(configJson)
 
     val jdbcConnetionResult : MahaServiceConfig.MahaConfigResult[JdbcConnection] = for {
       dataSourceFactoryClass <- dataSourceFactoryClassResult
@@ -165,7 +165,7 @@ class PrestoQueryExecutoryFactory extends QueryExecutoryFactory {
     } yield lifecycleListener
 
     val prestoQueryTemplate : MahaServiceConfig.MahaConfigResult[PrestoQueryTemplate] = for {
-      prestoQueryString <- prestoQueryStringResult
+      //prestoQueryString <- prestoQueryStringResult
       prestoQueryTemplate <- new PrestoQueryTemplate {
         override def buildFinalQuery(query: String, queryContext: QueryContext, queryAttributes: QueryAttributes): String = query
       }

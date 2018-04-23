@@ -102,6 +102,8 @@ class HiveQueryGeneratorFactory extends QueryGeneratorFactory {
     |{
     |"partitionColumnRendererClass" : "DefaultPartitionColumnRendererFactory",
     |"partitionColumnRendererConfig" : [{"key": "value"}],
+    |"udfRegistrationFactoryName" : "",
+    |"udfRegistrationFactoryConfig" : []
     |}
   """.stripMargin
 
@@ -109,7 +111,8 @@ class HiveQueryGeneratorFactory extends QueryGeneratorFactory {
     import org.json4s.scalaz.JsonScalaz._
     val partitionColumnRendererClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("partitionColumnRendererClass")(configJson)
     val partitionColumnRendererConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("partitionColumnRendererConfig")(configJson)
-    val udfRegistrationConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("udfRegistrationFactory")(configJson)
+    val udfRegistrationFactoryNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("udfRegistrationFactoryName")(configJson)
+    val udfRegistrationFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("udfRegistrationFactoryConfig")(configJson)
 
     val partitionColumnRenderer: MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] = for {
       partitionColumnRendererClass <- partitionColumnRendererClassResult
@@ -119,8 +122,9 @@ class HiveQueryGeneratorFactory extends QueryGeneratorFactory {
     } yield partitionColumnRenderer
 
     val udfStatements: MahaServiceConfig.MahaConfigResult[Set[UDFRegistration]] = for {
-      udfStatementsFactory <- getFactory[UDFRegistrationFactory]("com.yahoo.maha.core.DefaultUDFRegistrationFactory")
-      udfStatements <- DefaultUDFRegistrationFactory
+      udfStatementsFactory <- getFactory[MahaUDFRegistrationFactory](udfRegistrationFactoryNameResult.toOption.get)
+      udfRegistrationFactoryConfig <- udfRegistrationFactoryConfigResult
+      udfStatements <- udfStatementsFactory.fromJson(udfRegistrationFactoryConfig)
     } yield udfStatements
 
     (partitionColumnRenderer |@| udfStatements) {
@@ -136,6 +140,8 @@ class PrestoQueryGeneratorFactory extends QueryGeneratorFactory {
     |{
     |"partitionColumnRendererClass" : "DefaultPartitionColumnRendererFactory",
     |"partitionColumnRendererConfig" : [{"key": "value"}],
+    |"udfRegistrationFactoryName" : "",
+    |"udfRegistrationFactoryConfig" : []
     |}
   """.stripMargin
 
@@ -143,7 +149,8 @@ class PrestoQueryGeneratorFactory extends QueryGeneratorFactory {
     import org.json4s.scalaz.JsonScalaz._
     val partitionColumnRendererClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("partitionColumnRendererClass")(configJson)
     val partitionColumnRendererConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("partitionColumnRendererConfig")(configJson)
-    val udfRegistrationConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("udfRegistrationFactory")(configJson)
+    val udfRegistrationFactoryNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("udfRegistrationFactoryName")(configJson)
+    val udfRegistrationFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("udfRegistrationFactoryConfig")(configJson)
 
     val partitionColumnRenderer: MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] = for {
       partitionColumnRendererClass <- partitionColumnRendererClassResult
@@ -153,8 +160,9 @@ class PrestoQueryGeneratorFactory extends QueryGeneratorFactory {
     } yield partitionColumnRenderer
 
     val udfStatements: MahaServiceConfig.MahaConfigResult[Set[UDFRegistration]] = for {
-      udfStatementsFactory <- getFactory[UDFRegistrationFactory]("com.yahoo.maha.core.DefaultUDFRegistrationFactory")
-      udfStatements <- DefaultUDFRegistrationFactory
+      udfStatementsFactory <- getFactory[MahaUDFRegistrationFactory](udfRegistrationFactoryNameResult.toOption.get)
+      udfRegistrationFactoryConfig <- udfRegistrationFactoryConfigResult
+      udfStatements <- udfStatementsFactory.fromJson(udfRegistrationFactoryConfig)
     } yield udfStatements
 
     (partitionColumnRenderer |@| udfStatements) {
