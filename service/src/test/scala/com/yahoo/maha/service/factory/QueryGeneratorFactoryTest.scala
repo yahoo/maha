@@ -48,4 +48,40 @@ class QueryGeneratorFactoryTest extends BaseFactoryTest {
     assert(generatorResult.isSuccess, generatorResult)
   }
 
+  test("successfully construct Hive query generator from json") {
+    val jsonString =   """
+                         |{
+                         |"partitionColumnRendererClass" : "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
+                         |"partitionColumnRendererConfig" : [{"key": "value"}],
+                         |"udfRegistrationFactoryName" : "com.yahoo.maha.service.factory.DefaultMahaUDFRegistrationFactory",
+                         |"udfRegistrationFactoryConfig" : [{"key": "value"}]
+                         |}
+                       """.stripMargin
+
+    val factoryResult = getFactory[HiveQueryGeneratorFactory]("com.yahoo.maha.service.factory.HiveQueryGeneratorFactory", closer)
+    assert(factoryResult.isSuccess)
+    val factory = factoryResult.toOption.get
+    val json = parse(jsonString)
+    val generatorResult = factory.fromJson(json)
+    assert(generatorResult.isSuccess, generatorResult)
+  }
+
+  test("successfully construct Presto query generator from json") {
+    val jsonString =   """
+                         |{
+                         |"partitionColumnRendererClass" : "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
+                         |"partitionColumnRendererConfig" : [{"key": "value"}],
+                         |"udfRegistrationFactoryName" : "com.yahoo.maha.service.factory.DefaultMahaUDFRegistrationFactory",
+                         |"udfRegistrationFactoryConfig" : [{"key": "value"}]
+                         |}
+                       """.stripMargin
+
+    val factoryResult = getFactory[PrestoQueryGeneratorFactory]("com.yahoo.maha.service.factory.PrestoQueryGeneratorFactory", closer)
+    assert(factoryResult.isSuccess)
+    val factory = factoryResult.toOption.get
+    val json = parse(jsonString)
+    val generatorResult = factory.fromJson(json)
+    assert(generatorResult.isSuccess, generatorResult)
+  }
+
 }

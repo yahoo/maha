@@ -3,10 +3,12 @@
 package com.yahoo.maha.service.factory
 
 import com.yahoo.maha.service.MahaServiceConfig
-import com.yahoo.maha.core.{EngineRequirement, OracleLiteralMapper, PartitionColumnRenderer}
+import com.yahoo.maha.core.{DefaultUDFRegistrationFactory, _}
 import com.yahoo.maha.core.query.QueryGenerator
 import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, DruidQueryOptimizer}
+import com.yahoo.maha.core.query.hive.HiveQueryGenerator
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
+import com.yahoo.maha.core.query.presto.PrestoQueryGenerator
 import com.yahoo.maha.core.request._
 import org.json4s.JValue
 
@@ -89,6 +91,82 @@ class DruidQueryGeneratorFactory extends QueryGeneratorFactory {
 
     (queryOptimizer |@| dimCardinalityResult |@| maximumMaxRowsResult |@| maximumTopNMaxRowsResult |@| maximumMaxRowsAsyncResult) {
       (a, b, c ,d, e) => new DruidQueryGenerator(a, b, c, d, e)
+    }
+  }
+
+  override def supportedProperties: List[(String, Boolean)] = List.empty
+}
+
+class HiveQueryGeneratorFactory extends QueryGeneratorFactory {
+  """
+    |{
+    |"partitionColumnRendererClass" : "DefaultPartitionColumnRendererFactory",
+    |"partitionColumnRendererConfig" : [{"key": "value"}],
+    |"udfRegistrationFactoryName" : "",
+    |"udfRegistrationFactoryConfig" : []
+    |}
+  """.stripMargin
+
+  override def fromJson(configJson: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
+    import org.json4s.scalaz.JsonScalaz._
+    val partitionColumnRendererClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("partitionColumnRendererClass")(configJson)
+    val partitionColumnRendererConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("partitionColumnRendererConfig")(configJson)
+    val udfRegistrationFactoryNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("udfRegistrationFactoryName")(configJson)
+    val udfRegistrationFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("udfRegistrationFactoryConfig")(configJson)
+
+    val partitionColumnRenderer: MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] = for {
+      partitionColumnRendererClass <- partitionColumnRendererClassResult
+      partitionColumnRendererFactory <- getFactory[PartitionColumnRendererFactory](partitionColumnRendererClass, this.closer)
+      partitionColumnRendererConfig <- partitionColumnRendererConfigResult
+      partitionColumnRenderer <- partitionColumnRendererFactory.fromJson(partitionColumnRendererConfig)
+    } yield partitionColumnRenderer
+
+    val udfStatements: MahaServiceConfig.MahaConfigResult[Set[UDFRegistration]] = for {
+      udfStatementsFactory <- getFactory[MahaUDFRegistrationFactory](udfRegistrationFactoryNameResult.toOption.get, this.closer)
+      udfRegistrationFactoryConfig <- udfRegistrationFactoryConfigResult
+      udfStatements <- udfStatementsFactory.fromJson(udfRegistrationFactoryConfig)
+    } yield udfStatements
+
+    (partitionColumnRenderer |@| udfStatements) {
+      (renderer, stmt) => new HiveQueryGenerator(renderer, stmt)
+    }
+  }
+
+  override def supportedProperties: List[(String, Boolean)] = List.empty
+}
+
+class PrestoQueryGeneratorFactory extends QueryGeneratorFactory {
+  """
+    |{
+    |"partitionColumnRendererClass" : "DefaultPartitionColumnRendererFactory",
+    |"partitionColumnRendererConfig" : [{"key": "value"}],
+    |"udfRegistrationFactoryName" : "",
+    |"udfRegistrationFactoryConfig" : []
+    |}
+  """.stripMargin
+
+  override def fromJson(configJson: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
+    import org.json4s.scalaz.JsonScalaz._
+    val partitionColumnRendererClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("partitionColumnRendererClass")(configJson)
+    val partitionColumnRendererConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("partitionColumnRendererConfig")(configJson)
+    val udfRegistrationFactoryNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("udfRegistrationFactoryName")(configJson)
+    val udfRegistrationFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("udfRegistrationFactoryConfig")(configJson)
+
+    val partitionColumnRenderer: MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] = for {
+      partitionColumnRendererClass <- partitionColumnRendererClassResult
+      partitionColumnRendererFactory <- getFactory[PartitionColumnRendererFactory](partitionColumnRendererClass, this.closer)
+      partitionColumnRendererConfig <- partitionColumnRendererConfigResult
+      partitionColumnRenderer <- partitionColumnRendererFactory.fromJson(partitionColumnRendererConfig)
+    } yield partitionColumnRenderer
+
+    val udfStatements: MahaServiceConfig.MahaConfigResult[Set[UDFRegistration]] = for {
+      udfStatementsFactory <- getFactory[MahaUDFRegistrationFactory](udfRegistrationFactoryNameResult.toOption.get)
+      udfRegistrationFactoryConfig <- udfRegistrationFactoryConfigResult
+      udfStatements <- udfStatementsFactory.fromJson(udfRegistrationFactoryConfig)
+    } yield udfStatements
+
+    (partitionColumnRenderer |@| udfStatements) {
+      (renderer, stmt) => new PrestoQueryGenerator(renderer, stmt)
     }
   }
 

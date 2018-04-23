@@ -3,9 +3,10 @@
 package com.yahoo.maha.service.factory
 
 
-import com.yahoo.maha.core.{DruidEngine, OracleEngine}
+import com.yahoo.maha.core.{DruidEngine, OracleEngine, PrestoEngine}
 import com.yahoo.maha.executor.druid.DruidQueryExecutor
 import com.yahoo.maha.executor.oracle.OracleQueryExecutor
+import com.yahoo.maha.executor.presto.PrestoQueryExecutor
 import org.json4s.jackson.JsonMethods._
 
 /**
@@ -96,6 +97,50 @@ class QueryExecutorFactoryTest extends BaseFactoryTest {
     generatorResult.foreach {
       executor =>
         assert(executor.engine == DruidEngine)
+    }
+  }
+
+  test("Test Presto Query Executor Instantiation") {
+    val jsonString =
+      """
+        |{
+        |"dataSourceFactoryClass": "com.yahoo.maha.service.factory.HikariDataSourceFactory",
+        |"dataSourceFactoryConfig": {
+        |"driverClassName" : "org.h2.Driver",
+        |"jdbcUrl" : "jdbc:h2:mem:$uuid;MODE=Oracle;DB_CLOSE_DELAY=-1",
+        |"username" : "sa",
+        |"passwordProviderFactoryClassName" : "com.yahoo.maha.service.factory.PassThroughPasswordProviderFactory",
+        |"passwordProviderConfig" : [{"key" : "value"}],
+        |"passwordKey" : "h2.test.database.password",
+        |"poolName" : "test-pool",
+        |"maximumPoolSize" : 10,
+        |"minimumIdle" : 1,
+        |"autoCommit": true,
+        |"connectionTestQuery" : "SELECT 1 FROM DUAL",
+        |"validationTimeout" : 1000000,
+        |"idleTimeout" : 1000000,
+        |"maxLifetime" : 10000000,
+        |"dataSourceProperties": [{"key": "propertyKey" , "value": "propertyValue"}]
+        |},
+        |"jdbcConnectionFetchSize": 10,
+        |"lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
+        |"lifecycleListenerFactoryConfig" : [{"key": "value"}],
+        |"prestoQueryTemplateFactoryName" : "com.yahoo.maha.service.factory.DefaultPrestoQueryTemplateFactory",
+        |"prestoQueryTemplateFactoryConfig" : [{"key": "value"}]
+        |}
+        |
+      """.stripMargin
+
+    val factoryResult = getFactory[QueryExecutoryFactory]("com.yahoo.maha.service.factory.PrestoQueryExecutoryFactory", closer)
+    assert(factoryResult.isSuccess)
+    val factory = factoryResult.toOption.get
+    val json = parse(jsonString)
+    val generatorResult = factory.fromJson(json)
+    assert(generatorResult.isSuccess, generatorResult)
+    assert(generatorResult.toList.head.isInstanceOf[PrestoQueryExecutor])
+    generatorResult.foreach {
+      executor =>
+        assert(executor.engine == PrestoEngine)
     }
   }
 }
