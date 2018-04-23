@@ -5,7 +5,7 @@ package com.yahoo.maha.service.factory
 import com.yahoo.maha.executor.oracle.OracleQueryExecutor
 import com.yahoo.maha.executor.presto.{PrestoQueryExecutor, PrestoQueryTemplate}
 import com.yahoo.maha.service.MahaServiceConfig
-import com.yahoo.maha.core.query.{ExecutionLifecycleListener, QueryExecutor}
+import com.yahoo.maha.core.query.{ExecutionLifecycleListener, QueryAttributes, QueryContext, QueryExecutor}
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.druid.{DruidQueryExecutor, DruidQueryExecutorConfig, ResultSetTransformers}
 import com.yahoo.maha.jdbc.JdbcConnection
@@ -129,10 +129,7 @@ class PrestoQueryExecutoryFactory extends QueryExecutoryFactory {
     |"dataSourceFactoryConfig": [],
     |"jdbcConnectionFetchSize" 10,
     |"lifecycleListenerFactoryClass" : "",
-    |"lifecycleListenerFactoryConfig" : [],
-    |"prestoQueryString" : "",
-    |"queryContext" : "",
-    |"queryAttributes" : ""
+    |"lifecycleListenerFactoryConfig" : []
     |}
   """.stripMargin
 
@@ -169,6 +166,9 @@ class PrestoQueryExecutoryFactory extends QueryExecutoryFactory {
 
     val prestoQueryTemplate : MahaServiceConfig.MahaConfigResult[PrestoQueryTemplate] = for {
       prestoQueryString <- prestoQueryStringResult
+      prestoQueryTemplate <- new PrestoQueryTemplate {
+        override def buildFinalQuery(query: String, queryContext: QueryContext, queryAttributes: QueryAttributes): String = query
+      }
     } yield prestoQueryTemplate
 
     (jdbcConnetionResult |@| prestoQueryTemplate |@| lifecycleListener) {
