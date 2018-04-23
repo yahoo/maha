@@ -10,9 +10,10 @@ import com.google.common.io.Closer
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.{BucketingConfig, CubeBucketingConfig, CubeBucketingConfigBuilder, DefaultBucketingConfig}
 import com.yahoo.maha.core.query.druid.DruidQueryOptimizer
-import com.yahoo.maha.core.query.{ExecutionLifecycleListener, NoopExecutionLifecycleListener, QueryExecutor, QueryGenerator}
+import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.druid.{DruidQueryExecutorConfig, ResultSetTransformers}
+import com.yahoo.maha.executor.presto.PrestoQueryTemplate
 import com.yahoo.maha.parrequest2.CustomRejectPolicy
 import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor
 import com.yahoo.maha.service.MahaServiceConfig
@@ -71,11 +72,6 @@ trait PartitionColumnRendererFactory extends BaseFactory {
   def supportedProperties: List[(String, Boolean)]
 }
 
-trait MahaUDFRegistrationFactory extends BaseFactory {
-  def fromJson(config: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[Set[UDFRegistration]]
-  def supportedProperties: List[(String, Boolean)]
-}
-
 trait OracleLiteralMapperFactory extends BaseFactory {
   def fromJson(config: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[OracleLiteralMapper]
   def supportedProperties: List[(String, Boolean)]
@@ -131,6 +127,16 @@ trait CuratorFactory extends BaseFactory {
   def supportedProperties: List[(String, Boolean)]
 }
 
+trait MahaUDFRegistrationFactory extends BaseFactory {
+  def fromJson(config: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[Set[UDFRegistration]]
+  def supportedProperties: List[(String, Boolean)]
+}
+
+trait PrestoQueryTemplateFactory extends BaseFactory {
+  def fromJson(config: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[PrestoQueryTemplate]
+  def supportedProperties: List[(String, Boolean)]
+}
+
 import scalaz.syntax.validation._
 class PassThroughUTCTimeProviderFactory extends UTCTimeProvideryFactory {
   def fromJson(config: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[UTCTimeProvider] = PassThroughUTCTimeProvider.successNel
@@ -147,6 +153,13 @@ class PassThroughPasswordProviderFactory  extends  PasswordProviderFactory {
 
 class DefaultMahaUDFRegistrationFactory extends MahaUDFRegistrationFactory {
   def fromJson(config: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[Set[UDFRegistration]] = DefaultUDFRegistrationFactory.apply().successNel
+  def supportedProperties: List[(String, Boolean)] = List.empty
+}
+
+class DefaultPrestoQueryTemplateFactory extends PrestoQueryTemplateFactory {
+  def fromJson(config: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[PrestoQueryTemplate] = new PrestoQueryTemplate {
+    override def buildFinalQuery(query: String, queryContext: QueryContext, queryAttributes: QueryAttributes): String = query
+  }.successNel
   def supportedProperties: List[(String, Boolean)] = List.empty
 }
 

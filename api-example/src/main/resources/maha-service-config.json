@@ -5,11 +5,13 @@
       "dimensionRegistrationClass": "com.yahoo.maha.api.example.student.SampleDimensionSchemaRegistrationFactory",
       "executors": [
         "oracleExec",
-        "druidExec"
+        "druidExec",
+        "prestoExec"
       ],
       "generators": [
         "oracle",
-        "druid"
+        "druid",
+        "presto"
       ],
       "bucketingConfigName": "studentBucket",
       "utcTimeProviderName": "studentUTC",
@@ -126,6 +128,47 @@
           }
         ]
       }
+    },
+    "prestoExec": {
+      "factoryClass": "com.yahoo.maha.service.factory.PrestoQueryExecutoryFactory",
+      "config": {
+        "dataSourceFactoryClass": "com.yahoo.maha.service.factory.HikariDataSourceFactory",
+        "dataSourceFactoryConfig": {
+          "driverClassName": "org.h2.Driver",
+          "jdbcUrl": "jdbc:h2:mem:$h2dbId;MODE=Oracle;DB_CLOSE_DELAY=-1",
+          "username": "sa",
+          "passwordProviderFactoryClassName": "com.yahoo.maha.service.factory.PassThroughPasswordProviderFactory",
+          "passwordProviderConfig": [
+            {
+              "key": "value"
+            }
+          ],
+          "passwordKey": "h2.test.database.password",
+          "poolName": "test-pool",
+          "maximumPoolSize": 10,
+          "minimumIdle": 1,
+          "autoCommit": true,
+          "connectionTestQuery": "SELECT 1 FROM DUAL",
+          "validationTimeout": 1000000,
+          "idleTimeout": 1000000,
+          "maxLifetime": 10000000,
+          "dataSourceProperties": [
+            {
+              "key": "propertyKey",
+              "value": "propertyValue"
+            }
+          ]
+        },
+        "jdbcConnectionFetchSize": 10,
+        "lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
+        "lifecycleListenerFactoryConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "prestoQueryTemplateFactoryName" : "com.yahoo.maha.service.factory.DefaultPrestoQueryTemplateFactory",
+        "prestoQueryTemplateFactoryConfig" : [{"key": "value"}]
+      }
     }
   },
   "generatorMap": {
@@ -159,6 +202,19 @@
         "maximumMaxRows": 5000,
         "maximumTopNMaxRows": 400,
         "maximumMaxRowsAsync": 100000
+      }
+    },
+    "presto": {
+      "factoryClass": "com.yahoo.maha.service.factory.PrestoQueryGeneratorFactory",
+      "config": {
+        "partitionColumnRendererClass": "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
+        "partitionColumnRendererConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "udfRegistrationFactoryName" : "com.yahoo.maha.service.factory.DefaultMahaUDFRegistrationFactory",
+        "udfRegistrationFactoryConfig" : [{"key": "value"}]
       }
     }
   },

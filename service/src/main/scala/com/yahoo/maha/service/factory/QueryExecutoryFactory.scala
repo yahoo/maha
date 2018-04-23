@@ -127,9 +127,11 @@ class PrestoQueryExecutoryFactory extends QueryExecutoryFactory {
     |{
     |"dataSourceFactoryClass": "",
     |"dataSourceFactoryConfig": [],
-    |"jdbcConnectionFetchSize" 10,
+    |"jdbcConnectionFetchSize": 10,
     |"lifecycleListenerFactoryClass" : "",
-    |"lifecycleListenerFactoryConfig" : []
+    |"lifecycleListenerFactoryConfig" : [],
+    |"prestoQueryTemplateFactoryName": "",
+    |"prestoQueryTemplateFactoryConfig": []
     |}
   """.stripMargin
 
@@ -141,7 +143,8 @@ class PrestoQueryExecutoryFactory extends QueryExecutoryFactory {
     val jdbcConnectionFetchSizeOptionResult: MahaServiceConfig.MahaConfigResult[Option[Int]] = fieldExtended[Option[Int]]("jdbcConnectionFetchSize")(configJson)
     val lifecycleListenerFactoryClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("lifecycleListenerFactoryClass")(configJson)
     val lifecycleListenerFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("lifecycleListenerFactoryConfig")(configJson)
-    //val prestoQueryStringResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("prestoQueryString")(configJson)
+    val prestoQueryTemplateFactoryNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("prestoQueryTemplateFactoryName")(configJson)
+    val prestoQueryTemplateFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("prestoQueryTemplateFactoryConfig")(configJson)
 
     val jdbcConnetionResult : MahaServiceConfig.MahaConfigResult[JdbcConnection] = for {
       dataSourceFactoryClass <- dataSourceFactoryClassResult
@@ -164,14 +167,20 @@ class PrestoQueryExecutoryFactory extends QueryExecutoryFactory {
       lifecycleListener <- lifecycleListenerFactory.fromJson(lifecycleListenerFactoryConfig)
     } yield lifecycleListener
 
-    val prestoQueryTemplate : PrestoQueryTemplate = new PrestoQueryTemplate {
-        override def buildFinalQuery(query: String, queryContext: QueryContext, queryAttributes: QueryAttributes): String = query
-    }
 
-    (jdbcConnetionResult |@| lifecycleListener) {
-      (a, c) => {
 
-        val executor = new PrestoQueryExecutor(a, prestoQueryTemplate, c)
+    val prestoQueryTemplate : MahaServiceConfig.MahaConfigResult[PrestoQueryTemplate] = for {
+      prestoQueryTemplateFactoryClassName <- prestoQueryTemplateFactoryNameResult
+      prestoQueryTemplateFactoryConfig <- prestoQueryTemplateFactoryConfigResult
+      prestoQueryTemplateFactory <- getFactory[PrestoQueryTemplateFactory](prestoQueryTemplateFactoryClassName, this.closer)
+      prestoQueryTemplate <- prestoQueryTemplateFactory.fromJson(prestoQueryTemplateFactoryConfig)
+    } yield prestoQueryTemplate
+
+    (jdbcConnetionResult |@| prestoQueryTemplate |@| lifecycleListener) {
+      (jdbc, queryTemplate, listener) => {
+
+        val executor = new PrestoQueryExecutor(jdbc, queryTemplate, listener)
+        //PrestoQueryExecutor is not closeable.
         //closer.register(executor)
         executor
       }

@@ -124,8 +124,9 @@ class QueryExecutorFactoryTest extends BaseFactoryTest {
         |},
         |"jdbcConnectionFetchSize": 10,
         |"lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
-        |"lifecycleListenerFactoryConfig" : [{"key": "value"}]
-        |
+        |"lifecycleListenerFactoryConfig" : [{"key": "value"}],
+        |"prestoQueryTemplateFactoryName" : "com.yahoo.maha.service.factory.DefaultPrestoQueryTemplateFactory",
+        |"prestoQueryTemplateFactoryConfig" : [{"key": "value"}]
         |}
         |
       """.stripMargin
