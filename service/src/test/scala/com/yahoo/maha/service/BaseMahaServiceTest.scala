@@ -1,11 +1,12 @@
 package com.yahoo.maha.service
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.Paths
 import java.util.UUID
 
 import com.google.common.io.Closer
 import com.yahoo.maha.core.DailyGrain
 import com.yahoo.maha.core.ddl.OracleDDLGenerator
+import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.jdbc.JdbcConnection
 import com.yahoo.maha.service.utils.MahaConstants
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
@@ -19,13 +20,13 @@ import org.scalatest.FunSuite
 trait BaseMahaServiceTest extends FunSuite {
   protected var dataSource: Option[HikariDataSource] = None
   protected var jdbcConnection: Option[JdbcConnection] = None
-  protected val closer = Closer.create()
+  protected val closer : Closer = Closer.create()
 
   final val REGISTRY = "er"
-  protected[this] val fromDate = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7))
-  protected[this] val toDate = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
+  protected[this] val fromDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7))
+  protected[this] val toDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
 
-  val h2dbId = UUID.randomUUID().toString.replace("-","")
+  val h2dbId : String = UUID.randomUUID().toString.replace("-","")
 
   def initJdbcToH2(): Unit = {
     val config = new HikariConfig()
@@ -34,37 +35,47 @@ trait BaseMahaServiceTest extends FunSuite {
     config.setPassword("h2.test.database.password")
     config.setMaximumPoolSize(1)
     dataSource = Option(new HikariDataSource(config))
-    jdbcConnection = dataSource.map(new JdbcConnection(_))
+    jdbcConnection = dataSource.map(JdbcConnection(_))
   }
 
   initJdbcToH2()
 
-  val path = Paths.get(getUserDir + "/src/test/resources/mahaServiceExampleJson.json")
-
-  val mahaServiceResult = MahaServiceConfig
-    .fromJson(scala.io.Source.fromFile(path.toString)
-    .getLines()
-    .mkString
-      .replaceAll("H2DBID", h2dbId)
-      .getBytes("utf-8"))
+  protected[this] val mahaServiceResult : MahaServiceConfig.MahaConfigResult[MahaServiceConfig] = getConfigFromFileWithReplacements("mahaServiceExampleJson.json", List(("H2DBID", h2dbId)))
 
   assert(mahaServiceResult.isSuccess)
 
-  val mahaServiceConfig = mahaServiceResult.toOption.get
-  val mahaService = DefaultMahaService(mahaServiceConfig)
+  val mahaServiceConfig : MahaServiceConfig = mahaServiceResult.toOption.get
+  val mahaService : MahaService = DefaultMahaService(mahaServiceConfig)
 
   //For Kafka Logging init
   MDC.put(MahaConstants.REQUEST_ID, "123Request")
   MDC.put(MahaConstants.USER_ID,"abc")
 
   assert(mahaServiceConfig.registry.get("er").isDefined)
-  val erRegistryConfig = mahaServiceConfig.registry.get("er").get
-  val erRegistry= erRegistryConfig.registry
+  val erRegistryConfig : RegistryConfig = mahaServiceConfig.registry.get("er").get
+  val erRegistry : Registry = erRegistryConfig.registry
   assert(erRegistry.isCubeDefined("student_performance"))
   assert(erRegistry.getDimension("student").isDefined)
 
   val ddlGenerator = new OracleDDLGenerator
   assert(jdbcConnection.isDefined)
+
+  protected[this] def getJsonStringFromFile(fileName: String) : String = {
+    val absolutePath : String = Paths.get(getUserDir + "/src/test/resources/" + fileName).toString
+    scala.io.Source.fromFile(absolutePath)
+      .getLines()
+      .mkString
+  }
+
+  protected[this] def getConfigFromFileWithReplacements(fileName: String, replacements: List[(String, String)]) : MahaServiceConfig.MahaConfigResult[MahaServiceConfig] = {
+    val jsonString : String = getJsonStringFromFile(fileName)
+    var finalString = jsonString
+    replacements.foreach{
+      case (a,b) => finalString = finalString.replaceAll(a,b)
+    }
+
+    MahaServiceConfig.fromJson(finalString.getBytes("utf-8"))
+  }
 
   protected[this] def getUserDir : String = {
     val userDir = System.getProperty("user.dir")
