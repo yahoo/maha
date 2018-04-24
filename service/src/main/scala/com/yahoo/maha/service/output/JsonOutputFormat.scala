@@ -6,11 +6,11 @@ import java.io.OutputStream
 
 import com.fasterxml.jackson.core.{JsonEncoding, JsonGenerator}
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.yahoo.maha.core.{ColumnInfo, DimColumnInfo, Engine, FactColumnInfo}
 import com.yahoo.maha.core.query.RowList
 import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.core.{ColumnInfo, DimColumnInfo, Engine, FactColumnInfo}
 import com.yahoo.maha.service.RequestCoordinatorResult
-import com.yahoo.maha.service.curators.{Curator, CuratorResult, DefaultCurator, RowCountCurator}
+import com.yahoo.maha.service.curators.{Curator, DefaultCurator, RowCountCurator}
 import com.yahoo.maha.service.datasource.{IngestionTimeUpdater, NoopIngestionTimeUpdater}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -39,7 +39,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
       jsonGenerator.writeFieldName("curators") //"curators" :
       jsonGenerator.writeStartObject() //{
       //remove default render curators
-      val curatorList = requestCoordinatorResult.orderedList.filterNot(c => JsonOutputFormat.defaultRenderSet(c.name))
+      val curatorList = requestCoordinatorResult.curatorResult.map(_._2.curator).filterNot(c => JsonOutputFormat.defaultRenderSet(c.name))
       curatorList.foreach(renderCurator(_, requestCoordinatorResult, jsonGenerator))
       jsonGenerator.writeEndObject() //}
     }

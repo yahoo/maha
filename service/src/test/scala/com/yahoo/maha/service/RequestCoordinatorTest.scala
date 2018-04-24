@@ -474,7 +474,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val requestCoordinatorResult: RequestCoordinatorResult = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper).right.get.get().right.get
     val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
     val totalMetricsCuratorResult: RequestResult = requestCoordinatorResult.successResults(TotalMetricsCurator.name)
-    val expectedSet = Set("Row(Map(Student ID -> 0, Total Marks -> 1),ArrayBuffer(213, 480))")
+    val expectedSet = Set("Row(Map(Total Marks -> 0),ArrayBuffer(480))")
 
     var cnt = 0
     totalMetricsCuratorResult.queryPipelineResult.rowList.foreach( row => {

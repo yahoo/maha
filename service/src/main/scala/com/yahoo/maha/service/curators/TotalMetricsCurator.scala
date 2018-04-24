@@ -1,7 +1,6 @@
 package com.yahoo.maha.service.curators
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.request.Field
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
@@ -48,25 +47,14 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
     val publicFact = publicFactOption.get
     val factColsSet = publicFact.factCols.map(_.alias)
 
-    val lowestLevelDimKeyField: Field = {
-      val keyAlias =  publicFact.foreignKeyAliases.map {
-        alias =>
-          val dimOption = registry.getDimensionByPrimaryKeyAlias(alias, Some(publicFactOption.get.dimRevision))
-          if (dimOption.isEmpty) {
-            val message = s"Failed to find the dimension for key $alias in registry"
-            return withError(curatorConfig, GeneralError.from(parRequestLabel
-              , message, MahaServiceBadRequestException(message)))
-          }
-          alias -> dimOption.get.dimLevel
-      }.minBy(_._2.level)._1
-      Field(keyAlias, None, None)
-    }
-
-    val totalMetricsReportingRequest = reportingRequest
-      .copy(selectFields =
-        IndexedSeq(lowestLevelDimKeyField)
-          ++ reportingRequest.selectFields.filter(f=> factColsSet.contains(f.field))
-      )
+    val totalMetricsReportingRequest = reportingRequest.copy(
+      selectFields = reportingRequest.selectFields.filter(f=> factColsSet.contains(f.field)),
+      forceDimensionDriven = false,
+      forceFactDriven = false,
+      includeRowCount = false,
+      sortBy = IndexedSeq.empty,
+      paginationStartIndex = 0,
+      rowsPerPage = -1)
 
     val totalMetricsRequestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(
       mahaRequestContext.registryName
