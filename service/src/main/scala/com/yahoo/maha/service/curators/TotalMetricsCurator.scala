@@ -55,12 +55,14 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
                   val publicFact = publicFactOption.get
                   val factColsSet = publicFact.factCols.map(_.alias)
 
+/*
                   val schemaRequiredFields = publicFact.factList.map {
                     fact =>
                       registry.getSchemaRequiredFilterAliasesForFact(fact.name, reportingRequest.schema, publicFact.name)
                   }.flatten.toSet[String].map(alias=> Field(alias, None, None)).toIndexedSeq
+*/
 
-                  val totalMetricsReportingRequest = reportingRequest.copy(selectFields = schemaRequiredFields ++ reportingRequest.selectFields.filter(f=> factColsSet.contains(f.field)),
+                  val totalMetricsReportingRequest = reportingRequest.copy(selectFields = reportingRequest.selectFields.filter(f=> factColsSet.contains(f.field)),
                                               forceDimensionDriven = false,
                                               forceFactDriven = false,
                                               includeRowCount = false,
