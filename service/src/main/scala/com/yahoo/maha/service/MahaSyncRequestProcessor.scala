@@ -5,9 +5,12 @@ package com.yahoo.maha.service
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParFunction
-import com.yahoo.maha.service.curators.CuratorResult
+import com.yahoo.maha.service.curators.{CuratorResult, DefaultCurator}
 import com.yahoo.maha.service.utils.{MahaRequestLogBuilder, MahaRequestLogHelper, MahaRequestLogWriter}
 import grizzled.slf4j.Logging
+import collection.JavaConverters._
+
+import scala.collection.mutable.ArrayBuffer
 
 trait BaseMahaRequestProcessor {
   def mahaRequestContext: MahaRequestContext
@@ -70,7 +73,6 @@ case class MahaSyncRequestProcessor(mahaRequestContext: MahaRequestContext
     val successParFunction: ParFunction[java.util.List[Either[GeneralError, CuratorResult]], Unit] =
       ParFunction.fromScala(
         (javaResult: java.util.List[Either[GeneralError, CuratorResult]]) => {
-          import collection.JavaConverters._
           val seq = javaResult.asScala.toIndexedSeq
           val firstFailure = seq.head
           if(firstFailure.isLeft) {
@@ -104,8 +106,34 @@ case class MahaSyncRequestProcessor(mahaRequestContext: MahaRequestContext
         callOnFailureFn(mahaRequestLogBuilder, mahaRequestContext.reportingRequest)(err)
     }, {
       (requestCoordinatorResult: RequestCoordinatorResult) =>
-        requestCoordinatorResult.combinedResultList.fold[Unit](errParFunction, successParFunction)
+        //fail fast on default curator
+        if(requestCoordinatorResult.resultMap.contains(DefaultCurator.name)) {
+          val defaultCuratorResult = requestCoordinatorResult.resultMap(DefaultCurator.name)
+          if(defaultCuratorResult.isLeft) {
+            errParFunction(defaultCuratorResult.left.get)
+          } else {
+            requestCoordinatorResult.combinedCuratorResultList.fold[Unit](errParFunction, successParFunction)
+          }
+        } else {
+          requestCoordinatorResult.combinedCuratorResultList.fold[Unit](errParFunction, successParFunction)
+        }
     })
+  }
+
+  private[this] def processCuratorResultList(curatorResultEitherList: java.util.List[Either[GeneralError, CuratorResult]]
+                                            , errParFunction: ParFunction[GeneralError, Unit]) : Unit = {
+    val size = curatorResultEitherList.size
+    val curatorResultList = new ArrayBuffer(size)
+    var i = 0
+    while(i<size) {
+      val eitherResult = curatorResultEitherList.get(i)
+      i+=1
+      if(eitherResult.isLeft) {
+
+      }
+    }
+
+    curatorResultEitherList.get
   }
 
   private[this] def callOnFailureFn(mahaRequestLogBuilder: MahaRequestLogBuilder, reportingRequest: ReportingRequest)(err: GeneralError) : Unit = {

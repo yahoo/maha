@@ -18,7 +18,7 @@ import scala.util.Try
 /**
  * Created by jians on 10/22/15.
  */
-case class QueryPipelineResult(queryChain: QueryChain, rowList: RowList, queryAttributes: QueryAttributes)
+case class QueryPipelineResult(queryPipeline:QueryPipeline, queryChain: QueryChain, rowList: RowList, queryAttributes: QueryAttributes)
 
 trait QueryPipeline {
   def queryChain: QueryChain
@@ -110,12 +110,12 @@ case class QueryPipelineWithFallback(queryChain: QueryChain
     val stats = new EngineQueryStats
     Try {
       val result = queryChain.execute(executorContext, rowListFn, QueryAttributes.empty, stats)
-      QueryPipelineResult(queryChain, result._1, result._2)
+      QueryPipelineResult(this, queryChain, result._1, result._2)
     }.recover {
       case throwable =>
         QueryPipelineWithFallback.logger.error("Primary query chain failed, recovering with fall back", throwable)
         val result = fallbackQueryChain.execute(executorContext, fallbackRowListFn, QueryAttributes.empty, stats)
-        QueryPipelineResult(fallbackQueryChain, result._1, result._2)
+        QueryPipelineResult(this, fallbackQueryChain, result._1, result._2)
     }
   }
 
@@ -123,12 +123,12 @@ case class QueryPipelineWithFallback(queryChain: QueryChain
     val stats = new EngineQueryStats
     Try{
       val result = queryChain.execute(executorContext, rowListFn, queryAttributes, stats)
-      QueryPipelineResult(queryChain, result._1, result._2)
+      QueryPipelineResult(this, queryChain, result._1, result._2)
     }.recover {
       case throwable =>
         QueryPipelineWithFallback.logger.error("Primary query chain failed, recovering with fall back", throwable)
         val result = fallbackQueryChain.execute(executorContext, fallbackRowListFn, queryAttributes, stats)
-        QueryPipelineResult(fallbackQueryChain, result._1, result._2)
+        QueryPipelineResult(this, fallbackQueryChain, result._1, result._2)
     }
   }
 
@@ -146,7 +146,7 @@ case class DefaultQueryPipeline(queryChain: QueryChain
     val stats = new EngineQueryStats
     Try {
       val result = queryChain.execute(executorContext, rowListFn, QueryAttributes.empty, stats)
-      QueryPipelineResult(queryChain, result._1, result._2)
+      QueryPipelineResult(this, queryChain, result._1, result._2)
     }
   }
 
@@ -154,7 +154,7 @@ case class DefaultQueryPipeline(queryChain: QueryChain
     val stats = new EngineQueryStats
     Try {
       val result = queryChain.execute(executorContext, rowListFn, queryAttributes, stats)
-      QueryPipelineResult(queryChain, result._1, result._2)
+      QueryPipelineResult(this, queryChain, result._1, result._2)
     }
   }
 

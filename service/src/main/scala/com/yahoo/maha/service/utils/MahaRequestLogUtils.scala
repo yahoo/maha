@@ -26,7 +26,7 @@ object MahaConstants {
 }
 
 trait BaseMahaRequestLogBuilder {
-  protected[this] val protoBuilder: MahaRequestProto.Builder = MahaRequestProto.newBuilder()
+  protected[this] lazy val protoBuilder: MahaRequestProto.Builder = MahaRequestProto.newBuilder()
 
   def logQueryPipeline(queryPipeline: QueryPipeline)
 
@@ -40,7 +40,6 @@ trait BaseMahaRequestLogBuilder {
 trait CuratorMahaRequestLogBuilder extends BaseMahaRequestLogBuilder
 
 trait MahaRequestLogBuilder extends BaseMahaRequestLogBuilder {
-
   def curatorLogBuilder(curator: Curator): CuratorMahaRequestLogBuilder
 }
 

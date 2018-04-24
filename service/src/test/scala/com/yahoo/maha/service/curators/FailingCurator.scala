@@ -15,8 +15,13 @@ class FailingCurator extends Curator {
 
   override def priority: Int = 0
 
-  override def process(resultMap: Map[String, ParRequest[CuratorResult]], mahaRequestContext: MahaRequestContext, mahaService: MahaService, mahaRequestLogBuilder: CuratorMahaRequestLogBuilder, curatorConfig: CuratorConfig): ParRequest[CuratorResult] = {
-    ParRequest.immediateResult("fail", mahaService.getParallelServiceExecutor(mahaRequestContext), GeneralError.either("fail", "failed"))
+  override def process(resultMap: Map[String, Either[GeneralError, ParRequest[CuratorResult]]]
+              , mahaRequestContext: MahaRequestContext
+              , mahaService: MahaService
+              , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
+              , curatorConfig: CuratorConfig
+             ) : Either[GeneralError, ParRequest[CuratorResult]] = {
+    withError(GeneralError.from("fail", "failed"))
   }
 
   override def isSingleton: Boolean = false

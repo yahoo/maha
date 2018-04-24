@@ -32,6 +32,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class ParallelServiceExecutor {
 
     private int threadPoolSize = 100;
@@ -440,5 +442,10 @@ public class ParallelServiceExecutor {
      */
     public <T> Either<GeneralError, T> getSafely(String label, ListenableFuture<T> future) {
         return getSafely(label, future, defaultTimeoutMillis);
+    }
+
+    public <T> ParRequest<T> immediateResult(String label, Either<GeneralError, T> t) {
+        checkNotNull(t, "result is null");
+        return new ParRequest<T>(label, this, Futures.immediateFuture(t));
     }
 }

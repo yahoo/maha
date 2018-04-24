@@ -2,16 +2,14 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.curators
 
-import java.util.concurrent.Callable
-
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.request.{CuratorJsonConfig, Field, ReportingRequest}
-import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
-import com.yahoo.maha.parrequest2.future.{CombinableRequest, ParFunction, ParRequest}
+import com.yahoo.maha.parrequest2.GeneralError
+import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.utils.CuratorMahaRequestLogBuilder
-import com.yahoo.maha.service.{MahaRequestContext, MahaService}
+import com.yahoo.maha.service.{CuratorInjector, MahaRequestContext, MahaService}
 import grizzled.slf4j.Logging
 import org.json4s.scalaz.JsonScalaz
 
@@ -84,16 +82,13 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     * @param requestModel: Request model with tree of granular tables
     * @return primaryKeyAlias
     */
-  private def mostGranularPrimaryKey(requestModel: RequestModel): Option[Field] = {
-    val mostGranularPrimaryKey : String = if (requestModel.dimensionsCandidates.nonEmpty) requestModel.dimensionsCandidates.last.dim.primaryKeyByAlias else ""
-
-    if (mostGranularPrimaryKey.nonEmpty){
-      require(requestModel.requestColsSet.contains(mostGranularPrimaryKey), "Primary key of most granular dim MUST be present in requested cols to join against!")
-      Some(Field(mostGranularPrimaryKey, None, None))
+  private def mostGranularPrimaryKeyAlias(requestModel: RequestModel): Option[String] = {
+    if (requestModel.dimensionsCandidates.nonEmpty) {
+      val alias = requestModel.dimensionsCandidates.last.dim.primaryKeyByAlias
+      require(requestModel.requestColsSet.contains(alias), s"Primary key of most granular dim MUST be present in requested cols to join against : $alias")
+      Option(alias)
     }
-    else{
-      None
-    }
+    else None
   }
 
   /**
@@ -146,95 +141,104 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                                             reportingRequest: ReportingRequest,
                                             mahaService: MahaService,
                                             mahaRequestLogBuilder: CuratorMahaRequestLogBuilder,
+                                            primaryKeyAlias: String,
                                             drilldownConfig: DrilldownConfig): ReportingRequest = {
     val (rm, fields) : (RequestModel, IndexedSeq[Field]) = validateReportingRequest(registryName, bucketParams, reportingRequest, mahaService, mahaRequestLogBuilder)
-    val primaryField : Field = mostGranularPrimaryKey(rm).orNull
+    val primaryField : Field = Field(primaryKeyAlias, None, None)
 
     val rr = drilldownReportingRequest(reportingRequest, fields, primaryField, drilldownConfig)
     rr
   }
 
-  /**
-    *
-    * @param requestModelResultTry: Attempted request model execution
-    * @param mahaRequestLogBuilder: For error logging
-    * @param mahaRequestContext: Local request context for the maha Service
-    * @param mahaService: Service with all initial parameters
-    * @param parRequestLabel: Label for the parallel request, in case of error logging
-    * @return
-    */
-  private def verifyRequestModelResult(requestModelResultTry: Try[RequestModelResult],
-                               mahaRequestLogBuilder: CuratorMahaRequestLogBuilder,
-                               mahaRequestContext: MahaRequestContext,
-                               mahaService: MahaService,
-                               parRequestLabel: String) : Either[GeneralError, CuratorResult] = {
-    if(requestModelResultTry.isFailure) {
-      val message = requestModelResultTry.failed.get.getMessage
-      mahaRequestLogBuilder.logFailed(message)
-      GeneralError.either[CuratorResult](parRequestLabel, message, MahaServiceBadRequestException(message, requestModelResultTry.failed.toOption))
-    } else {
-      requestModelValidator.validate(mahaRequestContext, requestModelResultTry.get)
-      val requestResultTry = mahaService.processRequestModel(mahaRequestContext.registryName
-        , requestModelResultTry.get.model, mahaRequestLogBuilder)
-      new Right[GeneralError, CuratorResult](CuratorResult(DrilldownCurator.this, NoConfig, requestResultTry, requestModelResultTry.get))
-    }
-  }
-
-  /**
-    *
-    * @param mahaRequestContext: Context for the current reporting request
-    * @param mahaService: Service with all reporting request configurations
-    * @param mahaRequestLogBuilder: For error logging
-    * @return result of the reportingRequest report generation attempt
-    */
-  override def process(resultMap: Map[String, ParRequest[CuratorResult]]
-                       , mahaRequestContext: MahaRequestContext
-                       , mahaService: MahaService
-                       , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
-                       , curatorConfig: CuratorConfig): ParRequest[CuratorResult] = {
+  override def process(resultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]]
+                                  , mahaRequestContext: MahaRequestContext
+                                  , mahaService: MahaService
+                                  , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
+                                  , curatorConfig: CuratorConfig
+                                  , curatorInjector: CuratorInjector
+                                 ) : Either[CuratorError, ParRequest[CuratorResult]] = {
 
     val registryConfig = mahaService.getMahaServiceConfig.registry(mahaRequestContext.registryName)
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
     val parRequestLabel = "processDrillDownCurator"
-    val firstRequest = resultMap(DefaultCurator.name)
+    val generalErrorOrResult = resultMap(DefaultCurator.name)
 
-    val fromScala = ParFunction.fromScala[CuratorResult, CombinableRequest[CuratorResult]]((defaultCuratorResult) => {
-      val parRequest = parallelServiceExecutor.parRequestBuilder[CuratorResult].setLabel(parRequestLabel).
-        setParCallable(ParCallable.from[Either[GeneralError, CuratorResult]](
-          new Callable[Either[GeneralError, CuratorResult]](){
-            override def call(): Either[GeneralError, CuratorResult] = {
+    if(generalErrorOrResult.isLeft) {
+      generalErrorOrResult
+    } else {
+      val parResult = generalErrorOrResult.right.get
+      //we need to take the result of default curator and its request result to produce our request and result
+      val finalResult:ParRequest[CuratorResult] = parResult.flatMap(parRequestLabel, ParFunction.fromScala {
+        defaultCuratorResult =>
+          //we need to use the results of default curator to generate our query and execute it in non-blocking manner
+          //and produce the drill down curator result
+          //so we map over the result of default curator's par request result's prod run
+          //this means we define a function from ParRequest[RequestResult] to ParRequest[CuratorResult]
+          val defaultParRequestResultOption = defaultCuratorResult.parRequestResultOption
 
-              if(defaultCuratorResult.requestResultTry.isFailure){
-                return GeneralError.either(parRequestLabel, "RequestResult failed with " + defaultCuratorResult.requestResultTry.toString)
+          if(defaultParRequestResultOption.isEmpty) {
+            parallelServiceExecutor.immediateResult(parRequestLabel,
+              GeneralError.either(parRequestLabel, "no result from default curator, cannot continue")
+            )
+          } else {
+            val defaultParRequestResult = defaultParRequestResultOption.get
+            val innerResult: ParRequest[CuratorResult] = defaultParRequestResult.prodRun.map(
+              parRequestLabel
+              , ParFunction.fromScala {
+                defaultRequestResult =>
+                  val fieldAliasOption = mostGranularPrimaryKeyAlias(defaultCuratorResult.requestModelReference.model)
+                  if (fieldAliasOption.isEmpty) {
+                    GeneralError.either[CuratorResult](parRequestLabel, "no primary key alias found in request", MahaServiceBadRequestException("No primary key alias found in request"))
+                  } else {
+                    val fieldAlias = fieldAliasOption.get
+                    val rowList = defaultRequestResult.queryPipelineResult.rowList
+                    var values: Set[String] = Set.empty
+                    rowList.foreach {
+                      row => values = values ++ List(row.cols(row.aliasMap(fieldAlias)).toString)
+                    }
+
+                    val newReportingRequest = implementDrilldownRequestMinimization(
+                      mahaRequestContext.registryName
+                      , mahaRequestContext.bucketParams
+                      , mahaRequestContext.reportingRequest
+                      , mahaService
+                      , mahaRequestLogBuilder
+                      , fieldAlias
+                      , curatorConfig.asInstanceOf[DrilldownConfig]
+                    )
+
+                    val newRequestWithInsertedFilter = insertValuesIntoDrilldownRequest(newReportingRequest, curatorConfig.asInstanceOf[DrilldownConfig].dimension.field, values.toList)
+
+                    val requestModelResultTry = mahaService.generateRequestModel(
+                      mahaRequestContext.registryName, newRequestWithInsertedFilter, mahaRequestContext.bucketParams
+                      , mahaRequestLogBuilder)
+
+                    if (requestModelResultTry.isFailure) {
+                      val message = requestModelResultTry.failed.get.getMessage
+                      mahaRequestLogBuilder.logFailed(message)
+                      GeneralError.either[CuratorResult](parRequestLabel, message, MahaServiceBadRequestException(message, requestModelResultTry.failed.toOption))
+                    } else {
+                      try {
+                        val requestModelResult = requestModelResultTry.get
+                        requestModelValidator.validate(mahaRequestContext, requestModelResult)
+                        val parRequestResult = mahaService.executeRequestModelResult(mahaRequestContext.registryName
+                          , requestModelResultTry.get, mahaRequestLogBuilder)
+                        new Right(CuratorResult(DrilldownCurator.this, NoConfig, Option(parRequestResult), requestModelResult))
+                      } catch {
+                        case e: Exception =>
+                          GeneralError.either[CuratorResult](parRequestLabel
+                            , e.getMessage, new MahaServiceBadRequestException(e.getMessage, Option(e)))
+                      }
+                    }
+                  }
               }
-
-              val rowList = defaultCuratorResult.requestResultTry.get.queryPipelineResult.rowList
-              var values : Set[String] = Set.empty
-              rowList.foreach{
-                row => values = values ++ List(row.cols(row.aliasMap(curatorConfig.asInstanceOf[DrilldownConfig].dimension.field)).toString)
-              }
-
-              val newReportingRequest = implementDrilldownRequestMinimization(mahaRequestContext.registryName, mahaRequestContext.bucketParams, mahaRequestContext.reportingRequest, mahaService, mahaRequestLogBuilder, curatorConfig.asInstanceOf[DrilldownConfig])
-
-              val newRequestWithInsertedFilter = insertValuesIntoDrilldownRequest(newReportingRequest, curatorConfig.asInstanceOf[DrilldownConfig].dimension.field, values.toList)
-
-              val requestModelResultTry = mahaService.generateRequestModel(
-                mahaRequestContext.registryName, newRequestWithInsertedFilter, mahaRequestContext.bucketParams
-                , mahaRequestLogBuilder)
-
-              verifyRequestModelResult(requestModelResultTry, mahaRequestLogBuilder, mahaRequestContext, mahaService, parRequestLabel)
-            }
+            )
+            innerResult
           }
-        )).build()
+      })
+      withParResult(parRequestLabel, finalResult)
+    }
 
-      parRequest
-    })
-
-    val nonBlockingParRequest: ParRequest[CuratorResult] = firstRequest.flatMap (
-      "flatMapFirstRequest"
-      , fromScala)
-
-    nonBlockingParRequest
   }
 
 }

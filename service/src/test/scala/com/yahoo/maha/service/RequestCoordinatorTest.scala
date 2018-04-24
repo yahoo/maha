@@ -100,13 +100,14 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
 
     val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
-    val defaultCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(DefaultCurator.name)
+    val defaultCuratorResult: Either[GeneralError, ParRequest[CuratorResult]] = requestCoordinatorResult.right.get.resultMap(DefaultCurator.name)
 
-    val defaultCuratorResultEither = defaultCuratorResult.resultMap((t: CuratorResult) => t)
+    val defaultCuratorResultEither = defaultCuratorResult.right.get.resultMap((t: CuratorResult) => t)
     defaultCuratorResultEither.fold((t: GeneralError) => {
       fail(t.message)
     },(curatorResult: CuratorResult) => {
-      assert(curatorResult.requestResultTry.isSuccess)
+      val requestResultEither = curatorResult.parRequestResult.prodRun.get()
+      assert(requestResultEither.isRight)
       val defaultExpectedSet = Set(
         "Row(Map(Student ID -> 0, Class ID -> 1, Section ID -> 2, Total Marks -> 3),ArrayBuffer(213, 200, 100, 125))",
         "Row(Map(Student ID -> 0, Class ID -> 1, Section ID -> 2, Total Marks -> 3),ArrayBuffer(213, 198, 100, 180))",
@@ -114,7 +115,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       )
 
       var defaultCount = 0
-      curatorResult.requestResultTry.get.queryPipelineResult.rowList.foreach( row => {
+      requestResultEither.right.get.queryPipelineResult.rowList.foreach( row => {
         println(row.toString)
         assert(defaultExpectedSet.contains(row.toString))
         defaultCount+=1
@@ -169,13 +170,14 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
     val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
-    val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(TimeShiftCurator.name)
+    val timeShiftCuratorResult: Either[GeneralError, ParRequest[CuratorResult]] = requestCoordinatorResult.right.get.resultMap(TimeShiftCurator.name)
 
-    val timeShiftCuratorResultEither = timeShiftCuratorResult.resultMap((t: CuratorResult) => t)
+    val timeShiftCuratorResultEither = timeShiftCuratorResult.right.get.resultMap((t: CuratorResult) => t)
     timeShiftCuratorResultEither.fold((t: GeneralError) => {
       fail(t.message)
     },(curatorResult: CuratorResult) => {
-      assert(curatorResult.requestResultTry.isSuccess)
+      val requestResultEither = curatorResult.parRequestResult.prodRun.get()
+      assert(requestResultEither.isRight)
       val expectedSeq = IndexedSeq(
         "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 199, 200, 175, 0, 100.0))",
         "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 198, 100, 180, 120, 50.0))",
@@ -183,7 +185,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       )
 
       var cnt = 0
-      curatorResult.requestResultTry.get.queryPipelineResult.rowList.foreach( row => {
+      requestResultEither.right.get.queryPipelineResult.rowList.foreach( row => {
         println(row.toString)
         assert(expectedSeq(cnt) === row.toString)
         cnt+=1
@@ -288,7 +290,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
     assert(requestCoordinatorResult.isRight)
 
-    val resultList = requestCoordinatorResult.right.get.combinedResultList
+    val resultList = requestCoordinatorResult.right.get.combinedCuratorResultList
     val errCall = new AtomicInteger(0)
     val sucCall = new AtomicInteger(0)
     val foldResult = resultList.fold[Unit](ParFunction.fromScala({
@@ -355,7 +357,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
     assert(requestCoordinatorResult.isRight)
 
-    val resultList = requestCoordinatorResult.right.get.combinedResultList
+    val resultList = requestCoordinatorResult.right.get.combinedCuratorResultList
     val errCall = new AtomicInteger(0)
     val sucCall = new AtomicInteger(0)
     val foldResult = resultList.fold[Unit](ParFunction.fromScala({
@@ -430,20 +432,21 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
     val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
-    val drillDownCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(DrilldownCurator.name)
+    val drillDownCuratorResult: Either[GeneralError, ParRequest[CuratorResult]] = requestCoordinatorResult.right.get.resultMap(DrilldownCurator.name)
 
-    val timeShiftCuratorResultEither = drillDownCuratorResult.resultMap((t: CuratorResult) => t)
+    val timeShiftCuratorResultEither = drillDownCuratorResult.right.get.resultMap((t: CuratorResult) => t)
     timeShiftCuratorResultEither.fold((t: GeneralError) => {
       fail(t.message)
     },(curatorResult: CuratorResult) => {
-      assert(curatorResult.requestResultTry.isSuccess)
+      val requestResultEither = curatorResult.parRequestResult.prodRun.get()
+      assert(requestResultEither.isRight)
       val expectedSet = Set(
         "Row(Map(Section ID -> 0, Total Marks -> 1),ArrayBuffer(100, 305))",
         "Row(Map(Section ID -> 0, Total Marks -> 1),ArrayBuffer(200, 175))"
       )
 
       var cnt = 0
-      curatorResult.requestResultTry.get.queryPipelineResult.rowList.foreach( row => {
+      requestResultEither.right.get.queryPipelineResult.rowList.foreach( row => {
         println(row.toString)
         assert(expectedSet.contains(row.toString))
         cnt+=1
@@ -495,9 +498,9 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
     val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
-    val drillDownCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(DrilldownCurator.name)
+    val drillDownCuratorResult: Either[GeneralError, ParRequest[CuratorResult]] = requestCoordinatorResult.right.get.resultMap(DrilldownCurator.name)
 
-    val timeShiftCuratorResultEither = drillDownCuratorResult.resultMap((t: CuratorResult) => t)
+    val timeShiftCuratorResultEither = drillDownCuratorResult.right.get.resultMap((t: CuratorResult) => t)
     assert(timeShiftCuratorResultEither.isLeft)
     assert(timeShiftCuratorResultEither.left.get.message.contains("Gender"))
 
