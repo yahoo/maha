@@ -39,7 +39,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
       jsonGenerator.writeFieldName("curators") //"curators" :
       jsonGenerator.writeStartObject() //{
       //remove default render curators
-      val curatorList = requestCoordinatorResult.curatorResult.map(_._2.curator).filterNot(c => JsonOutputFormat.defaultRenderSet(c.name))
+      val curatorList = requestCoordinatorResult.orderedList.filterNot(c => JsonOutputFormat.defaultRenderSet(c.name))
       curatorList.foreach(renderCurator(_, requestCoordinatorResult, jsonGenerator))
       jsonGenerator.writeEndObject() //}
     }

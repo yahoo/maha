@@ -146,7 +146,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
 
     val curatorResults= IndexedSeq(curatorResult1, curatorResult2)
 
-    val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator)
+    val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator, testCurator)
       , Map(DefaultCurator.name -> curatorResult1, curatorResult2.curator.name -> curatorResult2)
       , Map.empty
       , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get
