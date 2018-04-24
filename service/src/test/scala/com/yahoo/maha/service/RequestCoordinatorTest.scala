@@ -2,20 +2,16 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service
 
-import java.util.concurrent.atomic.AtomicInteger
-
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc.{Seq, _}
-import com.yahoo.maha.parrequest2.GeneralError
-import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
+import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.scalatest.BeforeAndAfterAll
-import scala.collection.JavaConverters._
 
 class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
@@ -358,7 +354,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                         }"""
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
-    val reportingRequest = reportingRequestResult.toOption.get
+    val reportingRequest = ReportingRequest.enableDebug(reportingRequestResult.toOption.get)
 
     val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
 
@@ -375,8 +371,9 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
     val drillDownCuratorResult: RequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name)
     val expectedSet = Set(
-      "Row(Map(Section ID -> 0, Total Marks -> 1),ArrayBuffer(100, 305))",
-      "Row(Map(Section ID -> 0, Total Marks -> 1),ArrayBuffer(200, 175))"
+      "Row(Map(Remarks -> 0, Student ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 1, 213, 125))",
+      "Row(Map(Remarks -> 0, Student ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 2, 213, 180))",
+      "Row(Map(Remarks -> 0, Student ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 3, 213, 175))"
     )
 
     var cnt = 0

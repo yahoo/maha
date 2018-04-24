@@ -61,6 +61,9 @@ trait Curator extends Ordered[Curator] {
                               , parResult: ParRequest[CuratorResult]): Either[CuratorError, ParRequest[CuratorResult]] = {
     new Right(parResult)
   }
+  protected def withParRequestError(curatorConfig: CuratorConfig, error: GeneralError): Either[GeneralError, CuratorResult] = {
+    new Left(CuratorError(this, curatorConfig, error))
+  }
 }
 
 object DefaultCurator {

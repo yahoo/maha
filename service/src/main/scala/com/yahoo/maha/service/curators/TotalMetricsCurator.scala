@@ -75,7 +75,7 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
     if(totalMetricsRequestModelResultTry.isFailure) {
       val message = totalMetricsRequestModelResultTry.failed.get.getMessage
       mahaRequestLogBuilder.logFailed(message)
-      return withError(curatorConfig, GeneralError.from(parRequestLabel, message
+      withError(curatorConfig, GeneralError.from(parRequestLabel, message
         , MahaServiceBadRequestException(message, totalMetricsRequestModelResultTry.failed.toOption)))
     } else {
       try {
