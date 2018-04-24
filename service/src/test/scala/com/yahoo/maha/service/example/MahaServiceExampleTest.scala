@@ -67,11 +67,11 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
 
     // Test General Error in process Model
     val resultFailureToProcessModel = mahaService.processRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
-    assert(resultFailureToProcessModel.isFailure)
+    assert(resultFailureToProcessModel.isLeft)
 
     //Test General Error in process Request Model
     val processRequestModelWithFailure = mahaService.processRequestModel("er", requestModelResultTry.get.model, mahaRequestLogHelper)
-    assert(processRequestModelWithFailure.isFailure)
+    assert(processRequestModelWithFailure.isLeft)
 
     //Create tables
     createTables()
@@ -83,13 +83,13 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
 
     // Process Model Test
     val processRequestModelResult  = mahaService.processRequestModel("er", requestModelResultTry.get.model, mahaRequestLogHelper)
-    assert(processRequestModelResult.isSuccess)
-    assert(processRequestModelResult.get.queryPipelineResult.rowList.asInstanceOf[QueryRowList].columnNames.contains("Class ID"))
+    assert(processRequestModelResult.isRight)
+    assert(processRequestModelResult.right.get.queryPipelineResult.rowList.asInstanceOf[QueryRowList].columnNames.contains("Class ID"))
 
     // Process Request Test
     val processRequestResult = mahaService.processRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
-    assert(processRequestResult.isSuccess)
-    assert(processRequestResult.get.queryPipelineResult.rowList.asInstanceOf[QueryRowList].columnNames.contains("Class ID"))
+    assert(processRequestResult.isRight)
+    assert(processRequestResult.right.get.queryPipelineResult.rowList.asInstanceOf[QueryRowList].columnNames.contains("Class ID"))
 
     //ExecuteRequest Test
     val executeRequestParRequestResult = mahaService.executeRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
@@ -122,8 +122,8 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
     )
 
     def fn = {
-      (resultList: IndexedSeq[CuratorResult]) => {
-        val requestResult = resultList.head.requestResultTry.get
+      (requestCoordinatorResult: RequestCoordinatorResult) => {
+        val requestResult = requestCoordinatorResult.successResults.head._2
         assert(requestResult.queryPipelineResult.rowList.columns.size  ==  4)
         assert(requestResult.queryPipelineResult.rowList.asInstanceOf[QueryRowList].columnNames.contains("Total Marks"))
         println("Inside onSuccess function")
@@ -181,7 +181,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
     assert(queryChainResult.queryChain.drivingQuery.isInstanceOf[OracleQuery])
 
     val processRequestResult = mahaService.processRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
-    assert(processRequestResult.isFailure, "Request should fail with invalid SQL syntax.")
+    assert(processRequestResult.isLeft, "Request should fail with invalid SQL syntax.")
 
     val parRequestResult = mahaService.executeRequest(REGISTRY, ReportingRequest.forceHive(reportingRequest),bucketParams, mahaRequestLogHelper)
     assert(parRequestResult.prodRun.get(800).isLeft)

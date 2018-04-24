@@ -63,7 +63,7 @@ trait MahaService {
   def processRequest(registryName: String
                      , reportingRequest: ReportingRequest
                      , bucketParams: BucketParams
-                     , mahaRequestLogBuilder: BaseMahaRequestLogBuilder): Try[RequestResult]
+                     , mahaRequestLogBuilder: BaseMahaRequestLogBuilder): Either[GeneralError, RequestResult]
 
   /**
    * Generates own model, create ParRequestResult. Invocation is left on the user's implementation details.
@@ -239,7 +239,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
     ParRequestResult(queryPipelineTry, finalResult, dryRunResult)
   }
 
-  private def generateQueryPipeline(registryName: String,
+  def generateQueryPipeline(registryName: String,
                                      requestModel: RequestModel,
                                      mahaRequestLogBuilder: BaseMahaRequestLogBuilder): Try[QueryPipeline] = {
 

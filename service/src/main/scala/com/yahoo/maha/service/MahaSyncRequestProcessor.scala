@@ -70,7 +70,7 @@ case class MahaSyncRequestProcessor(mahaRequestContext: MahaRequestContext
         callOnFailureFn(mahaRequestLogBuilder, mahaRequestContext.reportingRequest)(err)
     }, {
       (parRequestResult: ParRequest[RequestCoordinatorResult]) =>
-          parRequestResult.fold(callOnFailureFn(mahaRequestLogBuilder, mahaRequestContext.reportingRequest)
+          parRequestResult.fold(errParFunction
             , ParFunction.fromScala {
               requestCoordinatorResult =>
                 onSuccessFn.foreach(_ (requestCoordinatorResult))

@@ -8,10 +8,9 @@ import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.{CuratorMahaRequestLogHelper, MahaRequestLogHelper}
-import com.yahoo.maha.service.{BaseMahaServiceTest, MahaRequestContext, RequestResult}
+import com.yahoo.maha.service.{BaseMahaServiceTest, CuratorInjector, MahaRequestContext, RequestResult}
 
 import scala.collection.mutable.ArrayBuffer
-import scala.util.Try
 
 /**
  * Created by pranavbhole on 12/04/18.
@@ -46,7 +45,8 @@ class DefaultCuratorTest extends BaseMahaServiceTest {
     jsonRequest.getBytes,
     Map.empty, "rid", "uid")
 
-  val curatorMahaRequestLogHelper = CuratorMahaRequestLogHelper(MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter))
+  val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+  val curatorMahaRequestLogHelper = CuratorMahaRequestLogHelper(mahaRequestLogHelper)
 
   test("Default Curator test") {
 
@@ -67,12 +67,13 @@ class DefaultCuratorTest extends BaseMahaServiceTest {
 
     val defaultCurator = DefaultCurator(curatorResultPostProcessor = new CuratorCustomPostProcessor)
 
-    val defaultParRequest: Either[GeneralError, ParRequest[CuratorResult]] = defaultCurator
-      .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig)
+    val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
+    val defaultParRequest: Either[CuratorError, ParRequest[CuratorResult]] = defaultCurator
+      .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     assert(defaultParRequest.isRight)
     val curatorResult: CuratorResult = defaultParRequest.right.get.get().right.get
-    curatorResult.parRequestResult.prodRun.get().right.get.queryPipelineResult.rowList.foreach(println)
+    curatorResult.parRequestResultOption.get.prodRun.get().right.get.queryPipelineResult.rowList.foreach(println)
 
   }
 
@@ -86,14 +87,15 @@ class DefaultCuratorTest extends BaseMahaServiceTest {
     }
 
     val defaultCurator = DefaultCurator(curatorResultPostProcessor = new CuratorCustomPostProcessor())
+    val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
     val defaultParRequest: Either[GeneralError, ParRequest[CuratorResult]] = defaultCurator
-      .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig)
+      .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     defaultParRequest.right.get.resultMap[CuratorResult](
         ParFunction.fromScala(
      (curatorResult: CuratorResult) => {
-       assert(curatorResult.parRequestResult.prodRun.get().isRight)
+       assert(curatorResult.parRequestResultOption.get.prodRun.get().isRight)
        curatorResult
      }
     )

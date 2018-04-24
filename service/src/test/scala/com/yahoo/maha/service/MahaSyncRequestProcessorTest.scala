@@ -45,8 +45,8 @@ class MahaSyncRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAft
       DefaultRequestCoordinator(mahaService),
       mahaServiceConfig.mahaRequestLogWriter
     )
-    mahaRequestProcessor.onSuccess((resultList: IndexedSeq[CuratorResult]) => {
-      assert(resultList.head.requestResultTry.get.queryPipelineResult.rowList.columns.nonEmpty)
+    mahaRequestProcessor.onSuccess((requestCoordinatorResult: RequestCoordinatorResult) => {
+      assert(requestCoordinatorResult.successResults.head._2.queryPipelineResult.rowList.columns.nonEmpty)
       assertCount+=1
     })
     mahaRequestProcessor.onFailure((ge) => {
@@ -90,7 +90,7 @@ class MahaSyncRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAft
     val mahaRequestProcessor = processorFactory.create(mahaRequestContext
       , "test", MahaRequestLogHelper(mahaRequestContext, mahaService.mahaRequestLogWriter))
 
-    mahaRequestProcessor.onSuccess((resultList: IndexedSeq[CuratorResult]) => {
+    mahaRequestProcessor.onSuccess((requestCoordinatorResult: RequestCoordinatorResult) => {
       assertCount+=1
     })
 
@@ -134,7 +134,7 @@ class MahaSyncRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAft
 
     val mahaRequestProcessor = processorFactory.create(mahaRequestContext, "test")
 
-    mahaRequestProcessor.onSuccess((resultList: IndexedSeq[CuratorResult]) => {
+    mahaRequestProcessor.onSuccess((requestCoordinatorResult: RequestCoordinatorResult) => {
       throw new IllegalArgumentException("failed in success function")
       assertCount-=1
     })
@@ -179,7 +179,7 @@ class MahaSyncRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAft
 
     val mahaRequestProcessor = processorFactory.create(mahaRequestContext, "test")
 
-    mahaRequestProcessor.onSuccess((resultList: IndexedSeq[CuratorResult]) => {
+    mahaRequestProcessor.onSuccess((requestCoordinatorResult: RequestCoordinatorResult) => {
       throw new IllegalArgumentException("failed in success function")
       assertCount-=1
     })

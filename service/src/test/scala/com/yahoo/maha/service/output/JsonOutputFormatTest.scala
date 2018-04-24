@@ -9,7 +9,7 @@ import com.yahoo.maha.core.{Engine, OracleEngine, RequestModelResult}
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.{CompleteRowList, QueryAttributes, QueryPipelineResult}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.service.{BaseMahaServiceTest, MahaRequestContext, RequestResult}
+import com.yahoo.maha.service.{BaseMahaServiceTest, MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
 import com.yahoo.maha.service.curators.{CuratorResult, DefaultCurator, DrilldownCurator, NoConfig}
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
@@ -41,16 +41,17 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
 
   val reportingRequest = ReportingRequest.deserializeSync(jsonRequest.getBytes, StudentSchema).toOption.get
 
-  val (query, queryChain)  = {
-    val registry = mahaServiceConfig.registry(REGISTRY)
+  val registry = mahaServiceConfig.registry(REGISTRY)
 
-    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+  val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
 
-    val mahaRequestContext = MahaRequestContext(REGISTRY,
-      bucketParams,
-      reportingRequest,
-      jsonRequest.getBytes,
-      Map.empty, "rid", "uid")
+  val mahaRequestContext = MahaRequestContext(REGISTRY,
+    bucketParams,
+    reportingRequest,
+    jsonRequest.getBytes,
+    Map.empty, "rid", "uid")
+  val (pse, queryPipeline, query, queryChain)  = {
+
 
     val requestModel = mahaService.generateRequestModel(REGISTRY
       , reportingRequest
@@ -58,7 +59,8 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
       , MahaRequestLogHelper(mahaRequestContext, mahaService.mahaRequestLogWriter)).toOption.get
     val factory = registry.queryPipelineFactory.from(requestModel.model, QueryAttributes.empty)
     val queryChain = factory.get.queryChain
-    (queryChain.drivingQuery, queryChain)
+    val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)
+    (pse, factory.get, queryChain.drivingQuery, queryChain)
   }
 
   val timeStampString = new Date().toString
@@ -93,15 +95,21 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
     row.addValue("Total Marks", 99)
     rowList.addRow(row)
 
-    val queryPipelineResult = QueryPipelineResult(queryChain, rowList, QueryAttributes.empty)
-    val requestResult = Try(RequestResult(queryPipelineResult, Some(1)))
+    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty)
+    val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
+    val parRequestResult = ParRequestResult(Try(queryPipeline), requestResult, None)
     val requestModelResult = RequestModelResult(query.queryContext.requestModel, None)
     val defaultCurator = DefaultCurator()
-    val curatorResult = CuratorResult(defaultCurator, NoConfig, requestResult, requestModelResult)
+    val curatorResult = CuratorResult(defaultCurator, NoConfig, Option(parRequestResult), requestModelResult)
 
     val curatorResults= IndexedSeq(curatorResult)
 
-    val jsonStreamingOutput = JsonOutputFormat(curatorResults, Map(OracleEngine-> TestOracleIngestionTimeUpdater(OracleEngine, "testSource")))
+    val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator)
+      , Map(DefaultCurator.name -> curatorResult)
+      , Map.empty, Map(DefaultCurator.name -> curatorResult.parRequestResultOption.get.prodRun.get().right.get)
+      , mahaRequestContext)
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult
+      , Map(OracleEngine-> TestOracleIngestionTimeUpdater(OracleEngine, "testSource")))
 
     val stringStream =  new StringStream()
 
@@ -123,19 +131,27 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
     row.addValue("Total Marks", 99)
     rowList.addRow(row)
 
-    val queryPipelineResult = QueryPipelineResult(queryChain, rowList, QueryAttributes.empty)
-    val requestResult = Try(RequestResult(queryPipelineResult, None))
+    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty)
+    val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
+    val parRequestResult = ParRequestResult(Try(queryPipeline), requestResult, None)
     val requestModelResult = RequestModelResult(query.queryContext.requestModel, None)
     val defaultCurator = DefaultCurator()
-    val curatorResult1 = CuratorResult(defaultCurator, NoConfig, requestResult, requestModelResult)
+    val curatorResult1 = CuratorResult(defaultCurator, NoConfig, Option(parRequestResult), requestModelResult)
 
     val testCurator = new TestCurator()
-    val curatorResult2 = CuratorResult(testCurator, NoConfig, requestResult, requestModelResult)
+    val curatorResult2 = CuratorResult(testCurator, NoConfig, Option(parRequestResult), requestModelResult)
 
 
     val curatorResults= IndexedSeq(curatorResult1, curatorResult2)
 
-    val jsonStreamingOutput = JsonOutputFormat(curatorResults)
+    val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator)
+      , Map(DefaultCurator.name -> curatorResult1, "TestCurator" -> curatorResult2)
+      , Map.empty
+      , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get
+        , "TestCurator" -> curatorResult2.parRequestResultOption.get.prodRun.get().right.get
+      )
+      , mahaRequestContext)
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 
     val stringStream =  new StringStream()
 

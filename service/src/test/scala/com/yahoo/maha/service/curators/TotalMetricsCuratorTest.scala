@@ -6,7 +6,7 @@ import com.yahoo.maha.jdbc._
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.{CuratorMahaRequestLogHelper, MahaRequestLogHelper}
-import com.yahoo.maha.service.{BaseMahaServiceTest, MahaRequestContext}
+import com.yahoo.maha.service.{BaseMahaServiceTest, CuratorInjector, MahaRequestContext}
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.scalatest.BeforeAndAfterAll
@@ -87,36 +87,26 @@ class TotalMetricsCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll
       jsonRequest.getBytes,
       Map.empty, "rid", "uid")
 
-    val mahaRequestLogHelper =  CuratorMahaRequestLogHelper(MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter))
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+    val curatorMahaRequestLogHelper =  CuratorMahaRequestLogHelper(mahaRequestLogHelper)
 
 
     val totalMetricsCurator = TotalMetricsCurator()
+    val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
-    val totalMetricsCuratorResult: ParRequest[CuratorResult] = totalMetricsCurator.process(Map.empty, mahaRequestContext, mahaService, mahaRequestLogHelper,  NoConfig)
+    val totalMetricsCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = totalMetricsCurator
+      .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
-
-    val successFunction : ParFunction[CuratorResult, CuratorResult]  = ParFunction.fromScala(
-      (curatorResult) => {
-        assert(curatorResult.requestResultTry.isSuccess)
-        val queryPipelineResult = curatorResult.requestResultTry.get.queryPipelineResult
-        println(queryPipelineResult.queryChain.drivingQuery.asString)
-
-        var rowCount = 0
-        queryPipelineResult.rowList.foreach {
-          row=>
-            rowCount+=1
-            println(row.toString)
-            assert(row.getValue("Total Marks") == 445)
-        }
-        assert(rowCount == 1)
-
-        curatorResult
-      }
-    )
-
-    val resultEither = totalMetricsCuratorResult.resultMap[CuratorResult](successFunction)
-    assert(resultEither.isRight)
-
+    val queryPipelineResult = totalMetricsCuratorResult
+      .right.get.get().right.get.parRequestResultOption.get.prodRun.get().right.get.queryPipelineResult
+    var rowCount = 0
+    queryPipelineResult.rowList.foreach {
+      row=>
+        rowCount+=1
+        println(row.toString)
+        assert(row.getValue("Total Marks") == 445)
+    }
+    assert(rowCount == 1)
   }
 
 }

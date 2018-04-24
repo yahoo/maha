@@ -139,7 +139,7 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
           .process(Map.empty, mahaRequestContext, mahaService, logHelper, NoConfig, curatorInjector)
         //short circuit on default failure
         if(result.isLeft) {
-          withError(result.left.get)
+          return withError(result.left.get)
         }
         orderedResultList += result
         Map(DefaultCurator.name -> result)

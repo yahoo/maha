@@ -26,7 +26,7 @@ public class GeneralError {
         logger.debug("StackTrace {}", throwableOption);
     }
 
-    private GeneralError prependStage(String s) {
+    GeneralError prependStage(String s) {
         return new GeneralError(String.format("%s :: %s", s, this.stage), this.message, this.throwableOption);
     }
 
@@ -55,11 +55,11 @@ public class GeneralError {
         return new Left<GeneralError, T>(from(stage, message, t));
     }
 
-    private static <T> Either<GeneralError, T> prependStage(Either<GeneralError, T> either, final String s) {
+    static <T> Either<GeneralError, T> prependStage(Either<GeneralError, T> either, final String s) {
                 return new Left<GeneralError, T>(either.left().get().prependStage(s));
     }
 
-    private static <A, B> Either<GeneralError, B> prependStageAndCastLeft(Either<GeneralError, A> either,
+    static <A, B> Either<GeneralError, B> prependStageAndCastLeft(Either<GeneralError, A> either,
                                                                          final String s) {
         return new Left<GeneralError, B>(either.left().get().prependStage(s));
     }
