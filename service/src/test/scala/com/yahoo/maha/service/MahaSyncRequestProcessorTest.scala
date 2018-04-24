@@ -2,7 +2,6 @@ package com.yahoo.maha.service
 
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.service.curators.CuratorResult
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.scalatest.BeforeAndAfterAll
@@ -120,7 +119,7 @@ class MahaSyncRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAft
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
-    var assertCount = 0;
+    var assertCount = 0
 
     val mahaRequestContext = MahaRequestContext(REGISTRY,
       BucketParams(UserInfo("uid", true)),
@@ -145,7 +144,7 @@ class MahaSyncRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAft
     mahaRequestProcessor.process()
 
     Thread.sleep(900)
-    assert(assertCount == 0)
+    assert(assertCount == 1)
   }
 
   test("Test MahaRequestProcessor request model failure") {
