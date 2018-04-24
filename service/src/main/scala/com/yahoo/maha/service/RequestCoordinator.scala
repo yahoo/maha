@@ -26,6 +26,7 @@ case class RequestCoordinatorResult(orderedList: IndexedSeq[Curator]
                                     , curatorResult: Map[String, CuratorResult]
                                     , failureResults: Map[String, CuratorError]
                                     , successResults: Map[String, RequestResult]
+                                    , mahaRequestContext: MahaRequestContext
                                    )
 
 
@@ -237,7 +238,7 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
                         }
                         val finalOrderedList: IndexedSeq[Curator] = curatorsOrdered.toIndexedSeq ++ curatorInjector.curatorList
                         val curatorResultMap: Map[String, CuratorResult] = inProgressResults.map(cr => cr.curator.name -> cr).toMap
-                        new Right(RequestCoordinatorResult(finalOrderedList, curatorResultMap, failureResults.toMap, successResults.toMap))
+                        new Right(RequestCoordinatorResult(finalOrderedList, curatorResultMap, failureResults.toMap, successResults.toMap, mahaRequestContext))
                     }
                   )
               })

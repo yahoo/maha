@@ -124,8 +124,8 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
     val mahaRequestProcessor: MahaSyncRequestProcessor = mahaRequestProcessorFactory
       .create(mahaRequestContext, MahaServiceConstants.MahaRequestLabel)
 
-    mahaRequestProcessor.onSuccess((resultList: IndexedSeq[CuratorResult]) => {
-      response.resume(new JsonStreamingOutput(resultList))
+    mahaRequestProcessor.onSuccess((requestCoordinatorResult: RequestCoordinatorResult) => {
+      response.resume(new JsonStreamingOutput(requestCoordinatorResult))
     })
 
     mahaRequestProcessor.onFailure((ge: GeneralError) => {

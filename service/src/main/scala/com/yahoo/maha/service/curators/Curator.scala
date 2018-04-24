@@ -182,6 +182,13 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
 
 object RowCountCurator {
   val name: String = "rowcount"
+
+  def getRowCount(mahaRequestContext: MahaRequestContext) : Option[Int] = {
+    mahaRequestContext.mutableState.get(name) match {
+      case Some(i: Int) => Option(i)
+      case _ => None
+    }
+  }
 }
 
 case class RowCountCurator(protected val requestModelValidator: CuratorRequestModelValidator = NoopCuratorRequestModelValidator,
@@ -286,7 +293,7 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
       catch {
         case e: Exception =>
           withError(curatorConfig, GeneralError.from(parRequestLabel
-            , e.getMessage, new MahaServiceBadRequestException(e.getMessage, Option(e))))
+            , e.getMessage, MahaServiceBadRequestException(e.getMessage, Option(e))))
 
       }
     }
