@@ -51,7 +51,7 @@ trait BaseMahaServiceTest extends FunSuite with Logging {
     ("http://localhost:druidLocalPort/mock/studentPerf", s"http://localhost:$druidPort/mock/studentPerf"))
   protected[this] val mahaServiceResult : MahaServiceConfig.MahaConfigResult[MahaServiceConfig] = getConfigFromFileWithReplacements("mahaServiceExampleJson.json", replacementTuplesInConfigJson )
 
-  assert(mahaServiceResult.isSuccess)
+  require(mahaServiceResult.isSuccess, mahaServiceResult.toString())
 
   val mahaServiceConfig : MahaServiceConfig = mahaServiceResult.toOption.get
   val mahaService : MahaService = DefaultMahaService(mahaServiceConfig)

@@ -340,6 +340,11 @@
          "config": {
          }
       },
+     "rowcount": {
+       "factoryClass": "com.yahoo.maha.service.factory.RowCountCuratorFactory",
+       "config": {
+       }
+     },
       "timeshift": {
          "factoryClass": "com.yahoo.maha.service.factory.TimeShiftCuratorFactory",
          "config": {

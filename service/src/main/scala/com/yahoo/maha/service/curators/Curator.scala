@@ -256,7 +256,7 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                   , forceDimensionDriven = true
                   , forceFactDriven = false
                   , paginationStartIndex = 0
-                  , rowsPerPage = sourcePipeline.requestModel.reportingRequest.rowsPerPage
+                  , rowsPerPage = 1
                 )
               }
             if (totalRowsCountRequestTry.isFailure) {
