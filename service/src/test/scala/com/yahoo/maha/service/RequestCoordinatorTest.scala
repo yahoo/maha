@@ -783,7 +783,8 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
                             {"field": "Student ID", "operator": "=", "value": "213"}
                           ],
-                         "includeRowCount" : true
+                         "includeRowCount" : true,
+                         "forceDimensionDriven" : true
                         }"""
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
