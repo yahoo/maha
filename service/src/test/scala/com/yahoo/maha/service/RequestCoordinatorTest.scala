@@ -8,6 +8,7 @@ import com.yahoo.maha.jdbc.{Seq, _}
 import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
+import com.yahoo.maha.service.output.{StringStream, JsonOutputFormat}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
@@ -818,14 +819,17 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       defaultCount+=1
     })
 
-    val curatorResultParRequest = requestCoordinatorResult.curatorResult(DefaultCurator.name).parRequestResultOption.get
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 
-    val requestResult = curatorResultParRequest.prodRun.get(1000).right.get
-    requestResult.queryPipelineResult.rowList.foreach {
-      row =>
-        println(row)
-        assert(defaultExpectedSet.contains(row.toString))
-    }
+    val stringStream =  new StringStream()
+
+    jsonStreamingOutput.writeStream(stringStream)
+    val result = stringStream.toString()
+
+    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[213,200,100,99,"Bryant"]],"curators":{}}"""
+    println(result)
+
+    assert(result.contains(expectedJson))
 
     assert(defaultExpectedSet.size == defaultCount)
   }
