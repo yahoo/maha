@@ -66,14 +66,6 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
 
   val timeStampString = new Date().toString
 
-  class StringStream extends OutputStream {
-    val stringBuilder = new StringBuilder()
-    override def write(b: Int): Unit = {
-      stringBuilder.append(b.toChar)
-    }
-    override def toString() : String = stringBuilder.toString()
-  }
-
   case class TestOracleIngestionTimeUpdater(engine: Engine, source: String) extends IngestionTimeUpdater {
     override def getIngestionTime(dataSource: String): Option[String] = {
       Some(timeStampString)
