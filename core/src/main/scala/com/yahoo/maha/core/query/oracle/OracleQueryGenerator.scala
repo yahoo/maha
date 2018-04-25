@@ -132,7 +132,7 @@ b. Dim Driven
     def generateRenderedDimension(dimBundle: DimensionBundle,
                                   subqueryBundles: Set[DimensionBundle],
                                   requestModel: RequestModel, nonPrimaryBundleHasFilters: Boolean, isDimOnly: Boolean): RenderedDimension = {
-      val isHashPartitioningSupported = dimBundle.dim.annotations(OracleAdvertiserHashPartitioning)
+      val isHashPartitioningSupported = dimBundle.dim.annotations(OracleHashPartitioning)
 
       val dimAlias = queryBuilderContext.getAliasForTable(dimBundle.dim.name)
 
@@ -309,7 +309,7 @@ b. Dim Driven
                                             mainDimBundle: DimensionBundle,
                                             requestModel: RequestModel,
                                             dimPKIndex: String): RenderedDimension = {
-      val isHashPartitioningSupported = dimBundle.dim.annotations(OracleAdvertiserHashPartitioning)
+      val isHashPartitioningSupported = dimBundle.dim.annotations(OracleHashPartitioning)
 
       require(isHashPartitioningSupported, "We do not support inner join with supporting dimensions for non hash partitioned tables")
 

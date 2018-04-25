@@ -7,6 +7,8 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.yahoo.maha.parrequest2.GeneralError;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;
@@ -27,6 +29,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.getUninterrupti
 class CombinedFutureListEither<T> extends AbstractFuture<Either<GeneralError, List<Either<GeneralError, T>>>> {
 
     private static final Either<GeneralError, ?> DEFAULT_VALUE = new Left<>(GeneralError.from("init", "default error, either was not set"));
+    private static final Logger LOGGER = LoggerFactory.getLogger(CombinedFutureListEither.class);
 
     private final ImmutableCollection<ListenableFuture<Either<GeneralError, T>>> futures;
     private final AtomicInteger remaining;
@@ -75,7 +78,11 @@ class CombinedFutureListEither<T> extends AbstractFuture<Either<GeneralError, Li
                     , new Runnable() {
                         @Override
                         public void run() {
-                            setOneValue(index, listenable);
+                            try {
+                                setOneValue(index, listenable);
+                            } catch (Exception e) {
+                                LOGGER.error("Failed to set index", e);
+                            }
                         }
                     });
         }

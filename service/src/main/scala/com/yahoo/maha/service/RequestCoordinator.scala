@@ -184,7 +184,6 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
           if(firstResultParRequestResultOption.isEmpty) {
             return withError(GeneralError.from("firstResultFailFast", "No result defined"))
           } else {
-
             firstResultParRequestResultOption.get.prodRun.flatMap("firstResultMap",
               ParFunction.fromScala {
                 firstRequestResult =>

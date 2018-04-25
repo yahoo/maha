@@ -275,7 +275,7 @@ class BaseDDLGeneratorTest extends FunSuite with Matchers with BeforeAndAfterAll
           OracleDerDimCol("Advertiser Date Modified", StrType(), FORMAT_DATE("{created_date}", "YYYY-MM-DD"))
         )
         , None
-        , annotations = Set(OracleAdvertiserHashPartitioning)
+        , annotations = Set(OracleHashPartitioning)
         , ddlAnnotation = Option(OracleDDLAnnotation(pks = Set("id")))
       )
     }
