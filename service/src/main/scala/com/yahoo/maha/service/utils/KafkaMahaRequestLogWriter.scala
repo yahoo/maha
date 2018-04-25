@@ -64,8 +64,8 @@ class KafkaMahaRequestLogWriter(JsonKafkaRequestLoggingConfig: JsonKafkaRequestL
 
   def validate (reqLogBuilder: MahaRequestProto) = {
     if(reqLogBuilder.hasJson == false || reqLogBuilder.hasRequestId == false) {
-      warn(s"Message is missing the required fields [requestId, json] = [${reqLogBuilder.getRequestId} , ${reqLogBuilder.getJson}}], jobId = ${reqLogBuilder.getJobId}," +
-        s" Builder: ${reqLogBuilder}")
+      val error  = s"""[${reqLogBuilder.getRequestId} , ${reqLogBuilder.getJson}}], jobId = ${reqLogBuilder.getJobId}," + s" Builder: ${reqLogBuilder}"""
+      warn(s"Message is missing the required fields [requestId, json] = $error")
     }
   }
 
