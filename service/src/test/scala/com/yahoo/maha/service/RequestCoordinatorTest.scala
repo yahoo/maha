@@ -7,6 +7,7 @@ import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc.{Seq, _}
 import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.service.curators._
+import com.yahoo.maha.service.error.MahaServiceExecutionException
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.output.{StringStream, JsonOutputFormat}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
@@ -814,10 +815,22 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     var defaultCount = 0
     defaultCuratorRequestResult.queryPipelineResult.rowList.foreach(
       row => {
-      //println(row.toString)
-      assert(defaultExpectedSet.contains(row.toString))
-      defaultCount+=1
-    })
+        //println(row.toString)
+        assert(defaultExpectedSet.contains(row.toString))
+        defaultCount+=1
+      })
+
+    assert(defaultExpectedSet.size == defaultCount)
+
+
+    // H2 can not execute the Oracle Specific syntax of COUNT(*) OVER([*]) TOTALROWS, h2 has plan to fix it in next release 1.5
+    val rowCountCuratorError = rowcountCuratorRequestResult.error.throwableOption.get
+    assert(rowCountCuratorError.isInstanceOf[MahaServiceExecutionException])
+    val mahaServiceExecutionException = rowCountCuratorError.asInstanceOf[MahaServiceExecutionException]
+    assert(mahaServiceExecutionException.source.get.getMessage.contains("Syntax error in SQL statement"))
+
+    // Setting the rowCount as  rowCountCurator fails
+    mahaRequestContext.mutableState.put(RowCountCurator.name, 1)
 
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 
@@ -826,12 +839,11 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
 
-    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[213,200,100,99,"Bryant"]],"curators":{}}"""
+    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[213,200,100,99,"Bryant",1]],"curators":{}}"""
     println(result)
 
     assert(result.contains(expectedJson))
 
-    assert(defaultExpectedSet.size == defaultCount)
   }
 
 }
