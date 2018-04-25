@@ -3,12 +3,11 @@
 package com.yahoo.maha.service.example
 
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
-import com.yahoo.maha.core.query.{OracleQuery, QueryRowList}
+import com.yahoo.maha.core.query.QueryRowList
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParFunction
 import com.yahoo.maha.service._
-import com.yahoo.maha.service.curators.CuratorResult
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
@@ -231,6 +230,10 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
           val parRequestResult = mahaService.executeRequest(REGISTRY, ReportingRequest.forceHive(reportingRequest),bucketParams, mahaRequestLogHelper)
        assert(parRequestResult.prodRun.get(800).isLeft)
     }
+    val thrown = intercept[IllegalArgumentException] {
+       mahaService.executeRequest("unknown", ReportingRequest.forceHive(reportingRequest),bucketParams, mahaRequestLogHelper)
+    }
+
     assert(executionException.source.get.getMessage.contains("ERROR_CODE:10005 Failed to find primary key alias for Student Status Unknown Column"))
   }
 }
