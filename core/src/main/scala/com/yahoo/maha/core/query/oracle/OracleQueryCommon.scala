@@ -1,7 +1,7 @@
 package com.yahoo.maha.core.query.oracle
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{DimCol, Dimension, OracleAdvertiserHashPartitioning, PKCompositeIndex}
+import com.yahoo.maha.core.dimension.{DimCol, Dimension, OracleHashPartitioning, PKCompositeIndex}
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
 
@@ -63,7 +63,7 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
 
   protected[this] def getFactAlias(name: String, dims: Set[Dimension]): String = {
     // if hash partition supported
-    if (dims.exists(_.annotations.contains(OracleAdvertiserHashPartitioning))) {
+    if (dims.exists(_.annotations.contains(OracleHashPartitioning))) {
       s"$name $factAlias"
     } else {
       s"$name"

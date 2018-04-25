@@ -113,7 +113,6 @@ class RowCountCuratorTest  extends BaseMahaServiceTest with BeforeAndAfterAll {
                           },
                           "selectFields": [
                             {"field": "Student ID"},
-                            {"field": "Class ID"},
                             {"field": "Section ID"},
                             {"field": "Total Marks"}
                           ],

@@ -46,6 +46,7 @@ trait BaseMahaServiceTest extends FunSuite {
   val erRegistry : Registry = erRegistryConfig.registry
   assert(erRegistry.isCubeDefined("student_performance"))
   assert(erRegistry.getDimension("student").isDefined)
+  assert(erRegistry.getDimension("class").isDefined)
 
   def initJdbcToH2(): Unit = {
     val config = new HikariConfig()

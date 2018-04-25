@@ -13,6 +13,6 @@ sealed trait DimensionAnnotationInstance extends DimensionAnnotation with ClassN
 
 case class PKCompositeIndex(indexName: String) extends DimensionAnnotationInstance with WithOracleEngine
 
-case object OracleAdvertiserHashPartitioning extends DimensionAnnotationInstance with WithOracleEngine
+case object OracleHashPartitioning extends DimensionAnnotationInstance with WithOracleEngine
 
 case class DimensionOracleStaticHint(hint: String) extends DimensionAnnotationInstance with WithOracleEngine

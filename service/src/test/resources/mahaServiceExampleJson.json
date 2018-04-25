@@ -297,8 +297,8 @@
             "rejectedExecutionHandlerConfig": "",
             "poolName": "maha-test-pool",
             "defaultTimeoutMillis": 10000,
-            "threadPoolSize": 3,
-            "queueSize": 3
+            "threadPoolSize": 10,
+            "queueSize": 100
          }
       },
       "irParallelExec": {

@@ -94,7 +94,7 @@ trait SharedDimSchema {
             , OracleDerDimCol("Keyword Date Modified", StrType(),FORMAT_DATE("{last_updated}", "YYYY-MM-DD"), annotations = Set.empty)
           )
           , None
-          , annotations = Set(OracleAdvertiserHashPartitioning,PKCompositeIndex("AD_ID"))
+          , annotations = Set(OracleHashPartitioning,PKCompositeIndex("AD_ID"))
         )
       }
     }
@@ -139,7 +139,7 @@ trait SharedDimSchema {
             , OracleDerDimCol("Ad Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
-          , annotations = Set(OracleAdvertiserHashPartitioning,PKCompositeIndex("AD_ID"))
+          , annotations = Set(OracleHashPartitioning,PKCompositeIndex("AD_ID"))
         )
       }
     }
@@ -192,7 +192,7 @@ trait SharedDimSchema {
             , OracleDerDimCol("Ad Group Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
-          , annotations = Set(OracleAdvertiserHashPartitioning,PKCompositeIndex("AD_ID"))
+          , annotations = Set(OracleHashPartitioning,PKCompositeIndex("AD_ID"))
         )
       }
     }
@@ -266,7 +266,7 @@ trait SharedDimSchema {
             , OracleDerDimCol("Campaign Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
-          , annotations = Set(OracleAdvertiserHashPartitioning, DimensionOracleStaticHint("CampaignHint"),PKCompositeIndex("AD_ID"))
+          , annotations = Set(OracleHashPartitioning, DimensionOracleStaticHint("CampaignHint"),PKCompositeIndex("AD_ID"))
         )
       }
     }
@@ -348,7 +348,7 @@ trait SharedDimSchema {
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , schemaColMap = Map(AdvertiserSchema -> "id", ResellerSchema -> "managed_by")
-          , annotations = Set(OracleAdvertiserHashPartitioning,PKCompositeIndex("AD_ID"))
+          , annotations = Set(OracleHashPartitioning,PKCompositeIndex("AD_ID"))
         )
       }
     }
@@ -436,7 +436,7 @@ trait SharedDimSchema {
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , schemaColMap = Map(AdvertiserSchema -> "id", ResellerSchema -> "managed_by")
-          , annotations = Set(OracleAdvertiserHashPartitioning,PKCompositeIndex("AD_ID"))
+          , annotations = Set(OracleHashPartitioning,PKCompositeIndex("AD_ID"))
         )
       }
     }
@@ -631,7 +631,7 @@ trait SharedDimSchema {
             // annotations('oracle.partitionColumnAliases','oracle.virtual.column','derivedExpression': "partitionIdFor(:snapshot_ts)
           )
           , None
-          , annotations = Set(OracleAdvertiserHashPartitioning)
+          , annotations = Set(OracleHashPartitioning)
         )
       }
     }
@@ -713,7 +713,7 @@ trait SharedDimSchema {
             // annotations('oracle.partitionColumnAliases','oracle.virtual.column','derivedExpression': "partitionIdFor(:snapshot_ts)
           )
           , None
-          , annotations = Set(OracleAdvertiserHashPartitioning)
+          , annotations = Set(OracleHashPartitioning)
         )
       }
     }
@@ -791,7 +791,7 @@ trait SharedDimSchema {
             // annotations('oracle.partitionColumnAliases','oracle.virtual.column','derivedExpression': "partitionIdFor(:snapshot_ts)
           )
           , None
-          , annotations = Set(OracleAdvertiserHashPartitioning)
+          , annotations = Set(OracleHashPartitioning)
         )
       }
     }
@@ -870,7 +870,7 @@ trait SharedDimSchema {
             , DimCol("address", StrType(1000))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
-          , annotations = Set(OracleAdvertiserHashPartitioning, PKCompositeIndex("AD_ID"))
+          , annotations = Set(OracleHashPartitioning, PKCompositeIndex("AD_ID"))
         )
       }
     }
