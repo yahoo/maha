@@ -80,7 +80,7 @@
                "timeoutRetryInterval": 100,
                "timeoutThreshold": 9000,
                "degradationConfigName": "TestConfig",
-               "url": "http://broker.druid.test.maha.com",
+               "url": "http://localhost:druidLocalPort/mock/studentPerf",
                "headers": {
                   "key": "value"
                },

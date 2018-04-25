@@ -5,13 +5,15 @@ package com.yahoo.maha.executor.druid
 import java.util.concurrent.atomic.AtomicBoolean
 
 import org.http4s.{Header, HttpService}
-import org.http4s.dsl._
+import cats.effect.IO
+import org.http4s.dsl.io._
+
 /**
  * Created by vivekch on 4/8/16.
  */
 trait TestWebService {
   val failFirstBoolean = new AtomicBoolean(false)
-  val service = HttpService {
+  val service = HttpService[IO] {
     case POST -> Root / ("uncoveredEmpty") =>
       val uncovered =
         """
