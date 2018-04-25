@@ -33,9 +33,10 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
     val headOption = requestCoordinatorResult.orderedList.headOption
 
     if(headOption.exists(_.isSingleton)) {
-      renderSingleton(headOption.get, requestCoordinatorResult, jsonGenerator)
+      renderDefault(headOption.get.name, requestCoordinatorResult, jsonGenerator, None)
     } else if(requestCoordinatorResult.successResults.contains(DefaultCurator.name)) {
-      renderDefault(requestCoordinatorResult, jsonGenerator)
+      val rowCountOption = RowCountCurator.getRowCount(requestCoordinatorResult.mahaRequestContext)
+      renderDefault(DefaultCurator.name, requestCoordinatorResult, jsonGenerator, rowCountOption)
       jsonGenerator.writeFieldName("curators") //"curators" :
       jsonGenerator.writeStartObject() //{
       //remove default render curators
@@ -49,13 +50,12 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
     jsonGenerator.close()
   }
 
-  private def renderDefault(requestCoordinatorResult: RequestCoordinatorResult, jsonGenerator: JsonGenerator): Unit = {
-    if(requestCoordinatorResult.successResults.contains(DefaultCurator.name)
-      && requestCoordinatorResult.curatorResult.contains(DefaultCurator.name)) {
-      val curatorResult = requestCoordinatorResult.curatorResult(DefaultCurator.name)
-      val requestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
+  private def renderDefault(curatorName: String, requestCoordinatorResult: RequestCoordinatorResult, jsonGenerator: JsonGenerator, rowCountOption:Option[Int]): Unit = {
+    if(requestCoordinatorResult.successResults.contains(curatorName)
+      && requestCoordinatorResult.curatorResult.contains(curatorName)) {
+      val curatorResult = requestCoordinatorResult.curatorResult(curatorName)
+      val requestResult = requestCoordinatorResult.successResults(curatorName)
       val qpr = requestResult.queryPipelineResult
-      val rowCountOption = RowCountCurator.getRowCount(requestCoordinatorResult.mahaRequestContext)
       val engine = qpr.queryChain.drivingQuery.engine
       val tableName = qpr.queryChain.drivingQuery.tableName
       val ingestionTimeUpdater:IngestionTimeUpdater = ingestionTimeUpdaterMap
@@ -71,30 +71,6 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
         , dimCols
       )
       writeDataRows(jsonGenerator, qpr.rowList, rowCountOption)
-    }
-  }
-
-  private def renderSingleton(curator: Curator, requestCoordinatorResult: RequestCoordinatorResult, jsonGenerator: JsonGenerator): Unit = {
-    if(requestCoordinatorResult.successResults.contains(curator.name)
-      && requestCoordinatorResult.curatorResult.contains(curator.name)) {
-      val curatorResult = requestCoordinatorResult.curatorResult(curator.name)
-      val requestResult = requestCoordinatorResult.successResults(curator.name)
-      val qpr = requestResult.queryPipelineResult
-      val engine = qpr.queryChain.drivingQuery.engine
-      val tableName = qpr.queryChain.drivingQuery.tableName
-      val ingestionTimeUpdater:IngestionTimeUpdater = ingestionTimeUpdaterMap
-        .getOrElse(qpr.queryChain.drivingQuery.engine, NoopIngestionTimeUpdater(engine, engine.toString))
-      val dimCols : Set[String]  = if(curatorResult.requestModelReference.model.bestCandidates.isDefined) {
-        curatorResult.requestModelReference.model.bestCandidates.get.publicFact.dimCols.map(_.alias)
-      } else Set.empty
-      writeHeader(jsonGenerator
-        , qpr.rowList.columns
-        , curatorResult.requestModelReference.model.reportingRequest
-        , ingestionTimeUpdater
-        , tableName
-        , dimCols
-      )
-      writeDataRows(jsonGenerator, qpr.rowList, None)
     }
   }
 

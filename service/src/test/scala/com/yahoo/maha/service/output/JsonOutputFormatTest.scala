@@ -9,8 +9,8 @@ import com.yahoo.maha.core.{Engine, OracleEngine, RequestModelResult}
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.{CompleteRowList, QueryAttributes, QueryPipelineResult}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.service.{BaseMahaServiceTest, MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
-import com.yahoo.maha.service.curators.{CuratorResult, DefaultCurator, DrilldownCurator, NoConfig}
+import com.yahoo.maha.service.{BaseMahaServiceTest, CuratorInjector, MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
+import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
@@ -50,12 +50,14 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
     reportingRequest,
     jsonRequest.getBytes,
     Map.empty, "rid", "uid")
+
+  val mahaRequestLogBuilder = MahaRequestLogHelper(mahaRequestContext, mahaService.mahaRequestLogWriter)
   val (pse, queryPipeline, query, queryChain)  = {
 
     val requestModel = mahaService.generateRequestModel(REGISTRY
       , reportingRequest
       , BucketParams(UserInfo("test", false))
-      , MahaRequestLogHelper(mahaRequestContext, mahaService.mahaRequestLogWriter)).toOption.get
+      , mahaRequestLogBuilder).toOption.get
     val factory = registry.queryPipelineFactory.from(requestModel.model, QueryAttributes.empty)
     val queryChain = factory.get.queryChain
     val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)
@@ -164,4 +166,44 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
     assert(result.equals(s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99]],"curators":{"TestCurator":{"result":{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99]]}}}}""".stripMargin))
   }
 
+  test("Test JsonOutputFormat with DefaultCurator and failed other curator result") {
+
+    val rowList = CompleteRowList(query)
+
+    val row = rowList.newRow
+    row.addValue("Student ID", 123)
+    row.addValue("Class ID", 234)
+    row.addValue("Section ID", 345)
+    row.addValue("Total Marks", 99)
+    rowList.addRow(row)
+
+    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty)
+    val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
+    val parRequestResult = ParRequestResult(Try(queryPipeline), requestResult, None)
+    val requestModelResult = RequestModelResult(query.queryContext.requestModel, None)
+    val defaultCurator = DefaultCurator()
+    val curatorResult1 = CuratorResult(defaultCurator, NoConfig, Option(parRequestResult), requestModelResult)
+
+    val failingCurator = new FailingCurator()
+    val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogBuilder, Set(FailingCurator.name))
+    val curatorResult2 = failingCurator.process(Map.empty
+      , mahaRequestContext, mahaService, mahaRequestLogBuilder.curatorLogBuilder(failingCurator), NoConfig, curatorInjector)
+
+    val curatorResults= IndexedSeq(curatorResult1, curatorResult2)
+
+    val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator, failingCurator)
+      , Map(DefaultCurator.name -> curatorResult1)
+      , Map(failingCurator.name -> curatorResult2.left.get)
+      , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get)
+      , mahaRequestContext)
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
+
+    val stringStream =  new StringStream()
+
+    jsonStreamingOutput.writeStream(stringStream)
+    val result = stringStream.toString()
+    println(result)
+    stringStream.close()
+    assert(result.equals("""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99]],"curators":{"fail":{"error":{"message":"failed"}}}}"""))
+  }
 }
