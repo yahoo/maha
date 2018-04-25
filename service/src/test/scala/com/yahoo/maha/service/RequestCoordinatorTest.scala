@@ -810,11 +810,21 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     )
 
     var defaultCount = 0
-    defaultCuratorRequestResult.queryPipelineResult.rowList.foreach( row => {
-      println(row.toString)
+    defaultCuratorRequestResult.queryPipelineResult.rowList.foreach(
+      row => {
+      //println(row.toString)
       assert(defaultExpectedSet.contains(row.toString))
       defaultCount+=1
     })
+
+    val curatorResultParRequest = requestCoordinatorResult.curatorResult(DefaultCurator.name).parRequestResultOption.get
+
+    val requestResult = curatorResultParRequest.prodRun.get(1000).right.get
+    requestResult.queryPipelineResult.rowList.foreach {
+      row =>
+        println(row)
+        assert(defaultExpectedSet.contains(row.toString))
+    }
 
     assert(defaultExpectedSet.size == defaultCount)
   }
