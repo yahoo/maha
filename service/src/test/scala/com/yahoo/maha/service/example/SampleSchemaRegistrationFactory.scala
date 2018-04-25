@@ -2,14 +2,13 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.example
 
-import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
-import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.registry.{DimensionRegistrationFactory, FactRegistrationFactory, RegistryBuilder}
 import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
+import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 
 /**
  * Created by pranavbhole on 09/06/17.
