@@ -1,9 +1,12 @@
 package com.yahoo.maha.service.curators
 
+import com.yahoo.maha.core.query.QueryPipeline
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParRequest
-import com.yahoo.maha.service.{CuratorInjector, MahaRequestContext, MahaService}
+import com.yahoo.maha.service.{CuratorInjector, MahaRequestContext, MahaService, ParRequestResult, RequestResult}
 import com.yahoo.maha.service.utils.CuratorMahaRequestLogBuilder
+
+import scala.util.Try
 
 /**
   * Created by hiral on 4/11/18.
@@ -25,7 +28,24 @@ class FailingCurator extends Curator {
                        , curatorConfig: CuratorConfig
                        , curatorInjector: CuratorInjector
                       ) : Either[CuratorError, ParRequest[CuratorResult]] = {
-    withError(curatorConfig, GeneralError.from("fail", "failed"))
+    val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)
+    mahaRequestContext.context.get("faillevel") match {
+      case Some("requestresult") =>
+        val qp: Try[QueryPipeline] = scala.util.Failure(new IllegalArgumentException("blah"))
+        val pr: ParRequest[RequestResult] = pse.immediateResult("fail", GeneralError.either("fail", "failed"))
+        val parRequestResult: ParRequestResult = ParRequestResult(qp, pr, None)
+        val curatorResult = CuratorResult(this, curatorConfig, Option(parRequestResult), null)
+        val curatorResultEither: Either[GeneralError, CuratorResult] = new Right(curatorResult)
+        val parRequest: ParRequest[CuratorResult] =
+          pse.immediateResult("fail", curatorResultEither)
+        new Right(parRequest)
+      case Some("curatorresult") =>
+        val parRequest: ParRequest[CuratorResult] =
+          pse.immediateResult("fail", withParRequestError(curatorConfig, GeneralError.from("fail", "failed")))
+        new Right(parRequest)
+      case _ =>
+        withError(curatorConfig, GeneralError.from("fail", "failed"))
+    }
   }
 
   override def isSingleton: Boolean = false

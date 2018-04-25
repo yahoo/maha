@@ -6,6 +6,8 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.ListenableFuture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;
@@ -27,6 +29,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.getUninterrupti
  */
 class CombinedFutureListOption<T> extends AbstractFuture<Either<GeneralError, List<Option<T>>>> {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(CombinedFutureListOption.class);
     private final ImmutableCollection<ListenableFuture<Either<GeneralError, T>>> futures;
     private final AtomicInteger remaining;
     private final AtomicBoolean shortCircuit = new AtomicBoolean(false);
@@ -74,7 +77,11 @@ class CombinedFutureListOption<T> extends AbstractFuture<Either<GeneralError, Li
                 , new Runnable() {
                 @Override
                 public void run() {
-                    setOneValue(index, listenable);
+                    try {
+                        setOneValue(index, listenable);
+                    } catch (Exception e) {
+                        LOGGER.error("Failed to set index", e);
+                    }
                 }
             });
         }

@@ -39,7 +39,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
         Fact.newFact(
           "student_grade_sheet", DailyGrain, OracleEngine, Set(StudentSchema),
           Set(
-            DimCol("class_id", IntType(), annotations = Set(PrimaryKey))
+            DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
             , DimCol("section_id", IntType(3))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
@@ -81,16 +81,17 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
   override def register(registry: RegistryBuilder): Unit = {
     val student_dim: PublicDimension = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-        Dimension.newDimension("student", OracleEngine, LevelOne, Set(StudentSchema),
+        Dimension.newDimension("student", OracleEngine, LevelTwo, Set(StudentSchema),
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
-            , DimCol("name", StrType(), annotations = Set(OracleSnapshotTimestamp))
+            , DimCol("name", StrType())
             , DimCol("department_id", IntType())
             , DimCol("admitted_year", IntType())
             , DimCol("status", StrType())
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , schemaColMap = Map(StudentSchema -> "id")
+          , annotations = Set(OracleHashPartitioning)
         ).toPublicDimension("student","student",
           Set(
             PubCol("id", "Student ID", Equality)
@@ -101,6 +102,30 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
         )
       }
     }
+
+    val class_dim: PublicDimension = {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        Dimension.newDimension("class", OracleEngine, LevelOne, Set(StudentSchema),
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType())
+            , DimCol("department_id", IntType())
+            , DimCol("start_year", IntType())
+            , DimCol("status", StrType())
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(OracleHashPartitioning)
+        ).toPublicDimension("class","class",
+          Set(
+            PubCol("id", "Class ID", Equality)
+            , PubCol("name", "Class Name", Equality)
+            , PubCol("start_year", "Start Year", InEquality, hiddenFromJson = true)
+            , PubCol("status", "Class Status", InEquality)
+          ), highCardinalityFilters = Set(NotInFilter("Class Status", List("DELETED")))
+        )
+      }
+    }
+    registry.register(class_dim)
     registry.register(student_dim)
   }
 }

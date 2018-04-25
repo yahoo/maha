@@ -86,7 +86,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
             , OracleDerDimCol("Ad Date Modified", StrType(),FORMAT_DATE("{last_updated}", "YYYY-MM-DD"), annotations = Set.empty)
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
-          , annotations = Set(OracleAdvertiserHashPartitioning)
+          , annotations = Set(OracleHashPartitioning)
         )
       }
     }
@@ -132,7 +132,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
             , OracleDerDimCol("Ad Group Date Modified", StrType(),FORMAT_DATE("{last_updated}", "YYYY-MM-DD"), annotations = Set.empty)
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
-          , annotations = Set(OracleAdvertiserHashPartitioning)
+          , annotations = Set(OracleHashPartitioning)
         )
       }
     }
@@ -168,7 +168,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
             , OracleDerDimCol("Campaign Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
-          , annotations = Set(OracleAdvertiserHashPartitioning, DimensionOracleStaticHint("CampaignHint"))
+          , annotations = Set(OracleHashPartitioning, DimensionOracleStaticHint("CampaignHint"))
         )
       }
     }
@@ -197,7 +197,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , schemaColMap = Map(AdvertiserSchema -> "id")
-          , annotations = Set(OracleAdvertiserHashPartitioning)
+          , annotations = Set(OracleHashPartitioning)
         )
       }
     }

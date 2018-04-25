@@ -328,12 +328,12 @@ class DimensionTest extends FunSuite with Matchers {
               , DimCol("dimcol2", IntType())
             )
             , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
-            , annotations = Set(OracleAdvertiserHashPartitioning)
+            , annotations = Set(OracleHashPartitioning)
           )
         }
       }
     }
-    thrown.getMessage should startWith ("requirement failed: Failed engine requirement dim=dim1, engine=Hive, annotation=OracleAdvertiserHashPartitioning")
+    thrown.getMessage should startWith ("requirement failed: Failed engine requirement dim=dim1, engine=Hive, annotation=OracleHashPartitioning")
   }
 
   test("newDimension should fail with column annotated with different engine requirement") {
