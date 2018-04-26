@@ -13,15 +13,21 @@ import com.yahoo.maha.service.datasource.IngestionTimeUpdater
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{BaseMahaServiceTest, CuratorInjector, MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
+import org.scalatest.BeforeAndAfterAll
 
 import scala.util.Try
 
 /**
   * Created by hiral on 4/11/18.
   */
-class JsonOutputFormatTest extends BaseMahaServiceTest {
+class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
   createTables()
+
+  override protected def afterAll(): Unit =  {
+    super.afterAll()
+    server.shutdownNow()
+  }
 
   val jsonRequest = s"""{
                           "cube": "student_performance",

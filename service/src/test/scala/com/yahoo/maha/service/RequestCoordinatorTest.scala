@@ -84,6 +84,11 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(rows.size == count)
   }
 
+  override protected def afterAll(): Unit =  {
+    super.afterAll()
+    server.shutdownNow()
+  }
+
   test("Test successful processing of Default curator") {
 
     val jsonRequest = s"""{
