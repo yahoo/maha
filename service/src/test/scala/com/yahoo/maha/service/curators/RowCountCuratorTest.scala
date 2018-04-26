@@ -105,6 +105,58 @@ class RowCountCuratorTest  extends BaseMahaServiceTest with BeforeAndAfterAll {
     assert(parRequestCuratorResult.isRight)
   }
 
+  test("Test processing of RowCountCurator with fact only operations with dim cost > 5000") {
+
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "totalmetrics" : {
+                              "config" : {
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                          "includeRowCount" : true
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = ReportingRequest.enableDebug(reportingRequestResult.toOption.get)
+
+    val bucketParams = BucketParams(UserInfo("uid", true))
+
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+    val curatorMahaRequestLogHelper =  CuratorMahaRequestLogHelper(mahaRequestLogHelper)
+
+
+    val rowCountCurator = RowCountCurator()
+    val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
+
+    val rowCountCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = rowCountCurator
+      .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
+
+    assert(rowCountCuratorResult.isRight)
+
+    val parRequestCuratorResult = rowCountCuratorResult.right.get.get(1000)
+    assert(parRequestCuratorResult.isRight)
+  }
+
   test("Test processing of RowCountCurator with failure of RowCountCurator with dim driven request") {
 
     val jsonRequest = s"""{

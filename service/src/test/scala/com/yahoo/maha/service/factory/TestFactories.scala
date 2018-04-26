@@ -14,11 +14,17 @@ class TestFactEstimator extends FactCostEstimator {
   override protected def isGrainKey(grainKey: String): Boolean = true
 
   override def getRowsEstimate(grainKey: String, request: ReportingRequest, filters: mutable.Map[String, Filter], defaultRowCount: Long): RowsEstimate =
-    RowsEstimate(1000, true)
+    if(request.isDebugEnabled) {
+      RowsEstimate(10000, true)
+    } else RowsEstimate(1000, true)
 }
 
 class TestDimEstimator extends DimCostEstimator {
-  override def getCardinalityEstimate(grainKey: String, request: ReportingRequest, filters: mutable.Map[String, Filter]): Option[Long] = Some(1000)
+  override def getCardinalityEstimate(grainKey: String, request: ReportingRequest, filters: mutable.Map[String, Filter]): Option[Long] = {
+    if(request.isDebugEnabled) {
+      Some(10000)
+    } else Some(1000)
+  }
 }
 
 import _root_.scalaz._
