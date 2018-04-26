@@ -5,8 +5,15 @@ package com.yahoo.maha.service.curators
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.service.BaseMahaServiceTest
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
+import org.scalatest.BeforeAndAfterAll
 
-class DrilldownConfigTest extends BaseMahaServiceTest {
+class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
+
+  override protected def afterAll(): Unit =  {
+    super.afterAll()
+    server.shutdownNow()
+  }
+
   test("Create a valid DrillDownConfig") {
     val json : String =
       s"""{

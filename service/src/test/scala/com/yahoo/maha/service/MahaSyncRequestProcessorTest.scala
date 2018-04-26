@@ -15,6 +15,11 @@ class MahaSyncRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAft
     createTables()
   }
 
+  override protected def afterAll(): Unit =  {
+    super.afterAll()
+    server.shutdownNow()
+  }
+
   test("Test MahaRequestProcessor instantiation") {
     val jsonRequest = s"""{
                           "cube": "student_performance",

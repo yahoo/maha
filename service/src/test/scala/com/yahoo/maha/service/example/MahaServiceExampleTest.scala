@@ -12,11 +12,17 @@ import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import grizzled.slf4j.Logging
+import org.scalatest.BeforeAndAfterAll
 
 /**
  * Created by pranavbhole on 09/06/17.
  */
-class MahaServiceExampleTest extends BaseMahaServiceTest with Logging {
+class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with BeforeAndAfterAll{
+
+  override protected def afterAll(): Unit =  {
+    super.afterAll()
+    server.shutdownNow()
+  }
 
   test("Test MahaService with Example Schema") {
 

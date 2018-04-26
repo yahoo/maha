@@ -28,6 +28,12 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     stageData()
   }
 
+  override protected def afterAll(): Unit =  {
+    super.afterAll()
+    server.shutdownNow()
+  }
+
+
   def stageData(): Unit = {
     val insertSql = """INSERT INTO student_grade_sheet (year, section_id, student_id, class_id, total_marks, date, comment, month)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""

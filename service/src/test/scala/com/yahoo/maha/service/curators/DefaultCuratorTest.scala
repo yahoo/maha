@@ -9,13 +9,20 @@ import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.{CuratorMahaRequestLogHelper, MahaRequestLogHelper}
 import com.yahoo.maha.service.{BaseMahaServiceTest, CuratorInjector, MahaRequestContext, RequestResult}
+import org.scalatest.BeforeAndAfterAll
 
 import scala.collection.mutable.ArrayBuffer
 
 /**
  * Created by pranavbhole on 12/04/18.
  */
-class DefaultCuratorTest extends BaseMahaServiceTest {
+class DefaultCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll{
+
+  override protected def afterAll(): Unit =  {
+    super.afterAll()
+    server.shutdownNow()
+  }
+
   createTables()
 
   val jsonRequest = s"""{
