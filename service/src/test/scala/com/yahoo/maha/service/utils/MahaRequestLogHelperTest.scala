@@ -5,7 +5,9 @@ package com.yahoo.maha.service.utils
 import java.nio.charset.StandardCharsets
 
 import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
+import com.yahoo.maha.core.{DruidEngine, OracleEngine}
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
+import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.service.curators.DefaultCurator
 import com.yahoo.maha.service.{MahaRequestContext, MahaServiceConfig}
@@ -119,6 +121,13 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     val failedLog = mahaRequestLogHelper.logFailed("new error message")
     mahaRequestLogHelper.logSuccess()
     mahaRequestLogHelper.logSuccess()
+    val queryAttributeBuilder  = new QueryAttributeBuilder
+    val engineStats = new EngineQueryStats()
+    engineStats.addStat(EngineQueryStat(OracleEngine,System.currentTimeMillis(), System.currentTimeMillis()))
+    engineStats.addStat(EngineQueryStat(DruidEngine,System.currentTimeMillis(), System.currentTimeMillis()))
+    queryAttributeBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineStats))
+    queryAttributeBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineStats))
+    mahaRequestLogHelper.logQueryStats(queryAttributeBuilder.build)
     val curatorLogBuilder = mahaRequestLogHelper.curatorLogBuilder(new DefaultCurator())
     val curatorHelper = CuratorMahaRequestLogHelper(curatorLogBuilder)
     curatorHelper.logFailed("a second new error message")
