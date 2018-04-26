@@ -156,7 +156,7 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
     }
 
     val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)
-    orderedResultList ++ curatorInjector.orderedResultList
+    orderedResultList ++= curatorInjector.orderedResultList
     val finalResultMap = resultMap ++ curatorInjector.resultMap
 
     val combinedCuratorResultList: ParRequestListEither[CuratorResult] = {

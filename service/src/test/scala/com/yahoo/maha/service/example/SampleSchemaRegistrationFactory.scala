@@ -33,7 +33,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
   override def register(registry: RegistryBuilder): Unit = {
     ExampleSchema.register()
 
-    def pubfact: PublicFact = {
+    def pubfactOracle: PublicFact = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
         import com.yahoo.maha.core.OracleExpression._
         Fact.newFact(
@@ -73,8 +73,55 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           getMaxDaysWindow, getMaxDaysLookBack
         )
     }
-    registry.register(pubfact)
+    registry.register(pubfactOracle)
+
+    /*
+     student_performance with new revision, designed to test multi engine query
+     Fact is stored in the druid and dimensions are stored in oracle (local h2-mode)
+     */
+    def pubfactDruid: PublicFact = {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        import com.yahoo.maha.core.DruidExpression._
+        Fact.newFact(
+          "student_grade_sheet", DailyGrain, DruidEngine, Set(StudentSchema),
+          Set(
+            DimCol("class_id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+            , DimCol("section_id", IntType(3))
+            , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
+            , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
+            , DimCol("date", DateType())
+            , DimCol("month", DateType())
+          ),
+          Set(
+            FactCol("total_marks", IntType())
+            ,FactCol("obtained_marks", IntType())
+            ,DruidDerFactCol("Performance Factor", DecType(10,2), "{obtained_marks}" /- "{total_marks}")
+          )
+        )
+      }
+        .toPublicFact("student_performance",
+          Set(
+            PubCol("class_id", "Class ID", InEquality),
+            PubCol("student_id", "Student ID", InEquality),
+            PubCol("section_id", "Section ID", InEquality),
+            PubCol("date", "Day", Equality),
+            PubCol("month", "Month", InEquality),
+            PubCol("year", "Year", Equality),
+            PubCol("comment", "Remarks", InEqualityLike)
+          ),
+          Set(
+            PublicFactCol("total_marks", "Total Marks", InBetweenEquality),
+            PublicFactCol("obtained_marks", "Marks Obtained", InBetweenEquality),
+            PublicFactCol("Performance Factor", "Performance Factor", InBetweenEquality)
+          ),
+          Set.empty,
+          getMaxDaysWindow, getMaxDaysLookBack, revision = 1, dimRevision = 0
+        )
+    }
+    registry.register(pubfactDruid)
   }
+
 }
 
 class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFactory {

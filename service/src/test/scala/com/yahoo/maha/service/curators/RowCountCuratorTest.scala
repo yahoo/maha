@@ -53,7 +53,7 @@ class RowCountCuratorTest  extends BaseMahaServiceTest with BeforeAndAfterAll {
 
   }
 
-  test("Test processing of RowCountCurator with failure of RowCountCurator") {
+  test("Test processing of RowCountCurator with fact only operations") {
 
 
     val jsonRequest = s"""{
@@ -99,8 +99,10 @@ class RowCountCuratorTest  extends BaseMahaServiceTest with BeforeAndAfterAll {
     val rowCountCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = rowCountCurator
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
-    assert(rowCountCuratorResult.isLeft)
-    assert(rowCountCuratorResult.left.get.message.contains("No way to estimate dim cardinality for fact driven request"))
+    assert(rowCountCuratorResult.isRight)
+
+    val parRequestCuratorResult = rowCountCuratorResult.right.get.get(1000)
+    assert(parRequestCuratorResult.isRight)
   }
 
   test("Test processing of RowCountCurator with failure of RowCountCurator with dim driven request") {
@@ -164,6 +166,146 @@ class RowCountCuratorTest  extends BaseMahaServiceTest with BeforeAndAfterAll {
 
     // H2 Can not execute the oracle total row request, thus cant assert the actual row count of the dimension
 
+  }
+
+  test("Test curator Injection") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "totalmetrics" : {
+                              "config" : {
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                          "includeRowCount" : true,
+                          "forceDimensionDriven" : true
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", true))
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
+
+    curatorInjector.injectCurator(TotalMetricsCurator.name, Map.empty, mahaRequestContext, NoConfig)
+
+    assert(curatorInjector.curatorList.nonEmpty)
+    assert(curatorInjector.orderedResultList.nonEmpty)
+  }
+
+  test("Test curator Injection Failure") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "totalmetrics" : {
+                              "config" : {
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                          "includeRowCount" : true,
+                          "forceDimensionDriven" : true
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", true))
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set(TotalMetricsCurator.name))
+    try {
+      curatorInjector.injectCurator(TotalMetricsCurator.name, Map.empty, mahaRequestContext, NoConfig)
+      assert(false)
+    } catch {
+      case e:Exception=>
+       }
+  }
+
+  test("Test failure of RowCountCurator") {
+
+    val jsonRequest = s"""{
+                          "cube": "unknown",
+                          "curators" : {
+                            "totalmetrics" : {
+                              "config" : {
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                          "includeRowCount" : true
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", true))
+
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+    val curatorMahaRequestLogHelper =  CuratorMahaRequestLogHelper(mahaRequestLogHelper)
+
+
+    val rowCountCurator = RowCountCurator()
+    val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
+
+    val rowCountCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = rowCountCurator
+      .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
+
+    assert(rowCountCuratorResult.isLeft)
+    assert(rowCountCuratorResult.left.get.message.contains("cube does not exist : unknown"))
   }
 
 }

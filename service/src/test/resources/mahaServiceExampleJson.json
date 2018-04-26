@@ -17,9 +17,9 @@
          "bucketingConfigName": "erBucket",
          "utcTimeProviderName": "erUTC",
          "parallelServiceExecutorName": "erParallelExec",
-         "dimEstimatorFactoryClass": "com.yahoo.maha.service.factory.DefaultDimCostEstimatorFactory",
+         "dimEstimatorFactoryClass": "com.yahoo.maha.service.factory.TestDimCostEstimatoryFactory",
          "dimEstimatorFactoryConfig": "",
-         "factEstimatorFactoryClass": "com.yahoo.maha.service.factory.DefaultFactCostEstimatorFactory",
+         "factEstimatorFactoryClass": "com.yahoo.maha.service.factory.TestFactCostEstimatoryFactory",
          "factEstimatorFactoryConfig": "",
          "defaultPublicFactRevisionMap": {
             "student_performance": 0
@@ -80,7 +80,7 @@
                "timeoutRetryInterval": 100,
                "timeoutThreshold": 9000,
                "degradationConfigName": "TestConfig",
-               "url": "http://broker.druid.test.maha.com",
+               "url": "http://localhost:druidLocalPort/mock/studentPerf",
                "headers": {
                   "key": "value"
                },
@@ -340,6 +340,11 @@
          "config": {
          }
       },
+     "rowcount": {
+       "factoryClass": "com.yahoo.maha.service.factory.RowCountCuratorFactory",
+       "config": {
+       }
+     },
       "timeshift": {
          "factoryClass": "com.yahoo.maha.service.factory.TimeShiftCuratorFactory",
          "config": {

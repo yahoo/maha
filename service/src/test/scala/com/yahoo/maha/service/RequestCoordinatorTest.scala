@@ -7,7 +7,9 @@ import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc.{Seq, _}
 import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.service.curators._
+import com.yahoo.maha.service.error.MahaServiceExecutionException
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
+import com.yahoo.maha.service.output.{StringStream, JsonOutputFormat}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
@@ -764,5 +766,85 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     assert(expectedSet.size == cnt)
   }
+
+  test("Test successful processing of Default curator and RowCountCurator MultiEngine (druid+oracle) case") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"},
+                            {"field": "Student Name"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                         "includeRowCount" : true,
+                         "forceDimensionDriven" : true
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    // Revision 1 is druid + oracle case
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(1))
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val requestCoordinatorResult: RequestCoordinatorResult = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper).right.get.get().right.get
+    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
+    val rowcountCuratorRequestResult: CuratorError = requestCoordinatorResult.failureResults(RowCountCurator.name)
+
+    val defaultExpectedSet = Set(
+      "Row(Map(Section ID -> 2, Student Name -> 4, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 200, 100, 99, Bryant))"
+    )
+
+    var defaultCount = 0
+    defaultCuratorRequestResult.queryPipelineResult.rowList.foreach(
+      row => {
+        //println(row.toString)
+        assert(defaultExpectedSet.contains(row.toString))
+        defaultCount+=1
+      })
+
+    assert(defaultExpectedSet.size == defaultCount)
+
+
+    // H2 can not execute the Oracle Specific syntax of COUNT(*) OVER([*]) TOTALROWS, h2 has plan to fix it in next release 1.5
+    val rowCountCuratorError = rowcountCuratorRequestResult.error.throwableOption.get
+    assert(rowCountCuratorError.isInstanceOf[MahaServiceExecutionException])
+    val mahaServiceExecutionException = rowCountCuratorError.asInstanceOf[MahaServiceExecutionException]
+    assert(mahaServiceExecutionException.source.get.getMessage.contains("Syntax error in SQL statement"))
+
+    // Setting the rowCount as  rowCountCurator fails
+    mahaRequestContext.mutableState.put(RowCountCurator.name, 1)
+
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
+
+    val stringStream =  new StringStream()
+
+    jsonStreamingOutput.writeStream(stringStream)
+    val result = stringStream.toString()
+
+    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[213,200,100,99,"Bryant",1]],"curators":{}}"""
+    println(result)
+
+    assert(result.contains(expectedJson))
+
+  }
+
 }
 

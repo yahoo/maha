@@ -1,23 +1,29 @@
 package com.yahoo.maha.service
 
+import java.net.{ServerSocket, InetSocketAddress}
 import java.nio.file.Paths
 import java.util.UUID
 
 import com.google.common.io.Closer
-import com.yahoo.maha.core.DailyGrain
+import com.yahoo.maha.core.{OracleEngine, DailyGrain}
 import com.yahoo.maha.core.ddl.OracleDDLGenerator
 import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.jdbc.JdbcConnection
 import com.yahoo.maha.service.utils.MahaConstants
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
+import grizzled.slf4j.Logging
 import org.apache.log4j.MDC
+import org.http4s.server.blaze.BlazeBuilder
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.FunSuite
+import cats.effect.IO
+import org.http4s._
+import org.http4s.dsl.io._
 
 /**
  * Created by pranavbhole on 21/03/18.
  */
-trait BaseMahaServiceTest extends FunSuite {
+trait BaseMahaServiceTest extends FunSuite with Logging {
   protected var dataSource: Option[HikariDataSource] = None
   protected var jdbcConnection: Option[JdbcConnection] = None
   protected val closer : Closer = Closer.create()
@@ -30,9 +36,22 @@ trait BaseMahaServiceTest extends FunSuite {
 
   initJdbcToH2()
 
-  protected[this] val mahaServiceResult : MahaServiceConfig.MahaConfigResult[MahaServiceConfig] = getConfigFromFileWithReplacements("mahaServiceExampleJson.json", List(("H2DBID", h2dbId)))
+  protected[this] val druidPort:Int  = {
+    try {
+      val socket = new ServerSocket(0)
+      socket.getLocalPort
+    } catch {
+      case e:Exception=>
+        error("Failed to find the free port, trying default port")
+        11223
+    }
+  }
 
-  assert(mahaServiceResult.isSuccess)
+  private[this] val replacementTuplesInConfigJson =   List(("H2DBID", h2dbId),
+    ("http://localhost:druidLocalPort/mock/studentPerf", s"http://localhost:$druidPort/mock/studentPerf"))
+  protected[this] val mahaServiceResult : MahaServiceConfig.MahaConfigResult[MahaServiceConfig] = getConfigFromFileWithReplacements("mahaServiceExampleJson.json", replacementTuplesInConfigJson )
+
+  require(mahaServiceResult.isSuccess, mahaServiceResult.toString())
 
   val mahaServiceConfig : MahaServiceConfig = mahaServiceResult.toOption.get
   val mahaService : MahaService = DefaultMahaService(mahaServiceConfig)
@@ -69,7 +88,7 @@ trait BaseMahaServiceTest extends FunSuite {
   protected[this] def getConfigFromFileWithReplacements(fileName: String, replacements: List[(String, String)]) : MahaServiceConfig.MahaConfigResult[MahaServiceConfig] = {
     val jsonString : String = getJsonStringFromFile(fileName)
     var finalString = jsonString
-    replacements.foreach{
+    replacements.foreach {
       case (a,b) => finalString = finalString.replaceAll(a,b)
     }
 
@@ -85,10 +104,15 @@ trait BaseMahaServiceTest extends FunSuite {
     // Create Tables
     erRegistry.factMap.values.foreach {
       publicFact =>
-        publicFact.factList.foreach {
+        publicFact.factList.filter(_.engine == OracleEngine).foreach {
           fact=>
             val ddl = ddlGenerator.toDDL(fact)
-            assert(jdbcConnection.get.executeUpdate(ddl).isSuccess)
+            val result = jdbcConnection.get.executeUpdate(ddl)
+            if(result.isFailure) {
+              val throwable = result.failed.get
+              error("Failed to create tables", throwable)
+              throw throwable
+            }
         }
     }
     erRegistry.dimMap.values.foreach {
@@ -101,6 +125,31 @@ trait BaseMahaServiceTest extends FunSuite {
     }
   }
 
+  val service = HttpService[IO] {
 
+      case POST->  Root /("studentPerf") =>
+      val response=s"""[{
+                     |	"version": "v1",
+                     |	"timestamp": "${toDate}T00:00:01.300Z",
+                     |	"event": {
+                     | 		"Section ID": 100,
+                     |		"Student ID": 213,
+                     |		"Class ID": "200",
+                     |		"Total Marks": 99
+                     |	}
+                     |}]""".stripMargin
+      Ok(response)
+
+    case POST -> Root / ("empty")=>
+      val response="[]"
+      Ok(response)
+  }
+
+  val server: org.http4s.server.Server[IO] = {
+    println(s"Starting blaze server on port : $druidPort")
+    println("Started blaze server")
+    val builder = BlazeBuilder[IO].mountService(service, "/mock").bindSocketAddress(new InetSocketAddress("localhost", druidPort))
+    builder.start.unsafeRunSync()
+  }
 
 }

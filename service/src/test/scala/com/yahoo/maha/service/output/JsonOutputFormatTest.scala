@@ -2,18 +2,17 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.output
 
-import java.io.OutputStream
 import java.util.Date
 
-import com.yahoo.maha.core.{Engine, OracleEngine, RequestModelResult}
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.{CompleteRowList, QueryAttributes, QueryPipelineResult}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.service.{BaseMahaServiceTest, CuratorInjector, MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
+import com.yahoo.maha.core.{Engine, OracleEngine, RequestModelResult}
 import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
+import com.yahoo.maha.service.{BaseMahaServiceTest, CuratorInjector, MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
 
 import scala.util.Try
 
@@ -30,7 +29,8 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
                             {"field": "Student ID"},
                             {"field": "Class ID"},
                             {"field": "Section ID"},
-                            {"field": "Total Marks"}
+                            {"field": "Total Marks"},
+                            {"field": "Sample Constant Field", "value" :"Test Result"}
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
@@ -65,14 +65,6 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
   }
 
   val timeStampString = new Date().toString
-
-  class StringStream extends OutputStream {
-    val stringBuilder = new StringBuilder()
-    override def write(b: Int): Unit = {
-      stringBuilder.append(b.toChar)
-    }
-    override def toString() : String = stringBuilder.toString()
-  }
 
   case class TestOracleIngestionTimeUpdater(engine: Engine, source: String) extends IngestionTimeUpdater {
     override def getIngestionTime(dataSource: String): Option[String] = {
@@ -119,9 +111,8 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
     val result = stringStream.toString()
     println(result)
     stringStream.close()
-    val expected  = s"""{"header":{"lastIngestTime":"$timeStampString","source":"student_grade_sheet","cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99]],"curators":{}}"""
-    println(expected)
-    assert(result.equals(expected))
+    val expected  = s""""cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,"Test Result"]],"curators":{}}"""
+    assert(result.contains(expected))
   }
 
   test("Test JsonOutputFormat with DefaultCurator and valid other curator result") {
@@ -163,7 +154,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
     val result = stringStream.toString()
     println(result)
     stringStream.close()
-    assert(result.equals(s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99]],"curators":{"TestCurator":{"result":{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99]]}}}}""".stripMargin))
+    assert(result.contains(s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,"Test Result"]],"curators":{"TestCurator":{"result":{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,"Test Result"]]}}}}""".stripMargin))
   }
 
   test("Test JsonOutputFormat with DefaultCurator and failed other curator result") {
@@ -204,6 +195,6 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
     val result = stringStream.toString()
     println(result)
     stringStream.close()
-    assert(result.equals("""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99]],"curators":{"fail":{"error":{"message":"failed"}}}}"""))
+    assert(result.equals("""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,"Test Result"]],"curators":{"fail":{"error":{"message":"failed"}}}}"""))
   }
 }
