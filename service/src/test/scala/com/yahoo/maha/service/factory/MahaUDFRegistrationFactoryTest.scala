@@ -11,7 +11,7 @@ class MahaUDFRegistrationFactoryTest extends BaseFactoryTest {
     val jsonString =     """[{}]"""
     val factoryResult = getFactory[MahaUDFRegistrationFactory]("com.yahoo.maha.service.factory.DefaultMahaUDFRegistrationFactory", closer)
     assert(factoryResult.isSuccess)
-    val factory = factoryResult.toOption.get
+    val factory:MahaUDFRegistrationFactory = factoryResult.toOption.get
     val json = parse(jsonString)
     val defaultFactCostEstimatorFactoryResult = factory.fromJson(json)
     assert(defaultFactCostEstimatorFactoryResult.isSuccess, defaultFactCostEstimatorFactoryResult)

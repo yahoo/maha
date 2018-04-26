@@ -308,4 +308,53 @@ class RowCountCuratorTest  extends BaseMahaServiceTest with BeforeAndAfterAll {
     assert(rowCountCuratorResult.left.get.message.contains("cube does not exist : unknown"))
   }
 
+  test("Test failure of RowCountCurator unknown col") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "totalmetrics" : {
+                              "config" : {
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Unkown Total Marks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                          "includeRowCount" : true
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", true))
+
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+    val curatorMahaRequestLogHelper =  CuratorMahaRequestLogHelper(mahaRequestLogHelper)
+
+    val rowCountCurator = RowCountCurator()
+    val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
+
+    val rowCountCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = rowCountCurator
+      .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
+
+    assert(rowCountCuratorResult.isLeft)
+    assert(rowCountCuratorResult.left.get.message.contains("Failed to find primary key alias for Unkown Total Marks"))
+  }
+
+
 }

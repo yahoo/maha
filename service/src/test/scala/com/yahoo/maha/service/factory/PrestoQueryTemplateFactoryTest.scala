@@ -10,7 +10,8 @@ class PrestoQueryTemplateFactoryTest extends BaseFactoryTest {
   test("Test PrestoQueryTemplateFactory ") {
     val factoryResult = getFactory[PrestoQueryTemplateFactory]("com.yahoo.maha.service.factory.DefaultPrestoQueryTemplateFactory", closer)
     assert(factoryResult.isSuccess)
-    val factory = factoryResult.toOption.get
+    val factory:PrestoQueryTemplateFactory = factoryResult.toOption.get
+    assert(factory.isInstanceOf[PrestoQueryTemplateFactory])
     assert(factory.supportedProperties.isEmpty)
     val json = parse("{}")
     val generatorResult = factory.fromJson(json)
