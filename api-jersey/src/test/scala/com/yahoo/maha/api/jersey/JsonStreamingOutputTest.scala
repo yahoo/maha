@@ -11,7 +11,7 @@ import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{Engine, OracleEngine, RequestModelResult}
-import com.yahoo.maha.service.curators.{CuratorResult, DefaultCurator, DrilldownCurator, NoConfig}
+import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
@@ -47,14 +47,14 @@ class JsonStreamingOutputTest extends FunSuite {
 
   val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
 
-  val mahaRequestContext = MahaRequestContext(ExampleMahaService.REGISTRY_NAME,
-    bucketParams,
-    reportingRequest,
-    jsonRequest.getBytes,
-    Map.empty, "rid", "uid")
+
   val (pse, queryPipeline, query, queryChain)  = {
 
-
+    val mahaRequestContext = MahaRequestContext(ExampleMahaService.REGISTRY_NAME,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
     val requestModel = mahaService.generateRequestModel(ExampleMahaService.REGISTRY_NAME, reportingRequest, BucketParams(UserInfo("test", false)), MahaRequestLogHelper(mahaRequestContext, mahaService.mahaRequestLogWriter)).toOption.get
     val factory = registry.queryPipelineFactory.from(requestModel.model, QueryAttributes.empty)
     val queryChain = factory.get.queryChain
@@ -100,7 +100,12 @@ class JsonStreamingOutputTest extends FunSuite {
     val requestModelResult = RequestModelResult(query.queryContext.requestModel, None)
     val defaultCurator = DefaultCurator()
     val curatorResult = CuratorResult(defaultCurator, NoConfig, Option(parRequestResult), requestModelResult)
-
+    val mahaRequestContext = MahaRequestContext(ExampleMahaService.REGISTRY_NAME,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    mahaRequestContext.mutableState.put(RowCountCurator.name, 1)
     val curatorResults= IndexedSeq(curatorResult)
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator)
       , Map(DefaultCurator.name -> curatorResult)
@@ -115,7 +120,7 @@ class JsonStreamingOutputTest extends FunSuite {
     val result = stringStream.toString()
     println(result)
     stringStream.close()
-    assert(result.equals(s"""{"header":{"lastIngestTime":"$timeStampString","source":"student_grade_sheet","cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,1]],"curators":{}}"""))
+    assert(result === s"""{"header":{"lastIngestTime":"$timeStampString","source":"student_grade_sheet","cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,1]],"curators":{}}""")
   }
 
   test("Test JsonStreamingOutput with DefaultCurator and valid other curator result") {
@@ -141,8 +146,12 @@ class JsonStreamingOutputTest extends FunSuite {
 
 
     val curatorResults= IndexedSeq(curatorResult1, curatorResult2)
-
-    val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator)
+    val mahaRequestContext = MahaRequestContext(ExampleMahaService.REGISTRY_NAME,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator, testCurator)
       , Map(DefaultCurator.name -> curatorResult1, "TestCurator" -> curatorResult2)
       , Map.empty
       , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get
@@ -158,7 +167,7 @@ class JsonStreamingOutputTest extends FunSuite {
     val result = stringStream.toString()
     println(result)
     stringStream.close()
-    assert(result.equals(s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99]],"curators":{"TestCurator":{"result":{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99]]}}}}""".stripMargin))
+    assert(result === s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99]],"curators":{"TestCurator":{"result":{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99]]}}}}""".stripMargin)
   }
 
 }
