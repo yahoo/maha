@@ -5,12 +5,13 @@ package com.yahoo.maha.executor.druid
 import java.net.{InetSocketAddress, URI}
 import java.util.concurrent.ExecutionException
 
+import cats.effect.IO
 import com.ning.http.client.filter.FilterException
 import com.ning.http.client.{AsyncHttpClient, AsyncHttpClientConfig}
 import com.yahoo.maha.executor.druid.filters.{ServiceUnavailableException, TimeoutMillsStore, TimeoutThrottlingFilter}
 import grizzled.slf4j.Logging
 import org.http4s.HttpService
-import org.http4s.dsl._
+import org.http4s.dsl.io._
 import org.http4s.server.blaze.BlazeBuilder
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
@@ -22,9 +23,9 @@ import scala.util.Try
  */
 class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndAfterAll with Logging {
 
-  var server: org.http4s.server.Server = null
+  var server: org.http4s.server.Server[IO] = null
 
-  val service = HttpService {
+  val service = HttpService[IO] {
     case GET -> Root / ("endpoint") =>
       val endpoint =
         """[
@@ -35,8 +36,8 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    val builder = BlazeBuilder.mountService(service, "/mock").bindSocketAddress(new InetSocketAddress("localhost", 16367))
-    server = builder.run
+    val builder = BlazeBuilder[IO].mountService(service, "/mock").bindSocketAddress(new InetSocketAddress("localhost", 16367))
+    server = builder.start.unsafeRunSync()
     info("Started blaze server")
   }
 

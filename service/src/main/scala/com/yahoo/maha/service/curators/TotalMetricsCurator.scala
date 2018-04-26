@@ -1,14 +1,11 @@
 package com.yahoo.maha.service.curators
 
-import java.util.concurrent.Callable
-
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.request.Field
-import com.yahoo.maha.parrequest2.future.ParRequest
-import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
-import com.yahoo.maha.service.error.{MahaServiceBadRequestException, MahaServiceExecutionException}
+import com.yahoo.maha.parrequest2.GeneralError
+import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
+import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.utils.CuratorMahaRequestLogBuilder
-import com.yahoo.maha.service.{MahaRequestContext, MahaService}
+import com.yahoo.maha.service.{CuratorInjector, MahaRequestContext, MahaService, ParRequestResult}
 import grizzled.slf4j.Logging
 
 import scala.util.Try
@@ -28,74 +25,82 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
   override val isSingleton: Boolean = false
   override val requiresDefaultCurator = true
 
-  override def process(resultMap: Map[String, ParRequest[CuratorResult]]
+  override def process(resultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]]
                        , mahaRequestContext: MahaRequestContext
                        , mahaService: MahaService
                        , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
-                       , curatorConfig: CuratorConfig): ParRequest[CuratorResult] = {
+                       , curatorConfig: CuratorConfig
+                       , curatorInjector: CuratorInjector
+                      ) : Either[CuratorError, ParRequest[CuratorResult]] = {
 
     val registryConfig = mahaService.getMahaServiceConfig.registry.get(mahaRequestContext.registryName).get
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
-    val parRequestLabel = s"process${TotalMetricsCurator.name}"
+    val parRequestLabel = s"processTotalMetricsCurator"
+    val reportingRequest = mahaRequestContext.reportingRequest
+    val registry = registryConfig.registry
+    val publicFactOption = registry.getFact(reportingRequest.cube)
+    if (publicFactOption.isEmpty) {
+      val message = s"Failed to find the cube ${reportingRequest.cube} in registry"
+      return withError(curatorConfig
+        , GeneralError.from(parRequestLabel, message, new MahaServiceBadRequestException(message)))
+    }
+    val publicFact = publicFactOption.get
+    val factColsSet = publicFact.factCols.map(_.alias)
 
-    parallelServiceExecutor.parRequestBuilder[CuratorResult]()
-      .setLabel(parRequestLabel)
-      .setParCallable(
-        ParCallable.from[Either[GeneralError, CuratorResult]](
-        new Callable[Either[GeneralError, CuratorResult]](){
-          override def call(): Either[GeneralError, CuratorResult] = {
+    val totalMetricsReportingRequest = reportingRequest.copy(
+      selectFields = reportingRequest.selectFields.filter(f=> factColsSet.contains(f.field)),
+      forceDimensionDriven = false,
+      forceFactDriven = false,
+      includeRowCount = false,
+      sortBy = IndexedSeq.empty,
+      paginationStartIndex = 0,
+      rowsPerPage = -1)
 
-                  val reportingRequest = mahaRequestContext.reportingRequest
-                  val registry = registryConfig.registry
-                  val publicFactOption = registry.getFact(reportingRequest.cube)
-                  if (publicFactOption.isEmpty) {
-                     val message = s"Failed to find the cube ${reportingRequest.cube} in registry"
-                     return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceBadRequestException(message))
-                  }
-                  val publicFact = publicFactOption.get
-                  val factColsSet = publicFact.factCols.map(_.alias)
+    val totalMetricsRequestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(
+      mahaRequestContext.registryName
+      , totalMetricsReportingRequest
+      , mahaRequestContext.bucketParams , mahaRequestLogBuilder)
+    if(totalMetricsRequestModelResultTry.isFailure) {
+      val message = totalMetricsRequestModelResultTry.failed.get.getMessage
+      mahaRequestLogBuilder.logFailed(message)
+      withError(curatorConfig, GeneralError.from(parRequestLabel, message
+        , MahaServiceBadRequestException(message, totalMetricsRequestModelResultTry.failed.toOption)))
+    } else {
+      try {
+        val requestModelResult = totalMetricsRequestModelResultTry.get
+        requestModelValidator.validate(mahaRequestContext, requestModelResult)
+        val parRequestResult: ParRequestResult = mahaService.executeRequestModelResult(mahaRequestContext.registryName
+          , requestModelResult, mahaRequestLogBuilder)
+        val postProcessorResult = parRequestResult.prodRun.map("postProcess", ParFunction.fromScala {
+          requestResult =>
+            try {
+              val result = curatorResultPostProcessor.process(mahaRequestContext, requestResult)
+              if (result.isRight) {
+                mahaRequestLogBuilder.logSuccess()
+              } else {
+                val ge = result.left.get
+                mahaRequestLogBuilder.logFailed(ge.throwableOption.map(_.getMessage).getOrElse(ge.message))
+              }
+              result
+            } catch {
+              case e: Exception =>
+                logger.error("error in post processor, returning original result", e)
+                new Right(requestResult)
+            }
+        })
+        withResult(parRequestLabel
+          , parallelServiceExecutor
+          , CuratorResult(this
+            , curatorConfig
+            , Option(parRequestResult.copy(prodRun = postProcessorResult))
+            , requestModelResult))
+      }
+      catch {
+        case e: Exception =>
+          withError(curatorConfig, GeneralError.from(parRequestLabel
+            , e.getMessage, new MahaServiceBadRequestException(e.getMessage, Option(e))))
 
-/*
-                  val schemaRequiredFields = publicFact.factList.map {
-                    fact =>
-                      registry.getSchemaRequiredFilterAliasesForFact(fact.name, reportingRequest.schema, publicFact.name)
-                  }.flatten.toSet[String].map(alias=> Field(alias, None, None)).toIndexedSeq
-*/
-
-                  val totalMetricsReportingRequest = reportingRequest.copy(selectFields = reportingRequest.selectFields.filter(f=> factColsSet.contains(f.field)),
-                                              forceDimensionDriven = false,
-                                              forceFactDriven = false,
-                                              includeRowCount = false,
-                                              sortBy = IndexedSeq.empty,
-                                              paginationStartIndex = 0,
-                                              rowsPerPage = -1)
-
-                  val totalMetricsRequestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(mahaRequestContext.registryName, totalMetricsReportingRequest, mahaRequestContext.bucketParams , mahaRequestLogBuilder)
-                  if(totalMetricsRequestModelResultTry.isFailure) {
-                    val message = totalMetricsRequestModelResultTry.failed.get.getMessage
-                    mahaRequestLogBuilder.logFailed(message)
-                    return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceBadRequestException(message, totalMetricsRequestModelResultTry.failed.toOption))
-                  } else {
-                    requestModelValidator.validate(mahaRequestContext, totalMetricsRequestModelResultTry.get)
-                  }
-
-                  val totalMetricsRequestModel: RequestModel = totalMetricsRequestModelResultTry.get.model
-
-                  val totalMetricsRequestResultTry = mahaService.processRequestModel(mahaRequestContext.registryName, totalMetricsRequestModel, mahaRequestLogBuilder)
-
-                  if(totalMetricsRequestResultTry.isFailure) {
-                    val message = totalMetricsRequestResultTry.failed.get.getMessage
-                    mahaRequestLogBuilder.logFailed(message)
-                    return GeneralError.either[CuratorResult](parRequestLabel, message, new MahaServiceExecutionException(message))
-                  }
-
-                  new Right[GeneralError, CuratorResult](CuratorResult(TotalMetricsCurator.this,
-                  NoConfig,
-                  totalMetricsRequestResultTry,
-                  totalMetricsRequestModelResultTry.get))
-             }
-          }
-          )
-      ).build()
+      }
+    }
   }
 }

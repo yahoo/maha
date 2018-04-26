@@ -2,7 +2,6 @@ package com.yahoo.maha.service
 
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.service.curators.CuratorResult
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.scalatest.BeforeAndAfterAll
@@ -45,8 +44,8 @@ class MahaSyncRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAft
       DefaultRequestCoordinator(mahaService),
       mahaServiceConfig.mahaRequestLogWriter
     )
-    mahaRequestProcessor.onSuccess((resultList: IndexedSeq[CuratorResult]) => {
-      assert(resultList.head.requestResultTry.get.queryPipelineResult.rowList.columns.nonEmpty)
+    mahaRequestProcessor.onSuccess((requestCoordinatorResult: RequestCoordinatorResult) => {
+      assert(requestCoordinatorResult.successResults.head._2.queryPipelineResult.rowList.columns.nonEmpty)
       assertCount+=1
     })
     mahaRequestProcessor.onFailure((ge) => {
@@ -90,7 +89,7 @@ class MahaSyncRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAft
     val mahaRequestProcessor = processorFactory.create(mahaRequestContext
       , "test", MahaRequestLogHelper(mahaRequestContext, mahaService.mahaRequestLogWriter))
 
-    mahaRequestProcessor.onSuccess((resultList: IndexedSeq[CuratorResult]) => {
+    mahaRequestProcessor.onSuccess((requestCoordinatorResult: RequestCoordinatorResult) => {
       assertCount+=1
     })
 
@@ -120,7 +119,7 @@ class MahaSyncRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAft
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
-    var assertCount = 0;
+    var assertCount = 0
 
     val mahaRequestContext = MahaRequestContext(REGISTRY,
       BucketParams(UserInfo("uid", true)),
@@ -134,7 +133,7 @@ class MahaSyncRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAft
 
     val mahaRequestProcessor = processorFactory.create(mahaRequestContext, "test")
 
-    mahaRequestProcessor.onSuccess((resultList: IndexedSeq[CuratorResult]) => {
+    mahaRequestProcessor.onSuccess((requestCoordinatorResult: RequestCoordinatorResult) => {
       throw new IllegalArgumentException("failed in success function")
       assertCount-=1
     })
@@ -145,7 +144,7 @@ class MahaSyncRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAft
     mahaRequestProcessor.process()
 
     Thread.sleep(900)
-    assert(assertCount == 0)
+    assert(assertCount == 1)
   }
 
   test("Test MahaRequestProcessor request model failure") {
@@ -179,7 +178,7 @@ class MahaSyncRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAft
 
     val mahaRequestProcessor = processorFactory.create(mahaRequestContext, "test")
 
-    mahaRequestProcessor.onSuccess((resultList: IndexedSeq[CuratorResult]) => {
+    mahaRequestProcessor.onSuccess((requestCoordinatorResult: RequestCoordinatorResult) => {
       throw new IllegalArgumentException("failed in success function")
       assertCount-=1
     })

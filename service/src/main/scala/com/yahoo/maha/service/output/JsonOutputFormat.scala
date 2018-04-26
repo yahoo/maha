@@ -6,10 +6,11 @@ import java.io.OutputStream
 
 import com.fasterxml.jackson.core.{JsonEncoding, JsonGenerator}
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.yahoo.maha.core.{ColumnInfo, DimColumnInfo, Engine, FactColumnInfo}
 import com.yahoo.maha.core.query.RowList
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.service.curators.{CuratorResult, DefaultCurator}
+import com.yahoo.maha.core.{ColumnInfo, DimColumnInfo, Engine, FactColumnInfo}
+import com.yahoo.maha.service.RequestCoordinatorResult
+import com.yahoo.maha.service.curators.{Curator, DefaultCurator, RowCountCurator}
 import com.yahoo.maha.service.datasource.{IngestionTimeUpdater, NoopIngestionTimeUpdater}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -20,64 +21,65 @@ object JsonOutputFormat {
   val objectMapper: ObjectMapper = new ObjectMapper()
   val logger: Logger = LoggerFactory.getLogger(classOf[JsonOutputFormat])
   val ROW_COUNT : String = "ROW_COUNT"
+  val defaultRenderSet : Set[String] = Set(DefaultCurator.name, RowCountCurator.name)
 }
-case class JsonOutputFormat(resultList: IndexedSeq[CuratorResult],
-                       ingestionTimeUpdaterMap : Map[Engine, IngestionTimeUpdater] = Map.empty) {
+case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
+                            ingestionTimeUpdaterMap : Map[Engine, IngestionTimeUpdater] = Map.empty) {
 
 
   def writeStream(outputStream: OutputStream): Unit = {
     val jsonGenerator: JsonGenerator = JsonOutputFormat.objectMapper.getFactory().createGenerator(outputStream, JsonEncoding.UTF8)
     jsonGenerator.writeStartObject() // {
-    val renderDefaultFirst = resultList.take(1)
-    renderDefaultFirst.foreach {
-      result =>
-        defaultCuratorRender(result, jsonGenerator)
+    val headOption = requestCoordinatorResult.orderedList.headOption
+
+    if(headOption.exists(_.isSingleton)) {
+      renderDefault(headOption.get.name, requestCoordinatorResult, jsonGenerator, None)
+    } else if(requestCoordinatorResult.successResults.contains(DefaultCurator.name)) {
+      val rowCountOption = RowCountCurator.getRowCount(requestCoordinatorResult.mahaRequestContext)
+      renderDefault(DefaultCurator.name, requestCoordinatorResult, jsonGenerator, rowCountOption)
+      jsonGenerator.writeFieldName("curators") //"curators" :
+      jsonGenerator.writeStartObject() //{
+      //remove default render curators
+      val curatorList = requestCoordinatorResult.orderedList.filterNot(c => JsonOutputFormat.defaultRenderSet(c.name))
+      curatorList.foreach(renderCurator(_, requestCoordinatorResult, jsonGenerator))
+      jsonGenerator.writeEndObject() //}
     }
-    jsonGenerator.writeFieldName("curators") //"curators" :
-    jsonGenerator.writeStartObject() //{
-    resultList.foreach {
-      result =>
-        if (result.curator.name != DefaultCurator.name && !result.curator.isSingleton) {
-          curatorRender(result, jsonGenerator)
-        }
-    }
-    jsonGenerator.writeEndObject() //}
 
     jsonGenerator.writeEndObject() // }
     jsonGenerator.flush()
     jsonGenerator.close()
   }
 
-  private def defaultCuratorRender(curatorResult: CuratorResult, jsonGenerator: JsonGenerator): Unit = {
-    if(curatorResult.curator.name == DefaultCurator.name || curatorResult.curator.isSingleton) {
-      if(curatorResult.requestResultTry.isSuccess) {
-        val qpr = curatorResult.requestResultTry.get.queryPipelineResult
-        val rowCountOption = curatorResult.requestResultTry.get.rowCountOption
-        val engine = qpr.queryChain.drivingQuery.engine
-        val tableName = qpr.queryChain.drivingQuery.tableName
-        val ingestionTimeUpdater:IngestionTimeUpdater = ingestionTimeUpdaterMap
-          .getOrElse(qpr.queryChain.drivingQuery.engine, NoopIngestionTimeUpdater(engine, engine.toString))
-        val dimCols : Set[String]  = if(curatorResult.requestModelReference.model.bestCandidates.isDefined) {
-          curatorResult.requestModelReference.model.bestCandidates.get.publicFact.dimCols.map(_.alias)
-        } else Set.empty
-        writeHeader(jsonGenerator
-          , qpr.rowList.columns
-          , curatorResult.requestModelReference.model.reportingRequest
-          , ingestionTimeUpdater
-          , tableName
-          , dimCols
-        )
-        writeDataRows(jsonGenerator, qpr.rowList, rowCountOption)
-      } else {
-        //log error
-      }
-
+  private def renderDefault(curatorName: String, requestCoordinatorResult: RequestCoordinatorResult, jsonGenerator: JsonGenerator, rowCountOption:Option[Int]): Unit = {
+    if(requestCoordinatorResult.successResults.contains(curatorName)
+      && requestCoordinatorResult.curatorResult.contains(curatorName)) {
+      val curatorResult = requestCoordinatorResult.curatorResult(curatorName)
+      val requestResult = requestCoordinatorResult.successResults(curatorName)
+      val qpr = requestResult.queryPipelineResult
+      val engine = qpr.queryChain.drivingQuery.engine
+      val tableName = qpr.queryChain.drivingQuery.tableName
+      val ingestionTimeUpdater:IngestionTimeUpdater = ingestionTimeUpdaterMap
+        .getOrElse(qpr.queryChain.drivingQuery.engine, NoopIngestionTimeUpdater(engine, engine.toString))
+      val dimCols : Set[String]  = if(curatorResult.requestModelReference.model.bestCandidates.isDefined) {
+        curatorResult.requestModelReference.model.bestCandidates.get.publicFact.dimCols.map(_.alias)
+      } else Set.empty
+      writeHeader(jsonGenerator
+        , qpr.rowList.columns
+        , curatorResult.requestModelReference.model.reportingRequest
+        , ingestionTimeUpdater
+        , tableName
+        , dimCols
+      )
+      writeDataRows(jsonGenerator, qpr.rowList, rowCountOption)
     }
   }
 
-  private def curatorRender(curatorResult: CuratorResult, jsonGenerator: JsonGenerator) : Unit = {
-    if(curatorResult.requestResultTry.isSuccess) {
-      val qpr = curatorResult.requestResultTry.get.queryPipelineResult
+  private def renderCurator(curator: Curator, requestCoordinatorResult: RequestCoordinatorResult, jsonGenerator: JsonGenerator) : Unit = {
+    if(requestCoordinatorResult.successResults.contains(curator.name)
+      && requestCoordinatorResult.curatorResult.contains(curator.name)) {
+      val curatorResult = requestCoordinatorResult.curatorResult(curator.name)
+      val requestResult = requestCoordinatorResult.successResults(curator.name)
+      val qpr = requestResult.queryPipelineResult
       val engine = qpr.queryChain.drivingQuery.engine
       val tableName = qpr.queryChain.drivingQuery.tableName
       val ingestionTimeUpdater:IngestionTimeUpdater = ingestionTimeUpdaterMap
@@ -100,6 +102,16 @@ case class JsonOutputFormat(resultList: IndexedSeq[CuratorResult],
       jsonGenerator.writeEndObject() //}
       jsonGenerator.writeEndObject() //}
 
+    } else if(requestCoordinatorResult.failureResults.contains(curator.name)) {
+      val curatorError = requestCoordinatorResult.failureResults(curator.name)
+      jsonGenerator.writeFieldName(curatorError.curator.name) // "curatorName":
+      jsonGenerator.writeStartObject() //{
+      jsonGenerator.writeFieldName("error") // "error":
+      jsonGenerator.writeStartObject() //{
+      jsonGenerator.writeFieldName("message")
+      jsonGenerator.writeString(curatorError.error.throwableOption.map(_.getMessage).getOrElse(curatorError.error.message))
+      jsonGenerator.writeEndObject() //}
+      jsonGenerator.writeEndObject() //}
     }
   }
 

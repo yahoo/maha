@@ -2,26 +2,30 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service
 
-import java.util.concurrent.atomic.AtomicInteger
-
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc.{Seq, _}
-import com.yahoo.maha.parrequest2.GeneralError
-import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
+import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.service.curators._
+import com.yahoo.maha.service.error.MahaServiceExecutionException
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
+import com.yahoo.maha.service.output.{StringStream, JsonOutputFormat}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.scalatest.BeforeAndAfterAll
-import scala.collection.JavaConverters._
 
 class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
   val today: String = DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now())
   val yesterday: String = DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(1))
 
+  protected def getRequestCoordinatorResult(result: Either[RequestCoordinatorError, ParRequest[RequestCoordinatorResult]]) : RequestCoordinatorResult = {
+    require(result.isRight, result.left.get.toString)
+    val parResult = result.right.get.get()
+    require(parResult.isRight, parResult.left.get.toString)
+    parResult.right.get
+  }
   override def beforeAll(): Unit = {
     createTables()
     val insertSql = """INSERT INTO student_grade_sheet (year, section_id, student_id, class_id, total_marks, date, comment, month)
@@ -29,6 +33,10 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val studentInsertSql =
       """INSERT INTO student (id, name, admitted_year, status, department_id)
+        VALUES (?, ?, ?, ?, ?)"""
+
+    val classInsertSql =
+      """INSERT INTO class (id, name, start_year, status, department_id)
         VALUES (?, ?, ?, ?, ?)"""
 
     val rows: List[Seq[Any]] = List(
@@ -44,6 +52,10 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       Seq(213, "Bryant", 2017, "ACTIVE", 54321)
     )
 
+    val classRows: List[Seq[Any]] = List(
+      Seq(200, "Class A", 2017, "ACTIVE", 54321)
+    )
+
     rows.foreach {
       row =>
         val result = jdbcConnection.get.executeUpdate(insertSql, row)
@@ -51,6 +63,12 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     }
 
     studentRows.foreach{
+      row =>
+        val result = jdbcConnection.get.executeUpdate(studentInsertSql, row)
+        assert(result.isSuccess)
+    }
+
+    classRows.foreach{
       row =>
         val result = jdbcConnection.get.executeUpdate(studentInsertSql, row)
         assert(result.isSuccess)
@@ -99,30 +117,74 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
 
-    val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
-    val defaultCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(DefaultCurator.name)
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
 
-    val defaultCuratorResultEither = defaultCuratorResult.resultMap((t: CuratorResult) => t)
-    defaultCuratorResultEither.fold((t: GeneralError) => {
-      fail(t.message)
-    },(curatorResult: CuratorResult) => {
-      assert(curatorResult.requestResultTry.isSuccess)
-      val defaultExpectedSet = Set(
-        "Row(Map(Student ID -> 0, Class ID -> 1, Section ID -> 2, Total Marks -> 3),ArrayBuffer(213, 200, 100, 125))",
-        "Row(Map(Student ID -> 0, Class ID -> 1, Section ID -> 2, Total Marks -> 3),ArrayBuffer(213, 198, 100, 180))",
-        "Row(Map(Student ID -> 0, Class ID -> 1, Section ID -> 2, Total Marks -> 3),ArrayBuffer(213, 199, 200, 175))"
-      )
+    val defaultExpectedSet = Set(
+      "Row(Map(Student ID -> 0, Class ID -> 1, Section ID -> 2, Total Marks -> 3),ArrayBuffer(213, 200, 100, 125))",
+      "Row(Map(Student ID -> 0, Class ID -> 1, Section ID -> 2, Total Marks -> 3),ArrayBuffer(213, 198, 100, 180))",
+      "Row(Map(Student ID -> 0, Class ID -> 1, Section ID -> 2, Total Marks -> 3),ArrayBuffer(213, 199, 200, 175))"
+    )
 
-      var defaultCount = 0
-      curatorResult.requestResultTry.get.queryPipelineResult.rowList.foreach( row => {
-        println(row.toString)
-        assert(defaultExpectedSet.contains(row.toString))
-        defaultCount+=1
-      })
-
-      assert(defaultExpectedSet.size == defaultCount)
+    var defaultCount = 0
+    defaultCuratorRequestResult.queryPipelineResult.rowList.foreach( row => {
+      println(row.toString)
+      assert(defaultExpectedSet.contains(row.toString))
+      defaultCount+=1
     })
 
+    assert(defaultExpectedSet.size == defaultCount)
+  }
+
+  test("Test successful processing of Default curator with dimension driven") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                          "forceDimensionDriven": true
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess, reportingRequestResult.toString)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
+
+    val defaultExpectedSet = Set(
+      "Row(Map(Student ID -> 0, Section ID -> 1, Total Marks -> 2),ArrayBuffer(213, 100, 305))",
+      "Row(Map(Student ID -> 0, Section ID -> 1, Total Marks -> 2),ArrayBuffer(213, 200, 175))"
+    )
+
+    var defaultCount = 0
+    defaultCuratorRequestResult.queryPipelineResult.rowList.foreach( row => {
+      println(row.toString)
+      assert(defaultExpectedSet.contains(row.toString))
+      defaultCount+=1
+    })
+
+    assert(defaultExpectedSet.size == defaultCount)
   }
 
   test("Test successful processing of Timeshift curator") {
@@ -168,30 +230,23 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       Map.empty, "rid", "uid")
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
-    val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
-    val timeShiftCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(TimeShiftCurator.name)
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+    val timeShiftCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(TimeShiftCurator.name)
 
-    val timeShiftCuratorResultEither = timeShiftCuratorResult.resultMap((t: CuratorResult) => t)
-    timeShiftCuratorResultEither.fold((t: GeneralError) => {
-      fail(t.message)
-    },(curatorResult: CuratorResult) => {
-      assert(curatorResult.requestResultTry.isSuccess)
-      val expectedSeq = IndexedSeq(
-        "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 199, 200, 175, 0, 100.0))",
-        "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 198, 100, 180, 120, 50.0))",
-        "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 200, 100, 125, 135, -7.41))"
-      )
+    val expectedSeq = IndexedSeq(
+      "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 199, 200, 175, 0, 100.0))",
+      "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 198, 100, 180, 120, 50.0))",
+      "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 200, 100, 125, 135, -7.41))"
+    )
 
-      var cnt = 0
-      curatorResult.requestResultTry.get.queryPipelineResult.rowList.foreach( row => {
-        println(row.toString)
-        assert(expectedSeq(cnt) === row.toString)
-        cnt+=1
-      })
-
-      assert(expectedSeq.size === cnt)
+    var cnt = 0
+    timeShiftCuratorRequestResult.queryPipelineResult.rowList.foreach( row => {
+      println(row.toString)
+      assert(expectedSeq(cnt) === row.toString)
+      cnt+=1
     })
 
+    assert(expectedSeq.size === cnt)
   }
 
   test("Test failure when processing of multiple curator when one is a singleton") {
@@ -239,7 +294,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       Map.empty, "rid", "uid")
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
-    val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val requestCoordinatorResult: Either[RequestCoordinatorError, ParRequest[RequestCoordinatorResult]] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
     assert(requestCoordinatorResult.isLeft)
     assert(requestCoordinatorResult.left.get.message === "Singleton curators can only be requested by themselves but found TreeSet((drilldown,false), (timeshift,true))")
 
@@ -285,31 +340,114 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       Map.empty, "rid", "uid")
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
-    val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
-    assert(requestCoordinatorResult.isRight)
+    val requestCoordinatorResult: RequestCoordinatorResult =
+      getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
 
-    val resultList = requestCoordinatorResult.right.get.combinedResultList
-    val errCall = new AtomicInteger(0)
-    val sucCall = new AtomicInteger(0)
-    val foldResult = resultList.fold[Unit](ParFunction.fromScala({
-      err =>
-        errCall.incrementAndGet()
-        println(err.message)
-        assert(false, "Should not have been called, even though non default curator failed")
-    }), ParFunction.fromScala({
-      seq: java.util.List[Either[GeneralError, CuratorResult]] =>
-        val resultList = seq.asScala
-        assert(resultList.size == 2)
-        sucCall.incrementAndGet()
-        assert(resultList(0).isRight)
-        assert(resultList(0).right.get.curator.name === DefaultCurator.name)
-        assert(resultList(1).isLeft)
-        assert(resultList(1).left.get.message === "failed")
-    }))
-    val result = foldResult.get
-    assert(errCall.get() === 0)
-    assert(sucCall.get() === 1)
-    assert(result.isRight)
+    assert(requestCoordinatorResult.successResults.size === 1)
+    assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
+    assert(requestCoordinatorResult.failureResults.size === 1)
+    assert(requestCoordinatorResult.failureResults.contains(FailingCurator.name))
+    assert(requestCoordinatorResult.failureResults(FailingCurator.name).error.message === "failed")
+  }
+
+  test("successfully return result when par request for curator result returns error") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "fail" : {
+                              "config" : {
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = ReportingRequest.enableDebug(reportingRequestResult.toOption.get)
+
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map("faillevel" -> "curatorresult"), "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinatorResult: RequestCoordinatorResult =
+      getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+
+    assert(requestCoordinatorResult.successResults.size === 1)
+    assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
+    assert(requestCoordinatorResult.failureResults.size === 1)
+    assert(requestCoordinatorResult.failureResults.contains(FailingCurator.name))
+    assert(requestCoordinatorResult.failureResults(FailingCurator.name).error.message === "failed")
+  }
+
+  test("successfully return result when par request for request result returns error") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "fail" : {
+                              "config" : {
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = ReportingRequest.enableDebug(reportingRequestResult.toOption.get)
+
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map("faillevel" -> "requestresult"), "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinatorResult: RequestCoordinatorResult =
+      getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+
+    assert(requestCoordinatorResult.successResults.size === 1)
+    assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
+    assert(requestCoordinatorResult.failureResults.size === 1)
+    assert(requestCoordinatorResult.failureResults.contains(FailingCurator.name))
+    assert(requestCoordinatorResult.failureResults(FailingCurator.name).error.message === "failed")
   }
 
   test("successfully return result when default curator process returns error") {
@@ -352,34 +490,9 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       Map.empty, "rid", "uid")
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
-    val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
-    assert(requestCoordinatorResult.isRight)
-
-    val resultList = requestCoordinatorResult.right.get.combinedResultList
-    val errCall = new AtomicInteger(0)
-    val sucCall = new AtomicInteger(0)
-    val foldResult = resultList.fold[Unit](ParFunction.fromScala({
-      err =>
-        errCall.incrementAndGet()
-        println(err.message)
-        println(err.throwableOption.map(_.getMessage))
-        assert(false, "should not have been called!")
-    }), ParFunction.fromScala({
-      seq: java.util.List[Either[GeneralError, CuratorResult]] =>
-        val resultList = seq.asScala
-        assert(resultList.size == 2)
-        sucCall.incrementAndGet()
-        println(resultList(0))
-        println(resultList(1))
-        assert(resultList(0).isLeft)
-        assert(resultList(0).left.get.message === "requirement failed: ERROR_CODE:10005 Failed to find primary key alias for Student Blah")
-        assert(resultList(1).isLeft)
-        assert(resultList(1).left.get.message === "failed")
-    }))
-    val result = foldResult.get
-    assert(errCall.get() === 0)
-    assert(sucCall.get() === 1)
-    assert(result.isRight)
+    val requestCoordinatorResult: Either[RequestCoordinatorError, ParRequest[RequestCoordinatorResult]] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    assert(requestCoordinatorResult.isLeft)
+    assert(requestCoordinatorResult.left.get.generalError.message === "requirement failed: ERROR_CODE:10005 Failed to find primary key alias for Student Blah")
   }
 
   test("Curator compare test") {
@@ -389,21 +502,20 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(defaultCurator.compare(defaultCurator) == 0)
   }
 
-  test("Test successful processing of Drilldown curator") {
+  test("Test successful processing of Drilldown curator with no dim candidates") {
 
     val jsonRequest = s"""{
                           "cube": "student_performance",
                           "curators" : {
                             "drilldown" : {
                               "config" : {
-                                "dimension": "Section ID"
+                                "dimension": "Remarks"
                               }
                             }
                           },
                           "selectFields": [
                             {"field": "Student ID"},
                             {"field": "Class ID"},
-                            {"field": "Section ID"},
                             {"field": "Total Marks"}
                           ],
                           "sortBy": [
@@ -416,7 +528,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                         }"""
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
-    val reportingRequest = reportingRequestResult.toOption.get
+    val reportingRequest = ReportingRequest.enableDebug(reportingRequestResult.toOption.get)
 
     val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
 
@@ -429,32 +541,133 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       Map.empty, "rid", "uid")
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
-    val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
-    val drillDownCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(DrilldownCurator.name)
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
+    val drillDownCuratorResult: RequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name)
+    val expectedSet = Set(
+      "Row(Map(Remarks -> 0, Student ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 1, 213, 125))",
+      "Row(Map(Remarks -> 0, Student ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 2, 213, 180))",
+      "Row(Map(Remarks -> 0, Student ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 3, 213, 175))"
+    )
 
-    val timeShiftCuratorResultEither = drillDownCuratorResult.resultMap((t: CuratorResult) => t)
-    timeShiftCuratorResultEither.fold((t: GeneralError) => {
-      fail(t.message)
-    },(curatorResult: CuratorResult) => {
-      assert(curatorResult.requestResultTry.isSuccess)
-      val expectedSet = Set(
-        "Row(Map(Section ID -> 0, Total Marks -> 1),ArrayBuffer(100, 305))",
-        "Row(Map(Section ID -> 0, Total Marks -> 1),ArrayBuffer(200, 175))"
-      )
-
-      var cnt = 0
-      curatorResult.requestResultTry.get.queryPipelineResult.rowList.foreach( row => {
-        println(row.toString)
-        assert(expectedSet.contains(row.toString))
-        cnt+=1
-      })
-
-      assert(expectedSet.size == cnt)
+    var cnt = 0
+    drillDownCuratorResult.queryPipelineResult.rowList.foreach( row => {
+      println(row.toString)
+      assert(expectedSet.contains(row.toString))
+      cnt+=1
     })
 
+    assert(expectedSet.size == cnt)
   }
 
-  test("Test failed processing of Drilldown curator on inexistent DrillDown Dim") {
+  test("Test successful processing of Drilldown curator with dim candidates") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : {
+                                "dimension": "Remarks"
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Class Name"},
+                            {"field": "Student Name"},
+                            {"field": "Student ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"},
+                            {"field": "Class ID", "operator": "=", "value": "200"}
+                          ],
+                          "includeRowCount": false
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = ReportingRequest.enableDebug(reportingRequestResult.toOption.get)
+
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val result = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
+    val drillDownCuratorResult: RequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name)
+    val expectedSet = Set(
+      "Row(Map(Remarks -> 0, Student ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 1, 213, 125))"
+    )
+
+    var cnt = 0
+    drillDownCuratorResult.queryPipelineResult.rowList.foreach( row => {
+      println(row.toString)
+      assert(expectedSet.contains(row.toString))
+      cnt+=1
+    })
+
+    assert(expectedSet.size == cnt)
+  }
+
+  test("successful erroring of Drilldown curator when join key not present in request") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : {
+                                "dimension": "Remarks"
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Class Name"},
+                            {"field": "Student Name"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"},
+                            {"field": "Class ID", "operator": "=", "value": "200"}
+                          ],
+                          "includeRowCount": false
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = ReportingRequest.enableDebug(reportingRequestResult.toOption.get)
+
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val result = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+    val drillDownError: CuratorError = requestCoordinatorResult.failureResults(DrilldownCurator.name)
+    assert(drillDownError.error.message === """requirement failed: Primary key of most granular dim MUST be present in requested cols to join against : Student ID""")
+  }
+
+  test("Test failed processing of Drilldown curator on non-existent DrillDown Dim") {
 
     val jsonRequest = s"""{
                           "cube": "student_performance",
@@ -494,13 +707,10 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       Map.empty, "rid", "uid")
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
-    val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
-    val drillDownCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(DrilldownCurator.name)
-
-    val timeShiftCuratorResultEither = drillDownCuratorResult.resultMap((t: CuratorResult) => t)
-    assert(timeShiftCuratorResultEither.isLeft)
-    assert(timeShiftCuratorResultEither.left.get.message.contains("Gender"))
-
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
+    val drillDownCuratorError: CuratorError = requestCoordinatorResult.failureResults(DrilldownCurator.name)
+    assert(drillDownCuratorError.error.message.contains("Gender"))
   }
 
   test("Test successful processing of TotalMetrics Curator") {
@@ -542,22 +752,99 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       Map.empty, "rid", "uid")
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
-    val requestCoordinatorResult: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
-    val totalMetricsCuratorResult: ParRequest[CuratorResult] = requestCoordinatorResult.right.get.resultMap(TotalMetricsCurator.name)
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
+    val totalMetricsCuratorResult: RequestResult = requestCoordinatorResult.successResults(TotalMetricsCurator.name)
+    val expectedSet = Set("Row(Map(Total Marks -> 0),ArrayBuffer(480))")
 
-    val totalMetricsCuratorResultEither = totalMetricsCuratorResult.resultMap((t: CuratorResult) => t)
-    totalMetricsCuratorResultEither.fold((t: GeneralError) => {
-      fail(t.message)
-    },(curatorResult: CuratorResult) => {
-      assert(curatorResult.requestResultTry.isSuccess)
-      val rowList = curatorResult.requestResultTry.get.queryPipelineResult.rowList
-      assert(rowList.map(r=> r).size == 1)
-      rowList.foreach {
-        row=>
-          assert(row.getValue("Total Marks")  == 480)
-      }
+    var cnt = 0
+    totalMetricsCuratorResult.queryPipelineResult.rowList.foreach( row => {
+      println(row.toString)
+      assert(expectedSet.contains(row.toString))
+      cnt+=1
     })
 
+    assert(expectedSet.size == cnt)
   }
+
+  test("Test successful processing of Default curator and RowCountCurator MultiEngine (druid+oracle) case") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"},
+                            {"field": "Student Name"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                         "includeRowCount" : true,
+                         "forceDimensionDriven" : true
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    // Revision 1 is druid + oracle case
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(1))
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val requestCoordinatorResult: RequestCoordinatorResult = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper).right.get.get().right.get
+    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
+    val rowcountCuratorRequestResult: CuratorError = requestCoordinatorResult.failureResults(RowCountCurator.name)
+
+    val defaultExpectedSet = Set(
+      "Row(Map(Section ID -> 2, Student Name -> 4, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 200, 100, 99, Bryant))"
+    )
+
+    var defaultCount = 0
+    defaultCuratorRequestResult.queryPipelineResult.rowList.foreach(
+      row => {
+        //println(row.toString)
+        assert(defaultExpectedSet.contains(row.toString))
+        defaultCount+=1
+      })
+
+    assert(defaultExpectedSet.size == defaultCount)
+
+
+    // H2 can not execute the Oracle Specific syntax of COUNT(*) OVER([*]) TOTALROWS, h2 has plan to fix it in next release 1.5
+    val rowCountCuratorError = rowcountCuratorRequestResult.error.throwableOption.get
+    assert(rowCountCuratorError.isInstanceOf[MahaServiceExecutionException])
+    val mahaServiceExecutionException = rowCountCuratorError.asInstanceOf[MahaServiceExecutionException]
+    assert(mahaServiceExecutionException.source.get.getMessage.contains("Syntax error in SQL statement"))
+
+    // Setting the rowCount as  rowCountCurator fails
+    mahaRequestContext.mutableState.put(RowCountCurator.name, 1)
+
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
+
+    val stringStream =  new StringStream()
+
+    jsonStreamingOutput.writeStream(stringStream)
+    val result = stringStream.toString()
+
+    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[213,200,100,99,"Bryant",1]],"curators":{}}"""
+    println(result)
+
+    assert(result.contains(expectedJson))
+
+  }
+
 }
 

@@ -3,6 +3,8 @@ package com.yahoo.maha.service
 import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.request.ReportingRequest
 
+import scala.collection.concurrent.TrieMap
+
 /**
   * Created by hiral on 4/5/18.
   */
@@ -15,4 +17,5 @@ case class MahaRequestContext(registryName: String
                               , userId: String
                               , requestStartTime: Long = System.currentTimeMillis()
                              ) {
+  lazy val mutableState = new TrieMap[String, Any]()
 }

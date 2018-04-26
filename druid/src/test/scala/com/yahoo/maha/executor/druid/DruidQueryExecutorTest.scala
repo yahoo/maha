@@ -4,6 +4,7 @@ package com.yahoo.maha.executor.druid
 
 import java.net.InetSocketAddress
 
+import cats.effect.IO
 import com.yahoo.maha.core.CoreSchema.{AdvertiserLowLatencySchema, AdvertiserSchema, InternalSchema, ResellerSchema}
 import com.yahoo.maha.core.DruidDerivedFunction.{DECODE_DIM, GET_INTERVAL_DATE}
 import com.yahoo.maha.core.DruidPostResultFunction.{POST_RESULT_DECODE, START_OF_THE_MONTH, START_OF_THE_WEEK}
@@ -27,11 +28,11 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
  * Created by hiral on 2/2/16.
  */
 class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema with TestWebService {
-  var server: org.http4s.server.Server = null
+  var server: org.http4s.server.Server[IO] = null
   override def beforeAll() : Unit = {
     super.beforeAll()
-    val builder = BlazeBuilder.mountService(service,"/mock").bindSocketAddress(new InetSocketAddress("localhost",6667) )
-    server = builder.run
+    val builder = BlazeBuilder[IO].mountService(service,"/mock").bindSocketAddress(new InetSocketAddress("localhost",6667) )
+    server = builder.start.unsafeRunSync()
     info("Started blaze server")
   }
 

@@ -4,8 +4,7 @@ package com.yahoo.maha.service
 
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.parrequest2.GeneralError
-import com.yahoo.maha.parrequest2.future.ParFunction
-import com.yahoo.maha.service.curators.CuratorResult
+import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
 import com.yahoo.maha.service.utils.{MahaRequestLogBuilder, MahaRequestLogHelper, MahaRequestLogWriter}
 import grizzled.slf4j.Logging
 
@@ -14,11 +13,9 @@ trait BaseMahaRequestProcessor {
   def requestCoordinator: RequestCoordinator
   def mahaServiceMonitor : MahaServiceMonitor
   def mahaRequestLogBuilderOption: Option[MahaRequestLogBuilder]
-
   def process(): Unit
-  def onSuccess(fn: (IndexedSeq[CuratorResult]) => Unit)
+  def onSuccess(fn: (RequestCoordinatorResult) => Unit)
   def onFailure(fn: (GeneralError) => Unit)
-
 }
 
 case class MahaSyncRequestProcessorFactory(requestCoordinator: RequestCoordinator
@@ -48,10 +45,10 @@ case class MahaSyncRequestProcessor(mahaRequestContext: MahaRequestContext
     mahaRequestLogBuilderOption.get
   }
 
-  private[this] var onSuccessFn: Option[IndexedSeq[CuratorResult] => Unit] = None
+  private[this] var onSuccessFn: Option[RequestCoordinatorResult => Unit] = None
   private[this] var onFailureFn: Option[GeneralError => Unit] = None
 
-  def onSuccess(fn: (IndexedSeq[CuratorResult]) => Unit) : Unit = {
+  def onSuccess(fn: (RequestCoordinatorResult) => Unit) : Unit = {
     onSuccessFn = Some(fn)
   }
 
@@ -63,52 +60,25 @@ case class MahaSyncRequestProcessor(mahaRequestContext: MahaRequestContext
     mahaServiceMonitor.start(mahaRequestContext.reportingRequest)
     require(onSuccessFn.isDefined || onFailureFn.isDefined, "Nothing to do after processing!")
 
-    val requestCoordinatorResultEither: Either[GeneralError, RequestCoordinatorResult] = requestCoordinator.execute(mahaRequestContext, mahaRequestLogBuilder)
+    val requestCoordinatorResultEither: Either[RequestCoordinatorError, ParRequest[RequestCoordinatorResult]] =
+      requestCoordinator.execute(mahaRequestContext, mahaRequestLogBuilder)
 
     val errParFunction: ParFunction[GeneralError, Unit] = ParFunction.fromScala(callOnFailureFn(mahaRequestLogBuilder, mahaRequestContext.reportingRequest))
 
-    val successParFunction: ParFunction[java.util.List[Either[GeneralError, CuratorResult]], Unit] =
-      ParFunction.fromScala(
-        (javaResult: java.util.List[Either[GeneralError, CuratorResult]]) => {
-          import collection.JavaConverters._
-          val seq = javaResult.asScala.toIndexedSeq
-          val firstFailure = seq.head
-          if(firstFailure.isLeft) {
-            val message = "Failed to execute the query pipeline"
-            val generalError = {
-              if(firstFailure.left.get.throwableOption.isDefined) {
-                GeneralError.from(processingLabel, message, firstFailure.left.get.throwableOption.get)
-              } else {
-                GeneralError.from(processingLabel, message)
-              }
-            }
-            callOnFailureFn(mahaRequestLogBuilder,mahaRequestContext.reportingRequest)(generalError)
-          } else {
-            try {
-              onSuccessFn.foreach(_ (seq.view.filter(_.isRight).map(_.right.get).toIndexedSeq))
-              mahaRequestLogBuilder.logSuccess()
-              mahaServiceMonitor.stop(mahaRequestContext.reportingRequest)
-            } catch {
-              case e: Exception =>
-                val message = s"Failed while calling onSuccessFn ${e.getMessage}"
-                logger.error(message, e)
-                mahaRequestLogBuilder.logFailed(message)
-                mahaServiceMonitor.stop(mahaRequestContext.reportingRequest)
-            }
-          }
-        }
-      )
-
     requestCoordinatorResultEither.fold({
-      err: GeneralError =>
+      err: RequestCoordinatorError =>
         callOnFailureFn(mahaRequestLogBuilder, mahaRequestContext.reportingRequest)(err)
     }, {
-      (requestCoordinatorResult: RequestCoordinatorResult) =>
-        requestCoordinatorResult.combinedResultList.fold[Unit](errParFunction, successParFunction)
+      (parRequestResult: ParRequest[RequestCoordinatorResult]) =>
+          parRequestResult.fold(errParFunction
+            , ParFunction.fromScala {
+              requestCoordinatorResult =>
+                onSuccessFn.foreach(_ (requestCoordinatorResult))
+            })
     })
   }
 
-  private[this] def callOnFailureFn(mahaRequestLogBuilder: MahaRequestLogBuilder, reportingRequest: ReportingRequest)(err: GeneralError) : Unit = {
+  private[this] def callOnFailureFn[T<:GeneralError](mahaRequestLogBuilder: MahaRequestLogBuilder, reportingRequest: ReportingRequest)(err: T) : Unit = {
     try {
       onFailureFn.foreach(_ (err))
     } catch {

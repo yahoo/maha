@@ -6,13 +6,13 @@ import java.io.OutputStream
 import javax.ws.rs.core.StreamingOutput
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.service.curators.CuratorResult
+import com.yahoo.maha.service.RequestCoordinatorResult
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
 import com.yahoo.maha.service.output.JsonOutputFormat
 
-class JsonStreamingOutput(override val resultList: IndexedSeq[CuratorResult],
+class JsonStreamingOutput(override val requestCoordinatorResult: RequestCoordinatorResult,
                                override val ingestionTimeUpdaterMap : Map[Engine, IngestionTimeUpdater] = Map.empty
-                              ) extends JsonOutputFormat(resultList, ingestionTimeUpdaterMap) with StreamingOutput {
+                              ) extends JsonOutputFormat(requestCoordinatorResult, ingestionTimeUpdaterMap) with StreamingOutput {
 
 
   override def write(outputStream: OutputStream): Unit = {

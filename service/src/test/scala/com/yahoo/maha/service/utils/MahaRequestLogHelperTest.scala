@@ -5,7 +5,9 @@ package com.yahoo.maha.service.utils
 import java.nio.charset.StandardCharsets
 
 import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
+import com.yahoo.maha.core.{PrestoEngine, DruidEngine, OracleEngine}
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
+import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.service.curators.DefaultCurator
 import com.yahoo.maha.service.{MahaRequestContext, MahaServiceConfig}
@@ -44,6 +46,15 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
 
   val bucketParams: BucketParams = BucketParams(UserInfo("uid", true))
 
+  val queryAttributeBuilder  = new QueryAttributeBuilder
+  val engineStats = new EngineQueryStats()
+  engineStats.addStat(EngineQueryStat(PrestoEngine, System.currentTimeMillis(), System.currentTimeMillis()))
+  engineStats.addStat(EngineQueryStat(OracleEngine, System.currentTimeMillis(), System.currentTimeMillis()))
+  engineStats.addStat(EngineQueryStat(DruidEngine, System.currentTimeMillis(), System.currentTimeMillis()))
+  queryAttributeBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineStats))
+  queryAttributeBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineStats))
+
+
   test("Test MahaRequestLogHelper") {
     val mahaServiceConf = mock(classOf[MahaServiceConfig])
     val mahaRequestLogWriter = mock(classOf[MahaRequestLogWriter])
@@ -58,6 +69,7 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     MDC.put(MahaConstants.USER_ID,"abc")
     mahaRequestLogHelper.setDryRun()
     mahaRequestLogHelper.setAsyncQueueParams()
+    mahaRequestLogHelper.logQueryStats(queryAttributeBuilder.build)
     when(mahaServiceConf.mahaRequestLogWriter).thenReturn(mahaRequestLogWriter)
     when(mahaRequestLogWriter.write(proto.build())).thenAnswer(_)
     mahaRequestLogHelper.logSuccess()
@@ -80,6 +92,7 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     MDC.put(MahaConstants.USER_ID,"abc")
     mahaRequestLogHelper.setDryRun()
     mahaRequestLogHelper.setAsyncQueueParams()
+    mahaRequestLogHelper.logQueryStats(queryAttributeBuilder.build)
     when(mahaServiceConf.mahaRequestLogWriter).thenReturn(mahaRequestLogWriter)
     when(mahaRequestLogWriter.write(proto.build())).thenAnswer(_)
     mahaRequestLogHelper.logFailed("Test Failed", Some(400))
@@ -100,6 +113,7 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     val proto = mahaRequestLogHelper.getbuilder()
     mahaRequestLogHelper.setDryRun()
     mahaRequestLogHelper.setAsyncQueueParams()
+    mahaRequestLogHelper.logQueryStats(queryAttributeBuilder.build)
     when(mahaServiceConf.mahaRequestLogWriter).thenReturn(mahaRequestLogWriter)
     when(mahaRequestLogWriter.write(proto.build())).thenAnswer(_)
     mahaRequestLogHelper.logFailed("Test Failed", Some(400))
@@ -119,6 +133,7 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     val failedLog = mahaRequestLogHelper.logFailed("new error message")
     mahaRequestLogHelper.logSuccess()
     mahaRequestLogHelper.logSuccess()
+    mahaRequestLogHelper.logQueryStats(queryAttributeBuilder.build)
     val curatorLogBuilder = mahaRequestLogHelper.curatorLogBuilder(new DefaultCurator())
     val curatorHelper = CuratorMahaRequestLogHelper(curatorLogBuilder)
     curatorHelper.logFailed("a second new error message")

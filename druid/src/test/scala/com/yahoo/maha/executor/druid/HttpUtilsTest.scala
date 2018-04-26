@@ -4,9 +4,9 @@ package com.yahoo.maha.executor.druid
 
 import java.net.InetSocketAddress
 
+import cats.effect.IO
 import grizzled.slf4j.Logging
 import org.http4s.server.blaze.BlazeBuilder
-import org.mockito.Mockito
 import org.scalatest._
 
 class HttpUtilsTest extends FunSuite with Matchers with BeforeAndAfterAll with Logging with TestWebService {
@@ -22,12 +22,12 @@ class HttpUtilsTest extends FunSuite with Matchers with BeforeAndAfterAll with L
   val sslContextVersion = "TLSv1.2"
   val commaSeparatedCipherSuitesList = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_RSA_WITH_AES_256_CBC_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA"
   val degradationConfig:String= "CONFIG"
-  var server: org.http4s.server.Server = null
+  var server: org.http4s.server.Server[IO] = null
 
   override def beforeAll{
     super.beforeAll()
-    val builder = BlazeBuilder.mountService(service,"/mock").bindSocketAddress(new InetSocketAddress("localhost",5544) )
-    server = builder.run
+    val builder = BlazeBuilder[IO].mountService(service,"/mock").bindSocketAddress(new InetSocketAddress("localhost",5544) )
+    server = builder.start.unsafeRunSync()
     info("Started blaze server")
   }
 

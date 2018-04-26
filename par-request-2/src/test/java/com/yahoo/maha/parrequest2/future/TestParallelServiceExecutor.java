@@ -947,4 +947,12 @@ public class TestParallelServiceExecutor {
         assertTrue(result.right().get()._2().isEmpty());
         assertTrue(result.right().get()._3().get() == 12);
     }
+
+    @Test
+    public void testImmediateResultWithEither() throws Exception {
+        ParRequest<String> request = executor.immediateResult("testImmediateResultWithEither", GeneralError.either("testImmediateResultWithEither", "error"));
+        Either<GeneralError, String> result = request.get();
+        assertTrue(result.isLeft());
+        assertTrue(result.left().get().message.equals("error"));
+    }
 }

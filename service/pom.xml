@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.110-SNAPSHOT</version>
+        <version>5.111-SNAPSHOT</version>
     </parent>
 
     <name>maha service</name>
@@ -218,6 +218,20 @@
             <groupId>io.druid.extensions</groupId>
             <artifactId>druid-datasketches</artifactId>
             <version>${druid.version}</version>
+        </dependency>
+
+        <!--for mock druid service, scope test -->
+        <dependency>
+            <groupId>org.http4s</groupId>
+            <artifactId>http4s-dsl_2.11</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.http4s</groupId>
+            <artifactId>http4s-blaze-server_2.11</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.http4s</groupId>
+            <artifactId>http4s-blaze-client_2.11</artifactId>
         </dependency>
 
         <dependency>

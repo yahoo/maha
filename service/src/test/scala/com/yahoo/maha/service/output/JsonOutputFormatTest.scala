@@ -2,18 +2,17 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.output
 
-import java.io.OutputStream
 import java.util.Date
 
-import com.yahoo.maha.core.{Engine, OracleEngine, RequestModelResult}
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.{CompleteRowList, QueryAttributes, QueryPipelineResult}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.service.{BaseMahaServiceTest, MahaRequestContext, RequestResult}
-import com.yahoo.maha.service.curators.{CuratorResult, DefaultCurator, DrilldownCurator, NoConfig}
+import com.yahoo.maha.core.{Engine, OracleEngine, RequestModelResult}
+import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
+import com.yahoo.maha.service.{BaseMahaServiceTest, CuratorInjector, MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
 
 import scala.util.Try
 
@@ -30,7 +29,8 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
                             {"field": "Student ID"},
                             {"field": "Class ID"},
                             {"field": "Section ID"},
-                            {"field": "Total Marks"}
+                            {"field": "Total Marks"},
+                            {"field": "Sample Constant Field", "value" :"Test Result"}
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
@@ -41,35 +41,30 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
 
   val reportingRequest = ReportingRequest.deserializeSync(jsonRequest.getBytes, StudentSchema).toOption.get
 
-  val (query, queryChain)  = {
-    val registry = mahaServiceConfig.registry(REGISTRY)
+  val registry = mahaServiceConfig.registry(REGISTRY)
 
-    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+  val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
 
-    val mahaRequestContext = MahaRequestContext(REGISTRY,
-      bucketParams,
-      reportingRequest,
-      jsonRequest.getBytes,
-      Map.empty, "rid", "uid")
+  val mahaRequestContext = MahaRequestContext(REGISTRY,
+    bucketParams,
+    reportingRequest,
+    jsonRequest.getBytes,
+    Map.empty, "rid", "uid")
+
+  val mahaRequestLogBuilder = MahaRequestLogHelper(mahaRequestContext, mahaService.mahaRequestLogWriter)
+  val (pse, queryPipeline, query, queryChain)  = {
 
     val requestModel = mahaService.generateRequestModel(REGISTRY
       , reportingRequest
       , BucketParams(UserInfo("test", false))
-      , MahaRequestLogHelper(mahaRequestContext, mahaService.mahaRequestLogWriter)).toOption.get
+      , mahaRequestLogBuilder).toOption.get
     val factory = registry.queryPipelineFactory.from(requestModel.model, QueryAttributes.empty)
     val queryChain = factory.get.queryChain
-    (queryChain.drivingQuery, queryChain)
+    val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)
+    (pse, factory.get, queryChain.drivingQuery, queryChain)
   }
 
   val timeStampString = new Date().toString
-
-  class StringStream extends OutputStream {
-    val stringBuilder = new StringBuilder()
-    override def write(b: Int): Unit = {
-      stringBuilder.append(b.toChar)
-    }
-    override def toString() : String = stringBuilder.toString()
-  }
 
   case class TestOracleIngestionTimeUpdater(engine: Engine, source: String) extends IngestionTimeUpdater {
     override def getIngestionTime(dataSource: String): Option[String] = {
@@ -91,17 +86,24 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
     row.addValue("Class ID", 234)
     row.addValue("Section ID", 345)
     row.addValue("Total Marks", 99)
+    // Oracle Engine should return the Row Count along with the result, can not simulate it here, thus skipping.
+
     rowList.addRow(row)
 
-    val queryPipelineResult = QueryPipelineResult(queryChain, rowList, QueryAttributes.empty)
-    val requestResult = Try(RequestResult(queryPipelineResult, Some(1)))
+    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty)
+    val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
+    val parRequestResult = ParRequestResult(Try(queryPipeline), requestResult, None)
     val requestModelResult = RequestModelResult(query.queryContext.requestModel, None)
     val defaultCurator = DefaultCurator()
-    val curatorResult = CuratorResult(defaultCurator, NoConfig, requestResult, requestModelResult)
+    val curatorResult = CuratorResult(defaultCurator, NoConfig, Option(parRequestResult), requestModelResult)
 
-    val curatorResults= IndexedSeq(curatorResult)
+    val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator)
+      , Map(DefaultCurator.name -> curatorResult)
+      , Map.empty, Map(DefaultCurator.name -> curatorResult.parRequestResultOption.get.prodRun.get().right.get)
+      , mahaRequestContext)
 
-    val jsonStreamingOutput = JsonOutputFormat(curatorResults, Map(OracleEngine-> TestOracleIngestionTimeUpdater(OracleEngine, "testSource")))
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult
+      , Map(OracleEngine-> TestOracleIngestionTimeUpdater(OracleEngine, "testSource")))
 
     val stringStream =  new StringStream()
 
@@ -109,7 +111,8 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
     val result = stringStream.toString()
     println(result)
     stringStream.close()
-    assert(result.equals(s"""{"header":{"lastIngestTime":"$timeStampString","source":"student_grade_sheet","cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,1]],"curators":{}}"""))
+    val expected  = s""""cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,"Test Result"]],"curators":{}}"""
+    assert(result.contains(expected))
   }
 
   test("Test JsonOutputFormat with DefaultCurator and valid other curator result") {
@@ -123,19 +126,27 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
     row.addValue("Total Marks", 99)
     rowList.addRow(row)
 
-    val queryPipelineResult = QueryPipelineResult(queryChain, rowList, QueryAttributes.empty)
-    val requestResult = Try(RequestResult(queryPipelineResult, None))
+    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty)
+    val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
+    val parRequestResult = ParRequestResult(Try(queryPipeline), requestResult, None)
     val requestModelResult = RequestModelResult(query.queryContext.requestModel, None)
     val defaultCurator = DefaultCurator()
-    val curatorResult1 = CuratorResult(defaultCurator, NoConfig, requestResult, requestModelResult)
+    val curatorResult1 = CuratorResult(defaultCurator, NoConfig, Option(parRequestResult), requestModelResult)
 
     val testCurator = new TestCurator()
-    val curatorResult2 = CuratorResult(testCurator, NoConfig, requestResult, requestModelResult)
+    val curatorResult2 = CuratorResult(testCurator, NoConfig, Option(parRequestResult), requestModelResult)
 
 
     val curatorResults= IndexedSeq(curatorResult1, curatorResult2)
 
-    val jsonStreamingOutput = JsonOutputFormat(curatorResults)
+    val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator, testCurator)
+      , Map(DefaultCurator.name -> curatorResult1, curatorResult2.curator.name -> curatorResult2)
+      , Map.empty
+      , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get
+        , "TestCurator" -> curatorResult2.parRequestResultOption.get.prodRun.get().right.get
+      )
+      , mahaRequestContext)
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 
     val stringStream =  new StringStream()
 
@@ -143,7 +154,47 @@ class JsonOutputFormatTest extends BaseMahaServiceTest {
     val result = stringStream.toString()
     println(result)
     stringStream.close()
-    assert(result.equals(s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99]],"curators":{"TestCurator":{"result":{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99]]}}}}""".stripMargin))
+    assert(result.contains(s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,"Test Result"]],"curators":{"TestCurator":{"result":{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,"Test Result"]]}}}}""".stripMargin))
   }
 
+  test("Test JsonOutputFormat with DefaultCurator and failed other curator result") {
+
+    val rowList = CompleteRowList(query)
+
+    val row = rowList.newRow
+    row.addValue("Student ID", 123)
+    row.addValue("Class ID", 234)
+    row.addValue("Section ID", 345)
+    row.addValue("Total Marks", 99)
+    rowList.addRow(row)
+
+    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty)
+    val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
+    val parRequestResult = ParRequestResult(Try(queryPipeline), requestResult, None)
+    val requestModelResult = RequestModelResult(query.queryContext.requestModel, None)
+    val defaultCurator = DefaultCurator()
+    val curatorResult1 = CuratorResult(defaultCurator, NoConfig, Option(parRequestResult), requestModelResult)
+
+    val failingCurator = new FailingCurator()
+    val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogBuilder, Set(FailingCurator.name))
+    val curatorResult2 = failingCurator.process(Map.empty
+      , mahaRequestContext, mahaService, mahaRequestLogBuilder.curatorLogBuilder(failingCurator), NoConfig, curatorInjector)
+
+    val curatorResults= IndexedSeq(curatorResult1, curatorResult2)
+
+    val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator, failingCurator)
+      , Map(DefaultCurator.name -> curatorResult1)
+      , Map(failingCurator.name -> curatorResult2.left.get)
+      , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get)
+      , mahaRequestContext)
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
+
+    val stringStream =  new StringStream()
+
+    jsonStreamingOutput.writeStream(stringStream)
+    val result = stringStream.toString()
+    println(result)
+    stringStream.close()
+    assert(result.equals("""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,"Test Result"]],"curators":{"fail":{"error":{"message":"failed"}}}}"""))
+  }
 }
