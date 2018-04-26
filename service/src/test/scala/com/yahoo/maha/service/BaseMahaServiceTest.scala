@@ -1,11 +1,13 @@
+// Copyright 2018, Yahoo Holdings Inc.
+// Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service
 
-import java.net.{ServerSocket, InetSocketAddress}
+import java.net.{InetSocketAddress, ServerSocket}
 import java.nio.file.Paths
 import java.util.UUID
 
 import com.google.common.io.Closer
-import com.yahoo.maha.core.{OracleEngine, DailyGrain}
+import com.yahoo.maha.core.{DailyGrain, OracleEngine}
 import com.yahoo.maha.core.ddl.OracleDDLGenerator
 import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.jdbc.JdbcConnection
@@ -39,7 +41,9 @@ trait BaseMahaServiceTest extends FunSuite with Logging {
   protected[this] val druidPort:Int  = {
     try {
       val socket = new ServerSocket(0)
-      socket.getLocalPort
+      val freePort = socket.getLocalPort
+      socket.close()
+      freePort
     } catch {
       case e:Exception=>
         error("Failed to find the free port, trying default port")
