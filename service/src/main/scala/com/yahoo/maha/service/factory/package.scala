@@ -36,7 +36,7 @@ package object factory {
       }
       t.successNel[MahaServiceError]
     } catch {
-      case t: Throwable =>
+      case t: Exception =>
         FailedToConstructFactory(s"Failed to construct factory : $clazz", Option(t)).asInstanceOf[MahaServiceError].failureNel[T]
     }
 
