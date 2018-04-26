@@ -102,4 +102,17 @@ class DefaultCuratorTest extends BaseMahaServiceTest {
     )
   }
 
+  test("Default Curator test with BadTestRequestModelValidator") {
+
+    val defaultCurator = DefaultCurator(new BadTestRequestModelValidator)
+    val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
+
+    val defaultParRequest: Either[GeneralError, ParRequest[CuratorResult]] = defaultCurator
+      .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
+
+    assert(defaultParRequest.isLeft)
+
+  }
+
+
 }
