@@ -246,7 +246,7 @@ object DruidQueryExecutor extends Logging {
 }
 
 class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: ExecutionLifecycleListener,
-                         transformers: List[ResultSetTransformer] = DruidResultSetTransformers.DEFAULT_TRANSFORMS ) extends QueryExecutor with Logging with Closeable {
+                         transformers: List[ResultSetTransformer] = ResultSetTransformer.DEFAULT_TRANSFORMS ) extends QueryExecutor with Logging with Closeable {
   val engine: Engine = DruidEngine
   val httpUtils = new HttpUtils(ClientConfig
     .getConfig(

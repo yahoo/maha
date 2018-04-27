@@ -10,6 +10,7 @@ import com.yahoo.maha.core.DruidDerivedFunction.{DECODE_DIM, GET_INTERVAL_DATE}
 import com.yahoo.maha.core.DruidPostResultFunction.{POST_RESULT_DECODE, START_OF_THE_MONTH, START_OF_THE_WEEK}
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.lookup.LongRangeLookup
@@ -363,7 +364,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
   private[this] def getDruidQueryExecutor(url: String, enableFallbackOnUncoveredIntervals: Boolean = false) : DruidQueryExecutor = {
     new DruidQueryExecutor(new DruidQueryExecutorConfig(50,500,5000,5000, 5000,"config",url,None,3000,3000,3000,3000,
-      true, 500, 3, enableFallbackOnUncoveredIntervals), new NoopExecutionLifecycleListener, DruidResultSetTransformers.DEFAULT_TRANSFORMS)
+      true, 500, 3, enableFallbackOnUncoveredIntervals), new NoopExecutionLifecycleListener, ResultSetTransformer.DEFAULT_TRANSFORMS)
   }
 
   private[this] def getDruidQueryGenerator(maximumMaxRowsAsync: Int = 100) : DruidQueryGenerator = {

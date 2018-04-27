@@ -5,6 +5,7 @@ package com.yahoo.maha.executor.druid
 import java.net.InetSocketAddress
 
 import cats.effect.IO
+import com.yahoo.maha.core.query.NumberTransformer
 import grizzled.slf4j.Logging
 import org.http4s.server.blaze.BlazeBuilder
 import org.scalatest._
