@@ -907,7 +907,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
 
-    val expectedJson = s"""{"drilldown":{"error":{"message":"com.yahoo.maha.service.error.MahaServiceBadRequestException:requirement failed: ERROR_CODE:10005 Failed to find primary key alias for Performance Factor"}}}"""
+    val expectedJson = s"""{"drilldown":{"error":{"message":"MahaServiceBadRequestException: requirement failed: ERROR_CODE:10005 Failed to find primary key alias for Performance Factor"}}}"""
     println(result)
 
     assert(result.contains(expectedJson))

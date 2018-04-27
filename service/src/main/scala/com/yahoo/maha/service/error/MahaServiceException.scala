@@ -13,8 +13,13 @@ trait MahaServiceException extends Exception {
 
 case class MahaServiceBadRequestException(message : String, source: Option[Throwable] = None) extends MahaServiceException {
   override val errorCode = 400
+
+  override def getMessage: String = "MahaServiceBadRequestException: " + message
 }
 
 case class MahaServiceExecutionException(message : String, source: Option[Throwable] = None) extends MahaServiceException {
   override val errorCode = 500
+
+  override def getMessage: String = "MahaServiceExecutionException: " + message
+
 }
