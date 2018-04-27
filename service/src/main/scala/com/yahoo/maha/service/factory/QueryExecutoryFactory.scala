@@ -5,9 +5,9 @@ package com.yahoo.maha.service.factory
 import com.yahoo.maha.executor.oracle.OracleQueryExecutor
 import com.yahoo.maha.executor.presto.{PrestoQueryExecutor, PrestoQueryTemplate}
 import com.yahoo.maha.service.MahaServiceConfig
-import com.yahoo.maha.core.query.{ExecutionLifecycleListener, QueryAttributes, QueryContext, QueryExecutor}
+import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request._
-import com.yahoo.maha.executor.druid.{DruidQueryExecutor, DruidQueryExecutorConfig, ResultSetTransformers}
+import com.yahoo.maha.executor.druid.{DruidQueryExecutor, DruidQueryExecutorConfig}
 import com.yahoo.maha.jdbc.JdbcConnection
 import org.json4s.JValue
 
@@ -101,7 +101,7 @@ class DruidQueryExecutoryFactory extends QueryExecutoryFactory {
       lifecycleListener <- lifecycleListenerFactory.fromJson(lifecycleListenerFactoryConfig)
     } yield lifecycleListener
 
-    val resultSetTransformers : MahaServiceConfig.MahaConfigResult[List[ResultSetTransformers]] = for {
+    val resultSetTransformers : MahaServiceConfig.MahaConfigResult[List[ResultSetTransformer]] = for {
       resultSetTransformersFactoryClassName <- resultSetTransformersFactoryClassNameResult
       resultSetTransformersFactoryConfig <- resultSetTransformersFactoryConfigResult
       resultSetTransformersFactory <- getFactory[ResultSetTransformersFactory](resultSetTransformersFactoryClassName, this.closer)

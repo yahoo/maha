@@ -8,6 +8,7 @@ import javax.sql.DataSource
 
 import com.google.common.io.Closer
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.query.ResultSetTransformer
 import com.yahoo.maha.core.bucketing.{BucketingConfig, CubeBucketingConfig, CubeBucketingConfigBuilder, DefaultBucketingConfig}
 import com.yahoo.maha.core.query.druid.DruidQueryOptimizer
 import com.yahoo.maha.core.query._

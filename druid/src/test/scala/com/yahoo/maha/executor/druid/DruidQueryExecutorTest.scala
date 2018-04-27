@@ -363,7 +363,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
   private[this] def getDruidQueryExecutor(url: String, enableFallbackOnUncoveredIntervals: Boolean = false) : DruidQueryExecutor = {
     new DruidQueryExecutor(new DruidQueryExecutorConfig(50,500,5000,5000, 5000,"config",url,None,3000,3000,3000,3000,
-      true, 500, 3, enableFallbackOnUncoveredIntervals), new NoopExecutionLifecycleListener, ResultSetTransformer.DEFAULT_TRANSFORMS)
+      true, 500, 3, enableFallbackOnUncoveredIntervals), new NoopExecutionLifecycleListener, DruidResultSetTransformers.DEFAULT_TRANSFORMS)
   }
 
   private[this] def getDruidQueryGenerator(maximumMaxRowsAsync: Int = 100) : DruidQueryGenerator = {
