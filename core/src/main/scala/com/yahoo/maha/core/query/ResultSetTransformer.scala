@@ -1,11 +1,9 @@
-// Copyright 2017, Yahoo Holdings Inc.
-// Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
-package com.yahoo.maha.executor.druid
+package com.yahoo.maha.core.query
 
 import java.math.MathContext
 
 import com.google.common.cache.{CacheBuilder, CacheLoader}
-import com.yahoo.maha.core._
+import com.yahoo.maha.core.{IntType, _}
 import grizzled.slf4j.Logging
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.json4s.DefaultFormats
@@ -13,11 +11,7 @@ import org.json4s.DefaultFormats
 import scala.collection.concurrent.TrieMap
 import scala.math.BigDecimal.RoundingMode
 
-/**
-  * Created by cdw-snv on 2/1/17.
-  */
-
-trait ResultSetTransformers extends Logging {
+trait ResultSetTransformer extends Logging {
 
   def extractBigDecimal(field: Any) : BigDecimal = {
     field match  {
@@ -34,11 +28,11 @@ trait ResultSetTransformers extends Logging {
   def canTransform(resultAlias: String, column: Column): Boolean
 }
 
-object ResultSetTransformers {
+object ResultSetTransformer {
   val DEFAULT_TRANSFORMS = List(new DateTransformer, new NumberTransformer)
 }
 
-case class DateTransformer() extends ResultSetTransformers {
+case class DateTransformer() extends ResultSetTransformer {
 
   val dateTimeFormatters = new TrieMap[String, DateTimeFormatter]()
 
@@ -80,7 +74,7 @@ case class DateTransformer() extends ResultSetTransformers {
 }
 
 
-case class NumberTransformer() extends ResultSetTransformers {
+case class NumberTransformer() extends ResultSetTransformer {
 
   val DEFAULT_SCALE = 10
   implicit val formats = DefaultFormats

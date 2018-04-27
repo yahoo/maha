@@ -16,6 +16,8 @@ import org.joda.time.{DateTime, DateTimeZone}
 import scala.math.BigDecimal.RoundingMode
 import scala.util.{Failure, Try}
 
+import com.yahoo.maha.core.query.ResultSetTransformer$
+
 trait PrestoQueryTemplate {
   def buildFinalQuery(query: String,  queryContext: QueryContext, queryAttributes: QueryAttributes): String
 }
@@ -25,7 +27,10 @@ object PrestoQueryExecutor {
   final val DATE_FORMATTER = DateTimeFormat.forPattern("yyyy-MM-dd")
 }
 
-class PrestoQueryExecutor(jdbcConnection: JdbcConnection, prestoQueryTemplate: PrestoQueryTemplate, lifecycleListener: ExecutionLifecycleListener) extends QueryExecutor with Logging {
+class PrestoQueryExecutor(jdbcConnection: JdbcConnection,
+                          prestoQueryTemplate: PrestoQueryTemplate,
+                          lifecycleListener: ExecutionLifecycleListener,
+                          transformers: List[ResultSetTransformer] = ResultSetTransformer.DEFAULT_TRANSFORMS) extends QueryExecutor with Logging {
   val engine: Engine = PrestoEngine
 
   val mathContextCache = CacheBuilder
@@ -160,7 +165,15 @@ class PrestoQueryExecutor(jdbcConnection: JdbcConnection, prestoQueryTemplate: P
                 } {
                   val index = columnIndexMap(alias)
                   val value = getColumnValue(index, column, resultSet)
-                  row.addValue(index-1, value)
+                  var transformedValue = value
+                  transformers.foreach(transformer => {
+                    val grain = query.queryContext.requestModel.queryGrain.getOrElse(DailyGrain)
+                    val columnAlias = query.asInstanceOf[PrestoQuery].columnHeaders.apply(index-1)
+                    if (transformer.canTransform(columnAlias, column)) {
+                      transformedValue = transformer.transform(grain, columnAlias, column, transformedValue)
+                    }
+                  })
+                  row.addValue(index-1, transformedValue)
                 }
                 qrl.addRow(row)
                 rowCount += 1

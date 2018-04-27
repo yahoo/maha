@@ -60,7 +60,7 @@ object DruidQueryExecutor extends Logging {
       }
     })
 
-  def parseHelper(grain: Grain, row:Row,resultAlias:String,resultValue:JValue,aliasColumnMap:Map[String,Column], transformers: List[ResultSetTransformers]): Unit ={
+  def parseHelper(grain: Grain, row:Row,resultAlias:String,resultValue:JValue,aliasColumnMap:Map[String,Column], transformers: List[ResultSetTransformer]): Unit ={
     if(aliasColumnMap.contains(resultAlias)) {
       val column = aliasColumnMap(resultAlias)
       transformers.foreach(transformer => {
@@ -77,7 +77,7 @@ object DruidQueryExecutor extends Logging {
   }
 
   def processResult[T <: QueryRowList](query:Query
-                                  , transformers: List[ResultSetTransformers]
+                                  , transformers: List[ResultSetTransformer]
                                   , getRow: List[JField] => Row
                                   , getEphemeralRow: List[JField] => Row
                                   , rowList: T
@@ -116,7 +116,7 @@ object DruidQueryExecutor extends Logging {
   }
 
   def parseJsonAndPopulateResultSet[T <: QueryRowList](query:Query,response:Response,rowList: T, getRow: List[JField] => Row, getEphemeralRow: List[JField] => Row,
-                                                  transformers: List[ResultSetTransformers]  ) : Unit ={
+                                                  transformers: List[ResultSetTransformer]  ) : Unit ={
     val jsonString : String = response.getResponseBody(StandardCharsets.UTF_8.displayName())
 
     if(query.queryContext.requestModel.isDebugEnabled) {
@@ -246,7 +246,7 @@ object DruidQueryExecutor extends Logging {
 }
 
 class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: ExecutionLifecycleListener,
-                         transformers: List[ResultSetTransformers] = ResultSetTransformers.DEFAULT_TRANSFORMS ) extends QueryExecutor with Logging with Closeable {
+                         transformers: List[ResultSetTransformer] = ResultSetTransformer.DEFAULT_TRANSFORMS ) extends QueryExecutor with Logging with Closeable {
   val engine: Engine = DruidEngine
   val httpUtils = new HttpUtils(ClientConfig
     .getConfig(

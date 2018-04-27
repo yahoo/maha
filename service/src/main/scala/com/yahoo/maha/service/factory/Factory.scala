@@ -8,11 +8,12 @@ import javax.sql.DataSource
 
 import com.google.common.io.Closer
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.query.ResultSetTransformer
 import com.yahoo.maha.core.bucketing.{BucketingConfig, CubeBucketingConfig, CubeBucketingConfigBuilder, DefaultBucketingConfig}
 import com.yahoo.maha.core.query.druid.DruidQueryOptimizer
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request._
-import com.yahoo.maha.executor.druid.{DruidQueryExecutorConfig, ResultSetTransformers}
+import com.yahoo.maha.executor.druid.DruidQueryExecutorConfig
 import com.yahoo.maha.executor.presto.PrestoQueryTemplate
 import com.yahoo.maha.parrequest2.CustomRejectPolicy
 import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor
@@ -93,7 +94,7 @@ trait DruidQueryExecutorConfigFactory extends BaseFactory {
 }
 
 trait ResultSetTransformersFactory extends BaseFactory {
-  def fromJson(config: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[List[ResultSetTransformers]]
+  def fromJson(config: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[List[ResultSetTransformer]]
   def supportedProperties: List[(String, Boolean)]
 }
 
@@ -267,7 +268,7 @@ class NoopExecutionLifecycleListenerFactory extends  ExecutionLifecycleListenerF
 }
 
 class DefaultResultSetTransformersFactory extends ResultSetTransformersFactory {
-  override def fromJson(config: JValue): MahaConfigResult[List[ResultSetTransformers]] =  ResultSetTransformers.DEFAULT_TRANSFORMS.successNel
+  override def fromJson(config: JValue): MahaConfigResult[List[ResultSetTransformer]] =  ResultSetTransformer.DEFAULT_TRANSFORMS.successNel
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }
