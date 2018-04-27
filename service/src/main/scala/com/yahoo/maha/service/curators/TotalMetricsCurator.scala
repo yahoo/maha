@@ -50,7 +50,7 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
     val totalMetricsReportingRequest = reportingRequest.copy(
       selectFields = reportingRequest.selectFields.filter(f=> factColsSet.contains(f.field)),
       forceDimensionDriven = false,
-      forceFactDriven = false,
+      forceFactDriven = true,
       includeRowCount = false,
       sortBy = IndexedSeq.empty,
       paginationStartIndex = 0,
