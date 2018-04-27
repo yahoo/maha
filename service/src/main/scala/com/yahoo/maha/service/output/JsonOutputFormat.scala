@@ -104,12 +104,16 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
 
     } else if(requestCoordinatorResult.failureResults.contains(curator.name)) {
       val curatorError = requestCoordinatorResult.failureResults(curator.name)
+      if(requestCoordinatorResult.mahaRequestContext.reportingRequest.isDebugEnabled){
+        JsonOutputFormat.logger.info(curatorError.toString)
+      }
+
       jsonGenerator.writeFieldName(curatorError.curator.name) // "curatorName":
       jsonGenerator.writeStartObject() //{
       jsonGenerator.writeFieldName("error") // "error":
       jsonGenerator.writeStartObject() //{
       jsonGenerator.writeFieldName("message")
-      jsonGenerator.writeString(curatorError.error.throwableOption.map(_.getMessage).getOrElse(curatorError.error.message))
+      jsonGenerator.writeString(curatorError.error.throwableOption.map(_.getMessage).filterNot(_ == null).getOrElse(curatorError.error.message))
       jsonGenerator.writeEndObject() //}
       jsonGenerator.writeEndObject() //}
     }

@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service
 
+import apple.laf.JRSUIConstants.BooleanValue
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc.{Seq, _}
@@ -9,7 +10,7 @@ import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.error.MahaServiceExecutionException
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
-import com.yahoo.maha.service.output.{StringStream, JsonOutputFormat}
+import com.yahoo.maha.service.output.{JsonOutputFormat, StringStream}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
@@ -849,6 +850,67 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     assert(result.contains(expectedJson))
 
+  }
+
+  test("successful erroring of Drilldown curator when cross-cube request missing fields") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : {
+                                "dimension": "Class ID",
+                                "cube": "student_performance2"
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Total Marks"},
+                            {"field": "Remarks"},
+                            {"field": "Class ID"},
+                            {"field": "Performance Factor"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"},
+                            {"field": "Class ID", "operator": "=", "value": "200"}
+                          ],
+                          "includeRowCount": false
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
+
+    // Revision 1 is druid + oracle case
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(1))
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
+    val drillDownCuratorResult: CuratorError = requestCoordinatorResult.failureResults(DrilldownCurator.name)
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
+
+    val stringStream =  new StringStream()
+
+    jsonStreamingOutput.writeStream(stringStream)
+    val result = stringStream.toString()
+
+    val expectedJson = s"""{"drilldown":{"error":{"message":"MahaServiceBadRequestException: requirement failed: ERROR_CODE:10005 Failed to find primary key alias for Performance Factor"}}}"""
+    println(result)
+
+    assert(result.contains(expectedJson))
   }
 
 }
