@@ -120,6 +120,47 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
         )
     }
     registry.register(pubfactDruid)
+
+    def pubfactOracleReduced: PublicFact = {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        import com.yahoo.maha.core.OracleExpression._
+        Fact.newFact(
+          "student_grade_sheet_again", DailyGrain, OracleEngine, Set(StudentSchema),
+          Set(
+            DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
+            , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+            , DimCol("section_id", IntType(3))
+            , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
+            , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
+            , DimCol("date", DateType())
+            , DimCol("month", DateType())
+          ),
+          Set(
+            FactCol("total_marks", IntType())
+            , FactCol("obtained_marks", IntType())
+            , OracleDerFactCol("Performance Factor", DecType(10, 2), "{obtained_marks}" /- "{total_marks}")
+          )
+        )
+      }
+        .toPublicFact("student_performance2",
+          Set(
+            PubCol("class_id", "Class ID", InEquality),
+            PubCol("student_id", "Student ID", InEquality),
+            PubCol("section_id", "Section ID", InEquality),
+            PubCol("date", "Day", Equality),
+            PubCol("month", "Month", InEquality),
+            PubCol("year", "Year", Equality)
+          ),
+          Set(
+            PublicFactCol("total_marks", "Total Marks", InBetweenEquality),
+            PublicFactCol("obtained_marks", "Marks Obtained", InBetweenEquality)
+          ),
+          Set.empty,
+          getMaxDaysWindow, getMaxDaysLookBack
+        )
+    }
+
+    registry.register(pubfactOracleReduced)
   }
 
 }
