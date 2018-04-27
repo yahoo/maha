@@ -6,6 +6,7 @@ import java.math.MathContext
 
 import com.google.common.cache.{CacheBuilder, CacheLoader}
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.query.{ResultSetTransformer, ResultSetTransformer$}
 import grizzled.slf4j.Logging
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.json4s.DefaultFormats
@@ -17,28 +18,11 @@ import scala.math.BigDecimal.RoundingMode
   * Created by cdw-snv on 2/1/17.
   */
 
-trait ResultSetTransformers extends Logging {
-
-  def extractBigDecimal(field: Any) : BigDecimal = {
-    field match  {
-      case f : BigInt => BigDecimal(f.asInstanceOf[BigInt])
-      case f : Double => BigDecimal(f.asInstanceOf[Double])
-      case f : Long => BigDecimal(f.asInstanceOf[Long])
-      case f : Float => BigDecimal(f.asInstanceOf[Float])
-      case f : Int => BigDecimal(f.asInstanceOf[Int])
-      case _ => BigDecimal(0.0)
-    }
-  }
-
-  def transform(grain: Grain, resultAlias: String, column: Column, inputValue: Any) : Any
-  def canTransform(resultAlias: String, column: Column): Boolean
-}
-
-object ResultSetTransformers {
+object DruidResultSetTransformers {
   val DEFAULT_TRANSFORMS = List(new DateTransformer, new NumberTransformer)
 }
 
-case class DateTransformer() extends ResultSetTransformers {
+case class DateTransformer() extends ResultSetTransformer {
 
   val dateTimeFormatters = new TrieMap[String, DateTimeFormatter]()
 
@@ -80,7 +64,7 @@ case class DateTransformer() extends ResultSetTransformers {
 }
 
 
-case class NumberTransformer() extends ResultSetTransformers {
+case class NumberTransformer() extends ResultSetTransformer {
 
   val DEFAULT_SCALE = 10
   implicit val formats = DefaultFormats
