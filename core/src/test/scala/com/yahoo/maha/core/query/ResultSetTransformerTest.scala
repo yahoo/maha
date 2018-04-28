@@ -19,7 +19,6 @@ class ResultSetTransformerTest extends FunSuite with Matchers{
     }
 
     val retVal = rst.apply().transform(DailyGrain, "Day", decCol, "20180101")
-    println(retVal)
   }
 
   test("Successful ResultSet conversion") {
