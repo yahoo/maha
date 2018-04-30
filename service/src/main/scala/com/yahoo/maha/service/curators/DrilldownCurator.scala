@@ -195,6 +195,17 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
           ).columnsByAlias.contains(field.field)
       )
 
+      val factFieldsRemoved : IndexedSeq[Field] = factFields.filterNot(field =>
+        registryConfig
+          .registry
+          .factMap(
+            (drilldownConfig.cube, bucketSelected.revision)
+          ).columnsByAlias.contains(field.field)
+      )
+
+      if(context.reportingRequest.isDebugEnabled)
+        logger.info("Removed fact fields: " + factFieldsRemoved)
+
       factFieldsReduced
     }
   }
