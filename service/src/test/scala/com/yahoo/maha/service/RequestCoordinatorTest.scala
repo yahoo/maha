@@ -944,7 +944,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
 
     // Revision 1 is druid + oracle case
-    val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(1))
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(10))
 
     val mahaRequestContext = MahaRequestContext(REGISTRY,
       bucketParams,
@@ -965,7 +965,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
 
-    val expectedJson = s"""{"message":"MahaServiceBadRequestException: Failed to select valid revision for second request.  Got java.lang.IllegalArgumentException: requirement failed: Default revision not found for cube student_performance222 in the registry"}"""
+    val expectedJson = s"""{"message":"MahaServiceBadRequestException: requirement failed: Default revision not found for cube student_performance222 in the registry"}"""
     println(result)
 
     assert(result.contains(expectedJson))

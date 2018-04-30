@@ -184,29 +184,35 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
       val registryConfig: RegistryConfig = mahaServiceConfig.registry(registryName)
       val factMap: Map[(String, Int), PublicFact] = registryConfig.registry.factMap
       val selector: BucketSelector = registryConfig.bucketSelector
-      val bucketSelectedTry : Try[BucketSelected] = selector.selectBuckets(
-        drilldownConfig.cube
-        , context.bucketParams.copy(forceRevision = None)
-      )
+
+      val selectedRevisionTry = Try(registryConfig.registry.defaultPublicFactRevisionMap(drilldownConfig.cube))
+
+      val selectedRevision: Option[Int] = if(selectedRevisionTry.isFailure){
+        val bucketSelectedTry : Try[BucketSelected] = selector.selectBuckets(
+          drilldownConfig.cube
+          , context.bucketParams.copy(forceRevision = None)
+        )
+
+        bucketSelectedTry match {
+          case Success(bucketSelected) =>
+            Some(bucketSelected.revision)
+
+          case Failure(t) =>
+            logger.info("Failed to select valid bucket for fact " + t)
+            throw new IllegalArgumentException(t.getMessage)
+        }
+
+
+      }
+      else{
+          selectedRevisionTry.toOption
+      }
 
       var factFieldsReduced: IndexedSeq[Field] = IndexedSeq.empty
 
-      val bucketSelectedOption: Option[BucketSelected] = bucketSelectedTry match {
-        case Success(bucketSelected) =>
-          Some(bucketSelected)
+      val bucketSelectedRevision: Int = selectedRevision.get
 
-        case Failure(t) =>
-          logger.info("Failed to select valid bucket for fact, got " + t)
-          throw new IllegalArgumentException("Failed to select valid revision for second request.  Got " + t)
-      }
-
-      val bucketSelectedRevision: Int =
-        if(bucketSelectedOption.isDefined)
-          bucketSelectedOption.get.revision
-        else
-          registryConfig.registry.defaultPublicFactRevisionMap(drilldownConfig.cube)
-
-            factFieldsReduced = factFields.filter (field =>
+      factFieldsReduced = factFields.filter (field =>
         factMap (
           (drilldownConfig.cube, bucketSelectedRevision)
         ).columnsByAlias.contains (field.field)
