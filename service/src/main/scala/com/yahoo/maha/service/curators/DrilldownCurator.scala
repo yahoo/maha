@@ -4,6 +4,7 @@ package com.yahoo.maha.service.curators
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelected, BucketSelector}
+import com.yahoo.maha.core.fact.PublicFact
 import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.request.{CuratorJsonConfig, Field, ReportingRequest}
 import com.yahoo.maha.parrequest2.GeneralError
@@ -181,29 +182,26 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     }
     else{
       val registryConfig: RegistryConfig = mahaServiceConfig.registry(registryName)
+      val factMap: Map[(String, Int), PublicFact] = registryConfig.registry.factMap
       val selector: BucketSelector = registryConfig.bucketSelector
       val bucketSelected : BucketSelected = selector.selectBuckets(
         drilldownConfig.cube
         , context.bucketParams.copy(forceRevision = None)
       ).get
       val factFieldsReduced : IndexedSeq[Field] = factFields.filter(field =>
-        registryConfig
-          .registry
-          .factMap(
+        factMap(
             (drilldownConfig.cube, bucketSelected.revision)
           ).columnsByAlias.contains(field.field)
       )
 
-      val factFieldsRemoved : IndexedSeq[Field] = factFields.filterNot(field =>
-        registryConfig
-          .registry
-          .factMap(
+      if(context.reportingRequest.isDebugEnabled) {
+        val factFieldsRemoved: IndexedSeq[Field] = factFields.filterNot(field =>
+          factMap(
             (drilldownConfig.cube, bucketSelected.revision)
           ).columnsByAlias.contains(field.field)
-      )
-
-      if(context.reportingRequest.isDebugEnabled)
+        )
         logger.info("Removed fact fields: " + factFieldsRemoved)
+      }
 
       factFieldsReduced
     }
