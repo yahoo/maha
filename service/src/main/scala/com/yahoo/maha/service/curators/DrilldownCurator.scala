@@ -212,17 +212,15 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
 
       val bucketSelectedRevision: Int = selectedRevision.get
 
+      val pubFact : PublicFact = factMap((drilldownConfig.cube, bucketSelectedRevision))
+
       factFieldsReduced = factFields.filter (field =>
-        factMap (
-          (drilldownConfig.cube, bucketSelectedRevision)
-        ).columnsByAlias.contains (field.field)
+        pubFact.columnsByAlias.contains (field.field)
       )
 
       if (context.reportingRequest.isDebugEnabled) {
         val factFieldsRemoved: IndexedSeq[Field] = factFields.filterNot (field =>
-          factMap (
-            (drilldownConfig.cube, bucketSelectedRevision)
-          ).columnsByAlias.contains (field.field)
+          pubFact.columnsByAlias.contains (field.field)
         )
         logger.info ("Removed fact fields: " + factFieldsRemoved)
       }
