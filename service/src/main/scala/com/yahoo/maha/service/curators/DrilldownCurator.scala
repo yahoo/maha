@@ -15,7 +15,7 @@ import com.yahoo.maha.service.{CuratorInjector, MahaRequestContext, MahaService,
 import grizzled.slf4j.Logging
 import org.json4s.scalaz.JsonScalaz
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import scalaz.{NonEmptyList, Validation}
 
 /**
@@ -184,23 +184,41 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
       val registryConfig: RegistryConfig = mahaServiceConfig.registry(registryName)
       val factMap: Map[(String, Int), PublicFact] = registryConfig.registry.factMap
       val selector: BucketSelector = registryConfig.bucketSelector
-      val bucketSelected : BucketSelected = selector.selectBuckets(
+      val bucketSelectedTry : Try[BucketSelected] = selector.selectBuckets(
         drilldownConfig.cube
         , context.bucketParams.copy(forceRevision = None)
-      ).get
-      val factFieldsReduced : IndexedSeq[Field] = factFields.filter(field =>
-        factMap(
-            (drilldownConfig.cube, bucketSelected.revision)
-          ).columnsByAlias.contains(field.field)
       )
 
-      if(context.reportingRequest.isDebugEnabled) {
-        val factFieldsRemoved: IndexedSeq[Field] = factFields.filterNot(field =>
-          factMap(
-            (drilldownConfig.cube, bucketSelected.revision)
-          ).columnsByAlias.contains(field.field)
+      var factFieldsReduced: IndexedSeq[Field] = IndexedSeq.empty
+
+      val bucketSelectedOption: Option[BucketSelected] = bucketSelectedTry match {
+        case Success(bucketSelected) =>
+          Some(bucketSelected)
+
+        case Failure(t) =>
+          logger.info("Failed to select valid bucket for fact, got " + t)
+          throw new IllegalArgumentException("Failed to select valid revision for second request.  Got " + t)
+      }
+
+      val bucketSelectedRevision: Int =
+        if(bucketSelectedOption.isDefined)
+          bucketSelectedOption.get.revision
+        else
+          registryConfig.registry.defaultPublicFactRevisionMap(drilldownConfig.cube)
+
+            factFieldsReduced = factFields.filter (field =>
+        factMap (
+          (drilldownConfig.cube, bucketSelectedRevision)
+        ).columnsByAlias.contains (field.field)
+      )
+
+      if (context.reportingRequest.isDebugEnabled) {
+        val factFieldsRemoved: IndexedSeq[Field] = factFields.filterNot (field =>
+          factMap (
+            (drilldownConfig.cube, bucketSelectedRevision)
+          ).columnsByAlias.contains (field.field)
         )
-        logger.info("Removed fact fields: " + factFieldsRemoved)
+        logger.info ("Removed fact fields: " + factFieldsRemoved)
       }
 
       factFieldsReduced
@@ -281,7 +299,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                         }
 
                         val requestModelResultTry = mahaService.generateRequestModel(
-                          mahaRequestContext.registryName, newRequestWithInsertedFilter, mahaRequestContext.bucketParams
+                          mahaRequestContext.registryName, newRequestWithInsertedFilter, mahaRequestContext.bucketParams.copy(forceRevision = None)
                           , mahaRequestLogBuilder)
 
                         if (requestModelResultTry.isFailure) {
