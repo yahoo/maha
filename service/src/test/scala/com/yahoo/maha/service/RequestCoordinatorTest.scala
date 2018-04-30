@@ -851,7 +851,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
   }
 
-  test("successful erroring of Drilldown curator when cross-cube request missing fields") {
+  test("successful remove of DrillDown curator cross-cube fields when second cube lacks facts from initial request") {
 
     val jsonRequest = s"""{
                           "cube": "student_performance",
@@ -898,7 +898,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
     val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
-    val drillDownCuratorResult: CuratorError = requestCoordinatorResult.failureResults(DrilldownCurator.name)
+    val drillDownCuratorResult: RequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name)
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 
     val stringStream =  new StringStream()
@@ -906,7 +906,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
 
-    val expectedJson = s"""{"drilldown":{"error":{"message":"MahaServiceBadRequestException: requirement failed: ERROR_CODE:10005 Failed to find primary key alias for Performance Factor"}}}"""
+    val expectedJson = s"""{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000}"""
     println(result)
 
     assert(result.contains(expectedJson))
