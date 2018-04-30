@@ -14,7 +14,6 @@ import com.yahoo.maha.service.{CuratorInjector, MahaRequestContext, MahaService,
 import grizzled.slf4j.Logging
 import org.json4s.scalaz.JsonScalaz
 
-import scala.collection.SortedSet
 import scala.util.Try
 import scalaz.{NonEmptyList, Validation}
 
@@ -91,9 +90,9 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
       Option(alias)
     } else if (requestModel.bestCandidates.nonEmpty) {
       val bestCandidates = requestModel.bestCandidates.get
-      val fkAliases = bestCandidates.fkCols.map(bestCandidates.dimColMapping.get).flatten
+      val fkAliases = bestCandidates.fkCols.flatMap(bestCandidates.dimColMapping.get)
       val dimRevisionOption = Option(bestCandidates.publicFact.dimRevision)
-      val dimensions = fkAliases.map(alias => registry.getDimensionByPrimaryKeyAlias(alias, dimRevisionOption)).flatten
+      val dimensions = fkAliases.flatMap(alias => registry.getDimensionByPrimaryKeyAlias(alias, dimRevisionOption))
       if (dimensions.nonEmpty) {
         Option(dimensions.maxBy(_.dimLevel.level).primaryKeyByAlias)
       } else None
@@ -137,7 +136,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     if(reportingRequest.filterExpressions.exists(_.field == primaryKeyAlias)) {
       reportingRequest.copy(includeRowCount = INCLUDE_ROW_COUNT_DRILLDOWN)
     } else {
-      reportingRequest.copy(filterExpressions = (reportingRequest.filterExpressions ++ IndexedSeq(InFilter(primaryKeyAlias, inputFieldValues)))
+      reportingRequest.copy(filterExpressions = reportingRequest.filterExpressions ++ IndexedSeq(InFilter(primaryKeyAlias, inputFieldValues))
         , includeRowCount = INCLUDE_ROW_COUNT_DRILLDOWN)
     }
   }
@@ -159,7 +158,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                                             primaryKeyAlias: String,
                                             drilldownConfig: DrilldownConfig,
                                             mahaRequestContext: MahaRequestContext): ReportingRequest = {
-    val (rm, fields) : (RequestModel, IndexedSeq[Field]) = validateReportingRequest(registryName, bucketParams, reportingRequest, mahaService, mahaRequestLogBuilder)
+    val (_, fields) : (RequestModel, IndexedSeq[Field]) = validateReportingRequest(registryName, bucketParams, reportingRequest, mahaService, mahaRequestLogBuilder)
     val primaryField : Field = Field(primaryKeyAlias, None, None)
 
     val fields_reduced : IndexedSeq[Field] = removeInvalidFactAliases(registryName
@@ -301,14 +300,14 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                           } catch {
                             case e: Exception =>
                               withParRequestError(curatorConfig, GeneralError.from(parRequestLabel
-                                , e.getMessage, new MahaServiceBadRequestException(e.getMessage, Option(e))))
+                                , e.getMessage, MahaServiceBadRequestException(e.getMessage, Option(e))))
                           }
                         }
                       }
                     } catch {
                       case e: Exception =>
                         withParRequestError(curatorConfig, GeneralError.from(parRequestLabel
-                          , e.getMessage, new MahaServiceBadRequestException(e.getMessage, Option(e))))
+                          , e.getMessage, MahaServiceBadRequestException(e.getMessage, Option(e))))
                     }
                 }
               )
