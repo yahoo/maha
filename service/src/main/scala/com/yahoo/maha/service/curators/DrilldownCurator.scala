@@ -177,7 +177,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                                drilldownConfig: DrilldownConfig,
                                factFields: IndexedSeq[Field],
                                context: MahaRequestContext): IndexedSeq[Field] = {
-    if(drilldownConfig.cube.isEmpty){
+    if(drilldownConfig.cube.isEmpty || drilldownConfig.cube == context.reportingRequest.cube){
       factFields
     }
     else{
@@ -208,13 +208,11 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
           selectedRevisionTry.toOption
       }
 
-      var factFieldsReduced: IndexedSeq[Field] = IndexedSeq.empty
-
       val bucketSelectedRevision: Int = selectedRevision.get
 
       val pubFact : PublicFact = factMap((drilldownConfig.cube, bucketSelectedRevision))
 
-      factFieldsReduced = factFields.filter (field =>
+      val factFieldsReduced: IndexedSeq[Field] = factFields.filter (field =>
         pubFact.columnsByAlias.contains (field.field)
       )
 
