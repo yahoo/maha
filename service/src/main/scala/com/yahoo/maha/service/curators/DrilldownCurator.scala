@@ -3,19 +3,19 @@
 package com.yahoo.maha.service.curators
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.bucketing.BucketParams
+import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelected, BucketSelector}
+import com.yahoo.maha.core.fact.PublicFact
 import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.request.{CuratorJsonConfig, Field, ReportingRequest}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.utils.CuratorMahaRequestLogBuilder
-import com.yahoo.maha.service.{CuratorInjector, MahaRequestContext, MahaService}
+import com.yahoo.maha.service.{CuratorInjector, MahaRequestContext, MahaService, MahaServiceConfig, RegistryConfig}
 import grizzled.slf4j.Logging
 import org.json4s.scalaz.JsonScalaz
 
-import scala.collection.SortedSet
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import scalaz.{NonEmptyList, Validation}
 
 /**
@@ -91,9 +91,9 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
       Option(alias)
     } else if (requestModel.bestCandidates.nonEmpty) {
       val bestCandidates = requestModel.bestCandidates.get
-      val fkAliases = bestCandidates.fkCols.map(bestCandidates.dimColMapping.get).flatten
+      val fkAliases = bestCandidates.fkCols.flatMap(bestCandidates.dimColMapping.get)
       val dimRevisionOption = Option(bestCandidates.publicFact.dimRevision)
-      val dimensions = fkAliases.map(alias => registry.getDimensionByPrimaryKeyAlias(alias, dimRevisionOption)).flatten
+      val dimensions = fkAliases.flatMap(alias => registry.getDimensionByPrimaryKeyAlias(alias, dimRevisionOption))
       if (dimensions.nonEmpty) {
         Option(dimensions.maxBy(_.dimLevel.level).primaryKeyByAlias)
       } else None
@@ -114,8 +114,9 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                                         factFields: IndexedSeq[Field],
                                         primaryKeyField: Field,
                                         drilldownConfig: DrilldownConfig): ReportingRequest = {
+    val cube: String = if (drilldownConfig.cube.nonEmpty) drilldownConfig.cube else reportingRequest.cube
     val allSelectedFields : IndexedSeq[Field] = (IndexedSeq(drilldownConfig.dimension, primaryKeyField).filter{_!=null} ++ factFields).distinct
-    reportingRequest.copy(cube = if (drilldownConfig.cube.nonEmpty) drilldownConfig.cube else reportingRequest.cube
+    reportingRequest.copy(cube = cube
       , selectFields = allSelectedFields
       , sortBy = if (drilldownConfig.ordering != IndexedSeq.empty) drilldownConfig.ordering else reportingRequest.sortBy
       , rowsPerPage = drilldownConfig.maxRows.toInt
@@ -136,7 +137,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     if(reportingRequest.filterExpressions.exists(_.field == primaryKeyAlias)) {
       reportingRequest.copy(includeRowCount = INCLUDE_ROW_COUNT_DRILLDOWN)
     } else {
-      reportingRequest.copy(filterExpressions = (reportingRequest.filterExpressions ++ IndexedSeq(InFilter(primaryKeyAlias, inputFieldValues)))
+      reportingRequest.copy(filterExpressions = reportingRequest.filterExpressions ++ IndexedSeq(InFilter(primaryKeyAlias, inputFieldValues))
         , includeRowCount = INCLUDE_ROW_COUNT_DRILLDOWN)
     }
   }
@@ -156,12 +157,74 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                                             mahaService: MahaService,
                                             mahaRequestLogBuilder: CuratorMahaRequestLogBuilder,
                                             primaryKeyAlias: String,
-                                            drilldownConfig: DrilldownConfig): ReportingRequest = {
-    val (rm, fields) : (RequestModel, IndexedSeq[Field]) = validateReportingRequest(registryName, bucketParams, reportingRequest, mahaService, mahaRequestLogBuilder)
+                                            drilldownConfig: DrilldownConfig,
+                                            mahaRequestContext: MahaRequestContext): ReportingRequest = {
+    val (_, fields) : (RequestModel, IndexedSeq[Field]) = validateReportingRequest(registryName, bucketParams, reportingRequest, mahaService, mahaRequestLogBuilder)
     val primaryField : Field = Field(primaryKeyAlias, None, None)
 
-    val rr = drilldownReportingRequest(reportingRequest, fields, primaryField, drilldownConfig)
+    val fields_reduced : IndexedSeq[Field] = removeInvalidFactAliases(registryName
+    , mahaService.getMahaServiceConfig
+    , drilldownConfig
+    , fields
+    , mahaRequestContext)
+
+    val rr = drilldownReportingRequest(reportingRequest, fields_reduced, primaryField, drilldownConfig)
     rr
+  }
+
+  def removeInvalidFactAliases(registryName: String,
+                               mahaServiceConfig: MahaServiceConfig,
+                               drilldownConfig: DrilldownConfig,
+                               factFields: IndexedSeq[Field],
+                               context: MahaRequestContext): IndexedSeq[Field] = {
+    if(drilldownConfig.cube.isEmpty || drilldownConfig.cube == context.reportingRequest.cube){
+      factFields
+    }
+    else{
+      val registryConfig: RegistryConfig = mahaServiceConfig.registry(registryName)
+      val factMap: Map[(String, Int), PublicFact] = registryConfig.registry.factMap
+      val selector: BucketSelector = registryConfig.bucketSelector
+
+      val selectedRevisionTry = Try(registryConfig.registry.defaultPublicFactRevisionMap(drilldownConfig.cube))
+
+      val selectedRevision: Option[Int] = if(selectedRevisionTry.isFailure){
+        val bucketSelectedTry : Try[BucketSelected] = selector.selectBuckets(
+          drilldownConfig.cube
+          , context.bucketParams.copy(forceRevision = None)
+        )
+
+        bucketSelectedTry match {
+          case Success(bucketSelected) =>
+            Some(bucketSelected.revision)
+
+          case Failure(t) =>
+            logger.info("Failed to select valid bucket for fact " + t)
+            throw new IllegalArgumentException(t.getMessage)
+        }
+
+
+      }
+      else{
+          selectedRevisionTry.toOption
+      }
+
+      val bucketSelectedRevision: Int = selectedRevision.get
+
+      val pubFact : PublicFact = factMap((drilldownConfig.cube, bucketSelectedRevision))
+
+      val factFieldsReduced: IndexedSeq[Field] = factFields.filter (field =>
+        pubFact.columnsByAlias.contains (field.field)
+      )
+
+      if (context.reportingRequest.isDebugEnabled) {
+        val factFieldsRemoved: IndexedSeq[Field] = factFields.filterNot (field =>
+          pubFact.columnsByAlias.contains (field.field)
+        )
+        logger.info ("Removed fact fields: " + factFieldsRemoved)
+      }
+
+      factFieldsReduced
+    }
   }
 
   override def process(resultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]]
@@ -225,17 +288,20 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                           , mahaRequestLogBuilder
                           , fieldAlias
                           , curatorConfig.asInstanceOf[DrilldownConfig]
+                          , mahaRequestContext
                         )
 
                         val newRequestWithInsertedFilter = insertValuesIntoDrilldownRequest(newReportingRequest
                           , fieldAlias, values.toList)
+
+
 
                         if (mahaRequestContext.reportingRequest.isDebugEnabled) {
                           logger.info(s"drilldown request : $newRequestWithInsertedFilter")
                         }
 
                         val requestModelResultTry = mahaService.generateRequestModel(
-                          mahaRequestContext.registryName, newRequestWithInsertedFilter, mahaRequestContext.bucketParams
+                          mahaRequestContext.registryName, newRequestWithInsertedFilter, mahaRequestContext.bucketParams.copy(forceRevision = None)
                           , mahaRequestLogBuilder)
 
                         if (requestModelResultTry.isFailure) {
@@ -252,14 +318,14 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                           } catch {
                             case e: Exception =>
                               withParRequestError(curatorConfig, GeneralError.from(parRequestLabel
-                                , e.getMessage, new MahaServiceBadRequestException(e.getMessage, Option(e))))
+                                , e.getMessage, MahaServiceBadRequestException(e.getMessage, Option(e))))
                           }
                         }
                       }
                     } catch {
                       case e: Exception =>
                         withParRequestError(curatorConfig, GeneralError.from(parRequestLabel
-                          , e.getMessage, new MahaServiceBadRequestException(e.getMessage, Option(e))))
+                          , e.getMessage, MahaServiceBadRequestException(e.getMessage, Option(e))))
                     }
                 }
               )
