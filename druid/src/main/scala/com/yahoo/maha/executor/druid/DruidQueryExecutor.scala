@@ -22,6 +22,15 @@ import scala.util.{Failure, Try}
 /**
  * Created by hiral on 12/22/15.
  */
+
+trait AuthHeaderProvider {
+  def getAuthHeaders : Map[String, String]
+}
+
+class NoopAuthHeaderProvider extends AuthHeaderProvider {
+  override def getAuthHeaders = Map.empty
+}
+
 case class DruidQueryExecutorConfig(maxConnectionsPerHost:Int
                                     , maxConnections:Int
                                     , connectionTimeout:Int
@@ -246,7 +255,8 @@ object DruidQueryExecutor extends Logging {
 }
 
 class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: ExecutionLifecycleListener,
-                         transformers: List[ResultSetTransformer] = ResultSetTransformer.DEFAULT_TRANSFORMS ) extends QueryExecutor with Logging with Closeable {
+                         transformers: List[ResultSetTransformer] = ResultSetTransformer.DEFAULT_TRANSFORMS,
+                         authHeaderProvider: AuthHeaderProvider = new NoopAuthHeaderProvider) extends QueryExecutor with Logging with Closeable {
   val engine: Engine = DruidEngine
   val httpUtils = new HttpUtils(ClientConfig
     .getConfig(
@@ -271,6 +281,11 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
 
   val headers = config.headers
 
+  val headersWithAuthHeader = if(config.headers.isDefined) {
+    Some(config.headers.get ++ authHeaderProvider.getAuthHeaders)
+  } else {
+    Some(authHeaderProvider.getAuthHeaders)
+  }
 
   override def close(): Unit = httpUtils.close()
 
@@ -302,7 +317,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
           val isFactDriven = query.queryContext.requestModel.isFactDriven
           val performJoin = irl.size > 0
           val result = Try {
-            val response : Response= httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
+            val response : Response= httpUtils.post(url,httpUtils.POST,headersWithAuthHeader,Some(query.asString))
 
             val temp = checkUncoveredIntervals(query, response, config)
 
@@ -350,7 +365,7 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
         case rl if rl.isInstanceOf[QueryRowList] =>
           val qrl = rl.asInstanceOf[QueryRowList]
           val result = Try {
-            val response = httpUtils.post(url,httpUtils.POST,headers,Some(query.asString))
+            val response = httpUtils.post(url,httpUtils.POST,headersWithAuthHeader,Some(query.asString))
 
             val temp = checkUncoveredIntervals(query, response, config)
 

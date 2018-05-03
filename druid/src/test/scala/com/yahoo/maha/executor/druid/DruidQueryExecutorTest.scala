@@ -28,6 +28,11 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 /**
  * Created by hiral on 2/2/16.
  */
+
+class TestAuthHeaderProvider extends AuthHeaderProvider {
+  override def getAuthHeaders = Map("c" -> "d")
+}
+
 class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema with TestWebService {
   var server: org.http4s.server.Server[IO] = null
   override def beforeAll() : Unit = {
@@ -371,6 +376,14 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     new DruidQueryGenerator(new SyncDruidQueryOptimizer(), 40000, maximumMaxRowsAsync = maximumMaxRowsAsync)
   }
 
+  test("test new auth header added as part of authHeaderProvider") {
+    val executor = new DruidQueryExecutor(new DruidQueryExecutorConfig(50,500,5000,5000, 5000,"config","http://localhost:6667/mock/timeseries_debug",Some(Map("a" -> "b")),3000,3000,3000,3000,
+      true, 500, 3, false), new NoopExecutionLifecycleListener, ResultSetTransformer.DEFAULT_TRANSFORMS, new TestAuthHeaderProvider)
+    assert(executor.headersWithAuthHeader.isDefined)
+    assert(executor.headersWithAuthHeader.get("a") === "b")
+    assert(executor.headersWithAuthHeader.get("c") === "d")
+  }
+
   test("success case for TimeSeries query"){
     val jsonString = s"""{
                           "cube": "k_stats",
@@ -397,6 +410,8 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val query =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
     val executor = getDruidQueryExecutor("http://localhost:6667/mock/timeseries")
+    assert(executor.headersWithAuthHeader.isDefined)
+    assert(executor.headersWithAuthHeader.get.isEmpty)
     val rowList= new CompleteRowList(query)
     val result=  executor.execute(query,rowList, QueryAttributes.empty)
     assert(!result.rowList.isEmpty)
