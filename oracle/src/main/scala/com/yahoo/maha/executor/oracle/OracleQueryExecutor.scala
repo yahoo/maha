@@ -2,18 +2,14 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.executor.oracle
 
-import java.math.MathContext
 import java.sql.{ResultSet, ResultSetMetaData}
 
-import com.google.common.cache.{CacheBuilder, CacheLoader}
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.jdbc.JdbcConnection
 import grizzled.slf4j.Logging
 import org.joda.time.format.DateTimeFormat
-import org.joda.time.{DateTime, DateTimeZone}
 
-import scala.math.BigDecimal.RoundingMode
 import scala.util.{Failure, Try}
 
 /**
@@ -27,106 +23,7 @@ object OracleQueryExecutor {
 class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: ExecutionLifecycleListener) extends QueryExecutor with Logging {
   val engine: Engine = OracleEngine
 
-  val mathContextCache = CacheBuilder
-    .newBuilder()
-    .maximumSize(100)
-    .concurrencyLevel(Runtime.getRuntime.availableProcessors())
-    .build(new CacheLoader[java.lang.Integer, MathContext]() {
-    override def load(key: java.lang.Integer): MathContext = {
-      new MathContext(key, java.math.RoundingMode.HALF_EVEN)
-    }
-  })
-  
-  private[this] def getBigDecimalSafely(resultSet: ResultSet, index: Int) : BigDecimal = {
-    val result: java.math.BigDecimal = resultSet.getBigDecimal(index)
-    if(result == null)
-      return null
-    result
-  }
-  
-  private[this] def getLongSafely(resultSet: ResultSet, index: Int) : Long = {
-    val result = getBigDecimalSafely(resultSet, index)
-    if(result == null)
-      return 0L
-    result.longValue()
-  }
-
-  /*
-  private[this] def getDoubleSafely(resultSet: ResultSet, index: Int) : Double = {
-    val result = getBigDecimalSafely(resultSet, index)
-    if(result == null)
-      return 0D
-    result.doubleValue()
-  }*/
-  
-  def getColumnValue(index: Int, column: Column, resultSet: ResultSet) : Any = {
-    column.dataType match {
-      case IntType(_, sm, _, _, _) =>
-        if(sm.isDefined) {
-          resultSet.getString(index)
-        } else {
-          getLongSafely(resultSet, index)
-        }
-      case DecType(len: Int, scale, _, _, _, _) =>
-        val result: java.lang.Double = {
-          if (scale > 0 && len > 0) {
-            val result = getBigDecimalSafely(resultSet, index)
-            if(result != null) {
-              val mc = mathContextCache.get(len)
-              result.setScale(scale, RoundingMode.HALF_EVEN).round(mc).toDouble
-            } else {
-              null
-            }
-          } else if(scale > 0) {
-            val result = getBigDecimalSafely(resultSet, index)
-            if(result != null) {
-              result.setScale(scale, RoundingMode.HALF_EVEN).toDouble
-            } else {
-              null
-            }
-          } else if(len > 0) {
-            val result = getBigDecimalSafely(resultSet, index)
-            if(result != null) {
-              val mc = mathContextCache.get(len)
-              result.setScale(10, RoundingMode.HALF_EVEN).round(mc).toDouble
-            } else {
-              null
-            }
-          } else {
-            val result = getBigDecimalSafely(resultSet, index)
-            if(result != null) {
-              result.setScale(10, RoundingMode.HALF_EVEN).toDouble
-            } else {
-              null
-            }
-          }
-        }
-        result
-      case dt: DateType =>
-        if(dt.format.isDefined) {
-          resultSet.getString(index)
-        } else {
-          val date = resultSet.getDate(index)
-          if (date != null) {
-            val dateTime = new DateTime(date)
-            dateTime.toString(OracleQueryExecutor.DATE_FORMATTER)
-          } else {
-            null
-          }
-        }
-      case tt: TimestampType =>
-        val ts = resultSet.getTimestamp(index)
-        if (ts != null) {
-          val dateTime = new DateTime(ts, DateTimeZone.UTC)
-          dateTime.toString(OracleQueryExecutor.DATE_TIME_FORMATTER)
-        } else {
-          null
-        }
-      case s: StrType =>
-        resultSet.getString(index)
-      case any => throw new UnsupportedOperationException(s"Unhandled data type for column value extraction : $any")
-    }
-  }
+  val columnValueExtractor = new ColumnValueExtractor
 
   def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
     val acquiredQueryAttributes = lifecycleListener.acquired(query, queryAttributes)
@@ -178,7 +75,7 @@ class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
               do {
                 //get existing index row or create new one
                 val rowSet = {
-                  val indexValue = getColumnValue(index, indexColumn, resultSet)
+                  val indexValue = columnValueExtractor.getColumnValue(index, indexColumn, resultSet)
                   val rowSet = irl.getRowByIndex(indexValue)
                   //no row, create one
                   if(rowSet.isEmpty) {
@@ -196,7 +93,7 @@ class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
                     (alias, column) <- aliasColumnMap
                   } yield {
                     val index = columnIndexMap(alias)
-                    val value = getColumnValue(index, column, resultSet)
+                    val value = columnValueExtractor.getColumnValue(index, column, resultSet)
                     (alias, value)
                   }
 
@@ -257,7 +154,7 @@ class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
                   (alias, column) <- aliasColumnMap
                 } {
                   val index = columnIndexMap(alias)
-                  val value = getColumnValue(index, column, resultSet)
+                  val value = columnValueExtractor.getColumnValue(index, column, resultSet)
                   row.addValue(alias, value)
                 }
                 qrl.addRow(row)
