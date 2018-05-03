@@ -85,7 +85,7 @@ class NoopExecutionLifecycleListener extends ExecutionLifecycleListener with Log
 }
 
 class ColumnValueExtractor {
-  val mathContextCache = CacheBuilder
+  private[this] val mathContextCache = CacheBuilder
     .newBuilder()
     .maximumSize(100)
     .concurrencyLevel(Runtime.getRuntime.availableProcessors())
