@@ -25,6 +25,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
   private var dataSource: Option[HikariDataSource] = None
   private var jdbcConnection: Option[JdbcConnection] = None
   private var prestoQueryExecutor : Option[PrestoQueryExecutor] = None
+  private val columnValueExtractor = new ColumnValueExtractor
   private val queryExecutorContext : QueryExecutorContext = new QueryExecutorContext
   private val staticTimestamp = new Timestamp(System.currentTimeMillis())
   private val staticTimestamp2 = new Timestamp(System.currentTimeMillis() + 1)
@@ -621,7 +622,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
   test("test null result") {
     var resultSet: ResultSet = null
-    var executor : PrestoQueryExecutor = Mockito.spy(prestoQueryExecutor.get)
+    //val executor : PrestoQueryExecutor = Mockito.spy(prestoQueryExecutor.get)
     val today = new Date(1515794890000L)
     jdbcConnection.get.queryForList("select * from ad_stats_presto where ad_id=1000 limit 1") {
       rs => {
@@ -631,11 +632,10 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
         Mockito.doReturn(null).when(resultSet).getDate(1)
         Mockito.doReturn(today).when(resultSet).getDate(2)
         Mockito.doReturn(null).when(resultSet).getTimestamp(anyInt())
-        Mockito.doReturn(null).when(executor).getBigDecimalSafely(resultSet, 5)
       }
     }
 
-    assert(prestoQueryExecutor.get.getBigDecimalSafely(resultSet, 1) == 0.0)
+    assert(columnValueExtractor.getBigDecimalSafely(resultSet, 1) == null)
 
     abstract class TestCol extends Column {
       override def alias: Option[String] = None
@@ -650,8 +650,8 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val dateCol = new TestCol {
       override def dataType: DataType = DateType()
     }
-    assert(prestoQueryExecutor.get.getColumnValue(1, dateCol, resultSet) == null)
-    assert(prestoQueryExecutor.get.getColumnValue(2, dateCol, resultSet) == "2018-01-12")
+    assert(columnValueExtractor.getColumnValue(1, dateCol, resultSet) == null)
+    assert(columnValueExtractor.getColumnValue(2, dateCol, resultSet) == "2018-01-12")
 
     val timestampCol = new TestCol {
       override def dataType: DataType = TimestampType()
@@ -669,11 +669,11 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
       override def dataType : DataType = null
     }
 
-    assert(prestoQueryExecutor.get.getColumnValue(1, timestampCol, resultSet) == null)
-    assert(executor.getColumnValue(5, decCol, resultSet) == null)
-    assert(executor.getColumnValue(5, decWithLen, resultSet) == null)
-    assert(executor.getColumnValue(5, decWithScaleAndLength, resultSet) == null)
-    assertThrows[UnsupportedOperationException](executor.getColumnValue(5, invalidType, resultSet))
+    assert(columnValueExtractor.getColumnValue(1, timestampCol, resultSet) == null)
+    assert(columnValueExtractor.getColumnValue(5, decCol, resultSet) == null)
+    assert(columnValueExtractor.getColumnValue(5, decWithLen, resultSet) == null)
+    assert(columnValueExtractor.getColumnValue(5, decWithScaleAndLength, resultSet) == null)
+    assertThrows[UnsupportedOperationException](columnValueExtractor.getColumnValue(5, invalidType, resultSet))
 
   }
 }

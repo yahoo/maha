@@ -28,6 +28,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
   private var dataSource: Option[HikariDataSource] = None
   private var jdbcConnection: Option[JdbcConnection] = None
   private var oracleQueryExecutor : Option[OracleQueryExecutor] = None
+  private val columnValueExtractor = new ColumnValueExtractor
   private val queryExecutorContext : QueryExecutorContext = new QueryExecutorContext
   private val staticTimestamp = new Timestamp(System.currentTimeMillis())
   private val staticTimestamp2 = new Timestamp(System.currentTimeMillis() + 1)
@@ -871,8 +872,8 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val dateCol = new TestCol {
       override def dataType: DataType = DateType()
     }
-    assert(oracleQueryExecutor.get.getColumnValue(1, dateCol, resultSet) == null)
-    assert(oracleQueryExecutor.get.getColumnValue(2, dateCol, resultSet) == "2018-01-12")
+    assert(columnValueExtractor.getColumnValue(1, dateCol, resultSet) == null)
+    assert(columnValueExtractor.getColumnValue(2, dateCol, resultSet) == "2018-01-12")
 
     val timestampCol = new TestCol {
       override def dataType: DataType = TimestampType()
@@ -890,11 +891,11 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
       override def dataType : DataType = null
     }
 
-    assert(oracleQueryExecutor.get.getColumnValue(1, timestampCol, resultSet) == null)
-    assert(executor.getColumnValue(5, decCol, resultSet) == null)
-    assert(executor.getColumnValue(5, decWithLen, resultSet) == null)
-    assert(executor.getColumnValue(5, decWithScaleAndLength, resultSet) == null)
-    assertThrows[UnsupportedOperationException](executor.getColumnValue(5, invalidType, resultSet))
+    assert(columnValueExtractor.getColumnValue(1, timestampCol, resultSet) == null)
+    assert(columnValueExtractor.getColumnValue(5, decCol, resultSet) == null)
+    assert(columnValueExtractor.getColumnValue(5, decWithLen, resultSet) == null)
+    assert(columnValueExtractor.getColumnValue(5, decWithScaleAndLength, resultSet) == null)
+    assertThrows[UnsupportedOperationException](columnValueExtractor.getColumnValue(5, invalidType, resultSet))
 
   }
 }
