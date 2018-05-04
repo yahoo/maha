@@ -2,23 +2,18 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.executor.oracle
 
-import java.sql.{ResultSet, ResultSetMetaData}
+import java.sql.ResultSetMetaData
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.jdbc.JdbcConnection
 import grizzled.slf4j.Logging
-import org.joda.time.format.DateTimeFormat
 
 import scala.util.{Failure, Try}
 
 /**
  * Created by hiral on 12/22/15.
  */
-object OracleQueryExecutor {
-  final val DATE_TIME_FORMATTER = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
-  final val DATE_FORMATTER = DateTimeFormat.forPattern("yyyy-MM-dd")
-}
 
 class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: ExecutionLifecycleListener) extends QueryExecutor with Logging {
   val engine: Engine = OracleEngine
