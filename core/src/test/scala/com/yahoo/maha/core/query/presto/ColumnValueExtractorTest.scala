@@ -63,10 +63,25 @@ class ColumnValueExtractorTest extends FunSuite with Matchers with BeforeAndAfte
     }
     assert(columnValueExtractor.getColumnValue(1, intCol2, rs) == "Native")
 
-    val decCol = new TestCol {
+    val decCol1 = new TestCol {
       override def dataType : DataType = DecType(10, 2)
     }
-    assert(columnValueExtractor.getColumnValue(2, decCol, rs) == 1.23)
+    assert(columnValueExtractor.getColumnValue(2, decCol1, rs) == 1.23)
+
+    val decCol2 = new TestCol {
+      override def dataType : DataType = DecType(0, 2, "0.0")
+    }
+    assert(columnValueExtractor.getColumnValue(2, decCol2, rs) == 1.23)
+
+    val decCol3 = new TestCol {
+      override def dataType : DataType = DecType(2, 0, "0.0")
+    }
+    assert(columnValueExtractor.getColumnValue(2, decCol3, rs) == 1.2)
+
+    val decCol4 = new TestCol {
+      override def dataType : DataType = DecType()
+    }
+    assert(columnValueExtractor.getColumnValue(2, decCol4, rs) == 1.234)
 
     val dateCol1 = new TestCol {
       override def dataType : DataType = DateType("YYYYMMDD")
