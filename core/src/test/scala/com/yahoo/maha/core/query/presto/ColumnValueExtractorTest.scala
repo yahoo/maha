@@ -5,7 +5,7 @@ package com.yahoo.maha.core.query
 import java.sql.{Date, ResultSet, Timestamp}
 import java.time.Instant
 
-import com.yahoo.maha.core.{Column, ColumnAnnotation, ColumnContext, DataType, DateType, DecType, FilterOperation, IntType, TimestampType}
+import com.yahoo.maha.core.{Column, ColumnAnnotation, ColumnContext, DataType, DateType, DecType, FilterOperation, IntType, StrType, TimestampType}
 import org.joda.time.DateTime
 import java.math.BigDecimal
 
@@ -49,9 +49,9 @@ class ColumnValueExtractorTest extends FunSuite with Matchers with BeforeAndAfte
     doReturn(BigDecimal.valueOf(1.234)).when(rs).getBigDecimal(2)
     doReturn("20180503").when(rs).getString(3)
     doReturn(Date.valueOf("2018-05-04")).when(rs).getDate(4)
-
     val dt = new DateTime("2018-05-04T21:39:45.618+00:00")
     doReturn(Timestamp.from(Instant.ofEpochMilli(dt.getMillis))).when(rs).getTimestamp(5)
+    doReturn("test-str").when(rs).getString(6)
 
     val intCol1 = new TestCol {
       override def dataType : DataType = IntType()
@@ -98,6 +98,13 @@ class ColumnValueExtractorTest extends FunSuite with Matchers with BeforeAndAfte
     }
 
     assert(columnValueExtractor.getColumnValue(5, timestampCol, rs).asInstanceOf[String] == "2018-05-04 21:39:45")
+
+    val strCol = new TestCol {
+      override def dataType : DataType = StrType()
+    }
+    assert(columnValueExtractor.getColumnValue(6, strCol, rs) == "test-str")
+
+
   }
 
   abstract class TestCol extends Column {
