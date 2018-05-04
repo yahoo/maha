@@ -20,7 +20,7 @@ class PrestoQueryGeneratorTest extends BasePrestoQueryGeneratorTest {
   }
   
   test("generating presto query") {
-    val jsonString = scala.io.Source.fromFile("/Users/surabhip/git/maha/core/src/test/resources/" + "presto_query_generator_test.json")
+    val jsonString = scala.io.Source.fromFile(getBaseDir + "presto_query_generator_test.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
