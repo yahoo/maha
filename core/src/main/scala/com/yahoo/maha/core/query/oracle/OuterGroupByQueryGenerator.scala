@@ -1,8 +1,8 @@
 package com.yahoo.maha.core.query.oracle
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{DerivedDimensionColumn, DimCol, DimensionColumn, OracleDerDimCol}
-import com.yahoo.maha.core.fact.{NoopRollup, FactCol, OracleCustomRollup, OracleDerFactCol}
+import com.yahoo.maha.core.dimension._
+import com.yahoo.maha.core.fact.{FactCol, NoopRollup, OracleCustomRollup, OracleDerFactCol}
 import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
 import org.apache.commons.lang3.StringUtils
@@ -390,6 +390,10 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
     def renderParentOuterDerivedFactCols(projectedAlias:String, column:Column): String = {
       column match {
         case OracleDerDimCol(_, dt, cc, de, _, annotations, _) =>
+          val renderedAlias = s""""$projectedAlias""""
+          queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+          s"""$renderedAlias"""
+        case OraclePartDimCol(_, dt, cc, _, annotations, _) =>
           val renderedAlias = s""""$projectedAlias""""
           queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
           s"""$renderedAlias"""
