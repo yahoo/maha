@@ -134,7 +134,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
       , rowsPerPage = drilldownConfig.maxRows.toInt
       , forceDimensionDriven = false
       , forceFactDriven = true
-      , filterExpressions = if(drilldownConfig.enforceFilters) reportingRequest.filterExpressions else IndexedSeq.empty
+      , filterExpressions = if(drilldownConfig.enforceFilters) filterExpressions else IndexedSeq.empty
       , includeRowCount = INCLUDE_ROW_COUNT_DRILLDOWN)
   }
 
