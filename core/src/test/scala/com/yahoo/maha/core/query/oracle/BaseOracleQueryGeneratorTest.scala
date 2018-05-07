@@ -341,6 +341,7 @@ trait BaseOracleQueryGeneratorTest
       .toPublicFact("k_stats_new",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
+          PubCol("frequency", "Frequency", InEquality),
           PubCol("keyword_id", "Keyword ID", InEquality),
           PubCol("ad_id", "Ad ID", InEquality),
           PubCol("ad_group_id", "Ad Group ID", InEquality),
