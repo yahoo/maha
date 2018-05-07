@@ -359,7 +359,10 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                 if(col.isDerivedColumn) {
                   dfsGetPrimitiveCols(Set(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
                 } else {
-                  primitiveColsSet.add((col.alias.getOrElse(col.name), col))
+                  val name = col.alias.getOrElse(col.name)
+                  if (!primitiveColsSet.contains((name, col))) {
+                    primitiveColsSet.add((name, col))
+                  }
                 }
             }
           case derCol : FactCol =>
@@ -373,7 +376,10 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                 if(col.isDerivedColumn) {
                   dfsGetPrimitiveCols(Set(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
                 } else {
-                  primitiveColsSet.add((col.alias.getOrElse(col.name), col))
+                  val name = col.alias.getOrElse(col.name)
+                  if(!primitiveColsSet.contains((name, col))) {
+                    primitiveColsSet.add((name, col))
+                  }
                 }
             }
 
