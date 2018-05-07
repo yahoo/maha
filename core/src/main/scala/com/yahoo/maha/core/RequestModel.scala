@@ -52,6 +52,9 @@ case class DimensionCandidate(dim: PublicDimension
      """
   }
 }
+case class DimensionRelations(relations: Map[(String, String), Boolean]) {
+  val hasUnrelatedDimensions: Boolean = relations.exists(!_._2)
+}
 
 object DimensionCandidate {
   implicit val ordering: Ordering[DimensionCandidate] = Ordering.by(dc => s"${dc.dim.dimLevel.level}-${dc.dim.name}")
@@ -152,6 +155,7 @@ case class RequestModel(cube: String
                         , outerFilters: SortedSet[Filter]
                         , requestedFkAliasToPublicDimensionMap: Map[String, PublicDimension]
                         , orFilterMeta: Set[OrFilterMeta]
+                        , dimensionRelations: DimensionRelations
   ) {
 
   val requestColsSet: Set[String] = requestCols.map(_.alias).toSet
@@ -979,6 +983,31 @@ object RequestModel extends Logging {
 
           val hasLowCardinalityDimFilters = dimensionCandidates.exists(_.hasLowCardinalityFilter)
 
+          val dimensionRelations: DimensionRelations = {
+            val publicDimsInRequest = dimensionCandidates.map(_.dim.name)
+            var relations: Map[(String, String), Boolean] = Map.empty
+            val seq = dimensionCandidates.toIndexedSeq
+
+            var i = 0
+            while(i < seq.size) {
+              var j = i + 1
+              while(j < seq.size) {
+                val a = seq(i)
+                val b = seq(j)
+                val nonDirectRelations = registry.findDimensionPath(a.dim, b.dim)
+                val allIndirectRelationsInRequest = nonDirectRelations.forall(pd => publicDimsInRequest(pd.name))
+                val related = (a.dim.foreignKeySources.contains(b.dim.name)
+                  || b.dim.foreignKeySources.contains(a.dim.name)
+                  || (nonDirectRelations.nonEmpty && allIndirectRelationsInRequest)
+                )
+                relations += ((a.dim.name, b.dim.name) -> related)
+                j+=1
+              }
+              i+=1
+            }
+            DimensionRelations(relations)
+          }
+
           new RequestModel(request.cube, bestCandidatesOption, allFactFilters.to[SortedSet], dimensionCandidates,
             finalAllRequestedCols, finalAllSortByCols, allRequestedNonFactAliases.toSet,
             registry.getDimCardinalityEstimate(dimensionCandidates, request, entityPublicDimSet.toSet, filterMap,isDebugEnabled),
@@ -1023,7 +1052,8 @@ object RequestModel extends Logging {
             requestedDaysWindow = requestedDaysWindow,
             outerFilters = allOuterFilters,
             requestedFkAliasToPublicDimensionMap = allRequestedFkAliasToPublicDimMap,
-            orFilterMeta = allOrFilterMeta.toSet
+            orFilterMeta = allOrFilterMeta.toSet,
+            dimensionRelations = dimensionRelations
             )
       }
     }

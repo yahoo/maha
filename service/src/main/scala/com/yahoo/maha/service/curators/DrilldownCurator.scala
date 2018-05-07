@@ -70,10 +70,13 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                                        mahaRequestLogBuilder: CuratorMahaRequestLogBuilder): (RequestModel, IndexedSeq[Field]) = {
     val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams, mahaRequestLogBuilder)
     require(requestModelResultTry.isSuccess, "Input ReportingRequest was invalid due to " + requestModelResultTry.failed.get.getMessage)
-    (requestModelResultTry.get.model,
-      (for(col <- requestModelResultTry.get.model.bestCandidates.get.requestCols
-           if requestModelResultTry.get.model.bestCandidates.get.factColMapping.contains(col))
-        yield Field(requestModelResultTry.get.model.bestCandidates.get.factColMapping(col), None, None)).toIndexedSeq)
+    val model = requestModelResultTry.get.model
+    require(model.bestCandidates.nonEmpty, "No best candidates for default request, cannot drill down!")
+    val bestCandidates = model.bestCandidates.get
+    (model,
+      (for(col <- bestCandidates.requestCols
+           if bestCandidates.factColMapping.contains(col))
+        yield Field(bestCandidates.factColMapping(col), None, None)).toIndexedSeq)
   }
 
   /**
@@ -113,14 +116,25 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
   private def drilldownReportingRequest(reportingRequest: ReportingRequest,
                                         factFields: IndexedSeq[Field],
                                         primaryKeyField: Field,
-                                        drilldownConfig: DrilldownConfig): ReportingRequest = {
+                                        drilldownConfig: DrilldownConfig,
+                                        publicFact: PublicFact
+                                       ): ReportingRequest = {
     val cube: String = if (drilldownConfig.cube.nonEmpty) drilldownConfig.cube else reportingRequest.cube
+    val filterExpressions: IndexedSeq[Filter] = if(drilldownConfig.enforceFilters) {
+      //only include fact filters, dimension filter should have been done by the default curator
+      reportingRequest.filterExpressions.filter {
+        filter =>
+          publicFact.columnsByAlias(filter.field)
+      }
+    } else IndexedSeq.empty
     val allSelectedFields : IndexedSeq[Field] = (IndexedSeq(drilldownConfig.dimension, primaryKeyField).filter{_!=null} ++ factFields).distinct
     reportingRequest.copy(cube = cube
       , selectFields = allSelectedFields
       , sortBy = if (drilldownConfig.ordering != IndexedSeq.empty) drilldownConfig.ordering else reportingRequest.sortBy
       , rowsPerPage = drilldownConfig.maxRows.toInt
-      , filterExpressions = reportingRequest.filterExpressions
+      , forceDimensionDriven = false
+      , forceFactDriven = true
+      , filterExpressions = filterExpressions
       , includeRowCount = INCLUDE_ROW_COUNT_DRILLDOWN)
   }
 
@@ -159,7 +173,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                                             primaryKeyAlias: String,
                                             drilldownConfig: DrilldownConfig,
                                             mahaRequestContext: MahaRequestContext): ReportingRequest = {
-    val (_, fields) : (RequestModel, IndexedSeq[Field]) = validateReportingRequest(registryName, bucketParams, reportingRequest, mahaService, mahaRequestLogBuilder)
+    val (rm, fields) : (RequestModel, IndexedSeq[Field]) = validateReportingRequest(registryName, bucketParams, reportingRequest, mahaService, mahaRequestLogBuilder)
     val primaryField : Field = Field(primaryKeyAlias, None, None)
 
     val fields_reduced : IndexedSeq[Field] = removeInvalidFactAliases(registryName
@@ -168,7 +182,9 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     , fields
     , mahaRequestContext)
 
-    val rr = drilldownReportingRequest(reportingRequest, fields_reduced, primaryField, drilldownConfig)
+    //cannot do drilldown with no best candidates, assume validation checked this
+    val publicFact = rm.bestCandidates.get.publicFact
+    val rr = drilldownReportingRequest(reportingRequest, fields_reduced, primaryField, drilldownConfig, publicFact)
     rr
   }
 

@@ -664,9 +664,15 @@ OuterGroupBy operation has to be applied only in the following cases
    3. Requested PK IDs has lower levels than best dimension candidates max level
    AND
    4. Request is not dimension driven
+    OR
+   if multiple dims with no relations are selected and do no have PK in requested cols
  */
     //val projectedNonIDCols = requestModel.requestColsSet.filter(!bestFactCandidate.publicFact.foreignKeyAliases.contains(_))
     //val nonKeyRequestedDimCols = bestFactCandidate.dimColMapping.map(_._2).filter(projectedNonIDCols.contains(_))
+    val unrelatedDimensionsRequested: Boolean = {
+      requestModel.dimensionRelations.hasUnrelatedDimensions &&
+        !bestDimCandidates.forall(_.hasPKRequested)
+    }
     val isHighestDimPkIDRequested = if(bestDimCandidates.nonEmpty) {
       bestDimCandidates.takeRight(1).head.hasPKRequested
     } else false
@@ -684,8 +690,9 @@ OuterGroupBy operation has to be applied only in the following cases
     val allSubQueryCandidates = bestDimCandidates.forall(_.isSubQueryCandidate)
 
     val hasOuterGroupBy = (//nonKeyRequestedDimCols.isEmpty
-      !isRequestedHigherDimLevelKey
-      && !isHighestDimPkIDRequested
+      ((!isRequestedHigherDimLevelKey && !isHighestDimPkIDRequested )
+        || unrelatedDimensionsRequested
+        )
       && bestDimCandidates.nonEmpty
       && !requestModel.isDimDriven
       && !allSubQueryCandidates
