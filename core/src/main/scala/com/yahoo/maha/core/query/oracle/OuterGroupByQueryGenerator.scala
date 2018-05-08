@@ -538,7 +538,9 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
           if (!preOuterRenderedColAliasMap.values.toSet.contains(alias)) {
             col match  {
               case DimCol(_, dt, cc, _, annotations, _) =>
-                queryBuilder.addPreOuterColumn(s"""${col.alias.getOrElse(col.name)} AS $alias""")
+                val name = col.alias.getOrElse(col.name)
+                queryBuilder.addPreOuterColumn(s"""$name AS $alias""")
+                queryBuilder.addOuterGroupByExpressions(name)
               case _=> // cant be the case for primitive cols
             }
           }
