@@ -3501,7 +3501,6 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("N Spend", "Campaign Name", "Source"))
 
-
     val expected =
       s"""
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Source", DECODE(stats_source, 1, spend, 0.0) AS "N Spend"
@@ -3520,7 +3519,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |             )
          |           co1 ON (af0.campaign_id = co1.id)
          |
-         |          GROUP BY co1.campaign_name, to_char(af0.stats_source)
+         |          GROUP BY co1.campaign_name, to_char(af0.stats_source), stats_source
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
        """.stripMargin
