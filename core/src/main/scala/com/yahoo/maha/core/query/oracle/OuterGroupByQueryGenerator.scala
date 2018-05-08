@@ -478,7 +478,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
 
     def ogbGeneratePreOuterColumns(primitiveInnerAliasColMap: Map[String, Column], noopRollupColsMap: Map[String, Column]): Unit = {
       // add requested dim and fact columns, this should include constants
-      val preOuterRenderedColAlias = new mutable.HashSet[Column]()
+      val preOuterRenderedColAliasMap = new mutable.HashMap[Column, String]()
       queryContext.requestModel.requestCols foreach {
         columnInfo =>
 
@@ -506,7 +506,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                   val (renderedCol, renderedAlias) = renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, isFactOnlyQuery, false, queryContext)
                   queryBuilder.addPreOuterColumn(concat(renderedCol, renderedAlias))
                   queryBuilder.addOuterGroupByExpressions(renderedCol)
-                  preOuterRenderedColAlias+=queryBuilderContext.getFactColByAlias(alias)
+                  preOuterRenderedColAliasMap.put(queryBuilderContext.getFactColByAlias(alias), renderedAlias)
                 }
               }
 
@@ -521,7 +521,8 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       }
       // Render primitive cols
       primitiveInnerAliasColMap.foreach {
-        case (alias, col) if !preOuterRenderedColAlias.contains(col) =>
+        // if primitive col is not already rendered
+        case (alias, col) if !preOuterRenderedColAliasMap.keySet.contains(col) =>
           col match {
             case dimCol:DimensionColumn =>
             //dim col which are dependent upon the DerFact cols
@@ -531,12 +532,22 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
             case _=>
               renderPreOuterFactCol(col.alias.getOrElse(col.name), alias, col)
           }
-        case _=> // ignore as it col is already rendered
+          // if primitive col is already rendered as Public alias, render it as inner alias for the outer derived cols
+        case (alias, col) if (preOuterRenderedColAliasMap.keySet.contains(col)) =>
+          // check is the alias is not already rendered
+          if (!preOuterRenderedColAliasMap.values.toSet.contains(alias)) {
+            col match  {
+              case DimCol(_, dt, cc, _, annotations, _) =>
+                queryBuilder.addPreOuterColumn(s"""${col.alias.getOrElse(col.name)} AS $alias""")
+              case _=> // cant be the case for primitive cols
+            }
+          }
+        case _=>
       }
 
       // Render NoopRollup cols
       noopRollupColsMap.foreach {
-        case (alias, col) if !preOuterRenderedColAlias.contains(col) =>
+        case (alias, col) if !preOuterRenderedColAliasMap.keySet.contains(col) =>
           renderPreOuterFactCol(col.alias.getOrElse(col.name), alias, col)
         case _=> // ignore as it col is already rendered
       }
@@ -553,7 +564,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
           s""""$colInnerAlias""""
         } else colInnerAlias
 
-        preOuterRenderedColAlias += innerSelectCol
+        preOuterRenderedColAliasMap.put(innerSelectCol, colInnerAlias)
         queryBuilderContext.setPreOuterAliasToColumnMap(colInnerAliasQuoted, finalAlias, innerSelectCol)
         queryBuilder.addPreOuterColumn(preOuterFactColRendered)
       }

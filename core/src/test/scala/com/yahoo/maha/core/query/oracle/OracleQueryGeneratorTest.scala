@@ -3505,7 +3505,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Source", DECODE(stats_source, 1, spend, 0.0) AS "N Spend"
-         |FROM (SELECT co1.campaign_name "Campaign Name", to_char(af0.stats_source) "Source", SUM(spend) AS spend
+         |FROM (SELECT co1.campaign_name "Campaign Name", to_char(af0.stats_source) "Source", SUM(spend) AS spend, stats_source AS stats_source
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   campaign_id, stats_source, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
