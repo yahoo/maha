@@ -6,7 +6,7 @@ import java.util.UUID
 
 import com.yahoo.maha.service.MahaServiceConfig
 
-import scalaz.Failure
+import scalaz.{Failure, Success}
 
 /**
  * Created by pranavbhole on 06/06/17.
@@ -121,6 +121,7 @@ class MahaServiceTest extends BaseFactoryTest {
      case f@Failure(_) =>
        assert(f.e.toString().contains("Unable to find parallelServiceExecutor name erpse in map"))
        assert(f.e.toString().contains("Unable to find bucket config name otherbucket in map"))
+     case Success(_) => sys.error("Service result should be an error.")
    }
   }
 

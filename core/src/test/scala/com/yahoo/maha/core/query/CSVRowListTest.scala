@@ -5,10 +5,12 @@ package com.yahoo.maha.core.query
 import java.io.{File, FileNotFoundException}
 import java.nio.file.{Files, StandardOpenOption}
 
-import com.yahoo.maha.core.RequestModel
+import com.yahoo.maha.core.{IntType, RequestModel, StrType}
 import com.yahoo.maha.core.query.oracle.BaseOracleQueryGeneratorTest
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.report.FileRowCSVWriterProvider
+
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * Created by hiral on 1/25/16.
@@ -238,9 +240,25 @@ class CSVRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTest {
     val rowListWithHeaders : CSVRowList = new CSVRowList(query, FileRowCSVWriterProvider(tmpFile), true)
     val thrown = intercept[FileNotFoundException] {
       rowListWithHeaders.withLifeCycle {
-        println("hello")
+        
       }
     }
     assert(thrown.getMessage === "/blah (Permission denied)")
+  }
+
+  test("Error case, no alias") {
+    val thrown = intercept[IllegalArgumentException] {
+      Row(Map.empty, ArrayBuffer.empty).getValue("GoingToFail")
+    }
+    assert(thrown.getMessage.contains("Failed to find value in aliasMap"))
+  }
+
+  test("print pretty and other minor verifications") {
+    val newRow = Row(Map("Alias" -> 0, "MapIt" -> 1), ArrayBuffer("bird", 5))
+    assert(newRow.pretty.contains("Alias = bird"))
+    newRow.sumValue(0, "birdy", StrType(10, "N/A"))
+    newRow.sumValue(1, 1, IntType(2))
+    assert(newRow.getValue(1) == 6)
+    assertThrows[IllegalArgumentException](newRow.getValue(15))
   }
 }

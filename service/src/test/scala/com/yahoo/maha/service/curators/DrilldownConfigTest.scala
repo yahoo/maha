@@ -51,7 +51,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
     val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown")).toOption.get
 
-    println(drillDownConfig)
+    
     assert(!drillDownConfig.enforceFilters)
     assert(drillDownConfig.maxRows == 1000)
     assert(drillDownConfig.ordering.contains(SortBy("Class ID", ASC)))
@@ -96,7 +96,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
     val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown")).toOption.get
 
-    println(drillDownConfig)
+    
     assert(!drillDownConfig.enforceFilters)
     assert(drillDownConfig.maxRows == 1000)
     assert(drillDownConfig.ordering.contains(SortBy("Class ID", DESC)))
@@ -224,7 +224,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
     val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown")).toOption.get
 
-    println(drillDownConfig)
+    
     assert(drillDownConfig.enforceFilters == false)
     assert(drillDownConfig.maxRows == 1000)
     assert(drillDownConfig.ordering.contains(SortBy("Section ID", DESC)))
@@ -265,7 +265,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
     val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown")).toOption.get
 
-    println(drillDownConfig)
+    
     assert(drillDownConfig.enforceFilters)
     assert(drillDownConfig.maxRows == 1000)
     assert(drillDownConfig.dimension == Field("Day", None, None))

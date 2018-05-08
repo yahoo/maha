@@ -428,7 +428,6 @@ public class TestParRequestListEither {
             response.err = input.toString();
             return Nothing.get();
         }), ParFunction.from((input) -> {
-            System.out.println(input.size());
             response.success = String.join("-", input.stream().map((either) -> {
                 if (either.isLeft()) {
                     return "Empty";

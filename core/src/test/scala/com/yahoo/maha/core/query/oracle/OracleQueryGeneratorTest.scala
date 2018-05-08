@@ -562,7 +562,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |   ORDER BY "Spend" DESC NULLS LAST) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120
          |
       """.stripMargin
-    println(result)
+    
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -2149,7 +2149,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val expected =
       s"""
          |SELECT "Day", "Advertiser Status", "Campaign Name", impressions AS "Impressions", CTR AS "CTR"
@@ -2227,7 +2227,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val expected =
       s"""
          |SELECT "Day", "Advertiser Status", "Campaign Name", impressions AS "Impressions", CTR AS "CTR"
@@ -3376,7 +3376,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val expected =
       s"""|SELECT *
           |FROM (SELECT ro1.address "Address", coalesce(af0."impressions", 1) "Impressions"
@@ -3431,7 +3431,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     queryPipelineTry.get.bestDimCandidates.foreach{db=> assert(db.hasPKRequested == false)}
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Campaign Name"))
 
@@ -3497,7 +3497,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     queryPipelineTry.get.bestDimCandidates.foreach{db=> assert(db.hasPKRequested == false)}
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("N Spend", "Campaign Name", "Source"))
 
@@ -3564,7 +3564,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     queryPipelineTry.get.bestDimCandidates.foreach{db=> assert(db.hasPKRequested == false)}
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
 
     val expected =
       s"""
@@ -3628,7 +3628,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     queryPipelineTry.get.bestDimCandidates.foreach{db=> assert(db.hasPKRequested == false)}
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Advertiser Currency", "Campaign Name"))
 
@@ -3704,7 +3704,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     queryPipelineTry.get.bestDimCandidates.filter(_.dim.name=="adgroup").foreach{db=> assert(db.hasPKRequested == true, "Should not trigger outer group by")}
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Advertiser Currency", "Ad Group ID", "Campaign Name"))
 
@@ -3786,7 +3786,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     queryPipelineTry.get.bestDimCandidates.foreach{db=> assert(db.hasPKRequested == false)}
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
 
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend","Advertiser Currency", "Average CPC Cents", "Average CPC", "Campaign Name"))
@@ -3823,7 +3823,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
        .stripMargin
-    println(expected)
+    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -3866,7 +3866,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Advertiser ID", "Advertiser Name", "Campaign Status"))
 
@@ -3903,7 +3903,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
         .stripMargin
-    println(expected)
+    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -3946,7 +3946,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Campaign ID", "Ad Status", "Campaign Name"))
 
@@ -3982,7 +3982,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
         .stripMargin
-    println(expected)
+    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -4020,7 +4020,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Average CPC", "Campaign Name"))
 
@@ -4052,7 +4052,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
         .stripMargin
-    println(expected)
+    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -4095,7 +4095,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryCols == Set("Spend", "Average Position", "Campaign Name"))
 
     val result = query.asString
-    println(result)
+    
 
 
     val expected =
@@ -4125,7 +4125,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
         .stripMargin
-    println(expected)
+    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -4166,7 +4166,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Average Position", "Average CPC", "Campaign Name"))
 
@@ -4196,7 +4196,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
         .stripMargin
-    println(expected)
+    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -4237,7 +4237,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Advertiser ID", "N Average CPC", "Campaign Name", "Spend"))
 
@@ -4266,7 +4266,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
         .stripMargin
-    println(expected)
+    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -4304,7 +4304,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Campaign Name", "Impression Share", "Spend"))
 
@@ -4333,7 +4333,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
         .stripMargin
-    println(expected)
+    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -4377,7 +4377,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val expected =
       s"""
          |SELECT *

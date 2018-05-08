@@ -143,7 +143,7 @@ class DataTypeTest extends FunSuite with Matchers {
     }
     assert(thrown.getMessage.contains("invalid argument : format cannot be null or empty"), "Should throw an empty formatting error")
     val validTimestamp = TimestampType("MM")
-    println(validTimestamp)
+    
   }
 
 }

@@ -79,8 +79,6 @@ class DefaultCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll{
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     assert(defaultParRequest.isRight)
-    val curatorResult: CuratorResult = defaultParRequest.right.get.get().right.get
-    curatorResult.parRequestResultOption.get.prodRun.get().right.get.queryPipelineResult.rowList.foreach(println)
 
   }
 

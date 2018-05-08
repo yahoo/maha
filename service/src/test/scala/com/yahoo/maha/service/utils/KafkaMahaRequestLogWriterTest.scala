@@ -52,7 +52,7 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
     }
 
     zkConnect = zkServer.getConnectString
-    println(s"Started zookeeper at ${zkConnect}")
+    logger.info(s"Started zookeeper at ${zkConnect}")
 
     //val props = TestUtils.createBrokerConfigs(1,zkServer.getConnectString).iterator.next()
     val props = TestUtils.createBrokerConfig(0, zkConnect)
@@ -104,7 +104,7 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
       kafkaConsumer.close()
       mahaRequestLogWriter.close()
     } catch{
-      case e =>
+      case e : Throwable =>
     }
   }
 
@@ -144,7 +144,7 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
     try {
       kafkaConsumer.close()
     } catch{
-      case e => e.printStackTrace()
+      case e : Throwable => e.printStackTrace()
     }
   }
 

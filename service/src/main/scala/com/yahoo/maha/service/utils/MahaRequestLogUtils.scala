@@ -213,7 +213,7 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     try {
       mahaRequestLogWriter.write(protoBuilder.build())
     } catch {
-      case e=>
+      case e : Throwable=>
         logger.warn(s"Failed to log the event to kafka ${e.getMessage} $e")
     }
   }

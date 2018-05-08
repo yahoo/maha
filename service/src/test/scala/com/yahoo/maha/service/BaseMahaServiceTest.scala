@@ -150,8 +150,7 @@ trait BaseMahaServiceTest extends FunSuite with Logging {
   }
 
   val server: org.http4s.server.Server[IO] = {
-    println(s"Starting blaze server on port : $druidPort")
-    println("Started blaze server")
+    logger.info(s"Starting blaze server on port : $druidPort")
     val builder = BlazeBuilder[IO].mountService(service, "/mock").bindSocketAddress(new InetSocketAddress("localhost", druidPort))
     builder.start.unsafeRunSync()
   }

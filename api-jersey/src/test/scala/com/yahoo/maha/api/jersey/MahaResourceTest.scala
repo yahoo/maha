@@ -40,7 +40,7 @@ class MahaResourceTest {
     val httpResponse: HttpResponse = httpClient.execute(httpGet)
     assertEquals("should return status 400", 400, httpResponse.getStatusLine.getStatusCode)
     val domainJson: String = EntityUtils.toString(httpResponse.getEntity)
-    println(domainJson)
+    
     assert(domainJson.contains("""{"errorMsg":"registry dummy not found"}"""))
   }
 
@@ -130,7 +130,7 @@ class MahaResourceTest {
     val httpResponse: HttpResponse = httpClient.execute(httpGet)
     assertEquals("should return status 400", 400, httpResponse.getStatusLine.getStatusCode)
     val flattenDomainJson: String = EntityUtils.toString(httpResponse.getEntity)
-    println(flattenDomainJson)
+    
     assert(flattenDomainJson.contains("""{"errorMsg":"registry dummy and cube student_performance not found"}"""))
   }
 
@@ -142,7 +142,7 @@ class MahaResourceTest {
     val httpResponse: HttpResponse = httpClient.execute(httpGet)
     assertEquals("should return status 400", 400, httpResponse.getStatusLine.getStatusCode)
     val flattenDomainJson: String = EntityUtils.toString(httpResponse.getEntity)
-    println(flattenDomainJson)
+    
 //    assert(flattenDomainJson.contains("""{"errorMsg":"registry er and cube blah not found"}"""))
   }
 
@@ -154,7 +154,7 @@ class MahaResourceTest {
     val httpResponse: HttpResponse = httpClient.execute(httpGet)
     assertEquals("should return status 400", 400, httpResponse.getStatusLine.getStatusCode)
     val flattenDomainJson: String = EntityUtils.toString(httpResponse.getEntity)
-    println(flattenDomainJson)
+    
     //    assert(flattenDomainJson.contains("""{"errorMsg":"registry er and cube blah not found"}"""))
   }
 
@@ -211,7 +211,7 @@ class MahaResourceTest {
     val httpResponse: HttpResponse = httpClient.execute(httpPost)
     assertEquals(s"should return status 200, ${httpResponse.getStatusLine}", 200, httpResponse.getStatusLine.getStatusCode)
     val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
-    println(responseJson)
+    
     assert(responseJson.contains("""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[213,200,100,125]],"curators":{}}"""))
   }
 
@@ -268,7 +268,7 @@ class MahaResourceTest {
     val httpResponse: HttpResponse = httpClient.execute(httpPost)
     assertEquals(s"should return status 200, ${httpResponse.getStatusLine}", 200, httpResponse.getStatusLine.getStatusCode)
     val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
-    println(responseJson)
+    
     assert(responseJson.contains("""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[213,200,100,125]],"curators":{}}"""))
   }
 
@@ -296,10 +296,10 @@ class MahaResourceTest {
     httpPost.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
     httpPost.setHeader("RequestId", "successfulSyncRequest")
     val httpResponse: HttpResponse = httpClient.execute(httpPost)
-    println("500Response:"+httpResponse)
+    
     assertEquals(s"should return status 500, ${httpResponse.getStatusLine}", 500, httpResponse.getStatusLine.getStatusCode)
     val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
-    println("500Response:"+responseJson)
+    
     assert(responseJson.contains("""Failed to execute the query pipeline"""))
   }
 
@@ -328,7 +328,7 @@ class MahaResourceTest {
     val httpResponse: HttpResponse = httpClient.execute(httpPost)
     assertEquals("should return status 400", 400, httpResponse.getStatusLine.getStatusCode)
     val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
-    println(responseJson)
+    
     assert(responseJson.contains("""{"errorMsg":"schema blah not found"}"""))
   }
 
@@ -357,7 +357,7 @@ class MahaResourceTest {
     val httpResponse: HttpResponse = httpClient.execute(httpPost)
     assertEquals("should return status 400", 400, httpResponse.getStatusLine.getStatusCode)
     val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
-    println(responseJson)
+    
     assert(responseJson.contains("""{"errorMsg":"cube does not exist : blah_performance"}"""))
   }
 
@@ -385,7 +385,7 @@ class MahaResourceTest {
     val httpResponse: HttpResponse = httpClient.execute(httpPost)
     assertEquals("should return status 400", 400, httpResponse.getStatusLine.getStatusCode)
     val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
-    println(responseJson)
+    
     assert(responseJson.contains("""{"errorMsg":"requirement failed: Failure(NonEmpty[UncategorizedError(Day,requirement failed: Day filter not found in list of filters!,List())])"}"""))
   }
 
@@ -413,7 +413,7 @@ class MahaResourceTest {
     httpPost.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
     val httpResponse: HttpResponse = httpClient.execute(httpPost)
     val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
-    println(responseJson)
+    
     assertEquals("should return status 400", 400, httpResponse.getStatusLine.getStatusCode)
     assert(responseJson.contains("""{"errorMsg":"requirement failed: ERROR_CODE:10001 Max days window exceeded"""))
   }

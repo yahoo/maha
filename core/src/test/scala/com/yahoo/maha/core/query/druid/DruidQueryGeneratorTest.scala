@@ -1545,7 +1545,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    println(result)
+    
     val filterjson = s""""filter":{"type":"and","fields":[{"type":"selector","dimension":"statsDate","value":"${fromDate.replace("-","")}"},{"type":"selector","dimension":"advertiser_id","value":"12345"},{"type":"or","fields":[{"type":"or","fields":[{"type":"selector","dimension":"stats_source","value":"1"},{"type":"selector","dimension":"stats_source","value":"2"}]},{"type":"selector","dimension":"id","value":"2"}]}]}"""
 
     assert(result.contains(filterjson), result)
@@ -1582,7 +1582,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    println(result)
+    
     val filterjson = s""""filter":{"type":"and","fields":[{"type":"selector","dimension":"statsDate","value":"${fromDate.replace("-","")}"},{"type":"selector","dimension":"advertiser_id","value":"12345"}]}"""
     val havingJson = s""""having":{"type":"and","havingSpecs":[{"type":"or","havingSpecs":[{"type":"or","havingSpecs":[{"type":"equalTo","aggregation":"Clicks","value":1},{"type":"equalTo","aggregation":"Clicks","value":2}]},{"type":"equalTo","aggregation":"Impressions","value":2}]}]}"""
 
@@ -1625,7 +1625,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    println(result)
+    
   }
 
   test("Duplicate registration of the generator") {
@@ -1675,7 +1675,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    println(result)
+    
     val json = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\}\]\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"extraction","dimension":"advertiser_id","outputName":"Advertiser Status","extractionFn":\{"type":"mahaRegisteredLookup","lookup":"advertiser_lookup","retainMissingValue":false,"replaceMissingValueWith":"MAHA_LOOKUP_EMPTY","injective":false,"optimize":true,"valueColumn":"status","dimensionOverrideMap":\{\}\}\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":120\},"context":\{"groupByStrategy":"v2","applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}"""
 
     result should fullyMatch regex json
@@ -1704,7 +1704,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    println(result)
+    
     val json = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\}\]\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"id","outputName":"Keyword ID"\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":120\},"context":\{"groupByStrategy":"v2","applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}"""
 
     result should fullyMatch regex json

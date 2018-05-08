@@ -356,7 +356,7 @@ class BaseUTCTimeProviderTest extends FunSuite {
     assertEquals("2016-03-10", utcDayFilter.to)
 
     val offsetHours = getOffsetHours("Australia/Melbourne")
-    println("getOffsetHours(\"Australia/Melbourne\"): " + offsetHours)
+    
     val expectedHours = if (offsetHours == curOffsetHours) List("02", "06", "09") else List("15", "19", "22");
     expectedHours.foreach { hour => assertTrue(utcHourFilter.get.values.contains(hour)) }
   }
@@ -368,7 +368,7 @@ class BaseUTCTimeProviderTest extends FunSuite {
     val localHourFilter = new BetweenFilter("Hour", "02", "15")
     val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter),  None, timezone, true).asInstanceOf[Tuple3[InFilter, Option[BetweenFilter], Option[BetweenFilter]]]
     val expectedDates = List("2016-03-07", "2016-03-10", "2016-03-12")
-    println("Dates: " + utcDayFilter.values)
+    
     expectedDates.foreach { date => assertTrue(utcDayFilter.values.contains(date)) }
   }
 
