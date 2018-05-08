@@ -792,7 +792,6 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
         rl.query.asString should equal (expected) (after being whiteSpaceNormalised)
 
-        rl.foreach(r => 
         val row = rl.newRow
         row.addValue("Keyword ID", 14)
         row.addValue("Advertiser Status", "ON")
@@ -1611,7 +1610,6 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val druidExecutor =  getDruidQueryExecutor("http://localhost:6667/mock/topn")
     val oracleExecutor = new MockOracleQueryExecutor(
     { rl =>
-      rl.foreach(r => 
       val row = rl.newRow
       row.addValue("Keyword ID", 14)
       row.addValue("Keyword Value", "one")
@@ -1628,7 +1626,6 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val result = queryPipelineTry.toOption.get.execute(queryExecContext)
     assert(result.isSuccess)
 
-    result.toOption.get.rowList.foreach(
     //var result = oracleExecutor.execute(oraclQuery.head, rowList, QueryAttributes.empty)
     val oracleQuery = queryPipelineTry.toOption.get.queryChain.subsequentQueryList.head
     //require(result.rowList, "Failed to execute MultiEngine Query")
@@ -1699,7 +1696,6 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val druidExecutor = getDruidQueryExecutor("http://localhost:6667/mock/druidPlusOraclegroupby")
     val oracleExecutor = new MockOracleQueryExecutor(
     { rl =>
-      rl.foreach(r => 
       val row = rl.newRow
       row.addValue("Keyword ID", 14)
       row.addValue("Keyword Value", "one")
@@ -1716,7 +1712,6 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val result = queryPipelineTry.toOption.get.execute(queryExecContext)
     assert(result.isSuccess)
 
-    result.toOption.get.rowList.foreach(
     val oracleQuery = queryPipelineTry.toOption.get.queryChain.subsequentQueryList.head
     
     val expected = s"""
@@ -2217,7 +2212,6 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
         rl.query.asString should equal (expected) (after being whiteSpaceNormalised)
 
-        rl.foreach(r => 
         val row = rl.newRow
         row.addValue("Keyword ID", 14)
         row.addValue("Advertiser Status", "ON")
@@ -2286,7 +2280,6 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val druidExecutor =  getDruidQueryExecutor("http://localhost:6667/mock/topnUiQuery")
     val oracleExecutor = new MockOracleQueryExecutor(
       { rl =>
-        rl.foreach(r => 
         val row = rl.newRow
         row.addValue("Ad Group ID", 114)
         row.addValue("Campaign ID", 14)
@@ -2305,7 +2298,6 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val result = queryPipelineTry.toOption.get.execute(queryExecContext)
     assert(result.isSuccess)
 
-    result.toOption.get.rowList.foreach(
     //var result = oracleExecutor.execute(oraclQuery.head, rowList, QueryAttributes.empty)
     val oracleQuery = queryPipelineTry.toOption.get.queryChain.subsequentQueryList.head
     //require(result.rowList, "Failed to execute MultiEngine Query")

@@ -568,7 +568,6 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val result = queryPipeline.execute(queryExecutorContext)
     result match {
       case scala.util.Success(queryPipelineResult) =>
-        queryPipelineResult.rowList.foreach(
         assert(!queryPipelineResult.rowList.isEmpty)
       case any =>
         throw new UnsupportedOperationException(s"unexpected row list : $any")
@@ -623,7 +622,6 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val result = queryPipeline.execute(queryExecutorContext)
     result match {
       case scala.util.Success(queryPipelineResult) =>
-        queryPipelineResult.rowList.foreach(
         assert(!queryPipelineResult.rowList.isEmpty)
       case any =>
         throw new UnsupportedOperationException(s"unexpected row list : $any")
@@ -631,8 +629,9 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
   }
 
   test("successfully execute dim driven sync query for ad_group_stats") {
-    withMockDruidQueryExecutor(rl => rl.foreach(r => 
-      val jsonString = s"""{
+    withMockDruidQueryExecutor(rl => rl.foreach(r => r)) {
+      val jsonString =
+        s"""{
                           "cube": "ad_group_stats",
                           "forceDimensionDriven": true,
                           "selectFields": [
@@ -673,11 +672,10 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
       val queryPipeline = queryPipelineTry.toOption.get
       val sqlQuery = queryPipeline.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-      
+
       val result = queryPipeline.execute(queryExecutorContext)
       result match {
         case scala.util.Success(queryPipelineResult) =>
-          queryPipelineResult.rowList.foreach(
           assert(!queryPipelineResult.rowList.isEmpty)
         case any =>
           throw new UnsupportedOperationException(s"unexpected row list : $any")
@@ -796,7 +794,6 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
       case scala.util.Success(queryPipelineResult) =>
         val inmem = queryPipelineResult.rowList
         assert(!inmem.isEmpty)
-        inmem.foreach(
       case any =>
         throw new UnsupportedOperationException(s"unexpected row list : $any")
     }
