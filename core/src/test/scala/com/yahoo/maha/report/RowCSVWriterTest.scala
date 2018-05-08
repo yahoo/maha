@@ -55,7 +55,6 @@ class RowCSVWriterTest extends FunSuite with Matchers {
       val csvWriter3 = new RowCSVWriter(bw, ',', '\'')
       val csvWriter4 = new RowCSVWriter(bw, ',', '\'', '\\')
       csvWriter4.close()
-      System.out.
   }
 
   /**
