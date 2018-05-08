@@ -253,7 +253,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
     jsonGenerator.writeEndObject()
     jsonGenerator.flush()
     val jsonString = writer.getBuffer.toString
-    println(jsonString)
+    
     assert(jsonString === """{"header":{"cube":"k_stats","fields":[{"fieldName":"campaign_id","fieldType":"DIM"},{"fieldName":"Impressions","fieldType":"FACT"},{"fieldName":"Campaign Name","fieldType":"DIM"},{"fieldName":"Campaign Status","fieldType":"DIM"},{"fieldName":"CTR","fieldType":"FACT"},{"fieldName":"TotalRows","fieldType":"CONSTANT"}],"maxRows":100},"fields":[{"fieldName":"campaign_id","fieldType":"DIM"},{"fieldName":"Impressions","fieldType":"FACT"},{"fieldName":"Campaign Name","fieldType":"DIM"},{"fieldName":"Campaign Status","fieldType":"DIM"},{"fieldName":"CTR","fieldType":"FACT"},{"fieldName":"TotalRows","fieldType":"CONSTANT"}],"rows":[[1,2,"name","on",1.11,10]],"debug":{"fields":[{"fieldName":"Campaign ID","dataType":"Number"},{"fieldName":"Campaign Status","dataType":"String"},{"fieldName":"Impressions","dataType":"Number"},{"fieldName":"Campaign Name","dataType":"String"},{"fieldName":"CTR","dataType":"Number"},{"fieldName":"TOTALROWS","dataType":"Number"},{"fieldName":"TotalRows","dataType":"integer"}],"drivingQuery":{"tableName":"campaign_oracle","engine":"Oracle"}}}""")
   }
 
@@ -336,7 +336,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
     jsonGenerator.writeEndObject()
     jsonGenerator.flush()
     val jsonString = writer.getBuffer.toString
-    println(jsonString)
+    
     assert(jsonString === """{"header":{"cube":"k_stats","fields":[{"fieldName":"campaign_id","fieldType":"DIM"},{"fieldName":"Impressions","fieldType":"FACT"},{"fieldName":"Campaign Name","fieldType":"DIM"},{"fieldName":"Campaign Status","fieldType":"DIM"},{"fieldName":"CTR","fieldType":"FACT"}]},"fields":[{"fieldName":"campaign_id","fieldType":"DIM"},{"fieldName":"Impressions","fieldType":"FACT"},{"fieldName":"Campaign Name","fieldType":"DIM"},{"fieldName":"Campaign Status","fieldType":"DIM"},{"fieldName":"CTR","fieldType":"FACT"}],"rows":[[1,2,"name","on",1.11]],"rowCount":10,"debug":{"fields":[{"fieldName":"Campaign ID","dataType":"Number"},{"fieldName":"Campaign Status","dataType":"String"},{"fieldName":"Impressions","dataType":"Number"},{"fieldName":"Campaign Name","dataType":"String"},{"fieldName":"CTR","dataType":"Number"}],"drivingQuery":{"tableName":"fact_table_keywords","engine":"Oracle"}}}""")
 
     val writer2 = new StringWriter()
@@ -393,7 +393,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
     val jsonRowList : RowList = FileJsonRowList.fileJsonRowList(tmpFile, None, false)(query)
     val thrown = intercept[FileNotFoundException]{
       jsonRowList.withLifeCycle {
-        println("hello")
+        
       }
     }
     assert(thrown.getMessage === "/blah (Permission denied)")

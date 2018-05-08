@@ -43,10 +43,8 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     override def canTransform(resultAlias: String, column: Column): Boolean = {
       if (resultAlias != null && resultAlias.equalsIgnoreCase("Country")) {
-        println(s"Can transform $resultAlias")
         true
       } else {
-        println(s"Can NOT transform $resultAlias")
         false
       }
     }
@@ -548,7 +546,6 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty).get.build()
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(sqlQuery)
 
     val result = queryPipeline.execute(queryExecutorContext)
 
@@ -557,7 +554,6 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
         val inmem = queryPipelineResult.rowList
         assert(!inmem.isEmpty)
         inmem.foreach({ row =>
-          println(row)
           if(row.getValue("Ad ID") == 1000 && row.getValue("Pricing Type") == "CPA") {
             assert(row.getValue("Day") == "01-03-2018")
             assert(row.getValue("Campaign ID") == 10)
@@ -606,7 +602,6 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty).get.build()
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(sqlQuery)
 
     val result = queryPipeline.execute(queryExecutorContext)
 

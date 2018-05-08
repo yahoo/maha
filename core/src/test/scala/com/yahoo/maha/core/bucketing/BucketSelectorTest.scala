@@ -50,7 +50,7 @@ class BucketSelectorTest extends FunSuite {
         if (response.dryRunRevision.get == 2) countofRev2 += 1
       }
     }
-    println(s"Count of rev2 for dryRun: $countofRev2")
+    
     assert(countofRev2 > 0)
   }
 
@@ -84,7 +84,7 @@ class BucketSelectorTest extends FunSuite {
         if (response.get.dryRunRevision.get == 1) countOfRev1 += 1
       }
     }
-    println(s"Number of times Rev-1 was selected for dryRun: $countOfRev1")
+    
     assert(countOfRev1 > 0 && countOfRev1 <= 100)
   }
 

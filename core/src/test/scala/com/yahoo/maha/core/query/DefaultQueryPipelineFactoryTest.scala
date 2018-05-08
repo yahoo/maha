@@ -1306,7 +1306,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val query =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
-    println(query.asString)
+    
     val result = queryPipelineTry.toOption.get.withDruidCallback {
       rl =>
         val row = rl.newRow

@@ -133,7 +133,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     var defaultCount = 0
     defaultCuratorRequestResult.queryPipelineResult.rowList.foreach( row => {
-      println(row.toString)
+      
       assert(defaultExpectedSet.contains(row.toString))
       defaultCount+=1
     })
@@ -184,7 +184,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     var defaultCount = 0
     defaultCuratorRequestResult.queryPipelineResult.rowList.foreach( row => {
-      println(row.toString)
+      
       assert(defaultExpectedSet.contains(row.toString))
       defaultCount+=1
     })
@@ -246,7 +246,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     var cnt = 0
     timeShiftCuratorRequestResult.queryPipelineResult.rowList.foreach( row => {
-      println(row.toString)
+      
       assert(expectedSeq(cnt) === row.toString)
       cnt+=1
     })
@@ -557,7 +557,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     var cnt = 0
     drillDownCuratorResult.queryPipelineResult.rowList.foreach( row => {
-      println(row.toString)
+      
       assert(expectedSet.contains(row.toString))
       cnt+=1
     })
@@ -617,7 +617,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     var cnt = 0
     drillDownCuratorResult.queryPipelineResult.rowList.foreach( row => {
-      println(row.toString)
+      
       assert(expectedSet.contains(row.toString))
       cnt+=1
     })
@@ -679,7 +679,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     var cnt = 0
     drillDownCuratorResult.queryPipelineResult.rowList.foreach( row => {
-      println(row.toString)
+      
       assert(expectedSet.contains(row.toString))
       cnt+=1
     })
@@ -825,7 +825,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     var cnt = 0
     totalMetricsCuratorResult.queryPipelineResult.rowList.foreach( row => {
-      println(row.toString)
+      
       assert(expectedSet.contains(row.toString))
       cnt+=1
     })
@@ -881,7 +881,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     var defaultCount = 0
     defaultCuratorRequestResult.queryPipelineResult.rowList.foreach(
       row => {
-        //println(row.toString)
+        //
         assert(defaultExpectedSet.contains(row.toString))
         defaultCount+=1
       })
@@ -906,7 +906,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val result = stringStream.toString()
 
     val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[213,200,100,99,"Bryant",1]],"curators":{}}"""
-    println(result)
+    
 
     assert(result.contains(expectedJson))
 
@@ -968,7 +968,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val result = stringStream.toString()
 
     val expectedJson = s"""{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000}"""
-    println(result)
+    
 
     assert(result.contains(expectedJson))
   }
@@ -1029,7 +1029,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val result = stringStream.toString()
 
     val expectedJson = s"""{"message":"MahaServiceBadRequestException: requirement failed: Default revision not found for cube student_performance222 in the registry"}"""
-    println(result)
+    
 
     assert(result.contains(expectedJson))
   }

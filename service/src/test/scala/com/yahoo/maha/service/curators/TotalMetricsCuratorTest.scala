@@ -44,7 +44,6 @@ class TotalMetricsCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll
     rows.foreach {
       row =>
         val result = jdbcConnection.get.executeUpdate(insertSql, row)
-        println(result)
         assert(result.isSuccess)
     }
     var count = 0
@@ -109,7 +108,6 @@ class TotalMetricsCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll
     queryPipelineResult.rowList.foreach {
       row=>
         rowCount+=1
-        println(row.toString)
         assert(row.getValue("Total Marks") == 445)
     }
     assert(rowCount == 1)
@@ -207,7 +205,6 @@ class TotalMetricsCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll
     assert(totalMetricsCuratorResult.isRight)
     val parRequest = totalMetricsCuratorResult.right.get
     val parRequestResult = parRequest.get(1000)
-    println(parRequestResult)
     assert(parRequestResult.right.get.parRequestResultOption.get.prodRun.get(1000).isLeft)
   }
 

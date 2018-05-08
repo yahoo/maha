@@ -45,7 +45,6 @@ class RowCountCuratorTest  extends BaseMahaServiceTest with BeforeAndAfterAll {
     rows.foreach {
       row =>
         val result = jdbcConnection.get.executeUpdate(insertSql, row)
-        println(result)
         assert(result.isSuccess)
     }
     var count = 0

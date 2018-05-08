@@ -111,7 +111,7 @@ class QueryPipelineWithFallbackTest extends FunSuite with Matchers with BeforeAn
 
     val oracleExecutor = new MockOracleQueryExecutor(
       { rl =>
-        println(rl.query.asString)
+        
         val expected =
           s"""
              |SELECT *
@@ -135,7 +135,7 @@ class QueryPipelineWithFallbackTest extends FunSuite with Matchers with BeforeAn
 
         rl.query.asString should equal (expected) (after being whiteSpaceNormalised)
 
-        rl.foreach(r => println(s"Inside mock: $r"))
+        rl.foreach(r => 
         val row = rl.newRow
         row.addValue("Keyword ID", 14)
         row.addValue("Advertiser Status", "ON")

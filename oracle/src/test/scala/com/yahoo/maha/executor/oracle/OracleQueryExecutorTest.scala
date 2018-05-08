@@ -564,11 +564,11 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     
     val queryPipeline = queryPipelineTry.toOption.get
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(sqlQuery)
+    
     val result = queryPipeline.execute(queryExecutorContext)
     result match {
       case scala.util.Success(queryPipelineResult) =>
-        queryPipelineResult.rowList.foreach(println)
+        queryPipelineResult.rowList.foreach(
         assert(!queryPipelineResult.rowList.isEmpty)
       case any =>
         throw new UnsupportedOperationException(s"unexpected row list : $any")
@@ -619,11 +619,11 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryPipeline = queryPipelineTry.toOption.get
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(sqlQuery)
+    
     val result = queryPipeline.execute(queryExecutorContext)
     result match {
       case scala.util.Success(queryPipelineResult) =>
-        queryPipelineResult.rowList.foreach(println)
+        queryPipelineResult.rowList.foreach(
         assert(!queryPipelineResult.rowList.isEmpty)
       case any =>
         throw new UnsupportedOperationException(s"unexpected row list : $any")
@@ -631,7 +631,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
   }
 
   test("successfully execute dim driven sync query for ad_group_stats") {
-    withMockDruidQueryExecutor(rl => rl.foreach(r => println(s"Inside mock: $r"))) {
+    withMockDruidQueryExecutor(rl => rl.foreach(r => 
       val jsonString = s"""{
                           "cube": "ad_group_stats",
                           "forceDimensionDriven": true,
@@ -673,11 +673,11 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
       val queryPipeline = queryPipelineTry.toOption.get
       val sqlQuery = queryPipeline.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-      println(sqlQuery)
+      
       val result = queryPipeline.execute(queryExecutorContext)
       result match {
         case scala.util.Success(queryPipelineResult) =>
-          queryPipelineResult.rowList.foreach(println)
+          queryPipelineResult.rowList.foreach(
           assert(!queryPipelineResult.rowList.isEmpty)
         case any =>
           throw new UnsupportedOperationException(s"unexpected row list : $any")
@@ -741,7 +741,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           assert(!inmem.isEmpty)
           inmem.foreach {
             row =>
-              println(row)
+              
               row.getValue("Ad Group ID").toString match {
                 case "100" | "101" | "103" =>
                   assert(row.getValue("Impressions") != null)
@@ -790,13 +790,13 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryPipeline = queryPipelineTry.toOption.get
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(sqlQuery)
+    
     val result = queryPipeline.execute(queryExecutorContext)
     result match {
       case scala.util.Success(queryPipelineResult) =>
         val inmem = queryPipelineResult.rowList
         assert(!inmem.isEmpty)
-        inmem.foreach(println)
+        inmem.foreach(
       case any =>
         throw new UnsupportedOperationException(s"unexpected row list : $any")
     }
@@ -835,7 +835,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryPipeline = queryPipelineTry.toOption.get
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(sqlQuery)
+    
     val result = queryPipeline.execute(queryExecutorContext)
     assert(result.isFailure)
     assert(result.failed.get.getMessage.contains("""Column "UNKNOWN" not found"""))

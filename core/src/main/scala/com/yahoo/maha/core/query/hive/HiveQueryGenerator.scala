@@ -384,7 +384,6 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
 
 
       val unique_filters = removeDuplicateIfForced( factFilters.toSeq, allFilters.toSeq, queryContext )
-      println()
 
       unique_filters.sorted map {
         filter =>

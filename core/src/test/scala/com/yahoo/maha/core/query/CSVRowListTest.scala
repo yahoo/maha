@@ -238,7 +238,7 @@ class CSVRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTest {
     val rowListWithHeaders : CSVRowList = new CSVRowList(query, FileRowCSVWriterProvider(tmpFile), true)
     val thrown = intercept[FileNotFoundException] {
       rowListWithHeaders.withLifeCycle {
-        println("hello")
+        
       }
     }
     assert(thrown.getMessage === "/blah (Permission denied)")
