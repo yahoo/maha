@@ -13,7 +13,7 @@ import com.yahoo.maha.core.bucketing.{BucketingConfig, CubeBucketingConfig, Cube
 import com.yahoo.maha.core.query.druid.DruidQueryOptimizer
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request._
-import com.yahoo.maha.executor.druid.DruidQueryExecutorConfig
+import com.yahoo.maha.executor.druid.{AuthHeaderProvider, DruidQueryExecutorConfig}
 import com.yahoo.maha.executor.presto.PrestoQueryTemplate
 import com.yahoo.maha.parrequest2.CustomRejectPolicy
 import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor
@@ -135,6 +135,11 @@ trait MahaUDFRegistrationFactory extends BaseFactory {
 
 trait PrestoQueryTemplateFactory extends BaseFactory {
   def fromJson(config: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[PrestoQueryTemplate]
+  def supportedProperties: List[(String, Boolean)]
+}
+
+trait AuthHeaderProviderFactory extends BaseFactory {
+  def fromJson(config: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[AuthHeaderProvider]
   def supportedProperties: List[(String, Boolean)]
 }
 
