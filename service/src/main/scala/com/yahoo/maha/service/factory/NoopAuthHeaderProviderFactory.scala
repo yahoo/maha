@@ -19,12 +19,12 @@ class NoopAuthHeaderProviderFactory extends AuthHeaderProviderFactory {
 
   override def fromJson(configJson: JValue): MahaServiceConfig.MahaConfigResult[NoopAuthHeaderProvider] = {
     import org.json4s.scalaz.JsonScalaz._
-    val athensDomainResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("domain")(configJson)
-    val athensServiceResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("service")(configJson)
-    val athensPrivateKeyNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("privateKeyName")(configJson)
-    val athensPrivateKeyIdResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("privateKeyId")(configJson)
+    val noopDomainResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("domain")(configJson)
+    val noopServiceResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("service")(configJson)
+    val noopPrivateKeyNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("privateKeyName")(configJson)
+    val noopPrivateKeyIdResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("privateKeyId")(configJson)
 
-    (athensDomainResult |@| athensServiceResult |@| athensPrivateKeyNameResult |@| athensPrivateKeyIdResult) {
+    (noopDomainResult |@| noopServiceResult |@| noopPrivateKeyNameResult |@| noopPrivateKeyIdResult) {
       (_, _, _, _) => {
         new NoopAuthHeaderProvider
       }
