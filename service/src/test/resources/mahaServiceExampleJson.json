@@ -22,7 +22,8 @@
          "factEstimatorFactoryClass": "com.yahoo.maha.service.factory.TestFactCostEstimatoryFactory",
          "factEstimatorFactoryConfig": "",
          "defaultPublicFactRevisionMap": {
-            "student_performance": 0
+            "student_performance": 0,
+            "student_performance2": 0
          },
          "defaultPublicDimRevisionMap": {
             "student": 0
@@ -247,7 +248,27 @@
       "user" : "uid",
       "revision": 0
     }]
-}]
+    },
+           {
+             "cube": "student_performance2",
+             "internal": [{
+               "revision": 0,
+               "percent": 100
+             }],
+             "external": [{
+               "revision": 0,
+               "percent": 100
+             }],
+             "dryRun": [{
+               "revision": 0,
+               "percent": 100,
+               "engine" : "Oracle"
+             }],
+             "userWhiteList": [{
+               "user" : "uid",
+               "revision": 0
+             }]
+           }]
       },
       "irBucket": {
          "factoryClass": "com.yahoo.maha.service.factory.DefaultBucketingConfigFactory",
