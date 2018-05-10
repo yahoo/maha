@@ -19,16 +19,22 @@ public class CustomRejectPolicy implements RejectedExecutionHandler {
 
     @Override
     public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-        if (r instanceof AbstractFuture) {
+
+        if (r instanceof ListenableFutureTask || com.google.common.util.concurrent.ParRequest2Utils.isTrustedListenableFutureTask(r)) {
+            throw new RejectedExecutionException("Task " + r.toString() +
+                    " rejected from " +
+                    executor.toString());
+        }
+        else if (r instanceof AbstractFuture) {
             if (!executor.isShutdown()) {
                 r.run();
             } else {
                 throw new RejectedExecutionException(String.format("Task %s get rejected, executor %s is shutdown ", r.toString(), executor.toString()));
             }
-        } else if (r instanceof ListenableFutureTask) {
+        } else {
             throw new RejectedExecutionException("Task " + r.toString() +
-                                                 " rejected from " +
-                                                 executor.toString());
+                    " rejected from " +
+                    executor.toString());
         }
     }
 }
