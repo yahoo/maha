@@ -53,7 +53,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
 
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
-    val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams, mahaRequestLogHelper)
+    val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams)
     assert(requestModelResultTry.isSuccess)
 
     // Test General Error in Execute Model Test
@@ -178,7 +178,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
       Map.empty, "rid", "uid")
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
-    val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams, mahaRequestLogHelper)
+    val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams)
     assert(requestModelResultTry.isSuccess)
 
     val processRequestResult = mahaService.processRequest("er", reportingRequest, bucketParams, mahaRequestLogHelper)
@@ -223,7 +223,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
       Map.empty, "rid", "uid")
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
-    val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams, mahaRequestLogHelper)
+    val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams)
     assert(requestModelResultTry.isFailure)
 
     val exception = intercept[MahaServiceBadRequestException] {
