@@ -279,14 +279,6 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
   )
   val url = config.url
 
-  val headers = config.headers
-
-  val headersWithAuthHeader = if(config.headers.isDefined) {
-    Some(config.headers.get ++ authHeaderProvider.getAuthHeaders)
-  } else {
-    Some(authHeaderProvider.getAuthHeaders)
-  }
-
   override def close(): Unit = httpUtils.close()
 
   def checkUncoveredIntervals(query : Query, response : Response, config: DruidQueryExecutorConfig) : Unit = {
@@ -308,8 +300,14 @@ class DruidQueryExecutor(config:DruidQueryExecutorConfig , lifecycleListener: Ex
     if(!acceptEngine(query.engine)) {
       throw new UnsupportedOperationException(s"DruidQueryExecutor does not support query with engine=${query.engine}")
     }else {
+      val headersWithAuthHeader = if(config.headers.isDefined) {
+        Some(config.headers.get ++ authHeaderProvider.getAuthHeaders)
+      } else {
+        Some(authHeaderProvider.getAuthHeaders)
+      }
       if (debugEnabled) {
         info(s"Running query : ${query.asString}")
+        info(s"headersWithAuthHeader : ${headersWithAuthHeader}")
       }
       rowList match {
         case rl if rl.isInstanceOf[IndexedRowList] =>
