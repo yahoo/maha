@@ -973,6 +973,68 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(result.contains(expectedJson))
   }
 
+  test("fail DrillDown curator cross-cube fields when second cube lacks facts from initial request") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : {
+                                "enforceFilters": true,
+                                "dimension": "Admitted Year",
+                                "cube": "student_performance2"
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Total Marks"},
+                            {"field": "Section Name"},
+                            {"field": "Section ID"},
+                            {"field": "Performance Factor"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"},
+                            {"field": "Section ID", "operator": "=", "value": "200"}
+                          ],
+                          "includeRowCount": false
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
+
+    // Revision 1 is druid + oracle case
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(1))
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+    assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
+    assert(requestCoordinatorResult.successResults.contains(DrilldownCurator.name))
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
+
+    val stringStream =  new StringStream()
+
+    jsonStreamingOutput.writeStream(stringStream)
+    val result = stringStream.toString()
+
+    val expectedJson = s""""curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Admitted Year","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student ID","fieldType":"DIM"}],"maxRows":1000}"""
+
+
+    assert(result.contains(expectedJson))
+  }
+
   test("Force fail DrillDown using wrong drill down cube.") {
 
     val jsonRequest = s"""{

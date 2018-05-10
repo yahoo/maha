@@ -35,7 +35,8 @@ object DrilldownCurator {
   *
   * @param requestModelValidator: Used to validate the input RequestModel
   */
-class DrilldownCurator (override val requestModelValidator: CuratorRequestModelValidator = NoopCuratorRequestModelValidator) extends Curator with Logging {
+class
+DrilldownCurator (override val requestModelValidator: CuratorRequestModelValidator = NoopCuratorRequestModelValidator) extends Curator with Logging {
 
   override val name: String = DrilldownCurator.name
   override val level: Int = 10
@@ -117,17 +118,27 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                                         factFields: IndexedSeq[Field],
                                         primaryKeyField: Field,
                                         drilldownConfig: DrilldownConfig,
-                                        publicFact: PublicFact
+                                        publicFact: PublicFact,
+                                        schemaRequiredFields: Set[Field]
                                        ): ReportingRequest = {
     val cube: String = if (drilldownConfig.cube.nonEmpty) drilldownConfig.cube else reportingRequest.cube
+    var primary_inserted_filters : IndexedSeq[Field] = IndexedSeq.empty
     val filterExpressions: IndexedSeq[Filter] = if(drilldownConfig.enforceFilters) {
       //only include fact filters, dimension filter should have been done by the default curator
       reportingRequest.filterExpressions.filter {
         filter =>
+          //primary_inserted_filters = primary_inserted_filters :+ Field(filter.field, None, None)
           publicFact.columnsByAlias(filter.field)
       }
     } else IndexedSeq.empty
-    val allSelectedFields : IndexedSeq[Field] = (IndexedSeq(drilldownConfig.dimension, primaryKeyField).filter{_!=null} ++ factFields).distinct
+
+
+    val allSelectedFields : IndexedSeq[Field] = (
+      IndexedSeq(drilldownConfig.dimension, primaryKeyField).filter{_!=null} ++
+        factFields ++
+        primary_inserted_filters ++
+        schemaRequiredFields.toIndexedSeq
+      ).distinct
     reportingRequest.copy(cube = cube
       , selectFields = allSelectedFields
       , sortBy = if (drilldownConfig.ordering != IndexedSeq.empty) drilldownConfig.ordering else reportingRequest.sortBy
@@ -182,9 +193,21 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     , fields
     , mahaRequestContext)
 
-    //cannot do drilldown with no best candidates, assume validation checked this
     val publicFact = rm.bestCandidates.get.publicFact
-    val rr = drilldownReportingRequest(reportingRequest, fields_reduced, primaryField, drilldownConfig, publicFact)
+
+    var schemaRequiredAliases : Set[Field] = Set.empty
+    mahaService.getMahaServiceConfig.registry.get(registryName).get.registry.getSchemaRequiredFilterAliasesForFact(mahaService.getMahaServiceConfig.registry.get(registryName).get.registry.factMap(drilldownConfig.cube, mahaService.getMahaServiceConfig.registry.get(registryName).get.bucketSelector
+      .selectBuckets
+    (drilldownConfig.cube, bucketParams).toOption.get.revision).baseFact.name
+    , rm.schema,
+      drilldownConfig
+      .cube) foreach {
+      alias =>
+        schemaRequiredAliases = schemaRequiredAliases ++ Set(Field(alias, None, None))
+    }
+
+    //cannot do drilldown with no best candidates, assume validation checked this
+    val rr = drilldownReportingRequest(reportingRequest, fields_reduced, primaryField, drilldownConfig, publicFact, schemaRequiredAliases)
     rr
   }
 
@@ -293,7 +316,8 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                         val rowList = defaultRequestResult.queryPipelineResult.rowList
                         var values: Set[String] = Set.empty
                         rowList.foreach {
-                          row => values = values ++ List(row.cols(row.aliasMap(fieldAlias)).toString)
+                          row =>
+                            values = values ++ List(row.cols(row.aliasMap(fieldAlias)).toString)
                         }
 
                         val newReportingRequest = implementDrilldownRequestMinimization(

@@ -161,6 +161,47 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
     }
 
     registry.register(pubfactOracleReduced)
+
+    def pubfactOracleReduced2: PublicFact = {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        import com.yahoo.maha.core.DruidExpression._
+        Fact.newFact(
+          "student_grade_sheet_again", DailyGrain, DruidEngine, Set(StudentSchema),
+          Set(
+            DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
+            , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+            , DimCol("section_id", IntType(3))
+            , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
+            , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
+            , DimCol("date", DateType())
+            , DimCol("month", DateType())
+          ),
+          Set(
+            FactCol("total_marks", IntType())
+            , FactCol("obtained_marks", IntType())
+            , DruidDerFactCol("Performance Factor", DecType(10,2), "{obtained_marks}" /- "{total_marks}")
+          )
+        )
+      }
+        .toPublicFact("student_performance2",
+          Set(
+            PubCol("class_id", "Class ID", InEquality),
+            PubCol("student_id", "Student ID", InEquality),
+            PubCol("section_id", "Section ID", InEquality),
+            PubCol("date", "Day", Equality),
+            PubCol("month", "Month", InEquality),
+            PubCol("year", "Year", Equality)
+          ),
+          Set(
+            PublicFactCol("total_marks", "Total Marks", InBetweenEquality),
+            PublicFactCol("obtained_marks", "Marks Obtained", InBetweenEquality)
+          ),
+          Set.empty,
+          getMaxDaysWindow, getMaxDaysLookBack, revision = 1, dimRevision = 0
+        )
+    }
+
+    registry.register(pubfactOracleReduced2)
   }
 
 }
@@ -169,7 +210,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
   override def register(registry: RegistryBuilder): Unit = {
     val student_dim: PublicDimension = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-        Dimension.newDimension("student", OracleEngine, LevelTwo, Set(StudentSchema),
+        Dimension.newDimension("student", OracleEngine, LevelOne, Set(StudentSchema),
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("name", StrType())
@@ -182,7 +223,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
           , annotations = Set(OracleHashPartitioning)
         ).toPublicDimension("student","student",
           Set(
-            PubCol("id", "Student ID", Equality)
+            PubCol("id", "Student ID", InEquality)
             , PubCol("name", "Student Name", Equality)
             , PubCol("admitted_year", "Admitted Year", InEquality, hiddenFromJson = true)
             , PubCol("status", "Student Status", InEquality)
@@ -193,7 +234,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
 
     val class_dim: PublicDimension = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-        Dimension.newDimension("class", OracleEngine, LevelOne, Set(StudentSchema),
+        Dimension.newDimension("class", OracleEngine, LevelTwo, Set(StudentSchema),
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("name", StrType())
@@ -213,7 +254,31 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
         )
       }
     }
+
+    val section_dim: PublicDimension = {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        Dimension.newDimension("section", OracleEngine, LevelTwo, Set(StudentSchema),
+          Set(
+            DimCol("section_id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType())
+            , DimCol("teacher", IntType())
+            , DimCol("start_year", IntType())
+            , DimCol("status", StrType())
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(OracleHashPartitioning)
+        ).toPublicDimension("section","section",
+          Set(
+            PubCol("section_id", "Section ID", Equality)
+            , PubCol("name", "Section Name", Equality)
+            , PubCol("teacher", "Teacher", InEquality, hiddenFromJson = true)
+            , PubCol("status", "Section Status", InEquality)
+          ), highCardinalityFilters = Set(NotInFilter("Section Status", List("DELETED")))
+        )
+      }
+    }
     registry.register(class_dim)
+    registry.register(section_dim)
     registry.register(student_dim)
   }
 }
