@@ -67,7 +67,7 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
       info(s"previous period filter expressions : ${filterUpdatedReportingRequest.filterExpressions}")
     }
     val requestModelResultTry: Try[RequestModelResult] = mahaService
-      .generateRequestModel(registryName, filterUpdatedReportingRequest, bucketParams , mahaRequestLogBuilder)
+      .generateRequestModel(registryName, filterUpdatedReportingRequest, bucketParams)
     requestModelResultTry
   }
 
@@ -83,7 +83,8 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
     val parRequestLabel = "processTimeshiftCurator"
 
     val defaultWindowRequestModelResultTry: Try[RequestModelResult] = mahaService
-      .generateRequestModel(mahaRequestContext.registryName, mahaRequestContext.reportingRequest, mahaRequestContext.bucketParams , mahaRequestLogBuilder)
+      .generateRequestModel(mahaRequestContext.registryName
+        , mahaRequestContext.reportingRequest, mahaRequestContext.bucketParams)
     if(defaultWindowRequestModelResultTry.isFailure) {
       val message = defaultWindowRequestModelResultTry.failed.get.getMessage
       mahaRequestLogBuilder.logFailed(message)
@@ -102,70 +103,86 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
           "previousWindowTimeshiftCurator"
           , ParFunction.fromScala {
             defaultWindowRequestResult =>
-              val defaultWindowRowList: InMemRowList = {
+              val defaultWindowRowListTry: Try[InMemRowList] = Try {
                 defaultWindowRequestResult.queryPipelineResult.rowList match {
                   case inMemRowList: InMemRowList => inMemRowList
-                  case rl => return withError(curatorConfig
-                    , GeneralError.from("defaultWindowRowList"
-                      , s"Unsupported row list ${Option(rl).map(_.getClass.getSimpleName)}"))
-                }
-              }
-
-              val dimensionKeySet: Set[String] = defaultWindowRequestModel.bestCandidates.get.publicFact.dimCols.map(_.alias)
-                .intersect(defaultWindowRequestModel.reportingRequest.selectFields.map(_.field).toSet)
-
-              val dimensionAndItsValuesMap: mutable.Map[String, mutable.Set[String]] = new mutable.HashMap[String, mutable.Set[String]]()
-
-              defaultWindowRowList.map {
-                defaultRow =>
-                  dimensionKeySet.map {
-                    dim =>
-                      dimensionAndItsValuesMap.put(dim
-                        , dimensionAndItsValuesMap.getOrElse(dim, new mutable.HashSet[String]()) += defaultRow.getValue(dim).toString
-                      )
-                  }
-              }
-
-              val previousWindowRequestModelResultTry: Try[RequestModelResult] =
-                getRequestModelForPreviousWindow(mahaRequestContext.registryName,
-                  mahaRequestContext.bucketParams,
-                  mahaRequestContext.reportingRequest,
-                  mahaService,
-                  mahaRequestLogBuilder,
-                  dimensionAndItsValuesMap.map(e => (e._1, e._2.toSet)).toList)
-
-              if(previousWindowRequestModelResultTry.isFailure) {
-                val message = previousWindowRequestModelResultTry.failed.get.getMessage
-                mahaRequestLogBuilder.logFailed(message)
-                return withError(curatorConfig
-                  , GeneralError.from(parRequestLabel, message, new MahaServiceBadRequestException(message)))
-              }
-
-              val previousWindowRequestResultEither = mahaService
-                .processRequestModel(mahaRequestContext.registryName, previousWindowRequestModelResultTry.get.model, mahaRequestLogBuilder)
-              if(previousWindowRequestResultEither.isLeft) {
-                return processError(curatorConfig, parRequestLabel, previousWindowRequestResultEither, mahaRequestLogBuilder)
-              }
-
-              val previousWindowRequestResult = previousWindowRequestResultEither.right.get
-              val previousWindowRowList: InMemRowList = {
-                previousWindowRequestResultEither.right.get.queryPipelineResult.rowList match {
-                  case inMemRowList: InMemRowList => inMemRowList
                   case rl =>
-                    return withError(curatorConfig
-                      , GeneralError.from("previousWindowRowList"
-                        , s"Unsupported row list ${Option(rl).map(_.getClass.getSimpleName)}"))
+                    throw new UnsupportedOperationException(s"Unsupported row list ${Option(rl).map(_.getClass.getSimpleName)}")
                 }
               }
 
-              val derivedRowList: DerivedRowList = createDerivedRowList(
-                defaultWindowRequestResult.queryPipelineResult
-                , defaultWindowRequestModel
-                , defaultWindowRowList
-                , previousWindowRowList
-                , dimensionKeySet)
+              if(defaultWindowRowListTry.isFailure) {
+                val exception = defaultWindowRowListTry.failed.get
+                val message = exception.getMessage
+                mahaRequestLogBuilder.logFailed(message)
+                withRequestResultError(curatorConfig
+                  , GeneralError.from("defaultWindowRowList"
+                    , message
+                  ))
+              } else {
+                val defaultWindowRowList = defaultWindowRowListTry.get
+                val dimensionKeySet: Set[String] = defaultWindowRequestModel.bestCandidates.get.publicFact.dimCols.map(_.alias)
+                  .intersect(defaultWindowRequestModel.reportingRequest.selectFields.map(_.field).toSet)
 
-              new Right(RequestResult(defaultWindowRequestResult.queryPipelineResult.copy(rowList = derivedRowList)))
+                val dimensionAndItsValuesMap: mutable.Map[String, mutable.Set[String]] = new mutable.HashMap[String, mutable.Set[String]]()
+
+                defaultWindowRowList.map {
+                  defaultRow =>
+                    dimensionKeySet.map {
+                      dim =>
+                        dimensionAndItsValuesMap.put(dim
+                          , dimensionAndItsValuesMap.getOrElse(dim, new mutable.HashSet[String]()) += defaultRow.getValue(dim).toString
+                        )
+                    }
+                }
+
+                val previousWindowRequestModelResultTry: Try[RequestModelResult] =
+                  getRequestModelForPreviousWindow(mahaRequestContext.registryName,
+                    mahaRequestContext.bucketParams,
+                    mahaRequestContext.reportingRequest,
+                    mahaService,
+                    mahaRequestLogBuilder,
+                    dimensionAndItsValuesMap.map(e => (e._1, e._2.toSet)).toList)
+
+                if (previousWindowRequestModelResultTry.isFailure) {
+                  val message = previousWindowRequestModelResultTry.failed.get.getMessage
+                  mahaRequestLogBuilder.logFailed(message)
+                  val result: Either[GeneralError, RequestResult] = withRequestResultError(curatorConfig
+                    , GeneralError.from(parRequestLabel, message, new MahaServiceBadRequestException(message)))
+                  result
+                } else {
+
+                  val previousWindowRequestResultEither = mahaService
+                    .processRequestModel(mahaRequestContext.registryName, previousWindowRequestModelResultTry.get.model, mahaRequestLogBuilder)
+                  if (previousWindowRequestResultEither.isLeft) {
+                    processError(curatorConfig, parRequestLabel, previousWindowRequestResultEither, mahaRequestLogBuilder)
+                  } else {
+
+                    val previousWindowRequestResult = previousWindowRequestResultEither.right.get
+                    val previousWindowRowList: InMemRowList = {
+                      previousWindowRequestResultEither.right.get.queryPipelineResult.rowList match {
+                        case inMemRowList: InMemRowList => inMemRowList
+                        case rl =>
+                          val message = s"Unsupported row list ${Option(rl).map(_.getClass.getSimpleName)}"
+                          mahaRequestLogBuilder.logFailed(message)
+                          return withError(curatorConfig
+                            , GeneralError.from("previousWindowRowList"
+                              , message))
+                      }
+                    }
+
+                    val derivedRowList: DerivedRowList = createDerivedRowList(
+                      defaultWindowRequestResult.queryPipelineResult
+                      , defaultWindowRequestModel
+                      , defaultWindowRowList
+                      , previousWindowRowList
+                      , dimensionKeySet)
+
+                    mahaRequestLogBuilder.logSuccess()
+                    new Right(RequestResult(defaultWindowRequestResult.queryPipelineResult.copy(rowList = derivedRowList)))
+                  }
+                }
+              }
           })
         withResult(
           parRequestLabel
@@ -174,6 +191,7 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
       }
       catch {
         case e: Exception =>
+          mahaRequestLogBuilder.logFailed(e.getMessage)
           withError(curatorConfig, GeneralError.from(parRequestLabel
             , e.getMessage, MahaServiceBadRequestException(e.getMessage, Option(e))))
 
@@ -183,11 +201,11 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
 
   private[this] def processError(curatorConfig: CuratorConfig
                                  , parRequestLabel: String, resultEither: Either[GeneralError, RequestResult]
-                                 , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder): Either[CuratorError, ParRequest[CuratorResult]] = {
+                                 , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder): Either[CuratorError, RequestResult] = {
     val ge = resultEither.left.get
     val message = ge.throwableOption.map(_.getMessage).getOrElse(ge.message)
     mahaRequestLogBuilder.logFailed(message)
-    withError(curatorConfig, GeneralError.from(parRequestLabel
+    withRequestResultError(curatorConfig, GeneralError.from(parRequestLabel
       , message, MahaServiceExecutionException(message, ge.throwableOption)))
   }
 

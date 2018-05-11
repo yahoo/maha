@@ -57,6 +57,9 @@ trait Curator extends Ordered[Curator] {
   protected def withError(curatorConfig: CuratorConfig, error: GeneralError): Either[CuratorError, ParRequest[CuratorResult]] = {
     new Left(CuratorError(this, curatorConfig, error))
   }
+  protected def withRequestResultError(curatorConfig: CuratorConfig, error: GeneralError): Either[CuratorError, RequestResult] = {
+    new Left(CuratorError(this, curatorConfig, error))
+  }
   protected def withParResult(label: String
                               , parResult: ParRequest[CuratorResult]): Either[CuratorError, ParRequest[CuratorResult]] = {
     new Right(parResult)

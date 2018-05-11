@@ -68,7 +68,8 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                                        reportingRequest: ReportingRequest,
                                        mahaService: MahaService,
                                        mahaRequestLogBuilder: CuratorMahaRequestLogBuilder): (RequestModel, IndexedSeq[Field]) = {
-    val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams, mahaRequestLogBuilder)
+    val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(
+      registryName, reportingRequest, bucketParams)
     require(requestModelResultTry.isSuccess, "Input ReportingRequest was invalid due to " + requestModelResultTry.failed.get.getMessage)
     val model = requestModelResultTry.get.model
     require(model.bestCandidates.nonEmpty, "No best candidates for default request, cannot drill down!")
