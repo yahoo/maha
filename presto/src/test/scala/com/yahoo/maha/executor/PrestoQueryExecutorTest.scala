@@ -18,7 +18,10 @@ import com.yahoo.maha.jdbc._
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.mockito.Matchers._
 import org.mockito.Mockito
+import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+
+import scala.util.Try
 
 class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest {
   
@@ -675,5 +678,37 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     assert(columnValueExtractor.getColumnValue(5, decWithScaleAndLength, resultSet) == null)
     assertThrows[UnsupportedOperationException](columnValueExtractor.getColumnValue(5, invalidType, resultSet))
 
+  }
+
+  test("test invalid query engine") {
+
+    val requestModel = Mockito.mock(classOf[RequestModel])
+    val queryContext = Mockito.mock(classOf[QueryContext])
+    val query = Mockito.mock(classOf[OracleQuery])
+    doReturn(IndexedSeq.empty).when(requestModel).requestCols
+    doReturn(requestModel).when(queryContext).requestModel
+    doReturn(queryContext).when(query).queryContext
+
+    val rowList = new InMemRowList {
+      override def query: Query = {
+        val requestModel = Mockito.mock(classOf[RequestModel])
+        val queryContext = Mockito.mock(classOf[QueryContext])
+        val query = Mockito.mock(classOf[OracleQuery])
+        doReturn(IndexedSeq.empty).when(requestModel).requestCols
+        doReturn(requestModel).when(queryContext).requestModel
+        doReturn(queryContext).when(query).queryContext
+        doReturn(Map.empty).when(query).aliasColumnMap
+        query
+      }
+      override def columnNames : IndexedSeq[String] = {
+        IndexedSeq.empty
+      }
+      override def ephemeralColumnNames: IndexedSeq[String] = {
+        IndexedSeq.empty
+      }
+    }
+    val result = Try(prestoQueryExecutor.get.execute(query, rowList, QueryAttributes.empty))
+    assert(result.isFailure)
+    assert(result.failed.get.isInstanceOf[UnsupportedOperationException])
   }
 }

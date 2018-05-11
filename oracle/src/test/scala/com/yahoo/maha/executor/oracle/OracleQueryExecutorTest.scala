@@ -56,6 +56,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
   override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
     registryBuilder.register(pubfact(forcedFilters))
+    registryBuilder.register(pubfactInvalid(forcedFilters))
     registryBuilder.register(druidpubfact(forcedFilters))
   }
 
@@ -255,6 +256,60 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
         ),
         Set(
           PublicFactCol("impressions", "Impressions", InBetweenEquality),
+          PublicFactCol("clicks", "Clicks", InBetweenEquality),
+          PublicFactCol("spend", "Spend", Set.empty),
+          PublicFactCol("max_bid", "Max Bid", Set.empty),
+          PublicFactCol("average_cpc", "Average CPC", InBetweenEquality),
+          PublicFactCol("CTR Percentage", "CTR Percentage", Set.empty),
+          PublicFactCol("CTR", "CTR", InBetweenEquality)
+        ),
+        Set(EqualityFilter("Source", "2", isForceFilter = true)),
+        getMaxDaysWindow, getMaxDaysLookBack
+      )
+  }
+
+  private[this] def pubfactInvalid(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    import OracleExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      Fact.newFact(
+        "ad_stats_oracle", DailyGrain, OracleEngine, Set(AdvertiserSchema),
+        Set(
+          DimCol("ad_id", IntType(), annotations = Set(ForeignKey("ad")))
+          , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
+          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+          , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("stats_source", IntType(3))
+          , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
+          , DimCol("stats_date", DateType())
+          , OracleDerDimCol("Year", StrType(), GET_INTERVAL_DATE("{stats_date}", "YR"))
+          , OracleDerDimCol("Hour", DateType("YYYY-MM-DD HH24"), "concat({stats_date},' 00')")
+        ),
+        Set(
+          FactCol("impressions_invalid", IntType(3, 1))
+          , FactCol("clicks", IntType(3, 0, 1, 800))
+          , FactCol("spend", DecType(8, 0, "0.0"))
+          , FactCol("max_bid", DecType(0, 2, "0.0"), MaxRollup)
+          , OracleDerFactCol("average_cpc", DecType(0, 2, "0"), "{spend}" / "{clicks}")
+          , FactCol("CTR", DecType(5, 2, "0"), OracleCustomRollup(SUM("{clicks}" /- "{impressions_invalid}")))
+          , OracleDerFactCol("CTR Percentage", DecType(), "{clicks}" /- "{impressions_invalid}" * "100")
+        ),
+        annotations = Set()
+      )
+    }
+      .toPublicFact("ad_stats_invalid",
+        Set(
+          PubCol("stats_date", "Day", InBetweenEquality),
+          PubCol("Hour", "Hour", InBetweenEquality),
+          PubCol("ad_id", "Ad ID", InEquality),
+          PubCol("Year", "Year", InEquality),
+          PubCol("ad_group_id", "Ad Group ID", InEquality),
+          PubCol("campaign_id", "Campaign ID", InEquality),
+          PubCol("advertiser_id", "Advertiser ID", InEquality),
+          PubCol("stats_source", "Source", Equality),
+          PubCol("price_type", "Pricing Type", In)
+        ),
+        Set(
+          PublicFactCol("impressions_invalid", "Impressions", InBetweenEquality),
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),
           PublicFactCol("max_bid", "Max Bid", Set.empty),
@@ -840,6 +895,47 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val result = queryPipeline.execute(queryExecutorContext)
     assert(result.isFailure)
     assert(result.failed.get.getMessage.contains("""Column "UNKNOWN" not found"""))
+  }
+
+
+  test("Invalid definition test") {
+    val jsonString = s"""{
+                          "cube": "ad_stats_invalid",
+                          "selectFields": [
+                            {"field": "Campaign ID"},
+                            {"field": "Ad Group ID"},
+                            {"field": "Ad ID"},
+                            {"field": "Ad Title"},
+                            {"field": "Ad Status"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "1"}
+                          ],
+                          "sortBy": [
+                            {"field": "Ad Title", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":1,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+      //override def query: Query = {q}
+    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty).get
+      .withRowListFunction(q => new DimDrivenPartialRowList("Campaign ID", q) {
+        (q)
+      }).build()
+
+    val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(sqlQuery)
+    val result = queryPipeline.execute(queryExecutorContext)
+    assert(result.isFailure)
+    assert(result.failed.get.getMessage.contains("""Column "IMPRESSIONS_INVALID" not found"""))
   }
 
   test("test null result") {
