@@ -1054,7 +1054,8 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                             {"field": "Performance Factor"}
                           ],
                           "sortBy": [
-                            {"field": "Student Name", "order": "Desc"}
+                            {"field": "Student Name", "order": "Desc"},
+                            {"field": "Total Marks", "order": "Desc"}
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
@@ -1080,8 +1081,16 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
     assert(requestCoordinatorResult.successResults.contains(DrilldownCurator.name))
+
+    val drillDownCuratorResult = requestCoordinatorResult.curatorResult(DrilldownCurator.name)
+
+    val drillDownReportingRequest = drillDownCuratorResult.requestModelReference.model.reportingRequest
+
+    assert(drillDownReportingRequest.sortBy.size == 1)
+    assert(drillDownReportingRequest.sortBy.map(_.field).contains("Total Marks"))
 
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 
