@@ -54,7 +54,7 @@ class BucketSelector(registry: Registry, bucketingConfig: BucketingConfig) exten
         if (requestParams.forceEngine.isDefined) {
           dryRunEngine = requestParams.forceEngine
         } else {
-          dryRunEngine = cubeConfig.get.dryRunPercentage.apply(dryRunRevision.get)._2
+          dryRunEngine = cubeConfig.flatMap(_.dryRunPercentage.get(dryRunRevision.get)).flatMap(_._2)
         }
       } else {
         val dryRunBucket = getDryRunRevision(cubeConfig, requestParams)

@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.bucketing
 
-import com.yahoo.maha.core.DruidEngine
+import com.yahoo.maha.core.{DruidEngine, OracleEngine}
 import com.yahoo.maha.core.registry.Registry
 import org.mockito.Mockito._
 import org.scalatest.FunSuite
@@ -13,7 +13,7 @@ import org.scalatest.FunSuite
 class BucketSelectorTest extends FunSuite {
 
   val registry = mock(classOf[Registry])
-  when(registry.defaultPublicFactRevisionMap).thenReturn(Map("test-cube" -> 1).toMap)
+  when(registry.defaultPublicFactRevisionMap).thenReturn(Map("test-cube" -> 1, "test-cube-2" -> 1).toMap)
 
   val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
 
@@ -54,6 +54,19 @@ class BucketSelectorTest extends FunSuite {
     assert(countofRev2 > 0)
   }
 
+  test("DryRun bucket test with dryRunRevision and forceEngine but no cube config") {
+    val bucketSelector = new BucketSelector(registry, NoBucketingConfig)
+    val bucketParams = new BucketParams(new UserInfo("test-user", true), dryRunRevision = Option(1), forceEngine = Option(OracleEngine)) // isInternal = true
+    val respTry = bucketSelector.selectBuckets("test-cube-2", bucketParams)
+    assert(respTry.isSuccess, respTry)
+  }
+
+  test("DryRun bucket test with dryRunRevision and no forceEngine but no cube config") {
+    val bucketSelector = new BucketSelector(registry, NoBucketingConfig)
+    val bucketParams = new BucketParams(new UserInfo("test-user", true), dryRunRevision = Option(1)) // isInternal = true
+    val respTry = bucketSelector.selectBuckets("test-cube-2", bucketParams)
+    assert(respTry.isSuccess, respTry)
+  }
 
   test("Test for invalid cube") {
     val bucketParams = new BucketParams(new UserInfo("test-user", false)) // isInternal = false
@@ -132,6 +145,12 @@ class BucketSelectorTest extends FunSuite {
         .externalBucketPercentage(Map(0 -> 100))
         .userWhiteList(Map("test-user" -> 1))
         .build())
+    }
+  }
+
+  object NoBucketingConfig extends BucketingConfig {
+    override def getConfig(cube: String): Option[CubeBucketingConfig] = {
+      None
     }
   }
 }
