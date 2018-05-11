@@ -11,7 +11,7 @@ import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.utils.CuratorMahaRequestLogBuilder
-import com.yahoo.maha.service.{CuratorInjector, MahaRequestContext, MahaService, MahaServiceConfig, RegistryConfig}
+import com.yahoo.maha.service.{CuratorInjector, MahaRequestContext, MahaService, MahaServiceConfig, RegistryConfig, RequestResult}
 import grizzled.slf4j.Logging
 import org.json4s.scalaz.JsonScalaz
 
@@ -68,7 +68,8 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                                        reportingRequest: ReportingRequest,
                                        mahaService: MahaService,
                                        mahaRequestLogBuilder: CuratorMahaRequestLogBuilder): (RequestModel, IndexedSeq[Field]) = {
-    val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(registryName, reportingRequest, bucketParams, mahaRequestLogBuilder)
+    val requestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(
+      registryName, reportingRequest, bucketParams)
     require(requestModelResultTry.isSuccess, "Input ReportingRequest was invalid due to " + requestModelResultTry.failed.get.getMessage)
     val model = requestModelResultTry.get.model
     require(model.bestCandidates.nonEmpty, "No best candidates for default request, cannot drill down!")
@@ -258,11 +259,14 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
     val parRequestLabel = "processDrillDownCurator"
 
     if(!resultMap.contains(DefaultCurator.name)) {
-      withError(curatorConfig, GeneralError.from(parRequestLabel, "default curator required!"))
+      val message = "default curator required!"
+      mahaRequestLogBuilder.logFailed(message)
+      withError(curatorConfig, GeneralError.from(parRequestLabel, message))
     } else {
       val generalErrorOrResult = resultMap(DefaultCurator.name)
 
       if (generalErrorOrResult.isLeft) {
+        mahaRequestLogBuilder.logFailed("default curator failed, cannot continue")
         generalErrorOrResult
       } else {
         val parResult = generalErrorOrResult.right.get
@@ -276,8 +280,10 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
             val defaultParRequestResultOption = defaultCuratorResult.parRequestResultOption
 
             if (defaultParRequestResultOption.isEmpty) {
+              val message = "no result from default curator, cannot continue"
+              mahaRequestLogBuilder.logFailed(message)
               parallelServiceExecutor.immediateResult(parRequestLabel,
-                GeneralError.either(parRequestLabel, "no result from default curator, cannot continue")
+                GeneralError.either(parRequestLabel, message)
               )
             } else {
               val defaultParRequestResult = defaultParRequestResultOption.get
@@ -319,8 +325,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                         }
 
                         val requestModelResultTry = mahaService.generateRequestModel(
-                          mahaRequestContext.registryName, newRequestWithInsertedFilter, mahaRequestContext.bucketParams.copy(forceRevision = None)
-                          , mahaRequestLogBuilder)
+                          mahaRequestContext.registryName, newRequestWithInsertedFilter, mahaRequestContext.bucketParams.copy(forceRevision = None))
 
                         if (requestModelResultTry.isFailure) {
                           val message = requestModelResultTry.failed.get.getMessage
@@ -332,9 +337,16 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                             requestModelValidator.validate(mahaRequestContext, requestModelResult)
                             val parRequestResult = mahaService.executeRequestModelResult(mahaRequestContext.registryName
                               , requestModelResultTry.get, mahaRequestLogBuilder)
-                            new Right(CuratorResult(DrilldownCurator.this, NoConfig, Option(parRequestResult), requestModelResult))
+                            val finalProdRunResult: ParRequest[RequestResult] = parRequestResult.prodRun.map("logSuccess", ParFunction.fromScala {
+                              requestResult =>
+                                mahaRequestLogBuilder.logSuccess()
+                                new Right(requestResult)
+                            })
+                            val finalParRequestResult = parRequestResult.copy(prodRun = finalProdRunResult)
+                            new Right(CuratorResult(DrilldownCurator.this, NoConfig, Option(finalParRequestResult), requestModelResult))
                           } catch {
                             case e: Exception =>
+                              mahaRequestLogBuilder.logFailed(e.getMessage)
                               withParRequestError(curatorConfig, GeneralError.from(parRequestLabel
                                 , e.getMessage, MahaServiceBadRequestException(e.getMessage, Option(e))))
                           }
@@ -342,6 +354,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                       }
                     } catch {
                       case e: Exception =>
+                        mahaRequestLogBuilder.logFailed(e.getMessage)
                         withParRequestError(curatorConfig, GeneralError.from(parRequestLabel
                           , e.getMessage, MahaServiceBadRequestException(e.getMessage, Option(e))))
                     }

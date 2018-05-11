@@ -55,7 +55,7 @@ class JsonStreamingOutputTest extends FunSuite {
       reportingRequest,
       jsonRequest.getBytes,
       Map.empty, "rid", "uid")
-    val requestModel = mahaService.generateRequestModel(ExampleMahaService.REGISTRY_NAME, reportingRequest, BucketParams(UserInfo("test", false)), MahaRequestLogHelper(mahaRequestContext, mahaService.mahaRequestLogWriter)).toOption.get
+    val requestModel = mahaService.generateRequestModel(ExampleMahaService.REGISTRY_NAME, reportingRequest, BucketParams(UserInfo("test", false))).toOption.get
     val factory = registry.queryPipelineFactory.from(requestModel.model, QueryAttributes.empty)
     val queryChain = factory.get.queryChain
     val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)

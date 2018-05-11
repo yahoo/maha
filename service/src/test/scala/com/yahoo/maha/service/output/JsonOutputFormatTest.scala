@@ -62,8 +62,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
     val requestModel = mahaService.generateRequestModel(REGISTRY
       , reportingRequest
-      , BucketParams(UserInfo("test", false))
-      , mahaRequestLogBuilder).toOption.get
+      , BucketParams(UserInfo("test", false))).toOption.get
     val factory = registry.queryPipelineFactory.from(requestModel.model, QueryAttributes.empty)
     val queryChain = factory.get.queryChain
     val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)

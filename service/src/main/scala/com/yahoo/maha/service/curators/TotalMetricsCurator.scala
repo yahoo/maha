@@ -41,6 +41,7 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
     val publicFactOption = registry.getFact(reportingRequest.cube)
     if (publicFactOption.isEmpty) {
       val message = s"Failed to find the cube ${reportingRequest.cube} in registry"
+      mahaRequestLogBuilder.logFailed(message)
       return withError(curatorConfig
         , GeneralError.from(parRequestLabel, message, new MahaServiceBadRequestException(message)))
     }
@@ -59,7 +60,7 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
     val totalMetricsRequestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(
       mahaRequestContext.registryName
       , totalMetricsReportingRequest
-      , mahaRequestContext.bucketParams , mahaRequestLogBuilder)
+      , mahaRequestContext.bucketParams)
     if(totalMetricsRequestModelResultTry.isFailure) {
       val message = totalMetricsRequestModelResultTry.failed.get.getMessage
       mahaRequestLogBuilder.logFailed(message)
@@ -84,7 +85,9 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
               result
             } catch {
               case e: Exception =>
-                logger.error("error in post processor, returning original result", e)
+                val message = "error in post processor, returning original result"
+                logger.error(message, e)
+                mahaRequestLogBuilder.logFailed(s"$message - ${e.getMessage}")
                 new Right(requestResult)
             }
         })
@@ -97,6 +100,7 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
       }
       catch {
         case e: Exception =>
+          mahaRequestLogBuilder.logFailed(e.getMessage)
           withError(curatorConfig, GeneralError.from(parRequestLabel
             , e.getMessage, new MahaServiceBadRequestException(e.getMessage, Option(e))))
 

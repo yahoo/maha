@@ -56,7 +56,7 @@ trait MahaService {
   def mahaRequestLogWriter: MahaRequestLogWriter
 
   /**
-   * Generates own model and create ParRequestResult and invoke the execution
+   * Generates own model, executes request, logs failures with request log builder
    */
   def processRequest(registryName: String
                      , reportingRequest: ReportingRequest
@@ -64,7 +64,7 @@ trait MahaService {
                      , mahaRequestLogBuilder: BaseMahaRequestLogBuilder): Either[GeneralError, RequestResult]
 
   /**
-   * Generates own model, create ParRequestResult. Invocation is left on the user's implementation details.
+   * Generates own model, create ParRequestResult, logs failures with request log builder
    */
   def executeRequest(registryName: String
                      , reportingRequest: ReportingRequest
@@ -76,29 +76,26 @@ trait MahaService {
    */
   def generateRequestModel(registryName: String,
                            reportingRequest: ReportingRequest,
-                           bucketParams: BucketParams,
-                           mahaRequestLogBuilder: BaseMahaRequestLogBuilder): Try[RequestModelResult]
+                           bucketParams: BucketParams): Try[RequestModelResult]
 
   /**
     * generate query pipeline from model
     * @param registryName
     * @param requestModel
-    * @param mahaRequestLogBuilder
     * @return
     */
-  def generateQueryPipeline(registryName: String,
-                                    requestModel: RequestModel,
-                                    mahaRequestLogBuilder: BaseMahaRequestLogBuilder): Try[QueryPipeline]
+  def generateQueryPipeline(registryName: String
+                            , requestModel: RequestModel): Try[QueryPipeline]
 
   /**
-   * Executes the RequestModel and provide the RequestResult
+   * Executes the RequestModel and provide the RequestResult, logs failures with request log builder
    */
   def processRequestModel(registryName: String,
                           requestModel: RequestModel,
                           mahaRequestLogBuilder: BaseMahaRequestLogBuilder): Either[GeneralError, RequestResult]
 
   /**
-   * Prepare the ParRequests for given RequestModel. Invocation is left on the user's implementation details.
+   * Async execution, returns ParRequests for given RequestModel, logs failures with request log builder
    */
   def executeRequestModelResult(registryName: String,
                                 requestModelResult: RequestModelResult,
@@ -147,7 +144,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
                               , reportingRequest: ReportingRequest
                               , bucketParams: BucketParams
                               , mahaRequestLogBuilder: BaseMahaRequestLogBuilder): Either[GeneralError, RequestResult] = {
-    val requestModelResultTry = generateRequestModel(registryName, reportingRequest, bucketParams, mahaRequestLogBuilder)
+    val requestModelResultTry = generateRequestModel(registryName, reportingRequest, bucketParams)
 
     if (requestModelResultTry.isFailure) {
       val message = "Failed to create Report Model:"
@@ -177,7 +174,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
                               , bucketParams: BucketParams
                               , mahaRequestLogBuilder: BaseMahaRequestLogBuilder): ParRequestResult = {
     val parLabel = "executeRequest"
-    val requestModelResultTry = generateRequestModel(registryName, reportingRequest, bucketParams, mahaRequestLogBuilder)
+    val requestModelResultTry = generateRequestModel(registryName, reportingRequest, bucketParams)
     if (requestModelResultTry.isFailure) {
       val message = "Failed to create Report Model:"
       val error = requestModelResultTry.failed.toOption
@@ -191,14 +188,14 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
     val dryRunResult = {
       if (requestModelResult.dryRunModelTry.isDefined &&
         requestModelResult.dryRunModelTry.get.isSuccess) {
-        val dryRunResult = asParRequest(registryName, requestModelResult.dryRunModelTry.get.get, parLabel, mahaRequestLogBuilder)
+        val dryRunResult = asParRequest(registryName, requestModelResult.dryRunModelTry.get.get, parLabel, mahaRequestLogBuilder.dryRun())
         Option(dryRunResult._2)
       } else None
     }
     ParRequestResult(queryPipelineTry, finalResult, dryRunResult)
   }
 
-  override def generateRequestModel(registryName: String, reportingRequest: ReportingRequest, bucketParams: BucketParams, mahaRequestLogBuilder: BaseMahaRequestLogBuilder): Try[RequestModelResult] = {
+  override def generateRequestModel(registryName: String, reportingRequest: ReportingRequest, bucketParams: BucketParams): Try[RequestModelResult] = {
     validateRegistry(registryName)
     val registryConfig = config.registry(registryName)
     return RequestModelFactory.fromBucketSelector(reportingRequest, bucketParams, registryConfig.registry, registryConfig.bucketSelector, utcTimeProvider = registryConfig.utcTimeProvider)
@@ -222,7 +219,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
     val dryRunResult = {
       if (requestModelResult.dryRunModelTry.isDefined &&
         requestModelResult.dryRunModelTry.get.isSuccess) {
-        val dryRunResult = asParRequest(registryName, requestModelResult.dryRunModelTry.get.get, parLabel, mahaRequestLogBuilder)
+        val dryRunResult = asParRequest(registryName, requestModelResult.dryRunModelTry.get.get, parLabel, mahaRequestLogBuilder.dryRun())
         Option(dryRunResult._2)
       } else None
     }
@@ -230,8 +227,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
   }
 
   def generateQueryPipeline(registryName: String,
-                                     requestModel: RequestModel,
-                                     mahaRequestLogBuilder: BaseMahaRequestLogBuilder): Try[QueryPipeline] = {
+                                     requestModel: RequestModel): Try[QueryPipeline] = {
 
     val registryConfig = config.registry(registryName)
     val queryPipelineFactory = registryConfig.queryPipelineFactory
@@ -258,11 +254,12 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
     val registryConfig = config.registry(registryName)
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
 
-    val queryPipelineTry = generateQueryPipeline(registryName, requestModel, mahaRequestLogBuilder)
+    val queryPipelineTry = generateQueryPipeline(registryName, requestModel)
     if(queryPipelineTry.isFailure) {
       val error = queryPipelineTry.failed.get
       val message = s"Failed to compile the query pipeline ${error.getMessage}"
       logger.error(message, error)
+      mahaRequestLogBuilder.logFailed(message)
       GeneralError.either("createQueryPipeline", message, error)
     } else {
       val triedQueryPipelineResult = processQueryPipeline(registryConfig, queryPipelineTry.get, mahaRequestLogBuilder)
@@ -270,6 +267,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
         val error = triedQueryPipelineResult.failed.get
         val message = s"Failed to execute the query pipeline"
         logger.error(message, error)
+        mahaRequestLogBuilder.logFailed(message)
         GeneralError.either[RequestResult](parRequestLabel, message, new MahaServiceExecutionException(message, Some(error)))
       } else {
         new Right[GeneralError, RequestResult](RequestResult(triedQueryPipelineResult.get))
@@ -282,7 +280,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
     val registryConfig = config.registry(registryName)
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
 
-    val queryPipelineTry = generateQueryPipeline(registryName, requestModel, mahaRequestLogBuilder)
+    val queryPipelineTry = generateQueryPipeline(registryName, requestModel)
     if(queryPipelineTry.isFailure) {
       val error = queryPipelineTry.failed.get
       val message = s"Failed to compile the query pipeline ${error.getMessage}"
@@ -300,6 +298,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
                 val error = triedQueryPipelineResult.failed.get
                 val message = s"Failed to execute the query pipeline"
                 logger.error(message, error)
+                mahaRequestLogBuilder.logFailed(message)
                 GeneralError.either[RequestResult](parRequestLabel, message, new MahaServiceExecutionException(message, Some(error)))
               } else {
                 new Right[GeneralError, RequestResult](RequestResult(triedQueryPipelineResult.get))
