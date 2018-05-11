@@ -603,7 +603,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                           "rowsPerPage":100
                         }"""
 
-    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = getDefaultRegistry()
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
