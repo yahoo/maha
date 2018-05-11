@@ -417,7 +417,6 @@ object OracleExpression {
     }
     
     def getIntervalDate(exp: String, fmt: String):  String = {
-      //println(s"\nExp:$exp\tFmt$fmt\n")
       fmt.toLowerCase match {
         case "d" =>
           // TRUNC(DateString,"DD") does not work for Hive

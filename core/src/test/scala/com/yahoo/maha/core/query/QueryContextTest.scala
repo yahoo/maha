@@ -140,7 +140,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
       val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(OracleEngine), queryGeneratorRegistry = queryGeneratorRegistry)
       builder.addFactBestCandidate(fact)
       val result = getOracleQuery(builder.build()).asString
-      println(s"Fact Query Result:\n$result")
+      
       assert(result.contains("""landing_page_url, stats_date, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, ad_group_id, stats_source, advertiser_id, campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions""""))
     }
 
@@ -355,7 +355,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
       builder.addDimTable(dims)
       builder.addFactBestCandidate(fact)
       val result = getHiveQuery(builder.build()).asString
-      println(s"Result:\n$result")
+      
       assert(result.contains("""SELECT CONCAT_WS(",",NVL(mang_day, ''), NVL(advertiser_id, ''), NVL(mang_ad_group_status, ''), NVL(ag1_id, ''), NVL(mang_source, ''), NVL(mang_pricing_type, ''), NVL(mang_destination_url, ''), NVL(mang_impressions, ''), NVL(mang_clicks, ''))"""))
     }
 

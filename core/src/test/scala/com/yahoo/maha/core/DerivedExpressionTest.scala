@@ -96,7 +96,7 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       col.derivedExpression.sourceColumns.contains("clicks") should equal(true)
       col.derivedExpression.sourceColumns.contains("impressions") should equal(true)
       val json = om.writeValueAsString(col.derivedExpression.render(col.name)("BLAH", Map("clicks"->"Clicks")))
-      println(json)
+      
       json should equal("""{"type":"arithmetic","name":"BLAH","fn":"+","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}],"ordering":null}""")
 
       val cc = new ColumnContext
@@ -337,7 +337,7 @@ class DerivedExpressionTest extends FunSuite with Matchers {
         }
         else {
           assertThrows[IllegalArgumentException] {
-            //println(s"$input FAILED")
+            //
             val col = OracleDerDimCol(s"$input", DateType(), GET_INTERVAL_DATE("{stats_date}", s"$input"))
             col.derivedExpression.render(col.name) should equal(s"TO_CHAR(stats_date, '$input')")
           }

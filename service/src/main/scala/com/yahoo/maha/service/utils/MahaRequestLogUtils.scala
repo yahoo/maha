@@ -35,6 +35,8 @@ trait BaseMahaRequestLogBuilder {
   def logFailed(errorMessage: String, httpStatusOption: Option[Int] = None)
 
   def logSuccess()
+
+  def dryRun(): BaseMahaRequestLogBuilder
 }
 
 trait CuratorMahaRequestLogBuilder extends BaseMahaRequestLogBuilder
@@ -54,6 +56,10 @@ case class CuratorMahaRequestLogHelper(delegate: BaseMahaRequestLogBuilder) exte
     delegate.logFailed(errorMessage, httpStatusOption)
 
   override def logSuccess(): Unit = delegate.logSuccess()
+
+  override def dryRun(): BaseMahaRequestLogBuilder = {
+    delegate.dryRun()
+  }
 }
 
 object MahaRequestLogHelper {
@@ -213,7 +219,7 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     try {
       mahaRequestLogWriter.write(protoBuilder.build())
     } catch {
-      case e=>
+      case e : Throwable=>
         logger.warn(s"Failed to log the event to kafka ${e.getMessage} $e")
     }
   }
@@ -227,5 +233,9 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     CuratorMahaRequestLogHelper(
       new MahaRequestLogHelper(mahaRequestContext, mahaRequestLogWriter, curator.name)
     )
+  }
+
+  override def dryRun(): BaseMahaRequestLogBuilder = {
+    new MahaRequestLogHelper(mahaRequestContext, mahaRequestLogWriter, s"$curator-dryrun")
   }
 }

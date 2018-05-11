@@ -12,7 +12,6 @@ class ExampleTest extends FunSuite {
 
   test("Test for Example Test") {
     val mahaService = ExampleMahaService.getMahaService("main")
-    println(mahaService)
     assert(mahaService.getDomain("wiki").isDefined)
     assert(mahaService.getDomain("student").isDefined)
   }
@@ -22,12 +21,8 @@ class ExampleTest extends FunSuite {
     val studentSchema = StudentSchema
     val wikiSchema = WikiSchema
     mahaSchema.register()
-    println("Example request default config map: " + ExampleRequest.getRequest.DEFAULT_CURATOR_JSON_CONFIG_MAP)
     assert(mahaSchema.registered)
     mahaSchema.register() //explore implied else clause.
-    println("Maha Schema Values: " + mahaSchema.values)
-    println("Student Schema Info: " + studentSchema)
-    println("Wiki Schema Info: " + wikiSchema)
   }
 
 }

@@ -57,6 +57,9 @@ trait Curator extends Ordered[Curator] {
   protected def withError(curatorConfig: CuratorConfig, error: GeneralError): Either[CuratorError, ParRequest[CuratorResult]] = {
     new Left(CuratorError(this, curatorConfig, error))
   }
+  protected def withRequestResultError(curatorConfig: CuratorConfig, error: GeneralError): Either[CuratorError, RequestResult] = {
+    new Left(CuratorError(this, curatorConfig, error))
+  }
   protected def withParResult(label: String
                               , parResult: ParRequest[CuratorResult]): Either[CuratorError, ParRequest[CuratorResult]] = {
     new Right(parResult)
@@ -113,8 +116,7 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
 
     val requestModelResultTry = mahaService.generateRequestModel(mahaRequestContext.registryName
       , mahaRequestContext.reportingRequest
-      , mahaRequestContext.bucketParams
-      , mahaRequestLogBuilder)
+      , mahaRequestContext.bucketParams)
 
     if(requestModelResultTry.isFailure) {
       val message = requestModelResultTry.failed.get.getMessage
@@ -162,7 +164,9 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
               result
             } catch {
               case e: Exception =>
-                logger.error("error in post processor, returning original result", e)
+                val message = "error in post processor, returning original result"
+                logger.error(message, e)
+                mahaRequestLogBuilder.logFailed(s"$message - ${e.getMessage}")
                 new Right(requestResult)
             }
         })
@@ -175,6 +179,7 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
       }
       catch {
         case e: Exception =>
+          mahaRequestLogBuilder.logFailed(e.getMessage)
           withError(curatorConfig, GeneralError.from(parRequestLabel
             , e.getMessage, new MahaServiceBadRequestException(e.getMessage, Option(e))))
 
@@ -216,8 +221,7 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
 
     val requestModelResultTry = mahaService.generateRequestModel(mahaRequestContext.registryName
       , mahaRequestContext.reportingRequest
-      , mahaRequestContext.bucketParams
-      , mahaRequestLogBuilder)
+      , mahaRequestContext.bucketParams)
 
     if(requestModelResultTry.isFailure) {
       val message = requestModelResultTry.failed.get.getMessage
@@ -232,10 +236,13 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
         requestModelValidator.validate(mahaRequestContext, requestModelResult)
         if(mahaRequestContext.reportingRequest.forceDimensionDriven) {
           val sourcePipelineTry = mahaService.generateQueryPipeline(mahaRequestContext.registryName
-            , requestModelResultTry.get.model, mahaRequestLogBuilder)
+            , requestModelResultTry.get.model)
 
           if (sourcePipelineTry.isFailure) {
-            withError(curatorConfig, GeneralError.from(parRequestLabel, "source pipeline failed", sourcePipelineTry.failed.get))
+            val exception = sourcePipelineTry.failed.get
+            val message = "source pipeline failed"
+            mahaRequestLogBuilder.logFailed(s"$message - ${exception.getMessage}")
+            withError(curatorConfig, GeneralError.from(parRequestLabel, message, exception))
           } else {
             val sourcePipeline = sourcePipelineTry.get
             //no filters except fk filters
@@ -260,7 +267,10 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                 )
               }
             if (totalRowsCountRequestTry.isFailure) {
-              withError(curatorConfig, GeneralError.from(parRequestLabel, "total rows request failed to generate", totalRowsCountRequestTry.failed.get))
+              val exception = totalRowsCountRequestTry.failed.get
+              val message = "total rows request failed to generate"
+              mahaRequestLogBuilder.logFailed(s"${message} - ${exception.getMessage}")
+              withError(curatorConfig, GeneralError.from(parRequestLabel, message, exception))
             } else {
               val totalRowsRequest = totalRowsCountRequestTry.get
               val parRequestResult: ParRequestResult = mahaService.executeRequest(mahaRequestContext.registryName
@@ -269,6 +279,7 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                 requestResult =>
                   val count = requestResult.queryPipelineResult.rowList.getTotalRowCount
                   mahaRequestContext.mutableState.put(RowCountCurator.name, count)
+                  mahaRequestLogBuilder.logSuccess()
                   new Right(requestResult)
               })
 
@@ -281,20 +292,25 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
           val model = requestModelResult.model
           val curatorResult = CuratorResult(this, curatorConfig, None, requestModelResult)
           if (model.dimCardinalityEstimate.isEmpty) {
-            withError(curatorConfig, GeneralError.from(parRequestLabel, "No way to estimate dim cardinality for fact driven request!"))
+            val message = "No way to estimate dim cardinality for fact driven request!"
+            mahaRequestLogBuilder.logFailed(message)
+            withError(curatorConfig, GeneralError.from(parRequestLabel, message))
           }
           else if (model.dimCardinalityEstimate.get.intValue <= FACT_ONLY_LIMIT) {
             val count = model.dimCardinalityEstimate.get.intValue
             mahaRequestContext.mutableState.put(RowCountCurator.name, count)
+            mahaRequestLogBuilder.logSuccess()
             withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
           } else {
             mahaRequestContext.mutableState.put(RowCountCurator.name, FACT_ONLY_LIMIT)
+            mahaRequestLogBuilder.logSuccess()
             withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
           }
         }
       }
       catch {
         case e: Exception =>
+          mahaRequestLogBuilder.logFailed(e.getMessage)
           withError(curatorConfig, GeneralError.from(parRequestLabel
             , e.getMessage, MahaServiceBadRequestException(e.getMessage, Option(e))))
 

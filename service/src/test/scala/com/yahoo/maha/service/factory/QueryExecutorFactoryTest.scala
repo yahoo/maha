@@ -83,7 +83,14 @@ class QueryExecutorFactoryTest extends BaseFactoryTest {
         |"lifecycleListenerFactoryClass" : "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
         |"lifecycleListenerFactoryConfig" :  [{"key": "value"}],
         |"resultSetTransformersFactoryClassName": "com.yahoo.maha.service.factory.DefaultResultSetTransformersFactory",
-        |"resultSetTransformersFactoryConfig": [{"key": "value"}]
+        |"resultSetTransformersFactoryConfig": [{"key": "value"}],
+        |"authHeaderProviderFactoryClassName": "com.yahoo.maha.service.factory.NoopAuthHeaderProviderFactory",
+        |"authHeaderProviderFactoryConfig" : {
+        |  "domain" : "Maha",
+        |  "service" :"MahaProviderService",
+        |  "privateKeyName" : "sa",
+        |  "privateKeyId" : "sa"
+        |}
         |}
       """.stripMargin
 

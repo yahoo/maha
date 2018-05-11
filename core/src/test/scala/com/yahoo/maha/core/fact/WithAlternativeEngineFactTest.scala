@@ -27,7 +27,7 @@ class WithAlternativeEngineFactTest extends BaseFactTest {
     val fact = fact1WithFactLevelMaxLookbackWindow
     // Requesting Data for more days > limit
     val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 100, 100, EqualityFilter("Day", s"$toDate"))
-    println(bcOption)
+    
     require(bcOption.get.facts.isEmpty, "Failed to reject the fact  out of lookback days and days window ")
   }
 

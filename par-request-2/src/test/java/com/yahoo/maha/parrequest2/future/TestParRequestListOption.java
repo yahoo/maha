@@ -434,7 +434,6 @@ public class TestParRequestListOption {
             response.err = input.toString();
             return Nothing.get();
         }), ParFunction.from((input) -> {
-            System.out.println(input.size());
             response.success = String.join("-", input.stream().map((opt) -> {
                 if (opt.isEmpty()) {
                     return "Empty";

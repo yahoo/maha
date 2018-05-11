@@ -38,7 +38,7 @@ class ResultSetTransformerTest extends FunSuite with Matchers{
     }
 
     val retVal = bigDecimalTransformer.transform(DailyGrain, "Day", decCol, 10)
-    println(retVal)
+    
 
     val intCol = new TestCol {
       override def dataType : DataType = IntType(1, 0)
@@ -58,17 +58,16 @@ class ResultSetTransformerTest extends FunSuite with Matchers{
     }
 
     val retVal2 = bigDecimalTransformer.transform(DailyGrain, "Day", intCol, "15")
-    println(retVal2)
+    
     val retVal3 = bigDecimalTransformer.transform(DailyGrain, "Day", decColLen, 10)
-    println(retVal3)
+    
     val retVal4 = bigDecimalTransformer.transform(DailyGrain, "Day", decColScale, 10)
-    println(retVal4)
+    
     val retVal5 = bigDecimalTransformer.transform(DailyGrain, "Day", decColBoth, 10)
     println(retVal5)
     val retVal6 = bigDecimalTransformer.transform(DailyGrain, "Avg Position", decColDefault, 0.4699999988)
     assert(retVal6 == 0.47)
     println(retVal6)
-
 
     assert(!ResultSetTransformer.DEFAULT_TRANSFORMS.isEmpty)
     assert(bigDecimalTransformer.transform(DailyGrain, "NOT_DAY", decCol, 10) == 10)

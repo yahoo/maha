@@ -24,7 +24,6 @@ object DruidDerivedFunction {
     val regex = """[dwmDWM]|[dD][aA][yY]|[yY][rR]""".r
 
     def checkFormat(fmt: String):  Unit = {
-      //println(s"\ntFmt$fmt\n")
       regex.findFirstIn(fmt) match {
         case Some(f) =>
         case _ => throw new IllegalArgumentException(s"Format for get_interval_date must be d|w|m|day|yr not $fmt")

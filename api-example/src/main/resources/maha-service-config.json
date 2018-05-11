@@ -126,7 +126,14 @@
           {
             "key": "value"
           }
-        ]
+        ],
+        "authHeaderProviderFactoryClassName": "com.yahoo.maha.service.factory.NoopAuthHeaderProviderFactory",
+        "authHeaderProviderFactoryConfig" : {
+          "domain" : "none",
+          "service" :"druid",
+          "privateKeyName" : "none",
+          "privateKeyId" : "0"
+        }
       }
     },
     "prestoExec": {

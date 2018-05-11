@@ -153,10 +153,16 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     val dimPathMap = new collection.mutable.HashMap[(String, String), SortedSet[PublicDimension]]
     val dimsSortedByLevelAsc = dimMap.values.to[SortedSet]
     
-    val dimToForeignKeyMap = dimMap.values.map {
+    val dimToForeignKeyMapAll = dimMap.values.map {
       dim =>
-        dim.name -> dim.foreignKeySources.map(fks => dimMap.get((fks, dim.revision)).get).to[SortedSet]
-    }.filter(_._2.nonEmpty).toMap
+        dim.name -> dim.foreignKeySources.map {
+          fks =>
+            val revision = defaultPublicDimRevisionMap(fks)
+            val result = dimMap.get((fks, revision))
+            result.get
+        }.to[SortedSet]
+    }
+    val dimToForeignKeyMap = dimToForeignKeyMapAll.filter(_._2.nonEmpty).toMap
     
     def processRelations(dim: PublicDimension, relations: SortedSet[PublicDimension], subRelation: PublicDimension, pathToSubRelation: SortedSet[PublicDimension]) : Unit = {
       dimToForeignKeyMap.get(subRelation.name).foreach {

@@ -47,7 +47,6 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     rows.foreach {
       row =>
         val result = jdbcConnection.get.executeUpdate(insertSql, row)
-        println(result)
         assert(result.isSuccess)
     }
     var count = 0
@@ -198,8 +197,8 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
     val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)
     val requestModelResult = mahaService
-      .generateRequestModel(REGISTRY, reportingRequest, bucketParams, mahaRequestLogHelper).toOption.get
-    val qp = mahaService.generateQueryPipeline(REGISTRY, requestModelResult.model, mahaRequestLogHelper)
+      .generateRequestModel(REGISTRY, reportingRequest, bucketParams).toOption.get
+    val qp = mahaService.generateQueryPipeline(REGISTRY, requestModelResult.model)
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
     val defaultCurator = new DefaultCurator()
     //val requestResultParRequest: ParRequest[RequestResult] = pse.immediateResult("requestResult", new Left[GeneralError, RequestResult](GeneralError.from("stage","fail")))
@@ -261,8 +260,8 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
     val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)
     val requestModelResult = mahaService
-      .generateRequestModel(REGISTRY, reportingRequest, bucketParams, mahaRequestLogHelper).toOption.get
-    val qp = mahaService.generateQueryPipeline(REGISTRY, requestModelResult.model, mahaRequestLogHelper)
+      .generateRequestModel(REGISTRY, reportingRequest, bucketParams).toOption.get
+    val qp = mahaService.generateQueryPipeline(REGISTRY, requestModelResult.model)
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
     val defaultCurator = new DefaultCurator()
     val requestResultParRequest: ParRequest[RequestResult] = pse.immediateResult("requestResult"

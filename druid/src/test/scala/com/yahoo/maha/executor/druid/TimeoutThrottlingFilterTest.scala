@@ -57,7 +57,7 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
       Thread.sleep(1)
     }
     val availability = Try(timeoutMillsStore.checkAvailability("/endpoint"))
-    println(availability)
+    
     assert(availability.isFailure)
     assert(availability.failed.get.toString.contains("ServiceUnavailableException, timeout threshold count exceeded 11 > 10 url:/endpoint"))
 
@@ -97,7 +97,7 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
         val f = ningClient.prepareGet(new URI("http://localhost:0/echo").toASCIIString()).execute();
         // We block here to give chance to return the status code.
         val response = f.get();
-        println(response)
+        
       }
       assert(result.isFailure)
     }
@@ -108,7 +108,7 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
     } catch {
       case e: ExecutionException =>
         val fe = e.getCause()
-        println(fe)
+        
         assert(fe.getCause.isInstanceOf[ServiceUnavailableException])
     }
 
@@ -116,7 +116,7 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
     Thread.sleep(1000)
 
     val trynow = Try(ningClient.prepareGet(targetURI.toASCIIString()).execute().get())
-    println(trynow)
+    
     assert(trynow.isSuccess)
   }
 
@@ -148,7 +148,7 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
     testNingThreads.foreach {
       t=>
         val bombard = Try(t.run())
-        println(bombard)
+        
         assert(bombard.failed.get.getCause.isInstanceOf[java.net.ConnectException]
          || bombard.failed.get.getCause.isInstanceOf[FilterException])
 
@@ -167,7 +167,7 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
 
     val result = Try(ningClient.prepareGet(targetURI.toASCIIString()).execute().get())
     assert(result.isFailure)
-    println(result)
+    
     val filterException = result.failed.get.getCause
     assert(filterException.isInstanceOf[FilterException])
     assert(filterException.getCause.isInstanceOf[ServiceUnavailableException])
@@ -176,7 +176,7 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
     Thread.sleep(1000)
 
     val trynow = Try(ningClient.prepareGet(targetURI.toASCIIString()).execute().get())
-    println(trynow)
+    
     assert(trynow.isSuccess)
   }
 

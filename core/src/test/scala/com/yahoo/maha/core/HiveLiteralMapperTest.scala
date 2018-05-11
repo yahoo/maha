@@ -19,8 +19,8 @@ class HiveLiteralMapperTest extends FunSuite {
       col
     }
     val mapper = HiveLiteralMapper.toLiteral(column, exp, None)
-    println(s"String with quotes :before   : $exp")
-    println(s"String with quotes :after : $mapper")
+    
+    
     assert(mapper=="''' OR 1 = 1 /*'")
   }
 
@@ -31,8 +31,8 @@ class HiveLiteralMapperTest extends FunSuite {
       col
     }
     val mapper = HiveLiteralMapper.toLiteral(column, exp, None)
-    println(s"Arbitrary String Patterns :before   : $exp")
-    println(s"Arbitrary String Patterns :after : $mapper")
+    
+    
     val expected = "'NULL/**/UNION/**/ALL/**/SELECT/**/user,pass,/**/FROM/**/user_db/**/WHERE/**/uid/**/=/*evade*/''1''//'"
     assert(mapper == expected)
   }
@@ -44,8 +44,8 @@ class HiveLiteralMapperTest extends FunSuite {
       col
     }
     val mapper = HiveLiteralMapper.toLiteral(column, exp, None)
-    println(s"Wildcard Escaping :before : $exp")
-    println(s"Wildcard Escaping :after : $mapper")
+    
+    
     val expected="'%/_%'' ESCAPE ''/'"
     assert(mapper == expected)
   }
@@ -57,8 +57,8 @@ class HiveLiteralMapperTest extends FunSuite {
       col
     }
     val mapper = HiveLiteralMapper.toLiteral(column, exp, None)
-    println(s"before : $exp")
-    println(s"after : $mapper")
+    
+    
     val expected = "''' ; DROP DATABASE db'"
     assert(mapper == expected)
   }
@@ -82,7 +82,7 @@ class HiveLiteralMapperTest extends FunSuite {
       col
     }
     val intValue = HiveLiteralMapper.toLiteral(column, exp, None)
-    println("Returned int value " + intValue)
+    
     assert(exp == intValue)
   }
 
@@ -104,7 +104,7 @@ class HiveLiteralMapperTest extends FunSuite {
       col
     }
     val decValue = HiveLiteralMapper.toLiteral(column, exp, None)
-    println("Returned decimal value : " + decValue)
+    
     assert(exp == decValue)
   }
 
@@ -115,7 +115,7 @@ class HiveLiteralMapperTest extends FunSuite {
       col
     }
     val dateValue = HiveLiteralMapper.toLiteral(column, exp, None)
-    println("Returned date : " + dateValue)
+    
     val expected = "'20160224'"
     assert(dateValue == expected)
   }
@@ -140,7 +140,7 @@ class HiveLiteralMapperTest extends FunSuite {
       col
     }
     val dateValue = HiveLiteralMapper.toLiteral(column, exp, None)
-    println("Returned timeStamp : " + dateValue)
+    
     val expected = "'12428384'' ; DROP DATABASE db'"
     assert(dateValue == expected)
   }

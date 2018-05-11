@@ -7,7 +7,7 @@ import com.yahoo.maha.executor.presto.{PrestoQueryExecutor, PrestoQueryTemplate}
 import com.yahoo.maha.service.MahaServiceConfig
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request._
-import com.yahoo.maha.executor.druid.{DruidQueryExecutor, DruidQueryExecutorConfig}
+import com.yahoo.maha.executor.druid.{AuthHeaderProvider, DruidQueryExecutor, DruidQueryExecutorConfig}
 import com.yahoo.maha.jdbc.JdbcConnection
 import org.json4s.JValue
 
@@ -74,7 +74,9 @@ class DruidQueryExecutoryFactory extends QueryExecutoryFactory {
     |"lifecycleListenerFactoryClass" : "",
     |"lifecycleListenerFactoryConfig" : [],
     |"resultSetTransformersFactoryClassName": "",
-    |"resultSetTransformersFactoryConfig": {}
+    |"resultSetTransformersFactoryConfig": {},
+    |"authHeaderProviderFactoryClassName": "",
+    |"authHeaderProviderFactoryConfig": ""
     |}
   """.stripMargin
 
@@ -86,6 +88,8 @@ class DruidQueryExecutoryFactory extends QueryExecutoryFactory {
     val lifecycleListenerFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("lifecycleListenerFactoryConfig")(configJson)
     val resultSetTransformersFactoryClassNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("resultSetTransformersFactoryClassName")(configJson)
     val resultSetTransformersFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("resultSetTransformersFactoryConfig")(configJson)
+    val authHeaderProviderFactoryClassNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("authHeaderProviderFactoryClassName")(configJson)
+    val authHeaderProviderFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("authHeaderProviderFactoryConfig")(configJson)
 
     val druidQueryExecutorConfig :  MahaServiceConfig.MahaConfigResult[DruidQueryExecutorConfig] = for {
       druidQueryExecutorConfigFactoryClassName <- druidQueryExecutorConfigFactoryClassNameResult
@@ -108,13 +112,20 @@ class DruidQueryExecutoryFactory extends QueryExecutoryFactory {
       resultSetTransformers <- resultSetTransformersFactory.fromJson(resultSetTransformersFactoryConfig)
     } yield resultSetTransformers
 
-    (druidQueryExecutorConfig |@| lifecycleListener |@| resultSetTransformers) {
-      (a, b, c) => {
+    val authHeaderProvider : MahaServiceConfig.MahaConfigResult[AuthHeaderProvider] = for {
+      authHeaderProviderFactoryClassName <- authHeaderProviderFactoryClassNameResult
+      authHeaderProviderFactoryConfig <- authHeaderProviderFactoryConfigResult
+      authHeaderProviderFactory <- getFactory[AuthHeaderProviderFactory](authHeaderProviderFactoryClassName, this.closer)
+      authHeaderProvider <- authHeaderProviderFactory.fromJson(authHeaderProviderFactoryConfig)
+    } yield authHeaderProvider
 
-            val executor = new DruidQueryExecutor(a, b, c)
-            closer.register(executor)
-            executor
-          }
+    (druidQueryExecutorConfig |@| lifecycleListener |@| resultSetTransformers |@| authHeaderProvider) {
+      (a, b, c, d) => {
+
+        val executor = new DruidQueryExecutor(a, b, c, d)
+        closer.register(executor)
+        executor
+      }
     }
   }
 

@@ -1,8 +1,8 @@
 package com.yahoo.maha.core.query.oracle
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{DerivedDimensionColumn, DimCol, DimensionColumn, OracleDerDimCol}
-import com.yahoo.maha.core.fact.{NoopRollup, FactCol, OracleCustomRollup, OracleDerFactCol}
+import com.yahoo.maha.core.dimension._
+import com.yahoo.maha.core.fact.{FactCol, NoopRollup, OracleCustomRollup, OracleDerFactCol}
 import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
 import org.apache.commons.lang3.StringUtils
@@ -42,10 +42,10 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       db => (db.fields.filterNot(db.publicDim.isPrimaryKeyAlias).isEmpty && !db.hasNonFKSortBy
         && queryContext.factBestCandidate.publicFact.foreignKeyAliases(db.publicDim.primaryKeyByAlias))
     }
-    val requestColAliasesSet = requestModel.requestCols.map(_.alias).toSet
-    val factOnlySubqueryFields : Set[String] = if(isFactOnlyQuery) {
-      queryContext.dims.view.filter(!_.hasNonFKNonForceFilters).map(_.publicDim.primaryKeyByAlias).filterNot(requestColAliasesSet).toSet
-    } else Set.empty
+    val requestColAliasesSet = requestModel.requestCols.map(_.alias).toIndexedSeq
+    val factOnlySubqueryFields : IndexedSeq[String] = if(isFactOnlyQuery) {
+      queryContext.dims.view.filter(!_.hasNonFKNonForceFilters).map(_.publicDim.primaryKeyByAlias).filterNot(requestColAliasesSet.toSet).toIndexedSeq
+    } else IndexedSeq.empty
 
     val factBest = queryContext.factBestCandidate
 
@@ -148,7 +148,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       queryBuilder.setWhereClause(whereClauseExpression)
 
       if (havingFilters.nonEmpty) {
-        val havingAndFilters = AndFilter(havingFilters.toSet)
+        val havingAndFilters = AndFilter(havingFilters.toIndexedSeq)
         val havingClauseExpression = s"""HAVING ${havingAndFilters.toString}"""
         queryBuilder.setHavingClause(havingClauseExpression)
       }
@@ -183,14 +183,14 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
           case (column, alias) =>
             val name = column.name
             val nameOrAlias = column.alias.getOrElse(name)
-            if(!factOnlySubqueryFields(alias)) {
+            if(!factOnlySubqueryFields.contains(alias)) {
               renderColumnWithAlias(fact, column, alias, Set.empty, queryBuilder, queryBuilderContext, queryContext)
             }
             if (column.isDerivedColumn) {
               val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
               queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
             } else {
-              if(!factOnlySubqueryFields(alias)) {
+              if(!factOnlySubqueryFields.contains(alias)) {
                 if(column.dataType.hasStaticMapping) {
                   queryBuilder.addGroupBy(renderStaticMappedDimension(column))
                 } else {
@@ -223,8 +223,8 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       }
 
       val (customRollupAliasSet, customRollupColSet) = if (customRollupColsOption.isDefined) {
-        (customRollupColsOption.get.map(_._2).toSet[String], customRollupColsOption.get.map(_._1).toSet)
-      } else (Set.empty[String], Set.empty[Column])
+        (customRollupColsOption.get.map(_._2).toIndexedSeq, customRollupColsOption.get.map(_._1).toIndexedSeq)
+      } else (IndexedSeq.empty[String], IndexedSeq.empty[Column])
 
       // Find out all primitive cols recursively in non derived CustomRollup cols
       if(customRollupColSet.nonEmpty) {
@@ -238,7 +238,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       for {
         groupedFactDerCols <- groupedFactCols.get(true)
       } {
-        val derivedColsSet = groupedFactDerCols.map(_._1).toSet
+        val derivedColsSet = groupedFactDerCols.map(_._1).toIndexedSeq
 
         dfsGetPrimitiveCols(derivedColsSet, primitiveColsSet)
         // Set all Derived Fact Cols in context
@@ -348,7 +348,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
         }
       }
 
-      def dfsGetPrimitiveCols(derivedCols: Set[Column], primitiveColsSet:mutable.LinkedHashSet[(String, Column)]): Unit = {
+      def dfsGetPrimitiveCols(derivedCols: IndexedSeq[Column], primitiveColsSet:mutable.LinkedHashSet[(String, Column)]): Unit = {
         derivedCols.foreach {
           case derCol:DerivedColumn =>
             derCol.derivedExpression.sourceColumns.toList.sorted.foreach {
@@ -357,9 +357,12 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                 require(colOption.isDefined, s"Failed to find the sourceColumn $sourceCol in fact ${fact.name}")
                 val col = colOption.get
                 if(col.isDerivedColumn) {
-                  dfsGetPrimitiveCols(Set(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
+                  dfsGetPrimitiveCols(IndexedSeq(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
                 } else {
-                  primitiveColsSet.add((col.alias.getOrElse(col.name), col))
+                  val name = col.alias.getOrElse(col.name)
+                  if (!primitiveColsSet.contains((name, col))) {
+                    primitiveColsSet.add((name, col))
+                  }
                 }
             }
           case derCol : FactCol =>
@@ -371,9 +374,12 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                 require(colOption.isDefined, s"Failed to find the sourceColumn $sourceCol in fact ${fact.name}")
                 val col = colOption.get
                 if(col.isDerivedColumn) {
-                  dfsGetPrimitiveCols(Set(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
+                  dfsGetPrimitiveCols(IndexedSeq(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
                 } else {
-                  primitiveColsSet.add((col.alias.getOrElse(col.name), col))
+                  val name = col.alias.getOrElse(col.name)
+                  if(!primitiveColsSet.contains((name, col))) {
+                    primitiveColsSet.add((name, col))
+                  }
                 }
             }
 
@@ -390,6 +396,10 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
     def renderParentOuterDerivedFactCols(projectedAlias:String, column:Column): String = {
       column match {
         case OracleDerDimCol(_, dt, cc, de, _, annotations, _) =>
+          val renderedAlias = s""""$projectedAlias""""
+          queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+          s"""$renderedAlias"""
+        case OraclePartDimCol(_, dt, cc, _, annotations, _) =>
           val renderedAlias = s""""$projectedAlias""""
           queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
           s"""$renderedAlias"""
@@ -468,7 +478,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
 
     def ogbGeneratePreOuterColumns(primitiveInnerAliasColMap: Map[String, Column], noopRollupColsMap: Map[String, Column]): Unit = {
       // add requested dim and fact columns, this should include constants
-      val preOuterRenderedColAlias = new mutable.HashSet[Column]()
+      val preOuterRenderedColAliasMap = new mutable.HashMap[Column, String]()
       queryContext.requestModel.requestCols foreach {
         columnInfo =>
 
@@ -496,7 +506,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                   val (renderedCol, renderedAlias) = renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, isFactOnlyQuery, false, queryContext)
                   queryBuilder.addPreOuterColumn(concat(renderedCol, renderedAlias))
                   queryBuilder.addOuterGroupByExpressions(renderedCol)
-                  preOuterRenderedColAlias+=queryBuilderContext.getFactColByAlias(alias)
+                  preOuterRenderedColAliasMap.put(queryBuilderContext.getFactColByAlias(alias), renderedAlias)
                 }
               }
 
@@ -511,7 +521,8 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       }
       // Render primitive cols
       primitiveInnerAliasColMap.foreach {
-        case (alias, col) if !preOuterRenderedColAlias.contains(col) =>
+        // if primitive col is not already rendered
+        case (alias, col) if !preOuterRenderedColAliasMap.keySet.contains(col) =>
           col match {
             case dimCol:DimensionColumn =>
             //dim col which are dependent upon the DerFact cols
@@ -521,12 +532,24 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
             case _=>
               renderPreOuterFactCol(col.alias.getOrElse(col.name), alias, col)
           }
-        case _=> // ignore as it col is already rendered
+          // if primitive col is already rendered as Public alias, render it as inner alias for the outer derived cols
+        case (alias, col) if (preOuterRenderedColAliasMap.keySet.contains(col)) =>
+          // check is the alias is not already rendered
+          if (!preOuterRenderedColAliasMap.values.toSet.contains(alias)) {
+            col match  {
+              case DimCol(_, dt, cc, _, annotations, _) =>
+                val name = col.alias.getOrElse(col.name)
+                queryBuilder.addPreOuterColumn(s"""$name AS $alias""")
+                queryBuilder.addOuterGroupByExpressions(name)
+              case _=> // cant be the case for primitive cols
+            }
+          }
+        case _=>
       }
 
       // Render NoopRollup cols
       noopRollupColsMap.foreach {
-        case (alias, col) if !preOuterRenderedColAlias.contains(col) =>
+        case (alias, col) if !preOuterRenderedColAliasMap.keySet.contains(col) =>
           renderPreOuterFactCol(col.alias.getOrElse(col.name), alias, col)
         case _=> // ignore as it col is already rendered
       }
@@ -543,7 +566,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
           s""""$colInnerAlias""""
         } else colInnerAlias
 
-        preOuterRenderedColAlias += innerSelectCol
+        preOuterRenderedColAliasMap.put(innerSelectCol, colInnerAlias)
         queryBuilderContext.setPreOuterAliasToColumnMap(colInnerAliasQuoted, finalAlias, innerSelectCol)
         queryBuilder.addPreOuterColumn(preOuterFactColRendered)
       }

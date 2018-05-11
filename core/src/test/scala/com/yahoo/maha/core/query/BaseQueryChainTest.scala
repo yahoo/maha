@@ -16,7 +16,7 @@ trait BaseQueryChainTest {
 
   def updateRowList(rowList: QueryRowList) : Unit = {
     val row = rowList.newRow
-    println(rowList.columnNames)
+    
     rowList.columnNames.foreach {
       col =>
         row.addValue(col, s"$col-value")

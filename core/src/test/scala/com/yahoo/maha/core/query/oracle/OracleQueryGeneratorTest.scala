@@ -562,7 +562,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |   ORDER BY "Spend" DESC NULLS LAST) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120
          |
       """.stripMargin
-    println(result)
+    
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -1185,45 +1185,175 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected =
-      s"""SELECT *
-        |FROM (SELECT to_char(f0.keyword_id) "Keyword ID", t4.value "Keyword Value", co1.campaign_name "Campaign Name", ago2.name "Ad Group Name", ado3.title "Ad Title", coalesce(f0."impressions", 1) "Impressions", ROUND(f0."CTR", 10) "CTR"
-        |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
-        |                   ad_group_id, ad_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
-        |            FROM fact1 FactAlias
-        |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-        |            GROUP BY ad_group_id, ad_id, campaign_id, keyword_id
-        |
-        |           ) f0
-        |           LEFT OUTER JOIN
-        |           (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
-        |            FROM campaign_oracle
-        |            WHERE (advertiser_id = 12345)
-        |             )
-        |           co1 ON (f0.campaign_id = co1.id)
-        |           LEFT OUTER JOIN
-        |           (SELECT  campaign_id, name, id, advertiser_id
-        |            FROM ad_group_oracle
-        |            WHERE (advertiser_id = 12345)
-        |             )
-        |           ago2 ON (f0.ad_group_id = ago2.id)
-        |           LEFT OUTER JOIN
-        |           (SELECT  ad_group_id, campaign_id, title, id, advertiser_id
-        |            FROM ad_dim_oracle
-        |            WHERE (advertiser_id = 12345)
-        |             )
-        |           ado3 ON (f0.ad_id = ado3.id)
-        |           LEFT OUTER JOIN
-        |           (SELECT  parent_id, value, id, advertiser_id
-        |            FROM targetingattribute
-        |            WHERE (advertiser_id = 12345)
-        |             )
-        |           t4 ON (f0.keyword_id = t4.id)
-        |
-        |
-        |
-        |) ORDER BY "Campaign Name" ASC NULLS LAST
+      s"""SELECT "Keyword ID", "Keyword Value", "Campaign Name", "Ad Group Name", "Ad Title", impressions AS "Impressions", CTR AS "CTR"
+         |FROM (SELECT to_char(f0.keyword_id) "Keyword ID", t4.value "Keyword Value", co1.campaign_name "Campaign Name", ago2.name "Ad Group Name", ado3.title "Ad Title", SUM(impressions) AS impressions, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS CTR, SUM(clicks) AS clicks
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
+         |                   ad_group_id, ad_id, campaign_id, keyword_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions
+         |            FROM fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY ad_group_id, ad_id, campaign_id, keyword_id
+         |
+         |           ) f0
+         |                     LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co1 ON (f0.campaign_id = co1.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT  campaign_id, name, id, advertiser_id
+         |            FROM ad_group_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           ago2 ON (f0.ad_group_id = ago2.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT  ad_group_id, campaign_id, title, id, advertiser_id
+         |            FROM ad_dim_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           ado3 ON (f0.ad_id = ado3.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT  parent_id, value, id, advertiser_id
+         |            FROM targetingattribute
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           t4 ON (f0.keyword_id = t4.id)
+         |
+         |          GROUP BY to_char(f0.keyword_id), t4.value, co1.campaign_name, ago2.name, ado3.title
+         |)
+         |   ORDER BY "Campaign Name" ASC NULLS LAST
         |""".stripMargin
-    println(result)
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("successfully generate OGB query for fact driven multidimensional query with missing indirect relation") {
+    val jsonString = s"""{
+                          "cube": "k_stats_new",
+                          "selectFields": [
+                            {"field": "Frequency"},
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Campaign Name"},
+                            {"field": "Impressions"},
+                            {"field": "CTR"},
+                            {"field": "Spend"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "sortBy": [
+                            {"field": "Spend", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    val expected =
+      s"""SELECT "Frequency", "Keyword ID", "Keyword Value", "Campaign Name", impressions AS "Impressions", CTR AS "CTR", spend AS "Spend"
+         |FROM (SELECT ksf0.frequency "Frequency", to_char(ksf0.keyword_id) "Keyword ID", t2.value "Keyword Value", co1.campaign_name "Campaign Name", SUM(impressions) AS impressions, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS CTR, SUM(spend) AS spend, SUM(clicks) AS clicks
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
+         |                   frequency, campaign_id, keyword_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions, SUM(spend) AS spend
+         |            FROM k_stats_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY frequency, campaign_id, keyword_id
+         |
+         |           ) ksf0
+         |                     LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co1 ON (ksf0.campaign_id = co1.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT  value, id, advertiser_id
+         |            FROM targetingattribute
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           t2 ON (ksf0.keyword_id = t2.id)
+         |
+         |          GROUP BY ksf0.frequency, to_char(ksf0.keyword_id), t2.value, co1.campaign_name
+         |)
+         |   ORDER BY "Spend" DESC NULLS LAST
+         |""".stripMargin
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("successfully generate non-OGB query for fact driven multidimensional query with indirect relation in request") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Ad Group Name"},
+                            {"field": "Campaign Name"},
+                            {"field": "Impressions"},
+                            {"field": "CTR"},
+                            {"field": "Spend"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "sortBy": [
+                            {"field": "Spend", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    val expected =
+      s"""SELECT *
+         |FROM (SELECT to_char(f0.keyword_id) "Keyword ID", t3.value "Keyword Value", ago2.name "Ad Group Name", co1.campaign_name "Campaign Name", coalesce(f0."impressions", 1) "Impressions", ROUND(f0."CTR", 10) "CTR", coalesce(ROUND(f0."spend", 10), 0.0) "Spend"
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
+         |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", SUM(spend) AS "spend", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
+         |            FROM fact2 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY ad_group_id, campaign_id, keyword_id
+         |
+         |           ) f0
+         |           LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co1 ON (f0.campaign_id = co1.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT  campaign_id, name, id, advertiser_id
+         |            FROM ad_group_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           ago2 ON (f0.ad_group_id = ago2.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT  parent_id, value, id, advertiser_id
+         |            FROM targetingattribute
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           t3 ON (f0.keyword_id = t3.id)
+         |
+         |)
+         |   ORDER BY "Spend" DESC NULLS LAST
+         |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -2019,7 +2149,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val expected =
       s"""
          |SELECT "Day", "Advertiser Status", "Campaign Name", impressions AS "Impressions", CTR AS "CTR"
@@ -2097,7 +2227,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val expected =
       s"""
          |SELECT "Day", "Advertiser Status", "Campaign Name", impressions AS "Impressions", CTR AS "CTR"
@@ -2978,19 +3108,18 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-
     val expected =
       s"""
-         |SELECT *
-         |FROM (SELECT to_char(f0.keyword_id) "Keyword ID", t4.value "Keyword Value", co1.campaign_name "Campaign Name", to_char(f0.ad_group_id) "Ad Group ID", ago2."Ad Group Status" "Ad Group Status", ago2.name "Ad Group Name", ado3.title "Ad Title", coalesce(f0."impressions", 1) "Impressions", ROUND(f0."CTR", 10) "CTR"
+         |SELECT "Keyword ID", "Keyword Value", "Campaign Name", "Ad Group ID", "Ad Group Status", "Ad Group Name", "Ad Title", impressions AS "Impressions", CTR AS "CTR"
+         |FROM (SELECT to_char(f0.keyword_id) "Keyword ID", t4.value "Keyword Value", co1.campaign_name "Campaign Name", to_char(f0.ad_group_id) "Ad Group ID", ago2."Ad Group Status" "Ad Group Status", ago2.name "Ad Group Name", ado3.title "Ad Title", SUM(impressions) AS impressions, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS CTR, SUM(clicks) AS clicks
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
-         |                   ad_group_id, ad_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
+         |                   ad_group_id, ad_id, campaign_id, keyword_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions
          |            FROM fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY ad_group_id, ad_id, campaign_id, keyword_id
          |
          |           ) f0
-         |           LEFT OUTER JOIN
+         |                     LEFT OUTER JOIN
          |           (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
@@ -3015,6 +3144,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |             )
          |           t4 ON (f0.keyword_id = t4.id)
          |
+         |          GROUP BY to_char(f0.keyword_id), t4.value, co1.campaign_name, to_char(f0.ad_group_id), ago2."Ad Group Status", ago2.name, ado3.title
          |) WHERE ( "Ad Group ID"   IS NULL) AND ( "Ad Group Status"   = 'ON')
          |   ORDER BY "Campaign Name" ASC NULLS LAST
          |""".stripMargin
@@ -3246,7 +3376,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val expected =
       s"""|SELECT *
           |FROM (SELECT ro1.address "Address", coalesce(af0."impressions", 1) "Impressions"
@@ -3301,7 +3431,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     queryPipelineTry.get.bestDimCandidates.foreach{db=> assert(db.hasPKRequested == false)}
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Campaign Name"))
 
@@ -3367,15 +3497,14 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     queryPipelineTry.get.bestDimCandidates.foreach{db=> assert(db.hasPKRequested == false)}
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("N Spend", "Campaign Name", "Source"))
-
 
     val expected =
       s"""
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Source", DECODE(stats_source, 1, spend, 0.0) AS "N Spend"
-         |FROM (SELECT co1.campaign_name "Campaign Name", to_char(af0.stats_source) "Source", SUM(spend) AS spend
+         |FROM (SELECT co1.campaign_name "Campaign Name", to_char(af0.stats_source) "Source", SUM(spend) AS spend, stats_source AS stats_source
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   campaign_id, stats_source, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
@@ -3390,7 +3519,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |             )
          |           co1 ON (af0.campaign_id = co1.id)
          |
-         |          GROUP BY co1.campaign_name, to_char(af0.stats_source)
+         |          GROUP BY co1.campaign_name, to_char(af0.stats_source), stats_source
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
        """.stripMargin
@@ -3435,7 +3564,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     queryPipelineTry.get.bestDimCandidates.foreach{db=> assert(db.hasPKRequested == false)}
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
 
     val expected =
       s"""
@@ -3499,7 +3628,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     queryPipelineTry.get.bestDimCandidates.foreach{db=> assert(db.hasPKRequested == false)}
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Advertiser Currency", "Campaign Name"))
 
@@ -3534,7 +3663,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
        """.stripMargin
   }
 
-  test("Should not generate Outer Group By Query contest with 2 dimension non id fields and one fact higher level ID field than best dims") {
+  test("Should not generate Outer Group By Query context with 2 dimension non id fields and one fact higher level ID field than best dims") {
     val jsonString = s"""{
                            "cube": "performance_stats",
                            "selectFields": [
@@ -3575,7 +3704,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     queryPipelineTry.get.bestDimCandidates.filter(_.dim.name=="adgroup").foreach{db=> assert(db.hasPKRequested == true, "Should not trigger outer group by")}
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Advertiser Currency", "Ad Group ID", "Campaign Name"))
 
@@ -3657,7 +3786,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     queryPipelineTry.get.bestDimCandidates.foreach{db=> assert(db.hasPKRequested == false)}
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
 
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend","Advertiser Currency", "Average CPC Cents", "Average CPC", "Campaign Name"))
@@ -3694,7 +3823,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
        .stripMargin
-    println(expected)
+    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -3737,7 +3866,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Advertiser ID", "Advertiser Name", "Campaign Status"))
 
@@ -3774,7 +3903,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
         .stripMargin
-    println(expected)
+    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -3817,7 +3946,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Campaign ID", "Ad Status", "Campaign Name"))
 
@@ -3853,7 +3982,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
         .stripMargin
-    println(expected)
+    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -3891,7 +4020,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Average CPC", "Campaign Name"))
 
@@ -3923,7 +4052,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
         .stripMargin
-    println(expected)
+    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -3966,7 +4095,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryCols == Set("Spend", "Average Position", "Campaign Name"))
 
     val result = query.asString
-    println(result)
+    
 
 
     val expected =
@@ -3996,7 +4125,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
         .stripMargin
-    println(expected)
+    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -4037,7 +4166,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Average Position", "Average CPC", "Campaign Name"))
 
@@ -4067,7 +4196,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
         .stripMargin
-    println(expected)
+    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -4108,7 +4237,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Advertiser ID", "N Average CPC", "Campaign Name", "Spend"))
 
@@ -4137,7 +4266,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
         .stripMargin
-    println(expected)
+    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -4175,7 +4304,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Campaign Name", "Impression Share", "Spend"))
 
@@ -4204,7 +4333,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
         .stripMargin
-    println(expected)
+    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -4248,7 +4377,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
+    
     val expected =
       s"""
          |SELECT *

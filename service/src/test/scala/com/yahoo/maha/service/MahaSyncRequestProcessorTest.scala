@@ -189,7 +189,7 @@ class MahaSyncRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAft
     })
 
     mahaRequestProcessor.onFailure((ge) => {
-      println(ge.message)
+      logger.info(ge.message)
       ge.throwableOption.foreach(_.printStackTrace())
       assertCount+=1
     })
