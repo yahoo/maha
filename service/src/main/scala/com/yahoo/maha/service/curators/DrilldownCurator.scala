@@ -128,14 +128,16 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
       }
     } else IndexedSeq.empty
     val allSelectedFields : IndexedSeq[Field] = (IndexedSeq(drilldownConfig.dimension, primaryKeyField).filter{_!=null} ++ factFields).distinct
+    val drillDownOrdering = reportingRequest.sortBy.filter(sort => allSelectedFields.contains(sort.field))
     reportingRequest.copy(cube = cube
       , selectFields = allSelectedFields
-      , sortBy = if (drilldownConfig.ordering != IndexedSeq.empty) drilldownConfig.ordering else reportingRequest.sortBy
+      , sortBy = if (drilldownConfig.ordering != IndexedSeq.empty) drilldownConfig.ordering else drillDownOrdering
       , rowsPerPage = drilldownConfig.maxRows.toInt
       , forceDimensionDriven = false
       , forceFactDriven = true
       , filterExpressions = filterExpressions
-      , includeRowCount = INCLUDE_ROW_COUNT_DRILLDOWN)
+      , includeRowCount = INCLUDE_ROW_COUNT_DRILLDOWN
+      , curatorJsonConfigMap = Map.empty)
   }
 
   /**
@@ -236,7 +238,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
         val factFieldsRemoved: IndexedSeq[Field] = factFields.filterNot (field =>
           pubFact.columnsByAlias.contains (field.field)
         )
-        logger.info ("Removed fact fields: " + factFieldsRemoved)
+        logger.info("Removed fact fields: " + factFieldsRemoved)
       }
 
       factFieldsReduced
@@ -313,7 +315,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
 
 
                         if (mahaRequestContext.reportingRequest.isDebugEnabled) {
-                          logger.info(s"drilldown request : $newRequestWithInsertedFilter")
+                          logger.info(s"drilldown request : ${ReportingRequest.serialize(newRequestWithInsertedFilter)}")
                         }
 
                         val requestModelResultTry = mahaService.generateRequestModel(
