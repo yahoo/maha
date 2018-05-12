@@ -187,10 +187,10 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
           jsonGenerator.writeObject(row.getValue(i))
           i+=1
         }
-        if(reportingRequest.includeRowCount && row.aliasMap.contains(QueryRowList.ROW_COUNT_ALIAS)) {
-          jsonGenerator.writeObject(row.getValue(QueryRowList.ROW_COUNT_ALIAS))
-        } else if (reportingRequest.includeRowCount && rowCountOption.isDefined) {
+        if (reportingRequest.includeRowCount && rowCountOption.isDefined) {
           jsonGenerator.writeObject(rowCountOption.get)
+        } else if(reportingRequest.includeRowCount && row.aliasMap.contains(QueryRowList.ROW_COUNT_ALIAS)) {
+          jsonGenerator.writeObject(row.getValue(QueryRowList.ROW_COUNT_ALIAS))
         }
         jsonGenerator.writeEndArray()
       }
