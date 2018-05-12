@@ -6,7 +6,7 @@ import java.io.OutputStream
 
 import com.fasterxml.jackson.core.{JsonEncoding, JsonGenerator}
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.yahoo.maha.core.query.RowList
+import com.yahoo.maha.core.query.{QueryRowList, RowList}
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{ColumnInfo, DimColumnInfo, Engine, FactColumnInfo}
 import com.yahoo.maha.service.RequestCoordinatorResult
@@ -70,7 +70,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
         , tableName
         , dimCols
       )
-      writeDataRows(jsonGenerator, qpr.rowList, rowCountOption)
+      writeDataRows(jsonGenerator, qpr.rowList, rowCountOption, curatorResult.requestModelReference.model.reportingRequest)
     }
   }
 
@@ -98,7 +98,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
         , tableName
         , dimCols
       )
-      writeDataRows(jsonGenerator, qpr.rowList, None)
+      writeDataRows(jsonGenerator, qpr.rowList, None, curatorResult.requestModelReference.model.reportingRequest)
       jsonGenerator.writeEndObject() //}
       jsonGenerator.writeEndObject() //}
 
@@ -174,7 +174,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
     jsonGenerator.writeEndObject()
   }
 
-  private def writeDataRows(jsonGenerator: JsonGenerator, rowList: RowList, rowCountOption: Option[Int]): Unit = {
+  private def writeDataRows(jsonGenerator: JsonGenerator, rowList: RowList, rowCountOption: Option[Int], reportingRequest:ReportingRequest): Unit = {
     jsonGenerator.writeFieldName("rows") // "rows":
     jsonGenerator.writeStartArray() // [
     val numColumns = rowList.columns.size
@@ -187,7 +187,9 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
           jsonGenerator.writeObject(row.getValue(i))
           i+=1
         }
-        if (rowCountOption.isDefined) {
+        if(reportingRequest.includeRowCount && row.aliasMap.contains(QueryRowList.ROW_COUNT_ALIAS)) {
+          jsonGenerator.writeObject(row.getValue(QueryRowList.ROW_COUNT_ALIAS))
+        } else if (reportingRequest.includeRowCount && rowCountOption.isDefined) {
           jsonGenerator.writeObject(rowCountOption.get)
         }
         jsonGenerator.writeEndArray()
