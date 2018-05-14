@@ -10,7 +10,8 @@
     { "field" : "Keyword" },
     { "field" : "Search Term" },
     { "field" : "Delivered Match Type" },
-    { "field" : "Impressions" }
+    { "field" : "Impressions" },
+    { "field" : "Constant Fact" }
   ],
   "filterExpressions":[
     { "field": "Day", "operator": "between", "from": "{from_date}", "to": "{to_date}" },

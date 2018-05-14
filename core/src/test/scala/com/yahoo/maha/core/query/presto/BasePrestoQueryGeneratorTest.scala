@@ -74,6 +74,7 @@ trait BasePrestoQueryGeneratorTest
           , PrestoDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}", rollupExpression = NoopRollup)
           , PrestoDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100", rollupExpression = NoopRollup)
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
+          , ConstFactCol("constantFact", IntType(), "0")
         ),underlyingTableName = Some("s_stats_fact_underlying")
       )
     }
@@ -102,6 +103,7 @@ trait BasePrestoQueryGeneratorTest
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),
           PublicFactCol("avg_pos", "Average Position", Set.empty),
+          PublicFactCol("constantFact", "Constant Fact", Set.empty),
           PublicFactCol("max_bid", "Max Bid", Set.empty),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality)

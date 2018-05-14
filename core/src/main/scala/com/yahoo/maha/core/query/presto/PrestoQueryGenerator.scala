@@ -272,6 +272,10 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
             val renderedAlias = renderColumnAlias(alias)
             queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${de.render(renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = false)})"""))
             ""
+          case ConstFactCol(_, _, v, _, _, _, _, _) =>
+            val renderedAlias = renderColumnAlias(alias)
+            queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
+            s"'$v' $name"
         }
         queryBuilder.addFactViewColumn(exp)
       }
@@ -360,7 +364,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
             val exp = column match {
               case FactCol(_, dt, cc, rollup, _, annotations, _) =>
                 s"""${renderRollupExpression(name, rollup)}"""
-              case OracleDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
+              case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
                 s"""${renderRollupExpression(de.render(name, Map.empty), rollup)}"""
               case any =>
                 throw new UnsupportedOperationException(s"Found non fact column : $any")
