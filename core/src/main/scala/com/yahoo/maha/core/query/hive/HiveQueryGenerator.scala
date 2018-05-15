@@ -6,9 +6,9 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
-
 import grizzled.slf4j.Logging
 
+import scala.collection.mutable.LinkedHashSet
 import scala.collection.{SortedSet, mutable}
 
 /**
@@ -23,6 +23,8 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
         generateQuery(context)
       case FactQueryContext(factBestCandidate, model, indexAliasOption, attributes) =>
         generateQuery(CombinedQueryContext(SortedSet.empty, factBestCandidate, model, attributes))
+      case DimFactOuterGroupByQueryQueryContext(dims, factBestCandidate, model, attributes) =>
+        generateQuery(CombinedQueryContext(dims, factBestCandidate, model, attributes), true)
       case any => throw new UnsupportedOperationException(s"query context not supported : $any")
     }
   }
@@ -31,17 +33,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
   }
   val hiveLiteralMapper = new HiveLiteralMapper()
 
-  private[this] def generateQuery(queryContext: CombinedQueryContext) : Query = {
-    /**
-     *  - parameterizedQuery(queryString)
-        - udfStatement
-	        Get latest list from the code
-        - parameters
-        - hiveQueryAttributes
-	        PARAM_UTC_TIME
-	        PARAM_JOB_ID
-        - columnHeaders - column names
-     */
+  private[this] def generateQuery(queryContext: CombinedQueryContext, isOuterGroupBy: Boolean = false) : Query = {
 
     //init vars
     val queryBuilderContext = new QueryBuilderContext
@@ -108,31 +100,11 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
     def generateOuterColumns() : String = {
       queryContext.requestModel.requestCols foreach {
         columnInfo =>
-          /*if (!columnInfo.isInstanceOf[ConstantColumnInfo] && queryBuilderContext.aliasColumnMap.contains(columnInfo.alias)) {
-            //aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.aliasColumnMap(columnInfo.alias))
-          } else if (queryContext.factBestCandidate.duplicateAliasMapping.contains(columnInfo.alias)) {
-            val sourceAliases = queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)
-            val sourceAlias = sourceAliases.find(queryBuilderContext.aliasColumnMap.contains)
-            require(sourceAlias.isDefined
-              , s"Failed to find source column for duplicate alias mapping : ${queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)}")
-            //aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.aliasColumnMap(sourceAlias.get))
-          }*/
           QueryGeneratorHelper.populateAliasColMapOfRequestCols(columnInfo, queryBuilderContext, queryContext)
           queryBuilder.addOuterColumn(renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, factCandidate))
       }
       queryBuilder.getOuterColumns
 
-      /*
-      val outerColumns = columnAliasToColMap map {
-        case (alias, column) =>
-          renderNormalOuterColumn(column, alias) + " " + alias
-      }
-      val outerConstantCols = constantColumnsMap map {
-        case (renderedAlias, value) =>
-          s"""'$value' $renderedAlias"""
-      }
-      (outerColumns ++ outerConstantCols).mkString(", ")
-      */
     }
 
     def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], factCandidate: FactBestCandidate): String = {
@@ -144,33 +116,6 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
 
       columnInfo match {
         case FactColumnInfo(alias) =>
-          /*if (queryBuilderContext.containsFactColNameForAlias(alias)) {
-            val col = queryBuilderContext.getFactColByAlias(alias)
-            val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)
-            val finalAliasOrExpression = {
-              if(queryBuilderContext.isDimensionCol(alias)) {
-                val factAlias = queryBuilderContext.getAliasForTable(factCandidate.fact.name)
-                val factExp = queryBuilderContext.getFactColExpressionOrNameForAlias(alias)
-                s"$factAlias.$factExp"
-              } else  {
-                queryBuilderContext.getFactColExpressionOrNameForAlias(alias)
-              }
-            }
-            renderFactCol(alias, finalAliasOrExpression, col, finalAlias)
-          } else if (duplicateAliasMapping.contains(alias)) {
-            val duplicateAliases = duplicateAliasMapping(alias)
-            val renderedDuplicateAlias = duplicateAliases.collectFirst {
-              case duplicateAlias if queryBuilderContext.containsFactColNameForAlias(duplicateAlias) =>
-                val col = queryBuilderContext.getFactColByAlias(duplicateAlias)
-                val finalAliasOrExpression = queryBuilderContext.getFactColExpressionOrNameForAlias(duplicateAlias)
-                val finalAlias = queryBuilderContext.getFactColNameForAlias(duplicateAlias)
-                renderFactCol(alias, finalAliasOrExpression, col, finalAlias)
-            }
-            require(renderedDuplicateAlias.isDefined, s"Failed to render column : $alias")
-            renderedDuplicateAlias.get
-          } else {
-            throw new IllegalArgumentException(s"Could not find inner alias for outer column : $alias")
-          }*/
           QueryGeneratorHelper.handleFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.name)
         case DimColumnInfo(alias) =>
           val col = queryBuilderContext.getDimensionColByAlias(alias)
@@ -553,38 +498,6 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
      * Final Query
      */
 
-    /*
-factCandidate.dimColMapping.foreach {
-  case (dimCol, alias) =>
-    if (factCandidate.requestCols(dimCol)) {
-      val column = fact.columnsByNameMap(dimCol)
-      val finalAlias = renderColumnAlias(alias)
-      queryBuilderContext.setFactColAlias(alias, finalAlias, column)
-      if (column.isInstanceOf[HivePartDimCol]) {
-        partitionCols += column
-      }
-     }
-}
-
-factCandidate.factColMapping.foreach {
-  case (factCol, alias) =>
-    if (factCandidate.requestCols(factCol)) {
-      val column = fact.columnsByNameMap(factCol)
-      val finalAlias = renderColumnAlias(alias)
-      queryBuilderContext.setFactColAlias(alias, finalAlias, column)
-    }
-}
-
-factCandidate.duplicateAliasMapping.foreach {
-  case(alias, aliasesSet) =>
-    val name = factCandidate.publicFact.aliasToNameColumnMap(alias)
-    if(factCandidate.requestCols(name)) {
-      val column = fact.columnsByNameMap(name)
-      val finalAlias = renderColumnAlias(alias)
-      queryBuilderContext.setFactColAlias(alias, finalAlias, column)
-    }
-}
-*/
     val factQueryFragment = generateFactQueryFragment()
 
     dims.foreach {
@@ -638,16 +551,46 @@ factCandidate.duplicateAliasMapping.foreach {
     val outerCols = generateOuterColumns()
     val dimJoinQuery = queryBuilder.getJoinExpressions
 
-    // factViewAlias => needs to generate abbr from factView name like account_stats_1h_v2 -> as1v0
-    // outerCols same cols in concate cols, different expression ???
-    val parameterizedQuery : String =
-      s"""SELECT $concatenatedCols
-         |FROM(
-         |SELECT $outerCols
-         |FROM($factQueryFragment)
-         |$factViewAlias
-         |$dimJoinQuery)
-       """.stripMargin
+    val parameterizedQuery : String = {
+      if (isOuterGroupBy) {
+
+        val columnsForGroupBySelect: LinkedHashSet[String] = new mutable.LinkedHashSet[String]
+        val columnsForGroupBy: LinkedHashSet[String] = new mutable.LinkedHashSet[String]
+        requestedCols.foreach {
+          case FactColumnInfo(alias) =>
+            columnsForGroupBySelect += queryBuilderContext.getColAliasToRenderedFactColExp(alias).get
+          case DimColumnInfo(alias) =>
+            columnsForGroupBySelect += queryBuilderContext.getDimensionColNameForAlias(alias)
+            columnsForGroupBy += queryBuilderContext.getDimensionColNameForAlias(alias)
+        }
+        val groupByColumnSelect = columnsForGroupBySelect.mkString(",")
+        val groupByColumns = columnsForGroupBy.mkString(",")
+
+        s"""SELECT $concatenatedCols
+            |FROM(
+            |SELECT $outerCols
+            |FROM(
+            |SELECT $groupByColumnSelect
+            |FROM(
+            |SELECT * FROM($factQueryFragment)
+            |$factViewAlias
+            |$dimJoinQuery)
+            |outergroupby
+            |GROUP BY $groupByColumns)
+            |)
+         """.stripMargin
+      } else {
+        // factViewAlias => needs to generate abbr from factView name like account_stats_1h_v2 -> as1v0
+        // outerCols same cols in concate cols, different expression ???
+        s"""SELECT $concatenatedCols
+            |FROM(
+            |SELECT $outerCols
+            |FROM($factQueryFragment)
+            |$factViewAlias
+            |$dimJoinQuery)
+         """.stripMargin
+      }
+    }
 
     val paramBuilder = new QueryParameterBuilder
 

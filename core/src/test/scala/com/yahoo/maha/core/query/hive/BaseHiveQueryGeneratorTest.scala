@@ -11,7 +11,7 @@ import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.lookup.LongRangeLookup
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.registry.RegistryBuilder
-import com.yahoo.maha.core.request.{SyncRequest, AsyncRequest}
+import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 /**
@@ -29,6 +29,7 @@ trait BaseHiveQueryGeneratorTest
     registryBuilder.register(aga_stats_fact(forcedFilters))
     registryBuilder.register(ce_stats(forcedFilters))
     registryBuilder.register(bidReco())
+    registryBuilder.register(pubfact2(forcedFilters))
   }
 
   protected[this] def s_stats_fact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
@@ -335,5 +336,187 @@ trait BaseHiveQueryGeneratorTest
         Set(),
         Map((AsyncRequest, DailyGrain) -> 400), Map((AsyncRequest, DailyGrain) -> 400)
       )
+  }
+
+  def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    import HiveExpression._
+    import UDFHiveExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      Fact.newFact(
+        "ad_fact1", DailyGrain, HiveEngine, Set(AdvertiserSchema, ResellerSchema),
+        Set(
+          DimCol("ad_id", IntType(), annotations = Set(ForeignKey("ad")))
+          , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
+          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+          , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("stats_source", IntType(3))
+          , DimCol("restaurant_id", IntType(), alias = Option("advertiser_id"), annotations = Set(ForeignKey("restaurant")))
+          , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
+          , DimCol("start_time", IntType())
+          , DimCol("stats_date", DateType("YYYY-MM-dd"))
+          , DimCol("show_flag", IntType())
+          , HiveDerDimCol("Month", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
+          , HiveDerDimCol("Week", DateType(), GET_INTERVAL_DATE("{stats_date}", "W"))
+        ),
+        Set(
+          FactCol("impressions", IntType(3, 1))
+          , FactCol("s_impressions", IntType(3, 1))
+          , FactCol("clicks", IntType(3, 0, 1, 800))
+          , FactCol("spend", DecType(0, "0.0"))
+          , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
+          //          , FactCol("Average CPC", DecType(), OracleCustomRollup("{spend}" / "{clicks}"))
+          , FactCol("CTR", DecType(), HiveCustomRollup(SUM("{clicks}" /- "{impressions}")))
+          , HiveDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}")
+          , HiveDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100")
+          , HiveDerFactCol("N Spend", DecType(), DECODE("{stats_source}", "1", "{spend}", "0.0"))
+          , HiveDerFactCol("N Clicks", DecType(), DECODE("{stats_source}", "1", "{clicks}", "0.0"))
+          , HiveDerFactCol("N Average CPC", DecType(), "{N Spend}" /- "{N Clicks}")
+          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), HiveCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
+          , HiveDerFactCol("impression_share", IntType(), DECODE(MAX("{show_flag}"), "1", ROUND(SUM("{impressions}") /- SUM("{s_impressions}"), 4), "NULL"), rollupExpression = NoopRollup)
+          , HiveDerFactCol("impression_share_rounded", IntType(), ROUND("{impression_share}", 5), rollupExpression = NoopRollup)
+        ),
+        annotations = Set(
+        )
+      )
+    }
+      .toPublicFact("performance_stats",
+        Set(
+          PubCol("stats_date", "Day", InBetweenEquality),
+          PubCol("ad_id", "Ad ID", InEquality),
+          PubCol("ad_group_id", "Ad Group ID", InEquality),
+          PubCol("campaign_id", "Campaign ID", InEquality),
+          PubCol("advertiser_id", "Advertiser ID", InEquality),
+          PubCol("restaurant_id", "Restaurant ID", InEquality),
+          PubCol("stats_source", "Source", Equality),
+          PubCol("price_type", "Pricing Type", In),
+          PubCol("Month", "Month", Equality),
+          PubCol("Week", "Week", Equality)
+        ),
+        Set(
+          PublicFactCol("impressions", "Impressions", InBetweenEquality),
+          PublicFactCol("impressions", "Total Impressions", InBetweenEquality),
+          PublicFactCol("clicks", "Clicks", InBetweenEquality),
+          PublicFactCol("spend", "Spend", Set.empty),
+          PublicFactCol("avg_pos", "Average Position", Set.empty),
+          PublicFactCol("max_bid", "Max Bid", Set.empty),
+          PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
+          PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
+          PublicFactCol("CTR", "CTR", InBetweenEquality),
+          PublicFactCol("N Spend", "N Spend", InBetweenEquality),
+          PublicFactCol("N Clicks", "N Clicks", InBetweenEquality),
+          PublicFactCol("N Average CPC", "N Average CPC", InBetweenEquality),
+          PublicFactCol("impression_share_rounded", "Impression Share", InBetweenEquality)
+        ),
+        forcedFilters,
+        getMaxDaysWindow, getMaxDaysLookBack
+      )
+  }
+
+
+
+  case object GetIntervalDateRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION getIntervalDate as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udf.GetIntervalDate';"
+  }
+  case object GetFormattedDateRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION getFormattedDate as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udf.GetFormattedDate';"
+  }
+  case object GetDateFromEpochRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION getDateFromEpoch as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udf.GetDateFromEpoch';"
+  }
+  case object GetUTCDateTimeFromEpochRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION getDateTimeFromEpoch as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udf.GetDateTimeFromEpoch';"
+  }
+  case object GetCsvEscapedStringRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION getCsvEscapedString as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udf.GetCsvEscapedString';"
+  }
+  case object DecodeRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION decodeUDF as 'com.nexr.platform.hive.udf.GenericUDFDecode';"
+  }
+  case object GetAverageVideoShownRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION getAverageVideoShown as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udf.GetAverageVideoShown';"
+  }
+  case object GetAbyBplusCRegistration extends UDAF {
+    val statement: String = "CREATE TEMPORARY FUNCTION getAbyBplusC as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udaf.GetAbyBplusC';"
+  }
+  case object GetConditionalAbyBRegistration extends UDAF {
+    val statement: String = "CREATE TEMPORARY FUNCTION getConditionalAbyB as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udaf.GetConditionalAbyB';"
+  }
+  case object GetAbyBRegistration extends UDAF {
+    val statement: String = "CREATE TEMPORARY FUNCTION getAbyB as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udaf.GetAbyB';"
+  }
+
+  object UDFHiveExpression {
+
+    import HiveExpression._
+
+    implicit val uDFRegistrationFactory = DefaultUDFRegistrationFactory
+
+    uDFRegistrationFactory.register(GetIntervalDateRegistration)
+    uDFRegistrationFactory.register(DecodeRegistration)
+
+    case class TIMESTAMP_TO_FORMATTED_DATE(s: HiveExp, fmt: String) extends UDFHiveExpression(GetDateFromEpochRegistration) {
+      def hasRollupExpression = s.hasRollupExpression
+
+      def hasNumericOperation = s.hasNumericOperation
+
+      def asString: String = s"getDateFromEpoch(${s.asString}, '$fmt')"
+    }
+
+    case class GET_INTERVAL_DATE(s: HiveExp, fmt: String) extends UDFHiveExpression(GetIntervalDateRegistration) {
+      def hasRollupExpression = s.hasRollupExpression
+
+      def hasNumericOperation = s.hasNumericOperation
+
+      def asString: String = s"getIntervalDate(${s.asString}, '$fmt')"
+    }
+
+    case class GET_UTC_TIME_FROM_EPOCH(s: HiveExp, fmt: String) extends UDFHiveExpression(GetUTCDateTimeFromEpochRegistration) {
+      def hasRollupExpression = s.hasRollupExpression
+
+      def hasNumericOperation = s.hasNumericOperation
+
+      def asString: String = s"getDateTimeFromEpoch(${s.asString}, '$fmt')"
+    }
+
+    case class DECODE_DIM(args: HiveExp*) extends UDFHiveExpression(DecodeRegistration) {
+      require(!args.exists(_.hasRollupExpression), "DECODE_DIM cannot have rollup expression in args!")
+      val hasRollupExpression = false
+      val hasNumericOperation = args.exists(_.hasNumericOperation)
+      if (args.length < 3) throw new IllegalArgumentException("Usage: DECODE_DIM( expression , search , result [, search , result]... [, default] )")
+      val argStrs = args.map(_.asString).mkString(", ")
+
+      def asString: String = s"decodeUDF($argStrs)"
+    }
+
+    case class DECODE(args: HiveExp*) extends UDFHiveExpression(DecodeRegistration) {
+      val hasRollupExpression = true
+      val hasNumericOperation = args.exists(_.hasNumericOperation)
+      if (args.length < 3) throw new IllegalArgumentException("Usage: DECODE( expression , search , result [, search , result]... [, default] )")
+      val argStrs = args.map(_.asString).mkString(", ")
+
+      def asString: String = s"decodeUDF($argStrs)"
+    }
+
+    case class GET_A_BY_B(a: HiveExp, b: HiveExp) extends UDFHiveExpression(GetAbyBRegistration) {
+      val hasRollupExpression = true
+      val hasNumericOperation = true
+
+      def asString: String = s"getAbyB(${a.asString}, ${b.asString})"
+    }
+
+    case class GET_A_BY_B_PLUS_C(a: HiveExp, b: HiveExp, c: HiveExp) extends UDFHiveExpression(GetAbyBplusCRegistration) {
+      val hasRollupExpression = true
+      val hasNumericOperation = true
+
+      def asString: String = s"getAbyBplusC(${a.asString}, ${b.asString}, ${c.asString})"
+    }
+
+    case class GET_CONDITIONAL_A_BY_B(xGiven: HiveExp, xRequred: HiveExp, a: HiveExp, defaultA: HiveExp, b: HiveExp) extends UDFHiveExpression(GetConditionalAbyBRegistration) {
+      val hasRollupExpression = true
+      val hasNumericOperation = true
+
+      def asString: String = s"getConditionalAbyB(${xGiven.asString}, ${xRequred.asString}, ${a.asString}, ${defaultA.asString}, ${b.asString})"
+    }
+
   }
 }
