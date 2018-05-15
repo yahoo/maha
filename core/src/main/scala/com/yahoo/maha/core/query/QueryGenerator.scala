@@ -32,6 +32,8 @@ class QueryBuilderContext {
 
   private[this] val columnNames = new mutable.TreeSet[String]
 
+  private[this] val colAliasToRenderedFactColExpMap = new mutable.HashMap[String, String]
+
   def getAliasForTable(name: String) : String = {
     tableAliasMap.get(name) match {
       case None => {
@@ -170,6 +172,10 @@ class QueryBuilderContext {
   def aliasColumnMap : Map[String, Column] = dimensionAliasToColumnMap.toMap ++ factAliasToColumnMap.toMap
 
   def getColAliasToFactColNameMap : scala.collection.Map[String, String] = colAliasToFactColNameMap
+
+  def getColAliasToRenderedFactColExp(alias: String): Option[String] = {
+    colAliasToRenderedFactColExpMap.get(alias)
+  }
 }
 
 trait QueryGenerator[T <: EngineRequirement] {
