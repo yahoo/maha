@@ -32,6 +32,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
     requestModel.orFilterMeta.isEmpty
   }
   val hiveLiteralMapper = new HiveLiteralMapper()
+  val outerGroupByAlias = "outergroupby"
 
   private[this] def generateQuery(queryContext: CombinedQueryContext, isOuterGroupBy: Boolean = false) : Query = {
 
@@ -120,8 +121,14 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
         case DimColumnInfo(alias) =>
           val col = queryBuilderContext.getDimensionColByAlias(alias)
           val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
-          val publicDim = queryBuilderContext.getDimensionForColAlias(alias)
-          val referredAlias = s"${queryBuilderContext.getAliasForTable(publicDim.name)}.$finalAlias"
+          val referredAlias = {
+            if (isOuterGroupBy) {
+              s"$outerGroupByAlias.$finalAlias"
+            } else {
+              val publicDim = queryBuilderContext.getDimensionForColAlias(alias)
+              s"${queryBuilderContext.getAliasForTable(publicDim.name)}.$finalAlias"
+            }
+          }
           val postFilterAlias = renderNormalOuterColumn(col, referredAlias)
           s"""$postFilterAlias $finalAlias"""
         case ConstantColumnInfo(alias, value) =>
@@ -246,7 +253,10 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
             queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${de.render(renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = false)})"""))
             ""
         }
+
         queryBuilder.addFactViewColumn(exp)
+        queryBuilderContext.setColAliasToRenderedFactColExp(alias, exp)
+
       }
 
       val dimCols = queryContext.factBestCandidate.dimColMapping.toList.collect {
@@ -560,8 +570,11 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
           case FactColumnInfo(alias) =>
             columnsForGroupBySelect += queryBuilderContext.getColAliasToRenderedFactColExp(alias).get
           case DimColumnInfo(alias) =>
-            columnsForGroupBySelect += queryBuilderContext.getDimensionColNameForAlias(alias)
-            columnsForGroupBy += queryBuilderContext.getDimensionColNameForAlias(alias)
+            val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
+            val publicDim = queryBuilderContext.getDimensionForColAlias(alias)
+            val referredAlias = s"${queryBuilderContext.getAliasForTable(publicDim.name)}.$finalAlias"
+            columnsForGroupBySelect += referredAlias
+            columnsForGroupBy += referredAlias
         }
         val groupByColumnSelect = columnsForGroupBySelect.mkString(",")
         val groupByColumns = columnsForGroupBy.mkString(",")
@@ -571,12 +584,10 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
             |SELECT $outerCols
             |FROM(
             |SELECT $groupByColumnSelect
-            |FROM(
-            |SELECT * FROM($factQueryFragment)
+            |FROM($factQueryFragment)
             |$factViewAlias
-            |$dimJoinQuery)
-            |outergroupby
-            |GROUP BY $groupByColumns)
+            |$dimJoinQuery
+            |GROUP BY $groupByColumns) $outerGroupByAlias
             |)
          """.stripMargin
       } else {

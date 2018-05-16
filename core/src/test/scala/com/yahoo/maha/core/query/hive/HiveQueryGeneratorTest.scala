@@ -636,58 +636,30 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     queryPipelineTry.get.bestDimCandidates.foreach { db => assert(db.hasPKRequested == false) }
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    val expected = s"""SELECT
-        concat_ws(
-            ",",
-            nvl(mang_campaign_name,''),
-            nvl(mang_spend,'')
-        )
-    FROM
-        (
-            SELECT
-                CAST(nvl(c1.mang_campaign_name,'') AS string) mang_campaign_name,
-                CAST(round(
-                    coalesce(spend,0.0),
-                    10
-                ) AS string) mang_spend
-            FROM (
-               SELECT mang_campaign_name, sum(spend) FROM (SELECT * FROM (
-                    SELECT
-                        campaign_id,
-                        SUM(spend) spend
-                    FROM
-                        ad_fact1
-                    WHERE
-                        (
-                            advertiser_id = 12345
-                        ) AND (
-                                stats_date >= '$fromDate'
-                            AND
-                                stats_date <= '$toDate'
-                        )
-                    GROUP BY
-                        campaign_id
-                ) af0
-                LEFT OUTER JOIN (
-                    SELECT
-                        campaign_name AS mang_campaign_name,
-                        id c1_id
-                    FROM
-                        campaing_hive
-                    WHERE
-                        (
-                            (
-                                shard = 'all'
-                            )
-                        ) AND (
-                            advertiser_id = 12345
-                        )
-                ) c1 ON af0.campaign_id = c1.c1_id) agby group by mang_campaign_name
-
-                )
-        )""".stripMargin
+    val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_spend, ''))
+                      |FROM(
+                      |SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
+                      |FROM(
+                      |SELECT c1.mang_campaign_name,SUM(spend) spend
+                      |FROM(SELECT campaign_id, SUM(spend) spend
+                      |FROM ad_fact1
+                      |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+                      |GROUP BY campaign_id
+                      |
+                      |       )
+                      |af0
+                      |LEFT OUTER JOIN (
+                      |SELECT campaign_name AS mang_campaign_name, id c1_id
+                      |FROM campaing_hive
+                      |WHERE ((shard = 'all' )) AND (advertiser_id = 12345)
+                      |)
+                      |c1
+                      |ON
+                      |af0.campaign_id = c1.c1_id
+                      |GROUP BY c1.mang_campaign_name) outergroupby
+                      |)""".stripMargin
     println(result)
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
-  }
+}
