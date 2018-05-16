@@ -173,6 +173,10 @@ class QueryBuilderContext {
 
   def getColAliasToFactColNameMap : scala.collection.Map[String, String] = colAliasToFactColNameMap
 
+  def setColAliasToRenderedFactColExp(alias: String, exp: String) = {
+    colAliasToRenderedFactColExpMap.put(alias, exp)
+  }
+
   def getColAliasToRenderedFactColExp(alias: String): Option[String] = {
     colAliasToRenderedFactColExpMap.get(alias)
   }
