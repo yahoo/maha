@@ -36,6 +36,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
 
   private[this] def generateQuery(queryContext: CombinedQueryContext, isOuterGroupBy: Boolean = false) : Query = {
 
+    println(s"isOuterGroupBy: $isOuterGroupBy")
     //init vars
     val queryBuilderContext = new QueryBuilderContext
     val queryBuilder: QueryBuilder = new QueryBuilder(
@@ -566,16 +567,31 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
 
         val columnsForGroupBySelect: LinkedHashSet[String] = new mutable.LinkedHashSet[String]
         val columnsForGroupBy: LinkedHashSet[String] = new mutable.LinkedHashSet[String]
-        requestedCols.foreach {
-          case FactColumnInfo(alias) =>
-            columnsForGroupBySelect += queryBuilderContext.getColAliasToRenderedFactColExp(alias).get
-          case DimColumnInfo(alias) =>
-            val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
-            val publicDim = queryBuilderContext.getDimensionForColAlias(alias)
-            val referredAlias = s"${queryBuilderContext.getAliasForTable(publicDim.name)}.$finalAlias"
+        def addDimGroupByColumns(alias: String, isFromFact: Boolean) = {
+            val referredAlias = {
+              if (isFromFact) {
+                queryBuilderContext.getFactColByAlias(alias).name
+              } else {
+                val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
+                val tableName = queryBuilderContext.getDimensionForColAlias(alias).name
+                s"${queryBuilderContext.getAliasForTable(tableName)}.$finalAlias"
+              }
+            }
             columnsForGroupBySelect += referredAlias
             columnsForGroupBy += referredAlias
         }
+
+        requestedCols.foreach {
+          case FactColumnInfo(alias) =>
+            if (queryBuilderContext.getFactColByAlias(alias).isInstanceOf[DimCol]) {
+              addDimGroupByColumns(alias, true)
+            } else {
+              columnsForGroupBySelect += queryBuilderContext.getColAliasToRenderedFactColExp(alias).get
+            }
+          case DimColumnInfo(alias) =>
+            addDimGroupByColumns(alias, false)
+        }
+
         val groupByColumnSelect = columnsForGroupBySelect.mkString(",")
         val groupByColumns = columnsForGroupBy.mkString(",")
 
