@@ -736,4 +736,189 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
       )""".stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
+
+  test("Successfully generated timeseries Outer Group By Query with dim non id field and fact field") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Day",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+    val requestRaw = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry()
+    val request = ReportingRequest.forceHive(requestRaw.toOption.get)
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    queryPipelineTry.get.bestDimCandidates.foreach { db => assert(db.hasPKRequested == false) }
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    println(result)
+    val expected =
+      s"""SELECT CONCAT_WS(",",NVL(mang_day, ''), NVL(mang_campaign_name, ''), NVL(mang_spend, ''))
+      FROM(
+      SELECT getFormattedDate(stats_date) mang_day, getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
+      FROM(
+      SELECT stats_date,c1.mang_campaign_name,SUM(spend) spend
+      FROM(SELECT campaign_id, stats_date, SUM(spend) spend
+      FROM ad_fact1
+      WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+      GROUP BY campaign_id, stats_date
+
+             )
+      af0
+      LEFT OUTER JOIN (
+      SELECT campaign_name AS mang_campaign_name, id c1_id
+      FROM campaing_hive
+      WHERE ((shard = 'all' )) AND (advertiser_id = 12345)
+      )
+      c1
+      ON
+      af0.campaign_id = c1.c1_id
+
+      GROUP BY stats_date,c1.mang_campaign_name) outergroupby
+      )""".stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Successfully generated Outer Group By Query with 2 dimension non id fields") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Advertiser Currency",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+    val requestRaw = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry()
+    val request = ReportingRequest.forceHive(requestRaw.toOption.get)
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    queryPipelineTry.get.bestDimCandidates.foreach { db => assert(db.hasPKRequested == false) }
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    println(result)
+    val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_advertiser_currency, ''), NVL(mang_spend, ''))
+      FROM(
+      SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(outergroupby.mang_advertiser_currency, "NA") mang_advertiser_currency, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
+      FROM(
+      SELECT c2.mang_campaign_name,a1.mang_advertiser_currency,SUM(spend) spend
+      FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend
+      FROM ad_fact1
+      WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+      GROUP BY advertiser_id, campaign_id
+
+             )
+      af0
+      LEFT OUTER JOIN (
+      SELECT currency AS mang_advertiser_currency, id a1_id
+      FROM advertiser_hive
+      WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (id = 12345)
+      )
+      a1
+      ON
+      af0.advertiser_id = a1.a1_id
+             LEFT OUTER JOIN (
+      SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
+      FROM campaing_hive
+      WHERE ((shard = 'all' )) AND (advertiser_id = 12345)
+      )
+      c2
+      ON
+      af0.campaign_id = c2.c2_id
+
+      GROUP BY c2.mang_campaign_name,a1.mang_advertiser_currency) outergroupby
+      )""".stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Should not generate Outer Group By Query context with 2 dimension non id fields and one fact higher level ID field than best dims") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Advertiser Currency",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Ad Group ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+    val requestRaw = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry()
+    val request = ReportingRequest.forceHive(requestRaw.toOption.get)
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    queryPipelineTry.get.bestDimCandidates.foreach { db => assert(db.hasPKRequested == false) }
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    println(result)
+  }
 }
