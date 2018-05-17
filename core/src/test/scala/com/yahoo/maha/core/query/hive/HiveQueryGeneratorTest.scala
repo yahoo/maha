@@ -186,7 +186,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
 
-    assert(result.contains("COALESCE(a1.mang_advertiser_status, \"NA\") mang_advertiser_status"), "Should support “NA” for NULL string")
+    assert(result.contains("COALESCE(outergroupby.mang_advertiser_status, \"NA\") mang_advertiser_status"), "Should support “NA” for NULL string")
   }
 
   test("Query with request DecType fields that contains max and min should return query with max and min range") {
@@ -647,27 +647,28 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
     val expected =
       s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_spend, ''))
-         |FROM(
-         |SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-         |FROM(
-         |SELECT c1.mang_campaign_name,SUM(spend) spend
-         |FROM(SELECT campaign_id, SUM(spend) spend
-         |FROM ad_fact1
-         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-         |GROUP BY campaign_id
-         |
-                      |       )
-         |af0
-         |LEFT OUTER JOIN (
-         |SELECT campaign_name AS mang_campaign_name, id c1_id
-         |FROM campaing_hive
-         |WHERE ((shard = 'all' )) AND (advertiser_id = 12345)
-         |)
-         |c1
-         |ON
-         |af0.campaign_id = c1.c1_id
-         |GROUP BY c1.mang_campaign_name) outergroupby
-         |)""".stripMargin
+    |FROM(
+    |SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
+    |FROM(
+    |SELECT c1.mang_campaign_name,SUM(spend) spend
+    |FROM(SELECT campaign_id, SUM(spend) spend
+    |FROM ad_fact1
+    |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+    |GROUP BY campaign_id
+    |
+    |       )
+    |af0
+    |LEFT OUTER JOIN (
+    |SELECT campaign_name AS mang_campaign_name, id c1_id
+    |FROM campaing_hive
+    |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (advertiser_id = 12345)
+    |)
+    |c1
+    |ON
+    |af0.campaign_id = c1.c1_id
+    |
+    |GROUP BY c1.mang_campaign_name) outergroupby
+    |)""".stripMargin
     println(result)
     result should equal(expected)(after being whiteSpaceNormalised)
   }
@@ -711,29 +712,30 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
     println(result)
     val expected =
-      s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_source, ''), NVL(mang_n_spend, ''))
-      FROM(
-      SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(stats_source, 0L) as STRING) mang_source, CAST(ROUND(COALESCE(mang_n_spend, 0L), 10) as STRING) mang_n_spend
-      FROM(
-      SELECT c1.mang_campaign_name,stats_source,SUM(mang_n_spend) mang_n_spend
-      FROM(SELECT campaign_id, stats_source, SUM(decodeUDF(stats_source, 1, spend, 0.0)) mang_n_spend
-      FROM ad_fact1
-      WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-      GROUP BY campaign_id, stats_source
-
-             )
-      af0
-      LEFT OUTER JOIN (
-      SELECT campaign_name AS mang_campaign_name, id c1_id
-      FROM campaing_hive
-      WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (advertiser_id = 12345)
-      )
-      c1
-      ON
-      af0.campaign_id = c1.c1_id
-
-      GROUP BY c1.mang_campaign_name,stats_source) outergroupby
-      )""".stripMargin
+      s"""
+      |SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_source, ''), NVL(mang_n_spend, ''))
+      |FROM(
+      |SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(stats_source, 0L) as STRING) mang_source, CAST(ROUND(COALESCE(mang_n_spend, 0L), 10) as STRING) mang_n_spend
+      |FROM(
+      |SELECT c1.mang_campaign_name,stats_source,SUM(mang_n_spend) mang_n_spend
+      |FROM(SELECT campaign_id, stats_source, SUM(decodeUDF(stats_source, 1, spend, 0.0)) mang_n_spend
+      |FROM ad_fact1
+      |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+      |GROUP BY campaign_id, stats_source
+      |
+      |       )
+      |af0
+      |LEFT OUTER JOIN (
+      |SELECT campaign_name AS mang_campaign_name, id c1_id
+      |FROM campaing_hive
+      |WHERE ((shard = 'all' )) AND (advertiser_id = 12345)
+      |)
+      |c1
+      |ON
+      |af0.campaign_id = c1.c1_id
+      |
+      |GROUP BY c1.mang_campaign_name,stats_source) outergroupby
+      |)""".stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -857,7 +859,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
       LEFT OUTER JOIN (
       SELECT currency AS mang_advertiser_currency, id a1_id
       FROM advertiser_hive
-      WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (id = 12345)
+      WHERE ((shard = 'all' )) AND (id = 12345)
       )
       a1
       ON
@@ -920,5 +922,58 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
     println(result)
+    assert(!result.contains("outergroupby"))
   }
+
+  test("Successfully generated Outer Group By Query with 2 dimension non id fields and and two fact transitively dependent cols") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Advertiser Currency",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Average CPC Cents",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Average CPC",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+    val requestRaw = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry()
+    val request = ReportingRequest.forceHive(requestRaw.toOption.get)
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    queryPipelineTry.get.bestDimCandidates.foreach { db => assert(db.hasPKRequested == false) }
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    println(result)
+  }
+
 }

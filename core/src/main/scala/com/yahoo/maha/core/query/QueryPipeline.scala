@@ -696,7 +696,7 @@ OuterGroupBy operation has to be applied only in the following cases
       && bestDimCandidates.nonEmpty
       && !requestModel.isDimDriven
       && !allSubQueryCandidates
-      && bestFactCandidate.fact.engine == OracleEngine || bestFactCandidate.fact.engine == HiveEngine
+      && (bestFactCandidate.fact.engine == OracleEngine || bestFactCandidate.fact.engine == HiveEngine)
       && bestDimCandidates.forall(candidate => {
         candidate.dim.engine == OracleEngine ||
           candidate.dim.engine == HiveEngine
