@@ -710,5 +710,30 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
     println(result)
+    val expected =
+      s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_source, ''), NVL(mang_n_spend, ''))
+      FROM(
+      SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(stats_source, 0L) as STRING) mang_source, CAST(ROUND(COALESCE(mang_n_spend, 0L), 10) as STRING) mang_n_spend
+      FROM(
+      SELECT c1.mang_campaign_name,stats_source,SUM(mang_n_spend) mang_n_spend
+      FROM(SELECT campaign_id, stats_source, SUM(decodeUDF(stats_source, 1, spend, 0.0)) mang_n_spend
+      FROM ad_fact1
+      WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+      GROUP BY campaign_id, stats_source
+
+             )
+      af0
+      LEFT OUTER JOIN (
+      SELECT campaign_name AS mang_campaign_name, id c1_id
+      FROM campaing_hive
+      WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (advertiser_id = 12345)
+      )
+      c1
+      ON
+      af0.campaign_id = c1.c1_id
+
+      GROUP BY c1.mang_campaign_name,stats_source) outergroupby
+      )""".stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 }
