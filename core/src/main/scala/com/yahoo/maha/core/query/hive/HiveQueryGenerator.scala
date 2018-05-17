@@ -586,7 +586,10 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
             if (queryBuilderContext.getFactColByAlias(alias).isInstanceOf[DimCol]) {
               addDimGroupByColumns(alias, true)
             } else {
-              columnsForGroupBySelect += queryBuilderContext.getColAliasToRenderedFactColExp(alias).get
+              val rollup = queryBuilderContext.getFactColByAlias(alias).asInstanceOf[FactColumn].rollupExpression
+              val finalAlias = queryBuilderContext.getFactColExpressionOrNameForAlias(alias)
+              val rollupExp = s"${renderRollupExpression(finalAlias, rollup)} $finalAlias"
+              columnsForGroupBySelect += rollupExp
             }
           case DimColumnInfo(alias) =>
             addDimGroupByColumns(alias, false)
