@@ -40,6 +40,7 @@ object FilterOperation {
   val InEqualityNotEquals: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation, NotEqualToFilterOperation)
   val InNotInEquality: Set[FilterOperation] = Set(InFilterOperation, NotInFilterOperation, EqualityFilterOperation)
   val InEqualityLike : Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation, LikeFilterOperation)
+  val InNotInEqualityNotEquals: Set[FilterOperation] = Set(InFilterOperation, NotInFilterOperation, EqualityFilterOperation, NotEqualToFilterOperation)
   val InNotInEqualityLike: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation, NotInFilterOperation, LikeFilterOperation)
   val InBetweenEquality: Set[FilterOperation] = Set(InFilterOperation, BetweenFilterOperation,EqualityFilterOperation)
   val BetweenEquality: Set[FilterOperation] = Set(BetweenFilterOperation,EqualityFilterOperation)
