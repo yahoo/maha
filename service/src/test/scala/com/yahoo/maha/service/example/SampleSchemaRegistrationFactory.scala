@@ -129,7 +129,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           Set(
             DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
-            , DimCol("section_id", IntType(3))
+            , DimCol("section_id", IntType(3), annotations = Set(ForeignKey("section")))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
             , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
             , DimCol("date", DateType())
@@ -146,7 +146,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           Set(
             PubCol("class_id", "Class ID", InEquality),
             PubCol("student_id", "Student ID", InEquality),
-            PubCol("section_id", "Section ID", InEquality),
+            PubCol("section_id", "Section ID", InNotInEquality),
             PubCol("date", "Day", Equality),
             PubCol("month", "Month", InEquality),
             PubCol("year", "Year", Equality)
@@ -190,6 +190,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
         )
       }
     }
+    // TODO: fix class, should be level to 2 and should contain foreign keys to student
 
     val class_dim: PublicDimension = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
@@ -213,6 +214,38 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
         )
       }
     }
+
+    /*
+     Section Dimension: although class and student foreign keys in the section dim violates the 2NF and 3NF, it is just example
+     describing LevelThree dim. LevelThree dim always contains level one and level two foreign keys.
+     */
+    val section_dim: PublicDimension = {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        Dimension.newDimension("section", OracleEngine, LevelThree, Set(StudentSchema),
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType())
+            , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
+            , DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
+            , DimCol("start_year", IntType())
+            , DimCol("status", StrType())
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(OracleHashPartitioning)
+        ).toPublicDimension("section","section",
+          Set(
+            PubCol("id", "Section ID", InNotInEquality)
+            , PubCol("student_id", "Student ID", Equality)
+            , PubCol("class_id", "Class ID", Equality)
+            , PubCol("name", "Section Name", Equality)
+            , PubCol("start_year", "Section Start Year", InEquality, hiddenFromJson = true)
+            , PubCol("status", "Section Status", InEquality)
+          ), highCardinalityFilters = Set(NotInFilter("Section Status", List("DELETED")))
+        )
+      }
+    }
+
+    registry.register(section_dim)
     registry.register(class_dim)
     registry.register(student_dim)
   }
