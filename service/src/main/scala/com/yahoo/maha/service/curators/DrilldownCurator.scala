@@ -152,11 +152,15 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
   private def insertValuesIntoDrilldownRequest(reportingRequest: ReportingRequest,
                                                primaryKeyAlias: String,
                                                inputFieldValues: List[String]): ReportingRequest = {
-    if(reportingRequest.filterExpressions.exists(_.field == primaryKeyAlias)) {
+    if (reportingRequest.filterExpressions.exists(_.field == primaryKeyAlias)) {
       reportingRequest.copy(includeRowCount = INCLUDE_ROW_COUNT_DRILLDOWN)
     } else {
-      reportingRequest.copy(filterExpressions = reportingRequest.filterExpressions ++ IndexedSeq(InFilter(primaryKeyAlias, inputFieldValues))
-        , includeRowCount = INCLUDE_ROW_COUNT_DRILLDOWN)
+      if (inputFieldValues.nonEmpty) {
+        reportingRequest.copy(filterExpressions = reportingRequest.filterExpressions ++ IndexedSeq(InFilter(primaryKeyAlias, inputFieldValues))
+          , includeRowCount = INCLUDE_ROW_COUNT_DRILLDOWN)
+      } else {
+        reportingRequest.copy(includeRowCount = INCLUDE_ROW_COUNT_DRILLDOWN)
+      }
     }
   }
 
@@ -319,10 +323,8 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                         val newRequestWithInsertedFilter = insertValuesIntoDrilldownRequest(newReportingRequest
                           , fieldAlias, values.toList)
 
-
-
                         if (mahaRequestContext.reportingRequest.isDebugEnabled) {
-                          logger.info(s"drilldown request : ${ReportingRequest.serialize(newRequestWithInsertedFilter)}")
+                          logger.info(s"drilldown request : ${new String(ReportingRequest.serialize(newRequestWithInsertedFilter))}")
                         }
 
                         val requestModelResultTry = mahaService.generateRequestModel(

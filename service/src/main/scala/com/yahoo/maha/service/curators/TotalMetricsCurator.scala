@@ -1,6 +1,7 @@
 package com.yahoo.maha.service.curators
 
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
@@ -56,6 +57,10 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
       sortBy = IndexedSeq.empty,
       paginationStartIndex = 0,
       rowsPerPage = -1)
+
+    if(isDebugEnabled) {
+      logger.info(s"totalmetrics request : ${new String(ReportingRequest.serialize(totalMetricsReportingRequest))}")
+    }
 
     val totalMetricsRequestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(
       mahaRequestContext.registryName
