@@ -11,6 +11,7 @@ import com.yahoo.maha.core.DruidDerivedFunction.{DATETIME_FORMATTER, DRUID_TIME_
 import com.yahoo.maha.core.DruidPostResultFunction.{START_OF_THE_MONTH, START_OF_THE_WEEK}
 import com.yahoo.maha.core.dimension.{DruidFuncDimCol, DruidPostResultFuncDimCol}
 import com.yahoo.maha.core.request.fieldExtended
+import grizzled.slf4j.Logging
 import io.druid.query.extraction.{SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
 import org.json4s.scalaz.JsonScalaz
 
@@ -903,7 +904,7 @@ object FilterSql {
 
 }
 
-object Filter {
+object Filter extends Logging {
   import JsonUtils._
 
   import _root_.scalaz.Validation
@@ -995,6 +996,10 @@ object Filter {
             :: Nil)
       case PushDownFilter(wrappedFilter) =>
         write(wrappedFilter)
+      case unsupported =>
+        warn(s"Unsupported filter for json serialize JSONW[Filter] : $unsupported")
+        JNothing
+
     }
   }
   

@@ -158,11 +158,11 @@ object DruidQueryGenerator extends Logging {
 }
 
 object DruidQuery {
-  import scala.collection.JavaConversions._
+  import scala.collection.JavaConverters._
   val mapper = new DefaultObjectMapper()
   mapper.setSerializationInclusion(Include.NON_NULL)
   val sketchModulesList = new SketchModule().getJacksonModules()
-  sketchModulesList.toList.foreach(module => mapper.registerModule(module))
+  sketchModulesList.asScala.foreach(module => mapper.registerModule(module))
 
   def toJson(query: io.druid.query.Query[_]): String = {
     mapper.writeValueAsString(query)

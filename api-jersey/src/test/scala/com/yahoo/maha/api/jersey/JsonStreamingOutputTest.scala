@@ -13,7 +13,6 @@ import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{Engine, OracleEngine, RequestModelResult}
 import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
-import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
 import org.scalatest.FunSuite
 

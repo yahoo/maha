@@ -18,7 +18,7 @@ trait ResultSetTransformer extends Logging {
       case f : BigInt => BigDecimal(f.asInstanceOf[BigInt])
       case f : Double => BigDecimal(f.asInstanceOf[Double])
       case f : Long => BigDecimal(f.asInstanceOf[Long])
-      case f : Float => BigDecimal(f.asInstanceOf[Float])
+      case f : Float => BigDecimal(f.asInstanceOf[Float].toDouble)
       case f : Int => BigDecimal(f.asInstanceOf[Int])
       case _ => BigDecimal(0.0)
     }
