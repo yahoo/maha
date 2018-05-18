@@ -65,7 +65,7 @@ case class MahaSyncRequestProcessor(mahaRequestContext: MahaRequestContext
 
     val errParFunction: ParFunction[GeneralError, Unit] = ParFunction.fromScala(callOnFailureFn(mahaRequestLogBuilder, mahaRequestContext.reportingRequest))
 
-    requestCoordinatorResultEither.fold({
+    requestCoordinatorResultEither.fold[Unit]({
       err: RequestCoordinatorError =>
         callOnFailureFn(mahaRequestLogBuilder, mahaRequestContext.reportingRequest)(err)
     }, {

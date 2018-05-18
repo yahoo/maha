@@ -6,10 +6,7 @@
 
 package com.yahoo.maha
 
-import java.sql.{Date, ResultSet, Timestamp}
-import java.text.SimpleDateFormat
-
-import scala.util.Try
+import java.sql.ResultSet
 
 package object jdbc {
 
@@ -27,12 +24,4 @@ package object jdbc {
     }
   }
 
-  // SQL Interpolation
-  case class SqlAndArgs(sql: String, args: Seq[Any]) {
-    def +(that: SqlAndArgs): SqlAndArgs = {
-      SqlAndArgs(sql + " " + that.sql, args ++ that.args)
-    }
-
-    def stripMargin: SqlAndArgs = SqlAndArgs(sql.stripMargin, args)
-  }
 }

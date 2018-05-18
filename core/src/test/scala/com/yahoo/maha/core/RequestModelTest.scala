@@ -4523,7 +4523,7 @@ class RequestModelTest extends FunSuite with Matchers {
     val registry = getDefaultRegistry()
     val res = RequestModel.from(request, registry)
     res.isFailure shouldBe true
-    res.failed.get.getMessage should startWith ("requirement failed: ERROR_CODE:10008 Incompatible columns found in request, Device ID is not compatible with Set(Device Type)")
+    res.failed.get.getMessage should startWith ("requirement failed: ERROR_CODE:10008 Incompatible columns found in request, Device Type is not compatible with Set(Device ID)")
   }
 
   test("create model should pass when no incompatible field is requested") {

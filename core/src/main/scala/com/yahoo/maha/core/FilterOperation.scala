@@ -476,7 +476,7 @@ object SqlIsNotNullFilterRenderer extends IsNotNullFilterRenderer[SqlResult] {
 object FilterDruid {
   import io.druid.query.filter.{DimFilter, NotDimFilter, OrDimFilter, SearchQueryDimFilter, SelectorDimFilter}
   import io.druid.query.groupby.having._
-  import io.druid.query.search.search.InsensitiveContainsSearchQuerySpec
+  import io.druid.query.search.InsensitiveContainsSearchQuerySpec
   import org.joda.time.DateTime
 
   import collection.JavaConverters._
@@ -520,7 +520,7 @@ object FilterDruid {
       case DruidFuncDimCol(name, dt, cc, df, a, ann, foo) =>
         df match {
           case DRUID_TIME_FORMAT(fmt,zone) =>
-            val exFn = new TimeFormatExtractionFn(fmt, zone, null, null)
+            val exFn = new TimeFormatExtractionFn(fmt, zone, null, null, false)
             values.map {
               v => new SelectorDimFilter(DRUID_TIME_FORMAT.sourceDimColName, druidLiteralMapper.toLiteral(column, v, Option(grain)), exFn)
             }
@@ -688,7 +688,7 @@ object FilterDruid {
       case DruidFuncDimCol(name, dt, cc, df, a, ann, foo) =>
         df match {
           case DRUID_TIME_FORMAT(fmt,zone) =>
-            val exFn = new TimeFormatExtractionFn(fmt, zone, null, null)
+            val exFn = new TimeFormatExtractionFn(fmt, zone, null, null, false)
             new SelectorDimFilter(DRUID_TIME_FORMAT.sourceDimColName, druidLiteralMapper.toLiteral(column, value, grainOption), exFn)
           case formatter@DATETIME_FORMATTER(fieldName, index, length) =>
             val exFn = new SubstringDimExtractionFn(index, length)

@@ -138,7 +138,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.11</artifactId>
+            <artifactId>kafka_${scala.major.version}</artifactId>
             <version>0.10.2.0</version>
             <exclusions>
                 <exclusion>

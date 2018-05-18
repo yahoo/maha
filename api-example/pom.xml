@@ -79,7 +79,7 @@
         </dependency>
         <dependency>
             <groupId>com.jsuereth</groupId>
-            <artifactId>scala-arm_2.11</artifactId>
+            <artifactId>scala-arm_${scala.major.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -96,7 +96,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
-            <version>1.7.5</version>
+            <version>${slf4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -104,7 +104,7 @@
         </dependency>
         <dependency>
             <groupId>org.clapper</groupId>
-            <artifactId>grizzled-slf4j_2.11</artifactId>
+            <artifactId>grizzled-slf4j_${scala.major.version}</artifactId>
         </dependency>
 
         <dependency>

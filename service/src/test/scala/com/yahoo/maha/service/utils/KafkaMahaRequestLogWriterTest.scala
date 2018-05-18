@@ -63,7 +63,7 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
     val zkUtils = ZkUtils(zkConnect, 10000, 10000, false)
     TestUtils.createTopic(zkUtils, TOPIC ,1,1,Seq(kafkaServer))
 
-    kafkaBroker = "localhost" + TestUtils.getBrokerListStrFromServers(Seq(kafkaServer),SecurityProtocol.PLAINTEXT)
+    kafkaBroker = TestUtils.getBrokerListStrFromServers(Seq(kafkaServer),SecurityProtocol.PLAINTEXT)
     info(s"Started kafka server at $kafkaBroker")
 
     val jsonKafkaRequestLoggingConfig = new JsonKafkaRequestLoggingConfig(
