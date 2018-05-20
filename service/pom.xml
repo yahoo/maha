@@ -9,14 +9,14 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.132-SNAPSHOT</version>
+        <version>5.133-SNAPSHOT</version>
     </parent>
 
     <name>maha service</name>
     <url>http://maven.apache.org</url>
 
     <properties>
-        <kafka.version>0.10.0.1</kafka.version>
+        <kafka.version>0.10.2.1</kafka.version>
     </properties>
 
     <dependencies>
@@ -162,7 +162,7 @@
         </dependency>
         <dependency>
             <groupId>com.jsuereth</groupId>
-            <artifactId>scala-arm_2.11</artifactId>
+            <artifactId>scala-arm_${scala.major.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -182,7 +182,7 @@
         </dependency>
         <dependency>
             <groupId>org.clapper</groupId>
-            <artifactId>grizzled-slf4j_2.11</artifactId>
+            <artifactId>grizzled-slf4j_${scala.major.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>com.opencsv</groupId>
@@ -223,20 +223,20 @@
         <!--for mock druid service, scope test -->
         <dependency>
             <groupId>org.http4s</groupId>
-            <artifactId>http4s-dsl_2.11</artifactId>
+            <artifactId>http4s-dsl_${scala.major.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>org.http4s</groupId>
-            <artifactId>http4s-blaze-server_2.11</artifactId>
+            <artifactId>http4s-blaze-server_${scala.major.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>org.http4s</groupId>
-            <artifactId>http4s-blaze-client_2.11</artifactId>
+            <artifactId>http4s-blaze-client_${scala.major.version}</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.11</artifactId>
+            <artifactId>kafka_${scala.major.version}</artifactId>
             <version>${kafka.version}</version>
             <exclusions>
                 <exclusion>
@@ -285,7 +285,7 @@
 
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.11</artifactId>
+            <artifactId>kafka_${scala.major.version}</artifactId>
             <version>${kafka.version}</version>
             <classifier>test</classifier>
             <scope>test</scope>
@@ -307,7 +307,7 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
-            <version>0.10.0.1</version>
+            <version>${kafka.version}</version>
             <classifier>test</classifier>
             <scope>test</scope>
             <exclusions>

@@ -260,7 +260,7 @@ trait BaseFactTest extends FunSuite with Matchers {
 
   def factDerivedWithFailingDimCol : FactBuilder = {
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-      import HiveExpression._
+      //import HiveExpression._
       Fact.newFact(
         "fact1", DailyGrain, HiveEngine, Set(AdvertiserSchema),
         Set(

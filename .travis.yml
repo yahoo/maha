@@ -1,6 +1,6 @@
 language: scala
 scala:
-  - 2.11.11
+  - 2.12.6
 sudo: required
 services:
   - docker

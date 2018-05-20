@@ -231,7 +231,6 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
 
     val registryConfig = config.registry(registryName)
     val queryPipelineFactory = registryConfig.queryPipelineFactory
-    val parallelServiceExecutor = registryConfig.parallelServiceExecutor
 
     val queryPipelineTry = queryPipelineFactory.from(requestModel, QueryAttributes.empty)
     queryPipelineTry
@@ -252,7 +251,6 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
   private def asRequest(registryName: String, requestModel: RequestModel, parRequestLabel: String, mahaRequestLogBuilder: BaseMahaRequestLogBuilder): Either[GeneralError, RequestResult] = {
     validateRegistry(registryName)
     val registryConfig = config.registry(registryName)
-    val parallelServiceExecutor = registryConfig.parallelServiceExecutor
 
     val queryPipelineTry = generateQueryPipeline(registryName, requestModel)
     if(queryPipelineTry.isFailure) {
@@ -288,7 +286,6 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
       mahaRequestLogBuilder.logFailed(message)
       return (queryPipelineTry, parallelServiceExecutor.immediateResult("createParRequest", GeneralError.either("createQueryPipeline", message, error)))
     } else {
-      val queryPipeline = queryPipelineTry.get
       val parRequest = parallelServiceExecutor.parRequestBuilder[RequestResult].setLabel(parRequestLabel).
         setParCallable(ParCallable.from[Either[GeneralError, RequestResult]](
           new Callable[Either[GeneralError, RequestResult]]() {

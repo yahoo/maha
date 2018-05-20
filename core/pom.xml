@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.132-SNAPSHOT</version>
+        <version>5.133-SNAPSHOT</version>
     </parent>
 
     <name>maha core</name>
@@ -109,6 +109,17 @@
             <artifactId>druid-processing</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.druid</groupId>
+            <artifactId>druid-server</artifactId>
+            <version>${druid.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
             <groupId>io.druid.extensions</groupId>
             <artifactId>druid-histogram</artifactId>
         </dependency>
@@ -118,7 +129,7 @@
         </dependency>
         <dependency>
             <groupId>com.jsuereth</groupId>
-            <artifactId>scala-arm_2.11</artifactId>
+            <artifactId>scala-arm_${scala.major.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -138,7 +149,7 @@
         </dependency>
         <dependency>
             <groupId>org.clapper</groupId>
-            <artifactId>grizzled-slf4j_2.11</artifactId>
+            <artifactId>grizzled-slf4j_${scala.major.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>com.opencsv</groupId>
