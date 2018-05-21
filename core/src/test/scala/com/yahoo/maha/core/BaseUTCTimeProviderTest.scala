@@ -241,7 +241,6 @@ class BaseUTCTimeProviderTest extends FunSuite {
 
     assertEquals("2016-03-07", utcDayFilter.from)
     assertEquals("2016-03-10", utcDayFilter.to)
-    val expected = if (getOffsetHours("Australia/Melbourne") == 10) "21" else "20"
     assertEquals("02", utcHourFilter.get.value)
   }
 
@@ -254,7 +253,6 @@ class BaseUTCTimeProviderTest extends FunSuite {
 
     assertEquals("2016-03-07", utcDayFilter.from)
     assertEquals("2016-03-10", utcDayFilter.to)
-    val expected = if (getOffsetHours("Australia/Melbourne") == 10) "17" else "16"
     assertEquals("03", utcHourFilter.get.value)
   }
 
@@ -271,8 +269,6 @@ class BaseUTCTimeProviderTest extends FunSuite {
     assertEquals("2016-03-07", utcDayFilter.value)
     //assertEquals("2016-03-08", utcDayFilter.to)
 
-    val expectedFrom = if (getOffsetHours("Australia/Melbourne") == 10) "19" else "18"
-    val expectedTo = if (getOffsetHours("Australia/Melbourne") == 10) "10" else "09"
     assertEquals("05", utcHourFilter.get.from)
     assertEquals("20", utcHourFilter.get.to)
   }
@@ -306,8 +302,6 @@ class BaseUTCTimeProviderTest extends FunSuite {
 
     assertEquals("2016-03-07", utcDayFilter.value)
 
-    val expectedFrom = if (getOffsetHours("Australia/Melbourne") == 10) "17" else "16"
-    val expectedTo = if (getOffsetHours("Australia/Melbourne") == 10) "19" else "18"
     assertEquals("03", utcHourFilter.get.from)
     assertEquals("05", utcHourFilter.get.to)
   }

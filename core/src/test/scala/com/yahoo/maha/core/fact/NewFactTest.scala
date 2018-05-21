@@ -40,7 +40,7 @@ class NewFactTest extends BaseFactTest {
 
   test("newFact should fail with columns with different engine requirement") {
     val thrown = intercept[IllegalArgumentException] {
-      val fact : FactBuilder = {
+      {
         import com.yahoo.maha.core.OracleExpression._
         ColumnContext.withColumnContext { implicit cc =>
           Fact.newFact("dim1", DailyGrain, HiveEngine, Set(AdvertiserSchema),
@@ -60,7 +60,7 @@ class NewFactTest extends BaseFactTest {
 
   test("newFact should fail with fact annotated with different engine requirement") {
     val thrown = intercept[IllegalArgumentException] {
-      val fact :  FactBuilder= {
+      {
         ColumnContext.withColumnContext { implicit cc =>
           Fact.newFact("dim1",  DailyGrain, OracleEngine, Set(AdvertiserSchema),
             Set(
@@ -80,7 +80,7 @@ class NewFactTest extends BaseFactTest {
 
   test("newFact should fail with column annotated with different engine requirement") {
     val thrown = intercept[IllegalArgumentException] {
-      val fact : FactBuilder = {
+      {
         ColumnContext.withColumnContext { implicit cc =>
           Fact.newFact("dim1", DailyGrain, OracleEngine, Set(AdvertiserSchema),
             Set(
@@ -100,7 +100,7 @@ class NewFactTest extends BaseFactTest {
 
   test("newFact should fail if there's no reference column fo derived fact column") {
     val thrown = intercept[IllegalArgumentException] {
-      val fact : FactBuilder = {
+      {
         import com.yahoo.maha.core.OracleExpression._
         ColumnContext.withColumnContext { implicit cc =>
           Fact.newFact("dim1", DailyGrain, OracleEngine, Set(AdvertiserSchema),
@@ -121,7 +121,7 @@ class NewFactTest extends BaseFactTest {
 
   test("newFact should fail if there's no reference column fo derived dim column") {
     val thrown = intercept[IllegalArgumentException] {
-      val fact : FactBuilder = {
+      {
         import com.yahoo.maha.core.OracleExpression._
         ColumnContext.withColumnContext { implicit cc =>
           Fact.newFact("dim1", DailyGrain, OracleEngine, Set(AdvertiserSchema),
@@ -141,7 +141,7 @@ class NewFactTest extends BaseFactTest {
 
   test("newFact should fail if ddl annotation is of a different engine other than the engine of the fact") {
     val thrown = intercept[IllegalArgumentException] {
-      val fact : FactBuilder = {
+      {
         ColumnContext.withColumnContext { implicit cc =>
           Fact.newFact("fact", DailyGrain, HiveEngine, Set(AdvertiserSchema),
             Set(
@@ -160,7 +160,7 @@ class NewFactTest extends BaseFactTest {
 
   test("newFact should fail if derived expression is not defined for derived columns") {
     val thrown = intercept[IllegalArgumentException] {
-      val fact : FactBuilder = {
+      {
         ColumnContext.withColumnContext { implicit cc =>
           Fact.newFact("fact", DailyGrain, OracleEngine, Set(AdvertiserSchema),
             Set(

@@ -10,10 +10,9 @@ import javax.ws.rs.{Path, Produces, _}
 
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request.{BaseRequest, ReportingRequest, RequestContext}
-import com.yahoo.maha.core.{RequestModel, Schema, _}
+import com.yahoo.maha.core.{Schema, _}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.service._
-import com.yahoo.maha.service.curators.CuratorResult
 import com.yahoo.maha.service.utils.MahaConstants
 import grizzled.slf4j.Logging
 import org.apache.commons.io.IOUtils
@@ -150,8 +149,8 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
                                      , userId:String
                                      , httpServletRequest: HttpServletRequest
                                      , schema: Schema
-                                     , debug: Boolean = false
-                                     , forceEngine: String = "") : (ReportingRequest, Array[Byte]) = {
+                                     , debug: Boolean
+                                     , forceEngine: String) : (ReportingRequest, Array[Byte]) = {
     val rawJson = IOUtils.toByteArray(httpServletRequest.getInputStream)
     val reportingRequestResult = baseRequest.deserializeSync(rawJson, schema)
     require(reportingRequestResult.isSuccess, reportingRequestResult.toString)

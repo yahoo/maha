@@ -19,7 +19,7 @@ class DimensionTest extends FunSuite with Matchers {
 
   test("newDimension with no primary key should fail") {
     val thrown = intercept[IllegalArgumentException] {
-      val dim : DimensionBuilder = {
+      {
         ColumnContext.withColumnContext { implicit cc =>
           Dimension.newDimension("dim1", HiveEngine, LevelOne, Set(AdvertiserSchema),
             Set(
@@ -37,7 +37,7 @@ class DimensionTest extends FunSuite with Matchers {
   test("Copy a Hive dimension without resetAliasIfNotPresent") {
     val dim : DimensionBuilder = {
       ColumnContext.withColumnContext { implicit cc =>
-        import HiveExpression._
+        //import HiveExpression._
         Dimension.newDimension("dim1", HiveEngine, LevelOne, Set(AdvertiserSchema),
           Set(
             DimCol("start_time", StrType(), annotations = Set(PrimaryKey))
@@ -53,7 +53,7 @@ class DimensionTest extends FunSuite with Matchers {
       }
     }
 
-    val dim2 : DimensionBuilder = {
+    {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
         dim.createSubset("dim1_subset", "dim1", Set("end_time"), Set.empty, Set.empty, None, Map.empty, resetAliasIfNotPresent = false)
       }
@@ -78,7 +78,7 @@ class DimensionTest extends FunSuite with Matchers {
       }
     }
 
-    val dim2 : DimensionBuilder = {
+    {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
         dim.createSubset("dim1_subset", "dim1", Set("discard"), Set.empty, Set.empty, None, Map.empty, resetAliasIfNotPresent = false)
       }
@@ -103,7 +103,7 @@ class DimensionTest extends FunSuite with Matchers {
       }
     }
 
-    val dim2 : DimensionBuilder = {
+    {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
         dim.createSubset("dim1_subset", "dim1", Set("discard"), Set.empty, Set.empty, None, Map.empty, resetAliasIfNotPresent = false)
       }
@@ -113,7 +113,7 @@ class DimensionTest extends FunSuite with Matchers {
   test("Copy a Presto dimension without resetAliasIfNotPresent") {
     val dim : DimensionBuilder = {
       ColumnContext.withColumnContext { implicit cc =>
-        import PrestoExpression._
+        //import PrestoExpression._
         Dimension.newDimension("dim1", PrestoEngine, LevelOne, Set(AdvertiserSchema),
           Set(
             DimCol("start_time", StrType(), annotations = Set(PrimaryKey))
@@ -129,7 +129,7 @@ class DimensionTest extends FunSuite with Matchers {
       }
     }
 
-    val dim2 : DimensionBuilder = {
+    {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
         dim.createSubset("dim1_subset", "dim1", Set("end_time"), Set.empty, Set.empty, None, Map.empty, resetAliasIfNotPresent = false)
       }
@@ -139,7 +139,7 @@ class DimensionTest extends FunSuite with Matchers {
   test("Copy a Presto dimension with resetAliasIfNotPresent") {
     val dim : DimensionBuilder = {
       ColumnContext.withColumnContext { implicit cc =>
-        import PrestoExpression._
+        //import PrestoExpression._
         Dimension.newDimension("dim1", PrestoEngine, LevelOne, Set(AdvertiserSchema),
           Set(
             DimCol("start_time", StrType(), annotations = Set(PrimaryKey))
@@ -155,7 +155,7 @@ class DimensionTest extends FunSuite with Matchers {
       }
     }
 
-    val dim2 : DimensionBuilder = {
+    {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
         dim.createSubset("dim1_subset", "dim1", Set("end_time"), Set.empty, Set.empty, None, Map.empty, resetAliasIfNotPresent = true)
       }
@@ -165,7 +165,7 @@ class DimensionTest extends FunSuite with Matchers {
   test("Copy a Hive dimension with resetAliasIfNotPresent") {
     val dim : DimensionBuilder = {
       ColumnContext.withColumnContext { implicit cc =>
-        import HiveExpression._
+        //import HiveExpression._
         Dimension.newDimension("dim1", HiveEngine, LevelOne, Set(AdvertiserSchema),
           Set(
             DimCol("start_time", StrType(), annotations = Set(PrimaryKey))
@@ -181,7 +181,7 @@ class DimensionTest extends FunSuite with Matchers {
       }
     }
 
-    val dim2 : DimensionBuilder = {
+    {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
         dim.createSubset("dim1_subset", "dim1", Set("end_time"), Set.empty, Set.empty, None, Map.empty, resetAliasIfNotPresent = true)
       }
@@ -206,7 +206,7 @@ class DimensionTest extends FunSuite with Matchers {
       }
     }
 
-    val dim2 : DimensionBuilder = {
+    {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
         dim.createSubset("dim1_subset", "dim1", Set("discard"), Set.empty, Set.empty, None, Map.empty, resetAliasIfNotPresent = true)
       }
@@ -231,7 +231,7 @@ class DimensionTest extends FunSuite with Matchers {
       }
     }
 
-    val dim2 : DimensionBuilder = {
+    {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
         dim.createSubset("dim1_subset", "dim1", Set("discard"), Set.empty, Set.empty, None, Map.empty, resetAliasIfNotPresent = true)
       }
@@ -240,7 +240,7 @@ class DimensionTest extends FunSuite with Matchers {
 
   test("newDimension should fail with derived expression with unknown referenced fields") {
     val thrown = intercept[IllegalArgumentException] {
-      val dim : DimensionBuilder = {
+      {
         import com.yahoo.maha.core.HiveExpression._
         import com.yahoo.maha.core.BaseExpressionTest._
         ColumnContext.withColumnContext { implicit cc =>
@@ -262,7 +262,7 @@ class DimensionTest extends FunSuite with Matchers {
 
   test("newDimension should fail with more than one primary key") {
     val thrown = intercept[IllegalArgumentException] {
-      val dim : DimensionBuilder = {
+      {
         ColumnContext.withColumnContext { implicit cc =>
           Dimension.newDimension("dim1", HiveEngine, LevelOne, Set(AdvertiserSchema),
             Set(
@@ -279,7 +279,7 @@ class DimensionTest extends FunSuite with Matchers {
 
   test("newDimension should fail with columns with different engines") {
     intercept[ClassCastException] {
-      val dim : DimensionBuilder = {
+      {
         import com.yahoo.maha.core.HiveExpression._
         import com.yahoo.maha.core.BaseExpressionTest._
         ColumnContext.withColumnContext { implicit cc =>
@@ -301,7 +301,7 @@ class DimensionTest extends FunSuite with Matchers {
 
   test("newDimension should fail with columns with different engine requirement") {
     val thrown = intercept[IllegalArgumentException] {
-      val dim : DimensionBuilder = {
+      {
         import OracleExpression._
         ColumnContext.withColumnContext { implicit cc =>
           Dimension.newDimension("dim1", HiveEngine, LevelOne, Set(AdvertiserSchema),
@@ -320,7 +320,7 @@ class DimensionTest extends FunSuite with Matchers {
 
   test("newDimension should fail with dimension annotated with different engine requirement") {
     val thrown = intercept[IllegalArgumentException] {
-      val dim : DimensionBuilder = {
+      {
         ColumnContext.withColumnContext { implicit cc =>
           Dimension.newDimension("dim1", HiveEngine, LevelOne, Set(AdvertiserSchema),
             Set(
@@ -338,7 +338,7 @@ class DimensionTest extends FunSuite with Matchers {
 
   test("newDimension should fail with column annotated with different engine requirement") {
     val thrown = intercept[IllegalArgumentException] {
-      val dim : DimensionBuilder = {
+      {
         ColumnContext.withColumnContext { implicit cc =>
           Dimension.newDimension("dim1", OracleEngine, LevelOne, Set(AdvertiserSchema),
             Set(
@@ -355,7 +355,7 @@ class DimensionTest extends FunSuite with Matchers {
 
   test("newDimension should fail with duplicate columns") {
     val thrown = intercept[IllegalArgumentException] {
-      val dim : DimensionBuilder = {
+      {
         ColumnContext.withColumnContext { implicit cc =>
           Dimension.newDimension("dim1", HiveEngine, LevelOne, Set(AdvertiserSchema),
             Set(
@@ -404,7 +404,7 @@ class DimensionTest extends FunSuite with Matchers {
 
   test("newDimension should fail if ddl annotation is of a different engine other than the engine of the dim") {
     val thrown = intercept[IllegalArgumentException] {
-      val fact : DimensionBuilder = {
+      {
         ColumnContext.withColumnContext { implicit cc =>
           Dimension.newDimension("dim", HiveEngine, LevelOne, Set(AdvertiserSchema),
             Set(
@@ -421,7 +421,7 @@ class DimensionTest extends FunSuite with Matchers {
 
   test("validates should fail if schema field maps to non-existing column") {
     val thrown= intercept[IllegalArgumentException] {
-      val dim : DimTable = {
+      {
         ColumnContext.withColumnContext { implicit cc =>
           new DimTable("dim1", 1, OracleEngine, LevelOne, Set(AdvertiserSchema),
             Set(
@@ -445,7 +445,7 @@ class DimensionTest extends FunSuite with Matchers {
 
   test("validates engine should fail if column engine is different from dim engine") {
     val thrown= intercept[IllegalArgumentException] {
-      val dim : DimTable = {
+      {
         ColumnContext.withColumnContext { implicit cc =>
           new DimTable("dim1", 1, OracleEngine, LevelOne, Set(AdvertiserSchema),
             Set(
@@ -678,7 +678,7 @@ class DimensionTest extends FunSuite with Matchers {
 
   test("newDimension should fail if derived expression is not defined for derived columns") {
     val thrown = intercept[IllegalArgumentException] {
-      val dim : DimensionBuilder = {
+      {
         ColumnContext.withColumnContext { implicit cc =>
           Dimension.newDimension("dim1", HiveEngine, LevelOne, Set(AdvertiserSchema),
             Set(
@@ -733,7 +733,6 @@ class DimensionTest extends FunSuite with Matchers {
     val dim1 = dimBuilder
     import com.yahoo.maha.core._
     import PrestoExpression._
-    import com.yahoo.maha.core.DruidDerivedFunction.DECODE_DIM
     ColumnContext.withColumnContext { implicit  cc : ColumnContext =>
       dim1.withAlternateEngine("dim2", "dim", PrestoEngine,
         Set(
@@ -746,7 +745,7 @@ class DimensionTest extends FunSuite with Matchers {
   }
 
   test("Should create dims of level nine and eight and Seven") {
-    val dim9 : DimensionBuilder = {
+    {
       import HiveExpression._
       import com.yahoo.maha.core.BaseExpressionTest._
       ColumnContext.withColumnContext { implicit cc =>
@@ -759,7 +758,7 @@ class DimensionTest extends FunSuite with Matchers {
         )
       }
     }
-    val dim8: DimensionBuilder = {
+    {
       import HiveExpression._
       import com.yahoo.maha.core.BaseExpressionTest._
       ColumnContext.withColumnContext { implicit cc =>
@@ -773,7 +772,7 @@ class DimensionTest extends FunSuite with Matchers {
       }
 
     }
-    val dim7 : DimensionBuilder = {
+    {
       import HiveExpression._
       import com.yahoo.maha.core.BaseExpressionTest._
       ColumnContext.withColumnContext { implicit cc =>

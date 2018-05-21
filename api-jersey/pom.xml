@@ -17,8 +17,8 @@
     <url>http://maven.apache.org</url>
 
     <properties>
-        <jersey.version>2.13</jersey.version>
-        <jetty.version>9.1.1.v20140108</jetty.version>
+        <jersey.version>2.27</jersey.version>
+        <jetty.version>9.3.15.v20161220</jetty.version>
     </properties>
 
     <dependencies>
@@ -81,8 +81,12 @@
             <artifactId>jackson-dataformat-smile</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-jaxb-annotations</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.jsuereth</groupId>
-            <artifactId>scala-arm_2.11</artifactId>
+            <artifactId>scala-arm_${scala.major.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -102,7 +106,7 @@
         </dependency>
         <dependency>
             <groupId>org.clapper</groupId>
-            <artifactId>grizzled-slf4j_2.11</artifactId>
+            <artifactId>grizzled-slf4j_${scala.major.version}</artifactId>
         </dependency>
 
         <dependency>
@@ -142,7 +146,7 @@
         <!-- Spring dependencies.. -->
         <dependency>
             <groupId>org.glassfish.jersey.ext</groupId>
-            <artifactId>jersey-spring3</artifactId>
+            <artifactId>jersey-spring4</artifactId>
             <version>${jersey.version}</version>
             <exclusions>
                 <exclusion>
@@ -225,17 +229,6 @@
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlets</artifactId>
             <version>${jetty.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-jsp</artifactId>
-            <version>${jetty.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.glassfish</groupId>
-                    <artifactId>javax.el</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
