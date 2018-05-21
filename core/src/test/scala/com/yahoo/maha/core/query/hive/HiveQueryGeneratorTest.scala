@@ -661,7 +661,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     |LEFT OUTER JOIN (
     |SELECT campaign_name AS mang_campaign_name, id c1_id
     |FROM campaing_hive
-    |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (advertiser_id = 12345)
+    |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
     |)
     |c1
     |ON
@@ -728,7 +728,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
       |LEFT OUTER JOIN (
       |SELECT campaign_name AS mang_campaign_name, id c1_id
       |FROM campaing_hive
-      |WHERE ((shard = 'all' )) AND (advertiser_id = 12345)
+      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
       |)
       |c1
       |ON
@@ -794,7 +794,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
       LEFT OUTER JOIN (
       SELECT campaign_name AS mang_campaign_name, id c1_id
       FROM campaing_hive
-      WHERE ((shard = 'all' )) AND (advertiser_id = 12345)
+      WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
       )
       c1
       ON
@@ -859,7 +859,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
       LEFT OUTER JOIN (
       SELECT currency AS mang_advertiser_currency, id a1_id
       FROM advertiser_hive
-      WHERE ((shard = 'all' )) AND (id = 12345)
+      WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
       )
       a1
       ON
@@ -867,7 +867,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
              LEFT OUTER JOIN (
       SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
       FROM campaing_hive
-      WHERE ((shard = 'all' )) AND (advertiser_id = 12345)
+      WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
       )
       c2
       ON
@@ -989,7 +989,7 @@ af0
 LEFT OUTER JOIN (
 SELECT currency AS mang_advertiser_currency, id a1_id
 FROM advertiser_hive
-WHERE ((shard = 'all' )) AND (id = 12345)
+WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
 )
 a1
 ON
@@ -997,7 +997,7 @@ af0.advertiser_id = a1.a1_id
        LEFT OUTER JOIN (
 SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
 FROM campaing_hive
-WHERE ((shard = 'all' )) AND (advertiser_id = 12345)
+WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
 )
 c2
 ON

@@ -118,8 +118,10 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
 
       columnInfo match {
         case FactColumnInfo(alias) =>
-          val column = fact.factColMap.get(publicFact.aliasToNameColumnMap.get(alias).get).get
-          renderColumnWithAlias(factCandidate.fact, column, alias, Set.empty)
+          if (isOuterGroupBy) {
+            val column = fact.factColMap.get(publicFact.aliasToNameColumnMap.get(alias).get).get
+            renderColumnWithAlias(factCandidate.fact, column, alias, Set.empty)
+          }
           QueryGeneratorHelper.handleFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.name)
         case DimColumnInfo(alias) =>
           val col = queryBuilderContext.getDimensionColByAlias(alias)
@@ -244,7 +246,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
           }
           //val renderedAlias = renderColumnAlias(alias)
           val renderedAlias = if (isOuterGroupBy) renderColumnAlias(name) else renderColumnAlias(alias)
-          queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${de.render(renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = true)})"""))
+          queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${de.render(renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = isOuterGroupBy)})"""))
           ""
       }
 
