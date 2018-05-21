@@ -118,6 +118,8 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
 
       columnInfo match {
         case FactColumnInfo(alias) =>
+          val column = fact.factColMap.get(publicFact.aliasToNameColumnMap.get(alias).get).get
+          renderColumnWithAlias(factCandidate.fact, column, alias, Set.empty)
           QueryGeneratorHelper.handleFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.name)
         case DimColumnInfo(alias) =>
           val col = queryBuilderContext.getDimensionColByAlias(alias)
@@ -163,6 +165,93 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
       }
     }
 
+
+    /**
+      *  render fact/dim columns with derived/rollup expression
+      */
+    def renderStaticMappedDimension(column: Column) : String = {
+      val nameOrAlias = renderColumnAlias(column.alias.getOrElse(column.name))
+      column.dataType match {
+        case IntType(_, sm, _, _, _) if sm.isDefined =>
+          val defaultValue = sm.get.default
+          val whenClauses = sm.get.tToStringMap.map {
+            case (from, to) => s"WHEN ($nameOrAlias IN ($from)) THEN '$to'"
+          }
+          s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
+        case StrType(_, sm, _) if sm.isDefined =>
+          val defaultValue = sm.get.default
+          val decodeValues = sm.get.tToStringMap.map {
+            case (from, to) => s"'$from', '$to'"
+          }
+          s"""decodeUDF($nameOrAlias, ${decodeValues.mkString(", ")}, '$defaultValue')"""
+        case _ =>
+          s"""COALESCE($nameOrAlias, "NA")"""
+      }
+    }
+
+    def renderColumnWithAlias(fact: Fact, column: Column, alias: String, requiredInnerCols: Set[String]): Unit = {
+      val name = column.alias.getOrElse(column.name)
+      val exp = column match {
+        case any if queryBuilderContext.containsColByName(name) =>
+          //do nothing, we've already processed it
+          ""
+        case DimCol(_, dt, _, _, _, _) if dt.hasStaticMapping =>
+          val renderedAlias = renderColumnAlias(alias)
+          queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
+          s"${renderStaticMappedDimension(column)} $name"
+        case DimCol(_, dt, _, _, _, _) =>
+          val renderedAlias = renderColumnAlias(alias)
+          queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
+          name
+        case HiveDerDimCol(_, dt, _, de, _, _, _) =>
+          val renderedAlias = renderColumnAlias(alias)
+          queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
+          s"""${de.render(name, Map.empty)} $renderedAlias"""
+        case FactCol(_, dt, _, rollup, _, _, _) =>
+          dt match {
+            case DecType(_, _, Some(default), Some(min), Some(max), _) =>
+              val renderedAlias = renderColumnAlias(alias)
+              val minMaxClause = s"CASE WHEN (($name >= $min) AND ($name <= $max)) THEN $name ELSE $default END"
+              queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
+              s"""${renderRollupExpression(name, rollup, Option(minMaxClause))} $renderedAlias"""
+            case IntType(_, _, Some(default), Some(min), Some(max)) =>
+              val renderedAlias = renderColumnAlias(alias)
+              val minMaxClause = s"CASE WHEN (($name >= $min) AND ($name <= $max)) THEN $name ELSE $default END"
+              queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
+              s"""${renderRollupExpression(name, rollup, Option(minMaxClause))} $renderedAlias"""
+            case _ =>
+              val renderedAlias = renderColumnAlias(alias)
+              queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
+              s"""${renderRollupExpression(name, rollup)} $name"""
+          }
+        case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
+          if queryContext.factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)
+            || de.isDimensionDriven =>
+          val renderedAlias = if (isOuterGroupBy) renderColumnAlias(name) else renderColumnAlias(alias)
+          queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
+          s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} $renderedAlias"""
+
+        case HiveDerFactCol(_, _, dt, cc, de, annotations, _, _) =>
+          //means no fact operation on this column, push expression outside
+          de.sourceColumns.foreach {
+            case src if src != name =>
+              val sourceCol = fact.columnsByNameMap(src)
+              //val renderedAlias = renderColumnAlias(sourceCol.name)
+              val renderedAlias = sourceCol.alias.getOrElse(sourceCol.name)
+
+              renderColumnWithAlias(fact, sourceCol, renderedAlias, requiredInnerCols)
+            case _ => //do nothing if we reference ourselves
+          }
+          //val renderedAlias = renderColumnAlias(alias)
+          val renderedAlias = if (isOuterGroupBy) renderColumnAlias(name) else renderColumnAlias(alias)
+          queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${de.render(renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = true)})"""))
+          ""
+      }
+
+      queryBuilder.addFactViewColumn(exp)
+      queryBuilderContext.setColAliasToRenderedFactColExp(alias, exp)
+
+    }
     /**
      * Fact select
      *
@@ -174,94 +263,6 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
      */
 
     def generateFactQueryFragment() : String = {
-      /**
-       *  render fact/dim columns with derived/rollup expression
-       */
-      def renderStaticMappedDimension(column: Column) : String = {
-        val nameOrAlias = renderColumnAlias(column.alias.getOrElse(column.name))
-        column.dataType match {
-          case IntType(_, sm, _, _, _) if sm.isDefined =>
-            val defaultValue = sm.get.default
-            val whenClauses = sm.get.tToStringMap.map {
-              case (from, to) => s"WHEN ($nameOrAlias IN ($from)) THEN '$to'"
-            }
-            s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
-          case StrType(_, sm, _) if sm.isDefined =>
-            val defaultValue = sm.get.default
-            val decodeValues = sm.get.tToStringMap.map {
-              case (from, to) => s"'$from', '$to'"
-            }
-            s"""decodeUDF($nameOrAlias, ${decodeValues.mkString(", ")}, '$defaultValue')"""
-          case _ =>
-            s"""COALESCE($nameOrAlias, "NA")"""
-        }
-      }
-
-      def renderColumnWithAlias(fact: Fact, column: Column, alias: String, requiredInnerCols: Set[String]): Unit = {
-        val name = column.alias.getOrElse(column.name)
-        val exp = column match {
-          case any if queryBuilderContext.containsColByName(name) =>
-            //do nothing, we've already processed it
-            ""
-          case DimCol(_, dt, _, _, _, _) if dt.hasStaticMapping =>
-            val renderedAlias = renderColumnAlias(alias)
-            queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
-            s"${renderStaticMappedDimension(column)} $name"
-          case DimCol(_, dt, _, _, _, _) =>
-            val renderedAlias = renderColumnAlias(alias)
-            queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
-            name
-          case HiveDerDimCol(_, dt, _, de, _, _, _) =>
-            val renderedAlias = renderColumnAlias(alias)
-            queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-            s"""${de.render(name, Map.empty)} $renderedAlias"""
-          case FactCol(_, dt, _, rollup, _, _, _) =>
-            dt match {
-              case DecType(_, _, Some(default), Some(min), Some(max), _) =>
-                val renderedAlias = renderColumnAlias(alias)
-                val minMaxClause = s"CASE WHEN (($name >= $min) AND ($name <= $max)) THEN $name ELSE $default END"
-                queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-                s"""${renderRollupExpression(name, rollup, Option(minMaxClause))} $renderedAlias"""
-              case IntType(_, _, Some(default), Some(min), Some(max)) =>
-                val renderedAlias = renderColumnAlias(alias)
-                val minMaxClause = s"CASE WHEN (($name >= $min) AND ($name <= $max)) THEN $name ELSE $default END"
-                queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-                s"""${renderRollupExpression(name, rollup, Option(minMaxClause))} $renderedAlias"""
-              case _ =>
-                val renderedAlias = renderColumnAlias(alias)
-                queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
-                s"""${renderRollupExpression(name, rollup)} $name"""
-            }
-          case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
-            if queryContext.factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)
-          || de.isDimensionDriven =>
-            val renderedAlias = if (isOuterGroupBy) renderColumnAlias(name) else renderColumnAlias(alias)
-            queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-            s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} $renderedAlias"""
-
-          case HiveDerFactCol(_, _, dt, cc, de, annotations, _, _) =>
-            //means no fact operation on this column, push expression outside
-            de.sourceColumns.foreach {
-              case src if src != name =>
-                val sourceCol = fact.columnsByNameMap(src)
-                //val renderedAlias = renderColumnAlias(sourceCol.name)
-                val renderedAlias = sourceCol.alias.getOrElse(sourceCol.name)
-
-                renderColumnWithAlias(fact, sourceCol, renderedAlias, requiredInnerCols)
-              case _ => //do nothing if we reference ourselves
-            }
-            //val renderedAlias = renderColumnAlias(alias)
-            val renderedAlias = if (isOuterGroupBy) renderColumnAlias(name) else renderColumnAlias(alias)
-            queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${de.render(renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = false)})"""))
-            ""
-        }
-
-        println("expression: " + exp)
-
-        queryBuilder.addFactViewColumn(exp)
-        queryBuilderContext.setColAliasToRenderedFactColExp(alias, exp)
-
-      }
 
       val dimCols = queryContext.factBestCandidate.dimColMapping.toList.collect {
         case (dimCol, alias) if queryContext.factBestCandidate.requestCols(dimCol) =>
@@ -311,14 +312,12 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
           derivedCols.view.map(_._1.asInstanceOf[DerivedColumn]).flatMap(dc => dc.derivedExpression.sourceColumns).toSet
         derivedCols.foreach {
           case (column, alias) =>
-            println(s"Processing $alias " + queryBuilderContext.aliasColumnMap.keySet)
             if (isOuterGroupBy) {
               requiredInnerCols.foreach(innerColName => {
                 if (!(queryContext.factBestCandidate.fact.factColMap.contains(innerColName)
                    && queryContext.factBestCandidate.fact.factColMap.get(innerColName).get.isDerivedColumn)) {
                   val rollup = column.asInstanceOf[FactColumn].rollupExpression
                   val renderedInnerCol = s"${renderRollupExpression(innerColName, rollup)} $innerColName"
-                  println(s"Inner rollup: $renderedInnerCol, alias: $alias, innerColName: $innerColName")
                   queryBuilder.addFactViewColumn(renderedInnerCol)
 
                   //queryBuilderContext.setFactColAlias(alias, innerColName, column)
