@@ -157,8 +157,8 @@ trait SharedDimSchema {
                 , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
                 , DimCol("status", StrType())
                 , HiveDerDimCol("Ad Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
-                , HivePartDimCol("load_time", StrType())
-                , HivePartDimCol("shard", StrType(10, default="all"))
+                , HivePartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
+                , HivePartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
               )
           )
       }
