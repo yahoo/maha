@@ -989,7 +989,7 @@ af0.campaign_id = c1.c1_id
        LEFT OUTER JOIN (
 SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
 FROM ad_dim_hive
-WHERE ((shard = 'all' )) AND (advertiser_id = 12345)
+WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
 )
 a2
 ON
@@ -1021,10 +1021,34 @@ GROUP BY a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id) outergroupby
                            ],
                            "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
-                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
     val result = generateHiveQuery(jsonString)
+    val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_average_cpc, ''), NVL(mang_spend, ''))
+FROM(
+SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END, 0L), 10) as STRING) mang_average_cpc, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
+FROM(
+SELECT c1.mang_campaign_name,SUM(clicks) clicks,SUM(spend) spend
+FROM(SELECT campaign_id, SUM(spend) spend, SUM(clicks) clicks
+FROM ad_fact1
+WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+GROUP BY campaign_id
+
+       )
+af0
+LEFT OUTER JOIN (
+SELECT campaign_name AS mang_campaign_name, id c1_id
+FROM campaing_hive
+WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+)
+c1
+ON
+af0.campaign_id = c1.c1_id
+
+GROUP BY c1.mang_campaign_name) outergroupby
+)""".stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Successfully generated Outer Group By Query if CustomRollup col with Derived Expression having rollups is requested") {
@@ -1048,11 +1072,35 @@ GROUP BY a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id) outergroupby
                            ],
                            "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
-                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
 
     val result = generateHiveQuery(jsonString)
+    val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_average_position, ''), NVL(mang_spend, ''))
+FROM(
+SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END, 0.0), 10) as STRING) mang_average_position, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
+FROM(
+SELECT c1.mang_campaign_name,(CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) avg_pos,SUM(spend) spend
+FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) avg_pos
+FROM ad_fact1
+WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+GROUP BY campaign_id
+
+       )
+af0
+LEFT OUTER JOIN (
+SELECT campaign_name AS mang_campaign_name, id c1_id
+FROM campaing_hive
+WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+)
+c1
+ON
+af0.campaign_id = c1.c1_id
+
+GROUP BY c1.mang_campaign_name) outergroupby
+)""".stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Successfully generated Outer Group By Query if OracleCustomRollup col with Derived Expression having CustomRollup and DerCol are requested") {
