@@ -633,18 +633,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
                            ]
                            }""".stripMargin
 
-    val requestRaw = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
-    val request = ReportingRequest.forceHive(requestRaw.toOption.get)
-    val requestModel = RequestModel.from(request, registry)
-    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
-
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-
-    queryPipelineTry.get.bestDimCandidates.foreach { db => assert(db.hasPKRequested == false) }
-
-    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    val result = generateHiveQuery(jsonString)
     val expected =
       s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_spend, ''))
     |FROM(
@@ -698,19 +687,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
                            ]
                            }""".stripMargin
 
-    val requestRaw = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
-    val request = ReportingRequest.forceHive(requestRaw.toOption.get)
-    val requestModel = RequestModel.from(request, registry)
-    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
-
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-
-    queryPipelineTry.get.bestDimCandidates.foreach { db => assert(db.hasPKRequested == false) }
-
-    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
+    val result = generateHiveQuery(jsonString)
     val expected =
       s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_source, ''), NVL(mang_n_spend, ''))
 FROM(
@@ -764,19 +741,7 @@ GROUP BY c1.mang_campaign_name,stats_source) outergroupby
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
-    val requestRaw = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
-    val request = ReportingRequest.forceHive(requestRaw.toOption.get)
-    val requestModel = RequestModel.from(request, registry)
-    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
-
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-
-    queryPipelineTry.get.bestDimCandidates.foreach { db => assert(db.hasPKRequested == false) }
-
-    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
+    val result = generateHiveQuery(jsonString)
     val expected =
       s"""SELECT CONCAT_WS(",",NVL(mang_day, ''), NVL(mang_campaign_name, ''), NVL(mang_spend, ''))
       FROM(
@@ -830,19 +795,7 @@ GROUP BY c1.mang_campaign_name,stats_source) outergroupby
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
-    val requestRaw = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
-    val request = ReportingRequest.forceHive(requestRaw.toOption.get)
-    val requestModel = RequestModel.from(request, registry)
-    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
-
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-
-    queryPipelineTry.get.bestDimCandidates.foreach { db => assert(db.hasPKRequested == false) }
-
-    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
+    val result = generateHiveQuery(jsonString)
     val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_advertiser_currency, ''), NVL(mang_spend, ''))
       FROM(
       SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(outergroupby.mang_advertiser_currency, "NA") mang_advertiser_currency, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
@@ -908,19 +861,7 @@ GROUP BY c1.mang_campaign_name,stats_source) outergroupby
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
-    val requestRaw = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
-    val request = ReportingRequest.forceHive(requestRaw.toOption.get)
-    val requestModel = RequestModel.from(request, registry)
-    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
-
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-
-    queryPipelineTry.get.bestDimCandidates.foreach { db => assert(db.hasPKRequested == false) }
-
-    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
+    val result = generateHiveQuery(jsonString)
     assert(!result.contains("outergroupby"))
   }
 
@@ -960,19 +901,7 @@ GROUP BY c1.mang_campaign_name,stats_source) outergroupby
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
-    val requestRaw = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
-    val request = ReportingRequest.forceHive(requestRaw.toOption.get)
-    val requestModel = RequestModel.from(request, registry)
-    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
-
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-
-    queryPipelineTry.get.bestDimCandidates.foreach { db => assert(db.hasPKRequested == false) }
-
-    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
+    val result = generateHiveQuery(jsonString)
     val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_advertiser_currency, ''), NVL(mang_average_cpc_cents, ''), NVL(mang_average_cpc, ''), NVL(mang_spend, ''))
 FROM(
 SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(outergroupby.mang_advertiser_currency, "NA") mang_advertiser_currency, CAST(ROUND(COALESCE((CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100, 0L), 10) as STRING) mang_average_cpc_cents, CAST(ROUND(COALESCE(CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END, 0L), 10) as STRING) mang_average_cpc, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
@@ -1007,4 +936,193 @@ GROUP BY c2.mang_campaign_name,a1.mang_advertiser_currency) outergroupby
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
+  test("Successfully generated Outer Group By Query if fk col one level less than Highest dim candidate level is requested") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Ad Status",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Campaign Name"
+                             },
+                             {
+                               "field": "Campaign ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+    val result = generateHiveQuery(jsonString)
+  }
+
+  test("Successfully generated Outer Group By Query if CustomRollup col is requested") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name"
+                             },
+                             {
+                               "field": "Average CPC",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                              "field": "Spend",
+                              "alias": null,
+                              "value": null
+                              }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+    val result = generateHiveQuery(jsonString)
+  }
+
+  test("Successfully generated Outer Group By Query if CustomRollup col with Derived Expression having rollups is requested") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name"
+                             },
+                             {
+                               "field": "Average Position",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                              "field": "Spend",
+                              "alias": null,
+                              "value": null
+                              }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val result = generateHiveQuery(jsonString)
+  }
+
+  test("Successfully generated Outer Group By Query if OracleCustomRollup col with Derived Expression having CustomRollup and DerCol are requested") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name"
+                             },
+                             {
+                               "field": "Average Position",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Average CPC"
+                             },
+                             {
+                              "field": "Spend",
+                              "alias": null,
+                              "value": null
+                              }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+    val result = generateHiveQuery(jsonString)
+  }
+
+  test("Successfully generated Outer Group By Query if column is derived from dim column") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name"
+                             },
+                             {
+                               "field": "Advertiser ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "N Average CPC"
+                             },
+                             {
+                              "field": "Spend",
+                              "alias": null,
+                              "value": null
+                              }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+    val result = generateHiveQuery(jsonString)
+  }
+
+  test("Successfully generated Outer Group By Query if NoopRollupp column requeted") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name"
+                             },
+                             {
+                               "field": "Impression Share",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                              "field": "Spend",
+                              "alias": null,
+                              "value": null
+                              }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+    val result = generateHiveQuery(jsonString)
+
+  }
+
+    def generateHiveQuery(requestJson: String): String = {
+    val requestRaw = ReportingRequest.deserializeAsync(requestJson.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry()
+    val request = ReportingRequest.forceHive(requestRaw.toOption.get)
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    println(result)
+    result
+  }
 }
