@@ -693,7 +693,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
 FROM(
 SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(stats_source, 0L) as STRING) mang_source, CAST(ROUND(COALESCE(decodeUDF(stats_source, 1, spend, 0.0), 0L), 10) as STRING) mang_n_spend
 FROM(
-SELECT c1.mang_campaign_name,stats_source,SUM(spend) spend
+SELECT c1.mang_campaign_name,af0.stats_source,SUM(spend) spend
 FROM(SELECT campaign_id, stats_source, SUM(spend) spend
 FROM ad_fact1
 WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -710,7 +710,7 @@ c1
 ON
 af0.campaign_id = c1.c1_id
 
-GROUP BY c1.mang_campaign_name,stats_source) outergroupby
+GROUP BY c1.mang_campaign_name,af0.stats_source) outergroupby
 )""".stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
@@ -747,7 +747,7 @@ GROUP BY c1.mang_campaign_name,stats_source) outergroupby
       FROM(
       SELECT getFormattedDate(stats_date) mang_day, getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
       FROM(
-      SELECT stats_date,c1.mang_campaign_name,SUM(spend) spend
+      SELECT af0.stats_date,c1.mang_campaign_name,SUM(spend) spend
       FROM(SELECT campaign_id, stats_date, SUM(spend) spend
       FROM ad_fact1
       WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -764,7 +764,7 @@ GROUP BY c1.mang_campaign_name,stats_source) outergroupby
       ON
       af0.campaign_id = c1.c1_id
 
-      GROUP BY stats_date,c1.mang_campaign_name) outergroupby
+      GROUP BY af0.stats_date,c1.mang_campaign_name) outergroupby
       )""".stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
@@ -962,10 +962,42 @@ GROUP BY c2.mang_campaign_name,a1.mang_advertiser_currency) outergroupby
                            ],
                            "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
-                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
     val result = generateHiveQuery(jsonString)
+    val expected = s"""SELECT CONCAT_WS(",",NVL(mang_ad_status, ''), NVL(mang_campaign_name, ''), NVL(campaign_id, ''), NVL(mang_spend, ''))
+FROM(
+SELECT COALESCE(outergroupby.mang_ad_status, "NA") mang_ad_status, getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(campaign_id, 0L) as STRING) campaign_id, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
+FROM(
+SELECT a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id,SUM(spend) spend
+FROM(SELECT campaign_id, ad_id, SUM(spend) spend
+FROM ad_fact1
+WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+GROUP BY campaign_id, ad_id
+
+       )
+af0
+LEFT OUTER JOIN (
+SELECT campaign_name AS mang_campaign_name, id c1_id
+FROM campaing_hive
+WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+)
+c1
+ON
+af0.campaign_id = c1.c1_id
+       LEFT OUTER JOIN (
+SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
+FROM ad_dim_hive
+WHERE ((shard = 'all' )) AND (advertiser_id = 12345)
+)
+a2
+ON
+af0.ad_id = a2.a2_id
+
+GROUP BY a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id) outergroupby
+)""".stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Successfully generated Outer Group By Query if CustomRollup col is requested") {

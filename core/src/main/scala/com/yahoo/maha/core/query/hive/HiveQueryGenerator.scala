@@ -129,7 +129,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
             val column = fact.columnsByNameMap.get(publicFact.aliasToNameColumnMap.get(alias).get).get
             renderColumnWithAlias(factCandidate.fact, column, alias, Set.empty)
           }
-          QueryGeneratorHelper.handleFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.name)
+          QueryGeneratorHelper.handleFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.name, isOuterGroupBy)
         case DimColumnInfo(alias) =>
           val col = queryBuilderContext.getDimensionColByAlias(alias)
           val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
@@ -568,7 +568,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
       def addDimGroupByColumns(alias: String, isFromFact: Boolean) = {
         val referredAlias = {
           if (isFromFact) {
-            queryBuilderContext.getFactColByAlias(alias).name
+            s"${queryBuilderContext.getAliasForTable(fact.name)}.${queryBuilderContext.getFactColByAlias(alias).name}"
           } else {
             val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
             val tableName = queryBuilderContext.getDimensionForColAlias(alias).name
