@@ -6,7 +6,6 @@ import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
 
 import scala.collection.{SortedSet, mutable}
-import scala.collection.mutable.LinkedHashSet
 
 abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends BaseQueryGenerator[WithHiveEngine] {
 
@@ -44,11 +43,11 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
   }
 
   // render outercols with column expression
-  def generateOuterColumns(queryContext: DimFactQueryContext,
+  def generateOuterColumns(queryContext: CombinedQueryContext,
                            queryBuilderContext: QueryBuilderContext,
                            queryBuilder: QueryBuilder,
                            renderOuterColumn: (ColumnInfo, QueryBuilderContext, Map[String, Set[String]], FactBestCandidate) => String
-  ) {
+  ) : String = {
     queryContext.requestModel.requestCols foreach {
       columnInfo =>
         QueryGeneratorHelper.populateAliasColMapOfRequestCols(columnInfo, queryBuilderContext, queryContext)
@@ -114,7 +113,7 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
     *                      derivedExpr derivedColumnName
     */
 
-  def generateFactQueryFragment(queryContext: DimFactQueryContext,
+  def generateFactQueryFragment(queryContext: CombinedQueryContext,
                                 queryBuilder: QueryBuilder,
                                 fact: Fact,
                                 renderDerivedFactCols: (List[(Column, String)] => Unit),

@@ -23,8 +23,8 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
         generateQuery(context)
       case FactQueryContext(factBestCandidate, model, indexAliasOption, attributes) =>
         generateQuery(CombinedQueryContext(SortedSet.empty, factBestCandidate, model, attributes))
-      case outerGroupByContext: DimFactOuterGroupByQueryQueryContext =>
-        generateOuterGroupByQuery(outerGroupByContext)
+      case DimFactOuterGroupByQueryQueryContext(dims, factBestCandidate, model, attributes) =>
+        generateOuterGroupByQuery(CombinedQueryContext(dims, factBestCandidate, model, attributes))
       case any => throw new UnsupportedOperationException(s"query context not supported : $any")
     }
   }
@@ -33,7 +33,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
     requestModel.orFilterMeta.isEmpty
   }
 
-  private[this] def generateOuterGroupByQuery(queryContext: DimFactOuterGroupByQueryQueryContext) : Query = {
+  private[this] def generateOuterGroupByQuery(queryContext: CombinedQueryContext) : Query = {
 
     val queryBuilderContext = new QueryBuilderContext
     val queryBuilder: QueryBuilder = new QueryBuilder(
@@ -247,12 +247,11 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
 
     val factQueryFragment = generateFactQueryFragment(queryContext, queryBuilder, fact, renderDerivedFactCols, publicFact, factViewName, renderRollupExpression, renderColumnWithAlias)
     generateDimSelects(dims, queryBuilderContext, queryBuilder, requestModel, fact, factViewAlias)
+    val (columnsForGroupBySelect, columnsForGroupBy) = generateOuterGroupByColumns
     val outerCols = generateOuterColumns(queryContext, queryBuilderContext, queryBuilder, renderOuterColumn)
     val concatenatedCols = generateConcatenatedCols(queryContext, queryBuilderContext)
 
     val parameterizedQuery : String = {
-      val (columnsForGroupBySelect, columnsForGroupBy) = generateOuterGroupByColumns
-
       val dimJoinQuery = queryBuilder.getJoinExpressions
       s"""SELECT $concatenatedCols
          |FROM(
