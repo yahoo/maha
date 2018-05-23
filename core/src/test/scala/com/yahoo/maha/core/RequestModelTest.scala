@@ -233,6 +233,7 @@ class RequestModelTest extends FunSuite with Matchers {
           PubCol("ad_id", "Ad ID", InEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),
           PubCol("advertiser_id", "Advertiser ID", InNotInEqualityNotEquals),
+          PubCol("device_id", "Device ID", InNotInEqualityNotEquals),
           PubCol("product_ad_id", "Product Ad ID", InEquality),
           PubCol("stats_source", "Source", Equality),
           PubCol("price_type", "Pricing Type", In),
@@ -5174,6 +5175,33 @@ class RequestModelTest extends FunSuite with Matchers {
     val model = res.toOption.get
     assert(model.factFilters.exists(_.field === "Advertiser ID") === true)
     assert(model.factFilters.find(_.field === "Advertiser ID").get.asInstanceOf[InFilter].values === List("1608"))
+  }
+
+  test("create model should succeed when Not In filter is used for statically mapped fields") {
+    val jsonString = s"""{
+                        "cube": "publicFact4",
+                        "selectFields": [
+                            {"field": "Impressions"},
+                            {"field": "Device ID"}
+                        ],
+                        "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "in", "values": ["1608"]},
+                            {"field": "Device ID", "operator": "not in", "values": ["Desktop"]}
+                        ],
+                        "sortBy": [
+                        ],
+                        "paginationStartIndex":20,
+                        "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess)
+    val model = res.toOption.get
+    assert(model.factFilters.exists(_.field === "Device ID") === true)
+    assert(model.factFilters.find(_.field === "Device ID").get.asInstanceOf[NotInFilter].values === List("3"))
   }
 
 }
