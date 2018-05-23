@@ -33,6 +33,7 @@ import javax.net.ssl.SSLContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -53,12 +54,14 @@ public class LookupService {
     private static final Random RANDOM = new Random(0);
     private String serviceScheme = "http";
     private String servicePort = "4080";
+    private final AuthHeaderProvider authHeaderProvider;
 
     @Inject
-    public LookupService(@Named("lookupServiceProperties") final Properties lookupServiceProperties) {
+    public LookupService(@Named("lookupServiceProperties") final Properties lookupServiceProperties, AuthHeaderProvider authHeaderProvider) {
         this.lookupServiceProperties.putAll(lookupServiceProperties);
         try {
 
+            this.authHeaderProvider = authHeaderProvider;
             serviceScheme = lookupServiceProperties.getProperty("service_scheme", "http");
             servicePort = lookupServiceProperties.getProperty("service_port", "4080");
             serviceNodeList = lookupServiceProperties.getProperty("service_nodes").split(",");
@@ -119,6 +122,10 @@ public class LookupService {
     private byte[] callService(LookupData lookupData) throws URISyntaxException, IOException {
 
         HttpGet httpGet = new HttpGet();
+        Map<String, String> authHeaders = authHeaderProvider.getAuthHeaders();
+        if(authHeaders != null) {
+            authHeaders.entrySet().stream().forEach(e -> httpGet.addHeader(e.getKey(), e.getValue()));
+        }
         httpGet.setURI(new URIBuilder()
                 .setScheme(serviceScheme)
                 .setHost(getHost())
@@ -139,6 +146,10 @@ public class LookupService {
         Long lastUpdatedTime = -1L;
         try {
             HttpGet httpGet = new HttpGet();
+            Map<String, String> authHeaders = authHeaderProvider.getAuthHeaders();
+            if(authHeaders != null) {
+                authHeaders.entrySet().stream().forEach(e -> httpGet.addHeader(e.getKey(), e.getValue()));
+            }
             httpGet.setHeader("content-type", "application/json");
             httpGet.setURI(new URIBuilder()
                     .setScheme(serviceScheme)
