@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query.hive
 
-import com.yahoo.maha.core.{fact, _}
+import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
@@ -197,24 +197,24 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
         case FactCol(_, dt, _, rollup, _, _, _) =>
           dt match {
             case DecType(_, _, Some(default), Some(min), Some(max), _) =>
-              val renderedAlias = if (isOuterGroupBy && !renderOuterColumn) renderColumnAlias(name) else renderColumnAlias(alias)
+              val renderedAlias = if (!renderOuterColumn) renderColumnAlias(name) else renderColumnAlias(alias)
               val minMaxClause = s"CASE WHEN (($name >= $min) AND ($name <= $max)) THEN $name ELSE $default END"
               queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
               s"""${renderRollupExpression(name, rollup, Option(minMaxClause))} $renderedAlias"""
             case IntType(_, _, Some(default), Some(min), Some(max)) =>
-              val renderedAlias = if (isOuterGroupBy && !renderOuterColumn) renderColumnAlias(name) else renderColumnAlias(alias)
+              val renderedAlias = if (!renderOuterColumn) renderColumnAlias(name) else renderColumnAlias(alias)
               val minMaxClause = s"CASE WHEN (($name >= $min) AND ($name <= $max)) THEN $name ELSE $default END"
               queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
               s"""${renderRollupExpression(name, rollup, Option(minMaxClause))} $renderedAlias"""
             case _ =>
-              val renderedAlias = if (isOuterGroupBy && !renderOuterColumn) renderColumnAlias(name) else renderColumnAlias(alias)
+              val renderedAlias = if (!renderOuterColumn) renderColumnAlias(name) else renderColumnAlias(alias)
               queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
               s"""${renderRollupExpression(name, rollup)} $name"""
           }
         case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
           if queryContext.factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)
             || de.isDimensionDriven =>
-          val renderedAlias = if (isOuterGroupBy && !renderOuterColumn) renderColumnAlias(name) else renderColumnAlias(alias)
+          val renderedAlias = if (!renderOuterColumn) renderColumnAlias(name) else renderColumnAlias(alias)
           println("renderedAlias1: " + renderedAlias)
           queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
           val exp1 = s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} $renderedAlias"""
@@ -234,9 +234,9 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
             case _ => //do nothing if we reference ourselves
           }
           //val renderedAlias = renderColumnAlias(alias)
-          val renderedAlias = if (isOuterGroupBy && !renderOuterColumn) renderColumnAlias(name) else renderColumnAlias(alias)
+          val renderedAlias = if (!renderOuterColumn) renderColumnAlias(name) else renderColumnAlias(alias)
           println("renderedAlias3: " + renderedAlias)
-          queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${de.render(renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = isOuterGroupBy)})"""))
+          queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${de.render(renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = true)})"""))
           ""
       }
 
@@ -245,7 +245,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
 
     }
 
-    val factQueryFragment = generateFactQueryFragment(queryContext, queryBuilder, fact, renderDerivedFactCols, publicFact, factViewName, renderRollupExpression)
+    val factQueryFragment = generateFactQueryFragment(queryContext, queryBuilder, fact, renderDerivedFactCols, publicFact, factViewName, renderRollupExpression, renderColumnWithAlias)
     generateDimSelects(dims, queryBuilderContext, queryBuilder, requestModel, fact, factViewAlias)
     val outerCols = generateOuterColumns(queryContext, queryBuilderContext, queryBuilder, renderOuterColumn)
     val concatenatedCols = generateConcatenatedCols(queryContext, queryBuilderContext)
@@ -432,7 +432,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
      * Final Query
      */
 
-    val factQueryFragment = generateFactQueryFragment(queryContext, queryBuilder, fact, renderDerivedFactCols, publicFact, factViewName, renderRollupExpression)
+    val factQueryFragment = generateFactQueryFragment(queryContext, queryBuilder, fact, renderDerivedFactCols, publicFact, factViewName, renderRollupExpression, renderColumnWithAlias)
     generateDimSelects(dims, queryBuilderContext, queryBuilder, requestModel, fact, factViewAlias)
     val outerCols = generateOuterColumns(queryContext, queryBuilderContext, queryBuilder, renderOuterColumn)
     val concatenatedCols = generateConcatenatedCols(queryContext, queryBuilderContext)
