@@ -218,7 +218,7 @@ trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
 object QueryGeneratorHelper {
   def populateAliasColMapOfRequestCols(columnInfo: ColumnInfo
                                        , queryBuilderContext: QueryBuilderContext
-                                       , queryContext : DimFactQueryContext) : Map[String, Column] = {
+                                       , queryContext : CombinedQueryContext) : Map[String, Column] = {
     if (!columnInfo.isInstanceOf[ConstantColumnInfo] && queryBuilderContext.aliasColumnMap.contains(columnInfo.alias)) {
       Map(columnInfo.alias -> queryBuilderContext.aliasColumnMap(columnInfo.alias))
     } else if (queryContext.factBestCandidate.duplicateAliasMapping.contains(columnInfo.alias)) {

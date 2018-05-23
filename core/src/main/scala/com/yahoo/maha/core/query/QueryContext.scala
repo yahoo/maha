@@ -45,8 +45,6 @@ trait FactualQueryContext extends QueryContext {
   }
 }
 
-trait DimFactQueryContext extends DimensionQueryContext with FactualQueryContext
-
 object FactualQueryContext {
   val logger: Logger = LoggerFactory.getLogger(classOf[FactualQueryContext])
 }
@@ -68,7 +66,7 @@ case class FactQueryContext private[query](factBestCandidate: FactBestCandidate,
 case class CombinedQueryContext private[query](dims: SortedSet[DimensionBundle],
                                 factBestCandidate: FactBestCandidate,
                                 requestModel: RequestModel,
-                                queryAttributes: QueryAttributes) extends DimFactQueryContext {
+                                queryAttributes: QueryAttributes) extends DimensionQueryContext with FactualQueryContext {
   val indexAliasOption = None
   override def primaryTableName: String = {
     if(requestModel.isDimDriven) {
@@ -82,7 +80,7 @@ case class CombinedQueryContext private[query](dims: SortedSet[DimensionBundle],
 case class DimFactOuterGroupByQueryQueryContext(dims: SortedSet[DimensionBundle],
                                                 factBestCandidate: FactBestCandidate,
                                                 requestModel: RequestModel,
-                                                queryAttributes: QueryAttributes) extends DimFactQueryContext {
+                                                queryAttributes: QueryAttributes) extends DimensionQueryContext with FactualQueryContext {
   override def indexAliasOption: Option[String] = None
   override def primaryTableName: String = factBestCandidate.fact.name
 }
