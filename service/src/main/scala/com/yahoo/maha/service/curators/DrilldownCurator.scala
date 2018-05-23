@@ -135,6 +135,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
       , selectFields = allSelectedFields
       , sortBy = if (drilldownConfig.ordering != IndexedSeq.empty) drilldownConfig.ordering else drillDownOrdering
       , rowsPerPage = drilldownConfig.maxRows.toInt
+      , paginationStartIndex = 0   // DrillDown Curator do not care about the start index as it look up the data based on the injected filters from base requests
       , forceDimensionDriven = false
       , forceFactDriven = true
       , filterExpressions = filterExpressions
