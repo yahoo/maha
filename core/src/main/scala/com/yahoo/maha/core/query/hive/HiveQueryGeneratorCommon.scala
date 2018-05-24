@@ -115,13 +115,13 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
 
   def generateFactQueryFragment(queryContext: CombinedQueryContext,
                                 queryBuilder: QueryBuilder,
-                                fact: Fact,
                                 renderDerivedFactCols: (List[(Column, String)] => Unit),
-                                publicFact: PublicFact,
-                                factViewName: String,
                                 renderRollupExpression: (String, RollupExpression, Option[String]) => String,
                                 renderColumnWithAlias: (Fact, Column, String, Set[String], Boolean) => Unit) : String = {
 
+    val fact = queryContext.factBestCandidate.fact
+    val publicFact = queryContext.factBestCandidate.publicFact
+    val factViewName = fact.name
     val dimCols = queryContext.factBestCandidate.dimColMapping.toList.collect {
       case (dimCol, alias) if queryContext.factBestCandidate.requestCols(dimCol) =>
         val column = fact.columnsByNameMap(dimCol)

@@ -690,28 +690,28 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     val result = generateHiveQuery(jsonString)
     val expected =
       s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_source, ''), NVL(mang_n_spend, ''))
-FROM(
-SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(stats_source, 0L) as STRING) mang_source, CAST(ROUND(COALESCE(decodeUDF(stats_source, 1, spend, 0.0), 0L), 10) as STRING) mang_n_spend
-FROM(
-SELECT c1.mang_campaign_name,af0.stats_source,SUM(spend) spend
-FROM(SELECT campaign_id, stats_source, SUM(spend) spend
-FROM ad_fact1
-WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-GROUP BY campaign_id, stats_source
+    FROM(
+    SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(stats_source, 0L) as STRING) mang_source, CAST(ROUND(COALESCE(decodeUDF(stats_source, 1, spend, 0.0), 0L), 10) as STRING) mang_n_spend
+    FROM(
+    SELECT c1.mang_campaign_name,af0.stats_source,SUM(spend) spend
+    FROM(SELECT campaign_id, stats_source, SUM(spend) spend
+    FROM ad_fact1
+    WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+    GROUP BY campaign_id, stats_source
 
-       )
-af0
-LEFT OUTER JOIN (
-SELECT campaign_name AS mang_campaign_name, id c1_id
-FROM campaing_hive
-WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-)
-c1
-ON
-af0.campaign_id = c1.c1_id
+           )
+    af0
+    LEFT OUTER JOIN (
+    SELECT campaign_name AS mang_campaign_name, id c1_id
+    FROM campaing_hive
+    WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+    )
+    c1
+    ON
+    af0.campaign_id = c1.c1_id
 
-GROUP BY c1.mang_campaign_name,af0.stats_source) outergroupby
-)""".stripMargin
+    GROUP BY c1.mang_campaign_name,af0.stats_source) outergroupby
+    )""".stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -903,36 +903,36 @@ GROUP BY c1.mang_campaign_name,af0.stats_source) outergroupby
                            }""".stripMargin
     val result = generateHiveQuery(jsonString)
     val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_advertiser_currency, ''), NVL(mang_average_cpc_cents, ''), NVL(mang_average_cpc, ''), NVL(mang_spend, ''))
-FROM(
-SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(outergroupby.mang_advertiser_currency, "NA") mang_advertiser_currency, CAST(ROUND(COALESCE((CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100, 0L), 10) as STRING) mang_average_cpc_cents, CAST(ROUND(COALESCE(CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END, 0L), 10) as STRING) mang_average_cpc, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-FROM(
-SELECT c2.mang_campaign_name,a1.mang_advertiser_currency,SUM(clicks) clicks,SUM(spend) spend
-FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks
-FROM ad_fact1
-WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-GROUP BY advertiser_id, campaign_id
-
-       )
-af0
-LEFT OUTER JOIN (
-SELECT currency AS mang_advertiser_currency, id a1_id
-FROM advertiser_hive
-WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
-)
-a1
-ON
-af0.advertiser_id = a1.a1_id
-       LEFT OUTER JOIN (
-SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
-FROM campaing_hive
-WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-)
-c2
-ON
-af0.campaign_id = c2.c2_id
-
-GROUP BY c2.mang_campaign_name,a1.mang_advertiser_currency) outergroupby
-)""".stripMargin
+      |FROM(
+      |SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(outergroupby.mang_advertiser_currency, "NA") mang_advertiser_currency, CAST(ROUND(COALESCE((CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100, 0L), 10) as STRING) mang_average_cpc_cents, CAST(ROUND(COALESCE(CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END, 0L), 10) as STRING) mang_average_cpc, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
+      |FROM(
+      |SELECT c2.mang_campaign_name,a1.mang_advertiser_currency,SUM(clicks) clicks,SUM(spend) spend
+      |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks
+      |FROM ad_fact1
+      |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+      |GROUP BY advertiser_id, campaign_id
+      |
+      |       )
+      |af0
+      |LEFT OUTER JOIN (
+      |SELECT currency AS mang_advertiser_currency, id a1_id
+      |FROM advertiser_hive
+      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+      |)
+      |a1
+      |ON
+      |af0.advertiser_id = a1.a1_id
+      |      LEFT OUTER JOIN (
+      |SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
+      |FROM campaing_hive
+      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+      |)
+      |c2
+      |ON
+      |af0.campaign_id = c2.c2_id
+      |
+      |GROUP BY c2.mang_campaign_name,a1.mang_advertiser_currency) outergroupby
+      |)""".stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -967,36 +967,36 @@ GROUP BY c2.mang_campaign_name,a1.mang_advertiser_currency) outergroupby
                            }""".stripMargin
     val result = generateHiveQuery(jsonString)
     val expected = s"""SELECT CONCAT_WS(",",NVL(mang_ad_status, ''), NVL(mang_campaign_name, ''), NVL(campaign_id, ''), NVL(mang_spend, ''))
-FROM(
-SELECT COALESCE(outergroupby.mang_ad_status, "NA") mang_ad_status, getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(campaign_id, 0L) as STRING) campaign_id, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-FROM(
-SELECT a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id,SUM(spend) spend
-FROM(SELECT campaign_id, ad_id, SUM(spend) spend
-FROM ad_fact1
-WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-GROUP BY campaign_id, ad_id
-
-       )
-af0
-LEFT OUTER JOIN (
-SELECT campaign_name AS mang_campaign_name, id c1_id
-FROM campaing_hive
-WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-)
-c1
-ON
-af0.campaign_id = c1.c1_id
-       LEFT OUTER JOIN (
-SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
-FROM ad_dim_hive
-WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-)
-a2
-ON
-af0.ad_id = a2.a2_id
-
-GROUP BY a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id) outergroupby
-)""".stripMargin
+      |FROM(
+      |SELECT COALESCE(outergroupby.mang_ad_status, "NA") mang_ad_status, getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(campaign_id, 0L) as STRING) campaign_id, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
+      |FROM(
+      |SELECT a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id,SUM(spend) spend
+      |FROM(SELECT campaign_id, ad_id, SUM(spend) spend
+      |FROM ad_fact1
+      |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+      |GROUP BY campaign_id, ad_id
+      |
+      |       )
+      |af0
+      |LEFT OUTER JOIN (
+      |SELECT campaign_name AS mang_campaign_name, id c1_id
+      |FROM campaing_hive
+      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+      |)
+      |c1
+      |ON
+      |af0.campaign_id = c1.c1_id
+      |      LEFT OUTER JOIN (
+      |SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
+      |FROM ad_dim_hive
+      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+      |)
+      |a2
+      |ON
+      |af0.ad_id = a2.a2_id
+      |
+      |GROUP BY a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id) outergroupby
+      |)""".stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -1026,28 +1026,28 @@ GROUP BY a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id) outergroupby
                            }""".stripMargin
     val result = generateHiveQuery(jsonString)
     val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_average_cpc, ''), NVL(mang_spend, ''))
-FROM(
-SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END, 0L), 10) as STRING) mang_average_cpc, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-FROM(
-SELECT c1.mang_campaign_name,SUM(clicks) clicks,SUM(spend) spend
-FROM(SELECT campaign_id, SUM(spend) spend, SUM(clicks) clicks
-FROM ad_fact1
-WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-GROUP BY campaign_id
-
-       )
-af0
-LEFT OUTER JOIN (
-SELECT campaign_name AS mang_campaign_name, id c1_id
-FROM campaing_hive
-WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-)
-c1
-ON
-af0.campaign_id = c1.c1_id
-
-GROUP BY c1.mang_campaign_name) outergroupby
-)""".stripMargin
+      |FROM(
+      |SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END, 0L), 10) as STRING) mang_average_cpc, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
+      |FROM(
+      |SELECT c1.mang_campaign_name,SUM(clicks) clicks,SUM(spend) spend
+      |FROM(SELECT campaign_id, SUM(spend) spend, SUM(clicks) clicks
+      |FROM ad_fact1
+      |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+      |GROUP BY campaign_id
+      |
+      |       )
+      |af0
+      |LEFT OUTER JOIN (
+      |SELECT campaign_name AS mang_campaign_name, id c1_id
+      |FROM campaing_hive
+      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+      |)
+      |c1
+      |ON
+      |af0.campaign_id = c1.c1_id
+      |
+      |GROUP BY c1.mang_campaign_name) outergroupby
+      |)""".stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -1078,28 +1078,28 @@ GROUP BY c1.mang_campaign_name) outergroupby
 
     val result = generateHiveQuery(jsonString)
     val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_average_position, ''), NVL(mang_spend, ''))
-FROM(
-SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END, 0.0), 10) as STRING) mang_average_position, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-FROM(
-SELECT c1.mang_campaign_name,(CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) avg_pos,SUM(spend) spend
-FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) avg_pos
-FROM ad_fact1
-WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-GROUP BY campaign_id
-
-       )
-af0
-LEFT OUTER JOIN (
-SELECT campaign_name AS mang_campaign_name, id c1_id
-FROM campaing_hive
-WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-)
-c1
-ON
-af0.campaign_id = c1.c1_id
-
-GROUP BY c1.mang_campaign_name) outergroupby
-)""".stripMargin
+      |FROM(
+      |SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END, 0.0), 10) as STRING) mang_average_position, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
+      |FROM(
+      |SELECT c1.mang_campaign_name,(CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) avg_pos,SUM(spend) spend
+      |FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) avg_pos
+      |FROM ad_fact1
+      |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+      |GROUP BY campaign_id
+      |
+      |       )
+      |af0
+      |LEFT OUTER JOIN (
+      |SELECT campaign_name AS mang_campaign_name, id c1_id
+      |FROM campaing_hive
+      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+      |)
+      |c1
+      |ON
+      |af0.campaign_id = c1.c1_id
+      |
+      |GROUP BY c1.mang_campaign_name) outergroupby
+      |)""".stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -1132,28 +1132,28 @@ GROUP BY c1.mang_campaign_name) outergroupby
                            }""".stripMargin
     val result = generateHiveQuery(jsonString)
     val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_average_position, ''), NVL(mang_average_cpc, ''), NVL(mang_spend, ''))
-FROM(
-SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END, 0.0), 10) as STRING) mang_average_position, CAST(ROUND(COALESCE(CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END, 0L), 10) as STRING) mang_average_cpc, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-FROM(
-SELECT c1.mang_campaign_name,(CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) avg_pos,SUM(clicks) clicks,SUM(spend) spend
-FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) avg_pos, SUM(clicks) clicks
-FROM ad_fact1
-WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-GROUP BY campaign_id
-
-       )
-af0
-LEFT OUTER JOIN (
-SELECT campaign_name AS mang_campaign_name, id c1_id
-FROM campaing_hive
-WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-)
-c1
-ON
-af0.campaign_id = c1.c1_id
-
-GROUP BY c1.mang_campaign_name) outergroupby
-)""".stripMargin
+      |FROM(
+      |SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END, 0.0), 10) as STRING) mang_average_position, CAST(ROUND(COALESCE(CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END, 0L), 10) as STRING) mang_average_cpc, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
+      |FROM(
+      |SELECT c1.mang_campaign_name,(CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) avg_pos,SUM(clicks) clicks,SUM(spend) spend
+      |FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) avg_pos, SUM(clicks) clicks
+      |FROM ad_fact1
+      |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+      |GROUP BY campaign_id
+      |
+      |)
+      |af0
+      |LEFT OUTER JOIN (
+      |SELECT campaign_name AS mang_campaign_name, id c1_id
+      |FROM campaing_hive
+      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+      |)
+      |c1
+      |ON
+      |af0.campaign_id = c1.c1_id
+      |
+      |GROUP BY c1.mang_campaign_name) outergroupby
+      |)""".stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -1186,28 +1186,28 @@ GROUP BY c1.mang_campaign_name) outergroupby
                            }""".stripMargin
     val result = generateHiveQuery(jsonString)
     val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(advertiser_id, ''), NVL(mang_n_average_cpc, ''), NVL(mang_spend, ''))
-FROM(
-SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(advertiser_id, 0L) as STRING) advertiser_id, CAST(ROUND(COALESCE(CASE WHEN decodeUDF(stats_source, 1, clicks, 0.0) = 0 THEN 0.0 ELSE decodeUDF(stats_source, 1, spend, 0.0) / decodeUDF(stats_source, 1, clicks, 0.0) END, 0L), 10) as STRING) mang_n_average_cpc, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-FROM(
-SELECT c1.mang_campaign_name,af0.advertiser_id,af0.stats_source,SUM(clicks) clicks,SUM(spend) spend
-FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend, stats_source, SUM(clicks) clicks
-FROM ad_fact1
-WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-GROUP BY advertiser_id, campaign_id, stats_source
-
-       )
-af0
-LEFT OUTER JOIN (
-SELECT campaign_name AS mang_campaign_name, id c1_id
-FROM campaing_hive
-WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-)
-c1
-ON
-af0.campaign_id = c1.c1_id
-
-GROUP BY c1.mang_campaign_name,af0.advertiser_id,af0.stats_source) outergroupby
-)""".stripMargin
+      |FROM(
+      |SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(advertiser_id, 0L) as STRING) advertiser_id, CAST(ROUND(COALESCE(CASE WHEN decodeUDF(stats_source, 1, clicks, 0.0) = 0 THEN 0.0 ELSE decodeUDF(stats_source, 1, spend, 0.0) / decodeUDF(stats_source, 1, clicks, 0.0) END, 0L), 10) as STRING) mang_n_average_cpc, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
+      |FROM(
+      |SELECT c1.mang_campaign_name,af0.advertiser_id,af0.stats_source,SUM(clicks) clicks,SUM(spend) spend
+      |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend, stats_source, SUM(clicks) clicks
+      |FROM ad_fact1
+      |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+      |GROUP BY advertiser_id, campaign_id, stats_source
+      |
+      |       )
+      |af0
+      |LEFT OUTER JOIN (
+      |SELECT campaign_name AS mang_campaign_name, id c1_id
+      |FROM campaing_hive
+      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+      |)
+      |c1
+      |ON
+      |af0.campaign_id = c1.c1_id
+      |
+      |GROUP BY c1.mang_campaign_name,af0.advertiser_id,af0.stats_source) outergroupby
+      |)""".stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -1237,28 +1237,28 @@ GROUP BY c1.mang_campaign_name,af0.advertiser_id,af0.stats_source) outergroupby
                            }""".stripMargin
     val result = generateHiveQuery(jsonString)
     val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_impression_share, ''), NVL(mang_spend, ''))
-FROM(
-SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(impression_share, 0L) as STRING) mang_impression_share, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-FROM(
-SELECT c1.mang_campaign_name,(decodeUDF(MAX(show_flag), 1, ROUND(CASE WHEN SUM(s_impressions) = 0 THEN 0.0 ELSE SUM(impressions) / (SUM(s_impressions)) END, 4), NULL)) impression_share,SUM(spend) spend
-FROM(SELECT campaign_id, SUM(spend) spend, show_flag, SUM(s_impressions) s_impressions, SUM(impressions) impressions
-FROM ad_fact1
-WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-GROUP BY campaign_id, show_flag
-
-       )
-af0
-LEFT OUTER JOIN (
-SELECT campaign_name AS mang_campaign_name, id c1_id
-FROM campaing_hive
-WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-)
-c1
-ON
-af0.campaign_id = c1.c1_id
-
-GROUP BY c1.mang_campaign_name) outergroupby
-)""".stripMargin
+      |FROM(
+      |SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(impression_share, 0L) as STRING) mang_impression_share, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
+      |FROM(
+      |SELECT c1.mang_campaign_name,(decodeUDF(MAX(show_flag), 1, ROUND(CASE WHEN SUM(s_impressions) = 0 THEN 0.0 ELSE SUM(impressions) / (SUM(s_impressions)) END, 4), NULL)) impression_share,SUM(spend) spend
+      |FROM(SELECT campaign_id, SUM(spend) spend, show_flag, SUM(s_impressions) s_impressions, SUM(impressions) impressions
+      |FROM ad_fact1
+      |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+      |GROUP BY campaign_id, show_flag
+      |
+      |       )
+      |af0
+      |LEFT OUTER JOIN (
+      |SELECT campaign_name AS mang_campaign_name, id c1_id
+      |FROM campaing_hive
+      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+      |)
+      |c1
+      |ON
+      |af0.campaign_id = c1.c1_id
+      |
+      |GROUP BY c1.mang_campaign_name) outergroupby
+      |)""".stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
