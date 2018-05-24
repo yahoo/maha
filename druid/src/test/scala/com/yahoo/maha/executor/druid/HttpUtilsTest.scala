@@ -46,7 +46,23 @@ class HttpUtilsTest extends FunSuite with Matchers with BeforeAndAfterAll with L
   }
 
   test("successful POST call test") {
-    val httpUtils = new HttpUtils(ClientConfig.getConfig(maxConnectionsPerHost,maxConnections,connectionTimeout,timeoutRetryInterval,timeoutThreshold, degradationConfig,readTimeout,requestTimeout,pooledConnectionIdleTimeout,timeoutMaxResponseTimeInMs,sslContextVersion,commaSeparatedCipherSuitesList), true, 500, 3)
+    val config = ClientConfig
+      .getConfig(maxConnectionsPerHost
+        , maxConnections
+        , connectionTimeout
+        , timeoutRetryInterval
+        , timeoutThreshold
+        , degradationConfig
+        , readTimeout
+        , requestTimeout
+        , pooledConnectionIdleTimeout
+        , timeoutMaxResponseTimeInMs
+        , sslContextVersion
+        , commaSeparatedCipherSuitesList
+        , Option{ builder => builder.setFollowRedirect(true)}
+      )
+    assert(config.isFollowRedirect === true)
+    val httpUtils = new HttpUtils(config, true, 500, 3)
     val response  = httpUtils.post("http://localhost:5544/mock/groupby",httpUtils.POST)
     
     assert(response.getStatusCode==200)
