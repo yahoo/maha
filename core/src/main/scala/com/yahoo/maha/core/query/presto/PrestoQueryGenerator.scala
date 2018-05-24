@@ -112,7 +112,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
 
       columnInfo match {
         case FactColumnInfo(alias) =>
-          QueryGeneratorHelper.handleFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.underlyingTableName.getOrElse(factCandidate.fact.name), false)
+          QueryGeneratorHelper.handleOuterFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.underlyingTableName.getOrElse(factCandidate.fact.name), false)
           /*if (queryBuilderContext.containsFactColNameForAlias(alias)) {
             val col = queryBuilderContext.getFactColByAlias(alias)
             val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)
