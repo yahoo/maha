@@ -4,7 +4,7 @@ package com.yahoo.maha.core.query.hive
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
-import com.yahoo.maha.core.fact._
+import com.yahoo.maha.core.fact.{DerivedFactColumn, _}
 import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
 
@@ -56,7 +56,13 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
       def renderFactCol(alias: String, finalAliasOrExpression: String, col: Column, finalAlias: String): String = {
         val finalExp = {
           if (col.isDerivedColumn) {
-            col.asInstanceOf[DerivedFactColumn].derivedExpression.render(finalAlias, queryBuilderContext.getColAliasToFactColNameMap).toString
+            val rollupExpression = col.asInstanceOf[DerivedFactColumn].rollupExpression
+            if (rollupExpression.equals(NoopRollup)) {
+              col.name
+            } else {
+              val renderedDerived = col.asInstanceOf[DerivedFactColumn].derivedExpression.render(finalAlias, queryBuilderContext.getColAliasToFactColNameMap).toString
+              renderedDerived
+            }
           } else {
             finalAliasOrExpression
           }
@@ -104,17 +110,30 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
       }
     }
 
-    def renderDerivedFactCols(derivedCols: List[(Column, String)]) = {
+    def renderDerivedFactCols(derivedCols: List[(Column, String)]):Unit = {
         val requiredInnerCols: Set[String] =
           derivedCols.view.map(_._1.asInstanceOf[DerivedColumn]).flatMap(dc => dc.derivedExpression.sourceColumns).toSet
         derivedCols.foreach {
           case (column, alias) =>
             requiredInnerCols.foreach(innerColName => {
               val innerCol = queryContext.factBestCandidate.fact.columnsByNameMap.get(innerColName).get
-              if (!innerCol.isDerivedColumn && !innerCol.isInstanceOf[DimCol]) {
-                val rollup = column.asInstanceOf[FactColumn].rollupExpression
-                val renderedInnerCol = s"${renderRollupExpression(innerColName, rollup)} $innerColName"
-                queryBuilder.addFactViewColumn(renderedInnerCol)
+              innerCol match {
+                case d:DimensionColumn =>
+                  renderColumnWithAlias(fact, innerCol, innerColName, Set.empty, false)
+                  queryBuilder.addGroupBy(innerColName)
+                case f:FactColumn =>
+                  if (f.isDerivedColumn) {
+                    renderDerivedFactCols(List((f, f.alias.getOrElse(f.name))))
+                    //renderColumnWithAlias(fact, innerCol, innerColName, Set.empty, false)
+                  } else {
+                    val rollupExpression = column.asInstanceOf[FactColumn].rollupExpression
+                    val rollup = rollupExpression match {
+                      case NoopRollup => SumRollup // Need to sum facts in the inner select for outergroupby
+                      case _ => rollupExpression
+                    }
+                    val renderedInnerCol = s"${renderRollupExpression(innerColName, rollup)} $innerColName"
+                    queryBuilder.addFactViewColumn(renderedInnerCol)
+                  }
               }
             })
         }
@@ -124,13 +143,18 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
       val columnsForGroupBySelect: LinkedHashSet[String] = new mutable.LinkedHashSet[String]
       val columnsForGroupBy: LinkedHashSet[String] = new mutable.LinkedHashSet[String]
 
-      def addDimGroupByColumns(alias: String, isFromFact: Boolean, queryBuilderContext: QueryBuilderContext) = {
+      def addDimGroupByColumns(colNameOrAlias: String, isFromFact: Boolean, queryBuilderContext: QueryBuilderContext) = {
         val referredAlias = {
           if (isFromFact) {
-            s"${queryBuilderContext.getAliasForTable(fact.name)}.${queryBuilderContext.getFactColByAlias(alias).name}"
+            if (queryBuilderContext.containsFactAliasToColumnMap(colNameOrAlias)) {
+              s"${queryBuilderContext.getAliasForTable(fact.name)}.${queryBuilderContext.getFactColByAlias(colNameOrAlias).name}"
+            } else {
+              // It's not a requested column
+              s"${queryBuilderContext.getAliasForTable(fact.name)}.$colNameOrAlias"
+            }
           } else {
-            val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
-            val tableName = queryBuilderContext.getDimensionForColAlias(alias).name
+            val finalAlias = queryBuilderContext.getDimensionColNameForAlias(colNameOrAlias)
+            val tableName = queryBuilderContext.getDimensionForColAlias(colNameOrAlias).name
             s"${queryBuilderContext.getAliasForTable(tableName)}.$finalAlias"
           }
         }
@@ -138,25 +162,47 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
         columnsForGroupBy += referredAlias
       }
 
+      def addDerivedFactColOuterGroupBy(alias: String, col: FactColumn): Unit = {
+        val sourceColumnNames = col.asInstanceOf[DerivedFactColumn].derivedExpression.sourceColumns
+        val rollup = col.asInstanceOf[DerivedFactColumn].rollupExpression
+        sourceColumnNames.foreach(colName => {
+          val sourceCol = queryContext.factBestCandidate.fact.columnsByNameMap.get(colName).get
+          sourceCol match {
+            case d:DimensionColumn =>
+              addDimGroupByColumns(sourceCol.alias.getOrElse(sourceCol.name), true, queryBuilderContext)
+            case f:FactColumn =>
+              val rollupExpression = sourceCol.asInstanceOf[FactColumn].rollupExpression
+              if (sourceCol.isDerivedColumn) {
+                if (rollupExpression.equals(NoopRollup)) { // Noop rollups should be expanded in outergroupby clause
+                  renderColumnWithAlias(fact, sourceCol, alias, Set.empty, false)
+                  val renderedDerived = s"${queryBuilderContext.getFactColExpressionOrNameForAlias(alias)} ${renderColumnAlias(sourceCol.name)}"
+                  columnsForGroupBySelect.add(renderedDerived)
+                } else {
+                  addDerivedFactColOuterGroupBy(alias, sourceCol.asInstanceOf[DerivedFactColumn])
+                }
+              } else {
+                val finalAlias = colName
+                val rollup = rollupExpression match {
+                  case NoopRollup => SumRollup // Need to sum facts in the groupby
+                  case _ => rollupExpression
+                }
+                val rollupExp = s"${renderRollupExpression(finalAlias, rollup)} $finalAlias"
+                columnsForGroupBySelect += rollupExp
+              }
+          }
+        })
+      }
+
       requestedCols.foreach {
         case FactColumnInfo(alias) =>
           if (queryBuilderContext.containsFactAliasToColumnMap(alias) && queryBuilderContext.getFactColByAlias(alias).isInstanceOf[DimCol]) {
             addDimGroupByColumns(alias, true, queryBuilderContext)
           } else {
-            if (!queryBuilderContext.containsFactAliasToColumnMap(alias)) {
+            val colName = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap.get(alias).get
+            val col = queryContext.factBestCandidate.fact.factColMap.get(colName).get
+            if (col.isDerivedColumn) {
               println(s"$alias is a derived column")
-              val colName = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap.get(alias).get
-              val col = queryContext.factBestCandidate.fact.factColMap.get(colName).get
-              val sourceColumnNames = col.asInstanceOf[DerivedFactColumn].derivedExpression.sourceColumns
-              val rollup = col.asInstanceOf[DerivedFactColumn].rollupExpression
-              sourceColumnNames.foreach(colName => {
-                val sourceCol = queryContext.factBestCandidate.fact.columnsByNameMap.get(colName).get
-                if (!sourceCol.isDerivedColumn && !sourceCol.isInstanceOf[DimCol]) {
-                  val finalAlias = colName
-                  val rollupExp = s"${renderRollupExpression(finalAlias, rollup)} $finalAlias"
-                  columnsForGroupBySelect += rollupExp
-                }
-              })
+              addDerivedFactColOuterGroupBy(alias, col)
             } else {
               val rollup = queryBuilderContext.getFactColByAlias(alias).asInstanceOf[FactColumn].rollupExpression
               val finalAlias = queryBuilderContext.getFactColExpressionOrNameForAlias(alias)
@@ -212,8 +258,8 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
               s"""${renderRollupExpression(name, rollup)} $name"""
           }
         case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
-          if queryContext.factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)
-            || de.isDimensionDriven =>
+          if renderOuterColumn && (queryContext.factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)
+            || de.isDimensionDriven) =>
           val renderedAlias = if (!renderOuterColumn) renderColumnAlias(name) else renderColumnAlias(alias)
           println("renderedAlias1: " + renderedAlias)
           queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
