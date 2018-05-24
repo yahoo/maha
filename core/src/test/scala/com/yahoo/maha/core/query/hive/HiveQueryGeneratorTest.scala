@@ -1236,10 +1236,33 @@ GROUP BY c1.mang_campaign_name,af0.advertiser_id,af0.stats_source) outergroupby
                            ]
                            }""".stripMargin
     val result = generateHiveQuery(jsonString)
+    val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_impression_share, ''), NVL(mang_spend, ''))
+FROM(
+SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(impression_share, 0L) as STRING) mang_impression_share, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
+FROM(
+SELECT c1.mang_campaign_name,(decodeUDF(MAX(show_flag), 1, ROUND(CASE WHEN SUM(s_impressions) = 0 THEN 0.0 ELSE SUM(impressions) / (SUM(s_impressions)) END, 4), NULL)) impression_share,SUM(spend) spend
+FROM(SELECT campaign_id, SUM(spend) spend, show_flag, SUM(s_impressions) s_impressions, SUM(impressions) impressions
+FROM ad_fact1
+WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+GROUP BY campaign_id, show_flag
 
+       )
+af0
+LEFT OUTER JOIN (
+SELECT campaign_name AS mang_campaign_name, id c1_id
+FROM campaing_hive
+WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+)
+c1
+ON
+af0.campaign_id = c1.c1_id
+
+GROUP BY c1.mang_campaign_name) outergroupby
+)""".stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
-    def generateHiveQuery(requestJson: String): String = {
+  def generateHiveQuery(requestJson: String): String = {
     val requestRaw = ReportingRequest.deserializeAsync(requestJson.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = getDefaultRegistry()
     val request = ReportingRequest.forceHive(requestRaw.toOption.get)
