@@ -51,7 +51,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
 
       def renderFactCol(alias: String, finalAliasOrExpression: String, col: Column, finalAlias: String): String = {
         val finalExp = {
-          if (col.isDerivedColumn) {
+          if (col.isInstanceOf[FactColumn] && col.isDerivedColumn) {
             val rollupExpression = col.asInstanceOf[DerivedFactColumn].rollupExpression
             if (rollupExpression.equals(NoopRollup)) {
               col.name
@@ -189,7 +189,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
 
       requestedCols.foreach {
         case FactColumnInfo(alias) =>
-          if (queryBuilderContext.containsFactAliasToColumnMap(alias) && queryBuilderContext.getFactColByAlias(alias).isInstanceOf[DimCol]) {
+          if (queryBuilderContext.containsFactAliasToColumnMap(alias) && queryBuilderContext.getFactColByAlias(alias).isInstanceOf[DimensionColumn]) {
             addDimGroupByColumns(alias, true, queryBuilderContext)
           } else {
             val colName = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap.get(alias).get
@@ -216,7 +216,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
                               renderOuterColumn: Boolean): Unit = {
       val name = column.alias.getOrElse(column.name)
       val exp = column match {
-        case any if queryBuilderContext.containsColByName(name) =>
+        case any if queryBuilderContext.containsColByName(name) && queryBuilderContext.aliasColumnMap.contains(alias) =>
           //do nothing, we've already processed it
           ""
         case DimCol(_, dt, _, _, _, _) if dt.hasStaticMapping =>
@@ -253,8 +253,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
             || de.isDimensionDriven) =>
           val renderedAlias = if (!renderOuterColumn) renderColumnAlias(name) else renderColumnAlias(alias)
           queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-          val exp1 = s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} $renderedAlias"""
-          exp1
+          s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} $renderedAlias"""
 
         case HiveDerFactCol(_, _, dt, cc, de, annotations, _, _) =>
           //means no fact operation on this column, push expression outside
