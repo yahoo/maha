@@ -54,7 +54,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
           if (col.isInstanceOf[FactColumn] && col.isDerivedColumn) {
             val rollupExpression = col.asInstanceOf[DerivedFactColumn].rollupExpression
             if (rollupExpression.equals(NoopRollup)) {
-              col.name
+              finalAlias
             } else {
               val renderedDerived = col.asInstanceOf[DerivedFactColumn].derivedExpression.render(finalAlias, queryBuilderContext.getColAliasToFactColNameMap).toString
               renderedDerived
@@ -141,8 +141,8 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
       def addDimGroupByColumns(colNameOrAlias: String, isFromFact: Boolean, queryBuilderContext: QueryBuilderContext) = {
         val referredAlias = {
           if (isFromFact) {
-            if (queryBuilderContext.containsFactAliasToColumnMap(colNameOrAlias)) {
-              s"${queryBuilderContext.getAliasForTable(fact.name)}.${queryBuilderContext.getFactColByAlias(colNameOrAlias).name}"
+            if (queryBuilderContext.containsFactColNameForAlias(colNameOrAlias)) {
+              s"${queryBuilderContext.getAliasForTable(fact.name)}.${queryBuilderContext.getFactColNameForAlias(colNameOrAlias)}"
             } else {
               // It's not a requested column
               s"${queryBuilderContext.getAliasForTable(fact.name)}.$colNameOrAlias"
@@ -220,15 +220,15 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
           //do nothing, we've already processed it
           ""
         case DimCol(_, dt, _, _, _, _) if dt.hasStaticMapping =>
-          val renderedAlias = renderColumnAlias(alias)
+          val renderedAlias = if (!renderOuterColumn) renderColumnAlias(name) else renderColumnAlias(alias)
           queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
           s"${renderStaticMappedDimension(column)} $name"
         case DimCol(_, dt, _, _, _, _) =>
-          val renderedAlias = renderColumnAlias(alias)
+          val renderedAlias = if (!renderOuterColumn) renderColumnAlias(name) else renderColumnAlias(alias)
           queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
           name
         case HiveDerDimCol(_, dt, _, de, _, _, _) =>
-          val renderedAlias = renderColumnAlias(alias)
+          val renderedAlias = if (!renderOuterColumn) renderColumnAlias(name) else renderColumnAlias(alias)
           queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
           s"""${de.render(name, Map.empty)} $renderedAlias"""
         case FactCol(_, dt, _, rollup, _, _, _) =>
