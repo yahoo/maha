@@ -223,17 +223,18 @@ object QueryGeneratorHelper {
     }
   }
 
-  def handleFactColInfo(queryBuilderContext: QueryBuilderContext
+  def handleOuterFactColInfo(queryBuilderContext: QueryBuilderContext
                         , alias : String
                         , factCandidate : FactBestCandidate
                         , renderFactCol: (String, String, Column, String) => String
                         , duplicateAliasMapping: Map[String, Set[String]]
-                        , tableAlias : String) : String = {
+                        , tableAlias : String
+                        , isOuterGroupBy: Boolean) : String = {
     if (queryBuilderContext.containsFactColNameForAlias(alias)) {
       val col = queryBuilderContext.getFactColByAlias(alias)
       val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)
       val finalAliasOrExpression = {
-        if(queryBuilderContext.isDimensionCol(alias)) {
+        if(queryBuilderContext.isDimensionCol(alias) && !isOuterGroupBy) {
           val factAlias = queryBuilderContext.getAliasForTable(tableAlias)
           val factExp = queryBuilderContext.getFactColExpressionOrNameForAlias(alias)
           s"$factAlias.$factExp"
