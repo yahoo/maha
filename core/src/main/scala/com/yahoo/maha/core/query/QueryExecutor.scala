@@ -12,6 +12,7 @@ import org.joda.time.format.DateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
 
 import scala.math.BigDecimal.RoundingMode
+import scala.util.Try
 
 /**
  * Created by hiral on 12/22/15.
@@ -99,10 +100,10 @@ class ColumnValueExtractor {
   final val DATE_FORMATTER = DateTimeFormat.forPattern("yyyy-MM-dd")
 
   def getBigDecimalSafely(resultSet: ResultSet, index: Int) : BigDecimal = {
-    val result: java.math.BigDecimal = resultSet.getBigDecimal(index)
-    if(result == null)
+    val result = Try(resultSet.getObject(index))
+    if(result.isFailure || result.get == null)
       return null
-    result
+    BigDecimal(result.get.toString)
   }
 
   def getLongSafely(resultSet: ResultSet, index: Int) : Long = {
