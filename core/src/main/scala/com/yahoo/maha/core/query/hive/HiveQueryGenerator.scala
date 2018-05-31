@@ -427,9 +427,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
             || de.isDimensionDriven =>
           val renderedAlias = renderColumnAlias(alias)
           queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-          val exp1 = s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} $renderedAlias"""
-          exp1
-
+          s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} $renderedAlias"""
         case HiveDerFactCol(_, _, dt, cc, de, annotations, _, _) =>
           //means no fact operation on this column, push expression outside
           de.sourceColumns.foreach {

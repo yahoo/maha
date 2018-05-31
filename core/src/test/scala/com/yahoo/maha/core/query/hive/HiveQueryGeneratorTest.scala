@@ -6,7 +6,7 @@ import java.nio.charset.StandardCharsets
 
 import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.query._
+import com.yahoo.maha.core.query.{QueryGeneratorRegistry, _}
 import com.yahoo.maha.core.request.ReportingRequest
 
 /**
@@ -23,6 +23,11 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
 
         override def engine: Engine = HiveEngine
       }
+
+      val queryGeneratorRegistryTest = new QueryGeneratorRegistry
+      queryGeneratorRegistryTest.register(HiveEngine, dummyQueryGenerator)
+      HiveQueryGenerator.register(queryGeneratorRegistryTest, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
+
       queryGeneratorRegistry.register(HiveEngine, dummyQueryGenerator)
     }
   }
