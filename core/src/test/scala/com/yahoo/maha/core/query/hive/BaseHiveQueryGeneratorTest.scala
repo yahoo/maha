@@ -355,8 +355,8 @@ trait BaseHiveQueryGeneratorTest
           , DimCol("start_time", IntType())
           , DimCol("stats_date", DateType("YYYY-MM-dd"))
           , DimCol("show_flag", IntType())
-          , HiveDerDimCol("Month", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
-          , HiveDerDimCol("Week", DateType(), GET_INTERVAL_DATE("{stats_date}", "W"))
+          , HiveDerDimCol("Month", DateType(), TEST_DATE_UDF("{stats_date}", "M"))
+          , HiveDerDimCol("Week", DateType(), TEST_DATE_UDF("{stats_date}", "W"))
         ),
         Set(
           FactCol("impressions", IntType(3, 1))
@@ -412,37 +412,12 @@ trait BaseHiveQueryGeneratorTest
       )
   }
 
+  case object TestDateUDFRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION dateUDF as 'com.yahoo.maha.query.hive.udf.TestDateUDF';"
+  }
 
-
-  case object GetIntervalDateRegistration extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION getIntervalDate as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udf.GetIntervalDate';"
-  }
-  case object GetFormattedDateRegistration extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION getFormattedDate as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udf.GetFormattedDate';"
-  }
-  case object GetDateFromEpochRegistration extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION getDateFromEpoch as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udf.GetDateFromEpoch';"
-  }
-  case object GetUTCDateTimeFromEpochRegistration extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION getDateTimeFromEpoch as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udf.GetDateTimeFromEpoch';"
-  }
-  case object GetCsvEscapedStringRegistration extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION getCsvEscapedString as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udf.GetCsvEscapedString';"
-  }
-  case object DecodeRegistration extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION decodeUDF as 'com.nexr.platform.hive.udf.GenericUDFDecode';"
-  }
-  case object GetAverageVideoShownRegistration extends UDF {
-    val statement: String = "CREATE TEMPORARY FUNCTION getAverageVideoShown as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udf.GetAverageVideoShown';"
-  }
-  case object GetAbyBplusCRegistration extends UDAF {
-    val statement: String = "CREATE TEMPORARY FUNCTION getAbyBplusC as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udaf.GetAbyBplusC';"
-  }
-  case object GetConditionalAbyBRegistration extends UDAF {
-    val statement: String = "CREATE TEMPORARY FUNCTION getConditionalAbyB as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udaf.GetConditionalAbyB';"
-  }
-  case object GetAbyBRegistration extends UDAF {
-    val statement: String = "CREATE TEMPORARY FUNCTION getAbyB as 'com.yahoo.curveball.reporting.mview.api.generator.hive.udaf.GetAbyB';"
+  case object TestDecodeUDFRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION decodeUDF as 'com.yahoo.maha.query.hive.udf.TestDecodeUDF';"
   }
 
   object UDFHiveExpression {
@@ -451,71 +426,24 @@ trait BaseHiveQueryGeneratorTest
 
     implicit val uDFRegistrationFactory = DefaultUDFRegistrationFactory
 
-    uDFRegistrationFactory.register(GetIntervalDateRegistration)
-    uDFRegistrationFactory.register(DecodeRegistration)
+    uDFRegistrationFactory.register(TestDateUDFRegistration)
+    uDFRegistrationFactory.register(TestDecodeUDFRegistration)
 
-    case class TIMESTAMP_TO_FORMATTED_DATE(s: HiveExp, fmt: String) extends UDFHiveExpression(GetDateFromEpochRegistration) {
+
+    case class TEST_DATE_UDF(s: HiveExp, fmt: String) extends UDFHiveExpression(TestDateUDFRegistration) {
       def hasRollupExpression = s.hasRollupExpression
 
       def hasNumericOperation = s.hasNumericOperation
 
-      def asString: String = s"getDateFromEpoch(${s.asString}, '$fmt')"
+      def asString: String = s"dateUDF(${s.asString}, '$fmt')"
     }
 
-    case class GET_INTERVAL_DATE(s: HiveExp, fmt: String) extends UDFHiveExpression(GetIntervalDateRegistration) {
-      def hasRollupExpression = s.hasRollupExpression
-
-      def hasNumericOperation = s.hasNumericOperation
-
-      def asString: String = s"getIntervalDate(${s.asString}, '$fmt')"
-    }
-
-    case class GET_UTC_TIME_FROM_EPOCH(s: HiveExp, fmt: String) extends UDFHiveExpression(GetUTCDateTimeFromEpochRegistration) {
-      def hasRollupExpression = s.hasRollupExpression
-
-      def hasNumericOperation = s.hasNumericOperation
-
-      def asString: String = s"getDateTimeFromEpoch(${s.asString}, '$fmt')"
-    }
-
-    case class DECODE_DIM(args: HiveExp*) extends UDFHiveExpression(DecodeRegistration) {
-      require(!args.exists(_.hasRollupExpression), "DECODE_DIM cannot have rollup expression in args!")
-      val hasRollupExpression = false
-      val hasNumericOperation = args.exists(_.hasNumericOperation)
-      if (args.length < 3) throw new IllegalArgumentException("Usage: DECODE_DIM( expression , search , result [, search , result]... [, default] )")
-      val argStrs = args.map(_.asString).mkString(", ")
-
-      def asString: String = s"decodeUDF($argStrs)"
-    }
-
-    case class DECODE(args: HiveExp*) extends UDFHiveExpression(DecodeRegistration) {
+    case class DECODE(args: HiveExp*) extends UDFHiveExpression(TestDecodeUDFRegistration) {
       val hasRollupExpression = true
       val hasNumericOperation = args.exists(_.hasNumericOperation)
       if (args.length < 3) throw new IllegalArgumentException("Usage: DECODE( expression , search , result [, search , result]... [, default] )")
       val argStrs = args.map(_.asString).mkString(", ")
-
       def asString: String = s"decodeUDF($argStrs)"
-    }
-
-    case class GET_A_BY_B(a: HiveExp, b: HiveExp) extends UDFHiveExpression(GetAbyBRegistration) {
-      val hasRollupExpression = true
-      val hasNumericOperation = true
-
-      def asString: String = s"getAbyB(${a.asString}, ${b.asString})"
-    }
-
-    case class GET_A_BY_B_PLUS_C(a: HiveExp, b: HiveExp, c: HiveExp) extends UDFHiveExpression(GetAbyBplusCRegistration) {
-      val hasRollupExpression = true
-      val hasNumericOperation = true
-
-      def asString: String = s"getAbyBplusC(${a.asString}, ${b.asString}, ${c.asString})"
-    }
-
-    case class GET_CONDITIONAL_A_BY_B(xGiven: HiveExp, xRequred: HiveExp, a: HiveExp, defaultA: HiveExp, b: HiveExp) extends UDFHiveExpression(GetConditionalAbyBRegistration) {
-      val hasRollupExpression = true
-      val hasNumericOperation = true
-
-      def asString: String = s"getConditionalAbyB(${xGiven.asString}, ${xRequred.asString}, ${a.asString}, ${defaultA.asString}, ${b.asString})"
     }
 
   }
