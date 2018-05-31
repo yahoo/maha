@@ -291,20 +291,21 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
         } else {
           val model = requestModelResult.model
           val curatorResult = CuratorResult(this, curatorConfig, None, requestModelResult)
-          if (model.dimCardinalityEstimate.isEmpty) {
-            val message = "No way to estimate dim cardinality for fact driven request!"
-            mahaRequestLogBuilder.logFailed(message)
-            withError(curatorConfig, GeneralError.from(parRequestLabel, message))
-          }
-          else if (model.dimCardinalityEstimate.get.intValue <= FACT_ONLY_LIMIT) {
-            val count = model.dimCardinalityEstimate.get.intValue
-            mahaRequestContext.mutableState.put(RowCountCurator.name, count)
-            mahaRequestLogBuilder.logSuccess()
-            withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
+          if (model.dimCardinalityEstimate.nonEmpty) {
+            if(model.dimCardinalityEstimate.get.intValue <= FACT_ONLY_LIMIT) {
+              val count = model.dimCardinalityEstimate.get.intValue
+              mahaRequestContext.mutableState.put(RowCountCurator.name, count)
+              mahaRequestLogBuilder.logSuccess()
+              withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
+            } else {
+              mahaRequestContext.mutableState.put(RowCountCurator.name, FACT_ONLY_LIMIT)
+              mahaRequestLogBuilder.logSuccess()
+              withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
+            }
           } else {
-            mahaRequestContext.mutableState.put(RowCountCurator.name, FACT_ONLY_LIMIT)
-            mahaRequestLogBuilder.logSuccess()
-            withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
+            val message = "No row count can be estimated without dim cardinality estimate"
+            mahaRequestLogBuilder.logFailed(message, Option(400))
+            withError(curatorConfig, GeneralError.from(parRequestLabel, message))
           }
         }
       }
