@@ -6,7 +6,7 @@ import java.io.OutputStream
 
 import com.fasterxml.jackson.core.{JsonEncoding, JsonGenerator}
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.yahoo.maha.core.query.{QueryRowList, RowList}
+import com.yahoo.maha.core.query.{InMemRowList, QueryRowList, RowList}
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{ColumnInfo, DimColumnInfo, Engine, FactColumnInfo}
 import com.yahoo.maha.service.RequestCoordinatorResult
@@ -178,6 +178,10 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
     jsonGenerator.writeFieldName("rows") // "rows":
     jsonGenerator.writeStartArray() // [
     val numColumns = rowList.columns.size
+    val rowListSize: Option[Int] = rowList match {
+      case inMemRowList: InMemRowList => Option(inMemRowList.size)
+      case _ => None
+    }
 
     rowList.foreach {
       row => {
@@ -191,6 +195,8 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
           jsonGenerator.writeObject(rowCountOption.get)
         } else if(reportingRequest.includeRowCount && row.aliasMap.contains(QueryRowList.ROW_COUNT_ALIAS)) {
           jsonGenerator.writeObject(row.getValue(QueryRowList.ROW_COUNT_ALIAS))
+        } else if(reportingRequest.includeRowCount && rowListSize.isDefined) {
+              jsonGenerator.writeObject(rowListSize.get)
         }
         jsonGenerator.writeEndArray()
       }

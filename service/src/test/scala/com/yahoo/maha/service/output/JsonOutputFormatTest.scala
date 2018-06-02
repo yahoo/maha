@@ -7,7 +7,7 @@ import java.util.Date
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.{CompleteRowList, QueryAttributes, QueryPipelineResult, QueryRowList}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.core.{Engine, OracleEngine, RequestModelResult}
+import com.yahoo.maha.core.{DruidEngine, Engine, OracleEngine, RequestModelResult}
 import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
@@ -63,6 +63,17 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val requestModel = mahaService.generateRequestModel(REGISTRY
       , reportingRequest
       , BucketParams(UserInfo("test", false))).toOption.get
+    val factory = registry.queryPipelineFactory.from(requestModel.model, QueryAttributes.empty)
+    val queryChain = factory.get.queryChain
+    val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)
+    (pse, factory.get, queryChain.drivingQuery, queryChain)
+  }
+
+  val (fd_pse, fd_queryPipeline, fd_query, fd_queryChain)  = {
+
+    val requestModel = mahaService.generateRequestModel(REGISTRY
+      , ReportingRequest.forceDruid(reportingRequest.copy(forceDimensionDriven = false, forceFactDriven = true))
+      , BucketParams(UserInfo("test", false), forceRevision = Option(1))).toOption.get
     val factory = registry.queryPipelineFactory.from(requestModel.model, QueryAttributes.empty)
     val queryChain = factory.get.queryChain
     val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)
@@ -236,5 +247,42 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val result = stringStream.toString()
     stringStream.close()
     assert(result === """{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,"Test Result",101]],"curators":{}}""")
+  }
+
+  test("Test JsonOutputFormat with DefaultCurator row count in row list for fact driven query") {
+
+    val rowList = CompleteRowList(fd_query)
+
+    val row = rowList.newRow
+    row.addValue("Student ID", 123)
+    row.addValue("Class ID", 234)
+    row.addValue("Section ID", 345)
+    row.addValue("Total Marks", 99)
+    rowList.addRow(row)
+
+    val queryPipelineResult = QueryPipelineResult(fd_queryPipeline, fd_queryChain, rowList, QueryAttributes.empty)
+    val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
+    val parRequestResult = ParRequestResult(Try(fd_queryPipeline), requestResult, None)
+    val requestModelResult = RequestModelResult(fd_query.queryContext.requestModel, None)
+    val defaultCurator = DefaultCurator()
+    val curatorResult1 = CuratorResult(defaultCurator, NoConfig, Option(parRequestResult), requestModelResult)
+
+    val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogBuilder, Set(FailingCurator.name))
+
+    val curatorResults= IndexedSeq(curatorResult1)
+
+    val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator)
+      , Map(DefaultCurator.name -> curatorResult1)
+      , Map.empty
+      , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get)
+      , mahaRequestContext)
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
+
+    val stringStream =  new StringStream()
+
+    jsonStreamingOutput.writeStream(stringStream)
+    val result = stringStream.toString()
+    stringStream.close()
+    assert(result === """{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,"Test Result",1]],"curators":{}}""")
   }
 }
