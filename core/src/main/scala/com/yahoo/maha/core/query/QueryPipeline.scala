@@ -500,14 +500,14 @@ object DefaultQueryPipelineFactory extends Logging {
         var dc = bundles.filter(_.dim.engine == DruidEngine)
         if (dc.isEmpty) {
           dc = bundles.filter(_.dim.engine == OracleEngine)
-          require(dc.nonEmpty, s"No concrete dimension found for engine=$OracleEngine, schema=$schema, dim=${dc.head.dim.name}")
+          require(dc.nonEmpty, s"No concrete dimension found for engine=$OracleEngine, schema=$schema, dim=$name")
         }
         bestDimensionCandidates += dc.head
       case (name, bundles) =>
         var dc = bundles.filter(_.dim.engine == fact_engine)
         if (dc.isEmpty) {
           dc = bundles.filter(_.dim.engine == fact_engine)
-          require(dc.nonEmpty, s"No concrete dimension found for engine=$fact_engine, schema=$schema, dim=${dc.head.dim.name}")
+          require(dc.nonEmpty, s"No concrete dimension found for engine=$fact_engine, schema=$schema, dim=$name")
         }
         bestDimensionCandidates += dc.head
     }
