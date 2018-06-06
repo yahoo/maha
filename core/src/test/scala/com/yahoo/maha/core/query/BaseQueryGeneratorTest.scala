@@ -21,6 +21,7 @@ trait BaseQueryGeneratorTest {
 
   CoreSchema.register()
 
+  protected[this] val druidMultiQueryEngineList = DefaultQueryPipelineFactory.druidMultiQueryEngineList
   protected[this] val fromDate = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7))
   protected[this] val fromDateMinusOne = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(8))
   protected[this] val fromDateMinus10 = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7).minusDays(10))

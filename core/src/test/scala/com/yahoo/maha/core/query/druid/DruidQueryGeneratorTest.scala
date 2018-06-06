@@ -44,7 +44,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val requestModel = RequestModel.from(request, getDefaultRegistry())
     val dimMapping = DefaultQueryPipelineFactory.findDimCandidatesMapping(requestModel.get)
-    val dims = DefaultQueryPipelineFactory.findBestDimCandidates(DruidEngine, requestModel.get.schema, dimMapping)
+    val dims = DefaultQueryPipelineFactory.findBestDimCandidates(DruidEngine, requestModel.get.schema, dimMapping, DefaultQueryPipelineFactory.druidMultiQueryEngineList)
     val queryContext = new QueryContextBuilder(DimOnlyQuery, requestModel.get).addDimTable(dims).build()
     val druidQueryGenerator = getDruidQueryGenerator
     intercept[UnsupportedOperationException] {
