@@ -329,7 +329,7 @@ public class KafkaManager {
     public void handleMissingLookup(InMemoryDBExtractionNamespace extractionNamespace, String dimension) {
         try {
             ProducerRecord<String, byte[]> producerRecord =
-                    new ProducerRecord<>(extractionNamespace.getMissingLookupKafkaTopic(), dimension, dimension.getBytes());
+                    new ProducerRecord<>(extractionNamespace.getMissingLookupKafkaTopic(), dimension, extractionNamespace.getNamespace().getBytes());
             kafkaProducer.send(producerRecord);
         } catch (Exception e) {
             log.error(e, "caught exception while writing dimension: [%s] to missingLookupTopic: [%s]",  dimension, extractionNamespace.getMissingLookupKafkaTopic());
