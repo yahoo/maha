@@ -16,6 +16,7 @@ import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
 import com.metamx.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.KafkaManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
@@ -39,14 +40,16 @@ public class InMemoryDBLookupExtractor extends LookupExtractor
     private RocksDBManager rocksDBManager;
     private LookupService lookupService;
     private ProtobufSchemaFactory protobufSchemaFactory;
+    private KafkaManager kafkaManager;
 
     public InMemoryDBLookupExtractor(InMemoryDBExtractionNamespace extractionNamespace, Map<String, String> map,
-                                     LookupService lookupService, RocksDBManager rocksDBManager,
+                                     LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
                                      ProtobufSchemaFactory protobufSchemaFactory)
     {
         this.extractionNamespace = extractionNamespace;
         this.map = Preconditions.checkNotNull(map, "map");
         this.rocksDBManager = rocksDBManager;
+        this.kafkaManager = kafkaManager;
         this.lookupService = lookupService;
         this.protobufSchemaFactory = protobufSchemaFactory;
     }
@@ -90,6 +93,7 @@ public class InMemoryDBLookupExtractor extends LookupExtractor
             }
 
             if (cacheByteValue == null || cacheByteValue.length == 0) {
+                kafkaManager.handleMissingLookup(extractionNamespace, dimension);
                 return null;
             }
 

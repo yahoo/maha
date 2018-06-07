@@ -18,6 +18,7 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamesp
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.KafkaManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
@@ -71,6 +72,8 @@ public abstract class MahaExtractionCacheManager
     LookupService lookupService;
     @Inject
     RocksDBManager rocksDBManager;
+    @Inject
+    KafkaManager kafkaManager;
     @Inject
     ProtobufSchemaFactory protobufSchemaFactory;
 
@@ -412,7 +415,7 @@ public abstract class MahaExtractionCacheManager
         if(extractionNamespace instanceof JDBCExtractionNamespace) {
             return new JDBCLookupExtractor((JDBCExtractionNamespace)extractionNamespace, map, lookupService);
         } else if(extractionNamespace instanceof InMemoryDBExtractionNamespace) {
-            return new InMemoryDBLookupExtractor((InMemoryDBExtractionNamespace) extractionNamespace, map, lookupService, rocksDBManager, protobufSchemaFactory);
+            return new InMemoryDBLookupExtractor((InMemoryDBExtractionNamespace) extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory);
         } else {
             return new MapLookupExtractor(map, false);
         }
