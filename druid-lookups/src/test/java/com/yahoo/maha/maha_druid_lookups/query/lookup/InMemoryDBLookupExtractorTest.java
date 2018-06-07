@@ -80,6 +80,8 @@ public class InMemoryDBLookupExtractorTest {
         String lookupValue = InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
         verify(kafkaManager, times(1)).handleMissingLookup(extractionNamespace, "abc");
         Assert.assertNull(lookupValue);
+        InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
+        verify(kafkaManager, times(1)).handleMissingLookup(extractionNamespace, "abc");
     }
 
     @Test
