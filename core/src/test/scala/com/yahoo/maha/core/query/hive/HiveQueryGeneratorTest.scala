@@ -1267,6 +1267,44 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
+  test("Engagement Rate") {
+      val jsonString =
+        s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Ad Status",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Campaign Name"
+                             },
+                             {
+                               "field": "Campaign ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                                "field": "Engagement Rate",
+                                "alias": null,
+                                "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+      val result = generateHiveQuery(jsonString)
+      println(result)
+  }
+
   def generateHiveQuery(requestJson: String): String = {
     val requestRaw = ReportingRequest.deserializeAsync(requestJson.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = getDefaultRegistry()
