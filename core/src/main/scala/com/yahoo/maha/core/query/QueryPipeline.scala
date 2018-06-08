@@ -995,6 +995,7 @@ OuterGroupBy operation has to be applied only in the following cases
               require(factBestCandidateResult.nonEmpty, "Failed to find fact best candidate!")
             }
           }
+          require(candidatesFound, "Failed to find best candidates")
           (factBestCandidate, bestDimCandidates)
         } else {
           findBestCandidates(requestModel, Set.empty)
