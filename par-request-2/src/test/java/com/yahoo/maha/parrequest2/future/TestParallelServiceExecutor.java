@@ -2,31 +2,18 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.parrequest2.future;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.yahoo.maha.parrequest2.GeneralError;
 import com.yahoo.maha.parrequest2.Nothing;
 import com.yahoo.maha.parrequest2.ParCallable;
-
 import com.yahoo.maha.parrequest2.RetryAnalyzerImpl;
-import com.yahoo.maha.parrequest2.future.CombinableRequest;
-import com.yahoo.maha.parrequest2.future.NoopRequest;
-import com.yahoo.maha.parrequest2.future.ParFunction;
-import com.yahoo.maha.parrequest2.future.ParRequest;
-import com.yahoo.maha.parrequest2.future.ParRequest2;
-import com.yahoo.maha.parrequest2.future.ParRequest2Option;
-import com.yahoo.maha.parrequest2.future.ParRequest3;
-import com.yahoo.maha.parrequest2.future.ParRequest3Option;
-import com.yahoo.maha.parrequest2.future.ParRequest4;
-import com.yahoo.maha.parrequest2.future.ParRequest5;
-import com.yahoo.maha.parrequest2.future.ParRequest6;
-import com.yahoo.maha.parrequest2.future.ParRequestListOption;
-import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor;
 import org.testng.ITestContext;
 import org.testng.ITestNGMethod;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
-
 import scala.*;
 import scala.util.Either;
 import scala.util.Right;
@@ -951,6 +938,26 @@ public class TestParallelServiceExecutor {
     @Test
     public void testImmediateResultWithEither() throws Exception {
         ParRequest<String> request = executor.immediateResult("testImmediateResultWithEither", GeneralError.either("testImmediateResultWithEither", "error"));
+        Either<GeneralError, String> result = request.get();
+        assertTrue(result.isLeft());
+        assertTrue(result.left().get().message.equals("error"));
+    }
+
+    @Test
+    public void testFromFutureSuccess() throws Exception {
+        Either<GeneralError, String> expected = new Right<>("success");
+        ListenableFuture<Either<GeneralError, String>> listenableFuture = Futures.immediateFuture(expected);
+        ParRequest<String> request = executor.fromFuture("testImmediateResultWithEither", listenableFuture);
+        Either<GeneralError, String> result = request.get();
+        assertTrue(result.isRight());
+        assertTrue(result.right().get().equals("success"));
+    }
+
+    @Test
+    public void testFromFutureFailure() throws Exception {
+        Either<GeneralError, String> expected = GeneralError.either("fail", "error");
+        ListenableFuture<Either<GeneralError, String>> listenableFuture = Futures.immediateFuture(expected);
+        ParRequest<String> request = executor.fromFuture("testImmediateResultWithEither", listenableFuture);
         Either<GeneralError, String> result = request.get();
         assertTrue(result.isLeft());
         assertTrue(result.left().get().message.equals("error"));

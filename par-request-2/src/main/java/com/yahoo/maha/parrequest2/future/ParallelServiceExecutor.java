@@ -448,4 +448,9 @@ public class ParallelServiceExecutor {
         checkNotNull(t, "result is null");
         return new ParRequest<T>(label, this, Futures.immediateFuture(t));
     }
+
+    public <T> ParRequest<T> fromFuture(String label, ListenableFuture<Either<GeneralError, T>> future) {
+        checkNotNull(future, "future is null");
+        return new ParRequest<T>(label, this, future);
+    }
 }
