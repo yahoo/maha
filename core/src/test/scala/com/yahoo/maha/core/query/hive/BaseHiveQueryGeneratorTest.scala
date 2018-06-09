@@ -368,6 +368,7 @@ trait BaseHiveQueryGeneratorTest
           //          , FactCol("Average CPC", DecType(), OracleCustomRollup("{spend}" / "{clicks}"))
           , FactCol("CTR", DecType(), HiveCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , HiveDerFactCol("Engagement Rate", DecType(), "100" * TEST_MATH_UDF("{engagement_count}", "{impressions}"), rollupExpression = NoopRollup)
+          , HiveDerFactCol("Paid Engagement Rate", DecType(), "100" * TEST_MATH_UDAF("{engagement_count}", "0", "0", "{clicks}", "{impressions}"), rollupExpression = NoopRollup)
           , HiveDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}")
           , HiveDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100")
           , HiveDerFactCol("N Spend", DecType(), DECODE("{stats_source}", "1", "{spend}", "0.0"))
@@ -402,6 +403,7 @@ trait BaseHiveQueryGeneratorTest
           PublicFactCol("avg_pos", "Average Position", Set.empty),
           PublicFactCol("max_bid", "Max Bid", Set.empty),
           PublicFactCol("Engagement Rate", "Engagement Rate", InBetweenEquality),
+          PublicFactCol("Paid Engagement Rate", "Paid Engagement Rate", InBetweenEquality),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
           PublicFactCol("CTR", "CTR", InBetweenEquality),
@@ -427,6 +429,10 @@ trait BaseHiveQueryGeneratorTest
     val statement: String = "CREATE TEMPORARY FUNCTION mathUDF as 'com.yahoo.maha.query.hive.udf.TestMathUDF';"
   }
 
+  case object TestMathUDAFRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION mathUDAF as 'com.yahoo.maha.query.hive.udf.TestMathUDAF';"
+  }
+
   object UDFHiveExpression {
 
     import HiveExpression._
@@ -436,6 +442,7 @@ trait BaseHiveQueryGeneratorTest
     uDFRegistrationFactory.register(TestDateUDFRegistration)
     uDFRegistrationFactory.register(TestDecodeUDFRegistration)
     uDFRegistrationFactory.register(TestMathUDFRegistration)
+    uDFRegistrationFactory.register(TestMathUDAFRegistration)
 
 
     case class TEST_DATE_UDF(s: HiveExp, fmt: String) extends UDFHiveExpression(TestDateUDFRegistration) {
@@ -447,7 +454,7 @@ trait BaseHiveQueryGeneratorTest
     }
 
     case class DECODE(args: HiveExp*) extends UDFHiveExpression(TestDecodeUDFRegistration) {
-      val hasRollupExpression = true
+      val hasRollupExpression = args.exists(_.hasRollupExpression)
       val hasNumericOperation = args.exists(_.hasNumericOperation)
       if (args.length < 3) throw new IllegalArgumentException("Usage: DECODE( expression , search , result [, search , result]... [, default] )")
       val argStrs = args.map(_.asString).mkString(", ")
@@ -459,6 +466,13 @@ trait BaseHiveQueryGeneratorTest
       val hasNumericOperation = args.exists(_.hasNumericOperation)
       val argStrs = args.map(_.asString).mkString(", ")
       def asString: String = s"mathUDF($argStrs)"
+    }
+
+    case class TEST_MATH_UDAF(args: HiveExp*) extends UDFHiveExpression(TestDecodeUDFRegistration) {
+      val hasRollupExpression = true
+      val hasNumericOperation = args.exists(_.hasNumericOperation)
+      val argStrs = args.map(_.asString).mkString(", ")
+      def asString: String = s"mathUDAF($argStrs)"
     }
 
   }
