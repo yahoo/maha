@@ -24,7 +24,8 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
       case FactQueryContext(factBestCandidate, model, indexAliasOption, attributes) =>
         generateQuery(CombinedQueryContext(SortedSet.empty, factBestCandidate, model, attributes))
       case DimFactOuterGroupByQueryQueryContext(dims, factBestCandidate, model, attributes) =>
-        generateOuterGroupByQuery(CombinedQueryContext(dims, factBestCandidate, model, attributes))
+        generateQuery(CombinedQueryContext(dims, factBestCandidate, model, attributes))
+        //generateOuterGroupByQuery(CombinedQueryContext(dims, factBestCandidate, model, attributes))
       case any => throw new UnsupportedOperationException(s"query context not supported : $any")
     }
   }
@@ -33,7 +34,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
     requestModel.orFilterMeta.isEmpty
   }
 
-  private[this] def generateOuterGroupByQuery(queryContext: CombinedQueryContext) : Query = {
+ /* private[this] def generateOuterGroupByQuery(queryContext: CombinedQueryContext) : Query = {
 
     val queryBuilderContext = new QueryBuilderContext
     val queryBuilder: QueryBuilder = new QueryBuilder(
@@ -332,6 +333,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
       IndexedSeq.empty
     )
   }
+*/
 
   private[this] def generateQuery(queryContext: CombinedQueryContext) : Query = {
 
