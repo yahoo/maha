@@ -1216,7 +1216,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
-  test("Successfully generated Outer Group By Query if NoopRollupp column requeted") {
+  test("Successfully generated Outer Group By Query if NoopRollupp column requested") {
     val jsonString =
       s"""{
                            "cube": "performance_stats",
@@ -1264,6 +1264,75 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
       |
       |GROUP BY c1.mang_campaign_name) outergroupby
       |)""".stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Successfully generated Outer Group By Query if NoopRollupp derived column is requested for non-derived source fields") {
+      val jsonString =
+        s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Ad Status",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Campaign Name"
+                             },
+                             {
+                               "field": "Campaign ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                                "field": "Engagement Rate",
+                                "alias": null,
+                                "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+      val result = generateHiveQuery(jsonString)
+      val expected = s"""SELECT CONCAT_WS(",",NVL(mang_ad_status, ''), NVL(mang_campaign_name, ''), NVL(campaign_id, ''), NVL(mang_spend, ''), NVL(mang_engagement_rate, ''))
+FROM(
+SELECT COALESCE(outergroupby.mang_ad_status, "NA") mang_ad_status, getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(campaign_id, 0L) as STRING) campaign_id, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend, CAST(ROUND(COALESCE(100 * mathUDF(engagement_count, impressions), 0L), 10) as STRING) mang_engagement_rate
+FROM(
+SELECT a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id,SUM(spend) spend,SUM(engagement_count) engagement_count,SUM(impressions) impressions
+FROM(SELECT ad_id, campaign_id, SUM(spend) spend, SUM(engagement_count) engagement_count, SUM(impressions) impressions
+FROM ad_fact1
+WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+GROUP BY ad_id, campaign_id
+
+       )
+af0
+LEFT OUTER JOIN (
+SELECT campaign_name AS mang_campaign_name, id c1_id
+FROM campaing_hive
+WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+)
+c1
+ON
+af0.campaign_id = c1.c1_id
+       LEFT OUTER JOIN (
+SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
+FROM ad_dim_hive
+WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+)
+a2
+ON
+af0.ad_id = a2.a2_id
+
+GROUP BY a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id) outergroupby
+)""".stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 

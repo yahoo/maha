@@ -45,6 +45,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
     val factViewAlias = queryBuilderContext.getAliasForTable(fact.name)
     val requestedCols = queryContext.requestModel.requestCols
     val columnAliasToColMap = new mutable.HashMap[String, Column]()
+    val columnNamesInOuterGroupBy: LinkedHashSet[String] = new mutable.LinkedHashSet[String]
     val outerGroupByAlias = "outergroupby"
 
     def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], factCandidate: FactBestCandidate): String = {
@@ -53,7 +54,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
         val finalExp = {
           if (col.isInstanceOf[FactColumn] && col.isDerivedColumn) {
             val rollupExpression = col.asInstanceOf[DerivedFactColumn].rollupExpression
-            if (rollupExpression.equals(NoopRollup)) {
+            if (rollupExpression.equals(NoopRollup) && columnNamesInOuterGroupBy.contains(finalAlias)) {
               finalAlias
             } else {
               val renderedDerived = col.asInstanceOf[DerivedFactColumn].derivedExpression.render(finalAlias, queryBuilderContext.getColAliasToFactColNameMap).toString
@@ -155,6 +156,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
         }
         columnsForGroupBySelect += referredAlias
         columnsForGroupBy += referredAlias
+        columnNamesInOuterGroupBy += referredAlias
       }
 
       def addDerivedFactColOuterGroupBy(alias: String, col: FactColumn): Unit = {
@@ -169,8 +171,10 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
               if (sourceCol.isDerivedColumn) {
                 if (rollupExpression.equals(NoopRollup)) { // Noop rollups should be expanded in outergroupby clause
                   renderColumnWithAlias(fact, sourceCol, alias, Set.empty, false)
-                  val renderedDerived = s"${queryBuilderContext.getFactColExpressionOrNameForAlias(alias)} ${renderColumnAlias(sourceCol.name)}"
+                  val finalAlias = renderColumnAlias(sourceCol.name)
+                  val renderedDerived = s"${queryBuilderContext.getFactColExpressionOrNameForAlias(alias)} $finalAlias"
                   columnsForGroupBySelect.add(renderedDerived)
+                  columnNamesInOuterGroupBy += finalAlias
                 } else {
                   addDerivedFactColOuterGroupBy(alias, sourceCol.asInstanceOf[DerivedFactColumn])
                 }
@@ -182,6 +186,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
                 }
                 val rollupExp = s"${renderRollupExpression(finalAlias, rollup)} $finalAlias"
                 columnsForGroupBySelect += rollupExp
+                columnNamesInOuterGroupBy += finalAlias
               }
           }
         })
@@ -201,6 +206,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
               val finalAlias = queryBuilderContext.getFactColExpressionOrNameForAlias(alias)
               val rollupExp = s"${renderRollupExpression(finalAlias, rollup)} $finalAlias"
               columnsForGroupBySelect += rollupExp
+              columnNamesInOuterGroupBy += finalAlias
             }
           }
         case DimColumnInfo(alias) =>
