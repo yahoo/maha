@@ -24,7 +24,8 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
       case FactQueryContext(factBestCandidate, model, indexAliasOption, attributes) =>
         generateQuery(CombinedQueryContext(SortedSet.empty, factBestCandidate, model, attributes))
       case DimFactOuterGroupByQueryQueryContext(dims, factBestCandidate, model, attributes) =>
-        generateOuterGroupByQuery(CombinedQueryContext(dims, factBestCandidate, model, attributes))
+        //generateOuterGroupByQuery(CombinedQueryContext(dims, factBestCandidate, model, attributes))
+        generateQuery(CombinedQueryContext(dims, factBestCandidate, model, attributes))
       case any => throw new UnsupportedOperationException(s"query context not supported : $any")
     }
   }
