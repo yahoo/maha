@@ -403,6 +403,8 @@ trait QueryPipelineFactory {
 }
 
 object DefaultQueryPipelineFactory extends Logging {
+
+  val druidMultiQueryEngineList: Seq[Engine] = List(OracleEngine)
   private[this] def aLessThanBByLevelAndCostAndCardinality(a: (String, Engine, Long, Int, Int), b: (String, Engine, Long, Int, Int)): Boolean = {
     if (a._2 == b._2) {
       if (a._4 == b._4) {
@@ -493,23 +495,42 @@ object DefaultQueryPipelineFactory extends Logging {
     }
   }
 
-  def findBestDimCandidates(fact_engine: Engine, schema: Schema, dimMapping: Map[String, SortedSet[DimensionBundle]]) : SortedSet[DimensionBundle] = {
+  def findBestDimCandidates(factEngine: Engine, schema: Schema, dimMapping: Map[String, SortedSet[DimensionBundle]], druidMultiQueryEngineList:Seq[Engine]) : SortedSet[DimensionBundle] = {
     val bestDimensionCandidates = new mutable.TreeSet[DimensionBundle]
-    dimMapping.foreach {
-      case (name, bundles) if fact_engine == DruidEngine =>
+    //we special case druid for multi engine support
+    if(factEngine == DruidEngine) {
+      val iter = dimMapping.iterator
+      while(iter.hasNext) {
+        val (name, bundles) = iter.next()
+        //find druid first
         var dc = bundles.filter(_.dim.engine == DruidEngine)
-        if (dc.isEmpty) {
-          dc = bundles.filter(_.dim.engine == OracleEngine)
-          require(dc.nonEmpty, s"No concrete dimension found for engine=$OracleEngine, schema=$schema, dim=${dc.head.dim.name}")
+        //find supported druid multi engine next
+        if(dc.isEmpty) {
+          druidMultiQueryEngineList.exists {
+            engine =>
+              dc = bundles.filter(_.dim.engine == engine)
+              dc.nonEmpty
+          }
+        }
+        if(dc.isEmpty) {
+          //if no candidate found, we return empty set
+          warn(s"No concrete dimension found for factEngine=$factEngine, schema=$schema, dim=$name")
+          return SortedSet.empty
         }
         bestDimensionCandidates += dc.head
-      case (name, bundles) =>
-        var dc = bundles.filter(_.dim.engine == fact_engine)
-        if (dc.isEmpty) {
-          dc = bundles.filter(_.dim.engine == fact_engine)
-          require(dc.nonEmpty, s"No concrete dimension found for engine=$fact_engine, schema=$schema, dim=${dc.head.dim.name}")
+      }
+    } else {
+      val iter = dimMapping.iterator
+      while(iter.hasNext) {
+        val (name, bundles) = iter.next()
+        var dc = bundles.filter(_.dim.engine == factEngine)
+        if(dc.isEmpty) {
+          //if no candidate found, we return empty set
+          warn(s"No concrete dimension found for factEngine=$factEngine, schema=$schema, dim=$name")
+          return SortedSet.empty
         }
         bestDimensionCandidates += dc.head
+      }
     }
     bestDimensionCandidates
   }
@@ -598,7 +619,7 @@ object DefaultQueryPipelineFactory extends Logging {
   }
 }
 
-class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGeneratorRegistry) extends QueryPipelineFactory with Logging {
+class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGeneratorRegistry, druidMultiQueryEngineList: Seq[Engine] = DefaultQueryPipelineFactory.druidMultiQueryEngineList) extends QueryPipelineFactory with Logging {
 
   private[this] def getDimOnlyQuery(bestDimCandidates: SortedSet[DimensionBundle], requestModel: RequestModel): Query = {
     val dimOnlyContextBuilder = QueryContext
@@ -736,7 +757,7 @@ OuterGroupBy operation has to be applied only in the following cases
   }
 
   protected def findBestDimCandidates(requestModel: RequestModel, factEngine: Engine, dimMapping: Map[String, SortedSet[DimensionBundle]]): SortedSet[DimensionBundle] = {
-    DefaultQueryPipelineFactory.findBestDimCandidates(factEngine, requestModel.schema, dimMapping)
+    DefaultQueryPipelineFactory.findBestDimCandidates(factEngine, requestModel.schema, dimMapping, druidMultiQueryEngineList)
   }
 
   protected def findDimCandidatesMapping(requestModel: RequestModel) : Map[String, SortedSet[DimensionBundle]] = {
@@ -945,7 +966,41 @@ OuterGroupBy operation has to be applied only in the following cases
     }
 
     Try {
-      val (factBestCandidateOption, bestDimCandidates) = findBestCandidates(requestModel, Set.empty)
+      val (factBestCandidateOption, bestDimCandidates) = {
+        //if we have fact candidates, then we must always have a fact best candidate defined
+        if(requestModel.bestCandidates.nonEmpty) {
+          val isDimCandidatesRequired = requestModel.dimensionsCandidates.nonEmpty
+          var factEngines: Set[Engine] = requestModel.bestCandidates.get.facts.values.map(_.fact.engine).toSet
+          var disqualifySet: Set[Engine] = Set.empty
+          var candidatesFound : Boolean = false
+          var factBestCandidate: Option[FactBestCandidate] = None
+          var bestDimCandidates: SortedSet[DimensionBundle] = SortedSet.empty
+          while(factEngines.nonEmpty && !candidatesFound) {
+            val (factBestCandidateResult, bestDimCandidatesResult) = findBestCandidates(requestModel, disqualifySet)
+            factBestCandidate = factBestCandidateResult
+            bestDimCandidates = bestDimCandidatesResult
+            if(factBestCandidateResult.isDefined) {
+              if(isDimCandidatesRequired) {
+                if(bestDimCandidatesResult.isEmpty) {
+                  val disqualifyEngine = factBestCandidateResult.get.fact.engine
+                  factEngines -= disqualifyEngine
+                  disqualifySet += disqualifyEngine
+                } else {
+                  candidatesFound = true
+                }
+              } else {
+                candidatesFound = true
+              }
+            } else {
+              require(factBestCandidateResult.nonEmpty, "Failed to find fact best candidate!")
+            }
+          }
+          require(candidatesFound, "Failed to find best candidates")
+          (factBestCandidate, bestDimCandidates)
+        } else {
+          findBestCandidates(requestModel, Set.empty)
+        }
+      }
 
       val isMetricsOnlyViewQuery = factBestCandidateOption.isDefined && factBestCandidateOption.get.fact.isInstanceOf[ViewTable] && bestDimCandidates.isEmpty
       val isMultiEngineQuery = (factBestCandidateOption.isDefined
