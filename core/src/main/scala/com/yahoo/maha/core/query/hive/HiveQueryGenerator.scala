@@ -25,7 +25,6 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
         generateQuery(CombinedQueryContext(SortedSet.empty, factBestCandidate, model, attributes))
       case DimFactOuterGroupByQueryQueryContext(dims, factBestCandidate, model, attributes) =>
         generateOuterGroupByQuery(CombinedQueryContext(dims, factBestCandidate, model, attributes))
-        //generateQuery(CombinedQueryContext(dims, factBestCandidate, model, attributes))
       case any => throw new UnsupportedOperationException(s"query context not supported : $any")
     }
   }
@@ -162,7 +161,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
 
       def addDerivedFactColOuterGroupBy(alias: String, col: FactColumn): Unit = {
         if (col.asInstanceOf[DerivedFactColumn].derivedExpression.expression.hasRollupExpression) {
-          // This is derived column with aggregate expression (like a UDAF)
+          // This is a derived column with aggregate expression (eg UDAF)
           renderColumnWithAlias(fact, col, alias, Set.empty, false)
           val finalAlias = renderColumnAlias(col.name)
           val renderedDerived = s"${queryBuilderContext.getFactColExpressionOrNameForAlias(alias)} $finalAlias"
