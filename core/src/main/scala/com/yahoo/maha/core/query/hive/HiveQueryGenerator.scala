@@ -34,7 +34,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
     requestModel.orFilterMeta.isEmpty
   }
 
-  private[this] def generateOuterGroupByQuery(queryContext: CombinedQueryContext) : Query = {
+/*  private[this] def generateOuterGroupByQuery(queryContext: CombinedQueryContext) : Query = {
 
     val queryBuilderContext = new QueryBuilderContext
     val queryBuilder: QueryBuilder = new QueryBuilder(
@@ -324,6 +324,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
       IndexedSeq.empty
     )
   }
+  */
 
   private[this] def generateQuery(queryContext: CombinedQueryContext) : Query = {
 
