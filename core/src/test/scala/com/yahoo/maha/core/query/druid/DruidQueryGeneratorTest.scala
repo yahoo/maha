@@ -1517,7 +1517,6 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "cube": "k_stats",
                           "selectFields": [
                             {"field": "Keyword ID"},
-                            {"field": "Keyword Value"},
                             {"field": "Source"},
                             {"field": "Clicks"},
                             {"field": "CTR"},
@@ -1554,7 +1553,6 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "cube": "k_stats",
                           "selectFields": [
                             {"field": "Keyword ID"},
-                            {"field": "Keyword Value"},
                             {"field": "Source"},
                             {"field": "Clicks"},
                             {"field": "CTR"},
