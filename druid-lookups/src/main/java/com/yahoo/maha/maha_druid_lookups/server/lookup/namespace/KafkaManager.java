@@ -21,7 +21,12 @@ import io.druid.guice.ManageLifecycle;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
@@ -54,6 +59,8 @@ public class KafkaManager {
 
     private final ProtobufSchemaFactory protobufSchemaFactory;
 
+    private KafkaProducer<String, byte[]> kafkaProducer;
+
     @Inject
     public KafkaManager(Provider<MahaExtractionCacheManager> namespaceExtractionCacheManager,
                         @Named("kafkaProperties") final Properties kafkaProperties,
@@ -61,6 +68,15 @@ public class KafkaManager {
         this.kafkaProperties.putAll(kafkaProperties);
         this.namespaceExtractionCacheManager = namespaceExtractionCacheManager;
         this.protobufSchemaFactory = protobufSchemaFactory;
+        final Properties properties = new Properties();
+        properties.putAll(kafkaProperties);
+        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
+        properties.put(ProducerConfig.ACKS_CONFIG, kafkaProperties.getProperty("retries", "0"));
+        properties.put(ProducerConfig.RETRIES_CONFIG, kafkaProperties.getProperty("acks", "0"));
+        properties.put(ProducerConfig.BUFFER_MEMORY_CONFIG, kafkaProperties.getProperty("buffer.memory", "1048576"));
+        properties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, kafkaProperties.getProperty("max.block.ms", "1000"));
+        this.kafkaProducer = new KafkaProducer<>(properties);
     }
 
     private void updateRocksDB(final Parser<Message> parser, final Descriptors.Descriptor descriptor,
@@ -311,6 +327,16 @@ public class KafkaManager {
         @Override
         public Boolean call() {
             return true;
+        }
+    }
+
+    public void handleMissingLookup(InMemoryDBExtractionNamespace extractionNamespace, String dimension) {
+        try {
+            ProducerRecord<String, byte[]> producerRecord =
+                    new ProducerRecord<>(extractionNamespace.getMissingLookupKafkaTopic(), dimension, extractionNamespace.getNamespace().getBytes());
+            kafkaProducer.send(producerRecord);
+        } catch (Exception e) {
+            log.error(e, "caught exception while writing dimension: [%s] to missingLookupTopic: [%s]",  dimension, extractionNamespace.getMissingLookupKafkaTopic());
         }
     }
 }

@@ -71,7 +71,7 @@ public class InMemoryDBExtractionNamespaceCacheFactoryTest {
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
             InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
-                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated"
+                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", "some_missing_lookup_topic"
             );
 
             Message msgFromKafka = AdProtos.Ad.newBuilder()
@@ -132,7 +132,7 @@ public class InMemoryDBExtractionNamespaceCacheFactoryTest {
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
             InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
-                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated"
+                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", "some_missing_lookup_topic"
             );
 
             Message msgFromKafka = AdProtos.Ad.newBuilder()
@@ -193,7 +193,7 @@ public class InMemoryDBExtractionNamespaceCacheFactoryTest {
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
             InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
-                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated"
+                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", "some_missing_lookup_topic"
             );
 
             byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080");
@@ -231,7 +231,7 @@ public class InMemoryDBExtractionNamespaceCacheFactoryTest {
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
             InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
-                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated"
+                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", "some_missing_lookup_topic"
             );
 
             byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080");
