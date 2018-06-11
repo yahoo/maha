@@ -85,6 +85,28 @@ public class InMemoryDBLookupExtractorTest {
     }
 
     @Test
+    public void handleMissingLookupShouldNotBeCalledWhenNotConfigured() throws Exception {
+
+        LookupService lookupService = mock(LookupService.class);
+        RocksDB db = mock(RocksDB.class);
+        RocksDBManager rocksDBManager = mock(RocksDBManager.class);
+        KafkaManager kafkaManager = mock(KafkaManager.class);
+        when(rocksDBManager.getDB(anyString())).thenReturn(db);
+
+        InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
+                "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", ""
+        );
+        Map<String, String> map = new HashMap<>();
+        InMemoryDBLookupExtractor InMemoryDBLookupExtractor = new InMemoryDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory());
+        MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
+        mahaLookupQueryElement1.setDimension("abc");
+        mahaLookupQueryElement1.setValueColumn("status");
+        String lookupValue = InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
+        verify(kafkaManager, times(0)).handleMissingLookup(extractionNamespace, "abc");
+        Assert.assertNull(lookupValue);
+    }
+
+    @Test
     public void testBuildWhenCacheValueIsNotNull() throws Exception{
 
         LookupService lookupService = mock(LookupService.class);

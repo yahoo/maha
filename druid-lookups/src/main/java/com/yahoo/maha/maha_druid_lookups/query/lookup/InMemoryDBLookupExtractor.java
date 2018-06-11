@@ -101,7 +101,7 @@ public class InMemoryDBLookupExtractor extends LookupExtractor
 
             if (cacheByteValue == null || cacheByteValue.length == 0) {
                 // No need to call handleMissingLookup if missing dimension is already present in missingLookupCache
-                if(missingLookupCache.getIfPresent(dimension) == null) {
+                if(!Strings.isNullOrEmpty(extractionNamespace.getMissingLookupKafkaTopic()) && missingLookupCache.getIfPresent(dimension) == null) {
                     kafkaManager.handleMissingLookup(extractionNamespace, dimension);
                     missingLookupCache.put(dimension, extractionNamespace.getNamespace());
                 }

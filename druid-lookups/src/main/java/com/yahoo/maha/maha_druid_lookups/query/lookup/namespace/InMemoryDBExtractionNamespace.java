@@ -57,7 +57,7 @@ public class InMemoryDBExtractionNamespace implements ExtractionNamespace {
                                          final String lookupName,
                                          @Nullable @JsonProperty(value = "tsColumn", required = false)
                                          final String tsColumn,
-                                         @NotNull @JsonProperty(value = "kafkaTopic", required = false)
+                                         @NotNull @JsonProperty(value = "missingLookupKafkaTopic", required = false)
                                              final String missingLookupKafkaTopic) {
         this.rocksDbInstanceHDFSPath = Preconditions.checkNotNull(rocksDbInstanceHDFSPath, "rocksDbInstanceHDFSPath");
         this.lookupAuditingHDFSPath = Preconditions.checkNotNull(lookupAuditingHDFSPath, "lookupAuditingHDFSPath");
