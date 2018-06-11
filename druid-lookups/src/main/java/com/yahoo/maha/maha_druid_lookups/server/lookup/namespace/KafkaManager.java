@@ -72,6 +72,10 @@ public class KafkaManager {
         properties.putAll(kafkaProperties);
         properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
+        properties.put(ProducerConfig.ACKS_CONFIG, kafkaProperties.getProperty("retries", "0"));
+        properties.put(ProducerConfig.RETRIES_CONFIG, kafkaProperties.getProperty("acks", "0"));
+        properties.put(ProducerConfig.BUFFER_MEMORY_CONFIG, kafkaProperties.getProperty("buffer.memory", "1048576"));
+        properties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, kafkaProperties.getProperty("max.block.ms", "1000"));
         this.kafkaProducer = new KafkaProducer<>(properties);
     }
 
