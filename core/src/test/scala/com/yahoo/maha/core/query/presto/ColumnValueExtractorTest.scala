@@ -24,12 +24,14 @@ class ColumnValueExtractorTest extends FunSuite with Matchers with BeforeAndAfte
     doReturn(BigDecimal.valueOf(0.2398374857887346875637538579)).when(rs).getObject(2)
     doReturn(null).when(rs).getObject(3)
     doThrow(new NumberFormatException).when(rs).getObject(4)
+    doReturn("null").when(rs).getObject(5)
 
     assert(columnValueExtractor.getBigDecimalSafely(rs, 0) == 1.23)
     assert(columnValueExtractor.getBigDecimalSafely(rs, 1) == 1)
     assert(columnValueExtractor.getBigDecimalSafely(rs, 2) == 0.2398374857887346875637538579)
     assert(columnValueExtractor.getBigDecimalSafely(rs, 3) == null)
     assert(columnValueExtractor.getBigDecimalSafely(rs, 4) == null)
+    assert(columnValueExtractor.getBigDecimalSafely(rs, 5) == null)
   }
 
   test("test getLongSafely") {

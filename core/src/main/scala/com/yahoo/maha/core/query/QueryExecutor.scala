@@ -103,7 +103,7 @@ class ColumnValueExtractor {
     val result = Try(resultSet.getObject(index))
     if(result.isFailure || result.get == null)
       return null
-    BigDecimal(result.get.toString)
+    Try(BigDecimal(result.get.toString)).getOrElse(null)
   }
 
   def getLongSafely(resultSet: ResultSet, index: Int) : Long = {
