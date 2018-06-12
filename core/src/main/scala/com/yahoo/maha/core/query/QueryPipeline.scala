@@ -833,13 +833,9 @@ OuterGroupBy operation has to be applied only in the following cases
                 queryAttributesBuilder.build
               }
               getMultiEngineDimQuery(bestDimCandidates, noRowCountRequestModel, indexAlias, injectedAttributes)
-            } else if(requestModel.isFactDriven) {
-              NoopQuery
             } else {
-              QueryChain.logger.info("No data returned from druid, re-running on alt engine with original request model")
-              //use original request model on rerun since no data returned from druid
-              val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(requestModel, Set(factBestCandidateOption.get.fact.engine))
-              getDimFactQuery(newBestDimCandidates, newFactBestCandidateOption.get, requestModel, queryAttributes)
+              QueryChain.logger.info("No data returned from druid, should run fallback query if there is one")
+              NoopQuery
             }
         }
 
