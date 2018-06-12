@@ -966,7 +966,8 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     val subQuery = pipeline.queryChain.subsequentQueryList.head.asInstanceOf[OracleQuery]
     assert(subQuery.aliasColumnMap.contains("Impressions"))
     assert(subQuery.aliasColumnMap.contains("Clicks"))
-    assert(subQuery.queryContext.requestModel.includeRowCount)
+    //the row count will come from the multi engine row count code path
+    assert(!subQuery.queryContext.requestModel.includeRowCount)
     assert(subQuery.queryContext.isInstanceOf[CombinedQueryContext], s"incorrect query context : ${subQuery.queryContext.getClass.getSimpleName}")
 
   }
