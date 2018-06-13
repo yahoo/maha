@@ -2,26 +2,66 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.curators
 
+import com.yahoo.maha.service.factory._
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.query._
-import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.core.request._
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
 import com.yahoo.maha.service.error.{MahaServiceBadRequestException, MahaServiceExecutionException}
 import com.yahoo.maha.service.utils.CuratorMahaRequestLogBuilder
-import com.yahoo.maha.service.{CuratorInjector, MahaRequestContext, MahaService, RequestResult}
+import com.yahoo.maha.service.{CuratorInjector, MahaRequestContext, MahaService, MahaServiceConfig, RequestResult}
 import grizzled.slf4j.Logging
+import org.json4s.{DefaultFormats, JValue}
+import org.json4s.scalaz.JsonScalaz
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
+import scalaz.{NonEmptyList, Validation}
+
+object TimeShiftConfig extends Logging {
+  implicit val formats: DefaultFormats.type = DefaultFormats
+
+  def parse(curatorJsonConfig: CuratorJsonConfig) : JsonScalaz.Result[TimeShiftConfig] = {
+    import _root_.scalaz.syntax.validation._
+
+    val config: JValue = curatorJsonConfig.json
+
+    val sortBy: Option[SortBy] = assignSortBy(config)
+
+    TimeShiftConfig(sortBy).successNel
+  }
+
+  private def assignSortBy(config: JValue): Option[SortBy] = {
+    val orderingResult : MahaServiceConfig.MahaConfigResult[Option[SortBy]] = fieldExtended[Option[SortBy]]("sortBy")(config)
+    if(orderingResult.isSuccess){
+      orderingResult.toOption.get
+    } else {
+      throw new IllegalArgumentException(orderingResult.toEither.left.get.head.message)
+    }
+  }
+
+  def from(curatorConfig: CuratorConfig): Option[TimeShiftConfig] = {
+    curatorConfig match {
+      case c:TimeShiftConfig =>
+        Option(c)
+      case a =>
+        error(s"Cannot convert ${a.getClass.getSimpleName} to TimeShiftConfig")
+        None
+    }
+  }
+}
+
+case class TimeShiftConfig(sortBy: Option[SortBy]) extends CuratorConfig
 
 object TimeShiftCurator {
   val name: String = "timeshift"
   val PREV_STRING: String = " Prev"
   val PCT_CHANGE_STRING: String = " Pct Change"
   val descOrdering = Ordering.fromLessThan((a: Double, b:Double) => a > b)
+  val ascOrdering = Ordering.fromLessThan((a: Double, b:Double) => a < b)
 }
 
 class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelValidator = NoopCuratorRequestModelValidator) extends Curator with Logging {
@@ -32,6 +72,14 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
   override val isSingleton: Boolean = true
   override def requiresDefaultCurator: Boolean = false
 
+  override def parseConfig(config: CuratorJsonConfig): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
+    val timeshiftConfigTry : JsonScalaz.Result[TimeShiftConfig] = TimeShiftConfig.parse(config)
+    Validation
+      .fromTryCatchNonFatal{
+        require(timeshiftConfigTry.isSuccess, "Must succeed in creating a timeshiftConfig " + timeshiftConfigTry)
+        timeshiftConfigTry.toOption.get}
+      .leftMap[JsonScalaz.Error](t => JsonScalaz.UncategorizedError("parseTimeShiftConfigValidation", t.getMessage, List.empty)).toValidationNel
+  }
   private[this] def getRequestModelForPreviousWindow(registryName: String,
                                                      bucketParams: BucketParams,
                                                      reportingRequest: ReportingRequest,
@@ -176,7 +224,7 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
                       , defaultWindowRequestModel
                       , defaultWindowRowList
                       , previousWindowRowList
-                      , dimensionKeySet)
+                      , dimensionKeySet, TimeShiftConfig.from(curatorConfig))
 
                     mahaRequestLogBuilder.logSuccess()
                     new Right(RequestResult(defaultWindowRequestResult.queryPipelineResult.copy(rowList = derivedRowList)))
@@ -209,11 +257,12 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
       , message, MahaServiceExecutionException(message, ge.throwableOption)))
   }
 
-  private[this] def createDerivedRowList( defaultWindowResult: QueryPipelineResult,
-                                          defaultWindowRequestModel: RequestModel,
-                                   defaultWindowRowList: InMemRowList,
-                                   previousWindowRowList: InMemRowList,
-                                   dimensionKeySet: Set[String]) : DerivedRowList = {
+  private[this] def createDerivedRowList(defaultWindowResult: QueryPipelineResult
+                                         , defaultWindowRequestModel: RequestModel
+                                         , defaultWindowRowList: InMemRowList
+                                         , previousWindowRowList: InMemRowList
+                                         , dimensionKeySet: Set[String]
+                                         , timeshiftConfig: Option[TimeShiftConfig]) : DerivedRowList = {
 
     val injectableColumns: ArrayBuffer[ColumnInfo] = new collection.mutable.ArrayBuffer[ColumnInfo]()
     defaultWindowRequestModel.bestCandidates.get.factColAliases
@@ -275,7 +324,25 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
 
     })
     //sort by first metric's pct change
-    val sortByAliasOption = injectableColumns.find(_.alias.contains(TimeShiftCurator.PCT_CHANGE_STRING)).map(_.alias)
+    var ordering = TimeShiftCurator.descOrdering
+    val sortByAliasOption = {
+      if(timeshiftConfig.isDefined && timeshiftConfig.get.sortBy.isDefined) {
+        val sortBy = timeshiftConfig.get.sortBy.get
+        val metricAlias = sortBy.field
+        if(defaultWindowRequestModel.requestColsSet(metricAlias)) {
+          sortBy.order match {
+            case ASC =>
+              ordering = TimeShiftCurator.ascOrdering
+            case _ =>
+          }
+          Option(metricAlias + TimeShiftCurator.PCT_CHANGE_STRING)
+        } else {
+          injectableColumns.find(_.alias.contains(TimeShiftCurator.PCT_CHANGE_STRING)).map(_.alias)
+        }
+      } else {
+        injectableColumns.find(_.alias.contains(TimeShiftCurator.PCT_CHANGE_STRING)).map(_.alias)
+      }
+    }
     val sortedList = {
       if(sortByAliasOption.isDefined && aliasMap.contains(sortByAliasOption.get)) {
         val sortByAlias = sortByAliasOption.get
@@ -288,7 +355,7 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
             } else {
               0D
             }
-        }(TimeShiftCurator.descOrdering)
+        }(ordering)
       } else {
         unsortedRows
       }
