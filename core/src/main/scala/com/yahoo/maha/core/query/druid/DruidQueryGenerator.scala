@@ -852,11 +852,35 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             de.sourceColumns.foreach {
               src =>
                 val sourceCol = fact.columnsByNameMap(src)
+                val name = sourceCol.alias.getOrElse(sourceCol.name)
                 if (!sourceCol.isDerivedColumn) {
-                  val name = sourceCol.alias.getOrElse(sourceCol.name)
-                  //check if we already added this column
-                  if (!aggregatorAliasSet(name)) {
-                    renderColumnWithAlias(fact, sourceCol, name, forPostAggregator = true)
+                  sourceCol match {
+                    case FactCol(_, _, _, rollup, _, _, _) => {
+                      rollup match {
+                        case DruidFilteredRollup(filter, _, re) => {
+                          re match {
+                            case DruidThetaSketchRollup => {
+                              if(queryContext.factBestCandidate.dimColMapping.contains(filter.field)) {
+                                //check if we already added this column
+                                if (!aggregatorAliasSet(name)) {
+                                  renderColumnWithAlias(fact, sourceCol, name, forPostAggregator = true)
+                                }
+                              }
+                            }
+                            case _ => {
+                              if (!aggregatorAliasSet(name)) {
+                                renderColumnWithAlias(fact, sourceCol, name, forPostAggregator = true)
+                              }
+                            }
+                          }
+                        }
+                        case _ => {
+                          if (!aggregatorAliasSet(name)) {
+                            renderColumnWithAlias(fact, sourceCol, name, forPostAggregator = true)
+                          }
+                        }
+                      }
+                    }
                   }
               }
             }

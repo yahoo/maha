@@ -765,7 +765,7 @@ object DruidExpression {
 
     def render(insideDerived: Boolean) = {
       (s: String, aggregatorNameAliasMap: Map[String, String]) => {
-        val postAggList = aggregatorsDruidExpressions.map(e => e.render(insideDerived)(e.fieldNamePlaceHolder,aggregatorNameAliasMap))
+        val postAggList = aggregatorsDruidExpressions.filter(de => aggregatorNameAliasMap.contains(de.fieldNamePlaceHolder)).map(e => e.render(insideDerived)(e.fieldNamePlaceHolder,aggregatorNameAliasMap))
         new SketchEstimatePostAggregator(s, new SketchSetPostAggregator(s, fn.toString, null, postAggList.asJava), null)
       }
     }
