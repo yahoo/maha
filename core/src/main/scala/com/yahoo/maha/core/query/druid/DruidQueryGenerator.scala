@@ -732,7 +732,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     }
 
     def getThetaSketchAggregatorFactory(outputFieldName: String, inputFieldName: String): AggregatorFactory = {
-      new SketchMergeAggregatorFactory(outputFieldName, inputFieldName, null, null, true, null)
+      new SketchMergeAggregatorFactory(outputFieldName, inputFieldName, null, null, false, null)
     }
 
     def getCountAggregatorFactory(dataType: DataType, outputFieldName: String): AggregatorFactory = {
@@ -745,8 +745,20 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     def getFilteredAggregatorFactory(dataType: DataType, rollup: RollupExpression, alias: String): AggregatorFactory = {
       val grainOption = Option(fact.grain)
       val druidFilteredRollup: DruidFilteredRollup = rollup.asInstanceOf[DruidFilteredRollup]
+
+      val filter: Filter = druidFilteredRollup.delegateAggregatorRollupExpression match {
+        case DruidThetaSketchRollup if queryContext.factBestCandidate.dimColMapping.contains(druidFilteredRollup.filter.field) => {
+          val publicFactFilterName: String = queryContext.factBestCandidate.dimColMapping(druidFilteredRollup.filter.field)
+          val publicFactFilter: Filter = queryContext.factBestCandidate.filters.filter(f => f.field.equals(publicFactFilterName)).head
+          publicFactFilter
+        }
+        case any => {
+          druidFilteredRollup.filter
+        }
+      }
+
       val dimFilter: DimFilter = FilterDruid.renderFilterDim(
-        druidFilteredRollup.filter,
+        filter,
         queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
         fact.columnsByNameMap, grainOption)
       new FilteredAggregatorFactory(getAggregatorFactory(dataType, druidFilteredRollup.delegateAggregatorRollupExpression,
