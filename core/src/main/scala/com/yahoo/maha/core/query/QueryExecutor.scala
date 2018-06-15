@@ -104,7 +104,6 @@ class ColumnValueExtractor extends Logging {
     if(result.isFailure || result.get == null)
       return null
     Try(BigDecimal(result.get.toString)).fold(throwable => {
-      warn(s"Invalid BigDecimal value: ${result.get}", throwable)
       null
     },value => value)
   }
