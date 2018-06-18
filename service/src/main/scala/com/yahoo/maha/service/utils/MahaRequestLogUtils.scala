@@ -64,6 +64,15 @@ case class CuratorMahaRequestLogHelper(delegate: BaseMahaRequestLogBuilder) exte
 
 object MahaRequestLogHelper {
   val logger: org.slf4j.Logger = LoggerFactory.getLogger(classOf[MahaRequestLogHelper])
+  val hostname:Option[String] = try {
+    import java.net.InetAddress
+    val addr = InetAddress.getLocalHost
+    Some(addr.getHostName)
+  } catch {
+    case e:Exception=>
+      logger.error(s"Failed to get hostname ${e.getMessage}", e)
+      None
+  }
 }
 case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequestLogWriter: MahaRequestLogWriter, curator: String = "none") extends MahaRequestLogBuilder {
 
@@ -75,6 +84,10 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
   protected def init(protoBuilder: MahaRequestProto.Builder) : Unit = {
     protoBuilder.setMahaServiceRegistryName(mahaRequestContext.registryName)
     protoBuilder.setRequestStartTime(mahaRequestContext.requestStartTime)
+
+    if(hostname.isDefined) {
+      protoBuilder.setMahaServiceHostname(hostname.get)
+    }
 
     val requestId = mahaRequestContext.requestId
     val userId = mahaRequestContext.userId
