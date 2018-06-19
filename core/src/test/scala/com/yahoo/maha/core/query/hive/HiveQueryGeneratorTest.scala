@@ -81,7 +81,6 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.toOption.get.factBestCandidate.get.filters.contains(sourceForceFilter), requestModel.errorMessage("Building request model failed"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-
   }
 
   test("Date type columns should be rendered with getFormattedDate udf in outer select") {
