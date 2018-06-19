@@ -12,7 +12,7 @@ import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.dimension._
-import com.yahoo.maha.core.fact._
+import com.yahoo.maha.core.fact.{DruidConstDerFactCol, PublicFactCol, _}
 import com.yahoo.maha.core.lookup.LongRangeLookup
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator, SyncDruidQueryOptimizer}
@@ -284,6 +284,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
     val tableOne  = {
       ColumnContext.withColumnContext {
+        import DruidExpression._
         implicit dc: ColumnContext =>
           Fact.newFactForView(
             "account_stats", DailyGrain, DruidEngine, Set(AdvertiserSchema, ResellerSchema),
@@ -300,6 +301,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
               FactCol("impressions", IntType(3, 1))
               , FactCol("clicks", IntType(3, 0, 1, 800))
               , FactCol("spend", DecType(0, "0.0"))
+              , DruidConstDerFactCol("Der Fact Col A", DecType(), "{clicks}" / "{impressions}", "1")
             )
           )
       }
@@ -307,6 +309,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
     val tableTwo  = {
       ColumnContext.withColumnContext {
+        import DruidExpression._
         implicit dc: ColumnContext =>
           Fact.newFactForView(
             "a_adjustments", DailyGrain, DruidEngine, Set(AdvertiserSchema, ResellerSchema),
@@ -323,6 +326,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
               FactCol("impressions", IntType(3, 1))
               , FactCol("clicks", IntType(3, 0, 1, 800))
               , FactCol("spend", DecType(0, "0.0"))
+              , DruidConstDerFactCol("Der Fact Col A", DecType(), "{clicks}" / "{impressions}", "0")
             )
           )
       }
@@ -331,6 +335,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
 
     ColumnContext.withColumnContext {
+      import DruidExpression._
       implicit dc: ColumnContext =>
         Fact.newUnionView(view, DailyGrain, DruidEngine, Set(AdvertiserSchema, ResellerSchema),
           Set(
@@ -346,6 +351,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
             FactCol("impressions", IntType(3, 1))
             , FactCol("clicks", IntType(3, 0, 1, 800))
             , FactCol("spend", DecType(0, "0.0"))
+            , DruidDerFactCol("Der Fact Col A", DecType(), "{clicks}" / "{impressions}")
           )
         )
     }
@@ -361,7 +367,8 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         Set(
           PublicFactCol("impressions", "Impressions", InBetweenEquality),
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
-          PublicFactCol("spend", "Spend", Set.empty)
+          PublicFactCol("spend", "Spend", Set.empty),
+          PublicFactCol("Der Fact Col A", "Der Fact Col A", InBetweenEquality)
         ), Set(EqualityFilter("Test Flag", "0", isForceFilter = true)),  getMaxDaysWindow, getMaxDaysLookBack
       )
   }
@@ -1887,6 +1894,9 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
          |      },
          |      {
          |         "field": "Spend"
+         |      },
+         |      {
+         |         "field": "Der Fact Col A"
          |      }
          |   ],
          |   "filterExpressions": [
@@ -1926,10 +1936,10 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     assert(result.isSuccess)
 
     val expectedSet = Set(
-    "Row(Map(Is Adjustment -> 2, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(184, 2012-01-01, N, 100, 15))"
-    ,"Row(Map(Is Adjustment -> 2, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(199, 2012-01-01, N, 100, 10))"
-    ,"Row(Map(Is Adjustment -> 2, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(184, 2012-01-01, Y, 100, 15))"
-    ,"Row(Map(Is Adjustment -> 2, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(199, 2012-01-01, Y, 100, 10))"
+    "Row(Map(Is Adjustment -> 2, Der Fact Col A -> 5, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(184, 2012-01-01, N, 100, 15, 1))"
+    ,"Row(Map(Is Adjustment -> 2, Der Fact Col A -> 5, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(199, 2012-01-01, N, 100, 10, 1))"
+    ,"Row(Map(Is Adjustment -> 2, Der Fact Col A -> 5, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(184, 2012-01-01, Y, 100, 15, 0))"
+    ,"Row(Map(Is Adjustment -> 2, Der Fact Col A -> 5, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(199, 2012-01-01, Y, 100, 10, 0))"
     )
     var count = 0
     result.get.rowList.foreach {
