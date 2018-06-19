@@ -418,6 +418,10 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
           val renderedAlias = renderColumnAlias(alias)
           queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
           name
+        case HiveDimCol(_, dt, _, _, _, _) =>
+          val renderedAlias = renderColumnAlias(alias)
+          queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
+          name
         case HiveDerDimCol(_, dt, _, de, _, _, _) =>
           val renderedAlias = renderColumnAlias(alias)
           queryBuilderContext.setFactColAlias(alias, renderedAlias, column)

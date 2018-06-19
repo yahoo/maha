@@ -214,7 +214,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val bucketParams = BucketParams(UserInfo("uid", true))
+    val bucketParams = BucketParams(UserInfo("uid", true), dryRunRevision = Some(1))
 
     val mahaRequestContext = MahaRequestContext(REGISTRY,
       bucketParams,

@@ -355,6 +355,7 @@ trait BaseHiveQueryGeneratorTest
           , DimCol("start_time", IntType())
           , DimCol("stats_date", DateType("YYYY-MM-dd"))
           , DimCol("show_flag", IntType())
+          , HiveDimCol("stats_hour", StrType())
           , HiveDerDimCol("Month", DateType(), TEST_DATE_UDF("{stats_date}", "M"))
           , HiveDerDimCol("Week", DateType(), TEST_DATE_UDF("{stats_date}", "W"))
         ),
@@ -385,6 +386,7 @@ trait BaseHiveQueryGeneratorTest
       .toPublicFact("performance_stats",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
+          PubCol("stats_hour", "Hour", InBetweenEquality),
           PubCol("ad_id", "Ad ID", InEquality),
           PubCol("ad_group_id", "Ad Group ID", InEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),
