@@ -29,11 +29,11 @@ trait FactColumn extends Column {
   val hasRollupWithEngineRequirement: Boolean = rollupExpression.isInstanceOf[EngineRequirement]
 }
 
+trait ConstFactColumn extends FactColumn with ConstColumn
+
 trait DerivedFactColumn extends FactColumn with DerivedColumn
 
-trait ConstDerivedFactColumn extends DerivedFactColumn {
-  def constantValue: String
-}
+trait ConstDerivedFactColumn extends DerivedFactColumn with ConstColumn
 
 trait PostResultDerivedFactColumn extends FactColumn with DerivedColumn with PostResultColumn {
   override val isDerivedColumn: Boolean = true
@@ -42,6 +42,8 @@ trait PostResultDerivedFactColumn extends FactColumn with DerivedColumn with Pos
 abstract class BaseFactCol extends FactColumn {
   columnContext.register(this)
 }
+
+abstract class BaseConstFactCol extends BaseFactCol with ConstFactColumn
 
 abstract class BaseDerivedFactCol extends BaseFactCol with DerivedFactColumn
 
@@ -114,7 +116,7 @@ case class ConstFactCol(name: String,
                    alias: Option[String],
                    annotations: Set[ColumnAnnotation],
                    filterOperationOverrides: Set[FilterOperation]
-                    ) extends BaseFactCol {
+                    ) extends BaseConstFactCol {
   override val isDerivedColumn: Boolean = false
   def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : FactColumn = {
     if(resetAliasIfNotPresent) {
