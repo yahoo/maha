@@ -216,7 +216,8 @@ case class ViewBaseTable private[fact](name: String
   val constantColNameToValueMap: Map[String, String] = {
     val dimColMap = dimCols.filter(_.isInstanceOf[ConstDimCol]).map(d=> d.name -> d.asInstanceOf[ConstDimCol].constantValue).toMap
     val factColMap = factCols.filter(_.isInstanceOf[ConstFactCol]).map(d=> d.name -> d.asInstanceOf[ConstFactCol].constantValue).toMap
-    dimColMap++factColMap
+    val derFactColMap = factCols.filter(_.isInstanceOf[ConstDerivedFactColumn]).map(d=> d.name -> d.asInstanceOf[ConstDerivedFactColumn].constantValue).toMap
+    dimColMap++factColMap++derFactColMap
   }
 
   val publicDimToForeignKeyMap : Map[String, String] =

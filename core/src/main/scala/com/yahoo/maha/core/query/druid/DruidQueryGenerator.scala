@@ -888,6 +888,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
         case ConstFactCol(_, dt, value, cc, rollup, _, annotations, _) =>
           //Handling Constant Cols in Post Process step in executor
+        case DruidConstDerFactCol(_, dt, value, _, cc, rollup, _, annotations, _) =>
+        //Handling Constant Derived Fact Cols in Post Process step in executor
         case DruidPostResultDerivedFactCol(_, _, dt, cc, de, annotations, rollup, _, prf) =>
           //this is a post aggregate but we need to add source columns
           de.sourceColumns.foreach {

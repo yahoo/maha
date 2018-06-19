@@ -76,6 +76,9 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , FactCol("avg_bid", DecType(0, "0.0"), AverageRollup)
           , FactCol("avg_pos_times_impressions", DecType(0, "0.0"), MaxRollup)
           , FactCol("engagement_count", IntType(0,0))
+          , ConstFactCol("const_a", IntType(0,0), "0")
+          , ConstFactCol("const_b", IntType(0,0), "0")
+          , DruidConstDerFactCol("Const Der Fact Col C", DecType(), "{const_a}" / "{const_b}", "0")
           , DruidDerFactCol("Average CPC", DecType(), "{spend}" / "{clicks}")
           , DruidDerFactCol("CTR", DecType(), "{clicks}" /- "{impressions}")
           , DruidDerFactCol("derived_avg_pos", DecType(3, "0.0", "0.1", "500"), "{avg_pos_times_impressions}" /- "{impressions}")
@@ -227,6 +230,9 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
         Set(
           PublicFactCol("impressions", "Impressions", InBetweenEquality),
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
+          PublicFactCol("const_a", "const_a", InBetweenEquality),
+          PublicFactCol("const_b", "const_b", InBetweenEquality),
+          PublicFactCol("Const Der Fact Col C", "Const Der Fact Col C", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),
           PublicFactCol("derived_avg_pos", "Average Position", Set.empty),
           PublicFactCol("max_bid", "Max Bid", Set.empty),
