@@ -616,6 +616,63 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     HiveQueryGenerator.register(failRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
   }
 
+  test("Successfully generate query with HiveDimCol") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                                "field": "Day",
+                                "alias": null,
+                                "value": null
+                             },
+                             {
+                               "field": "Hour",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val result = generateHiveQuery(jsonString)
+    val expected =
+      s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_day, ''), NVL(mang_hour, ''), NVL(mang_spend, ''))
+FROM(
+SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, getFormattedDate(stats_date) mang_day, COALESCE(stats_hour, "NA") mang_hour, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
+FROM(SELECT stats_hour, campaign_id, stats_date, SUM(spend) spend
+FROM ad_fact1
+WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+GROUP BY stats_hour, campaign_id, stats_date
+
+       )
+af0
+LEFT OUTER JOIN (
+SELECT campaign_name AS mang_campaign_name, id c1_id
+FROM campaing_hive
+WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+)
+c1
+ON
+af0.campaign_id = c1.c1_id
+       )""".stripMargin
+    println(result)
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
   /*
   // Outer Group By
   test("Successfully generated Outer Group By Query with dim non id field and fact field") {
