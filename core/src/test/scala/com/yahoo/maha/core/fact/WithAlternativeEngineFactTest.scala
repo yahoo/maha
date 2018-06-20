@@ -290,6 +290,39 @@ class WithAlternativeEngineFactTest extends BaseFactTest {
     }
     thrown.getMessage should startWith ("requirement failed: Override column cannot have static mapping :")
   }
+
+  test("withAlternativeEngine should succeed after discarding the given columns") {
+    val fact = fact1
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      fact.withAlternativeEngine(
+        "fact2",
+        "fact1",
+        OracleEngine,
+        maxDaysWindow = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)),
+        maxDaysLookBack = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)),
+        discarding = Set("stats_source"))
+    }
+    val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions", "Source"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
+    require(bcOption.isDefined, "Failed to get candidates!")
+    assert(bcOption.get.facts.values.exists( f => f.fact.name == "fact1") === true)
+    assert(bcOption.get.facts.values.exists( f => f.fact.name == "fact2") === false)
+  }
+
+  test("withAlternativeEngine should fail for invalid columns in discard set") {
+    val fact = fact1
+    val thrown = intercept[IllegalArgumentException] {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        fact.withAlternativeEngine(
+          "fact2",
+          "fact1",
+          OracleEngine,
+          maxDaysWindow = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)),
+          maxDaysLookBack = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)),
+          discarding = Set("invalid_column"))
+      }
+    }
+    thrown.getMessage should startWith ("requirement failed: Discarding columns should be present in fromTable")
+  }
 }
 
 
