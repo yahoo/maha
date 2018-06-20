@@ -29,7 +29,11 @@ trait FactColumn extends Column {
   val hasRollupWithEngineRequirement: Boolean = rollupExpression.isInstanceOf[EngineRequirement]
 }
 
+trait ConstFactColumn extends FactColumn with ConstColumn
+
 trait DerivedFactColumn extends FactColumn with DerivedColumn
+
+trait ConstDerivedFactColumn extends DerivedFactColumn with ConstColumn
 
 trait PostResultDerivedFactColumn extends FactColumn with DerivedColumn with PostResultColumn {
   override val isDerivedColumn: Boolean = true
@@ -39,7 +43,11 @@ abstract class BaseFactCol extends FactColumn {
   columnContext.register(this)
 }
 
+abstract class BaseConstFactCol extends BaseFactCol with ConstFactColumn
+
 abstract class BaseDerivedFactCol extends BaseFactCol with DerivedFactColumn
+
+abstract class BaseConstDerivedFactCol extends BaseFactCol with ConstDerivedFactColumn
 
 abstract class BasePostResultDerivedFactCol extends BaseFactCol with PostResultDerivedFactColumn
 
@@ -108,7 +116,7 @@ case class ConstFactCol(name: String,
                    alias: Option[String],
                    annotations: Set[ColumnAnnotation],
                    filterOperationOverrides: Set[FilterOperation]
-                    ) extends BaseFactCol {
+                    ) extends BaseConstFactCol {
   override val isDerivedColumn: Boolean = false
   def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : FactColumn = {
     if(resetAliasIfNotPresent) {
@@ -248,6 +256,38 @@ object DruidDerFactCol {
             rollupExpression: RollupExpression = SumRollup,
             filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) :  DruidDerFactCol = {
     DruidDerFactCol(name, alias, dataType, cc, derivedExpression, annotations, rollupExpression, filterOperationOverrides)
+  }
+}
+
+case class DruidConstDerFactCol(name: String,
+                           alias: Option[String],
+                           dataType: DataType,
+                           constantValue: String,
+                           columnContext: ColumnContext,
+                           derivedExpression: DruidDerivedExpression,
+                           annotations: Set[ColumnAnnotation],
+                           rollupExpression: RollupExpression,
+                           filterOperationOverrides: Set[FilterOperation]
+                          ) extends BaseConstDerivedFactCol with WithDruidEngine {
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : FactColumn = {
+    if(resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name), derivedExpression = derivedExpression.copyWith(columnContext))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias), derivedExpression = derivedExpression.copyWith(columnContext))
+    }
+  }
+}
+
+object DruidConstDerFactCol {
+  def apply(name: String,
+            dataType: DataType,
+            derivedExpression: DruidDerivedExpression,
+            constantValue: String,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            rollupExpression: RollupExpression = SumRollup,
+            filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) :  DruidConstDerFactCol = {
+    DruidConstDerFactCol(name, alias, dataType, constantValue, cc, derivedExpression, annotations, rollupExpression, filterOperationOverrides)
   }
 }
 
