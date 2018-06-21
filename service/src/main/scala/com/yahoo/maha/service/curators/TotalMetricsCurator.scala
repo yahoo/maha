@@ -1,19 +1,46 @@
+// Copyright 2018, Yahoo Holdings Inc.
+// Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.curators
 
+import com.yahoo.maha.core.request._
+import org.json4s.{DefaultFormats, JValue}
+import org.json4s.scalaz.JsonScalaz
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.utils.CuratorMahaRequestLogBuilder
-import com.yahoo.maha.service.{CuratorInjector, MahaRequestContext, MahaService, ParRequestResult}
+import com.yahoo.maha.service.{CuratorInjector, MahaRequestContext, MahaService, MahaServiceConfig, ParRequestResult}
 import grizzled.slf4j.Logging
 
 import scala.util.Try
+import scalaz.{NonEmptyList, Validation}
 
 /**
  * Created by pranavbhole on 09/04/18.
  */
+
+object TotalMetricsConfig extends Logging {
+  implicit val formats: DefaultFormats.type = DefaultFormats
+
+  def parse(curatorJsonConfig: CuratorJsonConfig) : JsonScalaz.Result[TotalMetricsConfig] = {
+
+    val config: JValue = curatorJsonConfig.json
+
+    val forceRevision: JsonScalaz.Result[Option[Int]] = extractForceRevision(config)
+
+    forceRevision.map(forceRevision => TotalMetricsConfig(forceRevision))
+  }
+
+  private def extractForceRevision(config: JValue): JsonScalaz.Result[Option[Int]] = {
+    fieldExtended[Option[Int]]("forceRevision")(config)
+  }
+
+}
+
+case class TotalMetricsConfig(forceRevision: Option[Int]) extends CuratorConfig
 object TotalMetricsCurator {
   val name = "totalmetrics"
 }
@@ -25,6 +52,15 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
   override val priority: Int = 2
   override val isSingleton: Boolean = false
   override val requiresDefaultCurator = true
+
+  override def parseConfig(config: CuratorJsonConfig): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
+    val totalMetricsConfigTry : JsonScalaz.Result[TotalMetricsConfig] = TotalMetricsConfig.parse(config)
+    Validation
+      .fromTryCatchNonFatal{
+        require(totalMetricsConfigTry.isSuccess, "Must succeed in creating a totalMetricsConfig " + totalMetricsConfigTry)
+        totalMetricsConfigTry.toOption.get}
+      .leftMap[JsonScalaz.Error](t => JsonScalaz.UncategorizedError("parseTotalMetricsConfigValidation", t.getMessage, List.empty)).toValidationNel
+  }
 
   override def process(resultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]]
                        , mahaRequestContext: MahaRequestContext
@@ -62,10 +98,18 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
       logger.info(s"totalmetrics request : ${new String(ReportingRequest.serialize(totalMetricsReportingRequest))}")
     }
 
+    val bucketParams: BucketParams = {
+      curatorConfig match {
+        case TotalMetricsConfig(totalMetricsForceRevision) if totalMetricsForceRevision.isDefined =>
+          mahaRequestContext.bucketParams.copy(forceRevision = totalMetricsForceRevision)
+        case _ =>
+          mahaRequestContext.bucketParams
+      }
+    }
     val totalMetricsRequestModelResultTry: Try[RequestModelResult] = mahaService.generateRequestModel(
       mahaRequestContext.registryName
       , totalMetricsReportingRequest
-      , mahaRequestContext.bucketParams)
+      , bucketParams)
     if(totalMetricsRequestModelResultTry.isFailure) {
       val message = totalMetricsRequestModelResultTry.failed.get.getMessage
       mahaRequestLogBuilder.logFailed(message)

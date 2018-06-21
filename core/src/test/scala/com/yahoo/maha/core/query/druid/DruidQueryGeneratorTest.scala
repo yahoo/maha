@@ -1593,6 +1593,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val jsonString = s"""{
                           "cube": "k_stats_minute_grain",
                           "selectFields": [
+                            {"field": "Week"},
                             {"field": "Keyword ID"},
                             {"field": "Keyword Value"},
                             {"field": "Source"},
@@ -1621,7 +1622,10 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    
+
+    val expectectDimensionsJson = """"dimensions":[{"type":"extraction","dimension":"statsDate","outputName":"Week","outputType":"STRING","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"w"}},{"type":"default","dimension":"stats_source","outputName":"Source","outputType":"STRING"},{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"}"""
+
+    assert(result.contains(expectectDimensionsJson), s"$expectectDimensionsJson \n\n not found in \n\n $result")
   }
 
   test("Duplicate registration of the generator") {

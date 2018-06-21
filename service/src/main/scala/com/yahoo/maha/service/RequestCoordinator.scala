@@ -6,11 +6,13 @@ import com.yahoo.maha.service.curators.{CuratorError, _}
 import com.yahoo.maha.service.error.{MahaServiceBadRequestException, MahaServiceExecutionException}
 import com.yahoo.maha.service.utils.MahaRequestLogBuilder
 import grizzled.slf4j.Logging
+import org.json4s.scalaz.JsonScalaz
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
-import scala.collection.SortedSet
+import scala.collection.{SortedSet, mutable}
 import scala.collection.mutable.ArrayBuffer
+import scalaz.{NonEmptyList, Validation}
 
 case class RequestCoordinatorError(generalError: GeneralError, curatorError: Option[CuratorError] = None)
   extends GeneralError(generalError.stage, generalError.message, generalError.throwableOption)
@@ -99,16 +101,27 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
   override def execute(mahaRequestContext: MahaRequestContext
               , mahaRequestLogBuilder: MahaRequestLogBuilder): Either[RequestCoordinatorError, ParRequest[RequestCoordinatorResult]] = {
     try {
+      val curatorConfigErrorList: ArrayBuffer[Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig]] = ArrayBuffer.empty
       val curatorConfigMapFromRequest: Map[String, CuratorConfig] = {
-        mahaRequestContext.reportingRequest.curatorJsonConfigMap.collect {
+        val mmap: mutable.Map[String, CuratorConfig] = new mutable.HashMap()
+        mahaRequestContext.reportingRequest.curatorJsonConfigMap.foreach {
           case (name, json) if curatorMap.contains(name) =>
             val result = curatorMap(name).parseConfig(json)
             if (result.isFailure) {
-              return withError(GeneralError.from("curatorJsonParse", result.toString))
+              curatorConfigErrorList += result
+            } else {
+              mmap += name -> result.toOption.get
             }
-            name -> result.toOption.get
+          case _ =>
+            //ignore unknown
         }
+        mmap.toMap
       }
+
+      if(curatorConfigErrorList.nonEmpty) {
+        return withError(GeneralError.from("curatorJsonParse", curatorConfigErrorList.mkString("\n")))
+      }
+
       val curatorsOrdered: SortedSet[Curator] = curatorConfigMapFromRequest
         .keys
         .flatMap(mahaService.getMahaServiceConfig.curatorMap.get)
