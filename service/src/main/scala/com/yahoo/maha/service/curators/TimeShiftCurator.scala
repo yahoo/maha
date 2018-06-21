@@ -25,22 +25,11 @@ object TimeShiftConfig extends Logging {
   implicit val formats: DefaultFormats.type = DefaultFormats
 
   def parse(curatorJsonConfig: CuratorJsonConfig) : JsonScalaz.Result[TimeShiftConfig] = {
-    import _root_.scalaz.syntax.validation._
-
     val config: JValue = curatorJsonConfig.json
 
-    val sortBy: Option[SortBy] = assignSortBy(config)
+    val sortByResult: JsonScalaz.Result[Option[SortBy]] = fieldExtended[Option[SortBy]]("sortBy")(config)
 
-    TimeShiftConfig(sortBy).successNel
-  }
-
-  private def assignSortBy(config: JValue): Option[SortBy] = {
-    val orderingResult : MahaServiceConfig.MahaConfigResult[Option[SortBy]] = fieldExtended[Option[SortBy]]("sortBy")(config)
-    if(orderingResult.isSuccess){
-      orderingResult.toOption.get
-    } else {
-      throw new IllegalArgumentException(orderingResult.toEither.left.get.head.message)
-    }
+    sortByResult.map(sortBy => TimeShiftConfig(sortBy))
   }
 
   def from(curatorConfig: CuratorConfig): Option[TimeShiftConfig] = {
