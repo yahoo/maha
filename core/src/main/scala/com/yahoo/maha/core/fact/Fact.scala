@@ -738,6 +738,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
     discarding.foreach(mutableDiscardingSet.add)
     var hasAdditionalDiscards = false
     do {
+      hasAdditionalDiscards = false
       cols
         .filterNot(col => mutableDiscardingSet.contains(col.name))
         .filter(col => (col.isDerivedColumn
