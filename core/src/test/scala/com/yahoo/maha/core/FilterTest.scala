@@ -350,6 +350,12 @@ class FilterTest extends FunSuite with Matchers {
     assert(thrown.getMessage.contains("Unhandled filter operation"))
   }
 
+  test("forced filter test") {
+    val forceFilter:ForcedFilter = EqualityFilter("FieldName", "10", true).asInstanceOf[ForcedFilter]
+    assert(forceFilter.isForceFilter)
+    assert(forceFilter.asValues === "10")
+  }
+
   test("Druid Filter Dim should be valid") {
     val thrown = intercept[UnsupportedOperationException] {
       FilterDruid.renderFilterDim(IsNotNullFilter("field1"), Map("field1"->"field1"), Map("field1"->col), Some(DailyGrain))

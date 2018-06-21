@@ -170,6 +170,12 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
     )
     val writer : KafkaMahaRequestLogWriter = new KafkaMahaRequestLogWriter(jsonKafkaRequestLoggingConfig, true)
 
+    writer.validate(MahaRequestLog.MahaRequestProto.newBuilder()
+      .setCube("cube")
+        .setRequestId("")
+        .setJson(ByteString.copyFrom("{}".getBytes))
+      .build())
+
     val thrown = intercept[UninitializedMessageException] {
       writer.validate(MahaRequestLog.MahaRequestProto.newBuilder().build())
     }

@@ -317,6 +317,27 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
                           "rowsPerPage":100
                           }"""
 
+  val requestWithDimOnly = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Ad Group Status"},
+                              {"field": "Ad Group ID"},
+                              {"field": "Keyword Value"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Advertiser ID", "order": "DESC"}
+                          ],
+                          "includeRowCount" : false,
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+
   val requestWithDruidFactAndDim = s"""{
                           "cube": "k_stats",
                           "selectFields": [
@@ -1151,6 +1172,35 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
       row =>
         assert(row.getValue("Impressions") === 100)
         assert(row.getValue("Clicks") === 1)
+    }
+  }
+
+  test("successfully run async dim only query") {
+    val request: ReportingRequest = getReportingRequestAsync(requestWithDimOnly)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
+
+    val result = pipeline.withOracleCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Advertiser ID", 1)
+        row.addValue("Ad Group Status", "ON")
+        row.addValue("Ad Group ID", 10)
+        row.addValue("Keyword Value", "kv")
+        rl.addRow(row)
+    }.run()
+
+    assert(result.isSuccess, result)
+    result.toOption.get.rowList.foreach {
+      row =>
+        assert(row.getValue("Keyword Value") === "kv")
     }
   }
 
