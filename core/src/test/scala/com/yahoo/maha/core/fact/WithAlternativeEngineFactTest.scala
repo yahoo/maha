@@ -324,6 +324,25 @@ class WithAlternativeEngineFactTest extends BaseFactTest {
     thrown.getMessage should startWith ("requirement failed: Discarding columns should be present in fromTable")
   }
 
+  test("withAlternativeEngine should fail for derived columns containing discarded columns") {
+    val fact = fact1
+    val thrown = intercept[IllegalArgumentException] {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        fact.withAlternativeEngine(
+          "fact2",
+          "fact1",
+          OracleEngine,
+          overrideDimCols = Set(
+            DimCol("stats_source", StrType())
+          ),
+          maxDaysWindow = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)),
+          maxDaysLookBack = Some(Map(AsyncRequest -> 31, SyncRequest -> 31)),
+          discarding = Set("stats_source"))
+      }
+    }
+    thrown.getMessage should startWith ("requirement failed: Cannot override dim col that is supposed to be discarded")
+  }
+
 }
 
 
