@@ -894,17 +894,35 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
             s"Alternate must have different engine from existing alternate engines : $engine")
 
     require(discarding.subsetOf(fromTable.columnsByNameMap.keySet), "Discarding columns should be present in fromTable")
+    val mutableDiscardingSet: mutable.Set[String] = new mutable.HashSet[String]()
+    discarding.foreach(mutableDiscardingSet.add)
+    var hasAdditionalDiscards = false
+    do {
+      fromTable
+        .columnsByNameMap
+        .values
+        .filterNot(col => mutableDiscardingSet.contains(col.name))
+        .filter(col => (col.isDerivedColumn
+          && col.asInstanceOf[DerivedColumn].derivedExpression.sourceColumns.intersect(discarding).nonEmpty))
+        .foreach { col =>
+          mutableDiscardingSet += col.name
+          hasAdditionalDiscards = true
+        }
+    } while (hasAdditionalDiscards)
 
     //override dim cols by name
     val overrideDimColsByName: Set[String] = overrideDimCols.map(_.name)
     //override fact cols by name
     val overrideFactColsByName: Set[String] = overrideFactCols.map(_.name)
 
+    require(overrideDimColsByName.intersect(mutableDiscardingSet).isEmpty, "Cannot override dim col that is supposed to be discarded")
+    require(overrideFactColsByName.intersect(mutableDiscardingSet).isEmpty, "Cannot override fact col that is supposed to be discarded")
+
     // non engine specific columns (engine specific columns not needed) and filter out overrides
     var dimColMap = fromTable
-      .dimCols.filter(c => !c.hasEngineRequirement && !overrideDimColsByName(c.name) && !discarding.contains(c.name)).map(d => d.name -> d.copyWith(cc, columnAliasMap, true)).toMap
+      .dimCols.filter(c => !c.hasEngineRequirement && !overrideDimColsByName(c.name) && !mutableDiscardingSet.contains(c.name)).map(d => d.name -> d.copyWith(cc, columnAliasMap, true)).toMap
     var factColMap = fromTable
-      .factCols.filter(c => !c.hasEngineRequirement && !overrideFactColsByName(c.name) && !discarding.contains(c.name)).map(f => f.name -> f.copyWith(cc, columnAliasMap, true)).toMap
+      .factCols.filter(c => !c.hasEngineRequirement && !overrideFactColsByName(c.name) && !mutableDiscardingSet.contains(c.name)).map(f => f.name -> f.copyWith(cc, columnAliasMap, true)).toMap
 
     val isFromTableView = fromTable.isInstanceOf[FactView]
     // override non engine specific columns or add new columns
