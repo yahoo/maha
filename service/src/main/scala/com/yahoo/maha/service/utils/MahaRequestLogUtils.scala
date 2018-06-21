@@ -192,10 +192,13 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
         protoBuilder.setDrivingQueryEngineLatency(drivingEngineQueryStat.endTime - drivingEngineQueryStat.startTime)
         if (engineQueryStatsIterator.hasNext) {
           val firsEngineQueryStat: EngineQueryStat = engineQueryStatsIterator.next
+          protoBuilder.setFirstSubsequentQueryEngine(firsEngineQueryStat.engine.toString)
+          protoBuilder.setFirstSubsequentQueryTable(firsEngineQueryStat.tableName)
           protoBuilder.setFirstSubsequentQueryEngineLatency(firsEngineQueryStat.endTime - firsEngineQueryStat.startTime)
         }
         if (engineQueryStatsIterator.hasNext) {
           val reRunEngineQueryStats: EngineQueryStat = engineQueryStatsIterator.next
+          protoBuilder.setReRunEngineQueryTable(reRunEngineQueryStats.tableName)
           protoBuilder.setReRunEngineQueryLatency(reRunEngineQueryStats.endTime - reRunEngineQueryStats.startTime)
           if (MahaRequestProto.Engine.Druid.toString.equalsIgnoreCase(reRunEngineQueryStats.engine.toString)) protoBuilder.setReRunEngine(MahaRequestProto.Engine.Druid)
           else if (MahaRequestProto.Engine.Oracle.toString.equalsIgnoreCase(reRunEngineQueryStats.engine.toString)) protoBuilder.setReRunEngine(MahaRequestProto.Engine.Oracle)

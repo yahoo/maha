@@ -212,7 +212,7 @@ class QueryPipelineBuilder(queryChain: QueryChain
 }
 
 class EngineQueryStats {
-  private[this] val statsList: ArrayBuffer[EngineQueryStat] = new ArrayBuffer(3)
+  private[this] val statsList: ArrayBuffer[EngineQueryStat] = new ArrayBuffer(5)
 
   def addStat(stat: EngineQueryStat): Unit = {
     statsList += stat
@@ -223,7 +223,7 @@ class EngineQueryStats {
   }
 }
 
-case class EngineQueryStat(engine: Engine, startTime: Long, endTime: Long)
+case class EngineQueryStat(engine: Engine, startTime: Long, endTime: Long, tableName: String)
 
 sealed trait QueryChain {
   def drivingQuery: Query
@@ -249,7 +249,7 @@ case class SingleEngineQuery(drivingQuery: Query) extends QueryChain {
         throw new IllegalArgumentException(s"Executor not found for engine=${drivingQuery.engine}, query=${drivingQuery.getClass.getSimpleName}")
       )(_.execute(drivingQuery, rowList, queryAttributes))
       val drivingQueryEndTime = System.currentTimeMillis()
-      val queryStats = EngineQueryStat(drivingQuery.engine, drivingQueryStartTime, drivingQueryEndTime)
+      val queryStats = EngineQueryStat(drivingQuery.engine, drivingQueryStartTime, drivingQueryEndTime, drivingQuery.tableName)
       engineQueryStats.addStat(queryStats)
       require(!result.isFailure, s"query execution failed with message : ${result.message}")
       (result.rowList, result.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
@@ -285,7 +285,7 @@ case class MultiEngineQuery(drivingQuery: Query,
       val drivingQueryStartTime = System.currentTimeMillis()
       val drivingResult = executorsMap(drivingQuery.engine).execute(drivingQuery, rowList.asInstanceOf[IndexedRowList], queryAttributes)
       val drivingQueryEndTime = System.currentTimeMillis()
-      engineQueryStats.addStat(EngineQueryStat(drivingQuery.engine, drivingQueryStartTime, drivingQueryEndTime))
+      engineQueryStats.addStat(EngineQueryStat(drivingQuery.engine, drivingQueryStartTime, drivingQueryEndTime, drivingQuery.tableName))
       if (drivingResult.rowList.keys.isEmpty) drivingResult else subsequentQueries.foldLeft(drivingResult) {
         (previousResult, subsequentQuery) =>
           val query = subsequentQuery(previousResult.rowList, previousResult.queryAttributes)
@@ -297,7 +297,7 @@ case class MultiEngineQuery(drivingQuery: Query,
               val queryStartTime = System.currentTimeMillis()
               val result = executorsMap(query.engine).execute(query, previousResult.rowList, previousResult.queryAttributes)
               val queryEndTime = System.currentTimeMillis()
-              engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
+              engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime, query.tableName))
               result
           }
       }
@@ -312,7 +312,7 @@ case class MultiEngineQuery(drivingQuery: Query,
         val queryStartTime = System.currentTimeMillis()
         val newResult = executorsMap(query.engine).execute(query, rowList, result.queryAttributes)
         val queryEndTime = System.currentTimeMillis()
-        engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
+        engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime, query.tableName))
         require(!newResult.isFailure, s"fallback query execution failed with message : ${newResult.message}")
         (newResult.rowList, newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
       }
@@ -347,7 +347,7 @@ case class MultiQuery(unionQueryList: List[Query], fallbackQueryOption: Option[(
     val result = rowList.withLifeCycle {
       val firstResult = executor.execute(firstQuery, rowList, queryAttributes)  //it is just first seed to MultiQuery
       val drivingQueryEndTime = System.currentTimeMillis()
-      engineQueryStats.addStat(EngineQueryStat(firstQuery.engine, drivingQueryStartTime, drivingQueryEndTime))
+      engineQueryStats.addStat(EngineQueryStat(firstQuery.engine, drivingQueryStartTime, drivingQueryEndTime, firstQuery.tableName))
 
       unionQueryList.filter(q=> q!=firstQuery).foldLeft(firstResult) {
         (previousResult, subsequentQuery) =>
@@ -364,7 +364,7 @@ case class MultiQuery(unionQueryList: List[Query], fallbackQueryOption: Option[(
                 executor.execute(query, previousResult.rowList, previousResult.queryAttributes)
               }
               val subsequentQueryEndTime = System.currentTimeMillis()
-              engineQueryStats.addStat(EngineQueryStat(query.engine, subsequentQueryStartTime, subsequentQueryEndTime))
+              engineQueryStats.addStat(EngineQueryStat(query.engine, subsequentQueryStartTime, subsequentQueryEndTime, query.tableName))
               result
           }
       }
@@ -379,7 +379,7 @@ case class MultiQuery(unionQueryList: List[Query], fallbackQueryOption: Option[(
         val executor = executorOption.get
         val newResult = executor.execute(query, rowList, result.queryAttributes)
         val queryEndTime = System.currentTimeMillis()
-        engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime))
+        engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime, query.tableName))
         require(!newResult.isFailure, s"fallback query execution failed with message : ${newResult.message}")
         (newResult.rowList, newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
       }
