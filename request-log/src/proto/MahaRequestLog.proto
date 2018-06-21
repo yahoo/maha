@@ -50,6 +50,7 @@ message MahaRequestProto{
     Oracle = 0;
     Druid = 1;
     Hive = 2;
+    Presto = 3;
   }
   message FactCost{
   optional string name = 1;
@@ -86,4 +87,5 @@ message MahaRequestProto{
   optional bool isGrainOptimized = 47;
   optional bool isIndexOptimized = 48;
   optional string curator = 49;
+  optional string reRunEngineQueryTable = 50;
 }
