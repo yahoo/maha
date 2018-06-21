@@ -183,6 +183,12 @@ class CSVRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTest {
         }
     }
     assert(count == 2)
+
+    val thrown = intercept[IllegalArgumentException] {
+      val row = rowListWithOutHeaders.newRow
+      row.addValue("unknown",1)
+    }
+    assert(thrown.getMessage.contains("Failed to find value in aliasMap on addValue for alias=unknown, value: 1"))
   }
 
   test("successfully construct csv row list with header with aliases") {

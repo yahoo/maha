@@ -143,11 +143,7 @@ case class DefaultQueryPipeline(queryChain: QueryChain
   val fallbackQueryChainOption: Option[QueryChain] = None
 
   def execute(executorContext: QueryExecutorContext): Try[QueryPipelineResult] = {
-    val stats = new EngineQueryStats
-    Try {
-      val result = queryChain.execute(executorContext, rowListFn, QueryAttributes.empty, stats)
-      QueryPipelineResult(this, queryChain, result._1, result._2)
-    }
+    execute(executorContext, QueryAttributes.empty)
   }
 
   def execute(executorContext: QueryExecutorContext, queryAttributes: QueryAttributes): Try[QueryPipelineResult] = {

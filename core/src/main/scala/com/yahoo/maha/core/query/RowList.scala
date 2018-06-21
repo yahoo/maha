@@ -156,10 +156,9 @@ trait QueryRowList extends RowList {
   def postResultRowOperation(row:Row, ephemeralRowOption:Option[Row]) : Unit = {
 
     postResultColumnMap.foreach {
-      case (columnAlias, prCol) => {
-           val rowData: RowData = new PostResultRowData(row, ephemeralRowOption, columnAlias)
-           prCol.postResultFunction.resultApply(rowData)
-      }
+      case (columnAlias, prCol) =>
+        val rowData: RowData = new PostResultRowData(row, ephemeralRowOption, columnAlias)
+        prCol.postResultFunction.resultApply(rowData)
     }
   }
 

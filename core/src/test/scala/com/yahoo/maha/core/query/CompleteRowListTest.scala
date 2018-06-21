@@ -203,6 +203,7 @@ class CompleteRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListT
     
     rowList.foreach(r => assert(r === row))
     rowList.map(r => assert(r === row))
+    rowList.getTotalRowCount === 1
   }
 
   test("successfully construct complete row list with post result ephemeral columns") {
@@ -246,6 +247,9 @@ class CompleteRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListT
       assert(r.getValue("Impression Share") === "N/A")
     })
     rowList.map(r => assert(r === row))
+
+    //fail to get total row count so default to 0
+    assert(rowList.getTotalRowCount === 0)
 
     val rowData: RowData = new PostResultRowData(row, Option(ephemeralRow), "Impression Share")
 
