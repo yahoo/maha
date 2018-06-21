@@ -86,7 +86,7 @@
 
   <distributionManagement>
     <repository>
-      <id>bintray-maha-core-repo</id>
+      <id>bintray-maha-db-repo</id>
       <url>https://api.bintray.com/maven/yahoo/maven/maha-db/;publish=1</url>
     </repository>
   </distributionManagement>
