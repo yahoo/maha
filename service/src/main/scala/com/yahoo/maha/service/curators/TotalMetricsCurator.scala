@@ -2,18 +2,17 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.curators
 
-import com.yahoo.maha.core.request._
-import org.json4s.{DefaultFormats, JValue}
-import org.json4s.scalaz.JsonScalaz
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.BucketParams
-import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.core.request.{ReportingRequest, _}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.utils.CuratorMahaRequestLogBuilder
-import com.yahoo.maha.service.{CuratorInjector, MahaRequestContext, MahaService, MahaServiceConfig, ParRequestResult}
+import com.yahoo.maha.service.{CuratorInjector, MahaRequestContext, MahaService, ParRequestResult}
 import grizzled.slf4j.Logging
+import org.json4s.scalaz.JsonScalaz
+import org.json4s.{DefaultFormats, JValue}
 
 import scala.util.Try
 import scalaz.{NonEmptyList, Validation}

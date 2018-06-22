@@ -9,6 +9,7 @@ import com.google.protobuf.ByteString
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.{AsyncRequest, ReportingRequest, SyncRequest}
 import com.yahoo.maha.core.{DimensionCandidate, RequestModel, SortByColumnInfo}
+import com.yahoo.maha.log.MahaRequestLogWriter
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service.MahaRequestContext
 import com.yahoo.maha.service.curators.Curator

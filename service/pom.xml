@@ -15,10 +15,6 @@
     <name>maha service</name>
     <url>http://maven.apache.org</url>
 
-    <properties>
-        <kafka.version>0.10.2.1</kafka.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>com.yahoo.maha</groupId>

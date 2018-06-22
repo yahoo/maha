@@ -15,6 +15,7 @@ import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.druid.{AuthHeaderProvider, DruidQueryExecutorConfig}
 import com.yahoo.maha.executor.presto.PrestoQueryTemplate
+import com.yahoo.maha.log.MahaRequestLogWriter
 import com.yahoo.maha.parrequest2.CustomRejectPolicy
 import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor
 import com.yahoo.maha.service.MahaServiceConfig
@@ -22,7 +23,6 @@ import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
 import com.yahoo.maha.service.config.{PassThroughPasswordProvider, PasswordProvider}
 import com.yahoo.maha.service.curators.Curator
 import com.yahoo.maha.service.error.{FailedToConstructFactory, MahaServiceError}
-import com.yahoo.maha.service.utils.MahaRequestLogWriter
 import org.json4s.JValue
 import org.json4s.JsonAST.JString
 

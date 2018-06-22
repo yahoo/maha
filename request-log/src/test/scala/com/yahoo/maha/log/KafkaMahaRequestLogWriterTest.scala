@@ -1,24 +1,27 @@
 // Copyright 2017, Yahoo Holdings Inc.
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
-package com.yahoo.maha.service.utils
+package com.yahoo.maha.log
 
-import java.net.ServerSocket
+import java.net.{ServerSocket, SocketTimeoutException}
 import java.util
 import java.util.Properties
 
 import com.google.protobuf.{ByteString, UninitializedMessageException}
 import com.yahoo.maha.proto.MahaRequestLog
-import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
-import com.yahoo.maha.service.config.JsonKafkaRequestLoggingConfig
 import grizzled.slf4j.Logging
 import kafka.server.{KafkaConfig, KafkaServer}
 import kafka.utils.{TestUtils, ZkUtils}
 import org.apache.curator.test.TestingServer
 import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.common.protocol.SecurityProtocol
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
-import collection.JavaConverters._
+import scala.collection.JavaConverters._
+import org.mockito.Mockito._
+import org.mockito.Matchers._
+
+import scala.concurrent.ExecutionException
 
 
 /**
@@ -38,6 +41,14 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
   val TOPIC = "async_req"
 
   var mahaRequestLogWriter: KafkaMahaRequestLogWriter = null
+  val reqLogBuilder: MahaRequestLog.MahaRequestProto.Builder = MahaRequestLog.MahaRequestProto.newBuilder()
+  reqLogBuilder.setCube("sample_cube")
+  reqLogBuilder.setJobId(1234)
+  reqLogBuilder.setJson(ByteString.copyFrom("{}".getBytes))
+  reqLogBuilder.setRequestId("kafka-test")
+  var numberOfReceivedRecords = 0
+
+  val builtProto = reqLogBuilder.build()
 
   override def beforeAll(): Unit = {
     //super.beforeAll()
@@ -66,7 +77,7 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
     kafkaBroker = TestUtils.getBrokerListStrFromServers(Seq(kafkaServer),SecurityProtocol.PLAINTEXT)
     info(s"Started kafka server at $kafkaBroker")
 
-    val jsonKafkaRequestLoggingConfig = new JsonKafkaRequestLoggingConfig(
+    val jsonKafkaRequestLoggingConfig = new KafkaRequestLoggingConfig(
       kafkaBroker,
       kafkaBroker,
       "test",
@@ -99,28 +110,30 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
 
   override protected def afterAll(): Unit = {
     try {
+      mahaRequestLogWriter.close()
+      kafkaConsumer.close()
       kafkaServer.shutdown()
       zkServer.stop()
-      kafkaConsumer.close()
-      mahaRequestLogWriter.close()
     } catch{
       case e : Throwable =>
     }
   }
 
+  test("Create blank, invalid requestLog") {
+    val thrown = intercept[UninitializedMessageException] {
+      mahaRequestLogWriter.validate(MahaRequestLog.MahaRequestProto.newBuilder().build())
+    }
+    assert(thrown.getMessage.contains("Message missing required fields: requestId, json"))
+  }
+
   test("RequestLogWriter Test") {
-    val reqLogBuilder: MahaRequestLog.MahaRequestProto.Builder = MahaRequestLog.MahaRequestProto.newBuilder()
-    reqLogBuilder.setCube("sample_cube")
-    reqLogBuilder.setJobId(1234)
-    reqLogBuilder.setJson(ByteString.copyFrom("{}".getBytes))
-    reqLogBuilder.setRequestId("kafka-test")
-    var numberOfReceivedRecords = 0
+
 
     val consumerThread = new Thread(new Runnable {
       def run() {
         var stopRequested = 20
         while(stopRequested > 0) {
-          mahaRequestLogWriter.write(reqLogBuilder.build())
+          mahaRequestLogWriter.write(builtProto)
           val consumerRecords = kafkaConsumer.poll(1000)
           if(consumerRecords.count() > 0) {
             info("Received:"+consumerRecords)
@@ -155,8 +168,8 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
     mahaRequestLogWriter.callback.onCompletion(null, new Exception)
   }
 
-  test("Create blank, invalid requestLog") {
-    val jsonKafkaRequestLoggingConfig = new JsonKafkaRequestLoggingConfig(
+  test("successfully return exception in future") {
+    val jsonKafkaRequestLoggingConfig = new KafkaRequestLoggingConfig(
       kafkaBroker,
       kafkaBroker,
       "test",
@@ -168,18 +181,46 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
       "999999",
       "1000"
     )
-    val writer : KafkaMahaRequestLogWriter = new KafkaMahaRequestLogWriter(jsonKafkaRequestLoggingConfig, true)
+    val writer : KafkaMahaRequestLogWriter = spy(new KafkaMahaRequestLogWriter(jsonKafkaRequestLoggingConfig, true))
 
-    writer.validate(MahaRequestLog.MahaRequestProto.newBuilder()
-      .setCube("cube")
-        .setRequestId("")
-        .setJson(ByteString.copyFrom("{}".getBytes))
-      .build())
+    val mockProducer: KafkaProducer[Array[Byte], Array[Byte]] = mock(classOf[KafkaProducer[Array[Byte], Array[Byte]]])
 
-    val thrown = intercept[UninitializedMessageException] {
-      writer.validate(MahaRequestLog.MahaRequestProto.newBuilder().build())
+    doThrow(new RuntimeException("blah")).when(mockProducer).send(any(), any())
+
+    doReturn(mockProducer)
+      .when(writer).createKafkaProducer(any())
+
+    val result = writer.writeMahaRequestProto(builtProto)
+    verify(mockProducer).flush()
+
+    val thrown = intercept[ExecutionException] {
+      result.get()
     }
-    assert(thrown.getMessage.contains("Message missing required fields: requestId, json"))
+    assert(thrown.getMessage.contains("blah"))
+    writer.close()
+  }
+
+  test("successfully return exception when logging disabled") {
+    val jsonKafkaRequestLoggingConfig = new KafkaRequestLoggingConfig(
+      kafkaBroker,
+      kafkaBroker,
+      "test",
+      "org.apache.kafka.common.serialization.ByteArraySerializer",
+      "1",
+      "true",
+      "1",
+      TOPIC,
+      "999999",
+      "1000"
+    )
+    val writer : KafkaMahaRequestLogWriter = new KafkaMahaRequestLogWriter(jsonKafkaRequestLoggingConfig, false)
+
+    val result = writer.writeMahaRequestProto(builtProto)
+
+    val thrown = intercept[ExecutionException] {
+      result.get()
+    }
+    assert(thrown.getMessage.contains("check config"))
   }
 
   private def getFreePort(): Int = {

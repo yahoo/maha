@@ -16,7 +16,6 @@ import org.json4s.scalaz.JsonScalaz._
 
 import _root_.scalaz._
 import syntax.applicative._
-import syntax.validation._
 import Validation.FlatMap._
 
 /**
