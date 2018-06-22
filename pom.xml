@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>5.153-SNAPSHOT</version>
+    <version>5.154-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -55,6 +55,7 @@
         <checkstyle.skip>true</checkstyle.skip>
         <freemarker.version>2.3.20</freemarker.version>
         <enumeratum.version>1.5.13</enumeratum.version>
+        <kafka.version>0.10.2.1</kafka.version>
     </properties>
 
 
@@ -62,9 +63,9 @@
         <module>par-request-2</module>
         <!--module>par-request</module-->
         <module>db</module>
+        <module>request-log</module>
         <module>job-service</module>
         <module>worker</module>
-        <module>request-log</module>
         <module>druid-lookups</module>
         <module>core</module>
         <module>druid</module>

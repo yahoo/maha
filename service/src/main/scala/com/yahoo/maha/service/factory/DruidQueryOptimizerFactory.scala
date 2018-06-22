@@ -4,7 +4,7 @@ package com.yahoo.maha.service.factory
 
 import com.yahoo.maha.service.MahaServiceConfig
 import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
-import com.yahoo.maha.core.query.druid.{AsyncDruidQueryOptimizer, SyncDruidQueryOptimizer, DruidQueryGenerator, DruidQueryOptimizer}
+import com.yahoo.maha.core.query.druid.{AsyncDruidQueryOptimizer, SyncDruidQueryOptimizer, DruidQueryOptimizer}
 import com.yahoo.maha.core.request._
 import org.json4s.JValue
 import _root_.scalaz._

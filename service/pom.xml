@@ -9,15 +9,11 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.153-SNAPSHOT</version>
+        <version>5.154-SNAPSHOT</version>
     </parent>
 
     <name>maha service</name>
     <url>http://maven.apache.org</url>
-
-    <properties>
-        <kafka.version>0.10.2.1</kafka.version>
-    </properties>
 
     <dependencies>
         <dependency>

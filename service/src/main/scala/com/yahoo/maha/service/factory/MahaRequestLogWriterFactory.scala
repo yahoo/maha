@@ -2,9 +2,9 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.factory
 
+import com.yahoo.maha.log.{KafkaMahaRequestLogWriter, MahaRequestLogWriter, NoopMahaRequestLogWriter}
 import com.yahoo.maha.service.MahaServiceConfig._
 import com.yahoo.maha.service.config.JsonKafkaRequestLoggingConfig
-import com.yahoo.maha.service.utils.{NoopMahaRequestLogWriter, MahaRequestLogWriter, KafkaMahaRequestLogWriter}
 import org.json4s.JValue
 import org.json4s.scalaz.JsonScalaz._
 
@@ -20,7 +20,7 @@ class KafkaMahaRequestLogWriterFactory extends MahaRequestLogWriterFactory {
      for {
        kafkaRequestLoggingConfig <- kafkaRequestLoggingConfigResult
      } yield {
-       new KafkaMahaRequestLogWriter(kafkaRequestLoggingConfig, isLoggingEnabled)
+       new KafkaMahaRequestLogWriter(kafkaRequestLoggingConfig.config, isLoggingEnabled)
      }
   }
   override def supportedProperties: List[(String, Boolean)] = List.empty

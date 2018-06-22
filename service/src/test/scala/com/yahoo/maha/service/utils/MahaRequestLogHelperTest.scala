@@ -5,10 +5,11 @@ package com.yahoo.maha.service.utils
 import java.nio.charset.StandardCharsets
 
 import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
-import com.yahoo.maha.core.{PrestoEngine, DruidEngine, OracleEngine}
+import com.yahoo.maha.core.{DruidEngine, OracleEngine, PrestoEngine}
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.log.MahaRequestLogWriter
 import com.yahoo.maha.service.curators.DefaultCurator
 import com.yahoo.maha.service.{MahaRequestContext, MahaServiceConfig}
 import org.mockito.Mockito._
