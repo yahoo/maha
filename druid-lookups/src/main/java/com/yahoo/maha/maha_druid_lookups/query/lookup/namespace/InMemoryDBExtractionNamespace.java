@@ -34,7 +34,7 @@ public class InMemoryDBExtractionNamespace implements ExtractionNamespace {
     @JsonProperty
     private String tsColumn = "last_updated";
     @JsonProperty
-    private final String missingLookupKafkaTopic;
+    private final MissingLookupConfig missingLookupConfig;
 
     private Long lastUpdatedTime = -1L;
 
@@ -57,14 +57,14 @@ public class InMemoryDBExtractionNamespace implements ExtractionNamespace {
                                          final String lookupName,
                                          @Nullable @JsonProperty(value = "tsColumn", required = false)
                                          final String tsColumn,
-                                         @NotNull @JsonProperty(value = "missingLookupKafkaTopic", required = false)
-                                             final String missingLookupKafkaTopic) {
+                                         @NotNull @JsonProperty(value = "missingLookupConfig", required = false)
+                                             final MissingLookupConfig missingLookupConfig) {
         this.rocksDbInstanceHDFSPath = Preconditions.checkNotNull(rocksDbInstanceHDFSPath, "rocksDbInstanceHDFSPath");
         this.lookupAuditingHDFSPath = Preconditions.checkNotNull(lookupAuditingHDFSPath, "lookupAuditingHDFSPath");
         this.namespace = Preconditions.checkNotNull(namespace, "namespace");
         this.pollPeriod = Preconditions.checkNotNull(pollPeriod, "pollPeriod");
         this.kafkaTopic = kafkaTopic;
-        this.missingLookupKafkaTopic = missingLookupKafkaTopic;
+        this.missingLookupConfig = missingLookupConfig;
         this.cacheEnabled = cacheEnabled;
         this.lookupAuditingEnabled = lookupAuditingEnabled;
         this.lookupName = lookupName;
@@ -98,8 +98,8 @@ public class InMemoryDBExtractionNamespace implements ExtractionNamespace {
         return kafkaTopic;
     }
 
-    public String getMissingLookupKafkaTopic() {
-        return missingLookupKafkaTopic;
+    public MissingLookupConfig getMissingLookupConfig() {
+        return missingLookupConfig;
     }
 
     //@Override
@@ -127,12 +127,12 @@ public class InMemoryDBExtractionNamespace implements ExtractionNamespace {
     @Override
     public String toString() {
         return String.format(
-                "CdwExtractionNamespace = { namespace = %s, rocksDbInstanceHDFSPath = { %s }, pollPeriod = %s, kafkaTopic = %s, missingLookupKafkaTopic = %s }",
+                "CdwExtractionNamespace = { namespace = %s, rocksDbInstanceHDFSPath = { %s }, pollPeriod = %s, kafkaTopic = %s, missingLookupConfig = %s }",
                 namespace,
                 rocksDbInstanceHDFSPath,
                 pollPeriod,
                 kafkaTopic,
-                missingLookupKafkaTopic
+                missingLookupConfig
         );
     }
 
@@ -156,7 +156,7 @@ public class InMemoryDBExtractionNamespace implements ExtractionNamespace {
         if (!kafkaTopic.equals(namespace1.kafkaTopic)) {
             return false;
         }
-        if (!missingLookupKafkaTopic.equals(namespace1.missingLookupKafkaTopic)) {
+        if (!missingLookupConfig.equals(namespace1.missingLookupConfig)) {
             return false;
         }
         if(!tsColumn.equals(namespace1.tsColumn)) {
@@ -174,7 +174,7 @@ public class InMemoryDBExtractionNamespace implements ExtractionNamespace {
         result = 31 * result + namespace.hashCode();
         result = 31 * result + pollPeriod.hashCode();
         result = 31 * result + kafkaTopic.hashCode();
-        result = 31 * result + missingLookupKafkaTopic.hashCode();
+        result = 31 * result + missingLookupConfig.hashCode();
         result = 31 * result + tsColumn.hashCode();
         result = 31 * result + lookupName.hashCode();
         return result;
