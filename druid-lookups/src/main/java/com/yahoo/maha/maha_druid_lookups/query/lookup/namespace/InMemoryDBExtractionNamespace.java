@@ -127,7 +127,7 @@ public class InMemoryDBExtractionNamespace implements ExtractionNamespace {
     @Override
     public String toString() {
         return String.format(
-                "CdwExtractionNamespace = { namespace = %s, rocksDbInstanceHDFSPath = { %s }, pollPeriod = %s, kafkaTopic = %s, missingLookupConfig = %s }",
+                "InMemoryDBExtractionNamespace = { namespace = %s, rocksDbInstanceHDFSPath = { %s }, pollPeriod = %s, kafkaTopic = %s, missingLookupConfig = %s }",
                 namespace,
                 rocksDbInstanceHDFSPath,
                 pollPeriod,
