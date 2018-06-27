@@ -330,13 +330,13 @@ public class KafkaManager {
         }
     }
 
-    public void handleMissingLookup(InMemoryDBExtractionNamespace extractionNamespace, String dimension) {
+    public void handleMissingLookup(byte[] extractionNamespace, String topic, String dimension) {
         try {
             ProducerRecord<String, byte[]> producerRecord =
-                    new ProducerRecord<>(extractionNamespace.getMissingLookupKafkaTopic(), dimension, extractionNamespace.getNamespace().getBytes());
+                    new ProducerRecord<>(topic, dimension, extractionNamespace);
             kafkaProducer.send(producerRecord);
         } catch (Exception e) {
-            log.error(e, "caught exception while writing dimension: [%s] to missingLookupTopic: [%s]",  dimension, extractionNamespace.getMissingLookupKafkaTopic());
+            log.error(e, "caught exception while writing dimension: [%s] to missingLookupTopic: [%s]",  dimension, topic);
         }
     }
 }

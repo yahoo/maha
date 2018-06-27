@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -42,12 +43,12 @@ public class InMemoryDBLookupExtractor extends LookupExtractor
     private LookupService lookupService;
     private ProtobufSchemaFactory protobufSchemaFactory;
     private KafkaManager kafkaManager;
-    private Cache<String, String> missingLookupCache;
+    private Cache<String, byte[]> missingLookupCache;
+    private final byte[] extractionNamespaceAsByteArray;
 
     public InMemoryDBLookupExtractor(InMemoryDBExtractionNamespace extractionNamespace, Map<String, String> map,
                                      LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
-                                     ProtobufSchemaFactory protobufSchemaFactory)
-    {
+                                     ProtobufSchemaFactory protobufSchemaFactory) {
         this.extractionNamespace = extractionNamespace;
         this.map = Preconditions.checkNotNull(map, "map");
         this.rocksDBManager = rocksDBManager;
@@ -59,6 +60,12 @@ public class InMemoryDBLookupExtractor extends LookupExtractor
                 .maximumSize(10_000)
                 .expireAfterWrite(1, TimeUnit.HOURS)
                 .build();
+        try {
+            this.extractionNamespaceAsByteArray = objectMapper.writeValueAsBytes(extractionNamespace);
+        } catch (JsonProcessingException ex) {
+            throw new RuntimeException(ex);
+        }
+
     }
 
     public Map<String, String> getMap()
@@ -101,9 +108,14 @@ public class InMemoryDBLookupExtractor extends LookupExtractor
 
             if (cacheByteValue == null || cacheByteValue.length == 0) {
                 // No need to call handleMissingLookup if missing dimension is already present in missingLookupCache
-                if(!Strings.isNullOrEmpty(extractionNamespace.getMissingLookupKafkaTopic()) && missingLookupCache.getIfPresent(dimension) == null) {
-                    kafkaManager.handleMissingLookup(extractionNamespace, dimension);
-                    missingLookupCache.put(dimension, extractionNamespace.getNamespace());
+                if(extractionNamespace.getMissingLookupConfig() != null
+                        && !Strings.isNullOrEmpty(extractionNamespace.getMissingLookupConfig().getMissingLookupKafkaTopic())
+                        && missingLookupCache.getIfPresent(dimension) == null) {
+
+                    kafkaManager.handleMissingLookup(extractionNamespaceAsByteArray,
+                            extractionNamespace.getMissingLookupConfig().getMissingLookupKafkaTopic(),
+                            dimension);
+                    missingLookupCache.put(dimension, extractionNamespaceAsByteArray);
                 }
                 return null;
             }

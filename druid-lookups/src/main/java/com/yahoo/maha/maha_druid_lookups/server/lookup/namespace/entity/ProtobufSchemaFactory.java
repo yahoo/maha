@@ -3,6 +3,7 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 
 import com.google.protobuf.Descriptors;
+import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
 
 public interface ProtobufSchemaFactory {
@@ -10,5 +11,7 @@ public interface ProtobufSchemaFactory {
     Descriptors.Descriptor getProtobufDescriptor(final String messageType);
 
     Parser getProtobufParser(final String messageType);
+
+    Message.Builder getProtobufMessageBuilder(final String messageType);
 
 }
