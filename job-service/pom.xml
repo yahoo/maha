@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.151-SNAPSHOT</version>
+        <version>5.154-SNAPSHOT</version>
     </parent>
 
     <name>maha job service</name>
@@ -78,7 +78,7 @@
 
   <distributionManagement>
     <repository>
-      <id>bintray-maha-core-repo</id>
+      <id>bintray-maha-job-service-repo</id>
       <url>https://api.bintray.com/maven/yahoo/maven/maha-job-service/;publish=1</url>
     </repository>
   </distributionManagement>

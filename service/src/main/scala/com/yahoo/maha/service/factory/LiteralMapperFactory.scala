@@ -3,7 +3,7 @@
 package com.yahoo.maha.service.factory
 
 import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
-import com.yahoo.maha.core.{HiveLiteralMapper, DruidLiteralMapper, OracleLiteralMapper, LiteralMapper}
+import com.yahoo.maha.core.{DruidLiteralMapper, OracleLiteralMapper}
 import org.json4s.JValue
 import _root_.scalaz._
 import syntax.validation._

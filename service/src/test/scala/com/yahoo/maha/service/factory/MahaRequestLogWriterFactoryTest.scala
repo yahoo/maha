@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.factory
 
-import com.yahoo.maha.service.utils.{KafkaMahaRequestLogWriter, NoopMahaRequestLogWriter}
+import com.yahoo.maha.log.{KafkaMahaRequestLogWriter, NoopMahaRequestLogWriter}
 import org.json4s.jackson.JsonMethods._
 
 /**
