@@ -68,15 +68,6 @@ public class KafkaManager {
         this.kafkaProperties.putAll(kafkaProperties);
         this.namespaceExtractionCacheManager = namespaceExtractionCacheManager;
         this.protobufSchemaFactory = protobufSchemaFactory;
-        final Properties properties = new Properties();
-        properties.putAll(kafkaProperties);
-        properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
-        properties.put(ProducerConfig.ACKS_CONFIG, kafkaProperties.getProperty("retries", "0"));
-        properties.put(ProducerConfig.RETRIES_CONFIG, kafkaProperties.getProperty("acks", "0"));
-        properties.put(ProducerConfig.BUFFER_MEMORY_CONFIG, kafkaProperties.getProperty("buffer.memory", "1048576"));
-        properties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, kafkaProperties.getProperty("max.block.ms", "1000"));
-        this.kafkaProducer = new KafkaProducer<>(properties);
     }
 
     private void updateRocksDB(final Parser<Message> parser, final Descriptors.Descriptor descriptor,
@@ -334,9 +325,25 @@ public class KafkaManager {
         try {
             ProducerRecord<String, byte[]> producerRecord =
                     new ProducerRecord<>(topic, dimension, extractionNamespace);
+            KafkaProducer<String, byte[]> kafkaProducer = ensureKafkaProducer();
             kafkaProducer.send(producerRecord);
         } catch (Exception e) {
             log.error(e, "caught exception while writing dimension: [%s] to missingLookupTopic: [%s]",  dimension, topic);
         }
+    }
+
+    private synchronized KafkaProducer<String, byte[]> ensureKafkaProducer() {
+        if(kafkaProducer == null) {
+            final Properties properties = new Properties();
+            properties.putAll(kafkaProperties);
+            properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+            properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
+            properties.put(ProducerConfig.ACKS_CONFIG, kafkaProperties.getProperty("retries", "0"));
+            properties.put(ProducerConfig.RETRIES_CONFIG, kafkaProperties.getProperty("acks", "0"));
+            properties.put(ProducerConfig.BUFFER_MEMORY_CONFIG, kafkaProperties.getProperty("buffer.memory", "1048576"));
+            properties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, kafkaProperties.getProperty("max.block.ms", "1000"));
+            this.kafkaProducer = new KafkaProducer<>(properties);
+        }
+        return kafkaProducer;
     }
 }
