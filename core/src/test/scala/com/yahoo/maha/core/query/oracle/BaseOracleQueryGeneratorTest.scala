@@ -250,6 +250,7 @@ trait BaseOracleQueryGeneratorTest
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
 //          , FactCol("Average CPC", DecType(), OracleCustomRollup("{spend}" / "{clicks}"))
           , FactCol("CTR", DecType(), OracleCustomRollup(SUM("{clicks}" /- "{impressions}")))
+          , FactCol("User Count", DecType(), alias=Option("user_count"))
           , OracleDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}")
           , OracleDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100")
           , OracleDerFactCol("N Spend", DecType(), DECODE("{stats_source}", "1", "{spend}", "0.0"))
@@ -283,6 +284,7 @@ trait BaseOracleQueryGeneratorTest
           PublicFactCol("impressions", "Total Impressions", InBetweenEquality),
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),
+          PublicFactCol("User Count", "User Count", Set.empty),
           PublicFactCol("avg_pos", "Average Position", Set.empty),
           PublicFactCol("max_bid", "Max Bid", Set.empty),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),

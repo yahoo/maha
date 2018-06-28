@@ -1528,7 +1528,11 @@ case class FactBestCandidate(fkCols: SortedSet[String]
        isIndexOptimized=$isIndexOptimized
      """
   }
-  
+
+  lazy val resolvedFactCols: Set[String] = factColMapping.keys.map(fact.columnsByNameMap.apply).map {
+    col =>
+      col.alias.getOrElse(col.name)
+  }.toSet
 }
 
 case class FactCandidate(fact: Fact, publicFact: PublicFact, filterCols: Set[String])
