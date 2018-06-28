@@ -1055,11 +1055,12 @@ b. Dim Driven
             } else if (fact.factColMap.contains(name)) {
               val column = fact.columnsByNameMap(name)
               val alias = queryContext.factBestCandidate.factColMapping(name)
+              val nameOrAlias = column.alias.getOrElse(name)
               val exp = column match {
                 case FactCol(_, dt, cc, rollup, _, annotations, _) =>
-                  s"""${renderRollupExpression(name, rollup)}"""
+                  s"""${renderRollupExpression(nameOrAlias, rollup)}"""
                 case OracleDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-                  s"""${renderRollupExpression(de.render(name, Map.empty), rollup)}"""
+                  s"""${renderRollupExpression(de.render(nameOrAlias, Map.empty), rollup)}"""
                 case any =>
                   throw new UnsupportedOperationException(s"Found non fact column : $any")
               }

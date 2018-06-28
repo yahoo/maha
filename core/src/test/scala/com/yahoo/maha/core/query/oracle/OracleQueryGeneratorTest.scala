@@ -3918,15 +3918,35 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                                "value": null
                              },
                              {
+                               "field": "Ad User Count Flag",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Ad Impressions Flag",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
                                "field": "Campaign Name"
                              },
                              {
-                               "field": "Campaign ID",
+                               "field": "Pricing Type",
                                "alias": null,
                                "value": null
                              },
                              {
                                "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "User Count",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Impressions",
                                "alias": null,
                                "value": null
                              }
@@ -3948,19 +3968,17 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend", "Campaign ID", "Ad Status", "Campaign Name"))
-
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Ad Status", "Pricing Type", "User Count", "Ad User Count Flag", "Ad Impressions Flag", "Impressions", "Campaign Name", "Spend"))
 
     val expected =
       s"""
-         |
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Ad Status", "Campaign Name", "Campaign ID", spend AS "Spend"
-         |FROM (SELECT ado2."Ad Status" "Ad Status", co1.campaign_name "Campaign Name", to_char(ado2.campaign_id) "Campaign ID", SUM(spend) AS spend
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Ad Status", "Ad User Count Flag", "Ad Impressions Flag", "Campaign Name", "Pricing Type", spend AS "Spend", user_count AS "User Count", impressions AS "Impressions"
+         |FROM (SELECT ado2."Ad Status" "Ad Status", to_char(ado2.user_count) "Ad User Count Flag", to_char(ado2.impressions) "Ad Impressions Flag", co1.campaign_name "Campaign Name", to_char(af0.price_type) "Pricing Type", SUM(af0.spend) AS spend, SUM(af0.user_count) AS user_count, SUM(af0.impressions) AS impressions
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   campaign_id, ad_id, SUM(spend) AS spend
+         |                   CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, ad_id, campaign_id, SUM(impressions) AS impressions, SUM(spend) AS spend, SUM(user_count) AS user_count
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY campaign_id, ad_id
+         |            GROUP BY CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, ad_id, campaign_id
          |
          |           ) af0
          |                     LEFT OUTER JOIN
@@ -3970,19 +3988,16 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |             )
          |           co1 ON (af0.campaign_id = co1.id)
          |           LEFT OUTER JOIN
-         |           (SELECT  campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Status", id, advertiser_id
+         |           (SELECT  campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Status", id, user_count, impressions, advertiser_id
          |            FROM ad_dim_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
          |           ado2 ON (af0.ad_id = ado2.id)
          |
- |          GROUP BY ado2."Ad Status", co1.campaign_name, to_char(ado2.campaign_id)
+ |          GROUP BY ado2."Ad Status", to_char(ado2.user_count), to_char(ado2.impressions), co1.campaign_name, to_char(af0.price_type)
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
-         |
-       """
-        .stripMargin
-    
+       """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }

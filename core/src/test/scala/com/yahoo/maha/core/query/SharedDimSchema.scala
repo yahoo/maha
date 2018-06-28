@@ -136,6 +136,8 @@ trait SharedDimSchema {
             , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
             , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
             , DimCol("status", StrType())
+            , DimCol("impressions", IntType())
+            , DimCol("user_count", IntType())
             , OracleDerDimCol("Ad Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
@@ -172,6 +174,8 @@ trait SharedDimSchema {
           , PubCol("campaign_id", "Campaign ID", InEquality)
           , PubCol("ad_group_id", "Ad Group ID", InEquality)
           , PubCol("Ad Status", "Ad Status", InNotInEquality)
+          , PubCol("impressions", "Ad Impressions Flag", InEquality)
+          , PubCol("user_count", "Ad User Count Flag", InEquality)
         ), highCardinalityFilters = Set(NotInFilter("Ad Status", List("DELETED")))
       )
   }
