@@ -8,6 +8,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
 import com.metamx.common.logger.Logger;
 import io.druid.query.extraction.ExtractionFn;
@@ -16,6 +18,7 @@ import io.druid.query.lookup.LookupReferencesManager;
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @JsonTypeName("mahaRegisteredLookup")
 public class MahaRegisteredLookupExtractionFn implements ExtractionFn
@@ -34,6 +37,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     private final String valueColumn;
     private final DecodeConfig decodeConfig;
     private final Map<String, String> dimensionOverrideMap;
+    Cache<String, String> cache;
 
     @JsonCreator
     public MahaRegisteredLookupExtractionFn(
@@ -60,6 +64,11 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
         this.valueColumn = valueColumn;
         this.decodeConfig = decodeConfig;
         this.dimensionOverrideMap = dimensionOverrideMap;
+        this.cache = Caffeine
+                .newBuilder()
+                .maximumSize(10_000)
+                .expireAfterWrite(5, TimeUnit.MINUTES)
+                .build();
     }
 
     @JsonProperty("lookup")
@@ -133,19 +142,27 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     @Override
     public String apply(String value)
     {
-        MahaLookupQueryElement mahaLookupQueryElement = new MahaLookupQueryElement();
-        mahaLookupQueryElement.setDimension(value);
-        mahaLookupQueryElement.setValueColumn(valueColumn);
-        mahaLookupQueryElement.setDecodeConfig(decodeConfig);
-        mahaLookupQueryElement.setDimensionOverrideMap(dimensionOverrideMap);
+        String serializedElement = cache.getIfPresent(value);
+        if(serializedElement == null) {
+            serializedElement = populateCacheAndGetSerializedElement(value);
+        }
+        return ensureDelegate().apply(serializedElement);
+    }
 
+    String populateCacheAndGetSerializedElement(String value) {
         String serializedElement = "";
         try {
+            MahaLookupQueryElement mahaLookupQueryElement = new MahaLookupQueryElement();
+            mahaLookupQueryElement.setDimension(value);
+            mahaLookupQueryElement.setValueColumn(valueColumn);
+            mahaLookupQueryElement.setDecodeConfig(decodeConfig);
+            mahaLookupQueryElement.setDimensionOverrideMap(dimensionOverrideMap);
             serializedElement = objectMapper.writeValueAsString(mahaLookupQueryElement);
+            cache.put(value, serializedElement);
         } catch (JsonProcessingException e) {
             LOG.error(e, e.getMessage());
         }
-        return ensureDelegate().apply(serializedElement);
+        return serializedElement;
     }
 
     @Override
