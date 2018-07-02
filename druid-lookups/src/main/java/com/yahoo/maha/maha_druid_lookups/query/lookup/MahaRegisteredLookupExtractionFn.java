@@ -142,14 +142,11 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     @Override
     public String apply(String value)
     {
-        String serializedElement = cache.getIfPresent(value);
-        if(serializedElement == null) {
-            serializedElement = populateCacheAndGetSerializedElement(value);
-        }
+        String serializedElement = cache.get(value, key -> populateCacheWithSerializedElement(value));
         return ensureDelegate().apply(serializedElement);
     }
 
-    String populateCacheAndGetSerializedElement(String value) {
+    String populateCacheWithSerializedElement(String value) {
         String serializedElement = "";
         try {
             MahaLookupQueryElement mahaLookupQueryElement = new MahaLookupQueryElement();
@@ -158,7 +155,6 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
             mahaLookupQueryElement.setDecodeConfig(decodeConfig);
             mahaLookupQueryElement.setDimensionOverrideMap(dimensionOverrideMap);
             serializedElement = objectMapper.writeValueAsString(mahaLookupQueryElement);
-            cache.put(value, serializedElement);
         } catch (JsonProcessingException e) {
             LOG.error(e, e.getMessage());
         }

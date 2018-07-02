@@ -49,7 +49,7 @@ public class MahaRegisteredLookupExtractionFnTest {
         MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, objectMapper, "advertiser_lookup", false, "", false, false, "status", null, null));
         fn.apply("123");
         Assert.assertEquals(fn.cache.getIfPresent("123"), "{\"dimension\":\"123\",\"valueColumn\":\"status\",\"decodeConfig\":null,\"dimensionOverrideMap\":null}");
-        verify(fn, times(1)).populateCacheAndGetSerializedElement(anyString());
+        verify(fn, times(1)).populateCacheWithSerializedElement(anyString());
     }
 
     @Test
@@ -77,6 +77,6 @@ public class MahaRegisteredLookupExtractionFnTest {
 
         fn.apply("123");
         Assert.assertEquals(fn.cache.getIfPresent("123"), "{\"dimension\":\"123\",\"valueColumn\":\"status\",\"decodeConfig\":null,\"dimensionOverrideMap\":null}");
-        verify(fn, times(0)).populateCacheAndGetSerializedElement(anyString());
+        verify(fn, times(0)).populateCacheWithSerializedElement(anyString());
     }
 }
