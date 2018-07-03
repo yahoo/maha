@@ -60,6 +60,7 @@ public class MahaNamespacesCacheResource
     public Response getCacheValue(@PathParam("namespace") String namespace,
                                   @QueryParam("namespaceclass") String extractionNamespaceClass,
                                   @QueryParam("key") String key,
+                                  @QueryParam("valueColumn") String valueColumn,
                                   @QueryParam("debug") boolean debug, @Context final HttpServletRequest request) {
         try {
             request.setAttribute(AuthConfig.DRUID_AUTHORIZATION_CHECKED, Access.OK.isAllowed());
@@ -70,14 +71,14 @@ public class MahaNamespacesCacheResource
                 return Response.ok().entity(new byte[0]).build();
 
             } else {
-                if (key != null) {
+                if (key != null && valueColumn != null) {
                     if (debug) {
-                        log.info("Fetching cache value for key [%s]", key);
+                        log.info("Fetching cache value for key [%s] and valueColumn [%s]", key, valueColumn);
                     }
                     response = mahaExtractionCacheManager
                             .getExtractionNamespaceFunctionFactory(Class.forName(extractionNamespaceClass))
                             .getCacheValue(extractionNamespace.get(),
-                                    mahaExtractionCacheManager.getCacheMap(namespace), key);
+                                    mahaExtractionCacheManager.getCacheMap(namespace), key, valueColumn);
                     if (debug && response != null) {
                         log.info("Cache value is : [%s]", new String(response));
                     }

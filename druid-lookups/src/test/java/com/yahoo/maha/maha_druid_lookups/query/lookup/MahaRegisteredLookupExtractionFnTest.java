@@ -12,10 +12,7 @@ import org.mockito.Mock;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
@@ -78,5 +75,6 @@ public class MahaRegisteredLookupExtractionFnTest {
         fn.apply("123");
         Assert.assertEquals(fn.cache.getIfPresent("123"), "{\"dimension\":\"123\",\"valueColumn\":\"status\",\"decodeConfig\":null,\"dimensionOverrideMap\":null}");
         verify(fn, times(0)).populateCacheWithSerializedElement(anyString());
+        List<int[]> l = new ArrayList<>();
     }
 }
