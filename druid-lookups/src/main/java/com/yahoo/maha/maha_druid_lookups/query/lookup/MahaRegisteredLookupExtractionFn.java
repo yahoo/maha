@@ -13,6 +13,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
 import com.metamx.common.logger.Logger;
 import io.druid.query.extraction.ExtractionFn;
+import io.druid.query.lookup.LookupExtractor;
 import io.druid.query.lookup.LookupReferencesManager;
 
 import javax.annotation.Nullable;
@@ -38,7 +39,9 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     private final DecodeConfig decodeConfig;
     private final Map<String, String> dimensionOverrideMap;
     private final boolean useQueryLevelCache;
-    Cache<String, String> cache;
+    volatile Cache<String, String> cache = null;
+    private final Object cacheLock = new Object();
+    public LookupExtractor lookupExtractor;
 
     @JsonCreator
     public MahaRegisteredLookupExtractionFn(
@@ -67,13 +70,6 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
         this.decodeConfig = decodeConfig;
         this.dimensionOverrideMap = dimensionOverrideMap;
         this.useQueryLevelCache = useQueryLevelCache == null ? false : useQueryLevelCache;
-        if(useQueryLevelCache) {
-            this.cache = Caffeine
-                    .newBuilder()
-                    .maximumSize(10_000)
-                    .expireAfterWrite(5, TimeUnit.MINUTES)
-                    .build();
-        }
     }
 
     @JsonProperty("lookup")
@@ -153,8 +149,8 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     @Override
     public String apply(String value)
     {
-        String serializedElement = isUseQueryLevelCache() && cache != null ?
-                cache.get(value, key -> getSerializedLookupQueryElement(value)) :
+        String serializedElement = isUseQueryLevelCache() ?
+                ensureCache().get(value, key -> getSerializedLookupQueryElement(value)) :
                 getSerializedLookupQueryElement(value);
         return ensureDelegate().apply(serializedElement);
     }
@@ -192,14 +188,30 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
         return ensureDelegate().getExtractionType();
     }
 
+    Cache<String, String> ensureCache() {
+        if(null == cache) {
+            synchronized (cacheLock) {
+                if(null == cache) {
+                    this.cache = Caffeine
+                            .newBuilder()
+                            .maximumSize(10_000)
+                            .expireAfterWrite(5, TimeUnit.MINUTES)
+                            .build();
+                }
+            }
+        }
+        return cache;
+    }
+
     private MahaLookupExtractionFn ensureDelegate()
     {
         if (null == delegate) {
             // http://www.javamex.com/tutorials/double_checked_locking.shtml
             synchronized (delegateLock) {
                 if (null == delegate) {
+                    LookupExtractor lookupExtractor = this.lookupExtractor == null ? Preconditions.checkNotNull(manager.get(getLookup()), "Lookup [%s] not found", getLookup()).getLookupExtractorFactory().get() : this.lookupExtractor;
                     delegate = new MahaLookupExtractionFn(
-                            Preconditions.checkNotNull(manager.get(getLookup()), "Lookup [%s] not found", getLookup()).getLookupExtractorFactory().get(),
+                            lookupExtractor,
                             isRetainMissingValue(),
                             getReplaceMissingValueWith(),
                             isInjective(),

@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
@@ -21,7 +22,7 @@ import static org.mockito.Mockito.*;
 
 public class MahaRegisteredLookupExtractionFnTest {
 
-    ObjectMapper objectMapper = new ObjectMapper();
+    ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Mock
     LookupService lookupService;
@@ -74,7 +75,7 @@ public class MahaRegisteredLookupExtractionFnTest {
 
         MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, objectMapper, "advertiser_lookup", false, "", false, false, "status", null, null, true));
 
-        fn.cache.put("123", "{\"dimension\":\"123\",\"valueColumn\":\"status\",\"decodeConfig\":null,\"dimensionOverrideMap\":null}");
+        fn.ensureCache().put("123", "{\"dimension\":\"123\",\"valueColumn\":\"status\",\"decodeConfig\":null,\"dimensionOverrideMap\":null}");
 
         fn.apply("123");
         Assert.assertEquals(fn.cache.getIfPresent("123"), "{\"dimension\":\"123\",\"valueColumn\":\"status\",\"decodeConfig\":null,\"dimensionOverrideMap\":null}");

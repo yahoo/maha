@@ -56,6 +56,7 @@
         <freemarker.version>2.3.20</freemarker.version>
         <enumeratum.version>1.5.13</enumeratum.version>
         <kafka.version>0.10.2.1</kafka.version>
+        <caffeine.version>2.6.2</caffeine.version>
     </properties>
 
 
@@ -91,6 +92,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-math3</artifactId>
