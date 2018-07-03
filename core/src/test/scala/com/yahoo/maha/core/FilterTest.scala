@@ -19,7 +19,6 @@ class FilterTest extends FunSuite with Matchers {
   val hiveLiteralMapper = new HiveLiteralMapper
   val druidLiteralMapper = new DruidLiteralMapper
 
-
   def render[T, O](renderer: FilterRenderer[T, O], filter: T, literalMapper: LiteralMapper, engine: Engine, column: Column) : O = {
     renderer.render(column.name, filter, literalMapper, column, engine, None)
   }
@@ -100,6 +99,16 @@ class FilterTest extends FunSuite with Matchers {
     render(SqlLikeFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col) shouldBe DefaultResult("field1 LIKE \'%ghi%\'")
   }
 
+  test("LikeFilter should render correct string for Presto") {
+    val filter = LikeFilter("field1", "ghi")
+    render(SqlLikeFilterRenderer, filter, hiveLiteralMapper, PrestoEngine, col) shouldBe DefaultResult("field1 LIKE \'%ghi%\'")
+  }
+
+  test("NotEqualToFilter should render correct string for Presto") {
+    val filter = NotEqualToFilter("field1", "ghi")
+    render(SqlNotEqualToFilterRenderer, filter, hiveLiteralMapper, PrestoEngine, col) shouldBe DefaultResult("field1 <> \'ghi\'")
+  }
+
   test("NotEqualToFilter should render correct string for Oracle") {
     val filter = NotEqualToFilter("field1", "ghi")
     render(SqlNotEqualToFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col) shouldBe DefaultResult("field1 <> \'ghi\'")
@@ -113,6 +122,16 @@ class FilterTest extends FunSuite with Matchers {
   test("IsNotNullFilter should render correct string for Oracle") {
     val filter = IsNotNullFilter("field1")
     render(SqlIsNotNullFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col) shouldBe DefaultResult("field1 IS NOT NULL")
+  }
+
+  test("IsNullFilter should render correct string for Presto") {
+    val filter = IsNullFilter("field1")
+    render(SqlIsNullFilterRenderer, filter, hiveLiteralMapper, PrestoEngine, col) shouldBe DefaultResult("field1 IS NULL")
+  }
+
+  test("IsNotNullFilter should render correct string for Presto") {
+    val filter = IsNotNullFilter("field1")
+    render(SqlIsNotNullFilterRenderer, filter, hiveLiteralMapper, PrestoEngine, col) shouldBe DefaultResult("field1 IS NOT NULL")
   }
 
   test("InFilter should render correct string for Hive") {

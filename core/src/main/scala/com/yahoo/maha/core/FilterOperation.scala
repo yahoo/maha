@@ -402,7 +402,7 @@ object SqlLikeFilterRenderer extends LikeFilterRenderer[SqlResult] {
               DefaultResult( s"""$name LIKE $renderedValue""", escaped = escaped)
             }
         }
-      case HiveEngine =>
+      case HiveEngine | PrestoEngine =>
         column.dataType match {
           case StrType(_, _, _) if column.caseInSensitive =>
               DefaultResult( s"""lower($name) LIKE lower($renderedValue)""", escaped = escaped)
@@ -431,7 +431,7 @@ object SqlNotEqualToFilterRenderer extends NotEqualToFilterRenderer[SqlResult] {
           case _ =>
             DefaultResult(s"""$name <> $renderedValue""")
         }
-      case HiveEngine =>
+      case HiveEngine  | PrestoEngine =>
         DefaultResult(s"""$name <> $renderedValue""")
       case _ =>
         throw new IllegalArgumentException(s"Unsupported engine for NotEqualToFilterRenderer $engine")
@@ -449,7 +449,7 @@ object SqlIsNullFilterRenderer extends IsNullFilterRenderer[SqlResult] {
     engine match {
       case OracleEngine =>
         DefaultResult(s"""$name IS NULL""")
-      case HiveEngine =>
+      case HiveEngine | PrestoEngine =>
         DefaultResult(s"""$name IS NULL""")
       case _ =>
         throw new IllegalArgumentException(s"Unsupported engine for IsNullFilterRenderer $engine")
@@ -466,7 +466,7 @@ object SqlIsNotNullFilterRenderer extends IsNotNullFilterRenderer[SqlResult] {
     engine match {
       case OracleEngine =>
         DefaultResult(s"""$name IS NOT NULL""")
-      case HiveEngine =>
+      case HiveEngine | PrestoEngine =>
         DefaultResult(s"""$name IS NOT NULL""")
       case _ =>
         throw new IllegalArgumentException(s"Unsupported engine for IsNotNullFilterRenderer $engine")
