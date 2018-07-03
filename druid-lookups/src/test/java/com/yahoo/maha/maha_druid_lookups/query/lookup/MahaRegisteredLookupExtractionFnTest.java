@@ -104,7 +104,7 @@ public class MahaRegisteredLookupExtractionFnTest {
         MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, objectMapper, "advertiser_lookup", false, "", false, false, "status", null, null, false));
 
         fn.apply("123");
-        Assert.assertEquals(fn.cache.getIfPresent("123"), null);
+        Assert.assertNull(fn.cache);
         verify(fn, times(1)).getSerializedLookupQueryElement(anyString());
     }
 }

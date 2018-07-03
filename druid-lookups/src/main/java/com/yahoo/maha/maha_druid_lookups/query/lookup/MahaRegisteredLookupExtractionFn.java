@@ -67,11 +67,13 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
         this.decodeConfig = decodeConfig;
         this.dimensionOverrideMap = dimensionOverrideMap;
         this.useQueryLevelCache = useQueryLevelCache == null ? false : useQueryLevelCache;
-        this.cache = Caffeine
-                .newBuilder()
-                .maximumSize(10_000)
-                .expireAfterWrite(5, TimeUnit.MINUTES)
-                .build();
+        if(useQueryLevelCache) {
+            this.cache = Caffeine
+                    .newBuilder()
+                    .maximumSize(10_000)
+                    .expireAfterWrite(5, TimeUnit.MINUTES)
+                    .build();
+        }
     }
 
     @JsonProperty("lookup")
@@ -151,7 +153,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     @Override
     public String apply(String value)
     {
-        String serializedElement = isUseQueryLevelCache() ?
+        String serializedElement = isUseQueryLevelCache() && cache != null ?
                 cache.get(value, key -> getSerializedLookupQueryElement(value)) :
                 getSerializedLookupQueryElement(value);
         return ensureDelegate().apply(serializedElement);
