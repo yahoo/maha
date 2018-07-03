@@ -37,6 +37,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     private final String valueColumn;
     private final DecodeConfig decodeConfig;
     private final Map<String, String> dimensionOverrideMap;
+    private final boolean useQueryLevelCache;
     Cache<String, String> cache;
 
     @JsonCreator
@@ -50,7 +51,8 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
             @JsonProperty("optimize") Boolean optimize,
             @Nullable @JsonProperty("valueColumn") String valueColumn,
             @Nullable @JsonProperty("decode") DecodeConfig decodeConfig,
-            @Nullable @JsonProperty("dimensionOverrideMap") Map<String, String> dimensionOverrideMap
+            @Nullable @JsonProperty("dimensionOverrideMap") Map<String, String> dimensionOverrideMap,
+            @Nullable @JsonProperty("useQueryLevelCache") Boolean useQueryLevelCache
     )
     {
         Preconditions.checkArgument(lookup != null, "`lookup` required");
@@ -64,6 +66,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
         this.valueColumn = valueColumn;
         this.decodeConfig = decodeConfig;
         this.dimensionOverrideMap = dimensionOverrideMap;
+        this.useQueryLevelCache = useQueryLevelCache == null ? false : useQueryLevelCache;
         this.cache = Caffeine
                 .newBuilder()
                 .maximumSize(10_000)
@@ -119,6 +122,12 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
         return dimensionOverrideMap;
     }
 
+    @JsonProperty("useQueryLevelCache")
+    public boolean isUseQueryLevelCache()
+    {
+        return useQueryLevelCache;
+    }
+
     @Override
     public byte[] getCacheKey()
     {
@@ -142,11 +151,13 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     @Override
     public String apply(String value)
     {
-        String serializedElement = cache.get(value, key -> populateCacheWithSerializedElement(value));
+        String serializedElement = isUseQueryLevelCache() ?
+                cache.get(value, key -> getSerializedLookupQueryElement(value)) :
+                getSerializedLookupQueryElement(value);
         return ensureDelegate().apply(serializedElement);
     }
 
-    String populateCacheWithSerializedElement(String value) {
+    String getSerializedLookupQueryElement(String value) {
         String serializedElement = "";
         try {
             MahaLookupQueryElement mahaLookupQueryElement = new MahaLookupQueryElement();
@@ -222,6 +233,11 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
         if (!getLookup().equals(that.getLookup())) {
             return false;
         }
+
+        if(isUseQueryLevelCache() != that.isUseQueryLevelCache()) {
+            return false;
+        }
+
         return getReplaceMissingValueWith() != null
                 ? getReplaceMissingValueWith().equals(that.getReplaceMissingValueWith())
                 : that.getReplaceMissingValueWith() == null;
@@ -235,6 +251,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
         result = 31 * result + (getReplaceMissingValueWith() != null ? getReplaceMissingValueWith().hashCode() : 0);
         result = 31 * result + (isInjective() ? 1 : 0);
         result = 31 * result + (isOptimize() ? 1 : 0);
+        result = 31 * result + (isUseQueryLevelCache() ? 1 : 0);
         return result;
     }
 
@@ -250,6 +267,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
                 ", optimize=" + optimize +
                 ", valueColumn=" + valueColumn +
                 ", decodeConfig=" + decodeConfig +
+                ", useQueryLevelCache=" + useQueryLevelCache +
                 '}';
     }
 }
