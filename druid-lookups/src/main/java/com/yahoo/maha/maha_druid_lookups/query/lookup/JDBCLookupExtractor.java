@@ -79,12 +79,16 @@ public class JDBCLookupExtractor<U extends List<String>> extends LookupExtractor
                 return (cacheByteValue == null || cacheByteValue.length == 0) ? null : new String(cacheByteValue, UTF_8);
             } else {
                 U cacheValueArray = map.get(dimension);
+                if(cacheValueArray == null) {
+                    return null;
+                }
                 if(decodeConfig != null) {
                     return handleDecode(cacheValueArray, decodeConfig);
                 }
                 else {
                     int columnIndex = getColumnIndex(extractionNamespace, valueColumn);
-                    if (columnIndex < 0) {
+                    if (columnIndex < 0 || columnIndex >= cacheValueArray.size()) {
+                        LOG.error("Invalid columnIndex [%s], cacheValueArray is [%s]", columnIndex, cacheValueArray);
                         return null;
                     }
                     return Strings.emptyToNull(cacheValueArray.get(columnIndex));
@@ -100,7 +104,7 @@ public class JDBCLookupExtractor<U extends List<String>> extends LookupExtractor
     private String handleDecode(U row, DecodeConfig decodeConfig) {
 
         final int columnToCheckIndex = getColumnIndex(extractionNamespace, decodeConfig.getColumnToCheck());
-        if (columnToCheckIndex < 0) {
+        if (columnToCheckIndex < 0 || columnToCheckIndex >= row.size() ) {
             return null;
         }
 
