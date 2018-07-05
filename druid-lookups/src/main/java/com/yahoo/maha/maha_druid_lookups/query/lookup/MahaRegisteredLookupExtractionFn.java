@@ -13,7 +13,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
 import com.metamx.common.logger.Logger;
 import io.druid.query.extraction.ExtractionFn;
-import io.druid.query.lookup.LookupExtractor;
 import io.druid.query.lookup.LookupReferencesManager;
 
 import javax.annotation.Nullable;
@@ -41,7 +40,6 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     private final boolean useQueryLevelCache;
     volatile Cache<String, String> cache = null;
     private final Object cacheLock = new Object();
-    public LookupExtractor lookupExtractor;
 
     @JsonCreator
     public MahaRegisteredLookupExtractionFn(
@@ -209,9 +207,8 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
             // http://www.javamex.com/tutorials/double_checked_locking.shtml
             synchronized (delegateLock) {
                 if (null == delegate) {
-                    LookupExtractor lookupExtractor = this.lookupExtractor == null ? Preconditions.checkNotNull(manager.get(getLookup()), "Lookup [%s] not found", getLookup()).getLookupExtractorFactory().get() : this.lookupExtractor;
                     delegate = new MahaLookupExtractionFn(
-                            lookupExtractor,
+                            Preconditions.checkNotNull(manager.get(getLookup()), "Lookup [%s] not found", getLookup()).getLookupExtractorFactory().get(),
                             isRetainMissingValue(),
                             getReplaceMissingValueWith(),
                             isInjective(),
