@@ -1710,41 +1710,6 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     result should fullyMatch regex json
   }
 
-  /*test("Primary key should be included in if it is present in sort by when druid+oracle") {
-    val jsonString = s"""{
-                          "cube": "k_stats",
-                          "selectFields": [
-                            {"field": "Impressions"},
-                            {"field": "Keyword Value"},
-                            {"field": "Campaign ID"}
-                          ],
-                          "filterExpressions": [
-                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
-                          ],
-                          "sortBy": [
-                            {"field": "Impressions", "order": "Desc"},
-                            {"field": "Campaign ID", "order": "Desc"}
-                          ],
-                          "forceDimensionDriven": true,
-                          "paginationStartIndex":20,
-                          "rowsPerPage":100
-                        }"""
-
-    val request: ReportingRequest = getReportingRequestSync(jsonString, InternalSchema)
-    val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry, revision = Option.apply(1))
-    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
-
-    val queryPipelineTry = queryPipelineFactory.from(requestModel.toOption.get, QueryAttributes.empty)
-    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-
-    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-
-    val json = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\}\]\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"id","outputName":"Keyword ID"\,\"outputType\":\"STRING\"}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":120\},"context":\{"groupByStrategy":"v2","applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}"""
-
-    result should fullyMatch regex json
-  }*/
-
   test("test theta sketch intersect set operation with filters on theta sketch aggregators") {
     val jsonString = s"""{
                           "cube": "k_stats",
