@@ -33,11 +33,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class InMemoryDBLookupExtractor extends LookupExtractor
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+public class InMemoryDBLookupExtractor<U> extends LookupExtractor
 {
     private static final Logger LOG = new Logger(InMemoryDBLookupExtractor.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
-    private final Map<String, String> map;
+    private final Map<String, U> map;
     private final InMemoryDBExtractionNamespace extractionNamespace;
     private RocksDBManager rocksDBManager;
     private LookupService lookupService;
@@ -46,7 +48,7 @@ public class InMemoryDBLookupExtractor extends LookupExtractor
     private Cache<String, byte[]> missingLookupCache;
     private final byte[] extractionNamespaceAsByteArray;
 
-    public InMemoryDBLookupExtractor(InMemoryDBExtractionNamespace extractionNamespace, Map<String, String> map,
+    public InMemoryDBLookupExtractor(InMemoryDBExtractionNamespace extractionNamespace, Map<String, U> map,
                                      LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
                                      ProtobufSchemaFactory protobufSchemaFactory) {
         this.extractionNamespace = extractionNamespace;
@@ -68,7 +70,7 @@ public class InMemoryDBLookupExtractor extends LookupExtractor
 
     }
 
-    public Map<String, String> getMap()
+    public Map<String, U> getMap()
     {
         return ImmutableMap.copyOf(map);
     }
@@ -93,39 +95,38 @@ public class InMemoryDBLookupExtractor extends LookupExtractor
                 return Strings.emptyToNull(dimensionOverrideMap.get(dimension));
             }
 
-            byte[] cacheByteValue = null;
             if (!extractionNamespace.isCacheEnabled()) {
-                cacheByteValue = lookupService.lookup(new LookupService.LookupData(extractionNamespace,
-                        dimension));
+                byte[] cacheByteValue = lookupService.lookup(new LookupService.LookupData(extractionNamespace,
+                        dimension, valueColumn));
+                return (cacheByteValue == null || cacheByteValue.length == 0) ? null : new String(cacheByteValue, UTF_8);
             } else {
                 final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
                 if (db == null) {
                     LOG.error("RocksDB instance is null");
                     return null;
                 }
-                cacheByteValue = db.get(dimension.getBytes());
-            }
+                byte[] cacheByteValue = db.get(dimension.getBytes());
+                if (cacheByteValue == null || cacheByteValue.length == 0) {
+                    // No need to call handleMissingLookup if missing dimension is already present in missingLookupCache
+                    if(extractionNamespace.getMissingLookupConfig() != null
+                            && !Strings.isNullOrEmpty(extractionNamespace.getMissingLookupConfig().getMissingLookupKafkaTopic())
+                            && missingLookupCache.getIfPresent(dimension) == null) {
 
-            if (cacheByteValue == null || cacheByteValue.length == 0) {
-                // No need to call handleMissingLookup if missing dimension is already present in missingLookupCache
-                if(extractionNamespace.getMissingLookupConfig() != null
-                        && !Strings.isNullOrEmpty(extractionNamespace.getMissingLookupConfig().getMissingLookupKafkaTopic())
-                        && missingLookupCache.getIfPresent(dimension) == null) {
-
-                    kafkaManager.handleMissingLookup(extractionNamespaceAsByteArray,
-                            extractionNamespace.getMissingLookupConfig().getMissingLookupKafkaTopic(),
-                            dimension);
-                    missingLookupCache.put(dimension, extractionNamespaceAsByteArray);
+                        kafkaManager.handleMissingLookup(extractionNamespaceAsByteArray,
+                                extractionNamespace.getMissingLookupConfig().getMissingLookupKafkaTopic(),
+                                dimension);
+                        missingLookupCache.put(dimension, extractionNamespaceAsByteArray);
+                    }
+                    return null;
                 }
-                return null;
+
+                Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
+                Message message = parser.parseFrom(cacheByteValue);
+                Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
+                Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn);
+
+                return Strings.emptyToNull(message.getField(field).toString());
             }
-
-            Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
-            Message message = parser.parseFrom(cacheByteValue);
-            Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
-            Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn);
-
-            return Strings.emptyToNull(message.getField(field).toString());
 
         } catch (Exception e) {
             LOG.error(e, "Caught exception while lookup");
@@ -151,15 +152,10 @@ public class InMemoryDBLookupExtractor extends LookupExtractor
     {
         try {
             final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            for (Map.Entry<String, String> entry : map.entrySet()) {
+            for (Map.Entry<String, U> entry : map.entrySet()) {
                 final String key = entry.getKey();
-                final String val = entry.getValue();
                 if (!Strings.isNullOrEmpty(key)) {
                     outputStream.write(key.getBytes());
-                }
-                outputStream.write((byte)0xFF);
-                if (!Strings.isNullOrEmpty(val)) {
-                    outputStream.write(val.getBytes());
                 }
                 outputStream.write((byte)0xFF);
             }

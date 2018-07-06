@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  *
  */
-public abstract class MahaExtractionCacheManager
+public abstract class MahaExtractionCacheManager<U>
 {
     protected static class NamespaceImplData
     {
@@ -67,7 +67,7 @@ public abstract class MahaExtractionCacheManager
     protected final ConcurrentMap<String, LookupExtractor> lookupExtractorMap = new ConcurrentHashMap<>();
     protected final AtomicLong tasksStarted = new AtomicLong(0);
     protected final ServiceEmitter serviceEmitter;
-    private final Map<Class<? extends ExtractionNamespace>, ExtractionNamespaceCacheFactory<?>> namespaceFunctionFactoryMap;
+    private final Map<Class<? extends ExtractionNamespace>, ExtractionNamespaceCacheFactory<?,?>> namespaceFunctionFactoryMap;
     @Inject
     LookupService lookupService;
     @Inject
@@ -80,7 +80,7 @@ public abstract class MahaExtractionCacheManager
     public MahaExtractionCacheManager(
             Lifecycle lifecycle,
             final ServiceEmitter serviceEmitter,
-            final Map<Class<? extends ExtractionNamespace>, ExtractionNamespaceCacheFactory<?>> namespaceFunctionFactoryMap
+            final Map<Class<? extends ExtractionNamespace>, ExtractionNamespaceCacheFactory<?,?>> namespaceFunctionFactoryMap
     )
     {
         this.listeningScheduledExecutorService = MoreExecutors.listeningDecorator(
@@ -301,7 +301,7 @@ public abstract class MahaExtractionCacheManager
     // Optimistic scheduling of updates to a namespace.
     public <T extends ExtractionNamespace> ListenableFuture<?> schedule(final String id, final T namespace)
     {
-        final ExtractionNamespaceCacheFactory<T> factory = (ExtractionNamespaceCacheFactory<T>)
+        final ExtractionNamespaceCacheFactory<T,U> factory = (ExtractionNamespaceCacheFactory<T,U>)
                 namespaceFunctionFactoryMap.get(namespace.getClass());
         if (factory == null) {
             throw new ISE("Cannot find factory for namespace [%s]", namespace);
@@ -314,7 +314,7 @@ public abstract class MahaExtractionCacheManager
     protected synchronized <T extends ExtractionNamespace> ListenableFuture<?> schedule(
             final String id,
             final T namespace,
-            final ExtractionNamespaceCacheFactory<T> factory,
+            final ExtractionNamespaceCacheFactory<T,U> factory,
             final String cacheId
     )
     {
@@ -346,7 +346,7 @@ public abstract class MahaExtractionCacheManager
                             // should never happen
                             throw new NullPointerException(String.format("No data for namespace [%s]", id));
                         }
-                        final Map<String, String> cache = getCacheMap(cacheId);
+                        final Map<String, U> cache = getCacheMap(cacheId);
                         final String preVersion = implData.latestVersion;
                         final Callable<String> runnable = factory.getCachePopulator(id, namespace, preVersion, cache);
 
@@ -411,13 +411,14 @@ public abstract class MahaExtractionCacheManager
         }
     }
 
-    private LookupExtractor getLookupExtractor(final ExtractionNamespace extractionNamespace, Map<String, String> map) {
+    private LookupExtractor getLookupExtractor(final ExtractionNamespace extractionNamespace, Map<String, U> map) {
         if(extractionNamespace instanceof JDBCExtractionNamespace) {
             return new JDBCLookupExtractor((JDBCExtractionNamespace)extractionNamespace, map, lookupService);
         } else if(extractionNamespace instanceof InMemoryDBExtractionNamespace) {
             return new InMemoryDBLookupExtractor((InMemoryDBExtractionNamespace) extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory);
         } else {
-            return new MapLookupExtractor(map, false);
+//            return new MapLookupExtractor(map, false);
+            return null;
         }
     }
 
@@ -442,7 +443,7 @@ public abstract class MahaExtractionCacheManager
      *
      * @return A ConcurrentMap<String, String> that is backed by the impl which implements this method.
      */
-    public abstract ConcurrentMap<String, String> getCacheMap(String namespaceOrCacheKey);
+    public abstract ConcurrentMap<String, U> getCacheMap(String namespaceOrCacheKey);
 
     /**
      * Clears out resources used by the namespace such as threads. Implementations may override this and call super.delete(...) if they have resources of their own which need cleared.

@@ -12,10 +12,7 @@ import org.mockito.Mock;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class JDBCLookupExtractorTest {
 
@@ -81,8 +78,8 @@ public class JDBCLookupExtractorTest {
                 new JDBCExtractionNamespace(
                         metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
                         "id", "", new Period(), true, "advertiser_lookup");
-        Map<String, String> map = new HashMap<>();
-        map.put("12345", "12345" + CONTROL_A_SEPARATOR + "my name" + CONTROL_A_SEPARATOR + "USD" + CONTROL_A_SEPARATOR + "ON");
+        Map<String, List<String>> map = new HashMap<>();
+        map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
         JDBCLookupExtractor JDBCLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
         MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
         mahaLookupQueryElement1.setDimension("12345");
@@ -111,8 +108,8 @@ public class JDBCLookupExtractorTest {
                 new JDBCExtractionNamespace(
                         metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
                         "id", "", new Period(), true, "advertiser_lookup");
-        Map<String, String> map = new HashMap<>();
-        map.put("12345", "12345" + CONTROL_A_SEPARATOR + "my name" + CONTROL_A_SEPARATOR + "USD" + CONTROL_A_SEPARATOR + "ON");
+        Map<String, List<String>> map = new HashMap<>();
+        map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
         JDBCLookupExtractor JDBCLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
         MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
         mahaLookupQueryElement1.setDimension("12345");
@@ -129,8 +126,8 @@ public class JDBCLookupExtractorTest {
                 new JDBCExtractionNamespace(
                         metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
                         "id", "", new Period(), true, "advertiser_lookup");
-        Map<String, String> map = new HashMap<>();
-        map.put("12345", "12345" + CONTROL_A_SEPARATOR + "my name" + CONTROL_A_SEPARATOR + "USD" + CONTROL_A_SEPARATOR + "ON");
+        Map<String, List<String>> map = new HashMap<>();
+        map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
         JDBCLookupExtractor JDBCLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
         Map<String, String> dimensionOverrideMap = new HashMap<>();
         dimensionOverrideMap.put("12345", "something-12345");
@@ -160,8 +157,8 @@ public class JDBCLookupExtractorTest {
                 new JDBCExtractionNamespace(
                         metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
                         "id", "", new Period(), true, "advertiser_lookup");
-        Map<String, String> map = new HashMap<>();
-        map.put("12345", "12345" + CONTROL_A_SEPARATOR + "my name" + CONTROL_A_SEPARATOR + "USD" + CONTROL_A_SEPARATOR + "ON");
+        Map<String, List<String>> map = new HashMap<>();
+        map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
         JDBCLookupExtractor JDBCLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
 
         Map<String, String> dimensionOverrideMap = new HashMap<>();

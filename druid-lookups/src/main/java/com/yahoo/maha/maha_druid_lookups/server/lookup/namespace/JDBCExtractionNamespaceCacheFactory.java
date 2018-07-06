@@ -16,6 +16,7 @@ import org.skife.jdbi.v2.util.TimestampMapper;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,7 +26,7 @@ import java.util.concurrent.ConcurrentMap;
  *
  */
 public class JDBCExtractionNamespaceCacheFactory
-        implements ExtractionNamespaceCacheFactory<JDBCExtractionNamespace>
+        implements ExtractionNamespaceCacheFactory<JDBCExtractionNamespace, List<String>>
 {
     private static final Logger LOG = new Logger(JDBCExtractionNamespaceCacheFactory.class);
     private static final String COMMA_SEPARATOR = ",";
@@ -43,7 +44,7 @@ public class JDBCExtractionNamespaceCacheFactory
             final String id,
             final JDBCExtractionNamespace extractionNamespace,
             final String lastVersion,
-            final Map<String, String> cache
+            final Map<String, List<String>> cache
     )
     {
         final long lastCheck = lastVersion == null ? Long.MIN_VALUE/2 : Long.parseLong(lastVersion);
@@ -165,34 +166,30 @@ public class JDBCExtractionNamespaceCacheFactory
     }
 
     @Override
-    public void updateCache(final JDBCExtractionNamespace extractionNamespace, final Map<String, String> cache,
+    public void updateCache(final JDBCExtractionNamespace extractionNamespace, final Map<String, List<String>> cache,
                             final String key, final byte[] value) {
-        try {
-            if (!extractionNamespace.isCacheEnabled()) {
-                lookupService.update(new LookupService.LookupData(extractionNamespace, key), value);
-            } else {
-                cache.put(key, new String(value, "UTF-8"));
-            }
-        } catch(UnsupportedEncodingException e) {
-            LOG.error(e, "Caught exception while updating cache");
-            emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_FAILURE, 1));
-        }
+        //No-Op
     }
 
     @Override
-    public byte[] getCacheValue(final JDBCExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key) {
+    public byte[] getCacheValue(final JDBCExtractionNamespace extractionNamespace, final Map<String, List<String>> cache, final String key, final String valueColumn) {
         if (!extractionNamespace.isCacheEnabled()) {
-            byte[] value = lookupService.lookup(new LookupService.LookupData(extractionNamespace, key));
+            byte[] value = lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn));
             value = (value == null) ? new byte[0] : value;
             LOG.info("Cache value [%s]", new String(value));
             return value;
         }
-        String value = cache.get(key);
+        List<String> cacheValue = cache.get(key);
+        int index = extractionNamespace.getColumnList().indexOf(valueColumn);
+        if(index == -1) {
+            return new byte[0];
+        }
+        String value = cacheValue.get(index);
         return (value == null) ? new byte[0] : value.getBytes();
     }
 
     @Override
-    public String getCacheSize(final JDBCExtractionNamespace extractionNamespace, final Map<String, String> cache) {
+    public String getCacheSize(final JDBCExtractionNamespace extractionNamespace, final Map<String, List<String>> cache) {
         if (!extractionNamespace.isCacheEnabled()) {
             return String.valueOf(lookupService.getSize());
         }

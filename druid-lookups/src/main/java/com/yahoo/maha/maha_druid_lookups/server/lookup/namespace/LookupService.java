@@ -133,6 +133,7 @@ public class LookupService {
                 .setPath("/druid/v1/namespaces/" + lookupData.extractionNamespace.getLookupName())
                 .addParameter("namespaceclass", lookupData.extractionNamespace.getClass().getName())
                 .addParameter("key", lookupData.key)
+                .addParameter("valueColumn", lookupData.valueColumn)
                 .build());
         final HttpResponse response = httpclient.execute(httpGet);
         final HttpEntity entity = response.getEntity();
@@ -199,15 +200,17 @@ public class LookupService {
 
     public static class LookupData {
         String key;
+        String valueColumn;
         ExtractionNamespace extractionNamespace;
 
         public LookupData(ExtractionNamespace extractionNamespace) {
             this.extractionNamespace = extractionNamespace;
         }
 
-        public LookupData(ExtractionNamespace extractionNamespace, String key) {
+        public LookupData(ExtractionNamespace extractionNamespace, String key, String valueColumn) {
             this.extractionNamespace = extractionNamespace;
             this.key = key;
+            this.valueColumn = valueColumn;
         }
 
         @Override
@@ -220,7 +223,7 @@ public class LookupService {
             }
             LookupData otherLookupData = (LookupData) o;
 
-            if (!this.key.equals(otherLookupData.key) ||
+            if (!this.key.equals(otherLookupData.key) || !this.valueColumn.equals(otherLookupData.valueColumn) ||
                     !this.extractionNamespace.equals(otherLookupData.extractionNamespace)) {
                 return false;
             }
@@ -231,6 +234,7 @@ public class LookupService {
         @Override
         public int hashCode() {
             int result = key.hashCode();
+            result = 31 * result + valueColumn.hashCode();
             result = 31 * result + extractionNamespace.hashCode();
             return result;
         }

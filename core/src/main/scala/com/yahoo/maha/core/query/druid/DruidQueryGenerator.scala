@@ -9,7 +9,7 @@ import com.google.common.collect.{Lists, Maps}
 import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{START_OF_THE_MONTH, START_OF_THE_WEEK}
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol, DruidFuncDimCol, DruidPostResultFuncDimCol}
+import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request._
@@ -1059,7 +1059,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       }
     }
 
-    def renderColumnWithAliasUsingDimensionBundle(fact: Fact, column: Column, alias: String, db: DimensionBundle): (DimensionSpec, Option[DimensionSpec]) = {
+    def renderColumnWithAliasUsingDimensionBundle(fact: Fact, column: Column, alias: String, db: DimensionBundle, useQueryLevelCache: Boolean): (DimensionSpec, Option[DimensionSpec]) = {
       val name = column.alias.getOrElse(column.name)
       column match {
         case DimCol(_, dt, cc, _, annotations, _) =>
@@ -1077,12 +1077,12 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               renderColumnWithAlias(fact, column, alias)
 
             case lookupFunc@LOOKUP(lookupNamespace, valueColumn, dimensionOverrideMap) =>
-              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null, dimensionOverrideMap.asJava)
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null), Option.empty)
 
             case lookupFunc@LOOKUP_WITH_DECODE(lookupNamespace, valueColumn, dimensionOverrideMap, args @ _*) =>
-              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null, dimensionOverrideMap.asJava)
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
               val mapLookup = new MapLookupExtractor(lookupFunc.map.asJava, false)
               val mapExFn = new LookupExtractionFn(mapLookup, false, lookupFunc.default.getOrElse(null), false, true)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
@@ -1090,7 +1090,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                 Option.apply(new ExtractionDimensionSpec(alias, alias, getDimValueType(column), mapExFn, null)))
 
             case lookupFunc@LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE(lookupNamespace, valueColumn, retainMissingValue, injective, dimensionOverrideMap, args @ _*) =>
-              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null, dimensionOverrideMap.asJava)
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
               val mapLookup = new MapLookupExtractor(lookupFunc.lookupWithDecode.map.asJava, false)
               val mapExFn = new LookupExtractionFn(mapLookup, retainMissingValue, lookupFunc.lookupWithDecode.default.getOrElse(null), injective, true)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
@@ -1103,12 +1103,12 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               decodeConfig.setValueToCheck(valueToCheck)
               decodeConfig.setColumnIfValueMatched(columnIfValueMatched)
               decodeConfig.setColumnIfValueNotMatched(columnIfValueNotMatched)
-              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, null, decodeConfig, dimensionOverrideMap.asJava)
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, null, decodeConfig, dimensionOverrideMap.asJava, useQueryLevelCache)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null), Option.empty)
 
             case lookupFunc@LOOKUP_WITH_TIMEFORMATTER(lookupNamespace,valueColumn,inputFormat,resultFormat,dimensionOverrideMap) =>
-              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null, dimensionOverrideMap.asJava)
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
               val timeFormatFn = new TimeDimExtractionFn(inputFormat,resultFormat)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null),
@@ -1159,6 +1159,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     }
 
     val dimAliasSet = new mutable.TreeSet[String]()
+    val lastDimLevel: DimLevel = if(dims.nonEmpty) dims.last.dim.dimLevel else LevelOne
     dims.filter(p=> p.dim.engine == DruidEngine).map {
       case (db) =>
         val aliasSet = db.fields.filterNot(f => f.equals(db.publicDim.primaryKeyByAlias) || db.publicDim.foreignKeyByAlias(f))
@@ -1167,8 +1168,10 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             val name = db.publicDim.aliasToNameMap(alias)
             val column = db.dim.dimensionColumnsByNameMap(name)
             dimAliasSet += alias
-            if (!column.isInstanceOf[ConstDimCol])
-              dimensionSpecTupleList += renderColumnWithAliasUsingDimensionBundle(fact, column, alias, db)
+            if (!column.isInstanceOf[ConstDimCol]) {
+              val useQueryLevelCache: Boolean = db.dim.dimLevel < lastDimLevel
+              dimensionSpecTupleList += renderColumnWithAliasUsingDimensionBundle(fact, column, alias, db, useQueryLevelCache)
+            }
         }
     }
 
@@ -1180,8 +1183,10 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             if(!dimAliasSet(filter.field)) {
               val name = db.publicDim.aliasToNameMap(filter.field)
               val column = db.dim.dimensionColumnsByNameMap(name)
-              if (!column.isInstanceOf[ConstDimCol])
-                dimensionSpecTupleList += renderColumnWithAliasUsingDimensionBundle(fact, column, filter.field, db)
+              if (!column.isInstanceOf[ConstDimCol]) {
+                val useQueryLevelCache: Boolean = db.dim.dimLevel < lastDimLevel
+                dimensionSpecTupleList += renderColumnWithAliasUsingDimensionBundle(fact, column, filter.field, db, useQueryLevelCache)
+              }
             }
           }
         }

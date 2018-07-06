@@ -9,16 +9,17 @@ import org.skife.jdbi.v2.tweak.ResultSetMapper;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class RowMapper implements ResultSetMapper<Void> {
 
     private static final Logger LOG = new Logger(RowMapper.class);
-    private static final String CONTROL_A_SEPARATOR = "\u0001";
     private JDBCExtractionNamespace extractionNamespace;
-    private Map<String, String> cache;
+    private Map<String, List<String>> cache;
 
-    public RowMapper(JDBCExtractionNamespace extractionNamespace, Map<String, String> cache) {
+    public RowMapper(JDBCExtractionNamespace extractionNamespace, Map<String, List<String>> cache) {
         this.extractionNamespace = extractionNamespace;
         this.cache = cache;
     }
@@ -26,11 +27,11 @@ public class RowMapper implements ResultSetMapper<Void> {
     @Override
     public Void map(int i, ResultSet resultSet, StatementContext statementContext) throws SQLException {
 
-        StringBuilder sb = new StringBuilder();
-        for(String columnName: this.extractionNamespace.getColumnList()) {
-            sb.append(resultSet.getString(columnName)).append(CONTROL_A_SEPARATOR);
+        List<String> strings = new ArrayList<>(extractionNamespace.getColumnList().size());
+        for(String columnName: extractionNamespace.getColumnList()) {
+            strings.add(resultSet.getString(columnName));
         }
-        cache.put(resultSet.getString(extractionNamespace.getPrimaryKeyColumn()), sb.toString());
+        cache.put(resultSet.getString(extractionNamespace.getPrimaryKeyColumn()), strings);
         return null;
     }
 }
