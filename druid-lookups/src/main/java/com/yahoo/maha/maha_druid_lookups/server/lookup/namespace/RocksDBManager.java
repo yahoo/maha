@@ -47,6 +47,7 @@ public class RocksDBManager {
     private static final int UPLOAD_LOOKUP_AUDIT_MAX_RETRY = 3;
     private static final Random RANDOM = new Random();
     private static final int BOUND = 6 * 60 * 60 * 1000;
+    private static final String STATS_KEY = "rocksdb.stats";
 
     private String rocksdbLocation;
     private FileSystem fileSystem;
@@ -179,6 +180,8 @@ public class RocksDBManager {
             rocksDBSnapshot.kafkaConsumerGroupId = UUID.randomUUID().toString();
             rocksDBSnapshot.kafkaPartitionOffset = new ConcurrentHashMap<Integer, Long>();
             kafkaExtractionManager.applyChangesSinceBeginning(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.rocksDB, rocksDBSnapshot.kafkaPartitionOffset);
+            LOG.info(rocksDBSnapshot.rocksDB.getProperty(STATS_KEY));
+
             if (extractionNamespace.isLookupAuditingEnabled()) {
                 long sleepTime = 30000;
                 int retryCount = 0;
@@ -198,6 +201,7 @@ public class RocksDBManager {
 
         if (oldDb != null) {
             try {
+                LOG.info(oldDb.getProperty(STATS_KEY));
                 LOG.info("Waiting for 10 seconds before cleaning");
                 Thread.sleep(10000);
                 oldDb.close();
@@ -213,6 +217,7 @@ public class RocksDBManager {
     private RocksDB openRocksDB(String localPath) throws RocksDBException {
         final Options options = new Options().setCreateIfMissing(true);
         final RocksDB newDb = RocksDB.open(options, localPath);
+        LOG.info(newDb.getProperty(STATS_KEY));
         return newDb;
     }
 
