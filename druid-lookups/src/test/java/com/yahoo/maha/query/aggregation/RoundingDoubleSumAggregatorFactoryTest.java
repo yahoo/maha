@@ -33,4 +33,10 @@ public class RoundingDoubleSumAggregatorFactoryTest {
         RoundingDoubleSumAggregatorFactory factory = new RoundingDoubleSumAggregatorFactory("name", "fieldName", 2, null, null, null);
         Assert.assertEquals(factory.finalizeComputation(123.45678999d), 123.45678999d);
     }
+
+    @Test
+    public void testFinalizationWhenValueIsNull() {
+        RoundingDoubleSumAggregatorFactory factory = new RoundingDoubleSumAggregatorFactory("name", "fieldName", 2, null, null, true);
+        Assert.assertNull(factory.finalizeComputation(null));
+    }
 }
