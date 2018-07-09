@@ -19,6 +19,7 @@ public class RoundingDoubleSumAggregatorFactory extends DoubleSumAggregatorFacto
         this.scale = scale;
     }
 
+    @Override
     public Object finalizeComputation(Object object) {
         if(!(object instanceof Double)) {
             return object;
