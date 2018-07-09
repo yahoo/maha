@@ -389,13 +389,15 @@ case class MultiQuery(unionQueryList: List[Query], fallbackQueryOption: Option[(
 trait QueryPipelineFactory {
   def from(requestModel: RequestModel, queryAttributes: QueryAttributes): Try[QueryPipeline]
 
-  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes): Try[QueryPipelineBuilder]
+  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, queryGeneratorVersion: Version): Try[QueryPipelineBuilder]
 
-  protected def findBestFactCandidate(requestModel: RequestModel, forceDisqualifySet: Set[Engine] = Set.empty, dimEngines: Set[Engine]): FactBestCandidate
+  protected def findBestFactCandidate(requestModel: RequestModel, forceDisqualifySet: Set[Engine] = Set.empty, dimEngines: Set[Engine], queryGeneratorVersion: Version): FactBestCandidate
 
-  protected def findBestDimCandidates(requestModel: RequestModel, factEngine: Engine, dimMapping: Map[String, SortedSet[DimensionBundle]]): SortedSet[DimensionBundle]
+  protected def findBestDimCandidates(requestModel: RequestModel, factEngine: Engine, dimMapping: Map[String, SortedSet[DimensionBundle]], queryGeneratorVersion: Version): SortedSet[DimensionBundle]
 
   protected def from(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]]
+
+  protected def from(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryGeneratorVersions: Tuple2[Version, Option[Version]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]]
 }
 
 object DefaultQueryPipelineFactory extends Logging {
@@ -417,7 +419,11 @@ object DefaultQueryPipelineFactory extends Logging {
     }
   }
 
-  def findBestFactCandidate(requestModel: RequestModel, forceDisqualifySet: Set[Engine] = Set.empty, dimEngines: Set[Engine], queryGeneratorRegistry: QueryGeneratorRegistry): FactBestCandidate = {
+  def findBestFactCandidate(requestModel: RequestModel,
+                            forceDisqualifySet: Set[Engine] = Set.empty,
+                            dimEngines: Set[Engine],
+                            queryGeneratorRegistry: QueryGeneratorRegistry,
+                            queryGeneratorVersion: Version): FactBestCandidate = {
     require(requestModel.bestCandidates.isDefined, s"Cannot create fact best candidate without best candidates : $requestModel")
     //schema specific rules?
     requestModel.schema match {
@@ -475,7 +481,7 @@ object DefaultQueryPipelineFactory extends Logging {
           info(s"disqualifySet = $disqualifySet")
         }
         val result: IndexedSeq[(String, Engine, Long, Int, Int)] = requestModel.factCost.toIndexedSeq.collect {
-          case ((fn, engine), rowcost) if (!queryGeneratorRegistry.getGenerator(engine).isDefined || queryGeneratorRegistry.getGenerator(engine).get.validateEngineConstraints(requestModel)) && (forceEngine.contains(engine) || (!disqualifySet(engine) && forceEngine.isEmpty)) =>
+          case ((fn, engine), rowcost) if (!queryGeneratorRegistry.getGenerator(engine, queryGeneratorVersion).isDefined || queryGeneratorRegistry.getGenerator(engine, queryGeneratorVersion).get.validateEngineConstraints(requestModel)) && (forceEngine.contains(engine) || (!disqualifySet(engine) && forceEngine.isEmpty)) =>
             val fact = requestModel.bestCandidates.get.facts(fn).fact
             val level = fact.level
             val dimCardinality: Long = requestModel.dimCardinalityEstimate.getOrElse(fact.defaultCardinality)
@@ -615,7 +621,8 @@ object DefaultQueryPipelineFactory extends Logging {
   }
 }
 
-class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGeneratorRegistry, druidMultiQueryEngineList: Seq[Engine] = DefaultQueryPipelineFactory.druidMultiQueryEngineList) extends QueryPipelineFactory with Logging {
+class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGeneratorRegistry,
+                                  druidMultiQueryEngineList: Seq[Engine] = DefaultQueryPipelineFactory.druidMultiQueryEngineList) extends QueryPipelineFactory with Logging {
 
   private[this] def getDimOnlyQuery(bestDimCandidates: SortedSet[DimensionBundle], requestModel: RequestModel): Query = {
     val dimOnlyContextBuilder = QueryContext
@@ -627,31 +634,37 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
     queryGeneratorRegistry.getGenerator(bestDimCandidates.head.dim.engine).get.generate(dimOnlyContextBuilder.build())
   }
 
-  private[this] def getMultiEngineDimQuery(bestDimCandidates: SortedSet[DimensionBundle], requestModel: RequestModel, indexAlias: String, queryAttributes: QueryAttributes): Query = {
+  private[this] def getMultiEngineDimQuery(bestDimCandidates: SortedSet[DimensionBundle],
+                                           requestModel: RequestModel,
+                                           indexAlias: String,
+                                           queryAttributes: QueryAttributes,
+                                           queryGeneratorVersion: Version): Query = {
     val dimOnlyContextBuilder = QueryContext
       .newQueryContext(DimOnlyQuery, requestModel)
       .addDimTable(bestDimCandidates)
       .addIndexAlias(indexAlias)
       .setQueryAttributes(queryAttributes)
 
-    require(queryGeneratorRegistry.isEngineRegistered(bestDimCandidates.head.dim.engine)
-      , s"Failed to find query generator for engine : ${bestDimCandidates.head.dim.engine}")
-    queryGeneratorRegistry.getGenerator(bestDimCandidates.head.dim.engine).get.generate(dimOnlyContextBuilder.build())
+    require(queryGeneratorRegistry.isEngineRegistered(bestDimCandidates.head.dim.engine, queryGeneratorVersion)
+      , s"Failed to find query generator for engine : ${bestDimCandidates.head.dim.engine} and $queryGeneratorVersion")
+    queryGeneratorRegistry.getGenerator(bestDimCandidates.head.dim.engine, queryGeneratorVersion).get.generate(dimOnlyContextBuilder.build())
   }
 
-  private[this] def getFactQuery(bestFactCandidate: FactBestCandidate, requestModel: => RequestModel, indexAlias: String): Query = {
+  private[this] def getFactQuery(bestFactCandidate: FactBestCandidate, requestModel: => RequestModel, indexAlias: String,
+                                 queryGeneratorVersion: Version): Query = {
     val factOnlyContextBuilder = QueryContext
       .newQueryContext(FactOnlyQuery, requestModel)
       .addFactBestCandidate(bestFactCandidate)
       .addIndexAlias(indexAlias)
-    require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine)
-      , s"Failed to find query generator for engine : ${bestFactCandidate.fact.engine}")
-    queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine).get.generate(factOnlyContextBuilder.build())
+    require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine, queryGeneratorVersion)
+      , s"Failed to find query generator for engine : ${bestFactCandidate.fact.engine} and version: $queryGeneratorVersion")
+    queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine, queryGeneratorVersion).get.generate(factOnlyContextBuilder.build())
   }
 
   private[this] def getDimFactQuery(bestDimCandidates: SortedSet[DimensionBundle],
                                     bestFactCandidate: FactBestCandidate,
-                                    requestModel: RequestModel, queryAttributes: QueryAttributes): Query = {
+                                    requestModel: RequestModel, queryAttributes: QueryAttributes,
+                                    queryGeneratorVersion: Version): Query = {
     val queryType = if (isOuterGroupByQuery(bestDimCandidates, bestFactCandidate, requestModel)) {
         DimFactOuterGroupByQuery
     } else DimFactQuery
@@ -663,9 +676,9 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
       .setQueryAttributes(queryAttributes)
       .build()
 
-    require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine)
-      , s"No query generator registered for engine ${bestFactCandidate.fact.engine} for fact ${bestFactCandidate.fact.name}")
-    queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine).get.generate(dimFactContext)
+    require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine, queryGeneratorVersion)
+      , s"No query generator registered for engine ${bestFactCandidate.fact.engine} for fact ${bestFactCandidate.fact.name} and version: $queryGeneratorVersion")
+    queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine, queryGeneratorVersion).get.generate(dimFactContext)
   }
 
   private[this] def isOuterGroupByQuery(bestDimCandidates: SortedSet[DimensionBundle],
@@ -722,7 +735,7 @@ OuterGroupBy operation has to be applied only in the following cases
     hasOuterGroupBy
   }
 
-  private[this] def getViewQueryList(bestFactCandidate: FactBestCandidate, requestModel: RequestModel, queryAttributes: QueryAttributes): List[Query] = {
+  private[this] def getViewQueryList(bestFactCandidate: FactBestCandidate, requestModel: RequestModel, queryAttributes: QueryAttributes, queryGeneratorVersion: Version = V0): List[Query] = {
     require(bestFactCandidate.fact.isInstanceOf[ViewTable], s"Unable to get view query list from fact ${bestFactCandidate.fact.name}")
     val viewTable = bestFactCandidate.fact.asInstanceOf[ViewTable]
     viewTable.view.facts.map {
@@ -733,9 +746,9 @@ OuterGroupBy operation has to be applied only in the following cases
           .setQueryAttributes(queryAttributes)
           .build()
 
-        require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine)
+        require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine, queryGeneratorVersion)
           , s"No query generator registered for engine ${bestFactCandidate.fact.engine} for fact ${bestFactCandidate.fact.name}")
-        queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine).get.generate(factContext)
+        queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine, queryGeneratorVersion).get.generate(factContext)
     }.toList
   }
 
@@ -748,16 +761,27 @@ OuterGroupBy operation has to be applied only in the following cases
     }
   }
 
-  protected def findBestFactCandidate(requestModel: RequestModel, forceDisqualifySet: Set[Engine] = Set.empty, dimEngines: Set[Engine]): FactBestCandidate = {
-    DefaultQueryPipelineFactory.findBestFactCandidate(requestModel, forceDisqualifySet, dimEngines, queryGeneratorRegistry)
+  protected def findBestFactCandidate(requestModel: RequestModel, forceDisqualifySet: Set[Engine] = Set.empty, dimEngines: Set[Engine], queryGeneratorVersion: Version): FactBestCandidate = {
+    DefaultQueryPipelineFactory.findBestFactCandidate(requestModel, forceDisqualifySet, dimEngines, queryGeneratorRegistry, queryGeneratorVersion)
   }
 
-  protected def findBestDimCandidates(requestModel: RequestModel, factEngine: Engine, dimMapping: Map[String, SortedSet[DimensionBundle]]): SortedSet[DimensionBundle] = {
+  protected def findBestDimCandidates(requestModel: RequestModel, factEngine: Engine, dimMapping: Map[String, SortedSet[DimensionBundle]], queryGeneratorVersion: Version): SortedSet[DimensionBundle] = {
     DefaultQueryPipelineFactory.findBestDimCandidates(factEngine, requestModel.schema, dimMapping, druidMultiQueryEngineList)
   }
 
   protected def findDimCandidatesMapping(requestModel: RequestModel) : Map[String, SortedSet[DimensionBundle]] = {
     DefaultQueryPipelineFactory.findDimCandidatesMapping(requestModel)
+  }
+
+  def builder(requestModels: (RequestModel, Option[RequestModel]),
+              queryGeneratorVersion: (Version, Option[Version]),
+              queryAttributes: QueryAttributes): (Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]) = {
+    val queryPipelineTryDefault = builder(requestModels._1, queryAttributes, queryGeneratorVersion._1)
+    var queryPipelineTryDryRun: Option[Try[QueryPipelineBuilder]] = None
+    if (requestModels._2.isDefined) {
+      queryPipelineTryDryRun =  Some(builder(requestModels._2.get, queryAttributes))
+    }
+    (queryPipelineTryDefault, queryPipelineTryDryRun)
   }
 
   def builder(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]] = {
@@ -770,7 +794,7 @@ OuterGroupBy operation has to be applied only in the following cases
   }
 
 
-  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes): Try[QueryPipelineBuilder] = {
+  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, queryGeneratorVersion: Version = V0): Try[QueryPipelineBuilder] = {
     def requestDebug(msg: => String): Unit = {
       if(requestModel.isDebugEnabled) {
         info(msg)
@@ -783,14 +807,14 @@ OuterGroupBy operation has to be applied only in the following cases
       if (!requestModel.hasFactSortBy && requestModel.forceDimDriven) {
         //oracle + druid
         requestDebug("dimQueryThenFactQuery")
-        val dimQuery = getMultiEngineDimQuery(bestDimCandidates, requestModel, indexAlias, queryAttributes)
+        val dimQuery = getMultiEngineDimQuery(bestDimCandidates, requestModel, indexAlias, queryAttributes, queryGeneratorVersion)
         val subsequentQuery: (IndexedRowList, QueryAttributes) => Query = {
           case (irl, subqueryAttributes) =>
             val field = irl.indexAlias
             val values = irl.keys.toList.map(_.toString)
             val filter = InFilter(field, values)
             val injectedFactBestCandidate = factOnlyInjectFilter(factBestCandidateOption.get, filter)
-            val query = getFactQuery(injectedFactBestCandidate, requestModel, indexAlias)
+            val query = getFactQuery(injectedFactBestCandidate, requestModel, indexAlias, queryGeneratorVersion)
             irl.addSubQuery(query)
             query
         }
@@ -811,7 +835,7 @@ OuterGroupBy operation has to be applied only in the following cases
         //since druid + oracle doesn't support row count
         requestDebug("factQueryThenDimQuery")
         val noRowCountRequestModel = requestModel.copy(includeRowCount = false)
-        val factQuery = getFactQuery(factBestCandidateOption.get, noRowCountRequestModel, indexAlias)
+        val factQuery = getFactQuery(factBestCandidateOption.get, noRowCountRequestModel, indexAlias, queryGeneratorVersion)
         val subsequentQuery: (IndexedRowList, QueryAttributes) => Query = {
           case (irl, subqueryqueryAttributes) =>
             val field = irl.indexAlias
@@ -828,7 +852,7 @@ OuterGroupBy operation has to be applied only in the following cases
                 }
                 queryAttributesBuilder.build
               }
-              getMultiEngineDimQuery(bestDimCandidates, noRowCountRequestModel, indexAlias, injectedAttributes)
+              getMultiEngineDimQuery(bestDimCandidates, noRowCountRequestModel, indexAlias, injectedAttributes, queryGeneratorVersion)
             } else {
               QueryChain.logger.info("No data returned from druid, should run fallback query if there is one")
               NoopQuery
@@ -843,7 +867,7 @@ OuterGroupBy operation has to be applied only in the following cases
           ) {
             requestDebug("hasFallbackQueryAndRowList")
             val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(noRowCountRequestModel, Set(factBestCandidateOption.get.fact.engine))
-            val query = getDimFactQuery(newBestDimCandidates, newFactBestCandidateOption.get, noRowCountRequestModel, queryAttributes)
+            val query = getDimFactQuery(newBestDimCandidates, newFactBestCandidateOption.get, noRowCountRequestModel, queryAttributes, queryGeneratorVersion)
             Option((query, QueryPipeline.completeRowList(query)))
           } else {
             None
@@ -879,7 +903,7 @@ OuterGroupBy operation has to be applied only in the following cases
     def runSyncSingleEngineQuery(factBestCandidateOption: Option[FactBestCandidate], bestDimCandidates: SortedSet[DimensionBundle]): QueryPipelineBuilder = {
       //oracle + oracle or druid only
       if (factBestCandidateOption.isDefined) {
-        val query = getDimFactQuery(bestDimCandidates, factBestCandidateOption.get, requestModel, queryAttributes)
+        val query = getDimFactQuery(bestDimCandidates, factBestCandidateOption.get, requestModel, queryAttributes, queryGeneratorVersion)
         val fallbackQueryOptionTry: Try[Option[Query]] = Try {
           val factEngines = requestModel.bestCandidates.get.facts.values.map(_.fact.engine).toSet
           val factBestCandidateEngine = factBestCandidateOption.get.fact.engine
@@ -890,7 +914,7 @@ OuterGroupBy operation has to be applied only in the following cases
             }
             newFactBestCandidateOption.map {
               newFactBestCandidate =>
-                val query = getDimFactQuery(newBestDimCandidates, newFactBestCandidate, requestModel, queryAttributes)
+                val query = getDimFactQuery(newBestDimCandidates, newFactBestCandidate, requestModel, queryAttributes, queryGeneratorVersion)
                 query
             }
           } else {
@@ -922,7 +946,7 @@ OuterGroupBy operation has to be applied only in the following cases
     }
 
     def runViewMultiQuery(requestModel: RequestModel, factBestCandidateOption: Option[FactBestCandidate], bestDimCandidates: SortedSet[DimensionBundle]): QueryPipelineBuilder = {
-        val queryList: List[Query] = getViewQueryList(factBestCandidateOption.get, requestModel, queryAttributes)
+        val queryList: List[Query] = getViewQueryList(factBestCandidateOption.get, requestModel, queryAttributes, queryGeneratorVersion)
 
       val fallbackNonViewQueryAndRowList: Option[(Query, RowList)] = {
         if (requestModel.bestCandidates.isDefined
@@ -930,7 +954,7 @@ OuterGroupBy operation has to be applied only in the following cases
           && requestModel.forceQueryEngine.isEmpty
         ) {
           val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(requestModel, Set(factBestCandidateOption.get.fact.engine))
-          val query = getDimFactQuery(newBestDimCandidates, newFactBestCandidateOption.get, requestModel, queryAttributes)
+          val query = getDimFactQuery(newBestDimCandidates, newFactBestCandidateOption.get, requestModel, queryAttributes, queryGeneratorVersion)
           Option((query, QueryPipeline.completeRowList(query)))
         } else {
           None
@@ -949,9 +973,9 @@ OuterGroupBy operation has to be applied only in the following cases
       val dimensionCandidatesMapping = findDimCandidatesMapping(requestModel)
       val dimEngines : Set[Engine] = dimensionCandidatesMapping.flatMap(_._2.map(_.dim.engine)).toSet
       val factBestCandidateOption =
-        requestModel.bestCandidates.map(_ => findBestFactCandidate(requestModel, forceDisqualifyEngine, dimEngines))
-      val dimensionCandidates = findBestDimCandidates(requestModel, factBestCandidateOption.map(_.fact.engine).getOrElse(OracleEngine), dimensionCandidatesMapping).filter(db => {
-        val queryGenerator = queryGeneratorRegistry.getGenerator(db.dim.engine)
+        requestModel.bestCandidates.map(_ => findBestFactCandidate(requestModel, forceDisqualifyEngine, dimEngines, queryGeneratorVersion))
+      val dimensionCandidates = findBestDimCandidates(requestModel, factBestCandidateOption.map(_.fact.engine).getOrElse(OracleEngine), dimensionCandidatesMapping, queryGeneratorVersion).filter(db => {
+        val queryGenerator = queryGeneratorRegistry.getGenerator(db.dim.engine, queryGeneratorVersion)
         !queryGenerator.isDefined || queryGenerator.get.validateEngineConstraints(requestModel)
       })
       (factBestCandidateOption, dimensionCandidates)
@@ -1031,7 +1055,7 @@ OuterGroupBy operation has to be applied only in the following cases
             throw new UnsupportedOperationException("multi engine async request not supported!")
           } else {
             if (factBestCandidateOption.isDefined) {
-              val query = getDimFactQuery(bestDimCandidates, factBestCandidateOption.get, requestModel, queryAttributes)
+              val query = getDimFactQuery(bestDimCandidates, factBestCandidateOption.get, requestModel, queryAttributes, queryGeneratorVersion)
               val fallbackQueryOptionTry: Try[Option[Query]] = Try {
                 val factEngines = requestModel.bestCandidates.get.facts.values.map(_.fact.engine).toSet
                 val factBestCandidateEngine = factBestCandidateOption.get.fact.engine
@@ -1043,7 +1067,7 @@ OuterGroupBy operation has to be applied only in the following cases
                   }
                   newFactBestCandidateOption.map {
                     newFactBestCandidate =>
-                      val query = getDimFactQuery(newBestDimCandidates, newFactBestCandidate, requestModel, queryAttributes)
+                      val query = getDimFactQuery(newBestDimCandidates, newFactBestCandidate, requestModel, queryAttributes, queryGeneratorVersion)
                       //(query, QueryPipeline.completeRowList(query))
                       query
                   }
@@ -1085,6 +1109,17 @@ OuterGroupBy operation has to be applied only in the following cases
   }
 
   def from(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]] = {
+    val queryPipelineBuilderTries = builder(requestModels, queryAttributes)
+    if (queryPipelineBuilderTries._2.isDefined) {
+      (queryPipelineBuilderTries._1.map(_.build()), Some(queryPipelineBuilderTries._2.get.map(_.build())))
+    } else {
+      (queryPipelineBuilderTries._1.map(_.build()), None)
+    }
+  }
+
+  def from(requestModels: Tuple2[RequestModel, Option[RequestModel]],
+           queryGeneratorRevison: Tuple2[Version, Option[Version]],
+           queryAttributes: QueryAttributes): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]] = {
     val queryPipelineBuilderTries = builder(requestModels, queryAttributes)
     if (queryPipelineBuilderTries._2.isDefined) {
       (queryPipelineBuilderTries._1.map(_.build()), Some(queryPipelineBuilderTries._2.get.map(_.build())))

@@ -260,18 +260,38 @@ object QueryGeneratorHelper {
   }
 }
 
+sealed trait Version
+case object V0 extends Version {
+  override def toString = "0"
+}
+case object V1 extends Version {
+  override def toString = "1"
+}
+case object V2 extends Version {
+  override def toString = "2"
+}
+
 class QueryGeneratorRegistry {
-  private[this] var queryGeneratorRegistry : Map[Engine, QueryGenerator[_]] = Map.empty
+  private[this] var queryGeneratorRegistry : Map[Engine, Map[Version, QueryGenerator[_]]] = Map.empty
 
-  def isEngineRegistered(engine: Engine): Boolean = synchronized {
-    queryGeneratorRegistry.contains(engine)
+  def isEngineRegistered(engine: Engine, version: Version = V0): Boolean = synchronized {
+    queryGeneratorRegistry.contains(engine) && queryGeneratorRegistry.get(engine).get.contains(version)
   }
 
-  def register[U <: QueryGenerator[_]](engine: Engine, qg: U) : Unit = synchronized {
-    require(!queryGeneratorRegistry.contains(engine), s"Query generator already defined for engine : $engine")
-    queryGeneratorRegistry += (engine -> qg)
+  def register[U <: QueryGenerator[_]](engine: Engine, qg: U, version: Version = V0) : Unit = synchronized {
+    require(!isEngineRegistered(engine, version), s"Query generator already defined for engine : $engine and version $version")
+    if (queryGeneratorRegistry.contains(engine)) {
+      queryGeneratorRegistry += (engine -> (Map(version -> qg) ++ queryGeneratorRegistry.get(engine).get))
+    } else {
+      queryGeneratorRegistry += (engine -> Map(version -> qg))
+    }
   }
 
-  def getGenerator(engine: Engine): Option[QueryGenerator[EngineRequirement]] =
-    queryGeneratorRegistry.get(engine).asInstanceOf[Option[QueryGenerator[EngineRequirement]]]
+  def getGenerator(engine: Engine, version: Version = V0): Option[QueryGenerator[EngineRequirement]] = {
+    if (queryGeneratorRegistry.get(engine).isDefined) {
+      queryGeneratorRegistry.get(engine).get.get(version).asInstanceOf[Option[QueryGenerator[EngineRequirement]]]
+    } else {
+      None
+    }
+  }
 }
