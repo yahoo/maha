@@ -21,6 +21,7 @@ import com.yahoo.maha.service.error._
 import com.yahoo.maha.service.factory._
 import com.yahoo.maha.service.utils.BaseMahaRequestLogBuilder
 import grizzled.slf4j.Logging
+import javax.sql.DataSource
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.scalaz.JsonScalaz._
 
@@ -371,10 +372,10 @@ object MahaServiceConfig {
       jsonMahaServiceConfig <- jsonMahaServiceConfigResult
       validationResult <- validateReferenceByName(jsonMahaServiceConfig)
       bucketConfigMap <- initBucketingConfig(jsonMahaServiceConfig.bucketingConfigMap)
-      utcTimeProviderMap <- initUTCTimeProvider(jsonMahaServiceConfig.utcTimeProviderMap)
-      generatorMap <- initGenerators(jsonMahaServiceConfig.generatorMap)
-      executorMap <- initExecutors(jsonMahaServiceConfig.executorMap)
-      registryMap <- initRegistry(jsonMahaServiceConfig.registryMap)
+      utcTimeProviderMap <- initUTCTimeProvider(jsonMahaServiceConfig.utcTimeProviderMap, jsonMahaServiceConfig.datasourceMap)
+      generatorMap <- initGenerators(jsonMahaServiceConfig.generatorMap, jsonMahaServiceConfig.datasourceMap)
+      executorMap <- initExecutors(jsonMahaServiceConfig.executorMap, jsonMahaServiceConfig.datasourceMap)
+      registryMap <- initRegistry(jsonMahaServiceConfig.registryMap, jsonMahaServiceConfig.datasourceMap)
       parallelServiceExecutorConfigMap <- initParallelServiceExecutors(jsonMahaServiceConfig.parallelServiceExecutorConfigMap)
       mahaRequestLogWriter <- initKafkaLogWriter(jsonMahaServiceConfig.jsonMahaRequestLogConfig)
       curatorMap <- initCurators(jsonMahaServiceConfig.curatorMap)
@@ -460,7 +461,7 @@ object MahaServiceConfig {
     result
   }
 
-  def initUTCTimeProvider(utcTimeProviderMap: Map[String, JsonUTCTimeProviderConfig]): MahaServiceConfig.MahaConfigResult[Map[String, UTCTimeProvider]] = {
+  def initUTCTimeProvider(utcTimeProviderMap: Map[String, JsonUTCTimeProviderConfig], dataSourceConfigMap: Map[String, JsonDataSourceConfig]): MahaServiceConfig.MahaConfigResult[Map[String, UTCTimeProvider]] = {
     import Scalaz._
     val result: MahaServiceConfig.MahaConfigResult[Map[String, UTCTimeProvider]] = {
       val constructUTCTimeProvider: Iterable[MahaServiceConfig.MahaConfigResult[(String, UTCTimeProvider)]] = {
@@ -468,7 +469,7 @@ object MahaServiceConfig {
           case (name, jsonConfig) =>
             for {
               factory <- getFactory[UTCTimeProvideryFactory](jsonConfig.className, closer)
-              built <- factory.fromJson(jsonConfig.json)
+              built <- factory.fromJson(jsonConfig.json, dataSourceConfigMap)
             } yield (name, built)
         }
       }
@@ -480,7 +481,7 @@ object MahaServiceConfig {
     result
   }
 
-  def initExecutors(executorMap: Map[String, JsonQueryExecutorConfig]): MahaServiceConfig.MahaConfigResult[Map[String, QueryExecutor]] = {
+  def initExecutors(executorMap: Map[String, JsonQueryExecutorConfig], dataSourceConfigMap: Map[String, JsonDataSourceConfig]): MahaServiceConfig.MahaConfigResult[Map[String, QueryExecutor]] = {
     import Scalaz._
     val result: MahaServiceConfig.MahaConfigResult[Map[String, QueryExecutor]] = {
       val constructExecutor: Iterable[MahaServiceConfig.MahaConfigResult[(String, QueryExecutor)]] = {
@@ -488,7 +489,7 @@ object MahaServiceConfig {
           case (name, jsonConfig) =>
             for {
               factory <- getFactory[QueryExecutoryFactory](jsonConfig.className, closer)
-              built <- factory.fromJson(jsonConfig.json)
+              built <- factory.fromJson(jsonConfig.json, dataSourceConfigMap)
             } yield (name, built)
         }
       }
@@ -500,14 +501,14 @@ object MahaServiceConfig {
     result
   }
 
-  def initGenerators(generatorMap: Map[String, JsonQueryGeneratorConfig]): MahaServiceConfig.MahaConfigResult[Map[String, QueryGenerator[_ <: EngineRequirement]]] = {
+  def initGenerators(generatorMap: Map[String, JsonQueryGeneratorConfig], dataSourceConfigMap: Map[String, JsonDataSourceConfig]): MahaServiceConfig.MahaConfigResult[Map[String, QueryGenerator[_ <: EngineRequirement]]] = {
     import Scalaz._
     val result: MahaServiceConfig.MahaConfigResult[Map[String, QueryGenerator[_ <: EngineRequirement]]] = {
       val constructGenerator: Iterable[MahaServiceConfig.MahaConfigResult[(String, QueryGenerator[_ <: EngineRequirement])]] = {
         generatorMap.map {
           case (name, jsonConfig) =>
             val factoryResult: MahaConfigResult[QueryGeneratorFactory] = getFactory[QueryGeneratorFactory](jsonConfig.className, closer)
-            val built: MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = factoryResult.flatMap(_.fromJson(jsonConfig.json))
+            val built: MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = factoryResult.flatMap(_.fromJson(jsonConfig.json, dataSourceConfigMap))
             built.map(g => (name, g))
         }
       }
@@ -519,7 +520,7 @@ object MahaServiceConfig {
     result
   }
 
-  def initRegistry(registryMap: Map[String, JsonRegistryConfig]): MahaServiceConfig.MahaConfigResult[Map[String, Registry]] = {
+  def initRegistry(registryMap: Map[String, JsonRegistryConfig], dataSourceConfigMap: Map[String, JsonDataSourceConfig]): MahaServiceConfig.MahaConfigResult[Map[String, Registry]] = {
     import Scalaz._
     val result: MahaServiceConfig.MahaConfigResult[Map[String, Registry]] = {
       val constructRegistry: Iterable[MahaServiceConfig.MahaConfigResult[(String, Registry)]] = {
@@ -530,8 +531,8 @@ object MahaServiceConfig {
               dimRegistrationFactory <- getFactory[DimensionRegistrationFactory](jsonConfig.dimensionRegistrationFactoryClass, closer)
               dimEstimatorFactory <- getFactory[DimCostEstimatorFactory](jsonConfig.dimEstimatorFactoryClass, closer)
               factEstimatorFactory <- getFactory[FactCostEstimatorFactory](jsonConfig.factEstimatorFactoryClass, closer)
-              dimEstimator <- dimEstimatorFactory.fromJson(jsonConfig.dimEstimatorFactoryConfig)
-              factEstimator <- factEstimatorFactory.fromJson(jsonConfig.factEstimatorFactoryConfig)
+              dimEstimator <- dimEstimatorFactory.fromJson(jsonConfig.dimEstimatorFactoryConfig, dataSourceConfigMap)
+              factEstimator <- factEstimatorFactory.fromJson(jsonConfig.factEstimatorFactoryConfig, dataSourceConfigMap)
             } yield {
               val registryBuilder = new RegistryBuilder
               factRegistrationFactory.register(registryBuilder)

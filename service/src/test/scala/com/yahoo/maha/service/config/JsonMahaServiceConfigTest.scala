@@ -113,6 +113,16 @@ class JsonMahaServiceConfigTest extends FunSuite with Matchers {
                        |  }
                        | }
                        |,
+                       |"datasourceMap" : {
+                       | "oracleDataSource": {
+                       |  "factoryClass" : "",
+                       |  "config" : {}
+                       | },
+                       | "prestoDataSource": {
+                       |  "factoryClass" : "",
+                       |  "config" : {}
+                       | }
+                       |},
                        | "mahaRequestLoggingConfig" : {
                        |    "factoryClass": "com.yahoo.maha.service.factory.NoopMahaRequestLogWriterFactory",
                        |    "config" : {},
@@ -151,5 +161,7 @@ class JsonMahaServiceConfigTest extends FunSuite with Matchers {
     assert(config.bucketingConfigMap.contains("irbucket"))
     assert(config.utcTimeProviderMap.contains("erutc"))
     assert(config.utcTimeProviderMap.contains("irutc"))
+    assert(config.datasourceMap.contains("oracledatasource"))
+    assert(config.datasourceMap.contains("prestodatasource"))
   }
 }

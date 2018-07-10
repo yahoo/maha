@@ -17,7 +17,7 @@ class DefaultFactCostEstimatorFactoryTest extends BaseFactoryTest {
     assert(factoryResult.isSuccess)
     val factory = factoryResult.toOption.get
     val json = parse(jsonString)
-    val defaultFactCostEstimatorFactoryResult = factory.fromJson(json)
+    val defaultFactCostEstimatorFactoryResult = factory.fromJson(json, Map.empty)
     assert(defaultFactCostEstimatorFactoryResult.isSuccess, defaultFactCostEstimatorFactoryResult)
     assert(factory.supportedProperties == List.empty)
   }

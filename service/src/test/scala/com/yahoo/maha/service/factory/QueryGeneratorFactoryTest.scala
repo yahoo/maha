@@ -26,7 +26,7 @@ class QueryGeneratorFactoryTest extends BaseFactoryTest {
     assert(factoryResult.isSuccess)
     val factory = factoryResult.toOption.get
     val json = parse(jsonString)
-    val generatorResult = factory.fromJson(json)
+    val generatorResult = factory.fromJson(json, Map.empty)
     assert(generatorResult.isSuccess, generatorResult)
   }
 
@@ -44,7 +44,7 @@ class QueryGeneratorFactoryTest extends BaseFactoryTest {
     assert(factoryResult.isSuccess)
     val factory = factoryResult.toOption.get
     val json = parse(jsonString)
-    val generatorResult = factory.fromJson(json)
+    val generatorResult = factory.fromJson(json, Map.empty)
     assert(generatorResult.isSuccess, generatorResult)
   }
 
@@ -62,7 +62,7 @@ class QueryGeneratorFactoryTest extends BaseFactoryTest {
     assert(factoryResult.isSuccess)
     val factory = factoryResult.toOption.get
     val json = parse(jsonString)
-    val generatorResult = factory.fromJson(json)
+    val generatorResult = factory.fromJson(json, Map.empty)
     assert(generatorResult.isSuccess, generatorResult)
   }
 
@@ -80,7 +80,7 @@ class QueryGeneratorFactoryTest extends BaseFactoryTest {
     assert(factoryResult.isSuccess)
     val factory = factoryResult.toOption.get
     val json = parse(jsonString)
-    val generatorResult = factory.fromJson(json)
+    val generatorResult = factory.fromJson(json, Map.empty)
     assert(generatorResult.isSuccess, generatorResult)
   }
 

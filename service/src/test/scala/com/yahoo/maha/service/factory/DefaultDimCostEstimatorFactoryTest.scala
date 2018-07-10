@@ -17,7 +17,7 @@ class DefaultDimCostEstimatorFactoryTest extends BaseFactoryTest {
     assert(factoryResult.isSuccess)
     val factory = factoryResult.toOption.get
     val json = parse(jsonString)
-    val defaultDimCostEstimatorFactoryResult = factory.fromJson(json)
+    val defaultDimCostEstimatorFactoryResult = factory.fromJson(json, Map.empty)
     assert(defaultDimCostEstimatorFactoryResult.isSuccess, defaultDimCostEstimatorFactoryResult)
     assert(factory.supportedProperties == List.empty)
   }

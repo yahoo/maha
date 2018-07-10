@@ -29,7 +29,7 @@ class FactoryTest extends BaseFactoryTest {
     val factory = factoryResult.toOption.get
     assert(factory.supportedProperties.isEmpty)
     val json = parse("{}")
-    val generatorResult = factory.fromJson(json)
+    val generatorResult = factory.fromJson(json, Map.empty)
     assert(generatorResult.isSuccess, generatorResult)
     assert(generatorResult.toList.head.isInstanceOf[UTCTimeProvider])
   }
@@ -47,7 +47,7 @@ class FactoryTest extends BaseFactoryTest {
 
   test("Create a BaseUTCTimeProviderFactory") {
     val factoryResult = getFactory[UTCTimeProvideryFactory]("com.yahoo.maha.service.factory.BaseUTCTimeProviderFactory", closer)
-    factoryResult.toOption.get.fromJson(parse("{}"))
+    factoryResult.toOption.get.fromJson(parse("{}"), Map.empty)
     assert(factoryResult.isSuccess, "should successfully instantiate base factory.")
     assert(factoryResult.toOption.get.supportedProperties == List.empty, "No currently supported properties.")
   }

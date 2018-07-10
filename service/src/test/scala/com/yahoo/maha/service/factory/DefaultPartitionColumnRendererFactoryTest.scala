@@ -17,7 +17,7 @@ class DefaultPartitionColumnRendererFactoryTest extends BaseFactoryTest {
     assert(factoryResult.isSuccess)
     val factory = factoryResult.toOption.get
     val json = parse(jsonString)
-    val partitionColRendererResult = factory.fromJson(json)
+    val partitionColRendererResult = factory.fromJson(json, Map.empty)
     assert(partitionColRendererResult.isSuccess, partitionColRendererResult)
     assert(factory.supportedProperties == List.empty)
   }
