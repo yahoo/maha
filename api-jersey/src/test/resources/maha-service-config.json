@@ -30,33 +30,7 @@
     "oracleExec": {
       "factoryClass": "com.yahoo.maha.service.factory.OracleQueryExecutoryFactory",
       "config": {
-        "dataSourceFactoryClass": "com.yahoo.maha.service.factory.HikariDataSourceFactory",
-        "dataSourceFactoryConfig": {
-          "driverClassName": "org.h2.Driver",
-          "jdbcUrl": "jdbc:h2:mem:h2dbId;MODE=Oracle;DB_CLOSE_DELAY=-1",
-          "username": "sa",
-          "passwordProviderFactoryClassName": "com.yahoo.maha.service.factory.PassThroughPasswordProviderFactory",
-          "passwordProviderConfig": [
-            {
-              "key": "value"
-            }
-          ],
-          "passwordKey": "h2.test.database.password",
-          "poolName": "test-pool",
-          "maximumPoolSize": 10,
-          "minimumIdle": 3,
-          "autoCommit": true,
-          "connectionTestQuery": "SELECT 1 FROM DUAL",
-          "validationTimeout": 10000,
-          "idleTimeout": 10000,
-          "maxLifetime": 10000000,
-          "dataSourceProperties": [
-            {
-              "key": "propertyKey",
-              "value": "propertyValue"
-            }
-          ]
-        },
+        "dataSourceName": "oracleDataSource",
         "jdbcConnectionFetchSize": 10,
         "lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
         "lifecycleListenerFactoryConfig": [
@@ -211,6 +185,37 @@
         "defaultTimeoutMillis": 10000,
         "threadPoolSize": 3,
         "queueSize": 3
+      }
+    }
+  },
+  "datasourceMap" : {
+    "oracleDataSource": {
+      "factoryClass": "com.yahoo.maha.service.factory.HikariDataSourceFactory",
+      "config": {
+        "driverClassName": "org.h2.Driver",
+        "jdbcUrl": "jdbc:h2:mem:h2dbId;MODE=Oracle;DB_CLOSE_DELAY=-1",
+        "username": "sa",
+        "passwordProviderFactoryClassName": "com.yahoo.maha.service.factory.PassThroughPasswordProviderFactory",
+        "passwordProviderConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "passwordKey": "h2.test.database.password",
+        "poolName": "test-pool",
+        "maximumPoolSize": 10,
+        "minimumIdle": 3,
+        "autoCommit": true,
+        "connectionTestQuery": "SELECT 1 FROM DUAL",
+        "validationTimeout": 10000,
+        "idleTimeout": 10000,
+        "maxLifetime": 10000000,
+        "dataSourceProperties": [
+          {
+            "key": "propertyKey",
+            "value": "propertyValue"
+          }
+        ]
       }
     }
   },
