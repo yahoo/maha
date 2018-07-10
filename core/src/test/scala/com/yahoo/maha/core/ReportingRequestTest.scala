@@ -529,7 +529,7 @@ class ReportingRequestTest extends FlatSpec {
                               "Generated-Query" : "generated-query",
                               "Query-Engine" : "druid",
                               "debug" : true,
-                              "registryName" : "mahaRegistry"
+                              "registryName" : "maha"
                           }
                           }"""
     val request =  ReportingRequest.deserializeWithAdditionalParameters(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
