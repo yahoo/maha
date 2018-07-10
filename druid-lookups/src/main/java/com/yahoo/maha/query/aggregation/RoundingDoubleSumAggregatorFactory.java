@@ -13,7 +13,7 @@ import java.math.RoundingMode;
 public class RoundingDoubleSumAggregatorFactory extends DoubleSumAggregatorFactory {
 
     private final int scale;
-    private final boolean enableRoundingDoubleSumAggregatorFactory;
+    private boolean enableRoundingDoubleSumAggregatorFactory = true;
 
     @JsonCreator
     public RoundingDoubleSumAggregatorFactory(@JsonProperty("name") String name,
@@ -21,7 +21,7 @@ public class RoundingDoubleSumAggregatorFactory extends DoubleSumAggregatorFacto
                                               @JsonProperty("scale") int scale,
                                               @JsonProperty("expression") String expression,
                                               @JacksonInject ExprMacroTable macroTable,
-                                              @JacksonInject @JsonProperty("enableRoundingDoubleSumAggregatorFactory") boolean enableRoundingDoubleSumAggregatorFactory) {
+                                              @JsonProperty("enableRoundingDoubleSumAggregatorFactory") boolean enableRoundingDoubleSumAggregatorFactory) {
         super(name, fieldName, expression, macroTable);
         Preconditions.checkArgument(scale >= 0, "Must have a valid, greater than or equal to 0 scale");
         this.scale = scale;
