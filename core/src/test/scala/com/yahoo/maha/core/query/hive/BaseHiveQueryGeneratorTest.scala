@@ -22,6 +22,7 @@ trait BaseHiveQueryGeneratorTest
 
   override protected def beforeAll(): Unit = {
     HiveQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
+    HiveQueryGeneratorV1.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
   }
 
   override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
