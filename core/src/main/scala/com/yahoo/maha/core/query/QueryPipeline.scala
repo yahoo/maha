@@ -397,7 +397,7 @@ trait QueryPipelineFactory {
 
   protected def from(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]]
 
-  protected def from(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryGeneratorVersions: Tuple2[Version, Option[Version]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]]
+  protected def from(requestModel: RequestModel, queryGenVersion: Version, dryRunRequestModel: Option[RequestModel], dryRunQueryGenVersions: Option[Version], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]]
 }
 
 object DefaultQueryPipelineFactory extends Logging {
@@ -773,13 +773,15 @@ OuterGroupBy operation has to be applied only in the following cases
     DefaultQueryPipelineFactory.findDimCandidatesMapping(requestModel)
   }
 
-  def builder(requestModels: (RequestModel, Option[RequestModel]),
-              queryGeneratorVersion: (Version, Option[Version]),
+  def builder(requestModel: RequestModel,
+              queryGenVersion: Version,
+              dryRunRequestModel: Option[RequestModel],
+              dryRunQueryGenVersion: Option[Version],
               queryAttributes: QueryAttributes): (Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]) = {
-    val queryPipelineTryDefault = builder(requestModels._1, queryAttributes, queryGeneratorVersion._1)
+    val queryPipelineTryDefault = builder(requestModel, queryAttributes, queryGenVersion)
     var queryPipelineTryDryRun: Option[Try[QueryPipelineBuilder]] = None
-    if (requestModels._2.isDefined) {
-      queryPipelineTryDryRun =  Some(builder(requestModels._2.get, queryAttributes))
+    if (dryRunRequestModel.isDefined) {
+      queryPipelineTryDryRun =  Some(builder(dryRunRequestModel.get, queryAttributes, dryRunQueryGenVersion.getOrElse(V0)))
     }
     (queryPipelineTryDefault, queryPipelineTryDryRun)
   }
@@ -1117,10 +1119,13 @@ OuterGroupBy operation has to be applied only in the following cases
     }
   }
 
-  def from(requestModels: Tuple2[RequestModel, Option[RequestModel]],
-           queryGeneratorRevison: Tuple2[Version, Option[Version]],
-           queryAttributes: QueryAttributes): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]] = {
-    val queryPipelineBuilderTries = builder(requestModels, queryAttributes)
+  def from(requestModel: RequestModel,
+           queryGenVersion: Version,
+           dryRunRequestModel: Option[RequestModel],
+           dryRunQueryGenVersion: Option[Version],
+           queryAttributes: QueryAttributes
+           ): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]] = {
+    val queryPipelineBuilderTries = builder(requestModel, queryGenVersion, dryRunRequestModel, dryRunQueryGenVersion, queryAttributes)
     if (queryPipelineBuilderTries._2.isDefined) {
       (queryPipelineBuilderTries._1.map(_.build()), Some(queryPipelineBuilderTries._2.get.map(_.build())))
     } else {
