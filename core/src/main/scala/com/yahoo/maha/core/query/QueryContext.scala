@@ -22,6 +22,8 @@ sealed trait QueryContext {
 sealed trait DimensionQueryContext extends QueryContext {
   def dims: SortedSet[DimensionBundle]
   def primaryTableName: String = dims.last.dim.name
+
+  lazy val resolvedDimCols : Set[String] = dims.flatMap(_.resolvedDimCols).toSet
 }
 
 trait FactualQueryContext extends QueryContext {
@@ -83,6 +85,10 @@ case class DimFactOuterGroupByQueryQueryContext(dims: SortedSet[DimensionBundle]
                                                 queryAttributes: QueryAttributes) extends DimensionQueryContext with FactualQueryContext {
   override def indexAliasOption: Option[String] = None
   override def primaryTableName: String = factBestCandidate.fact.name
+
+  lazy val shouldQualifyFactsInPreOuter: Boolean = {
+    resolvedDimCols.intersect(factBestCandidate.resolvedFactCols).nonEmpty
+  }
 }
 
 case class DimensionBundle(dim: Dimension
@@ -116,6 +122,13 @@ case class DimensionBundle(dim: Dimension
        hasNonPushDownFilters=$hasNonPushDownFilters
        hasPKRequested=$hasPKRequested
      """
+  }
+
+  lazy val resolvedDimCols: Set[String] = {
+    fields.map(publicDim.aliasToNameMapFull.apply).map(dim.columnsByNameMap.apply).map {
+      col =>
+        col.alias.getOrElse(col.name)
+    }
   }
   
 }

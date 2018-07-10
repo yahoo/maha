@@ -29,7 +29,11 @@ trait FactColumn extends Column {
   val hasRollupWithEngineRequirement: Boolean = rollupExpression.isInstanceOf[EngineRequirement]
 }
 
+trait ConstFactColumn extends FactColumn with ConstColumn
+
 trait DerivedFactColumn extends FactColumn with DerivedColumn
+
+trait ConstDerivedFactColumn extends DerivedFactColumn with ConstColumn
 
 trait PostResultDerivedFactColumn extends FactColumn with DerivedColumn with PostResultColumn {
   override val isDerivedColumn: Boolean = true
@@ -39,7 +43,11 @@ abstract class BaseFactCol extends FactColumn {
   columnContext.register(this)
 }
 
+abstract class BaseConstFactCol extends BaseFactCol with ConstFactColumn
+
 abstract class BaseDerivedFactCol extends BaseFactCol with DerivedFactColumn
+
+abstract class BaseConstDerivedFactCol extends BaseFactCol with ConstDerivedFactColumn
 
 abstract class BasePostResultDerivedFactCol extends BaseFactCol with PostResultDerivedFactColumn
 
@@ -108,7 +116,7 @@ case class ConstFactCol(name: String,
                    alias: Option[String],
                    annotations: Set[ColumnAnnotation],
                    filterOperationOverrides: Set[FilterOperation]
-                    ) extends BaseFactCol {
+                    ) extends BaseConstFactCol {
   override val isDerivedColumn: Boolean = false
   def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : FactColumn = {
     if(resetAliasIfNotPresent) {
@@ -248,6 +256,38 @@ object DruidDerFactCol {
             rollupExpression: RollupExpression = SumRollup,
             filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) :  DruidDerFactCol = {
     DruidDerFactCol(name, alias, dataType, cc, derivedExpression, annotations, rollupExpression, filterOperationOverrides)
+  }
+}
+
+case class DruidConstDerFactCol(name: String,
+                           alias: Option[String],
+                           dataType: DataType,
+                           constantValue: String,
+                           columnContext: ColumnContext,
+                           derivedExpression: DruidDerivedExpression,
+                           annotations: Set[ColumnAnnotation],
+                           rollupExpression: RollupExpression,
+                           filterOperationOverrides: Set[FilterOperation]
+                          ) extends BaseConstDerivedFactCol with WithDruidEngine {
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : FactColumn = {
+    if(resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name), derivedExpression = derivedExpression.copyWith(columnContext))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias), derivedExpression = derivedExpression.copyWith(columnContext))
+    }
+  }
+}
+
+object DruidConstDerFactCol {
+  def apply(name: String,
+            dataType: DataType,
+            derivedExpression: DruidDerivedExpression,
+            constantValue: String,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            rollupExpression: RollupExpression = SumRollup,
+            filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) :  DruidConstDerFactCol = {
+    DruidConstDerFactCol(name, alias, dataType, constantValue, cc, derivedExpression, annotations, rollupExpression, filterOperationOverrides)
   }
 }
 
@@ -693,6 +733,24 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
     }
   }
 
+  private[this] def getUpdatedDiscardingSet(discarding: Set[String], cols: Iterable[Column]): Set[String] = {
+    val mutableDiscardingSet: mutable.Set[String] = new mutable.HashSet[String]()
+    discarding.foreach(mutableDiscardingSet.add)
+    var hasAdditionalDiscards = false
+    do {
+      hasAdditionalDiscards = false
+      cols
+        .filterNot(col => mutableDiscardingSet.contains(col.name))
+        .filter(col => (col.isDerivedColumn
+          && col.asInstanceOf[DerivedColumn].derivedExpression.sourceColumns.intersect(mutableDiscardingSet).nonEmpty))
+        .foreach { col =>
+          mutableDiscardingSet += col.name
+          hasAdditionalDiscards = true
+        }
+    } while (hasAdditionalDiscards)
+    mutableDiscardingSet.toSet
+  }
+
   def withNewGrain(name: String
                    , from: String
                    , grain: Grain
@@ -838,7 +896,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                             , maxDaysWindow: Option[Map[RequestType, Int]] = None
                             , maxDaysLookBack: Option[Map[RequestType, Int]] = None
                             , availableOnwardsDate : Option[String] = None
-                            , underlyingTableName: Option[String] = None)(implicit cc: ColumnContext) : FactBuilder = {
+                            , underlyingTableName: Option[String] = None
+                            , discarding: Set[String] = Set.empty)(implicit cc: ColumnContext) : FactBuilder = {
 
     require(!tableMap.contains(name), "should not export with existing table name")
     require(tableMap.nonEmpty, "no tables found")
@@ -852,16 +911,22 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
     require(!tableMap.values.find(_.from.exists(_.name == from)).exists(_.engine == engine),
             s"Alternate must have different engine from existing alternate engines : $engine")
 
+    require(discarding.subsetOf(fromTable.columnsByNameMap.keySet), "Discarding columns should be present in fromTable")
+    val updatedDiscardingSet: Set[String] = getUpdatedDiscardingSet(discarding, fromTable.columnsByNameMap.values)
+
     //override dim cols by name
     val overrideDimColsByName: Set[String] = overrideDimCols.map(_.name)
     //override fact cols by name
     val overrideFactColsByName: Set[String] = overrideFactCols.map(_.name)
 
+    require(overrideDimColsByName.intersect(updatedDiscardingSet).isEmpty, "Cannot override dim col that is supposed to be discarded")
+    require(overrideFactColsByName.intersect(updatedDiscardingSet).isEmpty, "Cannot override fact col that is supposed to be discarded")
+
     // non engine specific columns (engine specific columns not needed) and filter out overrides
     var dimColMap = fromTable
-      .dimCols.filter(c => !c.hasEngineRequirement && !overrideDimColsByName(c.name)).map(d => d.name -> d.copyWith(cc, columnAliasMap, true)).toMap
+      .dimCols.filter(c => !c.hasEngineRequirement && !overrideDimColsByName(c.name) && !updatedDiscardingSet.contains(c.name)).map(d => d.name -> d.copyWith(cc, columnAliasMap, true)).toMap
     var factColMap = fromTable
-      .factCols.filter(c => !c.hasEngineRequirement && !overrideFactColsByName(c.name)).map(f => f.name -> f.copyWith(cc, columnAliasMap, true)).toMap
+      .factCols.filter(c => !c.hasEngineRequirement && !overrideFactColsByName(c.name) && !updatedDiscardingSet.contains(c.name)).map(f => f.name -> f.copyWith(cc, columnAliasMap, true)).toMap
 
     val isFromTableView = fromTable.isInstanceOf[FactView]
     // override non engine specific columns or add new columns
@@ -876,6 +941,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
         }                                                                                     // If no old col, don't care
         dimColMap += (d.name -> d)
     }
+
+    require(dimColMap.values.exists(_.isForeignKey), s"Fact has no foreign keys after discarding $discarding")
 
     overrideFactCols foreach {
       f =>
@@ -1225,29 +1292,14 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
     }
 
     ColumnContext.withColumnContext { columnContext =>
-      val mutableDiscardingSet: mutable.Set[String] = new mutable.HashSet[String]()
-      discarding.foreach(mutableDiscardingSet.add)
-      var hasAdditionalDiscards = false
+      var updatedDiscardingSet: Set[String] = getUpdatedDiscardingSet(discarding, fromTable.dimCols.view)
       val rolledUpDims = {
-        do {
-          hasAdditionalDiscards = false
-          fromTable
-            .dimCols
-            .view
-            .filterNot(dim => mutableDiscardingSet.contains(dim.name))
-            .filter(dimCol => (dimCol.isDerivedColumn
-            && dimCol.asInstanceOf[DerivedColumn].derivedExpression.sourceColumns.intersect(discarding).nonEmpty))
-            .foreach { c =>
-            mutableDiscardingSet += c.name
-            hasAdditionalDiscards = true
-          }
-        } while(hasAdditionalDiscards)
         fromTable
           .dimCols
           .filter(dim => !discarding.contains(dim.name))
           .filter(dimCol => !dimCol.isDerivedColumn
           || (dimCol.isDerivedColumn
-          && dimCol.asInstanceOf[DerivedColumn].derivedExpression.sourceColumns.intersect(mutableDiscardingSet).isEmpty) )
+          && dimCol.asInstanceOf[DerivedColumn].derivedExpression.sourceColumns.intersect(updatedDiscardingSet).isEmpty) )
           .map(_.copyWith(columnContext, columnAliasMap, resetAliasIfNotPresent))
       }
 
@@ -1259,24 +1311,12 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       require(rolledUpDims.exists(_.isForeignKey), s"Fact has no foreign keys after discarding $discarding")
 
       val factCols = {
-        do {
-          hasAdditionalDiscards = false
-          fromTable
-            .factCols
-            .view
-            .filterNot(dim => mutableDiscardingSet.contains(dim.name))
-            .filter(factCol => (factCol.isDerivedColumn
-            && factCol.asInstanceOf[DerivedColumn].derivedExpression.sourceColumns.intersect(discarding).nonEmpty))
-            .foreach { c =>
-            mutableDiscardingSet += c.name
-            hasAdditionalDiscards = true
-          }
-        } while(hasAdditionalDiscards)
+        updatedDiscardingSet = getUpdatedDiscardingSet(updatedDiscardingSet, fromTable.factCols.view)
         fromTable
           .factCols
           .filter(factCol => !factCol.isDerivedColumn
           || (factCol.isDerivedColumn
-          && factCol.asInstanceOf[DerivedColumn].derivedExpression.sourceColumns.intersect(mutableDiscardingSet).isEmpty) )
+          && factCol.asInstanceOf[DerivedColumn].derivedExpression.sourceColumns.intersect(updatedDiscardingSet).isEmpty) )
           .map(_.copyWith(columnContext, columnAliasMap, resetAliasIfNotPresent))
       }
 
@@ -1348,29 +1388,14 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
     }
 
     ColumnContext.withColumnContext { columnContext =>
-      val mutableDiscardingSet: mutable.Set[String] = new mutable.HashSet[String]()
-      discarding.foreach(mutableDiscardingSet.add)
-      var hasAdditionalDiscards = false
+      var updatedDiscardingSet: Set[String] = getUpdatedDiscardingSet(discarding, fromTable.dimCols.view)
       val rolledUpDims = {
-        do {
-          hasAdditionalDiscards = false
-          fromTable
-            .dimCols
-            .view
-            .filterNot(dim => mutableDiscardingSet.contains(dim.name))
-            .filter(dimCol => (dimCol.isDerivedColumn
-              && dimCol.asInstanceOf[DerivedColumn].derivedExpression.sourceColumns.intersect(discarding).nonEmpty))
-            .foreach { c =>
-              mutableDiscardingSet += c.name
-              hasAdditionalDiscards = true
-            }
-        } while(hasAdditionalDiscards)
         fromTable
           .dimCols
           .filter(dim => !discarding.contains(dim.name))
           .filter(dimCol => !dimCol.isDerivedColumn
             || (dimCol.isDerivedColumn
-            && dimCol.asInstanceOf[DerivedColumn].derivedExpression.sourceColumns.intersect(mutableDiscardingSet).isEmpty) )
+            && dimCol.asInstanceOf[DerivedColumn].derivedExpression.sourceColumns.intersect(updatedDiscardingSet).isEmpty) )
           .map(_.copyWith(columnContext, Map.empty, false))
       }
 
@@ -1382,24 +1407,12 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       require(rolledUpDims.exists(_.isForeignKey), s"Fact has no foreign keys after discarding $discarding")
 
       val factCols = {
-        do {
-          hasAdditionalDiscards = false
-          fromTable
-            .factCols
-            .view
-            .filterNot(dim => mutableDiscardingSet.contains(dim.name))
-            .filter(factCol => (factCol.isDerivedColumn
-              && factCol.asInstanceOf[DerivedColumn].derivedExpression.sourceColumns.intersect(discarding).nonEmpty))
-            .foreach { c =>
-              mutableDiscardingSet += c.name
-              hasAdditionalDiscards = true
-            }
-        } while(hasAdditionalDiscards)
+        updatedDiscardingSet = getUpdatedDiscardingSet(updatedDiscardingSet, fromTable.factCols.view)
         fromTable
           .factCols
           .filter(factCol => !factCol.isDerivedColumn
             || (factCol.isDerivedColumn
-            && factCol.asInstanceOf[DerivedColumn].derivedExpression.sourceColumns.intersect(mutableDiscardingSet).isEmpty) )
+            && factCol.asInstanceOf[DerivedColumn].derivedExpression.sourceColumns.intersect(updatedDiscardingSet).isEmpty) )
           .map(_.copyWith(columnContext, Map.empty, false))
       }
 
@@ -1515,7 +1528,11 @@ case class FactBestCandidate(fkCols: SortedSet[String]
        isIndexOptimized=$isIndexOptimized
      """
   }
-  
+
+  lazy val resolvedFactCols: Set[String] = factColMapping.keys.map(fact.columnsByNameMap.apply).map {
+    col =>
+      col.alias.getOrElse(col.name)
+  }.toSet
 }
 
 case class FactCandidate(fact: Fact, publicFact: PublicFact, filterCols: Set[String])

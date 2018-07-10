@@ -65,6 +65,7 @@ class TotalMetricsCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll
                           "curators" : {
                             "totalmetrics" : {
                               "config" : {
+                                "forceRevision": 0
                               }
                             }
                           },
@@ -97,6 +98,11 @@ class TotalMetricsCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll
 
 
     val totalMetricsCurator = TotalMetricsCurator()
+
+    val parseTotalMetricsConfig = totalMetricsCurator.parseConfig(reportingRequest.curatorJsonConfigMap(TotalMetricsCurator.name))
+    assert(parseTotalMetricsConfig.isSuccess, s"failed : $parseTotalMetricsConfig")
+    val totalMetricsConfig: TotalMetricsConfig = parseTotalMetricsConfig.toOption.get.asInstanceOf[TotalMetricsConfig]
+    assert(totalMetricsConfig.forceRevision === Option(0))
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
     val totalMetricsCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = totalMetricsCurator
@@ -253,4 +259,50 @@ class TotalMetricsCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll
     assert(totalMetricsCuratorResult.isLeft)
   }
 
+  test("Test failure when bad config") {
+
+
+    val jsonRequest =
+      s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "totalmetrics" : {
+                              "config" : {
+                                "forceRevision": "abc"
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", true))
+
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+    val curatorMahaRequestLogHelper = CuratorMahaRequestLogHelper(mahaRequestLogHelper)
+
+
+    val totalMetricsCurator = TotalMetricsCurator()
+
+    val parseTotalMetricsConfig = totalMetricsCurator.parseConfig(reportingRequest.curatorJsonConfigMap(TotalMetricsCurator.name))
+    assert(parseTotalMetricsConfig.isFailure, s"should have failed : $parseTotalMetricsConfig")
+  }
 }

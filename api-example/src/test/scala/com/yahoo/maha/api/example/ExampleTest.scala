@@ -12,6 +12,7 @@ class ExampleTest extends FunSuite {
 
   test("Test for Example Test") {
     val mahaService = ExampleMahaService.getMahaService("main")
+    val baseRequest = ExampleRequest.getRequest
     assert(mahaService.getDomain("wiki").isDefined)
     assert(mahaService.getDomain("student").isDefined)
   }

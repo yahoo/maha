@@ -4,9 +4,9 @@ import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, InternalSchema}
 import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{POST_RESULT_DECODE, START_OF_THE_MONTH, START_OF_THE_WEEK}
 import com.yahoo.maha.core.FilterOperation.{Equality, In, InBetweenEquality, InEquality}
-import com.yahoo.maha.core.{ColumnContext, DateType, DecType, DefaultPartitionColumnRenderer, DruidEngine, DruidExpression, EqualityFilter, EscapingRequired, ForcedFilter, ForeignKey, HourlyGrain, IntType, MinuteGrain, StrType}
+import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension.{DimCol, DruidFuncDimCol, DruidPostResultFuncDimCol, PubCol}
-import com.yahoo.maha.core.fact._
+import com.yahoo.maha.core.fact.{PublicFactCol, _}
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.registry.RegistryBuilder
@@ -34,6 +34,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
 
   private[this] def factBuilder(annotations: Set[FactAnnotation]): FactBuilder = {
     import DruidExpression._
+    import ThetaSketchSetOp._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "fact1", HourlyGrain, DruidEngine, Set(AdvertiserSchema, InternalSchema),
@@ -60,6 +61,9 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , DimCol("show_sov_flag", IntType())
           , DruidFuncDimCol("Start Date", DateType("YYYYMMdd"), DATETIME_FORMATTER("{start_time}", 0, 8))
           , DruidFuncDimCol("Start Hour", DateType("HH"), DATETIME_FORMATTER("{start_time}", 8, 2))
+          , DimCol("ageBucket", StrType())
+          , DimCol("woeids", StrType())
+          , DimCol("segments", StrType())
 
         ),
         Set(
@@ -72,6 +76,9 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , FactCol("avg_bid", DecType(0, "0.0"), AverageRollup)
           , FactCol("avg_pos_times_impressions", DecType(0, "0.0"), MaxRollup)
           , FactCol("engagement_count", IntType(0,0))
+          , ConstFactCol("const_a", IntType(0,0), "0")
+          , ConstFactCol("const_b", IntType(0,0), "0")
+          , DruidConstDerFactCol("Const Der Fact Col C", DecType(), "{const_a}" / "{const_b}", "0")
           , DruidDerFactCol("Average CPC", DecType(), "{spend}" / "{clicks}")
           , DruidDerFactCol("CTR", DecType(), "{clicks}" /- "{impressions}")
           , DruidDerFactCol("derived_avg_pos", DecType(3, "0.0", "0.1", "500"), "{avg_pos_times_impressions}" /- "{impressions}")
@@ -82,6 +89,11 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
             EqualityFilter("campaign_id", "1")), "clicks", SumRollup))
           , DruidDerFactCol("Reblog Rate", DecType(), "{Reblogs}" /- "{impressions}" * "100")
           , DruidPostResultDerivedFactCol("impression_share", StrType(), "{impressions}" /- "{sov_impressions}", postResultFunction = POST_RESULT_DECODE("{show_sov_flag}", "0", "N/A"))
+          , FactCol("uniqueUserCount", DecType(0, "0.0"))
+          , FactCol("ageBucket_unique_users", DecType(), DruidFilteredRollup(InFilter("ageBucket", List("18-20")), "uniqueUserCount", DruidThetaSketchRollup))
+          , FactCol("woeids_unique_users", DecType(), DruidFilteredRollup(InFilter("woeids", List("4563")), "uniqueUserCount", DruidThetaSketchRollup))
+          , FactCol("segments_unique_users", DecType(), DruidFilteredRollup(InFilter("segments", List("1234")), "uniqueUserCount", DruidThetaSketchRollup))
+          , DruidDerFactCol("Total Unique User Count", DecType(), ThetaSketchEstimator(INTERSECT, List("{ageBucket_unique_users}", "{woeids_unique_users}", "{segments_unique_users}")))
         ),
         annotations = annotations
       )
@@ -209,12 +221,18 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PubCol("My Date", "My Date", Equality),
           PubCol("Day of Week", "Day of Week", Equality),
           PubCol("Start Date", "Start Date", InEquality),
-          PubCol("Start Hour", "Start Hour", InEquality)
+          PubCol("Start Hour", "Start Hour", InEquality),
+          PubCol("ageBucket", "Age Bucket", InEquality),
+          PubCol("woeids", "Woe ID", InEquality),
+          PubCol("segments", "Segments", InEquality)
           //PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality)
         ),
         Set(
           PublicFactCol("impressions", "Impressions", InBetweenEquality),
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
+          PublicFactCol("const_a", "const_a", InBetweenEquality),
+          PublicFactCol("const_b", "const_b", InBetweenEquality),
+          PublicFactCol("Const Der Fact Col C", "Const Der Fact Col C", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),
           PublicFactCol("derived_avg_pos", "Average Position", Set.empty),
           PublicFactCol("max_bid", "Max Bid", Set.empty),
@@ -225,7 +243,12 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("Reblog Rate", "Reblog Rate", InBetweenEquality),
           PublicFactCol("Click Rate", "Click Rate", InBetweenEquality),
           PublicFactCol("Click Rate Success Case", "Click Rate Success Case", InBetweenEquality),
-          PublicFactCol("CTR", "CTR", InBetweenEquality)
+          PublicFactCol("CTR", "CTR", InBetweenEquality),
+          PublicFactCol("uniqueUserCount", "Unique User Count", InBetweenEquality),
+          PublicFactCol("ageBucket_unique_users", "ageBucket_unique_users", InBetweenEquality),
+          PublicFactCol("woeids_unique_users", "woeids_unique_users", InBetweenEquality),
+          PublicFactCol("segments_unique_users", "segments_unique_users", InBetweenEquality),
+          PublicFactCol("Total Unique User Count", "Total Unique User Count", InBetweenEquality)
         ),
         //Set(EqualityFilter("Source", "2")),
         Set(),

@@ -22,7 +22,7 @@ import java.util.concurrent.Callable;
  *
  */
 public class InMemoryDBExtractionNamespaceCacheFactory
-        implements ExtractionNamespaceCacheFactory<InMemoryDBExtractionNamespace>
+        implements ExtractionNamespaceCacheFactory<InMemoryDBExtractionNamespace, String>
 {
     private static final Logger LOG = new Logger(InMemoryDBExtractionNamespaceCacheFactory.class);
     private static final String ZERO = "0";
@@ -70,9 +70,7 @@ public class InMemoryDBExtractionNamespaceCacheFactory
     @Override
     public void updateCache(final InMemoryDBExtractionNamespace extractionNamespace,
                             final Map<String, String> cache, final String key, final byte[] value) {
-        if (!extractionNamespace.isCacheEnabled()) {
-            lookupService.update(new LookupService.LookupData(extractionNamespace, key), value);
-        } else {
+        if (extractionNamespace.isCacheEnabled()) {
             try {
 
                 Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
@@ -109,18 +107,24 @@ public class InMemoryDBExtractionNamespaceCacheFactory
     }
 
     @Override
-    public byte[] getCacheValue(final InMemoryDBExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key) {
+    public byte[] getCacheValue(final InMemoryDBExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key, String valueColumn) {
 
         try {
             if (!extractionNamespace.isCacheEnabled()) {
-                return lookupService.lookup(new LookupService.LookupData(extractionNamespace, key));
+                return lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn));
             }
 
             final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
             if (db != null) {
                 Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
-                byte[] value = db.get(key.getBytes());
-                return (value == null) ? new byte[0] : parser.parseFrom(value).toByteArray();
+                byte[] cacheByteValue = db.get(key.getBytes());
+                if(cacheByteValue == null) {
+                    return new byte[0];
+                }
+                Message message = parser.parseFrom(cacheByteValue);
+                Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
+                Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn);
+                return (field == null) ? new byte[0] : message.getField(field).toString().getBytes();
             }
         } catch (Exception e) {
             LOG.error(e, "Caught exception while getting cache value");

@@ -9,7 +9,9 @@ package com.yahoo.maha.core
 import java.util.concurrent.atomic.AtomicLong
 
 import com.google.common.collect.Lists
+import com.yahoo.maha.core.ThetaSketchSetOp.ThetaSketchSetOp
 import io.druid.query.aggregation.PostAggregator
+import io.druid.query.aggregation.datasketches.theta.{SketchEstimatePostAggregator, SketchSetPostAggregator}
 import io.druid.query.aggregation.post.{ArithmeticPostAggregator, ConstantPostAggregator, FieldAccessPostAggregator}
 
 trait Expression[T] {
@@ -717,6 +719,7 @@ object DruidExpression {
     def /-(that: DruidExp) : DruidExp = {
       Arithmetic("/", this, that)
     }
+
   }
 
   /* TODO: fix later
@@ -755,6 +758,25 @@ object DruidExpression {
       :: ("fields" -> toJSON(fields.toList))
       :: Nil
     )))*/
+  }
+
+  case class ThetaSketchEstimator(fn: ThetaSketchSetOp, aggregators: List[String]) extends BaseDruidExpression {
+    import scala.collection.JavaConverters._
+
+    def render(insideDerived: Boolean) = {
+      (s: String, aggregatorNameAliasMap: Map[String, String]) => {
+        val postAggList = aggregatorsDruidExpressions.filter(de => aggregatorNameAliasMap.contains(de.fieldNamePlaceHolder)).map(e => e.render(insideDerived)(e.fieldNamePlaceHolder,aggregatorNameAliasMap))
+        new SketchEstimatePostAggregator(s, new SketchSetPostAggregator(s, fn.toString, null, postAggList.asJava), null)
+      }
+    }
+
+    val aggregatorsDruidExpressions = aggregators.map(e => fromString(e))
+    val hasRollupExpression = false
+    val hasNumericOperation = false
+    def asString = {
+      s"$aggregatorsDruidExpressions"
+    }
+
   }
 
   case class Constant(value: BigDecimal) extends BaseDruidExpression {
@@ -838,6 +860,7 @@ object DruidExpression {
       fromString(s) /- fromString(s2)
     }
   }
+
 }
 
 case class DruidDerivedExpression private(columnContext: ColumnContext, expression: DruidExpression) extends DerivedExpression[(String, Map[String,String]) => PostAggregator] with WithDruidEngine {
@@ -870,4 +893,9 @@ object DruidDerivedExpression {
   implicit def fromString(s: String)(implicit  cc: ColumnContext) : DruidDerivedExpression = {
     apply(s)
   }
+}
+
+object ThetaSketchSetOp extends Enumeration {
+  type ThetaSketchSetOp = Value
+  val INTERSECT, UNION, NOT = Value
 }

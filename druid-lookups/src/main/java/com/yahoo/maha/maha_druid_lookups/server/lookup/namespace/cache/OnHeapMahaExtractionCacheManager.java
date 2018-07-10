@@ -21,17 +21,17 @@ import java.util.concurrent.locks.Lock;
 /**
  *
  */
-public class OnHeapMahaExtractionCacheManager extends MahaExtractionCacheManager
+public class OnHeapMahaExtractionCacheManager<U> extends MahaExtractionCacheManager
 {
     private static final Logger LOG = new Logger(OnHeapMahaExtractionCacheManager.class);
-    private final ConcurrentMap<String, ConcurrentMap<String, String>> mapMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, ConcurrentMap<String, U>> mapMap = new ConcurrentHashMap<>();
     private final Striped<Lock> nsLocks = Striped.lock(32);
 
     @Inject
     public OnHeapMahaExtractionCacheManager(
             final Lifecycle lifecycle,
             final ServiceEmitter emitter,
-            final Map<Class<? extends ExtractionNamespace>, ExtractionNamespaceCacheFactory<?>> namespaceFunctionFactoryMap
+            final Map<Class<? extends ExtractionNamespace>, ExtractionNamespaceCacheFactory<?,?>> namespaceFunctionFactoryMap
     )
     {
         super(lifecycle, emitter, namespaceFunctionFactoryMap);
@@ -43,11 +43,11 @@ public class OnHeapMahaExtractionCacheManager extends MahaExtractionCacheManager
         final Lock lock = nsLocks.get(namespaceKey);
         lock.lock();
         try {
-            ConcurrentMap<String, String> cacheMap = mapMap.get(cacheKey);
+            ConcurrentMap<String, U> cacheMap = mapMap.get(cacheKey);
             if (cacheMap == null) {
                 throw new IAE("Extraction Cache [%s] does not exist", cacheKey);
             }
-            ConcurrentMap<String, String> prior = mapMap.put(namespaceKey, cacheMap);
+            ConcurrentMap<String, U> prior = mapMap.put(namespaceKey, cacheMap);
             mapMap.remove(cacheKey);
             if (prior != null) {
                 // Old map will get GC'd when it is not used anymore
@@ -62,11 +62,11 @@ public class OnHeapMahaExtractionCacheManager extends MahaExtractionCacheManager
     }
 
     @Override
-    public ConcurrentMap<String, String> getCacheMap(String namespaceOrCacheKey)
+    public ConcurrentMap<String, U> getCacheMap(String namespaceOrCacheKey)
     {
-        ConcurrentMap<String, String> map = mapMap.get(namespaceOrCacheKey);
+        ConcurrentMap<String, U> map = mapMap.get(namespaceOrCacheKey);
         if (map == null) {
-            mapMap.putIfAbsent(namespaceOrCacheKey, new ConcurrentHashMap<String, String>());
+            mapMap.putIfAbsent(namespaceOrCacheKey, new ConcurrentHashMap());
             map = mapMap.get(namespaceOrCacheKey);
         }
         return map;
@@ -94,21 +94,16 @@ public class OnHeapMahaExtractionCacheManager extends MahaExtractionCacheManager
     {
         long numEntries = 0;
         long size = 0;
-        for (Map.Entry<String, ConcurrentMap<String, String>> entry : mapMap.entrySet()) {
-            final ConcurrentMap<String, String> map = entry.getValue();
+        for (Map.Entry<String, ConcurrentMap<String, U>> entry : mapMap.entrySet()) {
+            final ConcurrentMap<String, U> map = entry.getValue();
             if (map == null) {
                 LOG.debug("missing cache key for reporting [%s]", entry.getKey());
                 continue;
             }
             numEntries += map.size();
-            for (Map.Entry<String, String> sEntry : map.entrySet()) {
+            for (Map.Entry<String, U> sEntry : map.entrySet()) {
                 final String key = sEntry.getKey();
-                final String value = sEntry.getValue();
-                if (key == null || value == null) {
-                    LOG.debug("Missing entries for cache key [%s]", entry.getKey());
-                    continue;
-                }
-                size += key.length() + value.length();
+                size += key.length();
             }
         }
         serviceEmitter.emit(ServiceMetricEvent.builder().build("namespace/cache/numEntries", numEntries));

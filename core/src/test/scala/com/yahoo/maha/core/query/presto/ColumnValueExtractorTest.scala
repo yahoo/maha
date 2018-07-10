@@ -19,22 +19,26 @@ class ColumnValueExtractorTest extends FunSuite with Matchers with BeforeAndAfte
   test("test getBigDecimalSafely") {
     val rs = mock(classOf[ResultSet])
 
-    doReturn(BigDecimal.valueOf(1.23)).when(rs).getBigDecimal(0)
-    doReturn(BigDecimal.valueOf(1.0)).when(rs).getBigDecimal(1)
-    doReturn(BigDecimal.valueOf(0.2398374857887346875637538579)).when(rs).getBigDecimal(2)
-    doReturn(null).when(rs).getBigDecimal(3)
+    doReturn(BigDecimal.valueOf(1.23)).when(rs).getObject(0)
+    doReturn(BigDecimal.valueOf(1.0)).when(rs).getObject(1)
+    doReturn(BigDecimal.valueOf(0.2398374857887346875637538579)).when(rs).getObject(2)
+    doReturn(null).when(rs).getObject(3)
+    doThrow(new NumberFormatException).when(rs).getObject(4)
+    doReturn("null").when(rs).getObject(5)
 
     assert(columnValueExtractor.getBigDecimalSafely(rs, 0) == 1.23)
     assert(columnValueExtractor.getBigDecimalSafely(rs, 1) == 1)
     assert(columnValueExtractor.getBigDecimalSafely(rs, 2) == 0.2398374857887346875637538579)
     assert(columnValueExtractor.getBigDecimalSafely(rs, 3) == null)
+    assert(columnValueExtractor.getBigDecimalSafely(rs, 4) == null)
+    assert(columnValueExtractor.getBigDecimalSafely(rs, 5) == null)
   }
 
   test("test getLongSafely") {
     val rs = mock(classOf[ResultSet])
 
-    doReturn(BigDecimal.valueOf(91823981932131923L)).when(rs).getBigDecimal(0)
-    doReturn(BigDecimal.valueOf(9.83742)).when(rs).getBigDecimal(1)
+    doReturn(BigDecimal.valueOf(91823981932131923L)).when(rs).getObject(0)
+    doReturn(BigDecimal.valueOf(9.83742)).when(rs).getObject(1)
     doReturn(null).when(rs).getBigDecimal(2)
 
     assert(columnValueExtractor.getLongSafely(rs, 0) == 91823981932131923L)
@@ -44,9 +48,9 @@ class ColumnValueExtractorTest extends FunSuite with Matchers with BeforeAndAfte
 
   test("test getColumnValue") {
     val rs = mock(classOf[ResultSet])
-    doReturn(BigDecimal.valueOf(91823981932131923L)).when(rs).getBigDecimal(0)
+    doReturn(BigDecimal.valueOf(91823981932131923L)).when(rs).getObject(0)
     doReturn("Native").when(rs).getString(1)
-    doReturn(BigDecimal.valueOf(1.234)).when(rs).getBigDecimal(2)
+    doReturn(BigDecimal.valueOf(1.234)).when(rs).getObject(2)
     doReturn("20180503").when(rs).getString(3)
     doReturn(Date.valueOf("2018-05-04")).when(rs).getDate(4)
     val dt = new DateTime("2018-05-04T21:39:45.618+00:00")

@@ -2,20 +2,18 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.factory
 
-import com.yahoo.maha.service.MahaServiceConfig
-import com.yahoo.maha.core.{DefaultUDFRegistrationFactory, _}
+import com.yahoo.maha.core._
 import com.yahoo.maha.core.query.QueryGenerator
 import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, DruidQueryOptimizer}
 import com.yahoo.maha.core.query.hive.HiveQueryGenerator
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.query.presto.PrestoQueryGenerator
 import com.yahoo.maha.core.request._
+import com.yahoo.maha.service.MahaServiceConfig
 import org.json4s.JValue
 
-import scalaz.Validation
-import _root_.scalaz._
-import syntax.applicative._
-import Validation.FlatMap._
+import scalaz.Validation.FlatMap._
+import scalaz.syntax.applicative._
 
 /**
  * Created by pranavbhole on 25/05/17.

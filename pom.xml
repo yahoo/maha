@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>5.138-SNAPSHOT</version>
+    <version>5.161-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -26,6 +26,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <scala.major.version>2.12</scala.major.version>
         <scala.version>2.12.6</scala.version>
+        <scala-xml.version>1.0.6</scala-xml.version>
         <json4s.version>3.5.3</json4s.version>
         <scalatest.version>3.0.3</scalatest.version>
         <scalaz.version>7.2.22</scalaz.version>
@@ -54,12 +55,18 @@
         <checkstyle.skip>true</checkstyle.skip>
         <freemarker.version>2.3.20</freemarker.version>
         <enumeratum.version>1.5.13</enumeratum.version>
+        <kafka.version>0.10.2.1</kafka.version>
+        <caffeine.version>2.6.2</caffeine.version>
     </properties>
 
 
     <modules>
         <module>par-request-2</module>
         <!--module>par-request</module-->
+        <module>db</module>
+        <module>request-log</module>
+        <module>job-service</module>
+        <module>worker</module>
         <module>druid-lookups</module>
         <module>core</module>
         <module>druid</module>
@@ -85,6 +92,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-math3</artifactId>
@@ -130,6 +142,11 @@
                 <groupId>org.scala-lang</groupId>
                 <artifactId>scala-library</artifactId>
                 <version>${scala.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.scala-lang.modules</groupId>
+                <artifactId>scala-xml_${scala.major.version}</artifactId>
+                <version>${scala-xml.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.json4s</groupId>

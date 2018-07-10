@@ -9,6 +9,7 @@ import com.google.protobuf.ByteString
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.{AsyncRequest, ReportingRequest, SyncRequest}
 import com.yahoo.maha.core.{DimensionCandidate, RequestModel, SortByColumnInfo}
+import com.yahoo.maha.log.MahaRequestLogWriter
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service.MahaRequestContext
 import com.yahoo.maha.service.curators.Curator
@@ -64,6 +65,15 @@ case class CuratorMahaRequestLogHelper(delegate: BaseMahaRequestLogBuilder) exte
 
 object MahaRequestLogHelper {
   val logger: org.slf4j.Logger = LoggerFactory.getLogger(classOf[MahaRequestLogHelper])
+  val hostname:Option[String] = try {
+    import java.net.InetAddress
+    val addr = InetAddress.getLocalHost
+    Some(addr.getHostName)
+  } catch {
+    case e:Exception=>
+      logger.error(s"Failed to get hostname ${e.getMessage}", e)
+      None
+  }
 }
 case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequestLogWriter: MahaRequestLogWriter, curator: String = "none") extends MahaRequestLogBuilder {
 
@@ -75,6 +85,10 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
   protected def init(protoBuilder: MahaRequestProto.Builder) : Unit = {
     protoBuilder.setMahaServiceRegistryName(mahaRequestContext.registryName)
     protoBuilder.setRequestStartTime(mahaRequestContext.requestStartTime)
+
+    if(hostname.isDefined) {
+      protoBuilder.setMahaServiceHostname(hostname.get)
+    }
 
     val requestId = mahaRequestContext.requestId
     val userId = mahaRequestContext.userId
@@ -179,10 +193,13 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
         protoBuilder.setDrivingQueryEngineLatency(drivingEngineQueryStat.endTime - drivingEngineQueryStat.startTime)
         if (engineQueryStatsIterator.hasNext) {
           val firsEngineQueryStat: EngineQueryStat = engineQueryStatsIterator.next
+          protoBuilder.setFirstSubsequentQueryEngine(firsEngineQueryStat.engine.toString)
+          protoBuilder.setFirstSubsequentQueryTable(firsEngineQueryStat.tableName)
           protoBuilder.setFirstSubsequentQueryEngineLatency(firsEngineQueryStat.endTime - firsEngineQueryStat.startTime)
         }
         if (engineQueryStatsIterator.hasNext) {
           val reRunEngineQueryStats: EngineQueryStat = engineQueryStatsIterator.next
+          protoBuilder.setReRunEngineQueryTable(reRunEngineQueryStats.tableName)
           protoBuilder.setReRunEngineQueryLatency(reRunEngineQueryStats.endTime - reRunEngineQueryStats.startTime)
           if (MahaRequestProto.Engine.Druid.toString.equalsIgnoreCase(reRunEngineQueryStats.engine.toString)) protoBuilder.setReRunEngine(MahaRequestProto.Engine.Druid)
           else if (MahaRequestProto.Engine.Oracle.toString.equalsIgnoreCase(reRunEngineQueryStats.engine.toString)) protoBuilder.setReRunEngine(MahaRequestProto.Engine.Oracle)

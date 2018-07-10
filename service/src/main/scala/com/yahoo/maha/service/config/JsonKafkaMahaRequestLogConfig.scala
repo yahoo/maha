@@ -3,9 +3,8 @@
 package com.yahoo.maha.service.config
 
 import com.yahoo.maha.core.request._
+import com.yahoo.maha.log.KafkaRequestLoggingConfig
 import org.json4s.JValue
-import org.json4s.scalaz.JsonScalaz
-import org.json4s.scalaz.JsonScalaz._
 
 /**
  * Created by pranavbhole on 16/08/17.
@@ -31,17 +30,7 @@ object JsonMahaRequestLogConfig {
   }
 }
 
-case class JsonKafkaRequestLoggingConfig(kafkaBrokerList: String,
-                                     bootstrapServers: String,
-                                     producerType: String,
-                                     serializerClass: String,
-                                     requestRequiredAcks: String,
-                                     kafkaBlockOnBufferFull: String,
-                                     batchNumMessages: String,
-                                     topicName: String,
-                                     bufferMemory: String,
-                                     maxBlockMs: String)
-
+case class JsonKafkaRequestLoggingConfig(config: KafkaRequestLoggingConfig)
 
 object JsonKafkaRequestLoggingConfig {
   import org.json4s.scalaz.JsonScalaz._
@@ -62,7 +51,7 @@ object JsonKafkaRequestLoggingConfig {
 
       (kafkaBrokerListResult |@| bootstrapServersResult |@| producerTypeResult |@| serializerClassResult |@| requestRequiredAcksResult |@| kafkaBlockOnBufferFullResult |@| batchNumMessagesResult |@| topicNameResult |@| bufferMemoryResult |@| maxBlockMsResult) {
         case(kafkaBrokerList, bootstrapServers, producerType, serializerClass, requestRequiredAcks, kafkaBlockOnBufferFull, batchNumMessages, topicName, bufferMemory, maxBlockMs) =>
-        JsonKafkaRequestLoggingConfig(kafkaBrokerList, bootstrapServers, producerType, serializerClass, requestRequiredAcks, kafkaBlockOnBufferFull, batchNumMessages, topicName, bufferMemory, maxBlockMs)
+        JsonKafkaRequestLoggingConfig(KafkaRequestLoggingConfig(kafkaBrokerList, bootstrapServers, producerType, serializerClass, requestRequiredAcks, kafkaBlockOnBufferFull, batchNumMessages, topicName, bufferMemory, maxBlockMs))
       }
     }
   }

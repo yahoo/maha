@@ -5,19 +5,19 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup.namespace;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-public interface ExtractionNamespaceCacheFactory<T extends ExtractionNamespace>
+public interface ExtractionNamespaceCacheFactory<T extends ExtractionNamespace, U>
 {
 
-    Callable<String> getCachePopulator(String id, T extractionNamespace, String lastVersion, Map<String, String> swap);
+    Callable<String> getCachePopulator(String id, T extractionNamespace, String lastVersion, Map<String, U> swap);
 
     void updateCache(T extractionNamespace,
-                     final Map<String, String> cache, final String key, final byte[] value);
+                     final Map<String, U> cache, final String key, final byte[] value);
 
-    default byte[] getCacheValue(T extractionNamespace, Map<String, String> cache, String key) {
+    default byte[] getCacheValue(T extractionNamespace, Map<String, U> cache, String key, String valueColumn) {
         return new byte[0];
     }
 
-    default String getCacheSize(T extractionNamespace, Map<String, String> cache) {
+    default String getCacheSize(T extractionNamespace, Map<String, U> cache) {
         return String.valueOf(cache.size());
     }
 

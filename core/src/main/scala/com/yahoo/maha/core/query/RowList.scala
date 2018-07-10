@@ -17,7 +17,11 @@ import scala.util.Try
 
 case class Row(aliasMap: Map[String, Int], cols: collection.mutable.ArrayBuffer[Any]) {
   def addValue(alias: String, value: Any) = {
-    cols.update(aliasMap(alias), value)
+    if (aliasMap.contains(alias)) {
+      cols.update(aliasMap(alias), value)
+    } else {
+      throw new IllegalArgumentException(s"Failed to find value in aliasMap on addValue for alias=$alias, value: $value, aliasMap:$aliasMap")
+    }
   }
   def addValue(index: Int, value: Any) = {
     cols.update(index, value)
@@ -152,10 +156,9 @@ trait QueryRowList extends RowList {
   def postResultRowOperation(row:Row, ephemeralRowOption:Option[Row]) : Unit = {
 
     postResultColumnMap.foreach {
-      case (columnAlias, prCol) => {
-           val rowData: RowData = new PostResultRowData(row, ephemeralRowOption, columnAlias)
-           prCol.postResultFunction.resultApply(rowData)
-      }
+      case (columnAlias, prCol) =>
+        val rowData: RowData = new PostResultRowData(row, ephemeralRowOption, columnAlias)
+        prCol.postResultFunction.resultApply(rowData)
     }
   }
 
