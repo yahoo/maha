@@ -290,7 +290,7 @@ object ReportingRequest extends BaseRequest {
                   , bias: Option[Bias]
                   , defaultDayIfNeeded: Boolean = false): Validation[NonEmptyList[JsonScalaz.Error], ReportingRequest] = {
 
-    val json = {
+    val json : JValue = {
         Try(parse(new String(ba, StandardCharsets.UTF_8))) match {
         case t if t.isSuccess => t.get
         case t if t.isFailure => {
