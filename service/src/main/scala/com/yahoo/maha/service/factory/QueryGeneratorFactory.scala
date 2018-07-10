@@ -11,6 +11,7 @@ import com.yahoo.maha.core.query.presto.PrestoQueryGenerator
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.service.MahaServiceConfig
 import com.yahoo.maha.service.config.JsonDataSourceConfig
+import javax.sql.DataSource
 import org.json4s.JValue
 import scalaz.Validation.FlatMap._
 import scalaz.syntax.applicative._
@@ -29,7 +30,7 @@ class OracleQueryGeneratorFactory extends QueryGeneratorFactory {
     |}
   """.stripMargin
 
-  override def fromJson(configJson: org.json4s.JValue, dataSourceConfigMap: Map[String, JsonDataSourceConfig]) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
+  override def fromJson(configJson: org.json4s.JValue, dataSourceMap: Map[String, DataSource]) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
     import org.json4s.scalaz.JsonScalaz._
     val partitionColumnRendererClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("partitionColumnRendererClass")(configJson)
     val partitionColumnRendererConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("partitionColumnRendererConfig")(configJson)
@@ -40,7 +41,7 @@ class OracleQueryGeneratorFactory extends QueryGeneratorFactory {
       partitionColumnRendererClass <- partitionColumnRendererClassResult
       partitionColumnRendererFactory <- getFactory[PartitionColumnRendererFactory](partitionColumnRendererClass, this.closer)
       partitionColumnRendererConfig <- partitionColumnRendererConfigResult
-      partitionColumnRenderer <- partitionColumnRendererFactory.fromJson(partitionColumnRendererConfig, dataSourceConfigMap)
+      partitionColumnRenderer <- partitionColumnRendererFactory.fromJson(partitionColumnRendererConfig, dataSourceMap)
     } yield partitionColumnRenderer
 
     val literalMapper: MahaServiceConfig.MahaConfigResult[OracleLiteralMapper] = for {
@@ -71,7 +72,7 @@ class DruidQueryGeneratorFactory extends QueryGeneratorFactory {
     |}
   """.stripMargin
 
-  override def fromJson(configJson: org.json4s.JValue, dataSourceConfigMap: Map[String, JsonDataSourceConfig]) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
+  override def fromJson(configJson: org.json4s.JValue, dataSourceMap: Map[String, DataSource]) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
     import org.json4s.scalaz.JsonScalaz._
     val queryOptimizerClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("queryOptimizerClass")(configJson)
     val queryOptimizerConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("queryOptimizerConfig")(configJson)
@@ -105,7 +106,7 @@ class HiveQueryGeneratorFactory extends QueryGeneratorFactory {
     |}
   """.stripMargin
 
-  override def fromJson(configJson: org.json4s.JValue, dataSourceConfigMap: Map[String, JsonDataSourceConfig]) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
+  override def fromJson(configJson: org.json4s.JValue, dataSourceMap: Map[String, DataSource]) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
     import org.json4s.scalaz.JsonScalaz._
     val partitionColumnRendererClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("partitionColumnRendererClass")(configJson)
     val partitionColumnRendererConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("partitionColumnRendererConfig")(configJson)
@@ -116,7 +117,7 @@ class HiveQueryGeneratorFactory extends QueryGeneratorFactory {
       partitionColumnRendererClass <- partitionColumnRendererClassResult
       partitionColumnRendererFactory <- getFactory[PartitionColumnRendererFactory](partitionColumnRendererClass, this.closer)
       partitionColumnRendererConfig <- partitionColumnRendererConfigResult
-      partitionColumnRenderer <- partitionColumnRendererFactory.fromJson(partitionColumnRendererConfig, dataSourceConfigMap)
+      partitionColumnRenderer <- partitionColumnRendererFactory.fromJson(partitionColumnRendererConfig, dataSourceMap)
     } yield partitionColumnRenderer
 
     val udfStatements: MahaServiceConfig.MahaConfigResult[Set[UDFRegistration]] = for {
@@ -143,7 +144,7 @@ class PrestoQueryGeneratorFactory extends QueryGeneratorFactory {
     |}
   """.stripMargin
 
-  override def fromJson(configJson: org.json4s.JValue, dataSourceConfigMap: Map[String, JsonDataSourceConfig]) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
+  override def fromJson(configJson: org.json4s.JValue, dataSourceMap: Map[String, DataSource]) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
     import org.json4s.scalaz.JsonScalaz._
     val partitionColumnRendererClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("partitionColumnRendererClass")(configJson)
     val partitionColumnRendererConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("partitionColumnRendererConfig")(configJson)
@@ -154,7 +155,7 @@ class PrestoQueryGeneratorFactory extends QueryGeneratorFactory {
       partitionColumnRendererClass <- partitionColumnRendererClassResult
       partitionColumnRendererFactory <- getFactory[PartitionColumnRendererFactory](partitionColumnRendererClass, this.closer)
       partitionColumnRendererConfig <- partitionColumnRendererConfigResult
-      partitionColumnRenderer <- partitionColumnRendererFactory.fromJson(partitionColumnRendererConfig, dataSourceConfigMap)
+      partitionColumnRenderer <- partitionColumnRendererFactory.fromJson(partitionColumnRendererConfig, dataSourceMap)
     } yield partitionColumnRenderer
 
     val udfStatements: MahaServiceConfig.MahaConfigResult[Set[UDFRegistration]] = for {

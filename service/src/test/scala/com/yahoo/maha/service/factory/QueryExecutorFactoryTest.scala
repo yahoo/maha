@@ -30,8 +30,6 @@ class QueryExecutorFactoryTest extends BaseFactoryTest {
     val dataSourceConfigJson =
       s"""
          |{
-         |"factoryClass": "com.yahoo.maha.service.factory.HikariDataSourceFactory",
-         |"config": {
          |"driverClassName" : "org.h2.Driver",
          |"jdbcUrl" : "jdbc:h2:mem:$uuid;MODE=Oracle;DB_CLOSE_DELAY=-1",
          |"username" : "sa",
@@ -48,13 +46,13 @@ class QueryExecutorFactoryTest extends BaseFactoryTest {
          |"maxLifetime" : 10000000,
          |"dataSourceProperties": [{"key": "propertyKey" , "value": "propertyValue"}]
          |}
-         |}
+         |
        """.stripMargin
 
-    val dataSourceConfigResult = JsonDataSourceConfig.parse.read(parse(dataSourceConfigJson))
-    assert(dataSourceConfigResult.toOption.isDefined)
-    val dataSourceConfig = dataSourceConfigResult.toOption.get
-    val dataSourceMap = Map("oracleDataSource".toLowerCase -> dataSourceConfig)
+    val dataSourceFactoryResult = getFactory[DataSourceFactory]("com.yahoo.maha.service.factory.HikariDataSourceFactory", closer)
+    val dataSourceOption = dataSourceFactoryResult.toOption.get.fromJson(parse(dataSourceConfigJson)).toOption
+    assert(dataSourceOption.isDefined)
+    val dataSourceMap = Map("oracleDataSource".toLowerCase -> dataSourceOption.get)
 
     val factoryResult = getFactory[QueryExecutoryFactory]("com.yahoo.maha.service.factory.OracleQueryExecutoryFactory", closer)
     assert(factoryResult.isSuccess)
@@ -137,8 +135,6 @@ class QueryExecutorFactoryTest extends BaseFactoryTest {
     val dataSourceConfigJson =
       s"""
          |{
-         |"factoryClass": "com.yahoo.maha.service.factory.HikariDataSourceFactory",
-         |"config": {
          |"driverClassName" : "org.h2.Driver",
          |"jdbcUrl" : "jdbc:h2:mem:$uuid;MODE=Oracle;DB_CLOSE_DELAY=-1",
          |"username" : "sa",
@@ -155,13 +151,13 @@ class QueryExecutorFactoryTest extends BaseFactoryTest {
          |"maxLifetime" : 10000000,
          |"dataSourceProperties": [{"key": "propertyKey" , "value": "propertyValue"}]
          |}
-         |}
+         |
        """.stripMargin
 
-    val dataSourceConfigResult = JsonDataSourceConfig.parse.read(parse(dataSourceConfigJson))
-    assert(dataSourceConfigResult.toOption.isDefined)
-    val dataSourceConfig = dataSourceConfigResult.toOption.get
-    val dataSourceMap = Map("prestoDataSource".toLowerCase -> dataSourceConfig)
+    val dataSourceFactoryResult = getFactory[DataSourceFactory]("com.yahoo.maha.service.factory.HikariDataSourceFactory", closer)
+    val dataSourceOption = dataSourceFactoryResult.toOption.get.fromJson(parse(dataSourceConfigJson)).toOption
+    assert(dataSourceOption.isDefined)
+    val dataSourceMap = Map("prestoDataSource".toLowerCase -> dataSourceOption.get)
 
     val factoryResult = getFactory[QueryExecutoryFactory]("com.yahoo.maha.service.factory.PrestoQueryExecutoryFactory", closer)
     assert(factoryResult.isSuccess)
