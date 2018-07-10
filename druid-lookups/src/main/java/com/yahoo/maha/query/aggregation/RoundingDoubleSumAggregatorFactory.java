@@ -24,9 +24,13 @@ public class RoundingDoubleSumAggregatorFactory extends DoubleSumAggregatorFacto
                                               @JacksonInject @JsonProperty("enableRoundingDoubleSumAggregatorFactory") Boolean enableRoundingDoubleSumAggregatorFactory) {
         super(name, fieldName, expression, macroTable);
         Preconditions.checkNotNull(scale, "Must have a valid, non-null scale");
-        Preconditions.checkArgument(scale > 0, "Must have a valid, greater than 0 scale");
+        Preconditions.checkArgument(scale >= 0, "Must have a valid, greater than or equal to 0 scale");
         this.scale = scale;
         this.enableRoundingDoubleSumAggregatorFactory = enableRoundingDoubleSumAggregatorFactory == null ? false : enableRoundingDoubleSumAggregatorFactory;
+    }
+
+    public RoundingDoubleSumAggregatorFactory(String name, String fieldName, int scale) {
+        this(name, fieldName, scale, null, ExprMacroTable.nil(), null);
     }
 
     @Override
