@@ -117,6 +117,7 @@ case class TimeZoneValue(value: String) extends ParameterValue[String]
 case class SchemaValue(value: String) extends ParameterValue[String]
 case class DistinctValue(value: Boolean) extends ParameterValue[Boolean]
 case class JobNameValue(value: String) extends ParameterValue[String]
+case class RegistryNameValue(value: String) extends ParameterValue[String]
 
 sealed abstract class Parameter(override val entryName: String) extends EnumEntry with Snakecase with Uppercase
 
@@ -134,6 +135,7 @@ object Parameter extends Enum[Parameter] with Logging {
   case object Schema extends Parameter("Schema")
   case object Distinct extends Parameter("Distinct")
   case object JobName extends Parameter("Job-Name")
+  case object RegistryName extends Parameter("RegistryName")
 
   import syntax.validation._
   def deserializeParameters(json: JValue) : JsonScalaz.Result[Map[Parameter, ParameterValue[_]]] = {
@@ -172,6 +174,7 @@ object Parameter extends Enum[Parameter] with Logging {
           case Schema => fieldExtended[String](name)(json).map(ct => p -> SchemaValue(ct))
           case Distinct => fieldExtended[Boolean](name)(json).map(d => p -> DistinctValue(d))
           case JobName => fieldExtended[String](name)(json).map(ct => p -> JobNameValue(ct))
+          case RegistryName => fieldExtended[String](name)(json).map(ct => p -> RegistryNameValue(ct))
         }
         Option(result)
     }
@@ -196,6 +199,7 @@ object Parameter extends Enum[Parameter] with Logging {
       case Schema => p.entryName -> JString(v.asInstanceOf[SchemaValue].value.toString)
       case Distinct => p.entryName -> JBool(v.asInstanceOf[DistinctValue].value)
       case JobName => p.entryName -> JString(v.asInstanceOf[JobNameValue].value)
+      case RegistryName => p.entryName -> JString(v.asInstanceOf[RegistryNameValue].value)
     }
     
   }
