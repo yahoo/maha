@@ -36,7 +36,7 @@ class QueryGeneratorRegistryTest extends FunSuite with Matchers {
     val exception = intercept[IllegalArgumentException] {
       qgenRegistry.register(HiveEngine, hiveQueryGenerator, V1)
     }
-    assert(exception.getMessage.contains("Query generator already defined for engine : Hive and version 1"), exception.getMessage)
+    assert(exception.getMessage.contains("Query generator already defined for engine : Hive and version V1"), exception.getMessage)
   }
 
   test("Test get query generator with version") {

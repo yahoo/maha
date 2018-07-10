@@ -261,18 +261,13 @@ object QueryGeneratorHelper {
 }
 
 sealed trait Version
-case object V0 extends Version {
-  override def toString = "0"
-}
-case object V1 extends Version {
-  override def toString = "1"
-}
-case object V2 extends Version {
-  override def toString = "2"
-}
+case object V0 extends Version
+case object V1 extends Version
+case object V2 extends Version
 
 class QueryGeneratorRegistry {
-  private[this] var queryGeneratorRegistry : Map[Engine, Map[Version, QueryGenerator[_]]] = Map.empty
+
+  private[this] var queryGeneratorRegistry : Map[Engine, Map[Version , QueryGenerator[_]]] = Map.empty
 
   def isEngineRegistered(engine: Engine, version: Version = V0): Boolean = synchronized {
     queryGeneratorRegistry.contains(engine) && queryGeneratorRegistry.get(engine).get.contains(version)
