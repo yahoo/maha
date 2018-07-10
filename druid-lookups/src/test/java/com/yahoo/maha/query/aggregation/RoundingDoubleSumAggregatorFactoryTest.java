@@ -17,7 +17,7 @@ public class RoundingDoubleSumAggregatorFactoryTest {
         RoundingDoubleSumAggregatorFactory factory = new RoundingDoubleSumAggregatorFactory("name", "fieldName", null, null, null, true);
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Must have a valid, greater than 0 scale")
+    @Test(expectedExceptions = IllegalArgumentException.class, expectedExceptionsMessageRegExp = "Must have a valid, greater than or equal to 0 scale")
     public void testInvalidScale() {
         RoundingDoubleSumAggregatorFactory factory = new RoundingDoubleSumAggregatorFactory("name", "fieldName", -1, null, null, true);
     }
