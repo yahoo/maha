@@ -6,20 +6,21 @@ import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
 import com.yahoo.maha.core.{DruidLiteralMapper, OracleLiteralMapper}
 import org.json4s.JValue
 import _root_.scalaz._
+import com.yahoo.maha.service.MahaServiceConfigContext
 import syntax.validation._
 
 /**
  * Created by pranavbhole on 31/05/17.
  */
 class DefaultOracleLiteralMapperFactory extends OracleLiteralMapperFactory {
-  override def fromJson(config: JValue): MahaConfigResult[OracleLiteralMapper] = {
+  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[OracleLiteralMapper] = {
     new OracleLiteralMapper().successNel
   }
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }
 class DefaultDruidLiteralMapperFactory extends DruidLiteralMapperFactory {
-  override def fromJson(config: JValue): MahaConfigResult[DruidLiteralMapper] = {
+  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[DruidLiteralMapper] = {
     new DruidLiteralMapper().successNel
   }
 

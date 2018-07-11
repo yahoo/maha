@@ -6,10 +6,9 @@ import java.util.concurrent.RejectedExecutionHandler
 
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor
-import com.yahoo.maha.service.MahaServiceConfig
+import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
 import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
 import org.json4s.JValue
-
 import scalaz.Validation.FlatMap._
 import scalaz.syntax.applicative._
 
@@ -28,7 +27,7 @@ class DefaultParallelServiceExecutoryFactory extends ParallelServiceExecutoryFac
     |"queueSize" : 3
     |}
   """.stripMargin
-  override def fromJson(configJson: JValue): MahaConfigResult[ParallelServiceExecutor] = {
+  override def fromJson(configJson: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[ParallelServiceExecutor] = {
     import org.json4s.scalaz.JsonScalaz._
     val rejectedExecutionHandlerClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("rejectedExecutionHandlerClass")(configJson)
     val rejectedExecutionHandlerConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("rejectedExecutionHandlerConfig")(configJson)
@@ -41,7 +40,7 @@ class DefaultParallelServiceExecutoryFactory extends ParallelServiceExecutoryFac
       rejectedExecutionHandlerClass <- rejectedExecutionHandlerClassResult
       rejectedExecutionHandlerConfig <- rejectedExecutionHandlerConfigResult
       factory <- getFactory[RejectedExecutionHandlerFactory](rejectedExecutionHandlerClass)
-      rejectedExecutionHandler <- factory.fromJson(rejectedExecutionHandlerConfig)
+      rejectedExecutionHandler <- factory.fromJson(rejectedExecutionHandlerConfig)(context)
     } yield rejectedExecutionHandler
 
     (rejectedExecutionHandlerResult |@| poolNameResult |@| defaultTimeoutMillisResult |@| threadPoolSizeResult |@| queueSizeResult ) {

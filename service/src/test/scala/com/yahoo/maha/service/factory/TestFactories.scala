@@ -1,8 +1,11 @@
 package com.yahoo.maha.service.factory
 
-import com.yahoo.maha.core.{DimCostEstimator, RowsEstimate, Filter, FactCostEstimator}
+import com.yahoo.maha.core.{DimCostEstimator, FactCostEstimator, Filter, RowsEstimate}
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
+import com.yahoo.maha.service.MahaServiceConfigContext
+import com.yahoo.maha.service.config.JsonDataSourceConfig
+import javax.sql.DataSource
 import org.json4s.JValue
 
 import scala.collection.mutable
@@ -32,13 +35,13 @@ import Scalaz._
 
 
 class TestFactCostEstimatoryFactory extends FactCostEstimatorFactory {
-  override def fromJson(config: JValue): MahaConfigResult[FactCostEstimator] = new TestFactEstimator().successNel
+  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[FactCostEstimator] = new TestFactEstimator().successNel
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }
 
 class TestDimCostEstimatoryFactory extends DimCostEstimatorFactory {
-  override def fromJson(config: JValue): MahaConfigResult[DimCostEstimator] = new TestDimEstimator().successNel
+  override def fromJson(config: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[DimCostEstimator] = new TestDimEstimator().successNel
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }

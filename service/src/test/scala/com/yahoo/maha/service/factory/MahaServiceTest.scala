@@ -95,8 +95,17 @@ class MahaServiceTest extends BaseFactoryTest {
                        |				"k": "v"
                        |			}
                        |  }
-                       | }
-                       | ,
+                       | },
+                       | "datasourceMap" : {
+                       |  "oracleDataSource": {
+                       |    "factoryClass" : "",
+                       |    "config" : {}
+                       |  },
+                       |  "prestoDataSource": {
+                       |    "factoryClass" : "",
+                       |    "config" : {}
+                       |  }
+                       | },
                        |   "mahaRequestLoggingConfig" : {
                        |    "factoryClass": "com.yahoo.maha.service.factory.NoopMahaRequestLogWriterFactory",
                        |    "config" : {},
@@ -214,8 +223,17 @@ class MahaServiceTest extends BaseFactoryTest {
                        |				"k": "v"
                        |			}
                        |  }
-                       | }
-                       | ,
+                       | },
+                       | "datasourceMap" : {
+                       |  "oracleDataSource": {
+                       |    "factoryClass" : "",
+                       |    "config" : {}
+                       |  },
+                       |  "prestoDataSource": {
+                       |    "factoryClass" : "",
+                       |    "config" : {}
+                       |  }
+                       | },
                        |  "mahaRequestLoggingConfig" : {
                        |    "factoryClass": "com.yahoo.maha.service.factory.NoopMahaRequestLogWriterFactory",
                        |    "config" : {},

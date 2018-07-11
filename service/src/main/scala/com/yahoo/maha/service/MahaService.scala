@@ -21,6 +21,7 @@ import com.yahoo.maha.service.error._
 import com.yahoo.maha.service.factory._
 import com.yahoo.maha.service.utils.BaseMahaRequestLogBuilder
 import grizzled.slf4j.Logging
+import javax.sql.DataSource
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.scalaz.JsonScalaz._
 
@@ -36,7 +37,7 @@ import scalaz.{Failure, ValidationNel, _}
  */
 case class RegistryConfig(name: String, registry: Registry, queryPipelineFactory: QueryPipelineFactory, queryExecutorContext: QueryExecutorContext, bucketSelector: BucketSelector, utcTimeProvider: UTCTimeProvider, parallelServiceExecutor: ParallelServiceExecutor)
 
-case class MahaServiceConfig(registry: Map[String, RegistryConfig], mahaRequestLogWriter: MahaRequestLogWriter, curatorMap: Map[String, Curator])
+case class MahaServiceConfig(context: MahaServiceConfigContext, registry: Map[String, RegistryConfig], mahaRequestLogWriter: MahaRequestLogWriter, curatorMap: Map[String, Curator])
 
 case class RequestResult(queryPipelineResult: QueryPipelineResult)
 
@@ -348,6 +349,25 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
 
 }
 
+trait MahaServiceConfigContext {
+  def bucketConfigMap: Map[String, BucketingConfig]
+  def dataSourceMap: Map[String, DataSource]
+  def utcTimeProviderMap: Map[String, UTCTimeProvider]
+  def generatorMap: Map[String, QueryGenerator[_ <: EngineRequirement]]
+  def executorMap: Map[String, QueryExecutor]
+  def registryMap: Map[String, Registry]
+  def parallelServiceExecutorMap: Map[String, ParallelServiceExecutor]
+  def curatorMap: Map[String, Curator]
+}
+case class DefaultMahaServiceConfigContext(bucketConfigMap: Map[String, BucketingConfig] = Map.empty
+                                          , dataSourceMap: Map[String, DataSource] = Map.empty
+                                          , utcTimeProviderMap: Map[String, UTCTimeProvider] = Map.empty
+                                          , generatorMap: Map[String, QueryGenerator[_ <: EngineRequirement]] = Map.empty
+                                          , executorMap: Map[String, QueryExecutor] = Map.empty
+                                          , registryMap: Map[String, Registry] = Map.empty
+                                          , parallelServiceExecutorMap: Map[String, ParallelServiceExecutor] = Map.empty
+                                          , curatorMap: Map[String, Curator] = Map.empty
+                                          ) extends MahaServiceConfigContext
 object MahaServiceConfig {
   type MahaConfigResult[+A] = scalaz.ValidationNel[MahaServiceError, A]
 
@@ -367,17 +387,27 @@ object MahaServiceConfig {
       nel => nel.map(err => JsonParseError(err.toString))
     }
 
+    var defaultContext = DefaultMahaServiceConfigContext()
     val mahaServiceConfig = for {
       jsonMahaServiceConfig <- jsonMahaServiceConfigResult
       validationResult <- validateReferenceByName(jsonMahaServiceConfig)
-      bucketConfigMap <- initBucketingConfig(jsonMahaServiceConfig.bucketingConfigMap)
-      utcTimeProviderMap <- initUTCTimeProvider(jsonMahaServiceConfig.utcTimeProviderMap)
-      generatorMap <- initGenerators(jsonMahaServiceConfig.generatorMap)
-      executorMap <- initExecutors(jsonMahaServiceConfig.executorMap)
-      registryMap <- initRegistry(jsonMahaServiceConfig.registryMap)
-      parallelServiceExecutorConfigMap <- initParallelServiceExecutors(jsonMahaServiceConfig.parallelServiceExecutorConfigMap)
-      mahaRequestLogWriter <- initKafkaLogWriter(jsonMahaServiceConfig.jsonMahaRequestLogConfig)
-      curatorMap <- initCurators(jsonMahaServiceConfig.curatorMap)
+      bucketConfigMap <- initBucketingConfig(jsonMahaServiceConfig.bucketingConfigMap)(defaultContext)
+      postBucketContext = defaultContext.copy(bucketConfigMap = bucketConfigMap)
+      dataSourceMap <- initDataSources(jsonMahaServiceConfig.datasourceMap)(postBucketContext)
+      postDataSourceContext = postBucketContext.copy(dataSourceMap = dataSourceMap)
+      utcTimeProviderMap <- initUTCTimeProvider(jsonMahaServiceConfig.utcTimeProviderMap)(postDataSourceContext)
+      postTimeProviderContext = postDataSourceContext.copy(utcTimeProviderMap = utcTimeProviderMap)
+      generatorMap <- initGenerators(jsonMahaServiceConfig.generatorMap)(postTimeProviderContext)
+      postGeneratorContext = postTimeProviderContext.copy(generatorMap = generatorMap)
+      executorMap <- initExecutors(jsonMahaServiceConfig.executorMap)(postGeneratorContext)
+      postExecutorContext = postGeneratorContext.copy(executorMap = executorMap)
+      registryMap <- initRegistry(jsonMahaServiceConfig.registryMap)(postExecutorContext)
+      postRegistryContext = postExecutorContext.copy(registryMap = registryMap)
+      parallelServiceExecutorConfig <- initParallelServiceExecutors(jsonMahaServiceConfig.parallelServiceExecutorConfigMap)(postRegistryContext)
+      postParallelServiceExecutorContext = postRegistryContext.copy(parallelServiceExecutorMap = parallelServiceExecutorConfig)
+      curatorMap <- initCurators(jsonMahaServiceConfig.curatorMap)(postParallelServiceExecutorContext)
+      postCuratorContext = postParallelServiceExecutorContext.copy(curatorMap = curatorMap)
+      mahaRequestLogWriter <- initKafkaLogWriter(jsonMahaServiceConfig.jsonMahaRequestLogConfig)(postCuratorContext)
     } yield {
         val resultMap: Map[String, RegistryConfig] = registryMap.map {
           case (regName, registry) => {
@@ -399,10 +429,10 @@ object MahaServiceConfig {
               queryExecutorContext,
               new BucketSelector(registry, bucketConfigMap.get(registryConfig.bucketConfigName).get),
               utcTimeProviderMap.get(registryConfig.utcTimeProviderName).get,
-              parallelServiceExecutorConfigMap.get(registryConfig.parallelServiceExecutorName).get))
+              parallelServiceExecutorConfig.get(registryConfig.parallelServiceExecutorName).get))
           }
         }
-        MahaServiceConfig(resultMap, mahaRequestLogWriter, curatorMap)
+        MahaServiceConfig(postCuratorContext, resultMap, mahaRequestLogWriter, curatorMap)
       }
     mahaServiceConfig
   }
@@ -440,7 +470,7 @@ object MahaServiceConfig {
     return true.successNel
   }
 
-  def initBucketingConfig(bucketConfigMap: Map[String, JsonBucketingConfig]): MahaServiceConfig.MahaConfigResult[Map[String, BucketingConfig]] = {
+  def initBucketingConfig(bucketConfigMap: Map[String, JsonBucketingConfig])(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[Map[String, BucketingConfig]] = {
     import Scalaz._
     val result: MahaServiceConfig.MahaConfigResult[Map[String, BucketingConfig]] = {
       val constructBucketingConfig: Iterable[MahaServiceConfig.MahaConfigResult[(String, BucketingConfig)]] = {
@@ -460,9 +490,10 @@ object MahaServiceConfig {
     result
   }
 
-  def initUTCTimeProvider(utcTimeProviderMap: Map[String, JsonUTCTimeProviderConfig]): MahaServiceConfig.MahaConfigResult[Map[String, UTCTimeProvider]] = {
+  def initUTCTimeProvider(utcTimeProviderMap: Map[String, JsonUTCTimeProviderConfig])(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[Map[String, UTCTimeProvider]] = {
     import Scalaz._
     val result: MahaServiceConfig.MahaConfigResult[Map[String, UTCTimeProvider]] = {
+
       val constructUTCTimeProvider: Iterable[MahaServiceConfig.MahaConfigResult[(String, UTCTimeProvider)]] = {
         utcTimeProviderMap.map {
           case (name, jsonConfig) =>
@@ -480,9 +511,10 @@ object MahaServiceConfig {
     result
   }
 
-  def initExecutors(executorMap: Map[String, JsonQueryExecutorConfig]): MahaServiceConfig.MahaConfigResult[Map[String, QueryExecutor]] = {
+  def initExecutors(executorMap: Map[String, JsonQueryExecutorConfig])(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[Map[String, QueryExecutor]] = {
     import Scalaz._
     val result: MahaServiceConfig.MahaConfigResult[Map[String, QueryExecutor]] = {
+
       val constructExecutor: Iterable[MahaServiceConfig.MahaConfigResult[(String, QueryExecutor)]] = {
         executorMap.map {
           case (name, jsonConfig) =>
@@ -500,9 +532,10 @@ object MahaServiceConfig {
     result
   }
 
-  def initGenerators(generatorMap: Map[String, JsonQueryGeneratorConfig]): MahaServiceConfig.MahaConfigResult[Map[String, QueryGenerator[_ <: EngineRequirement]]] = {
+  def initGenerators(generatorMap: Map[String, JsonQueryGeneratorConfig])(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[Map[String, QueryGenerator[_ <: EngineRequirement]]] = {
     import Scalaz._
     val result: MahaServiceConfig.MahaConfigResult[Map[String, QueryGenerator[_ <: EngineRequirement]]] = {
+
       val constructGenerator: Iterable[MahaServiceConfig.MahaConfigResult[(String, QueryGenerator[_ <: EngineRequirement])]] = {
         generatorMap.map {
           case (name, jsonConfig) =>
@@ -519,9 +552,10 @@ object MahaServiceConfig {
     result
   }
 
-  def initRegistry(registryMap: Map[String, JsonRegistryConfig]): MahaServiceConfig.MahaConfigResult[Map[String, Registry]] = {
+  def initRegistry(registryMap: Map[String, JsonRegistryConfig])(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[Map[String, Registry]] = {
     import Scalaz._
     val result: MahaServiceConfig.MahaConfigResult[Map[String, Registry]] = {
+
       val constructRegistry: Iterable[MahaServiceConfig.MahaConfigResult[(String, Registry)]] = {
         registryMap.map {
           case (name, jsonConfig) =>
@@ -548,7 +582,7 @@ object MahaServiceConfig {
     result
   }
 
-  def initParallelServiceExecutors(parallelServiceExecutorConfigMap: Map[String, JsonParallelServiceExecutorConfig]): MahaServiceConfig.MahaConfigResult[Map[String, ParallelServiceExecutor]] = {
+  def initParallelServiceExecutors(parallelServiceExecutorConfigMap: Map[String, JsonParallelServiceExecutorConfig])(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[Map[String, ParallelServiceExecutor]] = {
     import Scalaz._
     val result: MahaServiceConfig.MahaConfigResult[Map[String, ParallelServiceExecutor]] = {
       val constructParallelServiceExecutor: Iterable[MahaServiceConfig.MahaConfigResult[(String, ParallelServiceExecutor)]] = {
@@ -568,7 +602,7 @@ object MahaServiceConfig {
     result
   }
 
-  def initKafkaLogWriter(jsonMahaRequestLogConfig: JsonMahaRequestLogConfig): MahaServiceConfig.MahaConfigResult[MahaRequestLogWriter] = {
+  def initKafkaLogWriter(jsonMahaRequestLogConfig: JsonMahaRequestLogConfig)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[MahaRequestLogWriter] = {
     val result: MahaServiceConfig.MahaConfigResult[MahaRequestLogWriter] = {
       val requestLogWriter = {
         for {
@@ -581,7 +615,7 @@ object MahaServiceConfig {
     result
   }
 
-  def initCurators(curatorConfigMap: Map[String, JsonCuratorConfig]): MahaServiceConfig.MahaConfigResult[Map[String, Curator]] = {
+  def initCurators(curatorConfigMap: Map[String, JsonCuratorConfig])(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[Map[String, Curator]] = {
     import Scalaz._
     val result: MahaServiceConfig.MahaConfigResult[Map[String, Curator]] = {
       val constructCurator: Iterable[MahaServiceConfig.MahaConfigResult[(String, Curator)]] = {
@@ -595,6 +629,26 @@ object MahaServiceConfig {
       }
       val resultList: MahaServiceConfig.MahaConfigResult[List[(String, Curator)]] =
         constructCurator.toList.sequence[MahaServiceConfig.MahaConfigResult, (String, Curator)]
+
+      resultList.map(_.toMap)
+    }
+    result
+  }
+
+  def initDataSources(curatorConfigMap: Map[String, JsonDataSourceConfig])(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[Map[String, DataSource]] = {
+    import Scalaz._
+    val result: MahaServiceConfig.MahaConfigResult[Map[String, DataSource]] = {
+      val constructDataSource: Iterable[MahaServiceConfig.MahaConfigResult[(String, DataSource)]] = {
+        curatorConfigMap.map {
+          case (name, jsonConfig) =>
+            for {
+              factoryResult <- getFactory[DataSourceFactory](jsonConfig.className, closer)
+              built <- factoryResult.fromJson(jsonConfig.json)
+            } yield (name, built)
+        }
+      }
+      val resultList: MahaServiceConfig.MahaConfigResult[List[(String, DataSource)]] =
+        constructDataSource.toList.sequence[MahaServiceConfig.MahaConfigResult, (String, DataSource)]
 
       resultList.map(_.toMap)
     }

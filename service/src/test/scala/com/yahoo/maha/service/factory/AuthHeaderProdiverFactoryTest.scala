@@ -1,6 +1,7 @@
 package com.yahoo.maha.service.factory
 
 import com.yahoo.maha.executor.druid.NoopAuthHeaderProvider
+import com.yahoo.maha.service.{DefaultMahaServiceConfigContext, MahaServiceConfigContext}
 import org.json4s.jackson.JsonMethods.parse
 import org.scalatest.{FunSuite, Matchers}
 
@@ -17,6 +18,7 @@ class AuthHeaderProdiverFactoryTest extends FunSuite with Matchers {
        """.stripMargin
 
     val factory = new NoopAuthHeaderProviderFactory
+    implicit val context: MahaServiceConfigContext = DefaultMahaServiceConfigContext()
     val providerTry = factory.fromJson(parse(jsonDef))
     assert(providerTry.isSuccess)
     assert(providerTry.toOption.get.isInstanceOf[NoopAuthHeaderProvider])

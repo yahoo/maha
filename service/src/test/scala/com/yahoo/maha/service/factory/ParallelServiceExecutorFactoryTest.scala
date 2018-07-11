@@ -3,12 +3,15 @@
 package com.yahoo.maha.service.factory
 
 import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor
+import com.yahoo.maha.service.{DefaultMahaServiceConfigContext, MahaServiceConfigContext}
 import org.json4s.jackson.JsonMethods._
 
 /**
  * Created by pranavbhole on 07/06/17.
  */
 class ParallelServiceExecutoryFactoryTest extends BaseFactoryTest {
+  implicit val context: MahaServiceConfigContext = DefaultMahaServiceConfigContext()
+
   test("ParallelServiceExecutoryFactory Test") {
     val jsonString =   """
                          |{
