@@ -163,7 +163,8 @@ class QueryExecutorFactoryTest extends BaseFactoryTest {
     assert(factoryResult.isSuccess)
     val factory = factoryResult.toOption.get
     val json = parse(jsonString)
-    val generatorResult = factory.fromJson(json, dataSourceMap)
+    implicit val mahaFactoryContext = MahaFactoryContext(dataSourceMap)
+    val generatorResult = factory.fromJson(json)
     assert(generatorResult.isSuccess, generatorResult)
     assert(generatorResult.toList.head.isInstanceOf[PrestoQueryExecutor])
     generatorResult.foreach {

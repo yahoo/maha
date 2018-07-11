@@ -30,7 +30,7 @@ class OracleQueryExecutoryFactory extends QueryExecutoryFactory {
     |"lifecycleListenerFactoryConfig" : []
     |}
   """.stripMargin
-  override def fromJson(configJson: JValue, dataSourceMap: Map[String, DataSource]): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
+  override def fromJson(configJson: JValue)(implicit mahaFactoryContext:MahaFactoryContext): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
     import scalaz.Validation.FlatMap._
     import scalaz.syntax.applicative._
     import org.json4s.scalaz.JsonScalaz._
@@ -46,14 +46,14 @@ class OracleQueryExecutoryFactory extends QueryExecutoryFactory {
     for {
       dataSourceName <- dataSourceNameResult
     } yield  {
-      if(!dataSourceMap.contains(dataSourceName)) {
+      if(!mahaFactoryContext.dataSourceMap.contains(dataSourceName)) {
         return Failure(List(ServiceConfigurationError(s"Failed to find Oracle dataSourceName $dataSourceName in dataSourceMap"))).toValidationNel.asInstanceOf[MahaConfigResult[QueryExecutor]]
       }
     }
 
     val jdbcConnetionResult : MahaServiceConfig.MahaConfigResult[JdbcConnection] = for {
       dataSourceName <- dataSourceNameResult
-      dataSource <- dataSourceMap.get(dataSourceName).successNel[Option[DataSource]].asInstanceOf[MahaServiceConfig.MahaConfigResult[Option[DataSource]]]
+      dataSource <- mahaFactoryContext.dataSourceMap.get(dataSourceName).successNel[Option[DataSource]].asInstanceOf[MahaServiceConfig.MahaConfigResult[Option[DataSource]]]
       jdbcConnectionFetchSizeOption <- jdbcConnectionFetchSizeOptionResult
     } yield {
         if(jdbcConnectionFetchSizeOption.isDefined) {
@@ -94,7 +94,7 @@ class DruidQueryExecutoryFactory extends QueryExecutoryFactory {
     |}
   """.stripMargin
 
-  override def fromJson(configJson: JValue, dataSourceMap: Map[String, DataSource]): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
+  override def fromJson(configJson: JValue)(implicit mahaFactoryContext:MahaFactoryContext): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
     import org.json4s.scalaz.JsonScalaz._
     val druidQueryExecutorConfigFactoryClassNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("druidQueryExecutorConfigFactoryClassName")(configJson)
     val druidQueryExecutorConfigJsonConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("druidQueryExecutorConfigJsonConfig")(configJson)
@@ -159,7 +159,7 @@ class PrestoQueryExecutoryFactory extends QueryExecutoryFactory {
     |}
   """.stripMargin
 
-  override def fromJson(configJson: JValue, dataSourceMap: Map[String, DataSource]): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
+  override def fromJson(configJson: JValue)(implicit mahaFactoryContext:MahaFactoryContext): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
     import org.json4s.scalaz.JsonScalaz._
 
     val dataSourceNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("dataSourceName")(configJson).map(_.toLowerCase)
@@ -175,14 +175,14 @@ class PrestoQueryExecutoryFactory extends QueryExecutoryFactory {
     for {
       dataSourceName <- dataSourceNameResult
     } yield  {
-      if(!dataSourceMap.contains(dataSourceName)) {
+      if(!mahaFactoryContext.dataSourceMap.contains(dataSourceName)) {
         return Failure(List(ServiceConfigurationError(s"Failed to find presto dataSourceName $dataSourceName in dataSourceMap"))).toValidationNel.asInstanceOf[MahaConfigResult[QueryExecutor]]
       }
     }
 
     val jdbcConnetionResult : MahaServiceConfig.MahaConfigResult[JdbcConnection] = for {
       dataSourceName <- dataSourceNameResult
-      dataSource <- dataSourceMap.get(dataSourceName).successNel[Option[DataSource]].asInstanceOf[MahaServiceConfig.MahaConfigResult[Option[DataSource]]]
+      dataSource <- mahaFactoryContext.dataSourceMap.get(dataSourceName).successNel[Option[DataSource]].asInstanceOf[MahaServiceConfig.MahaConfigResult[Option[DataSource]]]
       jdbcConnectionFetchSizeOption <- jdbcConnectionFetchSizeOptionResult
     } yield {
       if(jdbcConnectionFetchSizeOption.isDefined) {

@@ -35,13 +35,15 @@ trait BaseFactory extends Closeable {
   override def close(): Unit = closer.close()
 }
 
+case class MahaFactoryContext(dataSourceMap: Map[String, DataSource])
+
 trait QueryGeneratorFactory extends BaseFactory {
-  def fromJson(config: org.json4s.JValue, dataSourceMap: Map[String, DataSource]) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]]
+  def fromJson(config: org.json4s.JValue)(implicit mahaFactoryContext: MahaFactoryContext) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]]
   def supportedProperties: List[(String, Boolean)]
 }
 
 trait QueryExecutoryFactory extends BaseFactory {
-  def fromJson(config: org.json4s.JValue, dataSourceMap: Map[String, DataSource]) : MahaServiceConfig.MahaConfigResult[QueryExecutor]
+  def fromJson(config: org.json4s.JValue)(implicit mahaFactoryContext: MahaFactoryContext) : MahaServiceConfig.MahaConfigResult[QueryExecutor]
   def supportedProperties: List[(String, Boolean)]
 }
 trait ParallelServiceExecutoryFactory extends BaseFactory {
@@ -54,7 +56,7 @@ trait RejectedExecutionHandlerFactory extends BaseFactory {
 }
 
 trait UTCTimeProvideryFactory extends BaseFactory {
-  def fromJson(config: org.json4s.JValue, dataSourceMap: Map[String, DataSource]) : MahaServiceConfig.MahaConfigResult[UTCTimeProvider]
+  def fromJson(config: org.json4s.JValue)(implicit mahaFactoryContext: MahaFactoryContext) : MahaServiceConfig.MahaConfigResult[UTCTimeProvider]
   def supportedProperties: List[(String, Boolean)]
 }
 
@@ -69,7 +71,7 @@ trait BucketingConfigFactory extends BaseFactory {
 }
 
 trait PartitionColumnRendererFactory extends BaseFactory {
-  def fromJson(config: org.json4s.JValue, dataSourceMap: Map[String, DataSource]) : MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer]
+  def fromJson(config: org.json4s.JValue)(implicit mahaFactoryContext: MahaFactoryContext) : MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer]
   def supportedProperties: List[(String, Boolean)]
 }
 
@@ -109,12 +111,12 @@ trait ExecutionLifecycleListenerFactory extends BaseFactory {
 }
 
 trait DimCostEstimatorFactory extends BaseFactory {
-  def fromJson(config: org.json4s.JValue, dataSourceMap: Map[String, DataSource]) : MahaServiceConfig.MahaConfigResult[DimCostEstimator]
+  def fromJson(config: org.json4s.JValue)(implicit mahaFactoryContext: MahaFactoryContext) : MahaServiceConfig.MahaConfigResult[DimCostEstimator]
   def supportedProperties: List[(String, Boolean)]
 }
 
 trait FactCostEstimatorFactory extends BaseFactory {
-  def fromJson(config: org.json4s.JValue, dataSourceMap: Map[String, DataSource]) : MahaServiceConfig.MahaConfigResult[FactCostEstimator]
+  def fromJson(config: org.json4s.JValue)(implicit mahaFactoryContext: MahaFactoryContext) : MahaServiceConfig.MahaConfigResult[FactCostEstimator]
   def supportedProperties: List[(String, Boolean)]
 }
 
@@ -145,11 +147,11 @@ trait AuthHeaderProviderFactory extends BaseFactory {
 
 import scalaz.syntax.validation._
 class PassThroughUTCTimeProviderFactory extends UTCTimeProvideryFactory {
-  def fromJson(config: org.json4s.JValue, dataSourceMap: Map[String, DataSource]) : MahaServiceConfig.MahaConfigResult[UTCTimeProvider] = PassThroughUTCTimeProvider.successNel
+  def fromJson(config: org.json4s.JValue)(implicit mahaFactoryContext: MahaFactoryContext) : MahaServiceConfig.MahaConfigResult[UTCTimeProvider] = PassThroughUTCTimeProvider.successNel
   def supportedProperties: List[(String, Boolean)] = List.empty
 }
 class BaseUTCTimeProviderFactory extends UTCTimeProvideryFactory {
-  def fromJson(config: org.json4s.JValue, dataSourceMap: Map[String, DataSource]) : MahaServiceConfig.MahaConfigResult[UTCTimeProvider] = new BaseUTCTimeProvider().successNel
+  def fromJson(config: org.json4s.JValue)(implicit mahaFactoryContext: MahaFactoryContext) : MahaServiceConfig.MahaConfigResult[UTCTimeProvider] = new BaseUTCTimeProvider().successNel
   def supportedProperties: List[(String, Boolean)] = List.empty
 }
 class PassThroughPasswordProviderFactory  extends  PasswordProviderFactory {
@@ -259,7 +261,7 @@ class DefaultBucketingConfigFactory extends BucketingConfigFactory {
 }
 
 class DefaultPartitionColumnRendererFactory extends PartitionColumnRendererFactory {
-  override def fromJson(config: JValue, dataSourceMap: Map[String, DataSource]): MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] =  DefaultPartitionColumnRenderer.successNel
+  override def fromJson(config: JValue)(implicit mahaFactoryContext: MahaFactoryContext): MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] =  DefaultPartitionColumnRenderer.successNel
 
   override def supportedProperties: List[(String, Boolean)] = {
     List.empty
@@ -279,13 +281,13 @@ class DefaultResultSetTransformersFactory extends ResultSetTransformersFactory {
 }
 
 class DefaultDimCostEstimatorFactory extends DimCostEstimatorFactory {
-  override def fromJson(config: JValue, dataSourceMap: Map[String, DataSource]): MahaConfigResult[DimCostEstimator] = new DefaultDimEstimator().successNel
+  override def fromJson(config: JValue)(implicit mahaFactoryContext: MahaFactoryContext): MahaConfigResult[DimCostEstimator] = new DefaultDimEstimator().successNel
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }
 
 class DefaultFactCostEstimatorFactory extends FactCostEstimatorFactory {
-  override def fromJson(config: JValue, dataSourceMap: Map[String, DataSource]): MahaConfigResult[FactCostEstimator] = new DefaultFactEstimator().successNel
+  override def fromJson(config: JValue)(implicit mahaFactoryContext: MahaFactoryContext): MahaConfigResult[FactCostEstimator] = new DefaultFactEstimator().successNel
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
 }
