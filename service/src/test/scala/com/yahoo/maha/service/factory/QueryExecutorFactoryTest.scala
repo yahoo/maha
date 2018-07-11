@@ -149,4 +149,28 @@ class QueryExecutorFactoryTest extends BaseFactoryTest {
         assert(executor.engine == PrestoEngine)
     }
   }
+
+  test("Test Failure in Presto Query Executor Instantiation") {
+    val jsonString =
+      """
+        |{
+        |"dataSourceName" : "unknownDataSource",
+        |"jdbcConnectionFetchSize": 10,
+        |"lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
+        |"lifecycleListenerFactoryConfig" : [{"key": "value"}],
+        |"prestoQueryTemplateFactoryName" : "com.yahoo.maha.service.factory.DefaultPrestoQueryTemplateFactory",
+        |"prestoQueryTemplateFactoryConfig" : [{"key": "value"}]
+        |}
+        |
+      """.stripMargin
+
+    val factoryResult = getFactory[QueryExecutoryFactory]("com.yahoo.maha.service.factory.PrestoQueryExecutoryFactory", closer)
+    assert(factoryResult.isSuccess)
+    val factory = factoryResult.toOption.get
+    val json = parse(jsonString)
+    val generatorResult = factory.fromJson(json)
+    assert(generatorResult.isFailure, generatorResult)
+    assert(generatorResult.toString.contains("Failed to find presto dataSourceName unknowndatasource in dataSourceMap"))
+  }
+
 }
