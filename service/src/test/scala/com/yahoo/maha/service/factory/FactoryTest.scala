@@ -5,13 +5,16 @@ package com.yahoo.maha.service.factory
 import com.yahoo.maha.service.config.PasswordProvider
 import com.yahoo.maha.core.UTCTimeProvider
 import com.yahoo.maha.core.query.ExecutionLifecycleListener
+import com.yahoo.maha.service.{DefaultMahaServiceConfigContext, MahaServiceConfigContext}
 import org.json4s.jackson.JsonMethods._
-import org.scalatest.{Matchers, FunSuite}
+import org.scalatest.{FunSuite, Matchers}
 
 /**
  * Created by pranavbhole on 31/05/17.
  */
 class FactoryTest extends BaseFactoryTest {
+  implicit val context: MahaServiceConfigContext = DefaultMahaServiceConfigContext()
+
   test("Test PassThroughPasswordProviderFactory ") {
     val factoryResult = getFactory[PasswordProviderFactory]("com.yahoo.maha.service.factory.PassThroughPasswordProviderFactory", closer)
     assert(factoryResult.isSuccess)
@@ -29,7 +32,7 @@ class FactoryTest extends BaseFactoryTest {
     val factory = factoryResult.toOption.get
     assert(factory.supportedProperties.isEmpty)
     val json = parse("{}")
-    val generatorResult = factory.fromJson(json, Map.empty)
+    val generatorResult = factory.fromJson(json)
     assert(generatorResult.isSuccess, generatorResult)
     assert(generatorResult.toList.head.isInstanceOf[UTCTimeProvider])
   }
@@ -47,7 +50,7 @@ class FactoryTest extends BaseFactoryTest {
 
   test("Create a BaseUTCTimeProviderFactory") {
     val factoryResult = getFactory[UTCTimeProvideryFactory]("com.yahoo.maha.service.factory.BaseUTCTimeProviderFactory", closer)
-    factoryResult.toOption.get.fromJson(parse("{}"), Map.empty)
+    factoryResult.toOption.get.fromJson(parse("{}"))
     assert(factoryResult.isSuccess, "should successfully instantiate base factory.")
     assert(factoryResult.toOption.get.supportedProperties == List.empty, "No currently supported properties.")
   }

@@ -8,6 +8,7 @@ import com.yahoo.maha.core.{DruidEngine, OracleEngine, PrestoEngine}
 import com.yahoo.maha.executor.druid.DruidQueryExecutor
 import com.yahoo.maha.executor.oracle.OracleQueryExecutor
 import com.yahoo.maha.executor.presto.PrestoQueryExecutor
+import com.yahoo.maha.service.{DefaultMahaServiceConfigContext, MahaServiceConfigContext}
 import com.yahoo.maha.service.config.JsonDataSourceConfig
 import org.json4s.jackson.JsonMethods._
 
@@ -15,6 +16,37 @@ import org.json4s.jackson.JsonMethods._
  * Created by pranavbhole on 01/06/17.
  */
 class QueryExecutorFactoryTest extends BaseFactoryTest {
+
+  val dataSourceConfigJson =
+    s"""
+       |{
+       |"driverClassName" : "org.h2.Driver",
+       |"jdbcUrl" : "jdbc:h2:mem:$uuid;MODE=Oracle;DB_CLOSE_DELAY=-1",
+       |"username" : "sa",
+       |"passwordProviderFactoryClassName" : "com.yahoo.maha.service.factory.PassThroughPasswordProviderFactory",
+       |"passwordProviderConfig" : [{"key" : "value"}],
+       |"passwordKey" : "h2.test.database.password",
+       |"poolName" : "test-pool",
+       |"maximumPoolSize" : 10,
+       |"minimumIdle" : 1,
+       |"autoCommit": true,
+       |"connectionTestQuery" : "SELECT 1 FROM DUAL",
+       |"validationTimeout" : 1000000,
+       |"idleTimeout" : 1000000,
+       |"maxLifetime" : 10000000,
+       |"dataSourceProperties": [{"key": "propertyKey" , "value": "propertyValue"}]
+       |}
+       |
+       """.stripMargin
+
+  val dataSourceFactoryResult = getFactory[DataSourceFactory]("com.yahoo.maha.service.factory.HikariDataSourceFactory", closer)
+  val dataSourceOption = dataSourceFactoryResult.toOption.get.fromJson(parse(dataSourceConfigJson)).toOption
+  assert(dataSourceOption.isDefined)
+  val dataSourceMap = Map("oracleDataSource".toLowerCase -> dataSourceOption.get,
+    "prestoDataSource".toLowerCase -> dataSourceOption.get)
+
+  implicit val context: MahaServiceConfigContext = DefaultMahaServiceConfigContext(dataSourceMap = dataSourceMap)
+
   test("Test Oracle Query Executor Instantiation") {
     val jsonString =
       """
@@ -27,38 +59,11 @@ class QueryExecutorFactoryTest extends BaseFactoryTest {
         |
       """.stripMargin
 
-    val dataSourceConfigJson =
-      s"""
-         |{
-         |"driverClassName" : "org.h2.Driver",
-         |"jdbcUrl" : "jdbc:h2:mem:$uuid;MODE=Oracle;DB_CLOSE_DELAY=-1",
-         |"username" : "sa",
-         |"passwordProviderFactoryClassName" : "com.yahoo.maha.service.factory.PassThroughPasswordProviderFactory",
-         |"passwordProviderConfig" : [{"key" : "value"}],
-         |"passwordKey" : "h2.test.database.password",
-         |"poolName" : "test-pool",
-         |"maximumPoolSize" : 10,
-         |"minimumIdle" : 1,
-         |"autoCommit": true,
-         |"connectionTestQuery" : "SELECT 1 FROM DUAL",
-         |"validationTimeout" : 1000000,
-         |"idleTimeout" : 1000000,
-         |"maxLifetime" : 10000000,
-         |"dataSourceProperties": [{"key": "propertyKey" , "value": "propertyValue"}]
-         |}
-         |
-       """.stripMargin
-
-    val dataSourceFactoryResult = getFactory[DataSourceFactory]("com.yahoo.maha.service.factory.HikariDataSourceFactory", closer)
-    val dataSourceOption = dataSourceFactoryResult.toOption.get.fromJson(parse(dataSourceConfigJson)).toOption
-    assert(dataSourceOption.isDefined)
-    val dataSourceMap = Map("oracleDataSource".toLowerCase -> dataSourceOption.get)
-
     val factoryResult = getFactory[QueryExecutoryFactory]("com.yahoo.maha.service.factory.OracleQueryExecutoryFactory", closer)
     assert(factoryResult.isSuccess)
     val factory = factoryResult.toOption.get
     val json = parse(jsonString)
-    val generatorResult = factory.fromJson(json, dataSourceMap)
+    val generatorResult = factory.fromJson(json)
     assert(generatorResult.isSuccess, generatorResult)
     assert(generatorResult.toList.head.isInstanceOf[OracleQueryExecutor])
     generatorResult.foreach {
@@ -109,7 +114,7 @@ class QueryExecutorFactoryTest extends BaseFactoryTest {
     assert(factoryResult.isSuccess)
     val factory = factoryResult.toOption.get
     val json = parse(jsonString)
-    val generatorResult = factory.fromJson(json, Map.empty)
+    val generatorResult = factory.fromJson(json)
     assert(generatorResult.isSuccess, generatorResult)
     assert(generatorResult.toList.head.isInstanceOf[DruidQueryExecutor])
     generatorResult.foreach {
@@ -132,38 +137,10 @@ class QueryExecutorFactoryTest extends BaseFactoryTest {
         |
       """.stripMargin
 
-    val dataSourceConfigJson =
-      s"""
-         |{
-         |"driverClassName" : "org.h2.Driver",
-         |"jdbcUrl" : "jdbc:h2:mem:$uuid;MODE=Oracle;DB_CLOSE_DELAY=-1",
-         |"username" : "sa",
-         |"passwordProviderFactoryClassName" : "com.yahoo.maha.service.factory.PassThroughPasswordProviderFactory",
-         |"passwordProviderConfig" : [{"key" : "value"}],
-         |"passwordKey" : "h2.test.database.password",
-         |"poolName" : "test-pool",
-         |"maximumPoolSize" : 10,
-         |"minimumIdle" : 1,
-         |"autoCommit": true,
-         |"connectionTestQuery" : "SELECT 1 FROM DUAL",
-         |"validationTimeout" : 1000000,
-         |"idleTimeout" : 1000000,
-         |"maxLifetime" : 10000000,
-         |"dataSourceProperties": [{"key": "propertyKey" , "value": "propertyValue"}]
-         |}
-         |
-       """.stripMargin
-
-    val dataSourceFactoryResult = getFactory[DataSourceFactory]("com.yahoo.maha.service.factory.HikariDataSourceFactory", closer)
-    val dataSourceOption = dataSourceFactoryResult.toOption.get.fromJson(parse(dataSourceConfigJson)).toOption
-    assert(dataSourceOption.isDefined)
-    val dataSourceMap = Map("prestoDataSource".toLowerCase -> dataSourceOption.get)
-
     val factoryResult = getFactory[QueryExecutoryFactory]("com.yahoo.maha.service.factory.PrestoQueryExecutoryFactory", closer)
     assert(factoryResult.isSuccess)
     val factory = factoryResult.toOption.get
     val json = parse(jsonString)
-    implicit val mahaFactoryContext = MahaFactoryContext(dataSourceMap)
     val generatorResult = factory.fromJson(json)
     assert(generatorResult.isSuccess, generatorResult)
     assert(generatorResult.toList.head.isInstanceOf[PrestoQueryExecutor])

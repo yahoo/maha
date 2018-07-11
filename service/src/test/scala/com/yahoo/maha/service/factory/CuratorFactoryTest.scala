@@ -1,5 +1,6 @@
 package com.yahoo.maha.service.factory
 
+import com.yahoo.maha.service.{DefaultMahaServiceConfigContext, MahaServiceConfigContext}
 import com.yahoo.maha.service.curators._
 import org.json4s.jackson.JsonMethods._
 
@@ -7,6 +8,8 @@ import org.json4s.jackson.JsonMethods._
  * Created by pranavbhole on 25/04/18.
  */
 class CuratorFactoryTest extends BaseFactoryTest {
+  implicit val context: MahaServiceConfigContext = DefaultMahaServiceConfigContext()
+
   test("Test DrillDown Curator Factory") {
     val factoryResult = getFactory[CuratorFactory]("com.yahoo.maha.service.factory.DrillDownCuratorFactory", closer)
     assert(factoryResult.isSuccess)

@@ -4,12 +4,15 @@ package com.yahoo.maha.service.factory
 
 import com.yahoo.maha.core.dimension.DimCol
 import com.yahoo.maha.core._
+import com.yahoo.maha.service.{DefaultMahaServiceConfigContext, MahaServiceConfigContext}
 import org.json4s.jackson.JsonMethods._
 
 /**
  * Created by pranavbhole on 31/05/17.
  */
 class LiteralMapperTest extends BaseFactoryTest {
+  implicit val context: MahaServiceConfigContext = DefaultMahaServiceConfigContext()
+
   test("Test OracleLiteralMapper ") {
     val factoryResult = getFactory[OracleLiteralMapperFactory]("com.yahoo.maha.service.factory.DefaultOracleLiteralMapperFactory", closer)
     assert(factoryResult.isSuccess)

@@ -1,7 +1,7 @@
 package com.yahoo.maha.service.factory
 
 import com.yahoo.maha.jdbc.List
-import com.yahoo.maha.service.MahaServiceConfig
+import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
 import com.yahoo.maha.service.curators.{Curator, FailingCurator}
 
 /**
@@ -11,7 +11,7 @@ import com.yahoo.maha.service.curators.{Curator, FailingCurator}
 class FailingCuratorFactory extends CuratorFactory {
 
   import scalaz.syntax.validation._
-  override def fromJson(configJson: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[Curator] = {
+  override def fromJson(configJson: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[Curator] = {
     new FailingCurator().successNel
   }
 

@@ -3,12 +3,15 @@
 package com.yahoo.maha.service.factory
 
 import com.yahoo.maha.executor.druid.DruidQueryExecutorConfig
+import com.yahoo.maha.service.{DefaultMahaServiceConfigContext, MahaServiceConfigContext}
 import org.json4s.jackson.JsonMethods._
 
 /**
  * Created by pranavbhole on 01/06/17.
  */
 class DruidQueryExecutorConfigFactoryTest extends BaseFactoryTest {
+  implicit val context: MahaServiceConfigContext = DefaultMahaServiceConfigContext()
+
   test("Druid Executor Config") {
     val jsonString =   """
                          |{

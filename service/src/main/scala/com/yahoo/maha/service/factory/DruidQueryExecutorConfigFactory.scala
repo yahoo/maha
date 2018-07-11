@@ -4,10 +4,9 @@ package com.yahoo.maha.service.factory
 
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.druid.DruidQueryExecutorConfig
-import com.yahoo.maha.service.MahaServiceConfig
+import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
 import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
 import org.json4s.JValue
-
 import scalaz.syntax.applicative._
 
 
@@ -37,7 +36,7 @@ class DefaultDruidQueryExecutorConfigFactory extends DruidQueryExecutorConfigFac
     |}
   """.stripMargin
 
-  override def fromJson(configJson: JValue): MahaConfigResult[DruidQueryExecutorConfig] =  {
+  override def fromJson(configJson: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[DruidQueryExecutorConfig] =  {
     import org.json4s.scalaz.JsonScalaz._
     val maxConnectionsPerHostResult: MahaServiceConfig.MahaConfigResult[Int] = fieldExtended[Int]("maxConnectionsPerHost")(configJson)
     val maxConnectionsResult: MahaServiceConfig.MahaConfigResult[Int] = fieldExtended[Int]("maxConnections")(configJson)
