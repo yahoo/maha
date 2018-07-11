@@ -2,19 +2,19 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.factory
 
-import com.yahoo.maha.executor.oracle.OracleQueryExecutor
-import com.yahoo.maha.executor.presto.{PrestoQueryExecutor, PrestoQueryTemplate}
-import com.yahoo.maha.service.MahaServiceConfig
+import javax.sql.DataSource
+
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.druid.{AuthHeaderProvider, DruidQueryExecutor, DruidQueryExecutorConfig}
+import com.yahoo.maha.executor.oracle.OracleQueryExecutor
+import com.yahoo.maha.executor.presto.{PrestoQueryExecutor, PrestoQueryTemplate}
 import com.yahoo.maha.jdbc.JdbcConnection
 import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
-import com.yahoo.maha.service.config.JsonDataSourceConfig
 import com.yahoo.maha.service.error.ServiceConfigurationError
-import javax.sql.DataSource
+import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
 import org.json4s.JValue
-import scalaz.Validation
+
 import scalaz.Validation.FlatMap._
 import scalaz.syntax.applicative._
 
@@ -30,10 +30,11 @@ class OracleQueryExecutoryFactory extends QueryExecutoryFactory {
     |"lifecycleListenerFactoryConfig" : []
     |}
   """.stripMargin
-  override def fromJson(configJson: JValue)(implicit mahaFactoryContext:MahaFactoryContext): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
+  override def fromJson(configJson: JValue)(implicit context:MahaServiceConfigContext): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
+    import org.json4s.scalaz.JsonScalaz._
+
     import scalaz.Validation.FlatMap._
     import scalaz.syntax.applicative._
-    import org.json4s.scalaz.JsonScalaz._
 
     val dataSourceNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("dataSourceName")(configJson).map(_.toLowerCase)
     val jdbcConnectionFetchSizeOptionResult: MahaServiceConfig.MahaConfigResult[Option[Int]] = fieldExtended[Option[Int]]("jdbcConnectionFetchSize")(configJson)
@@ -46,14 +47,14 @@ class OracleQueryExecutoryFactory extends QueryExecutoryFactory {
     for {
       dataSourceName <- dataSourceNameResult
     } yield  {
-      if(!mahaFactoryContext.dataSourceMap.contains(dataSourceName)) {
+      if(!context.dataSourceMap.contains(dataSourceName)) {
         return Failure(List(ServiceConfigurationError(s"Failed to find Oracle dataSourceName $dataSourceName in dataSourceMap"))).toValidationNel.asInstanceOf[MahaConfigResult[QueryExecutor]]
       }
     }
 
     val jdbcConnetionResult : MahaServiceConfig.MahaConfigResult[JdbcConnection] = for {
       dataSourceName <- dataSourceNameResult
-      dataSource <- mahaFactoryContext.dataSourceMap.get(dataSourceName).successNel[Option[DataSource]].asInstanceOf[MahaServiceConfig.MahaConfigResult[Option[DataSource]]]
+      dataSource <- context.dataSourceMap.get(dataSourceName).successNel[Option[DataSource]].asInstanceOf[MahaServiceConfig.MahaConfigResult[Option[DataSource]]]
       jdbcConnectionFetchSizeOption <- jdbcConnectionFetchSizeOptionResult
     } yield {
         if(jdbcConnectionFetchSizeOption.isDefined) {
@@ -94,7 +95,7 @@ class DruidQueryExecutoryFactory extends QueryExecutoryFactory {
     |}
   """.stripMargin
 
-  override def fromJson(configJson: JValue)(implicit mahaFactoryContext:MahaFactoryContext): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
+  override def fromJson(configJson: JValue)(implicit context:MahaServiceConfigContext): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
     import org.json4s.scalaz.JsonScalaz._
     val druidQueryExecutorConfigFactoryClassNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("druidQueryExecutorConfigFactoryClassName")(configJson)
     val druidQueryExecutorConfigJsonConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("druidQueryExecutorConfigJsonConfig")(configJson)
@@ -159,7 +160,7 @@ class PrestoQueryExecutoryFactory extends QueryExecutoryFactory {
     |}
   """.stripMargin
 
-  override def fromJson(configJson: JValue)(implicit mahaFactoryContext:MahaFactoryContext): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
+  override def fromJson(configJson: JValue)(implicit context:MahaServiceConfigContext): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
     import org.json4s.scalaz.JsonScalaz._
 
     val dataSourceNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("dataSourceName")(configJson).map(_.toLowerCase)
@@ -175,14 +176,14 @@ class PrestoQueryExecutoryFactory extends QueryExecutoryFactory {
     for {
       dataSourceName <- dataSourceNameResult
     } yield  {
-      if(!mahaFactoryContext.dataSourceMap.contains(dataSourceName)) {
+      if(!context.dataSourceMap.contains(dataSourceName)) {
         return Failure(List(ServiceConfigurationError(s"Failed to find presto dataSourceName $dataSourceName in dataSourceMap"))).toValidationNel.asInstanceOf[MahaConfigResult[QueryExecutor]]
       }
     }
 
     val jdbcConnetionResult : MahaServiceConfig.MahaConfigResult[JdbcConnection] = for {
       dataSourceName <- dataSourceNameResult
-      dataSource <- mahaFactoryContext.dataSourceMap.get(dataSourceName).successNel[Option[DataSource]].asInstanceOf[MahaServiceConfig.MahaConfigResult[Option[DataSource]]]
+      dataSource <- context.dataSourceMap.get(dataSourceName).successNel[Option[DataSource]].asInstanceOf[MahaServiceConfig.MahaConfigResult[Option[DataSource]]]
       jdbcConnectionFetchSizeOption <- jdbcConnectionFetchSizeOptionResult
     } yield {
       if(jdbcConnectionFetchSizeOption.isDefined) {
