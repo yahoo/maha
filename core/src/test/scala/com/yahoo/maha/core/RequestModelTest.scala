@@ -4223,13 +4223,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     object TestBucketingConfig extends BucketingConfig {
-      override def getConfig(cube: String): Option[CubeBucketingConfig] = {
+      override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = {
         Some(CubeBucketingConfig.builder()
           .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
           .externalBucketPercentage(Map(1 -> 100, 2 -> 0))
           .dryRunPercentage(Map(1 -> (25, None), 2 -> (100, Some(DruidEngine))))
           .build())
       }
+      override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = None
     }
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
@@ -4266,13 +4267,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     object TestBucketingConfig extends BucketingConfig {
-      override def getConfig(cube: String): Option[CubeBucketingConfig] = {
+      override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = {
         Some(CubeBucketingConfig.builder()
           .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
           .externalBucketPercentage(Map(1 -> 100, 2 -> 0))
           .dryRunPercentage(Map(1 -> (25, None), 2 -> (100, Some(OracleEngine))))
           .build())
       }
+      override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = None
     }
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val bucketParams = new BucketParams(new UserInfo("test-user", false)) // isInternal = false
@@ -4307,13 +4309,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
       object TestBucketingConfig extends BucketingConfig {
-        override def getConfig(cube: String): Option[CubeBucketingConfig] = {
+        override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = {
           Some(CubeBucketingConfig.builder()
             .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
             .externalBucketPercentage(Map(1 -> 100, 2 -> 0))
             .dryRunPercentage(Map(1 -> (25, None), 2 -> (100, Some(HiveEngine))))
             .build())
         }
+        override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = None
       }
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
@@ -4356,6 +4359,8 @@ class RequestModelTest extends FunSuite with Matchers {
           .dryRunPercentage(Map(2 -> (100, Some(PrestoEngine))))
           .build())
       }
+
+      override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = None
     }
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
@@ -4392,13 +4397,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     object TestBucketingConfig extends BucketingConfig {
-      override def getConfig(cube: String): Option[CubeBucketingConfig] = {
+      override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = {
         Some(CubeBucketingConfig.builder()
           .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
           .externalBucketPercentage(Map(1 -> 100, 2 -> 0))
           .dryRunPercentage(Map(1 -> (0, None), 2 -> (0, Some(DruidEngine))))
           .build())
       }
+      override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = None
     }
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
@@ -4432,13 +4438,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     object TestBucketingConfig extends BucketingConfig {
-      override def getConfig(cube: String): Option[CubeBucketingConfig] = {
+      override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = {
         Some(CubeBucketingConfig.builder()
           .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
           .externalBucketPercentage(Map(1 -> 100, 2 -> 0))
           .dryRunPercentage(Map(1 -> (0, None), 2 -> (0, Some(DruidEngine))))
           .build())
       }
+      override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = None
     }
 
     val registry = getDefaultRegistry()

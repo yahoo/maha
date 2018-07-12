@@ -109,13 +109,14 @@ class BucketSelectorTest extends FunSuite {
   }
 
   object TestBucketingConfig extends BucketingConfig {
-    override def getConfig(cube: String): Option[CubeBucketingConfig] = {
+    override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = {
       Some(CubeBucketingConfig.builder()
         .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
         .externalBucketPercentage(Map(1 -> 0, 2 -> 90, 3->10))
         .dryRunPercentage(Map(1 -> (75, None), 2 -> (100, Some(DruidEngine))))
         .build())
     }
+    override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = None
   }
 
   object TestBucketingConfigNoDryRun extends BucketingConfig {
