@@ -1268,7 +1268,7 @@ object OracleQueryGenerator extends Logging {
       val generator = new OracleQueryGenerator(partitionColumnRenderer)
       queryGeneratorRegistry.register(OracleEngine, generator)
     } else {
-      queryGeneratorRegistry.getGenerator(OracleEngine).foreach {
+      queryGeneratorRegistry.getGenerator(OracleEngine, Some(Version.DEFAULT)).foreach {
         qg =>
           if (!qg.isInstanceOf[OracleQueryGenerator]) {
             warn(s"Another query generator registered for OracleEngine : ${qg.getClass.getCanonicalName}")

@@ -260,20 +260,31 @@ object QueryGeneratorHelper {
   }
 }
 
-sealed trait Version
-case object V0 extends Version
-case object V1 extends Version
-case object V2 extends Version
+
+case class Version(value: Int)
+object Version {
+  val DEFAULT = V0
+  def of(ver: Int): Version = {
+    ver match {
+      case 0 => V0
+      case 1 => V1
+      case 2 => V2
+    }
+  }
+}
+object V0 extends Version(0)
+object V1 extends Version(1)
+object V2 extends Version(2)
 
 class QueryGeneratorRegistry {
 
   private[this] var queryGeneratorRegistry : Map[Engine, Map[Version , QueryGenerator[_]]] = Map.empty
 
-  def isEngineRegistered(engine: Engine, version: Version = V0): Boolean = synchronized {
+  def isEngineRegistered(engine: Engine, version: Version = Version.DEFAULT): Boolean = synchronized {
     queryGeneratorRegistry.contains(engine) && queryGeneratorRegistry.get(engine).get.contains(version)
   }
 
-  def register[U <: QueryGenerator[_]](engine: Engine, qg: U, version: Version = V0) : Unit = synchronized {
+  def register[U <: QueryGenerator[_]](engine: Engine, qg: U, version: Version = Version.DEFAULT) : Unit = synchronized {
     require(!isEngineRegistered(engine, version), s"Query generator already defined for engine : $engine and version $version")
     if (queryGeneratorRegistry.contains(engine)) {
       queryGeneratorRegistry += (engine -> (Map(version -> qg) ++ queryGeneratorRegistry.get(engine).get))
@@ -282,11 +293,12 @@ class QueryGeneratorRegistry {
     }
   }
 
-  def getGenerator(engine: Engine, version: Version = V0): Option[QueryGenerator[EngineRequirement]] = {
+  def getGenerator(engine: Engine, version: Option[Version]): Option[QueryGenerator[EngineRequirement]] = {
     if (queryGeneratorRegistry.get(engine).isDefined) {
-      queryGeneratorRegistry.get(engine).get.get(version).asInstanceOf[Option[QueryGenerator[EngineRequirement]]]
+      queryGeneratorRegistry.get(engine).get.get(version.getOrElse(Version.DEFAULT)).asInstanceOf[Option[QueryGenerator[EngineRequirement]]]
     } else {
       None
     }
   }
+
 }
