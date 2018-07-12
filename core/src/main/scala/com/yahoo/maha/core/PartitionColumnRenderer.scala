@@ -25,7 +25,6 @@ trait PartitionColumnRenderer {
 }
 
 /* Please note that this is DefaultPartitionColumnRenderer which is not schema specific
-Schema Specific renderer is implemented in the cdw module
 */
 object DefaultPartitionColumnRenderer extends PartitionColumnRenderer {
 
