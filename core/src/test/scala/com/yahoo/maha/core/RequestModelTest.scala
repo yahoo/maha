@@ -4349,7 +4349,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     object TestBucketingConfig extends BucketingConfig {
-      override def getConfig(cube: String): Option[CubeBucketingConfig] = {
+      override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = {
         Some(CubeBucketingConfig.builder()
           .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
           .externalBucketPercentage(Map(1 -> 100, 2 -> 0))

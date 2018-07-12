@@ -36,7 +36,7 @@ class BucketSelector(registry: Registry, bucketingConfig: BucketingConfig) exten
   val randomCube = new scala.util.Random
   val randomQgen = new scala.util.Random
 
-  def selectCubeBuckets(cube: String, requestParams: BucketParams): Try[CubeBucketSelected] = {
+  def selectBucketsForCube(cube: String, requestParams: BucketParams): Try[CubeBucketSelected] = {
     info(s"Selecting buckets for cube: $cube with params: $requestParams")
 
     Try {
@@ -76,7 +76,7 @@ class BucketSelector(registry: Registry, bucketingConfig: BucketingConfig) exten
     }
   }
 
-  def selectQueryGenBuckets(engine: Engine, requestParams: BucketParams): Try[QueryGenBucketSelected] = {
+  def selectBucketsForQueryGen(engine: Engine, requestParams: BucketParams): Try[QueryGenBucketSelected] = {
     info(s"Selecting buckets for engine: $engine with params: $requestParams")
     Try {
       var queryGenVersion: Version = V0

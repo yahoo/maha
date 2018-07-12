@@ -9,6 +9,8 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.query.{QueryGeneratorRegistry, _}
 import com.yahoo.maha.core.request.ReportingRequest
 
+import scala.util.Try
+
 /**
  * Created by shengyao on 12/21/15.
  */
@@ -1421,10 +1423,10 @@ GROUP BY a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id) outergroupby
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get, V1)
-    assert(queryPipelineTry._1.isSuccess, queryPipelineTry._1.errorMessage("Fail to get the query pipeline"))
+    val queryPipelineTry: Try[QueryPipeline] = generatePipeline(requestModel.toOption.get, V1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.failed.errorMessage("Fail to get the query pipeline"))
 
-    val result = queryPipelineTry._1.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
     println(result)
     result
   }

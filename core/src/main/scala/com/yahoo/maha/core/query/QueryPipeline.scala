@@ -394,7 +394,7 @@ trait QueryPipelineFactory {
 
   def fromBucketSelector(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]]
 
-  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]]
+  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: Option[BucketSelector]): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]]
 
   def builder(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]]
 
@@ -787,7 +787,7 @@ OuterGroupBy operation has to be applied only in the following cases
   }
 
   def builder(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple3[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]], Option[Try[QueryPipelineBuilder]]] = {
-    val queryPipelineTryDefault = builder(requestModels._1, queryAttributes, bucketSelector)
+    val queryPipelineTryDefault = builder(requestModels._1, queryAttributes, Some(bucketSelector))
     var queryPipelineTryDryRun: Option[Try[QueryPipelineBuilder]] = None
     if (requestModels._2.isDefined) {
       queryPipelineTryDryRun =  Some(builder(requestModels._2.get, queryAttributes, None)._1)
@@ -1119,7 +1119,7 @@ OuterGroupBy operation has to be applied only in the following cases
             bestDimCandidates.head.dim.engine
           }
         }
-        val bucketSelected = bucketSelector.get.selectQueryGenBuckets(engine, new BucketParams()) // TODO: Pass bucket params
+        val bucketSelected = bucketSelector.get.selectBucketsForQueryGen(engine, new BucketParams()) // TODO: Pass bucket params
         bucketSelected.fold(t => {
           warn(s"No query generator buckets selected for engine: $engine")
           (Version.DEFAULT, None)

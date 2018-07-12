@@ -45,7 +45,7 @@ class QueryGeneratorRegistryTest extends FunSuite with Matchers {
     qgenRegistry.register(HiveEngine, hiveQueryGenerator, V0)
     qgenRegistry.register(HiveEngine, hiveQueryGenerator, V1)
     qgenRegistry.register(HiveEngine, hiveQueryGenerator, V2)
-    assert(qgenRegistry.getGenerator(HiveEngine, V0).get == hiveQueryGenerator)
-    assert(qgenRegistry.getGenerator(PrestoEngine, V0).isEmpty)
+    assert(qgenRegistry.getGenerator(HiveEngine, Some(V0)).get == hiveQueryGenerator)
+    assert(qgenRegistry.getGenerator(PrestoEngine, Some(V0)).isEmpty)
   }
 }

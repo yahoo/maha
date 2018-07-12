@@ -74,8 +74,8 @@ trait BaseQueryGeneratorTest {
     queryPipelineFactory.from(requestModel, queryAttributes)
   }
 
-  protected[this] def generatePipeline(requestModel: RequestModel, queryGenVersion: Version) : (Try[QueryPipeline], Option[Try[QueryPipeline]]) = {
-    queryPipelineFactory.from(requestModel, queryGenVersion, None, None, QueryAttributes.empty)
+  protected[this] def generatePipeline(requestModel: RequestModel, queryGenVersion: Version) : Try[QueryPipeline] = {
+    queryPipelineFactory.from(requestModel, QueryAttributes.empty)
   }
 
   protected[this] def getBaseDir : String = {
