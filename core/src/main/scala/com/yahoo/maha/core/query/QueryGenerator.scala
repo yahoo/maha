@@ -260,45 +260,43 @@ object QueryGeneratorHelper {
   }
 }
 
-
-case class Version(value: Int)
+sealed trait VersionNumber {
+  def number: Int
+}
+case class Version private(number: Int) extends VersionNumber
 object Version {
-  val DEFAULT = V0
-  def of(ver: Int): Version = {
-    ver match {
-      case 0 => V0
-      case 1 => V1
-      case 2 => V2
-    }
+  val v0: Version = new Version(0)
+  val v1: Version = new Version(1)
+  val v2: Version = new Version(2)
+  val DEFAULT = v0
+
+  def apply(number: Int) : Version = {
+    new Version(number)
   }
 }
-object V0 extends Version(0)
-object V1 extends Version(1)
-object V2 extends Version(2)
 
 class QueryGeneratorRegistry {
 
   private[this] var queryGeneratorRegistry : Map[Engine, Map[Version , QueryGenerator[_]]] = Map.empty
 
-  def isEngineRegistered(engine: Engine, version: Version = Version.DEFAULT): Boolean = synchronized {
-    queryGeneratorRegistry.contains(engine) && queryGeneratorRegistry.get(engine).get.contains(version)
+  def isEngineRegistered(engine: Engine, version: Option[Version]): Boolean = synchronized {
+    queryGeneratorRegistry.contains(engine) && queryGeneratorRegistry(engine).contains(version.getOrElse(Version.DEFAULT))
   }
 
   def register[U <: QueryGenerator[_]](engine: Engine, qg: U, version: Version = Version.DEFAULT) : Unit = synchronized {
-    require(!isEngineRegistered(engine, version), s"Query generator already defined for engine : $engine and version $version")
+    require(!isEngineRegistered(engine, Option(version)), s"Query generator already defined for engine : $engine and version $version")
     if (queryGeneratorRegistry.contains(engine)) {
-      queryGeneratorRegistry += (engine -> (Map(version -> qg) ++ queryGeneratorRegistry.get(engine).get))
+      queryGeneratorRegistry += (engine -> (Map(version -> qg) ++ queryGeneratorRegistry(engine)))
     } else {
       queryGeneratorRegistry += (engine -> Map(version -> qg))
     }
   }
 
   def getGenerator(engine: Engine, version: Option[Version]): Option[QueryGenerator[EngineRequirement]] = {
-    if (queryGeneratorRegistry.get(engine).isDefined) {
-      queryGeneratorRegistry.get(engine).get.get(version.getOrElse(Version.DEFAULT)).asInstanceOf[Option[QueryGenerator[EngineRequirement]]]
-    } else {
-      None
-    }
+    for {
+      versionGeneratorMap <- queryGeneratorRegistry.get(engine)
+      generator <- versionGeneratorMap.get(version.getOrElse(Version.DEFAULT)).asInstanceOf[Option[QueryGenerator[EngineRequirement]]]
+    } yield generator
   }
 
 }

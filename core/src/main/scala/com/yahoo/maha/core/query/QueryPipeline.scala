@@ -3,12 +3,12 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, DefaultBucketingConfig, UserInfo}
+import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector}
 import com.yahoo.maha.core.dimension.Dimension
 import com.yahoo.maha.core.fact.Fact.ViewTable
 import com.yahoo.maha.core.fact.{FactBestCandidate, FactView, ViewBaseTable}
 import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
-import com.yahoo.maha.report.{RowCSVWriter, RowCSVWriterProvider}
+import com.yahoo.maha.report.RowCSVWriterProvider
 import grizzled.slf4j.Logging
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -630,9 +630,9 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
       .newQueryContext(DimOnlyQuery, requestModel)
       .addDimTable(bestDimCandidates)
     require(bestDimCandidates.nonEmpty, "Cannot generate dim only query with no best dim candidates!")
-    require(queryGeneratorRegistry.isEngineRegistered(bestDimCandidates.head.dim.engine)
+    require(queryGeneratorRegistry.isEngineRegistered(bestDimCandidates.head.dim.engine, None)
       , s"Failed to find query generator for engine : ${bestDimCandidates.head.dim.engine}")
-    queryGeneratorRegistry.getGenerator(bestDimCandidates.head.dim.engine, Some(queryGenVersion)).get.generate(dimOnlyContextBuilder.build())
+    queryGeneratorRegistry.getGenerator(bestDimCandidates.head.dim.engine, Option(queryGenVersion)).get.generate(dimOnlyContextBuilder.build())
   }
 
   private[this] def getMultiEngineDimQuery(bestDimCandidates: SortedSet[DimensionBundle],
@@ -646,9 +646,9 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
       .addIndexAlias(indexAlias)
       .setQueryAttributes(queryAttributes)
 
-    require(queryGeneratorRegistry.isEngineRegistered(bestDimCandidates.head.dim.engine)
+    require(queryGeneratorRegistry.isEngineRegistered(bestDimCandidates.head.dim.engine, None)
       , s"Failed to find query generator for engine : ${bestDimCandidates.head.dim.engine}")
-    queryGeneratorRegistry.getGenerator(bestDimCandidates.head.dim.engine, Some(queryGenVersion)).get.generate(dimOnlyContextBuilder.build())
+    queryGeneratorRegistry.getGenerator(bestDimCandidates.head.dim.engine, Option(queryGenVersion)).get.generate(dimOnlyContextBuilder.build())
   }
 
   private[this] def getFactQuery(bestFactCandidate: FactBestCandidate, requestModel: => RequestModel, indexAlias: String, queryGenVersion: Version): Query = {
@@ -656,9 +656,9 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
       .newQueryContext(FactOnlyQuery, requestModel)
       .addFactBestCandidate(bestFactCandidate)
       .addIndexAlias(indexAlias)
-    require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine)
+    require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine, None)
       , s"Failed to find query generator for engine : ${bestFactCandidate.fact.engine}")
-    queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine, Some(queryGenVersion)).get.generate(factOnlyContextBuilder.build())
+    queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine, Option(queryGenVersion)).get.generate(factOnlyContextBuilder.build())
   }
 
   private[this] def getDimFactQuery(bestDimCandidates: SortedSet[DimensionBundle],
@@ -677,9 +677,9 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
       .setQueryAttributes(queryAttributes)
       .build()
 
-    require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine)
+    require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine, None)
       , s"No query generator registered for engine ${bestFactCandidate.fact.engine} for fact ${bestFactCandidate.fact.name}")
-    queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine, Some(queryGenVersion)).get.generate(dimFactContext)
+    queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine, Option(queryGenVersion)).get.generate(dimFactContext)
   }
 
   private[this] def isOuterGroupByQuery(bestDimCandidates: SortedSet[DimensionBundle],
@@ -750,9 +750,9 @@ OuterGroupBy operation has to be applied only in the following cases
           .setQueryAttributes(queryAttributes)
           .build()
 
-        require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine)
+        require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine, None)
           , s"No query generator registered for engine ${bestFactCandidate.fact.engine} for fact ${bestFactCandidate.fact.name}")
-        queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine, Some(queryGenVersion)).get.generate(factContext)
+        queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine, Option(queryGenVersion)).get.generate(factContext)
     }.toList
   }
 
@@ -781,16 +781,16 @@ OuterGroupBy operation has to be applied only in the following cases
     val queryPipelineTryDefault = builder(requestModels._1, queryAttributes, None)._1
     var queryPipelineTryDryRun: Option[Try[QueryPipelineBuilder]] = None
     if (requestModels._2.isDefined) {
-      queryPipelineTryDryRun =  Some(builder(requestModels._2.get, queryAttributes, None)._1)
+      queryPipelineTryDryRun =  Option(builder(requestModels._2.get, queryAttributes, None)._1)
     }
     (queryPipelineTryDefault, queryPipelineTryDryRun)
   }
 
   def builder(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple3[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]], Option[Try[QueryPipelineBuilder]]] = {
-    val queryPipelineTryDefault = builder(requestModels._1, queryAttributes, Some(bucketSelector))
+    val queryPipelineTryDefault = builder(requestModels._1, queryAttributes, Option(bucketSelector))
     var queryPipelineTryDryRun: Option[Try[QueryPipelineBuilder]] = None
     if (requestModels._2.isDefined) {
-      queryPipelineTryDryRun =  Some(builder(requestModels._2.get, queryAttributes, None)._1)
+      queryPipelineTryDryRun =  Option(builder(requestModels._2.get, queryAttributes, None)._1)
     }
     (queryPipelineTryDefault._1, queryPipelineTryDefault._2, queryPipelineTryDryRun)
   }
@@ -1142,7 +1142,7 @@ OuterGroupBy operation has to be applied only in the following cases
   def from(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]] = {
     val queryPipelineBuilderTries = builder(requestModels, queryAttributes)
     if (queryPipelineBuilderTries._2.isDefined) {
-      (queryPipelineBuilderTries._1.map(_.build()), Some(queryPipelineBuilderTries._2.get.map(_.build())))
+      (queryPipelineBuilderTries._1.map(_.build()), Option(queryPipelineBuilderTries._2.get.map(_.build())))
     } else {
       (queryPipelineBuilderTries._1.map(_.build()), None)
     }
@@ -1151,7 +1151,7 @@ OuterGroupBy operation has to be applied only in the following cases
   def fromBucketSelector(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]] = {
     val queryPipelineBuilderTries = builder(requestModels, queryAttributes, bucketSelector)
     if (queryPipelineBuilderTries._2.isDefined) {
-      (queryPipelineBuilderTries._1.map(_.build()), Some(queryPipelineBuilderTries._2.get.map(_.build())))
+      (queryPipelineBuilderTries._1.map(_.build()), Option(queryPipelineBuilderTries._2.get.map(_.build())))
     } else {
       (queryPipelineBuilderTries._1.map(_.build()), None)
     }

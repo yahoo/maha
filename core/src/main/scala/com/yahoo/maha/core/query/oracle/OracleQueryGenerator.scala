@@ -1264,11 +1264,11 @@ object OracleQueryGenerator extends Logging {
   val ANY_PARTITIONING_SCHEME = OraclePartitioningScheme("") //no name needed since class name hashcode
 
   def register(queryGeneratorRegistry: QueryGeneratorRegistry, partitionColumnRenderer:PartitionColumnRenderer) = {
-    if (!queryGeneratorRegistry.isEngineRegistered(OracleEngine)) {
+    if (!queryGeneratorRegistry.isEngineRegistered(OracleEngine, Option(Version.DEFAULT))) {
       val generator = new OracleQueryGenerator(partitionColumnRenderer)
       queryGeneratorRegistry.register(OracleEngine, generator)
     } else {
-      queryGeneratorRegistry.getGenerator(OracleEngine, Some(Version.DEFAULT)).foreach {
+      queryGeneratorRegistry.getGenerator(OracleEngine, Option(Version.DEFAULT)).foreach {
         qg =>
           if (!qg.isInstanceOf[OracleQueryGenerator]) {
             warn(s"Another query generator registered for OracleEngine : ${qg.getClass.getCanonicalName}")

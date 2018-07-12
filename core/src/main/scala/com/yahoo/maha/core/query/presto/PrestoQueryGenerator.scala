@@ -601,11 +601,11 @@ object PrestoQueryGenerator extends Logging {
   val ANY_PARTITIONING_SCHEME = PrestoPartitioningScheme("") //no name needed since class name hashcode
 
   def register(queryGeneratorRegistry: QueryGeneratorRegistry, partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) = {
-    if(!queryGeneratorRegistry.isEngineRegistered(PrestoEngine)) {
+    if(!queryGeneratorRegistry.isEngineRegistered(PrestoEngine, Option(Version.DEFAULT))) {
       val generator = new PrestoQueryGenerator(partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements)
       queryGeneratorRegistry.register(PrestoEngine, generator)
     } else {
-      queryGeneratorRegistry.getGenerator(PrestoEngine, Some(Version.DEFAULT)).foreach {
+      queryGeneratorRegistry.getGenerator(PrestoEngine, Option(Version.DEFAULT)).foreach {
         qg =>
           if(!qg.isInstanceOf[PrestoQueryGenerator]) {
             warn(s"Another query generator registered for PrestoEngine : ${qg.getClass.getCanonicalName}")

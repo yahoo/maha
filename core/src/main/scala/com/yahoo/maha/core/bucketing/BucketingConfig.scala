@@ -34,7 +34,7 @@ case class CubeBucketingConfig(internalBucketPercentage:Map[Int,Int] = Map.empty
     }
   }
 
-  def validate(cube: String = "") = {
+  def validate() = {
     val internalSum = internalBucketPercentage.values.sum
     require(internalSum==100,s"Total internal bucket percentage is not 100% but $internalSum")
 
@@ -85,13 +85,13 @@ case class QueryGenBucketingConfig(internalBucketPercentage:Map[Version,Int] = M
                               ) {
   validate()
 
-  val internalDistribution = new EnumeratedIntegerDistribution(internalBucketPercentage.keys.map(_.value).toArray,
+  val internalDistribution = new EnumeratedIntegerDistribution(internalBucketPercentage.keys.map(_.number).toArray,
     internalBucketPercentage.values.map(percentage => percentage.toDouble/100).toArray)
 
-  val externalDistribution = new EnumeratedIntegerDistribution(externalBucketPercentage.keys.map(_.value).toArray,
+  val externalDistribution = new EnumeratedIntegerDistribution(externalBucketPercentage.keys.map(_.number).toArray,
     externalBucketPercentage.values.map(percentage => percentage.toDouble/100).toArray)
 
-  val dryRunDistribution = new EnumeratedIntegerDistribution(dryRunPercentage.keys.map(_.value).toArray,
+  val dryRunDistribution = new EnumeratedIntegerDistribution(dryRunPercentage.keys.map(_.number).toArray,
     dryRunPercentage.values.map(percentage => percentage.toDouble/100).toArray)
 
   def validate() = {
@@ -149,11 +149,13 @@ class DefaultBucketingConfig(cubeBucketingConfigMap:scala.collection.immutable.M
   validate()
 
   private[this] def validate(): Unit = {
-    for((cubeName,bucketingConfig)<-cubeBucketingConfigMap) {
-      bucketingConfig.validate(cubeName)
+
+    cubeBucketingConfigMap.foreach {
+      case (_, bucketingConfig) => bucketingConfig.validate()
     }
-    for((_,bucketingConfig)<-queryGenBucketingConfigMap) {
-      bucketingConfig.validate()
+
+    queryGenBucketingConfigMap.foreach {
+      case (_, bucketingConfig) => bucketingConfig.validate()
     }
   }
 

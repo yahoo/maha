@@ -5,7 +5,7 @@ package com.yahoo.maha.core.bucketing
 import com.yahoo.maha.core.Engine
 import com.yahoo.maha.core.registry.Registry
 import grizzled.slf4j.Logging
-import com.yahoo.maha.core.query.{V0, Version}
+import com.yahoo.maha.core.query.Version
 import org.apache.commons.lang3.StringUtils._
 
 import scala.util.Try
@@ -79,7 +79,7 @@ class BucketSelector(registry: Registry, bucketingConfig: BucketingConfig) exten
   def selectBucketsForQueryGen(engine: Engine, requestParams: BucketParams): Try[QueryGenBucketSelected] = {
     info(s"Selecting buckets for engine: $engine with params: $requestParams")
     Try {
-      var queryGenVersion: Version = V0
+      var queryGenVersion: Version = Version.DEFAULT
       var dryRunQueryGenVersion: Option[Version] = None
 
       val qgenConfig = bucketingConfig.getConfigForQueryGen(engine)
@@ -109,9 +109,9 @@ class BucketSelector(registry: Registry, bucketingConfig: BucketingConfig) exten
 
   private def selectVersion(queryGenConfig: Option[QueryGenBucketingConfig], requestParams: BucketParams): Version = {
     if (requestParams.userInfo.isInternal) {
-      Version.of(queryGenConfig.get.internalDistribution.sample())
+      Version.apply(queryGenConfig.get.internalDistribution.sample())
     } else {
-      Version.of(queryGenConfig.get.externalDistribution.sample())
+      Version.apply(queryGenConfig.get.externalDistribution.sample())
     }
   }
 

@@ -512,14 +512,14 @@ object HiveQueryGeneratorV1 extends Logging {
   val ANY_PARTITIONING_SCHEME = HivePartitioningScheme("") //no name needed since class name hashcode
 
   def register(queryGeneratorRegistry: QueryGeneratorRegistry, partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) = {
-    if(!queryGeneratorRegistry.isEngineRegistered(HiveEngine, V1)) {
+    if(!queryGeneratorRegistry.isEngineRegistered(HiveEngine, Option(Version.v1))) {
       val generator = new HiveQueryGeneratorV1(partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements)
-      queryGeneratorRegistry.register(HiveEngine, generator, V1)
+      queryGeneratorRegistry.register(HiveEngine, generator, Version.v1)
     } else {
-      queryGeneratorRegistry.getGenerator(HiveEngine, Some(V1)).foreach {
+      queryGeneratorRegistry.getGenerator(HiveEngine, Option(Version.v1)).foreach {
         qg =>
           if(!qg.isInstanceOf[HiveQueryGenerator]) {
-            warn(s"Another query generator registered for HiveEngine : ${qg.getClass.getCanonicalName} and version: $V1")
+            warn(s"Another query generator registered for HiveEngine : ${qg.getClass.getCanonicalName} and version: ${Version.v1}")
           }
       }
     }
