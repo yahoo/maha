@@ -41,7 +41,7 @@ public class RocksDBManager {
     private static final Logger LOG = new Logger(RocksDBManager.class);
     private static final ConcurrentMap<String, RocksDBSnapshot> rocksDBSnapshotMap = new ConcurrentHashMap<>();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final String TEMPORARY_PATH = "/home/y/tmp/cdw_lookups";
+    private static final String TEMPORARY_PATH = "/home/y/tmp/druid_lookups";
     private static final String ROCKSDB_LOCATION_PROP_NAME = "rocksdb.location";
     private static final String SNAPSHOT_FILE_NAME = "/rocksDBSnapshot";
     private static final int UPLOAD_LOOKUP_AUDIT_MAX_RETRY = 3;
@@ -99,7 +99,7 @@ public class RocksDBManager {
             }
         }
 
-        final String hdfsPath = String.format("%s/load_time=%s/cdw_rocksdb.zip",
+        final String hdfsPath = String.format("%s/load_time=%s/rocksdb.zip",
                 extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime);
 
         LOG.info(String.format("hdfsPath [%s]", hdfsPath));
@@ -124,7 +124,7 @@ public class RocksDBManager {
             FileUtils.forceMkdir(file);
         }
 
-        final String localZippedFileNameWithPath = String.format("%s/%s/cdw_rocksdb_%s.zip",
+        final String localZippedFileNameWithPath = String.format("%s/%s/rocksdb_%s.zip",
                 rocksdbLocation, extractionNamespace.getNamespace(), loadTime);
         LOG.info(String.format("localZippedFileNameWithPath [%s]", localZippedFileNameWithPath));
 
@@ -313,7 +313,7 @@ public class RocksDBManager {
                         FileUtils.forceMkdir(file);
                     }
 
-                    final String localFileNameWithPath = String.format("%s/%s/%s/cdw_rocksdb.zip",
+                    final String localFileNameWithPath = String.format("%s/%s/%s/rocksdb.zip",
                             rocksdbLocation, "lookup_auditing", extractionNamespace.getNamespace());
                     LOG.info(String.format("localFileNameWithPath [%s]", localFileNameWithPath));
 
@@ -331,7 +331,7 @@ public class RocksDBManager {
                 try {
                     cleanup(String.format("%s/%s/%s", rocksdbLocation, "lookup_auditing", extractionNamespace.getNamespace()));
                     if (!isSuccessMarkerPresent(successMarkerPath)) {
-                        fileSystem.delete(new Path(String.format("%s/load_time=%s/cdw_rocksdb.zip",
+                        fileSystem.delete(new Path(String.format("%s/load_time=%s/rocksdb.zip",
                                 extractionNamespace.getLookupAuditingHDFSPath(), loadTime)), false);
                     }
                     sleepTime = 2 * sleepTime;
@@ -351,7 +351,7 @@ public class RocksDBManager {
                                        String loadTime, String successMarkerPath, String localFileNameWithPath)
             throws IOException {
 
-        final String hdfsLookupAuditingPath = String.format("%s/load_time=%s/cdw_rocksdb.zip",
+        final String hdfsLookupAuditingPath = String.format("%s/load_time=%s/rocksdb.zip",
                 extractionNamespace.getLookupAuditingHDFSPath(), loadTime);
 
         Path path = new Path(String.format("%s/load_time=%s",
