@@ -18,7 +18,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.zeroturnaround.zip.ZipUtil;
@@ -215,8 +214,7 @@ public class RocksDBManager {
     }
 
     private RocksDB openRocksDB(String localPath) throws RocksDBException {
-        final Options options = new Options().setCreateIfMissing(true);
-        final RocksDB newDb = RocksDB.open(options, localPath);
+        final RocksDB newDb = RocksDB.open(localPath);
         LOG.info(newDb.getProperty(STATS_KEY));
         return newDb;
     }
