@@ -630,7 +630,7 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
       .newQueryContext(DimOnlyQuery, requestModel)
       .addDimTable(bestDimCandidates)
     require(bestDimCandidates.nonEmpty, "Cannot generate dim only query with no best dim candidates!")
-    require(queryGeneratorRegistry.isEngineRegistered(bestDimCandidates.head.dim.engine, None)
+    require(queryGeneratorRegistry.isEngineRegistered(bestDimCandidates.head.dim.engine, Option(queryGenVersion))
       , s"Failed to find query generator for engine : ${bestDimCandidates.head.dim.engine}")
     queryGeneratorRegistry.getGenerator(bestDimCandidates.head.dim.engine, Option(queryGenVersion)).get.generate(dimOnlyContextBuilder.build())
   }
@@ -646,7 +646,7 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
       .addIndexAlias(indexAlias)
       .setQueryAttributes(queryAttributes)
 
-    require(queryGeneratorRegistry.isEngineRegistered(bestDimCandidates.head.dim.engine, None)
+    require(queryGeneratorRegistry.isEngineRegistered(bestDimCandidates.head.dim.engine, Option(queryGenVersion))
       , s"Failed to find query generator for engine : ${bestDimCandidates.head.dim.engine}")
     queryGeneratorRegistry.getGenerator(bestDimCandidates.head.dim.engine, Option(queryGenVersion)).get.generate(dimOnlyContextBuilder.build())
   }
@@ -656,7 +656,7 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
       .newQueryContext(FactOnlyQuery, requestModel)
       .addFactBestCandidate(bestFactCandidate)
       .addIndexAlias(indexAlias)
-    require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine, None)
+    require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine, Some(queryGenVersion))
       , s"Failed to find query generator for engine : ${bestFactCandidate.fact.engine}")
     queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine, Option(queryGenVersion)).get.generate(factOnlyContextBuilder.build())
   }
@@ -677,7 +677,7 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
       .setQueryAttributes(queryAttributes)
       .build()
 
-    require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine, None)
+    require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine, Option(queryGenVersion))
       , s"No query generator registered for engine ${bestFactCandidate.fact.engine} for fact ${bestFactCandidate.fact.name}")
     queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine, Option(queryGenVersion)).get.generate(dimFactContext)
   }
@@ -750,7 +750,7 @@ OuterGroupBy operation has to be applied only in the following cases
           .setQueryAttributes(queryAttributes)
           .build()
 
-        require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine, None)
+        require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine, Option(queryGenVersion))
           , s"No query generator registered for engine ${bestFactCandidate.fact.engine} for fact ${bestFactCandidate.fact.name}")
         queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine, Option(queryGenVersion)).get.generate(factContext)
     }.toList
