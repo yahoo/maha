@@ -45,4 +45,9 @@ public class RoundingDoubleSumAggregatorFactory extends DoubleSumAggregatorFacto
         return this.scale;
     }
 
+    @JsonProperty
+    public boolean isEnableRoundingDoubleSumAggregatorFactory() {
+        return enableRoundingDoubleSumAggregatorFactory;
+    }
+
 }
