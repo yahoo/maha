@@ -14,9 +14,11 @@ import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.maha_druid_lookups.query.lookup.{DecodeConfig, MahaRegisteredLookupExtractionFn}
+import com.yahoo.maha.query.aggregation.{RoundingDoubleSumAggregatorFactory, RoundingDoubleSumDruidModule}
 import grizzled.slf4j.Logging
 import io.druid.jackson.DefaultObjectMapper
 import io.druid.java.util.common.granularity.GranularityType
+import io.druid.math.expr.ExprMacroTable
 import io.druid.query.aggregation._
 import io.druid.query.aggregation.datasketches.theta.{SketchMergeAggregatorFactory, SketchModule}
 import io.druid.query.aggregation.post.{ArithmeticPostAggregator, FieldAccessPostAggregator}
@@ -163,6 +165,8 @@ object DruidQuery {
   mapper.setSerializationInclusion(Include.NON_NULL)
   val sketchModulesList = new SketchModule().getJacksonModules()
   sketchModulesList.asScala.foreach(module => mapper.registerModule(module))
+  val roundingDoubleSUmModulesList = new RoundingDoubleSumDruidModule().getJacksonModules()
+  roundingDoubleSUmModulesList.asScala.foreach(module => mapper.registerModule(module))
 
   def toJson(query: io.druid.query.Query[_]): String = {
     mapper.writeValueAsString(query)
@@ -682,14 +686,14 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
     def getSumAggregatorFactory(dataType: DataType, outputFieldName: String, inputFieldName: String): AggregatorFactory = {
       dataType match {
-        case DecType(_, _, Some(default), Some(min), Some(max), _) =>
+        case DecType(_, scale, Some(default), Some(min), Some(max), _) =>
           //TODO: fix min, max, and default value handling
-          new DoubleSumAggregatorFactory(outputFieldName, inputFieldName)
+          new RoundingDoubleSumAggregatorFactory(outputFieldName, inputFieldName, scale, null, ExprMacroTable.nil, true)
         case IntType(_, _, Some(default), Some(min), Some(max)) =>
           //TODO: fix min, max, and default value handling
           new LongSumAggregatorFactory(outputFieldName, inputFieldName)
-        case DecType(_, _, _, _, _, _) =>
-          new DoubleSumAggregatorFactory(outputFieldName, inputFieldName)
+        case DecType(_, scale, _, _, _, _) =>
+          new RoundingDoubleSumAggregatorFactory(outputFieldName, inputFieldName, scale, null, ExprMacroTable.nil, true)
         case IntType(_, _, _, _, _) =>
           new LongSumAggregatorFactory(outputFieldName, inputFieldName)
         case any =>
