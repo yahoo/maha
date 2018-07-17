@@ -683,17 +683,22 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     val aggregatorList = new ArrayBuffer[AggregatorFactory](2 * queryContext.factBestCandidate.factColMapping.size)
     val postAggregatorList = new ArrayBuffer[PostAggregator](2 * queryContext.factBestCandidate.factColMapping.size)
 
+    def applyScaleCleanup(scale:Int) : Int = {
+      if(scale==0) {
+        10
+      } else scale
+    }
 
     def getSumAggregatorFactory(dataType: DataType, outputFieldName: String, inputFieldName: String): AggregatorFactory = {
       dataType match {
         case DecType(_, scale, Some(default), Some(min), Some(max), _) =>
           //TODO: fix min, max, and default value handling
-          new RoundingDoubleSumAggregatorFactory(outputFieldName, inputFieldName, scale, null, ExprMacroTable.nil, true)
+          new RoundingDoubleSumAggregatorFactory(outputFieldName, inputFieldName, applyScaleCleanup(scale), null, ExprMacroTable.nil, true)
         case IntType(_, _, Some(default), Some(min), Some(max)) =>
           //TODO: fix min, max, and default value handling
           new LongSumAggregatorFactory(outputFieldName, inputFieldName)
         case DecType(_, scale, _, _, _, _) =>
-          new RoundingDoubleSumAggregatorFactory(outputFieldName, inputFieldName, scale, null, ExprMacroTable.nil, true)
+          new RoundingDoubleSumAggregatorFactory(outputFieldName, inputFieldName, applyScaleCleanup(scale), null, ExprMacroTable.nil, true)
         case IntType(_, _, _, _, _) =>
           new LongSumAggregatorFactory(outputFieldName, inputFieldName)
         case any =>
