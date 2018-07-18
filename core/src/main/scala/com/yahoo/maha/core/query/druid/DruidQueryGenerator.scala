@@ -40,6 +40,7 @@ import org.joda.time.{DateTime, Interval}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.{SortedSet, mutable}
+import scala.util.Try
 
 /**
  * Created by hiral on 12/11/15.
@@ -289,6 +290,12 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
     val aliasColumnMap = factAliasColumnMap ++ dimAliasColumnMap
 
+    val attemptToRenderSortByNames = Try {
+      val sortByColAliases = queryContext.factBestCandidate.requestModel.requestSortByCols
+      val intermediary = sortByColAliases.map(colInfo => colInfo.alias)
+      intermediary.map(name => if (aliasColumnMap.get(name).isDefined) aliasColumnMap(name).name else null)
+    }
+
     val factRequestCols: Set[String] = {
       if (queryContext.requestModel.dimensionsCandidates.nonEmpty && (queryContext.requestModel.forceDimDriven || queryContext.requestModel.isDimDriven)) {
         val joinCols: Set[String] = {
@@ -297,7 +304,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             queryContext.factBestCandidate.requestJoinCols - pkey
           }
         }
-        queryContext.factBestCandidate.requestCols.filterNot(joinCols)
+        queryContext.factBestCandidate.requestCols.filterNot(joinCols.diff(attemptToRenderSortByNames.get.toSet))
       } else {
         queryContext.factBestCandidate.requestCols
       }
