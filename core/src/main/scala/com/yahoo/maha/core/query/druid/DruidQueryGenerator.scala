@@ -290,10 +290,10 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
     val aliasColumnMap = factAliasColumnMap ++ dimAliasColumnMap
 
-    val attemptToRenderSortByNames = Try {
+    val attemptToRenderSortByNames = {
       val sortByColAliases = queryContext.factBestCandidate.requestModel.requestSortByCols
       val intermediary = sortByColAliases.map(colInfo => colInfo.alias)
-      intermediary.map(name => if (aliasColumnMap.get(name).isDefined) aliasColumnMap(name).name else null)
+      intermediary.collect{ case name if aliasColumnMap contains name => aliasColumnMap(name).name}
     }
 
     val factRequestCols: Set[String] = {
@@ -304,7 +304,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             queryContext.factBestCandidate.requestJoinCols - pkey
           }
         }
-        queryContext.factBestCandidate.requestCols.filterNot(joinCols.diff(attemptToRenderSortByNames.get.toSet))
+        queryContext.factBestCandidate.requestCols.filterNot(joinCols.diff(attemptToRenderSortByNames.toSet))
       } else {
         queryContext.factBestCandidate.requestCols
       }
