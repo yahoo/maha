@@ -306,7 +306,7 @@ class QueryGeneratorRegistry {
       generator <- {
         val generator = versionGeneratorMap.get(version)
         val isValidationNeeded = requestModel.isDefined && generator.isDefined
-        if (isValidationNeeded && generator.get.validateEngineConstraints(requestModel.get)) {
+        if (!isValidationNeeded || generator.get.validateEngineConstraints(requestModel.get)) {
           generator
         } else {
           versionGeneratorMap.get(Version.DEFAULT)
