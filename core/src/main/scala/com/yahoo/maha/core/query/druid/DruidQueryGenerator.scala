@@ -146,7 +146,7 @@ object DruidQueryGenerator extends Logging {
       val generator = new DruidQueryGenerator(queryOptimizer, defaultDimCardinality, maximumMaxRows, maximumTopNMaxRows, maximumMaxRowsAsync)
       queryGeneratorRegistry.register(DruidEngine, generator)
     } else {
-      queryGeneratorRegistry.getGenerator(DruidEngine, Option(Version.DEFAULT)).foreach {
+      queryGeneratorRegistry.getDefaultGenerator(DruidEngine).foreach {
         qg =>
           if (!qg.isInstanceOf[DruidQueryGenerator]) {
             warn(s"Another query generator registered for DruidEngine : ${qg.getClass.getCanonicalName}")

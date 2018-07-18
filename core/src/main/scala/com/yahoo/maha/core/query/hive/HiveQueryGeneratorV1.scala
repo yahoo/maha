@@ -516,7 +516,7 @@ object HiveQueryGeneratorV1 extends Logging {
       val generator = new HiveQueryGeneratorV1(partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements)
       queryGeneratorRegistry.register(HiveEngine, generator, Version.v1)
     } else {
-      queryGeneratorRegistry.getGenerator(HiveEngine, Option(Version.v1)).foreach {
+      queryGeneratorRegistry.getValidGeneratorForVersion(HiveEngine, Version.v1, None).foreach {
         qg =>
           if(!qg.isInstanceOf[HiveQueryGenerator]) {
             warn(s"Another query generator registered for HiveEngine : ${qg.getClass.getCanonicalName} and version: ${Version.v1}")

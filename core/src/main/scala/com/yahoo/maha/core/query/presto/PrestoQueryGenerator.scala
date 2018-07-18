@@ -605,7 +605,7 @@ object PrestoQueryGenerator extends Logging {
       val generator = new PrestoQueryGenerator(partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements)
       queryGeneratorRegistry.register(PrestoEngine, generator)
     } else {
-      queryGeneratorRegistry.getGenerator(PrestoEngine, Option(Version.DEFAULT)).foreach {
+      queryGeneratorRegistry.getDefaultGenerator(PrestoEngine).foreach {
         qg =>
           if(!qg.isInstanceOf[PrestoQueryGenerator]) {
             warn(s"Another query generator registered for PrestoEngine : ${qg.getClass.getCanonicalName}")

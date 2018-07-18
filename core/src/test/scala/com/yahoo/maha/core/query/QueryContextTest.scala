@@ -25,19 +25,19 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
   }
 
   private def getOracleQuery(qc: QueryContext) : OracleQuery = {
-    queryGeneratorRegistry.getGenerator(OracleEngine, Some(Version.DEFAULT)).get.asInstanceOf[OracleQueryGenerator].generate(qc).asInstanceOf[OracleQuery]
+    queryGeneratorRegistry.getDefaultGenerator(OracleEngine).get.asInstanceOf[OracleQueryGenerator].generate(qc).asInstanceOf[OracleQuery]
   }
 
   private def getHiveQuery(qc: QueryContext) : HiveQuery = {
-    queryGeneratorRegistry.getGenerator(HiveEngine, Some(Version.DEFAULT)).get.asInstanceOf[HiveQueryGenerator].generate(qc).asInstanceOf[HiveQuery]
+    queryGeneratorRegistry.getDefaultGenerator(HiveEngine).get.asInstanceOf[HiveQueryGenerator].generate(qc).asInstanceOf[HiveQuery]
   }
 
   private def getDruidQuery(qc: QueryContext) : DruidQuery[_] = {
-    queryGeneratorRegistry.getGenerator(DruidEngine, Some(Version.DEFAULT)).get.asInstanceOf[DruidQueryGenerator].generate(qc).asInstanceOf[DruidQuery[_]]
+    queryGeneratorRegistry.getDefaultGenerator(DruidEngine).get.asInstanceOf[DruidQueryGenerator].generate(qc).asInstanceOf[DruidQuery[_]]
   }
 
   private def getPrestoQuery(qc: QueryContext) : PrestoQuery = {
-    queryGeneratorRegistry.getGenerator(PrestoEngine, Some(Version.DEFAULT)).get.asInstanceOf[PrestoQueryGenerator].generate(qc).asInstanceOf[PrestoQuery]
+    queryGeneratorRegistry.getDefaultGenerator(PrestoEngine).get.asInstanceOf[PrestoQueryGenerator].generate(qc).asInstanceOf[PrestoQuery]
   }
 
 

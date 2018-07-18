@@ -292,10 +292,26 @@ class QueryGeneratorRegistry {
     }
   }
 
-  def getGenerator(engine: Engine, version: Option[Version]): Option[QueryGenerator[EngineRequirement]] = {
+  def getDefaultGenerator(engine: Engine): Option[QueryGenerator[EngineRequirement]] = {
     for {
       versionGeneratorMap <- queryGeneratorRegistry.get(engine)
-      generator <- versionGeneratorMap.get(version.getOrElse(Version.DEFAULT)).asInstanceOf[Option[QueryGenerator[EngineRequirement]]]
+      generator <- versionGeneratorMap.get(Version.DEFAULT).asInstanceOf[Option[QueryGenerator[EngineRequirement]]]
+    } yield generator
+  }
+
+  // This method validates engine constraints and falls back to default generator if validation fails
+  def getValidGeneratorForVersion(engine: Engine, version: Version, requestModel: Option[RequestModel]): Option[QueryGenerator[EngineRequirement]] = {
+    for {
+      versionGeneratorMap <- queryGeneratorRegistry.get(engine)
+      generator <- {
+        val generator = versionGeneratorMap.get(version)
+        val isValidationNeeded = requestModel.isDefined && generator.isDefined
+        if (isValidationNeeded && generator.get.validateEngineConstraints(requestModel.get)) {
+          generator
+        } else {
+          versionGeneratorMap.get(Version.DEFAULT)
+        }
+      }.asInstanceOf[Option[QueryGenerator[EngineRequirement]]]
     } yield generator
   }
 

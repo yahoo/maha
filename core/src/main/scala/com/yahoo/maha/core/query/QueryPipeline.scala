@@ -483,7 +483,7 @@ object DefaultQueryPipelineFactory extends Logging {
           info(s"disqualifySet = $disqualifySet")
         }
         val result: IndexedSeq[(String, Engine, Long, Int, Int)] = requestModel.factCost.toIndexedSeq.collect {
-          case ((fn, engine), rowcost) if (!queryGeneratorRegistry.getGenerator(engine, None).isDefined || queryGeneratorRegistry.getGenerator(engine, None).get.validateEngineConstraints(requestModel)) && (forceEngine.contains(engine) || (!disqualifySet(engine) && forceEngine.isEmpty)) =>
+          case ((fn, engine), rowcost) if (!queryGeneratorRegistry.getDefaultGenerator(engine).isDefined || queryGeneratorRegistry.getDefaultGenerator(engine).get.validateEngineConstraints(requestModel)) && (forceEngine.contains(engine) || (!disqualifySet(engine) && forceEngine.isEmpty)) =>
             val fact = requestModel.bestCandidates.get.facts(fn).fact
             val level = fact.level
             val dimCardinality: Long = requestModel.dimCardinalityEstimate.getOrElse(fact.defaultCardinality)
@@ -632,7 +632,7 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
     require(bestDimCandidates.nonEmpty, "Cannot generate dim only query with no best dim candidates!")
     require(queryGeneratorRegistry.isEngineRegistered(bestDimCandidates.head.dim.engine, Option(queryGenVersion))
       , s"Failed to find query generator for engine : ${bestDimCandidates.head.dim.engine}")
-    queryGeneratorRegistry.getGenerator(bestDimCandidates.head.dim.engine, Option(queryGenVersion)).get.generate(dimOnlyContextBuilder.build())
+    queryGeneratorRegistry.getValidGeneratorForVersion(bestDimCandidates.head.dim.engine, queryGenVersion, Option(requestModel)).get.generate(dimOnlyContextBuilder.build())
   }
 
   private[this] def getMultiEngineDimQuery(bestDimCandidates: SortedSet[DimensionBundle],
@@ -648,7 +648,7 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
 
     require(queryGeneratorRegistry.isEngineRegistered(bestDimCandidates.head.dim.engine, Option(queryGenVersion))
       , s"Failed to find query generator for engine : ${bestDimCandidates.head.dim.engine}")
-    queryGeneratorRegistry.getGenerator(bestDimCandidates.head.dim.engine, Option(queryGenVersion)).get.generate(dimOnlyContextBuilder.build())
+    queryGeneratorRegistry.getValidGeneratorForVersion(bestDimCandidates.head.dim.engine, queryGenVersion, Option(requestModel)).get.generate(dimOnlyContextBuilder.build())
   }
 
   private[this] def getFactQuery(bestFactCandidate: FactBestCandidate, requestModel: => RequestModel, indexAlias: String, queryGenVersion: Version): Query = {
@@ -658,7 +658,7 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
       .addIndexAlias(indexAlias)
     require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine, Some(queryGenVersion))
       , s"Failed to find query generator for engine : ${bestFactCandidate.fact.engine}")
-    queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine, Option(queryGenVersion)).get.generate(factOnlyContextBuilder.build())
+    queryGeneratorRegistry.getValidGeneratorForVersion(bestFactCandidate.fact.engine, queryGenVersion, Option(requestModel)).get.generate(factOnlyContextBuilder.build())
   }
 
   private[this] def getDimFactQuery(bestDimCandidates: SortedSet[DimensionBundle],
@@ -679,7 +679,7 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
 
     require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine, Option(queryGenVersion))
       , s"No query generator registered for engine ${bestFactCandidate.fact.engine} for fact ${bestFactCandidate.fact.name}")
-    queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine, Option(queryGenVersion)).get.generate(dimFactContext)
+    queryGeneratorRegistry.getValidGeneratorForVersion(bestFactCandidate.fact.engine, queryGenVersion, Option(requestModel)).get.generate(dimFactContext)
   }
 
   private[this] def isOuterGroupByQuery(bestDimCandidates: SortedSet[DimensionBundle],
@@ -752,7 +752,7 @@ OuterGroupBy operation has to be applied only in the following cases
 
         require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine, Option(queryGenVersion))
           , s"No query generator registered for engine ${bestFactCandidate.fact.engine} for fact ${bestFactCandidate.fact.name}")
-        queryGeneratorRegistry.getGenerator(bestFactCandidate.fact.engine, Option(queryGenVersion)).get.generate(factContext)
+        queryGeneratorRegistry.getValidGeneratorForVersion(bestFactCandidate.fact.engine, queryGenVersion, Option(requestModel)).get.generate(factContext)
     }.toList
   }
 
@@ -980,7 +980,7 @@ OuterGroupBy operation has to be applied only in the following cases
       val factBestCandidateOption =
         requestModel.bestCandidates.map(_ => findBestFactCandidate(requestModel, forceDisqualifyEngine, dimEngines))
       val dimensionCandidates = findBestDimCandidates(requestModel, factBestCandidateOption.map(_.fact.engine).getOrElse(OracleEngine), dimensionCandidatesMapping).filter(db => {
-        val queryGenerator = queryGeneratorRegistry.getGenerator(db.dim.engine, None)
+        val queryGenerator = queryGeneratorRegistry.getDefaultGenerator(db.dim.engine)
         !queryGenerator.isDefined || queryGenerator.get.validateEngineConstraints(requestModel)
       })
       (factBestCandidateOption, dimensionCandidates)
