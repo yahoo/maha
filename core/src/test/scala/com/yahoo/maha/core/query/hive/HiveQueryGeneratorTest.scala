@@ -43,10 +43,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-
-
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-
   }
 
   test("generating hive query with custom rollups") {

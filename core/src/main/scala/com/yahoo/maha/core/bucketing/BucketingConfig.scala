@@ -91,8 +91,15 @@ case class QueryGenBucketingConfig(internalBucketPercentage:Map[Version,Int] = M
   val externalDistribution = new EnumeratedIntegerDistribution(externalBucketPercentage.keys.map(_.number).toArray,
     externalBucketPercentage.values.map(percentage => percentage.toDouble/100).toArray)
 
-  val dryRunDistribution = new EnumeratedIntegerDistribution(dryRunPercentage.keys.map(_.number).toArray,
-    dryRunPercentage.values.map(percentage => percentage.toDouble/100).toArray)
+  val dryRunDistribution: Option[EnumeratedIntegerDistribution] = {
+    try {
+      Some(new EnumeratedIntegerDistribution(dryRunPercentage.keys.map(_.number).toArray,
+        dryRunPercentage.values.map(percentage => percentage.toDouble/100).toArray))
+    } catch {
+      case e: MathArithmeticException => // All probabilities are 0
+        None
+    }
+  }
 
   def validate() = {
     val internalSum = internalBucketPercentage.values.sum
