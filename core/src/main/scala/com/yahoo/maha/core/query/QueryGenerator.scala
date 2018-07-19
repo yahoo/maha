@@ -5,6 +5,7 @@ package com.yahoo.maha.core.query
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact.FactBestCandidate
+import com.yahoo.maha.core.query.Version.{v0, v1, v2}
 
 import scala.collection.mutable
 
@@ -263,15 +264,20 @@ object QueryGeneratorHelper {
 sealed trait VersionNumber {
   def number: Int
 }
-case class Version private(number: Int) extends VersionNumber
+case class Version private(number: Int) extends VersionNumber {
+  require(Version.versions == null || !Version.versions.contains(number), s"Version $number already exists: ${Version.versions}")
+  Version.versions.+=((number, this))
+}
+
 object Version {
-  val v0: Version = new Version(0)
-  val v1: Version = new Version(1)
-  val v2: Version = new Version(2)
+  private val versions: mutable.Map[Int, Version] = new mutable.HashMap[Int, Version]()
+  val v0: Version = Version(0)
+  val v1: Version = Version(1)
+  val v2: Version = Version(2)
   val DEFAULT = v0
 
-  def apply(number: Int) : Version = {
-    new Version(number)
+  def from(number: Int) : Option[Version] = {
+    versions.get(number)
   }
 }
 

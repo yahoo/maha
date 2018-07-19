@@ -91,7 +91,7 @@ class BucketSelector(registry: Registry, bucketingConfig: BucketingConfig) exten
       } else if(qgenConfig.isDefined && qgenConfig.get.userWhiteList.contains(requestParams.userInfo.userId)) {
         queryGenVersion = qgenConfig.get.userWhiteList.get(requestParams.userInfo.userId).get
       } else if (qgenConfig.isDefined) {
-        queryGenVersion = selectVersion(qgenConfig, requestParams)
+        queryGenVersion = selectVersion(qgenConfig, requestParams).getOrElse(Version.DEFAULT)
       }
       dryRunQueryGenVersion = getDryRunVersion(qgenConfig, requestParams)
 
@@ -107,11 +107,11 @@ class BucketSelector(registry: Registry, bucketingConfig: BucketingConfig) exten
     }
   }
 
-  private def selectVersion(queryGenConfig: Option[QueryGenBucketingConfig], requestParams: BucketParams): Version = {
+  private def selectVersion(queryGenConfig: Option[QueryGenBucketingConfig], requestParams: BucketParams): Option[Version] = {
     if (requestParams.userInfo.isInternal) {
-      Version.apply(queryGenConfig.get.internalDistribution.sample())
+      Version.from(queryGenConfig.get.internalDistribution.sample())
     } else {
-      Version.apply(queryGenConfig.get.externalDistribution.sample())
+      Version.from(queryGenConfig.get.externalDistribution.sample())
     }
   }
 
