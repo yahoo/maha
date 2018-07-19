@@ -265,7 +265,7 @@ sealed trait VersionNumber {
   def number: Int
 }
 case class Version private(number: Int) extends VersionNumber {
-  require(Version.versions == null || !Version.versions.contains(number), s"Version $number already exists: ${Version.versions}")
+  require(!Version.versions.contains(number), s"Version $number already exists: ${Version.versions}")
   Version.versions.+=((number, this))
 }
 
