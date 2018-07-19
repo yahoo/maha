@@ -923,7 +923,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
       //override def query: Query = {q}
-    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty).get
+    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty, None)._1.get
       .withRowListFunction(q => new DimDrivenPartialRowList("Campaign ID", q) {
         (q)
       }).build()

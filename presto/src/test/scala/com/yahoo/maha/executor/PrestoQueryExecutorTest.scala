@@ -548,7 +548,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty).get.build()
+    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty, None)._1.get.build()
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
 
     val result = queryPipeline.execute(queryExecutorContext)
@@ -604,7 +604,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty).get.build()
+    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty, None)._1.get.build()
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
 
     val result = queryPipeline.execute(queryExecutorContext)
