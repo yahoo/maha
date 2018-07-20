@@ -3,6 +3,7 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
@@ -18,8 +19,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.rocksdb.RocksDB;
-import org.rocksdb.RocksDBException;
+import org.rocksdb.*;
 import org.zeroturnaround.zip.ZipUtil;
 
 import java.io.File;
@@ -28,9 +28,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.Properties;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -42,13 +40,16 @@ public class RocksDBManager {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEMPORARY_PATH = "/home/y/tmp/druid_lookups";
     private static final String ROCKSDB_LOCATION_PROP_NAME = "rocksdb.location";
+    private static final String ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME = "rocksdb.block_cache_size";
     private static final String SNAPSHOT_FILE_NAME = "/rocksDBSnapshot";
     private static final int UPLOAD_LOOKUP_AUDIT_MAX_RETRY = 3;
     private static final Random RANDOM = new Random();
     private static final int BOUND = 6 * 60 * 60 * 1000;
     private static final String STATS_KEY = "rocksdb.stats";
+    private static final int DEFAULT_BLOCK_CACHE_SIZE = 2 * 1024 * 1024 * 1024;
 
     private String rocksdbLocation;
+    private int blockCacheSize;
     private FileSystem fileSystem;
 
     @Inject
@@ -59,6 +60,8 @@ public class RocksDBManager {
     @Inject
     public RocksDBManager(@Named("rocksdbProperties") final Properties rocksdbProperties, Configuration config) throws IOException {
         this.rocksdbLocation = rocksdbProperties.getProperty(ROCKSDB_LOCATION_PROP_NAME, TEMPORARY_PATH);
+        this.blockCacheSize = Integer.parseInt(rocksdbProperties.getProperty(ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME, String.valueOf(DEFAULT_BLOCK_CACHE_SIZE)));
+        Preconditions.checkArgument(blockCacheSize > 0);
         this.fileSystem = FileSystem.get(config);
     }
 
@@ -214,7 +217,18 @@ public class RocksDBManager {
     }
 
     private RocksDB openRocksDB(String localPath) throws RocksDBException {
-        final RocksDB newDb = RocksDB.open(localPath);
+
+        String optionsFileName = OptionsUtil.getLatestOptionsFileName(localPath, Env.getDefault());
+
+        DBOptions dbOptions = new DBOptions();
+        List<ColumnFamilyDescriptor> columnFamilyDescriptors = new ArrayList<>();
+        OptionsUtil.loadOptionsFromFile(localPath + "/" + optionsFileName, Env.getDefault(), dbOptions, columnFamilyDescriptors);
+
+        Preconditions.checkArgument(columnFamilyDescriptors.size() > 0);
+        columnFamilyDescriptors.get(0).getOptions().optimizeForPointLookup(blockCacheSize).setMemTableConfig(new HashSkipListMemTableConfig());
+
+        List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
+        RocksDB newDb = RocksDB.open(dbOptions, localPath, columnFamilyDescriptors, columnFamilyHandles);
         LOG.info(newDb.getProperty(STATS_KEY));
         return newDb;
     }
