@@ -141,7 +141,9 @@ class QueryGenBucketingConfigBuilder {
   }
 
   def build(): QueryGenBucketingConfig = {
-    new QueryGenBucketingConfig(internalBucketPercentage.toMap, externalBucketPercentage.toMap, dryRunPercentage.toMap, userWhiteList.toMap)
+    val config = new QueryGenBucketingConfig(internalBucketPercentage.toMap, externalBucketPercentage.toMap, dryRunPercentage.toMap, userWhiteList.toMap)
+    config.validate()
+    config
   }
 }
 

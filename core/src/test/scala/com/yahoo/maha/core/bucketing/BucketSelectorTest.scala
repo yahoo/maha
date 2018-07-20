@@ -2,7 +2,8 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.bucketing
 
-import com.yahoo.maha.core.{DruidEngine, Engine, OracleEngine}
+import com.yahoo.maha.core.query.Version
+import com.yahoo.maha.core.{DruidEngine, Engine, HiveEngine, OracleEngine}
 import com.yahoo.maha.core.registry.Registry
 import org.mockito.Mockito._
 import org.scalatest.FunSuite
@@ -106,6 +107,74 @@ class BucketSelectorTest extends FunSuite {
     val bucketParams = new BucketParams(new UserInfo("test-user", false)) // isInternal = false
     val response = bucketSelector.selectBucketsForCube("test-cube",bucketParams)
     assert(response.get.revision==1)
+  }
+
+  test("QueryGenerator bucket selection should succeed") {
+    val bucketSelector = new BucketSelector(registry, TestBucketingConfigForQueryGenerator)
+    val bucketParams = new BucketParams(new UserInfo("test-user", false)) // isInternal = false
+    val response = bucketSelector.selectBucketsForQueryGen(HiveEngine, bucketParams)
+    assert(response.get.queryGenVersion.equals(Version.v1))
+    assert(response.get.dryRunQueryGenVersion.get.equals(Version.v1))
+  }
+
+  test("Version forced in bucketParams should be selected ") {
+    val bucketSelector = new BucketSelector(registry, TestEmptyBucketingConfigForQueryGenerator)
+    val bucketParams = new BucketParams(new UserInfo("test-user", false), forceQueryGenVersion = Option(Version.v2)) // isInternal = false
+    val response = bucketSelector.selectBucketsForQueryGen(HiveEngine, bucketParams)
+    assert(response.get.queryGenVersion.equals(Version.v2))
+    assert(response.get.dryRunQueryGenVersion.isEmpty)
+  }
+
+  test("Invalid internal bucketing configs should throw Exception") {
+    val bucketSelector = new BucketSelector(registry, TestInvalidBucketingConfigForQueryGenerator1)
+    val bucketParams = new BucketParams(new UserInfo("test-user", false), forceQueryGenVersion = Option(Version.v2)) // isInternal = false
+    val response = bucketSelector.selectBucketsForQueryGen(HiveEngine, bucketParams)
+    assert(response.isFailure, "Expected failure while using invalid bucketing config")
+    assert(response.failed.get.getMessage.contains("Total internal bucket percentage is not 100%"))
+  }
+
+  test("Invalid external bucketing configs should throw Exception") {
+    val bucketSelector = new BucketSelector(registry, TestInvalidBucketingConfigForQueryGenerator2)
+    val bucketParams = new BucketParams(new UserInfo("test-user", false), forceQueryGenVersion = Option(Version.v2)) // isInternal = false
+    val response = bucketSelector.selectBucketsForQueryGen(HiveEngine, bucketParams)
+    assert(response.isFailure, "Expected failure while using invalid bucketing config")
+    assert(response.failed.get.getMessage.contains("Total external bucket percentage is not 100%"))
+  }
+
+  object TestEmptyBucketingConfigForQueryGenerator extends BucketingConfig {
+    override def getConfigForCube(cube: String) = None
+    override def getConfigForQueryGen(engine: Engine) = None
+  }
+  object TestBucketingConfigForQueryGenerator extends BucketingConfig {
+    override def getConfigForCube(cube: String) = None
+    override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = {
+      Some(QueryGenBucketingConfig.builder()
+      .internalBucketPercentage(Map(Version.v1 -> 100))
+          .externalBucketPercentage(Map(Version.v1 -> 100))
+          .dryRunPercentage(Map(Version.v1 -> 100))
+          .build())
+    }
+  }
+  object TestInvalidBucketingConfigForQueryGenerator1 extends BucketingConfig {
+    override def getConfigForCube(cube: String) = None
+    override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = {
+      Some(QueryGenBucketingConfig.builder()
+        .internalBucketPercentage(Map(Version.v1 -> 20))
+        .externalBucketPercentage(Map(Version.v1 -> 100))
+        .dryRunPercentage(Map(Version.v1 -> 100))
+        .build())
+    }
+  }
+
+  object TestInvalidBucketingConfigForQueryGenerator2 extends BucketingConfig {
+    override def getConfigForCube(cube: String) = None
+    override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = {
+      Some(QueryGenBucketingConfig.builder()
+        .internalBucketPercentage(Map(Version.v1 -> 100))
+        .externalBucketPercentage(Map(Version.v1 -> 10))
+        .dryRunPercentage(Map(Version.v1 -> 100))
+        .build())
+    }
   }
 
   object TestBucketingConfig extends BucketingConfig {
