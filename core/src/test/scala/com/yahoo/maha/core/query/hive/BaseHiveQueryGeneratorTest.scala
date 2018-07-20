@@ -356,6 +356,7 @@ trait BaseHiveQueryGeneratorTest
           , DimCol("start_time", IntType())
           , DimCol("stats_date", DateType("YYYY-MM-dd"))
           , DimCol("show_flag", IntType())
+          , DimCol("max_show_flag", IntType())
           , HiveDerDimCol("Month", DateType(), TEST_DATE_UDF("{stats_date}", "M"))
           , HiveDerDimCol("Week", DateType(), TEST_DATE_UDF("{stats_date}", "W"))
         ),
@@ -392,6 +393,7 @@ trait BaseHiveQueryGeneratorTest
           PubCol("advertiser_id", "Advertiser ID", InEquality),
           PubCol("restaurant_id", "Restaurant ID", InEquality),
           PubCol("stats_source", "Source", Equality),
+          PubCol("max_show_flag", "Max Show Flag", Equality),
           PubCol("price_type", "Pricing Type", In),
           PubCol("Month", "Month", Equality),
           PubCol("Week", "Week", Equality)

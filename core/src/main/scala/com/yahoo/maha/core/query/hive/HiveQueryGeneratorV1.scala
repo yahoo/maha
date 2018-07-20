@@ -332,7 +332,7 @@ class HiveQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, udfS
     )
   }
 
-  private[this] def generateQuery(queryContext: CombinedQueryContext) : Query = {
+  def generateQuery(queryContext: CombinedQueryContext) : Query = {
 
     //init vars
     val queryBuilderContext = new QueryBuilderContext
@@ -510,16 +510,17 @@ class HiveQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, udfS
 
 object HiveQueryGeneratorV1 extends Logging {
   val ANY_PARTITIONING_SCHEME = HivePartitioningScheme("") //no name needed since class name hashcode
+  val version = Version.v1
 
   def register(queryGeneratorRegistry: QueryGeneratorRegistry, partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) = {
-    if(!queryGeneratorRegistry.isEngineRegistered(HiveEngine, Option(Version.v1))) {
+    if(!queryGeneratorRegistry.isEngineRegistered(HiveEngine, Option(this.version))) {
       val generator = new HiveQueryGeneratorV1(partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements)
-      queryGeneratorRegistry.register(HiveEngine, generator, Version.v1)
+      queryGeneratorRegistry.register(HiveEngine, generator, version)
     } else {
-      queryGeneratorRegistry.getValidGeneratorForVersion(HiveEngine, Version.v1, None).foreach {
+      queryGeneratorRegistry.getValidGeneratorForVersion(HiveEngine, version, None).foreach {
         qg =>
-          if(!qg.isInstanceOf[HiveQueryGenerator]) {
-            warn(s"Another query generator registered for HiveEngine : ${qg.getClass.getCanonicalName} and version: ${Version.v1}")
+          if(!qg.isInstanceOf[HiveQueryGeneratorV1]) {
+            throw new IllegalArgumentException(s"Another query generator registered for HiveEngine : ${qg.getClass.getName} and version: ${Version.v1}")
           }
       }
     }

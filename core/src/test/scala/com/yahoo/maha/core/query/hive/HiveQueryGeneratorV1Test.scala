@@ -8,6 +8,8 @@ import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.query.{QueryGeneratorRegistry, _}
 import com.yahoo.maha.core.request.ReportingRequest
+import org.mockito.Mockito._
+import org.mockito.Matchers._
 
 import scala.util.Try
 
@@ -29,8 +31,29 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
       val queryGeneratorRegistryTest = new QueryGeneratorRegistry
       queryGeneratorRegistryTest.register(HiveEngine, dummyQueryGenerator)
       HiveQueryGeneratorV1.register(queryGeneratorRegistryTest, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
+    }
+  }
 
-      queryGeneratorRegistry.register(HiveEngine, dummyQueryGenerator)
+  test("test register with query generator for a different engine") {
+    intercept[IllegalArgumentException] {
+      val queryGeneratorRegistryTest = new QueryGeneratorRegistry
+      val dummyOracleQueryGenerator = new QueryGenerator[WithOracleEngine] {
+        override def generate(queryContext: QueryContext): Query = {
+          null
+        }
+
+        override def engine: Engine = OracleEngine
+      }
+      queryGeneratorRegistryTest.register(HiveEngine, dummyOracleQueryGenerator, Version.v1)
+      HiveQueryGeneratorV1.register(queryGeneratorRegistryTest, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
+    }
+  }
+
+  test("Invalid query context") {
+    intercept[UnsupportedOperationException] {
+      val hiveQueryGeneratorV1 = new HiveQueryGeneratorV1(DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
+      val queryContext = mock(classOf[QueryContext])
+      hiveQueryGeneratorV1.generate(queryContext)
     }
   }
 
@@ -595,6 +618,18 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |)
       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("fact only query context should be switched to CombinedQueryContext") {
+    val hiveQueryGeneratorV1  = spy(new HiveQueryGeneratorV1(DefaultPartitionColumnRenderer, TestUDFRegistrationFactory()))
+    val queryContext = mock(classOf[FactQueryContext])
+    try {
+      hiveQueryGeneratorV1.generate(queryContext)
+    } catch {
+      case e: Exception => // Ignore
+    }
+
+    verify(hiveQueryGeneratorV1).generateQuery(any(classOf[CombinedQueryContext]))
   }
 
   test("Duplicate registration of the generator") {
