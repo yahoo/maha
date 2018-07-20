@@ -6,8 +6,8 @@ import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
-import com.yahoo.maha.core.dimension._
-import com.yahoo.maha.core.fact._
+import com.yahoo.maha.core.dimension.{PubCol, _}
+import com.yahoo.maha.core.fact.{PublicFactCol, _}
 import com.yahoo.maha.core.lookup.LongRangeLookup
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.registry.RegistryBuilder
@@ -65,6 +65,7 @@ trait BaseHiveQueryGeneratorTest
           , FactCol("clicks", IntType(3, 0, 1, 800))
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
+          , HiveDerFactCol("max_price_type", IntType(), "{price_type}", rollupExpression = MaxRollup)
           , HiveDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}", rollupExpression = NoopRollup)
           , HiveDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100", rollupExpression = NoopRollup)
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), HiveCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
@@ -98,7 +99,8 @@ trait BaseHiveQueryGeneratorTest
           PublicFactCol("avg_pos", "Average Position", Set.empty),
           PublicFactCol("max_bid", "Max Bid", Set.empty),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
-          PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality)
+          PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
+          PublicFactCol("max_price_type", "Max Price Type", Equality)
         ),
         Set(),
         getMaxDaysWindow, getMaxDaysLookBack
@@ -356,7 +358,6 @@ trait BaseHiveQueryGeneratorTest
           , DimCol("start_time", IntType())
           , DimCol("stats_date", DateType("YYYY-MM-dd"))
           , DimCol("show_flag", IntType())
-          , DimCol("max_show_flag", IntType())
           , HiveDerDimCol("Month", DateType(), TEST_DATE_UDF("{stats_date}", "M"))
           , HiveDerDimCol("Week", DateType(), TEST_DATE_UDF("{stats_date}", "W"))
         ),
@@ -393,7 +394,6 @@ trait BaseHiveQueryGeneratorTest
           PubCol("advertiser_id", "Advertiser ID", InEquality),
           PubCol("restaurant_id", "Restaurant ID", InEquality),
           PubCol("stats_source", "Source", Equality),
-          PubCol("max_show_flag", "Max Show Flag", Equality),
           PubCol("price_type", "Pricing Type", In),
           PubCol("Month", "Month", Equality),
           PubCol("Week", "Week", Equality)

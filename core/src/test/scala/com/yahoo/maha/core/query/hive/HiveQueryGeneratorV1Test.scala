@@ -29,7 +29,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
       }
 
       val queryGeneratorRegistryTest = new QueryGeneratorRegistry
-      queryGeneratorRegistryTest.register(HiveEngine, dummyQueryGenerator)
+      queryGeneratorRegistryTest.register(HiveEngine, dummyQueryGenerator, Version.v1)
       HiveQueryGeneratorV1.register(queryGeneratorRegistryTest, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
     }
   }
@@ -571,6 +571,32 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |)
       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Query containing fields with MAX rollup should generate successfully") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Device ID"},
+                              {"field": "Campaign Name"},
+                              {"field": "Impressions"},
+                              {"field": "Pricing Type"},
+                              {"field": "Max Price Type"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, "Querypipeline containing fields with MAX rollup should generate successfully")
   }
 
   test("where clause: ensure duplicate filter mappings are not propagated into the where clause") {
