@@ -429,7 +429,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
   }
 
   private[this] def pubfact_minute_grain(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
-    factBuilder3(Set(DruidGroupByStrategyV1))
+    factBuilder3(Set(DruidGroupByStrategyV1, DruidQueryPriority(-1)))
       .toPublicFact("k_stats_minute_grain",
         Set(
           PubCol("Day", "Day", InBetweenEquality),
