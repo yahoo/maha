@@ -8,6 +8,8 @@ public class MonitoringConstants {
     public static final String MAHA_LOOKUP_ROCKSDB_OPEN_FAILURE = "maha_lookup/rocksdb_open_failure";
     public static final String MAHA_LOOKUP_UPDATE_CACHE_SUCESS = "maha_lookup/update_cache_sucess";
     public static final String MAHA_LOOKUP_UPDATE_CACHE_FAILURE = "maha_lookup/update_cache_failure";
+    public static final String MAHA_LOOKUP_PUBLISH_MISSING_LOOKUP_SUCESS = "maha_lookup/publish_missing_lookup_sucess";
+    public static final String MAHA_LOOKUP_PUBLISH_MISSING_LOOKUP_FAILURE = "maha_lookup/publish_missing_lookup_failure";
     public static final String MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE = "maha_lookup/get_cache_value_failure";
     public static final String MAHA_LOOKUP_GET_CACHE_SIZE_FAILURE = "maha_lookup/get_cache_size_failure";
     public static final String MAHA_LOOKUP_GET_CACHE_VALUE_SUCESS = "maha_lookup/get_cache_value_sucess";

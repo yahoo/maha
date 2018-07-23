@@ -50,7 +50,7 @@ public class RocksDBManager {
     private static final long DEFAULT_BLOCK_CACHE_SIZE = (long)2 * 1024 * 1024 * 1024;
 
     private String rocksdbLocation;
-    private int blockCacheSize;
+    private long blockCacheSize;
     private FileSystem fileSystem;
 
     @Inject
@@ -61,7 +61,7 @@ public class RocksDBManager {
     @Inject
     public RocksDBManager(@Named("rocksdbProperties") final Properties rocksdbProperties, Configuration config) throws IOException {
         this.rocksdbLocation = rocksdbProperties.getProperty(ROCKSDB_LOCATION_PROP_NAME, TEMPORARY_PATH);
-        this.blockCacheSize = Integer.parseInt(rocksdbProperties.getProperty(ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME, String.valueOf(DEFAULT_BLOCK_CACHE_SIZE)));
+        this.blockCacheSize = Long.parseLong(rocksdbProperties.getProperty(ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME, String.valueOf(DEFAULT_BLOCK_CACHE_SIZE)));
         Preconditions.checkArgument(blockCacheSize > 0);
         this.fileSystem = FileSystem.get(config);
     }
