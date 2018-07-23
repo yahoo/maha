@@ -71,7 +71,7 @@ class BucketSelector(registry: Registry, bucketingConfig: BucketingConfig) exten
         dryRunEngine = dryRunBucket._2
       }
 
-      info(s"Buckets Selected: revision: $revision, dryRunRevision: $dryRunRevision dryrunEngine: $dryRunEngine")
+      info(s"Buckets Selected: cube: $cube, revision: $revision, dryRunRevision: $dryRunRevision dryrunEngine: $dryRunEngine")
       new CubeBucketSelected(revision, dryRunRevision, dryRunEngine)
     }
   }
@@ -95,6 +95,7 @@ class BucketSelector(registry: Registry, bucketingConfig: BucketingConfig) exten
       }
       dryRunQueryGenVersion = getDryRunVersion(qgenConfig, requestParams)
 
+      info(s"Buckets Selected: engine: $engine, queryGenVersion: $queryGenVersion, dryRunQueryGenVersion: $dryRunQueryGenVersion")
       new QueryGenBucketSelected(queryGenVersion, dryRunQueryGenVersion)
     }
   }
