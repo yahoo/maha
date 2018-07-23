@@ -47,7 +47,7 @@ public class RocksDBManager {
     private static final Random RANDOM = new Random();
     private static final int BOUND = 6 * 60 * 60 * 1000;
     private static final String STATS_KEY = "rocksdb.stats";
-    private static final int DEFAULT_BLOCK_CACHE_SIZE = 2 * 1024 * 1024 * 1024;
+    private static final long DEFAULT_BLOCK_CACHE_SIZE = (long)2 * 1024 * 1024 * 1024;
 
     private String rocksdbLocation;
     private int blockCacheSize;
