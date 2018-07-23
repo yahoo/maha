@@ -4,6 +4,7 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
@@ -38,7 +39,7 @@ public class RocksDBManager {
     private static final Logger LOG = new Logger(RocksDBManager.class);
     private static final ConcurrentMap<String, RocksDBSnapshot> rocksDBSnapshotMap = new ConcurrentHashMap<>();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final String TEMPORARY_PATH = "/home/y/tmp/druid_lookups";
+    private static final String TEMPORARY_PATH = StandardSystemProperty.JAVA_IO_TMPDIR.value();
     private static final String ROCKSDB_LOCATION_PROP_NAME = "rocksdb.location";
     private static final String ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME = "rocksdb.block_cache_size";
     private static final String SNAPSHOT_FILE_NAME = "/rocksDBSnapshot";
