@@ -415,7 +415,7 @@ public abstract class MahaExtractionCacheManager<U>
         if(extractionNamespace instanceof JDBCExtractionNamespace) {
             return new JDBCLookupExtractor((JDBCExtractionNamespace)extractionNamespace, map, lookupService);
         } else if(extractionNamespace instanceof InMemoryDBExtractionNamespace) {
-            return new InMemoryDBLookupExtractor((InMemoryDBExtractionNamespace) extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory);
+            return new InMemoryDBLookupExtractor((InMemoryDBExtractionNamespace) extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory, serviceEmitter);
         } else {
 //            return new MapLookupExtractor(map, false);
             return null;

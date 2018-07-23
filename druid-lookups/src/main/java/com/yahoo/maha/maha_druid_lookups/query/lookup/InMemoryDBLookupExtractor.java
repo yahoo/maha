@@ -17,9 +17,12 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
 import com.metamx.common.logger.Logger;
+import com.metamx.emitter.service.ServiceEmitter;
+import com.metamx.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.KafkaManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.MonitoringConstants;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import io.druid.query.lookup.LookupExtractor;
@@ -45,18 +48,20 @@ public class InMemoryDBLookupExtractor<U> extends LookupExtractor
     private LookupService lookupService;
     private ProtobufSchemaFactory protobufSchemaFactory;
     private KafkaManager kafkaManager;
+    private ServiceEmitter serviceEmitter;
     private Cache<String, byte[]> missingLookupCache;
     private final byte[] extractionNamespaceAsByteArray;
 
     public InMemoryDBLookupExtractor(InMemoryDBExtractionNamespace extractionNamespace, Map<String, U> map,
                                      LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
-                                     ProtobufSchemaFactory protobufSchemaFactory) {
+                                     ProtobufSchemaFactory protobufSchemaFactory, ServiceEmitter serviceEmitter) {
         this.extractionNamespace = extractionNamespace;
         this.map = Preconditions.checkNotNull(map, "map");
         this.rocksDBManager = rocksDBManager;
         this.kafkaManager = kafkaManager;
         this.lookupService = lookupService;
         this.protobufSchemaFactory = protobufSchemaFactory;
+        this.serviceEmitter = serviceEmitter;
         this.missingLookupCache = Caffeine
                 .newBuilder()
                 .maximumSize(10_000)
@@ -116,6 +121,7 @@ public class InMemoryDBLookupExtractor<U> extends LookupExtractor
                                 extractionNamespace.getMissingLookupConfig().getMissingLookupKafkaTopic(),
                                 dimension);
                         missingLookupCache.put(dimension, extractionNamespaceAsByteArray);
+                        serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_PUBLISH_MISSING_LOOKUP_SUCESS, 1));
                     }
                     return null;
                 }
