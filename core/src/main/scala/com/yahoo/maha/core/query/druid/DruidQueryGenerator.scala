@@ -100,6 +100,11 @@ class SyncDruidQueryOptimizer(maxSingleThreadedDimCardinality: Long = DruidQuery
     queryContext.factBestCandidate.fact.annotations.foreach {
       case DruidQueryPriority(priority) =>
         context.put(QUERY_PRIORITY, priority.asInstanceOf[AnyRef])
+        if(priority == ASYNC_QUERY_PRIORITY) {
+          if(!queryContext.factBestCandidate.isGrainOptimized || !queryContext.factBestCandidate.isIndexOptimized) {
+            context.put(GROUP_BY_IS_SINGLE_THREADED, java.lang.Boolean.FALSE.asInstanceOf[AnyRef])
+          }
+        }
       case DruidGroupByStrategyV2 =>
         context.put(GROUP_BY_STRATEGY, "v2")
       case DruidGroupByStrategyV1 =>

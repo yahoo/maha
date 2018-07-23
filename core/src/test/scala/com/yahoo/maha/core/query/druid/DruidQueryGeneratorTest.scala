@@ -1628,6 +1628,48 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(result.contains(expectectDimensionsJson), s"$expectectDimensionsJson \n\n not found in \n\n $result")
   }
 
+  test("successfully generate query with sync group by single threaded optimization for non grain or index optimized request") {
+    val fromMinute = "00"
+    val toMinute = "60"
+
+    val jsonString = s"""{
+                          "cube": "k_stats_minute_grain",
+                          "selectFields": [
+                            {"field": "Week"},
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Source"},
+                            {"field": "Clicks"},
+                            {"field": "CTR"},
+                            {"field": "Reblogs"},
+                            {"field": "Reblog Rate"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$toDateMinusOne", "to": "$toDate"},
+                            {"field": "Hour", "operator": "between", "from": "02", "to": "05"},
+                            {"field": "Minute", "operator": "between", "from": "59", "to": "03"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    assert(requestModel.isSuccess, requestModel.errorMessage("Failed to get request model"))
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+
+    val expectedJson = """"groupByIsSingleThreaded":false"""
+
+    assert(result.contains(expectedJson), s"$expectedJson \n\n not found in \n\n $result")
+  }
+
   test("Duplicate registration of the generator") {
     val failRegistry = new QueryGeneratorRegistry
     val dummyOracleQueryGenerator = new QueryGenerator[WithOracleEngine] {
