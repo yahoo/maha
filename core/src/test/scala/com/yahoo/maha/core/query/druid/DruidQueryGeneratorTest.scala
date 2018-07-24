@@ -1475,6 +1475,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(result.contains(json_hour_filter), result)
 
     assert(result.contains(""""groupByStrategy":"v1""""), result)
+    assert(result.contains(""""groupByIsSingleThreaded":false"""), result)
 
   }
 

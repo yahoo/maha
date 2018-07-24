@@ -389,7 +389,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
   }
 
   private[this] def pubfact_start_time(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
-    factBuilder2(Set(DruidGroupByStrategyV1))
+    factBuilder2(Set(DruidGroupByStrategyV1,DruidGroupByIsSingleThreaded(false)))
       .toPublicFact("k_stats_start_time",
         Set(
           PubCol("Day", "Day", InBetweenEquality),

@@ -41,6 +41,7 @@ case class PrestoPartitioningScheme(schemeName:String) extends PartitioningSchem
 case class DruidQueryPriority(priority: Int) extends FactAnnotationInstance with WithDruidEngine
 case object DruidGroupByStrategyV1 extends FactAnnotationInstance with WithDruidEngine
 case object DruidGroupByStrategyV2 extends FactAnnotationInstance with WithDruidEngine
+case class DruidGroupByIsSingleThreaded(isSingleThreaded: Boolean) extends FactAnnotationInstance with WithDruidEngine
 
 sealed trait QueryCondition {
   def eval(query: QueryContext): Boolean

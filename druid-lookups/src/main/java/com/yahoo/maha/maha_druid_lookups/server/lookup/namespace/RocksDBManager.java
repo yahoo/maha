@@ -58,6 +58,10 @@ public class RocksDBManager {
     @Inject
     ServiceEmitter serviceEmitter;
 
+    static {
+        RocksDB.loadLibrary();
+    }
+
     @Inject
     public RocksDBManager(@Named("rocksdbProperties") final Properties rocksdbProperties, Configuration config) throws IOException {
         this.rocksdbLocation = rocksdbProperties.getProperty(ROCKSDB_LOCATION_PROP_NAME, TEMPORARY_PATH);
