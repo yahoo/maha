@@ -231,7 +231,7 @@ public class RocksDBManager {
 
         Preconditions.checkArgument(columnFamilyDescriptors.size() > 0);
         columnFamilyDescriptors.get(0).getOptions().optimizeForPointLookup(blockCacheSize).setMemTableConfig(new HashSkipListMemTableConfig());
-        dbOptions.setWalDir(localPath);
+        dbOptions.setWalDir(localPath).setAllowConcurrentMemtableWrite(false);
 
         List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
         RocksDB newDb = RocksDB.open(dbOptions, localPath, columnFamilyDescriptors, columnFamilyHandles);
