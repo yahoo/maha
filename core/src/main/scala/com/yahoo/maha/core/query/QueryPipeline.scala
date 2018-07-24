@@ -394,6 +394,8 @@ trait QueryPipelineFactory {
 
   def fromBucketSelector(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]]
 
+  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes): Try[QueryPipelineBuilder]
+
   def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: Option[BucketSelector]): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]]
 
   def builder(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]]
@@ -795,6 +797,9 @@ OuterGroupBy operation has to be applied only in the following cases
     (queryPipelineTryDefault._1, queryPipelineTryDefault._2, queryPipelineTryDryRun)
   }
 
+  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes): Try[QueryPipelineBuilder] = {
+    builder(requestModel, queryAttributes, None)._1
+  }
 
   def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: Option[BucketSelector]): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]] = {
     def requestDebug(msg: => String): Unit = {
