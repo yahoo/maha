@@ -90,13 +90,6 @@ class SyncDruidQueryOptimizer(maxSingleThreadedDimCardinality: Long = DruidQuery
   }
 
   def optimize(queryContext: FactQueryContext, context: java.util.Map[String, AnyRef]): Unit = {
-    val dimCardinalityEstimate: Long = queryContext.requestModel.dimCardinalityEstimate.getOrElse(queryContext.factBestCandidate.fact.defaultCardinality.toLong)
-    val groupBySingleThreadedBoolean = groupByIsSingleThreaded(dimCardinalityEstimate)
-    context.put(GROUP_BY_IS_SINGLE_THREADED, groupBySingleThreadedBoolean.asInstanceOf[AnyRef])
-    if(!groupBySingleThreadedBoolean) {
-      chunkPeriod(queryContext).foreach(p => context.put(CHUNK_PERIOD, p))
-    }
-    context.put(TIMEOUT, timeout.asInstanceOf[AnyRef])
     queryContext.factBestCandidate.fact.annotations.foreach {
       case DruidQueryPriority(priority) =>
         context.put(QUERY_PRIORITY, priority.asInstanceOf[AnyRef])
@@ -109,9 +102,24 @@ class SyncDruidQueryOptimizer(maxSingleThreadedDimCardinality: Long = DruidQuery
         context.put(GROUP_BY_STRATEGY, "v2")
       case DruidGroupByStrategyV1 =>
         context.put(GROUP_BY_STRATEGY, "v1")
+      case DruidGroupByIsSingleThreaded(isSingleThreaded) =>
+        context.put(GROUP_BY_IS_SINGLE_THREADED, isSingleThreaded.asInstanceOf[AnyRef])
+        if(!isSingleThreaded) {
+          chunkPeriod(queryContext).foreach(p => context.put(CHUNK_PERIOD, p))
+        }
       case _ => //do nothing
     }
 
+    if(!context.containsKey(GROUP_BY_IS_SINGLE_THREADED)){
+      val dimCardinalityEstimate: Long = queryContext.requestModel.dimCardinalityEstimate.getOrElse(queryContext.factBestCandidate.fact.defaultCardinality.toLong)
+      val groupBySingleThreadedBoolean = groupByIsSingleThreaded(dimCardinalityEstimate)
+      context.put(GROUP_BY_IS_SINGLE_THREADED, groupBySingleThreadedBoolean.asInstanceOf[AnyRef])
+      if(!groupBySingleThreadedBoolean) {
+        chunkPeriod(queryContext).foreach(p => context.put(CHUNK_PERIOD, p))
+      }
+    }
+
+    context.put(TIMEOUT, timeout.asInstanceOf[AnyRef])
     context.put(UNCOVERED_INTERVALS_LIMIT, UNCOVERED_INTERVALS_LIMIT_VALUE)
     context.put(APPLY_LIMIT_PUSH_DOWN, "false")
   }
