@@ -242,7 +242,7 @@ object DefaultBucketingConfigFactory {
         }.sequence[MahaServiceConfig.MahaConfigResult, (String, CubeBucketingConfig)]
         builtConfig.map {
           builtConfigList =>
-            new DefaultBucketingConfig(builtConfigList.toMap)
+            new DefaultBucketingConfig(builtConfigList.toMap, Map.empty) // TODO: Create QueryGenBucketingConfig map
         }
     }
   }

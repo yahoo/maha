@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
-import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelected, BucketSelector}
+import com.yahoo.maha.core.bucketing.{BucketParams, CubeBucketSelected, BucketSelector}
 import com.yahoo.maha.core.dimension.PublicDimension
 import com.yahoo.maha.core.fact.{BestCandidates, PublicFactCol}
 import com.yahoo.maha.core.registry.{FactRowsCostEstimate, Registry}
@@ -1109,9 +1109,9 @@ case class RequestModelResult(model: RequestModel, dryRunModelTry: Option[Try[Re
 object RequestModelFactory extends Logging {
   // If no revision is specified, return a Tuple of RequestModels 1-To serve the response 2-Optional dryrun to test new fact revisions
   def fromBucketSelector(request: ReportingRequest, bucketParams: BucketParams, registry: Registry, bucketSelector: BucketSelector, utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider) : Try[RequestModelResult] = {
-    val selectedBucketsTry: Try[BucketSelected] = bucketSelector.selectBuckets(request.cube, bucketParams)
+    val selectedBucketsTry: Try[CubeBucketSelected] = bucketSelector.selectBucketsForCube(request.cube, bucketParams)
     selectedBucketsTry match {
-      case Success(buckets: BucketSelected) =>
+      case Success(buckets: CubeBucketSelected) =>
         for {
           defaultRequestModel <- RequestModel.from(request, registry, utcTimeProvider, Some(buckets.revision))
         } yield {

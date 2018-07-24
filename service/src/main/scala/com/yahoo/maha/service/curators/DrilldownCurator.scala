@@ -3,7 +3,7 @@
 package com.yahoo.maha.service.curators
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelected, BucketSelector}
+import com.yahoo.maha.core.bucketing.{BucketParams, CubeBucketSelected, BucketSelector}
 import com.yahoo.maha.core.fact.PublicFact
 import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.request.{CuratorJsonConfig, Field, ReportingRequest}
@@ -213,7 +213,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
       val selectedRevisionTry = Try(registryConfig.registry.defaultPublicFactRevisionMap(drilldownConfig.cube))
 
       val selectedRevision: Option[Int] = if(selectedRevisionTry.isFailure){
-        val bucketSelectedTry : Try[BucketSelected] = selector.selectBuckets(
+        val bucketSelectedTry : Try[CubeBucketSelected] = selector.selectBucketsForCube(
           drilldownConfig.cube
           , context.bucketParams.copy(forceRevision = None)
         )

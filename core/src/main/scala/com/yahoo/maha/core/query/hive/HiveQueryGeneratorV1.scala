@@ -4,17 +4,16 @@ package com.yahoo.maha.core.query.hive
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
-import com.yahoo.maha.core.fact.{DerivedFactColumn, _}
+import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
 
-import scala.collection.mutable.LinkedHashSet
 import scala.collection.{SortedSet, mutable}
 
 /**
  * Created by shengyao on 12/16/15.
  */
-class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends HiveQueryGeneratorCommon(partitionColumnRenderer, udfStatements) {
+class HiveQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends HiveQueryGeneratorCommon(partitionColumnRenderer, udfStatements) {
 
   override val engine: Engine = HiveEngine
   override def generate(queryContext: QueryContext): Query = {
@@ -24,8 +23,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
       case FactQueryContext(factBestCandidate, model, indexAliasOption, attributes) =>
         generateQuery(CombinedQueryContext(SortedSet.empty, factBestCandidate, model, attributes))
       case DimFactOuterGroupByQueryQueryContext(dims, factBestCandidate, model, attributes) =>
-        generateQuery(CombinedQueryContext(dims, factBestCandidate, model, attributes))
-        //generateOuterGroupByQuery(CombinedQueryContext(dims, factBestCandidate, model, attributes))
+        generateOuterGroupByQuery(CombinedQueryContext(dims, factBestCandidate, model, attributes))
       case any => throw new UnsupportedOperationException(s"query context not supported : $any")
     }
   }
@@ -34,7 +32,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
     requestModel.orFilterMeta.isEmpty
   }
 
- /* private[this] def generateOuterGroupByQuery(queryContext: CombinedQueryContext) : Query = {
+ private[this] def generateOuterGroupByQuery(queryContext: CombinedQueryContext) : Query = {
 
     val queryBuilderContext = new QueryBuilderContext
     val queryBuilder: QueryBuilder = new QueryBuilder(
@@ -46,7 +44,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
     val factViewAlias = queryBuilderContext.getAliasForTable(fact.name)
     val requestedCols = queryContext.requestModel.requestCols
     val columnAliasToColMap = new mutable.HashMap[String, Column]()
-    val columnNamesInOuterGroupBy: LinkedHashSet[String] = new mutable.LinkedHashSet[String]
+    val columnNamesInOuterGroupBy: mutable.LinkedHashSet[String] = new mutable.LinkedHashSet[String]
     val outerGroupByAlias = "outergroupby"
 
     def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], factCandidate: FactBestCandidate): String = {
@@ -137,8 +135,8 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
     }
 
     def generateOuterGroupByColumns: (String, String) = {
-      val columnsForGroupBySelect: LinkedHashSet[String] = new mutable.LinkedHashSet[String]
-      val columnsForGroupBy: LinkedHashSet[String] = new mutable.LinkedHashSet[String]
+      val columnsForGroupBySelect: mutable.LinkedHashSet[String] = new mutable.LinkedHashSet[String]
+      val columnsForGroupBy: mutable.LinkedHashSet[String] = new mutable.LinkedHashSet[String]
 
       def addDimGroupByColumns(colNameOrAlias: String, isFromFact: Boolean, queryBuilderContext: QueryBuilderContext) = {
         val referredAlias = {
@@ -333,9 +331,8 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
       IndexedSeq.empty
     )
   }
-*/
 
-  private[this] def generateQuery(queryContext: CombinedQueryContext) : Query = {
+  def generateQuery(queryContext: CombinedQueryContext) : Query = {
 
     //init vars
     val queryBuilderContext = new QueryBuilderContext
@@ -501,7 +498,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
 
     new HiveQuery(
       queryContext,
-      parameterizedQuery, 
+      parameterizedQuery,
       Option(udfStatements),
       paramBuilder.build(),
       queryContext.requestModel.requestCols.map(_.alias),
@@ -511,18 +508,19 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
   }
 }
 
-object HiveQueryGenerator extends Logging {
+object HiveQueryGeneratorV1 extends Logging {
   val ANY_PARTITIONING_SCHEME = HivePartitioningScheme("") //no name needed since class name hashcode
+  val version = Version.v1
 
   def register(queryGeneratorRegistry: QueryGeneratorRegistry, partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) = {
-    if(!queryGeneratorRegistry.isEngineRegistered(HiveEngine, Option(Version.DEFAULT))) {
-      val generator = new HiveQueryGenerator(partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements)
-      queryGeneratorRegistry.register(HiveEngine, generator)
+    if(!queryGeneratorRegistry.isEngineRegistered(HiveEngine, Option(this.version))) {
+      val generator = new HiveQueryGeneratorV1(partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements)
+      queryGeneratorRegistry.register(HiveEngine, generator, version)
     } else {
-      queryGeneratorRegistry.getDefaultGenerator(HiveEngine).foreach {
+      queryGeneratorRegistry.getValidGeneratorForVersion(HiveEngine, version, None).foreach {
         qg =>
-          if(!qg.isInstanceOf[HiveQueryGenerator]) {
-            warn(s"Another query generator registered for HiveEngine : ${qg.getClass.getCanonicalName}")
+          if(!qg.isInstanceOf[HiveQueryGeneratorV1]) {
+            throw new IllegalArgumentException(s"Another query generator registered for HiveEngine : ${qg.getClass.getName} and version: ${Version.v1}")
           }
       }
     }
