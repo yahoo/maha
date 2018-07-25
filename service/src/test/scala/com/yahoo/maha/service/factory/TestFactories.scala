@@ -14,7 +14,7 @@ import scala.collection.mutable
  * Created by pranavbhole on 25/04/18.
  */
 class TestFactEstimator extends FactCostEstimator {
-  override protected def isGrainKey(grainKey: String): Boolean = true
+  override def isGrainKey(grainKey: String): Boolean = true
 
   override def getRowsEstimate(grainKey: String, request: ReportingRequest, filters: mutable.Map[String, Filter], defaultRowCount: Long): RowsEstimate =
     if(request.isDebugEnabled) {

@@ -12,7 +12,7 @@ import com.yahoo.maha.core.request.ReportingRequest
 case class DimCostMetrics(averageCardinality7Day: Int, cardinality1Day: Int)
 case class RowsEstimate(rows: Long, isGrainOptimized: Boolean)
 trait FactCostEstimator {
-  protected def isGrainKey(grainKey: String): Boolean
+  def isGrainKey(grainKey: String): Boolean
   def getRowsEstimate(grainKey:String, request: ReportingRequest,filters: scala.collection.mutable.Map[String, Filter], defaultRowCount:Long): RowsEstimate
   def getCostEstimate(rowsEstimate: RowsEstimate, rowCostMultiplierOption: Option[CostMultiplier]) : Long = {
     val cost = for {
@@ -32,7 +32,7 @@ class DefaultDimEstimator extends DimCostEstimator {
 }
 
 class DefaultFactEstimator(grainKeySet: Set[String] = Set.empty) extends FactCostEstimator {
-  protected def isGrainKey(grainKey: String): Boolean = grainKeySet(grainKey)
+  def isGrainKey(grainKey: String): Boolean = grainKeySet(grainKey)
   def getRowsEstimate(grainKey:String, request: ReportingRequest,filters: scala.collection.mutable.Map[String, Filter], defaultRowCount:Long): RowsEstimate = {
     val cost = (defaultRowCount * (request.numDays + 1)).longValue()
     val isGrainOptimized = isGrainKey(grainKey)
