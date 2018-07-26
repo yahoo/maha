@@ -57,6 +57,8 @@
         <enumeratum.version>1.5.13</enumeratum.version>
         <kafka.version>0.10.2.1</kafka.version>
         <caffeine.version>2.6.2</caffeine.version>
+        <archaius.version>0.7.6</archaius.version>
+        <bytebuddy.version>1.8.12</bytebuddy.version>
     </properties>
 
 
@@ -411,6 +413,7 @@
                 <artifactId>leveldbjni-all</artifactId>
                 <version>${leveldb.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.http4s</groupId>
                 <artifactId>http4s-dsl_${scala.major.version}</artifactId>

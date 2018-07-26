@@ -196,6 +196,16 @@
             <artifactId>druid-datasketches</artifactId>
             <version>${druid.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.netflix.archaius</groupId>
+            <artifactId>archaius-core</artifactId>
+            <version>${archaius.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+            <version>${bytebuddy.version}</version>
+        </dependency>
     </dependencies>
 
     <profiles>
