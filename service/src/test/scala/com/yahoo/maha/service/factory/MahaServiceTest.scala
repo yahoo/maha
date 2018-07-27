@@ -672,6 +672,16 @@ class MahaServiceTest extends BaseFactoryTest {
          |			}
          |		}
          |	},
+         | "datasourceMap" : {
+         |  "oracleDataSource": {
+         |    "factoryClass" : "",
+         |    "config" : {}
+         |  },
+         |  "prestoDataSource": {
+         |    "factoryClass" : "",
+         |    "config" : {}
+         |  }
+         | },
          |	"bucketingConfigMap": {
          |      "erBucket": {
          |         "factoryClass": "com.yahoo.maha.service.factory.DefaultBucketingConfigFactory",
@@ -779,8 +789,9 @@ class MahaServiceTest extends BaseFactoryTest {
          |}""".stripMargin
 
     //println(jsonString)
-    val json = parse(new String(jsonString.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8))
-    val dynamicObjects = DynamicMahaServiceConfig.findDynamicObjects(json)
+    val json = parse(jsonString)
+    val dynamicObjects = DynamicMahaServiceConfig.findDynamicProperties(json, Map("druidExec" -> new Object, "erBucket" -> new Object))
     println(dynamicObjects)
+    DynamicMahaServiceConfig.fromJson(jsonString.getBytes(StandardCharsets.UTF_8))
   }
 }

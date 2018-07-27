@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.Callable
 import java.util.regex.Pattern
 
+import com.yahoo.maha.utils.DynamicConfigurationUtils._
 import com.google.common.io.Closer
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, BucketingConfig}
@@ -491,6 +492,8 @@ object MahaServiceConfig {
 
       resultList.map(_.toMap)
     }
+
+    println("Bucketing config map: " + result)
     result
   }
 
@@ -583,6 +586,7 @@ object MahaServiceConfig {
 
       resultList.map(_.toMap)
     }
+    println("REgistry: " + result)
     result
   }
 
@@ -661,7 +665,8 @@ object MahaServiceConfig {
 
 }
 
-case class DynamicMahaServiceConfig(objectNameMap: Map[String, Object], context: MahaServiceConfigContext, registry: Map[String, RegistryConfig], mahaRequestLogWriter: MahaRequestLogWriter, curatorMap: Map[String, Curator])
+
+case class DynamicMahaServiceConfig(dynamicProperties: Map[String, DynamicPropertyInfo], context: MahaServiceConfigContext, registry: Map[String, RegistryConfig], mahaRequestLogWriter: MahaRequestLogWriter, curatorMap: Map[String, Curator])
 
 object DynamicMahaServiceConfig {
 
@@ -700,13 +705,18 @@ object DynamicMahaServiceConfig {
     }
 
     val jsonMahaServiceConfigResult: ValidationNel[MahaServiceError, JsonMahaServiceConfig] = fromJSON[JsonMahaServiceConfig](json).leftMap {
-      nel => nel.map(err => JsonParseError(err.toString))
+      nel => nel.map(err => {
+        println(err)
+        JsonParseError(err.toString)
+      })
     }
+
+println("jsonMahaServiceConfigResult: " + jsonMahaServiceConfigResult)
 
     var defaultContext = DefaultMahaServiceConfigContext()
     val mahaServiceConfig = for {
       jsonMahaServiceConfig <- jsonMahaServiceConfigResult
-      validationResult <- validateReferenceByName(jsonMahaServiceConfig)
+      //validationResult <- validateReferenceByName(jsonMahaServiceConfig)
       bucketConfigMap <- initBucketingConfig(jsonMahaServiceConfig.bucketingConfigMap)(defaultContext)
       postBucketContext = defaultContext.copy(bucketConfigMap = bucketConfigMap)
       dataSourceMap <- initDataSources(jsonMahaServiceConfig.datasourceMap)(postBucketContext)
@@ -726,11 +736,13 @@ object DynamicMahaServiceConfig {
       mahaRequestLogWriter <- initKafkaLogWriter(jsonMahaServiceConfig.jsonMahaRequestLogConfig)(postCuratorContext)
     } yield {
       val objectNameMap = mergeMaps(bucketConfigMap, utcTimeProviderMap, generatorMap, executorMap, registryMap, parallelServiceExecutorConfig, curatorMap)
-      val dynamicObjectNames = findDynamicObjects(json).keySet
-      dynamicObjectNames.foreach(name => {
-        val dynamicObject = getDynamicObject(objectNameMap(name))
-        objectNameMap.put(name, dynamicObject)
-      })
+      val dynamicProperties = findDynamicProperties(json, objectNameMap.toMap)
+      for ((_, dynamicProperty) <- dynamicProperties) {
+        dynamicProperty.objects.keys.foreach(objName => {
+          val dynamicObject = getDynamicObject(objectNameMap(objName))
+          objectNameMap.put(objName, dynamicObject)
+        })
+      }
 
       val resultMap: Map[String, RegistryConfig] = registryMap.map {
         case (regName, registry) => {
@@ -746,6 +758,7 @@ object DynamicMahaServiceConfig {
             case (_, executor) =>
               queryExecutorContext.register(executor)
           }
+          println("Bucket Sleector: " + new BucketSelector(registry, bucketConfigMap.get(registryConfig.bucketConfigName).get))
           (regName -> RegistryConfig(regName,
             registry,
             new DefaultQueryPipelineFactory(),
@@ -755,7 +768,7 @@ object DynamicMahaServiceConfig {
             parallelServiceExecutorConfig.get(registryConfig.parallelServiceExecutorName).get))
         }
       }
-      DynamicMahaServiceConfig(objectNameMap.toMap, postCuratorContext, resultMap, mahaRequestLogWriter, curatorMap)
+      DynamicMahaServiceConfig(dynamicProperties, postCuratorContext, resultMap, mahaRequestLogWriter, curatorMap)
     }
     mahaServiceConfig
   }
@@ -768,34 +781,26 @@ object DynamicMahaServiceConfig {
     mergedMap
   }
 
-  def findDynamicObjects(json: JValue): Map[String, (String, String)] = {
-    val dynamicObjects = new mutable.HashMap[String, (String, String)]()
+  def findDynamicProperties(json: JValue, objectNameMap: Map[String, Object]): Map[String, DynamicPropertyInfo] = {
+    val dynamicProperties = new mutable.HashMap[String, DynamicPropertyInfo]()
     implicit val formats = org.json4s.DefaultFormats
     json.children.foreach(c => {
         c.asInstanceOf[JObject].obj.foreach(map => {
-        val dynamicFields = map._2.filterField(f => {
-          f._2 match {
-            case JString(s) => s.contains("<%")
-            case _ => false
+        val dynamicFields = extractDynamicFields(map._2)
+          for ((_, (propertyKey, defaultValue)) <- dynamicFields) {
+            val objectName = map._1
+            require(objectNameMap.contains(objectName), s"Dynamic object with name $objectName not present in objectMap: $objectNameMap")
+            if (dynamicProperties.contains(propertyKey)) {
+              dynamicProperties(propertyKey).objects.put(objectName, objectNameMap(objectName))
+            } else {
+              val dynamicObjects = new mutable.HashMap[String, Object]()
+              dynamicObjects.put(objectName, objectNameMap(objectName))
+              dynamicProperties.put(propertyKey, new DynamicPropertyInfo(propertyKey, defaultValue, dynamicObjects))
+            }
           }
         })
-        val start = Pattern.quote("<%(")
-        val end = Pattern.quote(")%>")
-        dynamicFields.foreach(f => {
-          val nameAndDefaultVal: Array[String] = f._2.extract[String]
-              .replaceAll(start, "")
-              .replaceAll(end, "")
-              .split(",")
-
-          nameAndDefaultVal match {
-                case Array(name, defaultValue) => {
-                  dynamicObjects.+=((map._1, (name.trim, defaultValue.trim)))
-                }
-              }
-        })
       })
-    })
-    dynamicObjects.toMap
+    dynamicProperties.toMap
   }
 
   def createDependencyTree(config: JsonMahaServiceConfig, objectNameMap: Map[String, Object]): Map[String, List[String]] = {
