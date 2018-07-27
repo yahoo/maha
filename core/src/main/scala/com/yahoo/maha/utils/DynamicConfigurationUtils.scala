@@ -4,12 +4,13 @@ package com.yahoo.maha.utils
 
 import java.util.regex.Pattern
 
+import grizzled.slf4j.Logging
 import org.json4s.JsonAST.JString
 import org.json4s.{JField, JValue}
 
 import scala.collection.mutable
 
-object DynamicConfigurationUtils {
+object DynamicConfigurationUtils extends Logging {
   private val START = Pattern.quote("<%(")
   private val END = Pattern.quote(")%>")
   val DYNAMIC_CONFIG_PATTERN = Pattern.compile(s"$START(.*),(.*)$END")
@@ -19,8 +20,6 @@ object DynamicConfigurationUtils {
     val dynamicFields = json.filterField(_._2 match {
       case JString(s) => DYNAMIC_CONFIG_PATTERN.matcher(s).find()
       case _ => false})
-
-    println("dynamicFields: " + dynamicFields)
 
     dynamicFields.foreach(f => {
       require(f._2.isInstanceOf[JString], s"Cannot extract dynamic property from non-string field: $f")
@@ -32,7 +31,6 @@ object DynamicConfigurationUtils {
       val defaultValue = matcher.group(2).trim
       dynamicFieldMap.put(f._1, (propertyKey, defaultValue))
     })
-    println("dynamicFieldMap: " + dynamicFieldMap)
     dynamicFieldMap.toMap
   }
 

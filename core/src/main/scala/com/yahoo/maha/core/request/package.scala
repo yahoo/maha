@@ -19,11 +19,9 @@ package object request {
   implicit val formats = org.json4s.DefaultFormats
 
   def fieldExtended[A: JSONR](name: String)(json: JValue): Result[A] = {
-
     val dynamicField = extractDynamicFields(json).get(name)
     val result = {
       if (dynamicField.isDefined) {
-        println(s"dynamicField: $dynamicField")
         JsonScalaz.fromJSON[A](parse(dynamicField.get._2))
       } else {
         field[A](name)(json)

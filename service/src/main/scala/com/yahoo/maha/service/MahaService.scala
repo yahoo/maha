@@ -711,8 +711,6 @@ object DynamicMahaServiceConfig {
       })
     }
 
-println("jsonMahaServiceConfigResult: " + jsonMahaServiceConfigResult)
-
     var defaultContext = DefaultMahaServiceConfigContext()
     val mahaServiceConfig = for {
       jsonMahaServiceConfig <- jsonMahaServiceConfigResult
@@ -785,59 +783,21 @@ println("jsonMahaServiceConfigResult: " + jsonMahaServiceConfigResult)
     val dynamicProperties = new mutable.HashMap[String, DynamicPropertyInfo]()
     implicit val formats = org.json4s.DefaultFormats
     json.children.foreach(c => {
-        c.asInstanceOf[JObject].obj.foreach(map => {
-        val dynamicFields = extractDynamicFields(map._2)
-          for ((_, (propertyKey, defaultValue)) <- dynamicFields) {
-            val objectName = map._1
-            require(objectNameMap.contains(objectName), s"Dynamic object with name $objectName not present in objectMap: $objectNameMap")
-            if (dynamicProperties.contains(propertyKey)) {
-              dynamicProperties(propertyKey).objects.put(objectName, objectNameMap(objectName))
-            } else {
-              val dynamicObjects = new mutable.HashMap[String, Object]()
-              dynamicObjects.put(objectName, objectNameMap(objectName))
-              dynamicProperties.put(propertyKey, new DynamicPropertyInfo(propertyKey, defaultValue, dynamicObjects))
-            }
+      c.asInstanceOf[JObject].obj.foreach(map => {
+      val dynamicFields = extractDynamicFields(map._2)
+        for ((_, (propertyKey, defaultValue)) <- dynamicFields) {
+          val objectName = map._1
+          require(objectNameMap.contains(objectName), s"Dynamic object with name $objectName not present in objectMap: $objectNameMap")
+          if (dynamicProperties.contains(propertyKey)) {
+            dynamicProperties(propertyKey).objects.put(objectName, objectNameMap(objectName))
+          } else {
+            val dynamicObjects = new mutable.HashMap[String, Object]()
+            dynamicObjects.put(objectName, objectNameMap(objectName))
+            dynamicProperties.put(propertyKey, new DynamicPropertyInfo(propertyKey, defaultValue, dynamicObjects))
           }
-        })
+        }
       })
+    })
     dynamicProperties.toMap
-  }
-
-  def createDependencyTree(config: JsonMahaServiceConfig, objectNameMap: Map[String, Object]): Map[String, List[String]] = {
-    println("\nObject Name Map: ")
-    for ((name, obj) <- objectNameMap) {
-      println(s"$name -> $obj")
-    }
-    println()
-
-    val dependencyTree = new mutable.HashMap[String, List[String]] ()
-
-    def updateTree(objectName: String, jValue: json4s.JValue) = {
-      val leaves = new mutable.ArrayBuffer[JValue]
-      findLeafNodes(jValue, leaves)
-      val filtered = leaves.filter(l => l.isInstanceOf[JString] && l.asInstanceOf[JString].s.contains("%D%"))
-      filtered.foreach(dynamicKeyCol => {
-        val configStr = dynamicKeyCol.asInstanceOf[JString].s
-        val dynamicConfigKey = configStr
-          .replaceAll("\\%D\\%\\(", "")
-          .substring(0, configStr.indexOf(",") - 4)
-        require(objectNameMap.contains(objectName), s"No object with name: $objectName present in MahaServiceConfig")
-        dependencyTree.+=((dynamicConfigKey, List(objectName)))
-      })
-    }
-    for ((key, jsonBucketingConfig) <- config.bucketingConfigMap) {
-      updateTree(key, jsonBucketingConfig.json)
-    }
-
-    for ((key, executorConfig) <- config.executorMap) {
-      updateTree(key, executorConfig.json)
-    }
-
-    dependencyTree.toMap
-  }
-
-  def findLeafNodes(node: JValue, leaves: mutable.ArrayBuffer[JValue]): Unit = {
-    if (node.children.isEmpty) leaves.+=(node)
-    node.children.foreach(child => findLeafNodes(child, leaves))
   }
 }
