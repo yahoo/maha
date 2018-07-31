@@ -58,7 +58,7 @@ public class MissingLookupInMemoryDBExtractionNamespaceFactory implements
                     .forEach(fd -> messageBuilder.setField(fd, String.valueOf(map.get(fd.getName()))));
 
             Message message = messageBuilder.build();
-            LOGGER.debug("Producing key[%s] val[%s]", dimension, message);
+            LOGGER.info("Producing key[%s] val[%s]", dimension, message);
             ProducerRecord<String, byte[]> producerRecord =
                     new ProducerRecord<>(producerKafkaTopic, dimension, message.toByteArray());
             kafkaProducer.send(producerRecord);

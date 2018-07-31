@@ -34,6 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -102,7 +103,7 @@ public class InMemoryDBLookupExtractor<U> extends LookupExtractor
 
             if (!extractionNamespace.isCacheEnabled()) {
                 byte[] cacheByteValue = lookupService.lookup(new LookupService.LookupData(extractionNamespace,
-                        dimension, valueColumn));
+                        dimension, valueColumn, Optional.empty()));
                 return (cacheByteValue == null || cacheByteValue.length == 0) ? null : new String(cacheByteValue, UTF_8);
             } else {
                 final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());

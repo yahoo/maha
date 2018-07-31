@@ -2,7 +2,10 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.query.lookup.namespace;
 
+import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
+
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 public interface ExtractionNamespaceCacheFactory<T extends ExtractionNamespace, U>
@@ -13,7 +16,7 @@ public interface ExtractionNamespaceCacheFactory<T extends ExtractionNamespace, 
     void updateCache(T extractionNamespace,
                      final Map<String, U> cache, final String key, final byte[] value);
 
-    default byte[] getCacheValue(T extractionNamespace, Map<String, U> cache, String key, String valueColumn) {
+    default byte[] getCacheValue(T extractionNamespace, Map<String, U> cache, String key, String valueColumn, Optional<DecodeConfig> decodeConfigOptional) {
         return new byte[0];
     }
 

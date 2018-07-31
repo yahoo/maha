@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -74,8 +75,9 @@ public class JDBCLookupExtractor<U extends List<String>> extends LookupExtractor
             }
 
             if (!extractionNamespace.isCacheEnabled()) {
+                Optional<DecodeConfig> decodeConfigOptional = (decodeConfig == null) ? Optional.empty() : Optional.of(decodeConfig);
                 byte[] cacheByteValue = lookupService.lookup(new LookupService.LookupData(extractionNamespace,
-                        dimension, valueColumn));
+                        dimension, valueColumn, decodeConfigOptional));
                 return (cacheByteValue == null || cacheByteValue.length == 0) ? null : new String(cacheByteValue, UTF_8);
             } else {
                 U cacheValueArray = map.get(dimension);

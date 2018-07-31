@@ -4,6 +4,8 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Objects;
+
 public class DecodeConfig {
 
     @JsonProperty
@@ -64,21 +66,17 @@ public class DecodeConfig {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
         DecodeConfig that = (DecodeConfig) o;
-
-        if (!columnToCheck.equals(that.columnToCheck)) return false;
-        if (!valueToCheck.equals(that.valueToCheck)) return false;
-        if (!columnIfValueMatched.equals(that.columnIfValueMatched)) return false;
-        return columnIfValueNotMatched.equals(that.columnIfValueNotMatched);
+        return Objects.equals(columnToCheck, that.columnToCheck) &&
+                Objects.equals(valueToCheck, that.valueToCheck) &&
+                Objects.equals(columnIfValueMatched, that.columnIfValueMatched) &&
+                Objects.equals(columnIfValueNotMatched, that.columnIfValueNotMatched);
     }
 
     @Override
     public int hashCode() {
-        int result = columnToCheck.hashCode();
-        result = 31 * result + valueToCheck.hashCode();
-        result = 31 * result + columnIfValueMatched.hashCode();
-        result = 31 * result + columnIfValueNotMatched.hashCode();
-        return result;
+
+        return Objects.hash(columnToCheck, valueToCheck, columnIfValueMatched, columnIfValueNotMatched);
     }
+
 }
