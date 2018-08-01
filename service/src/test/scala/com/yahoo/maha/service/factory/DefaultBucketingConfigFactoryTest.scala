@@ -5,9 +5,7 @@ package com.yahoo.maha.service.factory
 import com.yahoo.maha.core.HiveEngine
 import com.yahoo.maha.core.query.Version
 import com.yahoo.maha.service.{DefaultMahaServiceConfigContext, MahaServiceConfigContext}
-import org.scalatest.{FunSuite, Matchers}
 import org.json4s._
-import org.json4s.scalaz.JsonScalaz._
 import org.json4s.jackson.JsonMethods._
 
 /**
@@ -20,33 +18,38 @@ class DefaultBucketingConfigFactoryTest extends BaseFactoryTest {
   test("successfully build factory from json") {
     val jsonString =     """{"cube":
                            |[{
-                           |	  "cube": "mycube",
-                           |		"internal": [{
-                           |			"revision": 0,
+                           |    "cube": "mycube",
+                           |    "internal":
+                           |    [{
+                           |      "revision": 0,
                            |      "percent": 10
-                           |		}, {
-                           |      "revision": 1,
-                           |      "percent": 90
-                           |    }],
-                           |		"external": [{
-                           |			"revision": 0,
-                           |      "percent": 90
-                           |		}, {
-                           |      "revision": 1,
-                           |      "percent": 10
-                           |		}],
-                           |    "dryRun": [{
-                           |			"revision": 0,
-                           |      "percent": 10,
-                           |      "engine" : "Oracle"
-                           |		}, {
-                           |      "revision": 1,
-                           |      "percent": 10
-                           |    }],
-                           |    "userWhiteList": [{
-                           |      "user" : "uid",
-                           |      "revision": 0
-                           |    }]
+                           |     },
+                           |     {
+                           |       "revision": 1,
+                           |       "percent": 90
+                           |     }],
+                           |     "external":
+                           |     [{
+                           |        "revision": 0,
+                           |        "percent": 90
+                           |      },
+                           |      {
+                           |        "revision": 1,
+                           |        "percent": 10
+                           |      }],
+                           |      "dryRun":
+                           |      [{
+                           |         "revision": 0,
+                           |         "percent": 10,
+                           |         "engine" : "Oracle"
+                           |       }, {
+                           |          "revision": 1,
+                           |          "percent": 10
+                           |      }],
+                           |     "userWhiteList": [{
+                           |        "user" : "uid",
+                           |        "revision": 0
+                           |     }]
                            |}],
                            |"queryGenerator": []}""".stripMargin
 
@@ -62,63 +65,73 @@ class DefaultBucketingConfigFactoryTest extends BaseFactoryTest {
   test("successfully build query gen bucketing config from json") {
     val jsonString =     """{"cube":
                            |[{
-                           |	  "cube": "mycube",
-                           |		"internal": [{
-                           |			"revision": 0,
+                           |    "cube": "mycube",
+                           |    "internal":
+                           |    [{
+                           |      "revision": 0,
                            |      "percent": 10
-                           |		}, {
-                           |      "revision": 1,
-                           |      "percent": 90
-                           |    }],
-                           |		"external": [{
-                           |			"revision": 0,
-                           |      "percent": 90
-                           |		}, {
-                           |      "revision": 1,
-                           |      "percent": 10
-                           |		}],
-                           |    "dryRun": [{
-                           |			"revision": 0,
-                           |      "percent": 10,
-                           |      "engine" : "Oracle"
-                           |		}, {
-                           |      "revision": 1,
-                           |      "percent": 10
-                           |    }],
-                           |    "userWhiteList": [{
-                           |      "user" : "uid",
-                           |      "revision": 0
-                           |    }]
+                           |     },
+                           |     {
+                           |       "revision": 1,
+                           |       "percent": 90
+                           |     }],
+                           |     "external":
+                           |     [{
+                           |        "revision": 0,
+                           |        "percent": 90
+                           |      },
+                           |      {
+                           |        "revision": 1,
+                           |        "percent": 10
+                           |     }],
+                           |     "dryRun":
+                           |     [{
+                           |        "revision": 0,
+                           |        "percent": 10,
+                           |        "engine" : "Oracle"
+                           |     }, {
+                           |        "revision": 1,
+                           |        "percent": 10
+                           |     }],
+                           |     "userWhiteList": [{
+                           |        "user" : "uid",
+                           |        "revision": 0
+                           |     }]
                            |}],
-                           |"queryGenerator": [{
-                           |	  "engine": "hive",
-                           |		"internal": [{
-                           |			"revision": 0,
+                           |"queryGenerator": [
+                           |{
+                           |    "engine": "hive",
+                           |    "internal":
+                           |    [{
+                           |      "revision": 0,
                            |      "percent": 20
-                           |		}, {
-                           |      "revision": 1,
-                           |      "percent": 80
-                           |    }],
-                           |		"external": [{
-                           |			"revision": 0,
-                           |      "percent": 90
-                           |		}, {
-                           |      "revision": 1,
-                           |      "percent": 10
-                           |		}],
-                           |    "dryRun": [{
-                           |			"revision": 0,
-                           |      "percent": 10
-                           |		}, {
-                           |      "revision": 1,
-                           |      "percent": 10
-                           |    }],
-                           |    "userWhiteList": [{
-                           |      "user" : "uid",
-                           |      "revision": 0
-                           |    }]
-                           |}
-                           |]}""".stripMargin
+                           |     },
+                           |     {
+                           |       "revision": 1,
+                           |       "percent": 80
+                           |     }],
+                           |     "external":
+                           |     [{
+                           |        "revision": 0,
+                           |        "percent": 90
+                           |      },
+                           |      {
+                           |        "revision": 1,
+                           |        "percent": 10
+                           |     }],
+                           |     "dryRun":
+                           |     [{
+                           |        "revision": 0,
+                           |        "percent": 10
+                           |     }, {
+                           |         "revision": 1,
+                           |         "percent": 10
+                           |     }],
+                           |     "userWhiteList": [{
+                           |        "user" : "uid",
+                           |        "revision": 0
+                           |     }]
+                           |}]}""".stripMargin
 
     val factoryResult = getFactory[BucketingConfigFactory]("com.yahoo.maha.service.factory.DefaultBucketingConfigFactory", closer)
     assert(factoryResult.isSuccess)

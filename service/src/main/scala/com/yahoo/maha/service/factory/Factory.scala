@@ -5,26 +5,25 @@ package com.yahoo.maha.service.factory
 import java.io.Closeable
 import java.util.concurrent.RejectedExecutionHandler
 
-import javax.sql.DataSource
 import com.google.common.io.Closer
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.query.ResultSetTransformer
 import com.yahoo.maha.core.bucketing._
+import com.yahoo.maha.core.query.{ResultSetTransformer, _}
 import com.yahoo.maha.core.query.druid.DruidQueryOptimizer
-import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.druid.{AuthHeaderProvider, DruidQueryExecutorConfig}
 import com.yahoo.maha.executor.presto.PrestoQueryTemplate
 import com.yahoo.maha.log.MahaRequestLogWriter
 import com.yahoo.maha.parrequest2.CustomRejectPolicy
 import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor
-import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
 import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
-import com.yahoo.maha.service.config.{JsonDataSourceConfig, PassThroughPasswordProvider, PasswordProvider}
+import com.yahoo.maha.service.config.{PassThroughPasswordProvider, PasswordProvider}
 import com.yahoo.maha.service.curators.Curator
 import com.yahoo.maha.service.error.{FailedToConstructFactory, MahaServiceError}
+import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
+import javax.sql.DataSource
 import org.json4s.JValue
-import org.json4s.JsonAST.{JNothing, JString}
+import org.json4s.JsonAST.JString
 
 /**
   * Created by hiral on 5/25/17.
@@ -170,11 +169,10 @@ class DefaultPrestoQueryTemplateFactory extends PrestoQueryTemplateFactory {
 }
 
 object DefaultBucketingConfigFactory {
-  import org.json4s.scalaz.JsonScalaz.{Error, _}
-
   import _root_.scalaz._
   import Scalaz._
   import Validation.FlatMap._
+  import org.json4s.scalaz.JsonScalaz.{Error, _}
 
   case class RevisionPercentConfig(revision: Int, percent: Int)
   case class RevisionPercentEngineConfig(revision: Int, percent: Int, engine: Option[Engine])
