@@ -176,81 +176,87 @@
   "bucketingConfigMap": {
     "studentBucket": {
       "factoryClass": "com.yahoo.maha.service.factory.DefaultBucketingConfigFactory",
-      "config": [
-        {
-          "cube": "student_performance",
-          "internal": [
-            {
-              "revision": 0,
-              "percent": 10
-            },
-            {
-              "revision": 1,
-              "percent": 90
-            }
-          ],
-          "external": [
-            {
-              "revision": 0,
-              "percent": 90
-            },
-            {
-              "revision": 1,
-              "percent": 10
-            }
-          ],
-          "dryRun": [
-            {
-              "revision": 0,
-              "percent": 10,
-              "engine": "Oracle"
-            },
-            {
-              "revision": 1,
-              "percent": 10
-            }
-          ],
-          "userWhiteList": [
-            {
-              "user": "uid",
-              "revision": 0
-            }
-          ]
-        }
-      ]
+      "config": {
+        "cube":[
+          {
+            "cube": "student_performance",
+            "internal": [
+              {
+                "revision": 0,
+                "percent": 10
+              },
+              {
+                "revision": 1,
+                "percent": 90
+              }
+            ],
+            "external": [
+              {
+                "revision": 0,
+                "percent": 90
+              },
+              {
+                "revision": 1,
+                "percent": 10
+              }
+            ],
+            "dryRun": [
+              {
+                "revision": 0,
+                "percent": 10,
+                "engine": "Oracle"
+              },
+              {
+                "revision": 1,
+                "percent": 10
+              }
+            ],
+            "userWhiteList": [
+              {
+                "user": "uid",
+                "revision": 0
+              }
+            ]
+          }
+        ],
+        "queryGenerator": []
+      }
     },
     "wikiBucket": {
       "factoryClass": "com.yahoo.maha.service.factory.DefaultBucketingConfigFactory",
-      "config": [
-        {
-          "cube": "wikiticker_stats",
-          "internal": [
-            {
-              "revision": 0,
-              "percent": 100
-            }
-          ],
-          "external": [
-            {
-              "revision": 0,
-              "percent": 100
-            }
-          ],
-          "dryRun": [
-            {
-              "revision": 0,
-              "percent": 0,
-              "engine": "Druid"
-            }
-          ],
-          "userWhiteList": [
-            {
-              "user": "uid",
-              "revision": 0
-            }
-          ]
-        }
-      ]
+      "config": {
+        "cube": [
+          {
+            "cube": "wikiticker_stats",
+            "internal": [
+              {
+                "revision": 0,
+                "percent": 100
+              }
+            ],
+            "external": [
+              {
+                "revision": 0,
+                "percent": 100
+              }
+            ],
+            "dryRun": [
+              {
+                "revision": 0,
+                "percent": 0,
+                "engine": "Druid"
+              }
+            ],
+            "userWhiteList": [
+              {
+                "user": "uid",
+                "revision": 0
+              }
+            ]
+          }
+        ],
+        "queryGenerator": []
+      }
     }
   },
   "utcTimeProviderMap": {
