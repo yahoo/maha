@@ -322,6 +322,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
   
   def getFactRowsCostEstimate(dimensionsCandidates: SortedSet[DimensionCandidate], factCandidate: FactCandidate, reportingRequest: ReportingRequest,
                               entitySet: Set[PublicDimension], filters: mutable.Map[String, Filter], isDebug: Boolean): FactRowsCostEstimate = {
+    /*
     val schemaRequiredEntity = entitySet.map(_.grainKey)
     val highestLevelDim = dimensionsCandidates.lastOption
     val factDimList = getDimList(factCandidate)
@@ -339,9 +340,20 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
       //all based grain key
       factDimList.map(dimName => s"*-$dimName").find(factEstimator.isGrainKey).getOrElse("")
     }(schemaBasedGrainKey => schemaBasedGrainKey)
+    */
+    val factDimList = getDimList(factCandidate)
+    val schemaRequiredEnityAndFilter = entitySet.map(pd => (pd.grainKey, filters(pd.primaryKeyByAlias)))
 
+    val rowsEstimate = factEstimator.getRowsEstimate(schemaRequiredEnityAndFilter
+      , dimensionsCandidates.toList.map(_.dim.name)
+      , factDimList
+      , reportingRequest
+      , filters
+      , factCandidate.fact.defaultRowCount)
+    /*
     val rowsEstimate = factEstimator.getRowsEstimate(grainKey, reportingRequest, filters, factCandidate.fact.defaultRowCount)
     val costEstimate = factEstimator.getCostEstimate(rowsEstimate, factCandidate.fact.costMultiplierMap.get(reportingRequest.requestType))
+    */
     val isIndexOptimized = filters.keys.exists(factCandidate.publicFact.foreignKeyAliases)
     if(isDebug){
       info(s"Fact Cost estimated for request with grainKey=$grainKey defaultRowCount=${factCandidate.fact.defaultRowCount} rowsEstimate=$rowsEstimate costEstimate=$costEstimate isGrainOptimized=${rowsEstimate.isGrainOptimized} isIndexOptimized=$isIndexOptimized")
