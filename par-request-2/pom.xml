@@ -115,7 +115,7 @@
                 <configuration>
                     <forkCount>7</forkCount>
                     <reuseForks>true</reuseForks>
-                    <argLine>-Xmx1024m -XX:MaxPermSize=256m -Djava.library.path=/home/y/lib64 ${surefireArgLine}</argLine>
+                    <argLine>-Xmx2048m -Djava.library.path=/home/y/lib64 ${surefireArgLine}</argLine>
                     <workingDirectory>target/FORK_DIRECTORY_${surefire.forkNumber}</workingDirectory>
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
                 </configuration>
