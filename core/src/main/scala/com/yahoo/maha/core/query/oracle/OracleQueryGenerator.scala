@@ -833,8 +833,6 @@ b. Dim Driven
           case StrType(_, sm, _) if sm.isDefined && queryContext.requestModel.isDimDriven =>
             val defaultValue = sm.get.default
             s"""COALESCE(${alias}, '$defaultValue')"""
-          case IntType(_, _, _, _, _) if !alias.contains("ID") => toChar(alias)
-          case DecType(_, _, _, _, _, _) => toChar(alias)
           case DateType(fmt) if fmt.isDefined => s"to_char($alias, '${fmt.get}')"
           case _ => alias
         }
