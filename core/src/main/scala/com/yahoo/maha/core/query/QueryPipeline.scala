@@ -418,7 +418,7 @@ object DefaultQueryPipelineFactory extends Logging {
   }
 
   def findBestFactCandidate(requestModel: RequestModel, forceDisqualifySet: Set[Engine] = Set.empty, dimEngines: Set[Engine], queryGeneratorRegistry: QueryGeneratorRegistry): FactBestCandidate = {
-    require(requestModel.bestCandidates.isDefined, s"Cannot create fact best candidate without best candidates : $requestModel")
+    require(requestModel.bestCandidates.isDefined, s"Cannot create fact best candidate without best candidates : ${requestModel.reportingRequest}")
     //schema specific rules?
     requestModel.schema match {
       case _ =>
@@ -1072,7 +1072,7 @@ OuterGroupBy operation has to be applied only in the following cases
                   , requestModel.isDebugEnabled
                 )
               } else {
-                throw new IllegalArgumentException(s"Fact driven dim only query is not valid : $requestModel")
+                throw new IllegalArgumentException(s"Fact driven dim only query is not valid : ${requestModel.reportingRequest}")
               }
             }
           }
