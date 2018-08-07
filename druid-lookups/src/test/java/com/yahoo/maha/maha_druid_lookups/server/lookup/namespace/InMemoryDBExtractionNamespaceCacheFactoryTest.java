@@ -23,6 +23,7 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.Optional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.mockito.Matchers.anyString;
@@ -197,7 +198,7 @@ public class InMemoryDBExtractionNamespaceCacheFactoryTest {
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
             );
 
-            byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "title");
+            byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "title", Optional.empty());
 
             Assert.assertEquals(new String(value, UTF_8), "some title");
 
@@ -229,7 +230,7 @@ public class InMemoryDBExtractionNamespaceCacheFactoryTest {
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
             );
 
-            byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "title");
+            byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "title", Optional.empty());
 
             Assert.assertEquals(value, new byte[0]);
 

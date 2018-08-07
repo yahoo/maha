@@ -46,7 +46,7 @@ public class MissingLookupManager<T extends MissingLookupExtractionNamespaceFact
                                 LOGGER.error("Bad key/message from topic [%s]", consumerKafkaTopic);
                                 continue;
                             }
-                            LOGGER.debug("Read key[%s] val[%s]", dimension, new String(extractionNamespaceByteArray));
+                            LOGGER.info("Read key[%s] val[%s]", dimension, new String(extractionNamespaceByteArray));
                             try {
                                 missingLookupExtractionNamespaceFactory.process(dimension,
                                         extractionNamespaceByteArray,

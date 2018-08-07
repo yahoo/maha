@@ -2,12 +2,14 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.smile.SmileMediaTypes;
 import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.metamx.emitter.service.ServiceMetricEvent;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaExtractionCacheManager;
 import io.druid.server.security.Access;
@@ -18,15 +20,19 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.net.URLDecoder;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 @Path("/druid/v1/namespaces")
 public class MahaNamespacesCacheResource
 {
     private static final Logger log = new Logger(MahaNamespacesCacheResource.class);
+    private static final ObjectMapper objectMapper = new ObjectMapper();
     private final MahaExtractionCacheManager mahaExtractionCacheManager;
     private final ServiceEmitter serviceEmitter;
 
@@ -61,6 +67,7 @@ public class MahaNamespacesCacheResource
                                   @QueryParam("namespaceclass") String extractionNamespaceClass,
                                   @QueryParam("key") String key,
                                   @QueryParam("valueColumn") String valueColumn,
+                                  @QueryParam("decodeConfig") String decodeConfigString,
                                   @QueryParam("debug") boolean debug, @Context final HttpServletRequest request) {
         try {
             request.setAttribute(AuthConfig.DRUID_AUTHORIZATION_CHECKED, Access.OK.isAllowed());
@@ -71,14 +78,24 @@ public class MahaNamespacesCacheResource
                 return Response.ok().entity(new byte[0]).build();
 
             } else {
-                if (key != null && valueColumn != null) {
+                if (key != null) {
                     if (debug) {
                         log.info("Fetching cache value for key [%s] and valueColumn [%s]", key, valueColumn);
                     }
+
+                    Optional<DecodeConfig> decodeConfigOptional = Optional.empty();
+                    if(decodeConfigString != null) {
+                        DecodeConfig decodeConfig = objectMapper.readValue(URLDecoder.decode(decodeConfigString, UTF_8.toString()), DecodeConfig.class);
+                        if(debug) {
+                            log.info("decodeConfig [%s]", decodeConfig);
+                        }
+                        decodeConfigOptional = Optional.of(decodeConfig);
+                    }
+
                     response = mahaExtractionCacheManager
                             .getExtractionNamespaceFunctionFactory(Class.forName(extractionNamespaceClass))
                             .getCacheValue(extractionNamespace.get(),
-                                    mahaExtractionCacheManager.getCacheMap(namespace), key, valueColumn);
+                                    mahaExtractionCacheManager.getCacheMap(namespace), key, valueColumn, decodeConfigOptional);
                     if (debug && response != null) {
                         log.info("Cache value is : [%s]", new String(response));
                     }
