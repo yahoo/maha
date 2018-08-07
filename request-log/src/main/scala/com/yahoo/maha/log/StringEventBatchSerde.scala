@@ -9,6 +9,7 @@ import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.{Input, Output}
 import com.yahoo.maha.data.Compressor.Codec
 import com.yahoo.maha.data.{Compressor, CompressorFactory, StringEventBatch}
+import org.apache.commons.io.FileUtils
 import org.apache.kafka.common.serialization.{Deserializer, Serializer}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -47,11 +48,11 @@ class KafkaStringEventBatchSerializer extends Serializer[StringEventBatch] {
         Try(value.asInstanceOf[String].toInt).isSuccess =>
         val mb = value.asInstanceOf[String].toInt
         val size = if(mb > 0) {
-          1024 * 1024 * mb
-        } else 1024 * 1024 * DEFAULT_BUFFER_MB
+          FileUtils.ONE_MB_BI.intValue() * mb
+        } else FileUtils.ONE_MB_BI.intValue() * DEFAULT_BUFFER_MB
         (new Output(size), new Array[Byte](size))
       case _ =>
-        (new Output(1024 * 1024 * DEFAULT_BUFFER_MB), new Array[Byte](1024 * 1024 * DEFAULT_BUFFER_MB))
+        (new Output(FileUtils.ONE_MB_BI.intValue() * DEFAULT_BUFFER_MB), new Array[Byte](FileUtils.ONE_MB_BI.intValue() * DEFAULT_BUFFER_MB))
     }
     output = configuredOutput
     encodeBuffer = configuredBuffer
@@ -110,11 +111,11 @@ class KafkaStringEventBatchDeserializer extends Deserializer[StringEventBatch] {
         Try(value.asInstanceOf[String].toInt).isSuccess =>
         val mb = value.asInstanceOf[String].toInt
         val size = if(mb > 0) {
-          1024 * 1024 * mb
-        } else 1024 * 1024 * DEFAULT_BUFFER_MB
+          FileUtils.ONE_MB_BI.intValue() * mb
+        } else FileUtils.ONE_MB_BI.intValue() * DEFAULT_BUFFER_MB
         new Array[Byte](size)
       case _ =>
-        new Array[Byte](1024 * 1024 * DEFAULT_BUFFER_MB)
+        new Array[Byte](FileUtils.ONE_MB_BI.intValue() * DEFAULT_BUFFER_MB)
     }
     logger.warn("Using maha compression codec : {} , buffer bytes = {}"
       , compressor.codec().name(), decodeBuffer.length)

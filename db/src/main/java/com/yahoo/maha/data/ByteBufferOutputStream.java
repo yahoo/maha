@@ -21,14 +21,13 @@ class ByteBufferOutputStream extends OutputStream {
     }
 
     public void write(byte[] b) throws IOException {
-        if(b.length > this.buffer.capacity() - this.buffer.position()) {
-            throw new ByteBufferOutputStream.BufferOverflowException("ByteBuffer is not large enough.");
-        } else {
-            this.buffer.put(b);
-        }
+        write(b, 0, b.length);
     }
 
     public void write(byte[] b, int off, int len) throws IOException {
+        if (b == null) {
+            throw new NullPointerException();
+        }
         if(len > this.buffer.capacity() - this.buffer.position()) {
             throw new ByteBufferOutputStream.BufferOverflowException("ByteBuffer is not large enough.");
         } else {

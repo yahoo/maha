@@ -3,6 +3,7 @@
 package com.yahoo.maha.data;
 
 import com.google.common.base.Preconditions;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.concurrent.ConcurrentException;
 import org.apache.commons.lang3.concurrent.LazyInitializer;
 
@@ -26,7 +27,7 @@ public class StringEventBatchEncoder implements Encoder<StringEventBatch> {
     }
 
     public StringEventBatchEncoder(Compressor.Codec codec, int bufferMb) {
-        bufferSize = bufferMb * 1024 * 1024;
+        bufferSize = bufferMb * FileUtils.ONE_MB_BI.intValue();
         Preconditions.checkNotNull(codec, "Codec cannot be null!");
         compressor = CompressorFactory.getCompressor(codec);
         Preconditions.checkNotNull(compressor, "Failed to get compressor from codec");
