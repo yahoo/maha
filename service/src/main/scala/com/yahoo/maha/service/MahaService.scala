@@ -492,8 +492,6 @@ object MahaServiceConfig {
 
       resultList.map(_.toMap)
     }
-
-    println("Bucketing config map: " + result)
     result
   }
 
@@ -586,7 +584,6 @@ object MahaServiceConfig {
 
       resultList.map(_.toMap)
     }
-    println("REgistry: " + result)
     result
   }
 
@@ -706,15 +703,14 @@ object DynamicMahaServiceConfig {
 
     val jsonMahaServiceConfigResult: ValidationNel[MahaServiceError, JsonMahaServiceConfig] = fromJSON[JsonMahaServiceConfig](json).leftMap {
       nel => nel.map(err => {
-        println(err)
         JsonParseError(err.toString)
       })
     }
 
     var defaultContext = DefaultMahaServiceConfigContext()
-    val mahaServiceConfig = for {
+    val dynamicMahaServiceConfig = for {
       jsonMahaServiceConfig <- jsonMahaServiceConfigResult
-      //validationResult <- validateReferenceByName(jsonMahaServiceConfig)
+      validationResult <- validateReferenceByName(jsonMahaServiceConfig)
       bucketConfigMap <- initBucketingConfig(jsonMahaServiceConfig.bucketingConfigMap)(defaultContext)
       postBucketContext = defaultContext.copy(bucketConfigMap = bucketConfigMap)
       dataSourceMap <- initDataSources(jsonMahaServiceConfig.datasourceMap)(postBucketContext)
@@ -756,7 +752,6 @@ object DynamicMahaServiceConfig {
             case (_, executor) =>
               queryExecutorContext.register(executor)
           }
-          println("Bucket Sleector: " + new BucketSelector(registry, bucketConfigMap.get(registryConfig.bucketConfigName).get))
           (regName -> RegistryConfig(regName,
             registry,
             new DefaultQueryPipelineFactory(),
@@ -768,7 +763,7 @@ object DynamicMahaServiceConfig {
       }
       DynamicMahaServiceConfig(dynamicProperties, postCuratorContext, resultMap, mahaRequestLogWriter, curatorMap)
     }
-    mahaServiceConfig
+    dynamicMahaServiceConfig
   }
 
   def mergeMaps(maps: Map[String, Object]*): mutable.Map[String, Object] = {
