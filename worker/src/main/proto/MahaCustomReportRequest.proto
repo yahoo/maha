@@ -1,8 +1,10 @@
+// Copyright 2017, Yahoo Holdings Inc.
+// Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.worker.proto;
 
 option java_outer_classname = "MahaWorkerReportingProto";
 
-message MahaCustomReportRequest {å
+message MahaCustomReportRequest {
     required bytes raw_request = 1;
     required DeliveryMethod delivery_method = 2;
     required QueryEngine query_engine = 3;
