@@ -134,6 +134,7 @@ public class TestCompressors {
 
     private void testCompressBB(Compressor.Codec codec) throws Exception {
         Compressor compressor = CompressorFactory.getCompressor(codec);
+        Assert.assertTrue(compressor.codec() == codec);
         String input = "a;sdkfja;fjojapoijfiosajf0w4r0-jf[oIj[oiJWPRUE90FVJ09AJZ-RU39-3RU-3URQ309RU09-RQUR4RUQ-RU-QR" +
                 "A;FJSL;FASJ;JSD;JS;JFAW3RJ0V VURU -0EUR4-UR0-9RU09IR[Rwu023 3eiq29ei30-    ure2[U90RU90 RAU90[2093RU2";
 
