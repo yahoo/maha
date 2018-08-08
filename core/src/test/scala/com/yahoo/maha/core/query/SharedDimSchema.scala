@@ -848,7 +848,7 @@ trait SharedDimSchema {
           DruidEngine,
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
-            , DruidFuncDimCol("external_site_name", StrType(), LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE("site_lookup", "external_site_name", true, true, dimensionOverrideMap = Map.empty, "null", "Others", "", "Others"))
+            , DruidFuncDimCol("external_site_name", StrType(), LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE("site_lookup", "external_site_name", true, true, dimensionOverrideMap = Map.empty, "null", "Others", "", "Others", "Others"))
           ), None
         )
       }
