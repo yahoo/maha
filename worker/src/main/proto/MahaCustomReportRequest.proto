@@ -1,0 +1,62 @@
+package com.yahoo.maha.worker.proto;
+
+option java_outer_classname = "MahaWorkerReportingProto";
+
+message MahaCustomReportRequest {å
+    required bytes raw_request = 1;
+    required DeliveryMethod delivery_method = 2;
+    required QueryEngine query_engine = 3;
+    required OutputFormat output_format = 4;
+    required int64 job_id = 5;
+    required string schema = 6;
+    required ReportType report_type = 7;
+    optional string timezone = 8;
+    optional bool dryrun = 9;
+    optional int32 revision = 10;
+    optional int64 requestSubmittedTime = 11;
+    optional QueueType queueType = 12;
+    optional string userId = 13;
+    optional bool dualWrite = 14;
+    optional string registry_name = 15;
+}
+
+message MahaProcessedReport {
+    required int64 job_id = 1;
+    required DeliveryMethod delivery_method = 2;
+    required OutputFormat output_format = 3;
+    required bytes raw_request = 4;
+    required string schema = 5;
+    required string job_response = 6;
+    optional bool dryrun = 7;
+    optional QueueType queueType = 8;
+    optional string userId = 9;
+    optional bool dualWrite = 10;
+    optional string registry_name = 11;
+}
+
+enum DeliveryMethod {
+    EMAIL = 0;
+    MOBSTOR_AND_API = 1;
+}
+
+enum QueryEngine {
+    ORACLE = 0;
+    HIVE = 1;
+    DRUID = 2;
+    PRESTO = 3;
+}
+
+enum OutputFormat {
+    CSV = 0;
+    JSON = 1;
+}
+
+enum ReportType {
+    AD_HOC = 0;
+    SCHEDULED = 1;
+}
+
+enum QueueType {
+    CMS = 0;
+    KAFKA = 1;
+}
