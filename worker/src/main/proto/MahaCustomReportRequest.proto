@@ -38,7 +38,7 @@ message MahaProcessedReport {
 
 enum DeliveryMethod {
     EMAIL = 0;
-    MOBSTOR_AND_API = 1;
+    CONTENT_STORE = 1;
 }
 
 enum QueryEngine {
