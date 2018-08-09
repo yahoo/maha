@@ -18,9 +18,9 @@ public final class MahaWorkerReportingProto {
      */
     EMAIL(0, 0),
     /**
-     * <code>MOBSTOR_AND_API = 1;</code>
+     * <code>CONTENT_STORE = 1;</code>
      */
-    MOBSTOR_AND_API(1, 1),
+    CONTENT_STORE(1, 1),
     ;
 
     /**
@@ -28,9 +28,9 @@ public final class MahaWorkerReportingProto {
      */
     public static final int EMAIL_VALUE = 0;
     /**
-     * <code>MOBSTOR_AND_API = 1;</code>
+     * <code>CONTENT_STORE = 1;</code>
      */
-    public static final int MOBSTOR_AND_API_VALUE = 1;
+    public static final int CONTENT_STORE_VALUE = 1;
 
 
     public final int getNumber() { return value; }
@@ -38,7 +38,7 @@ public final class MahaWorkerReportingProto {
     public static DeliveryMethod valueOf(int value) {
       switch (value) {
         case 0: return EMAIL;
-        case 1: return MOBSTOR_AND_API;
+        case 1: return CONTENT_STORE;
         default: return null;
       }
     }
@@ -3959,13 +3959,13 @@ public final class MahaWorkerReportingProto {
       "\002(\t\022\016\n\006dryrun\030\007 \001(\010\0229\n\tqueueType\030\010 \001(\0162&" +
       ".com.yahoo.maha.worker.proto.QueueType\022\016" +
       "\n\006userId\030\t \001(\t\022\021\n\tdualWrite\030\n \001(\010\022\025\n\rreg" +
-      "istry_name\030\013 \001(\t*0\n\016DeliveryMethod\022\t\n\005EM" +
-      "AIL\020\000\022\023\n\017MOBSTOR_AND_API\020\001*:\n\013QueryEngin" +
-      "e\022\n\n\006ORACLE\020\000\022\010\n\004HIVE\020\001\022\t\n\005DRUID\020\002\022\n\n\006PR" +
-      "ESTO\020\003*!\n\014OutputFormat\022\007\n\003CSV\020\000\022\010\n\004JSON\020" +
-      "\001*\'\n\nReportType\022\n\n\006AD_HOC\020\000\022\r\n\tSCHEDULED" +
-      "\020\001*\037\n\tQueueType\022\007\n\003CMS\020\000\022\t\n\005KAFKA\020\001B\032B\030M",
-      "ahaWorkerReportingProto"
+      "istry_name\030\013 \001(\t*.\n\016DeliveryMethod\022\t\n\005EM" +
+      "AIL\020\000\022\021\n\rCONTENT_STORE\020\001*:\n\013QueryEngine\022" +
+      "\n\n\006ORACLE\020\000\022\010\n\004HIVE\020\001\022\t\n\005DRUID\020\002\022\n\n\006PRES" +
+      "TO\020\003*!\n\014OutputFormat\022\007\n\003CSV\020\000\022\010\n\004JSON\020\001*" +
+      "\'\n\nReportType\022\n\n\006AD_HOC\020\000\022\r\n\tSCHEDULED\020\001" +
+      "*\037\n\tQueueType\022\007\n\003CMS\020\000\022\t\n\005KAFKA\020\001B\032B\030Mah",
+      "aWorkerReportingProto"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
