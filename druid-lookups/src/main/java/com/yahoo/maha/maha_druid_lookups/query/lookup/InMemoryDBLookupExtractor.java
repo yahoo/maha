@@ -138,29 +138,25 @@ public class InMemoryDBLookupExtractor<U> extends LookupExtractor
         }
     }
 
-    private String handleDecode(DecodeConfig decodeConfig, byte[] cacheByteValue, String valueColumn){
-        try {
-            Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
-            Message message = parser.parseFrom(cacheByteValue);
-            Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
-            Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn);
+    private String handleDecode(DecodeConfig decodeConfig, byte[] cacheByteValue, String valueColumn) throws Exception {
+        Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
+        Message message = parser.parseFrom(cacheByteValue);
+        Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
 
-            if (decodeConfig != null) {
-                Descriptors.FieldDescriptor columnToCheckField = descriptor.findFieldByName(decodeConfig.getColumnToCheck());
+        if (decodeConfig != null) {
+            Descriptors.FieldDescriptor columnToCheckField = descriptor.findFieldByName(decodeConfig.getColumnToCheck());
 
-                if (decodeConfig.getValueToCheck().equals(message.getField(columnToCheckField).toString())) {
-                    Descriptors.FieldDescriptor columnIfValueMatchedField = descriptor.findFieldByName(decodeConfig.getColumnIfValueMatched());
-                    return Strings.emptyToNull(message.getField(columnIfValueMatchedField).toString());
-                } else {
-                    Descriptors.FieldDescriptor columnIfValueNotMatched = descriptor.findFieldByName(decodeConfig.getColumnIfValueNotMatched());
-                    return Strings.emptyToNull(message.getField(columnIfValueNotMatched).toString());
-                }
+            if (decodeConfig.getValueToCheck().equals(message.getField(columnToCheckField).toString())) {
+                Descriptors.FieldDescriptor columnIfValueMatchedField = descriptor.findFieldByName(decodeConfig.getColumnIfValueMatched());
+                return Strings.emptyToNull(message.getField(columnIfValueMatchedField).toString());
+            } else {
+                Descriptors.FieldDescriptor columnIfValueNotMatched = descriptor.findFieldByName(decodeConfig.getColumnIfValueNotMatched());
+                return Strings.emptyToNull(message.getField(columnIfValueNotMatched).toString());
             }
-
+        }
+        else {
+            Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn);
             return Strings.emptyToNull(message.getField(field).toString());
-        } catch (Exception e) {
-            LOG.error(e, "Caught exception while lookup");
-            return null;
         }
     }
 
