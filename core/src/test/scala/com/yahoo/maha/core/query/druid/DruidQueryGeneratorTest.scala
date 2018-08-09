@@ -1823,4 +1823,74 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     result should fullyMatch regex json
   }
 
+  test("Fact View Query Tests Adjustment Stats with constant column filter and sorting on fact column") {
+    val jsonString =
+      s"""{ "cube": "a_stats",
+         |   "selectFields": [
+         |      {
+         |         "field": "Advertiser ID"
+         |      },
+         |      {
+         |         "field": "Day"
+         |      },
+         |      {
+         |         "field": "Is Adjustment"
+         |      },
+         |      {
+         |         "field": "Impressions"
+         |      },
+         |      {
+         |         "field": "Spend"
+         |      }
+         |   ],
+         |   "filterExpressions": [
+         |      {
+         |         "field": "Advertiser ID",
+         |         "operator": "=",
+         |         "value": "1035663"
+         |      },
+         |      {
+         |         "field": "Is Adjustment",
+         |         "operator": "=",
+         |         "value": "Y"
+         |      },
+         |      {
+         |         "field": "Day",
+         |         "operator": "=",
+         |         "value": "$fromDate"
+         |      }
+         |   ],
+         |   "sortBy": [
+         |      {
+         |          "field": "Impressions",
+         |          "order": "Asc"
+         |      },
+         |      {
+         |          "field": "Spend",
+         |          "order": "Desc"
+         |      }
+         |   ]
+         |}
+      """.stripMargin
+
+    val request: ReportingRequest = getReportingRequestSyncWithFactBias(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    require(requestModel.isSuccess, requestModel)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val expectedJson = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"account_stats"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"advertiser_id","value":"1035663"\},\{"type":"selector","dimension":"\{test_flag\}","value":"0"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"advertiser_id","outputName":"Advertiser ID","outputType":"STRING"\},\{"type":"default","dimension":"stats_date","outputName":"Day","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"roundingDoubleSum","name":"Spend","fieldName":"spend","scale":10,"enableRoundingDoubleSumAggregatorFactory":true\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Impressions","direction":"ascending","dimensionOrder":\{"type":"numeric"\}\},\{"dimension":"Spend","direction":"descending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":200\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}"""
+    println(result)
+    println(expectedJson)
+    result should fullyMatch regex expectedJson
+
+  }
+
+
+
 }
