@@ -1890,7 +1890,4 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     result should fullyMatch regex expectedJson
 
   }
-
-
-
 }
