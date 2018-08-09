@@ -1823,7 +1823,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     result should fullyMatch regex json
   }
 
-  test("Fact View Query Tests Adjustment Stats with constant column filter and sorting on fact column") {
+  test("Fact View Query Tests Adjustment Stats with constant column filter and sorting on fact columns") {
     val jsonString =
       s"""{ "cube": "a_stats",
          |   "selectFields": [

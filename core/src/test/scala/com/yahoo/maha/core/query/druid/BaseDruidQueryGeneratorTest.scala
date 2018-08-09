@@ -5,7 +5,7 @@ import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{POST_RESULT_DECODE, START_OF_THE_MONTH, START_OF_THE_WEEK}
 import com.yahoo.maha.core.FilterOperation.{Equality, In, InBetweenEquality, InEquality}
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension._
+import com.yahoo.maha.core.dimension.{DimCol, DruidFuncDimCol, DruidPostResultFuncDimCol, PubCol, ConstDimCol}
 import com.yahoo.maha.core.fact.{PublicFactCol, _}
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
@@ -522,7 +522,6 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
       }
     }
     val view = UnionView("account_a_stats", Seq(tableOne, tableTwo))
-
 
     ColumnContext.withColumnContext {
       import DruidExpression._
