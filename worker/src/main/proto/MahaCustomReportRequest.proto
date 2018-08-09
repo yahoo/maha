@@ -59,6 +59,6 @@ enum ReportType {
 }
 
 enum QueueType {
-    CMS = 0;
+    PULSAR = 0;
     KAFKA = 1;
 }

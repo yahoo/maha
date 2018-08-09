@@ -360,9 +360,9 @@ public final class MahaWorkerReportingProto {
   public enum QueueType
       implements com.google.protobuf.ProtocolMessageEnum {
     /**
-     * <code>CMS = 0;</code>
+     * <code>PULSAR = 0;</code>
      */
-    CMS(0, 0),
+    PULSAR(0, 0),
     /**
      * <code>KAFKA = 1;</code>
      */
@@ -370,9 +370,9 @@ public final class MahaWorkerReportingProto {
     ;
 
     /**
-     * <code>CMS = 0;</code>
+     * <code>PULSAR = 0;</code>
      */
-    public static final int CMS_VALUE = 0;
+    public static final int PULSAR_VALUE = 0;
     /**
      * <code>KAFKA = 1;</code>
      */
@@ -383,7 +383,7 @@ public final class MahaWorkerReportingProto {
 
     public static QueueType valueOf(int value) {
       switch (value) {
-        case 0: return CMS;
+        case 0: return PULSAR;
         case 1: return KAFKA;
         default: return null;
       }
@@ -1141,7 +1141,7 @@ public final class MahaWorkerReportingProto {
       dryrun_ = false;
       revision_ = 0;
       requestSubmittedTime_ = 0L;
-      queueType_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType.CMS;
+      queueType_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType.PULSAR;
       userId_ = "";
       dualWrite_ = false;
       registryName_ = "";
@@ -1440,7 +1440,7 @@ public final class MahaWorkerReportingProto {
         bitField0_ = (bitField0_ & ~0x00000200);
         requestSubmittedTime_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000400);
-        queueType_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType.CMS;
+        queueType_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType.PULSAR;
         bitField0_ = (bitField0_ & ~0x00000800);
         userId_ = "";
         bitField0_ = (bitField0_ & ~0x00001000);
@@ -2115,7 +2115,7 @@ public final class MahaWorkerReportingProto {
         return this;
       }
 
-      private com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType queueType_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType.CMS;
+      private com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType queueType_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType.PULSAR;
       /**
        * <code>optional .com.yahoo.maha.worker.proto.QueueType queueType = 12;</code>
        */
@@ -2145,7 +2145,7 @@ public final class MahaWorkerReportingProto {
        */
       public Builder clearQueueType() {
         bitField0_ = (bitField0_ & ~0x00000800);
-        queueType_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType.CMS;
+        queueType_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType.PULSAR;
         onChanged();
         return this;
       }
@@ -2918,7 +2918,7 @@ public final class MahaWorkerReportingProto {
       schema_ = "";
       jobResponse_ = "";
       dryrun_ = false;
-      queueType_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType.CMS;
+      queueType_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType.PULSAR;
       userId_ = "";
       dualWrite_ = false;
       registryName_ = "";
@@ -3177,7 +3177,7 @@ public final class MahaWorkerReportingProto {
         bitField0_ = (bitField0_ & ~0x00000020);
         dryrun_ = false;
         bitField0_ = (bitField0_ & ~0x00000040);
-        queueType_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType.CMS;
+        queueType_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType.PULSAR;
         bitField0_ = (bitField0_ & ~0x00000080);
         userId_ = "";
         bitField0_ = (bitField0_ & ~0x00000100);
@@ -3686,7 +3686,7 @@ public final class MahaWorkerReportingProto {
         return this;
       }
 
-      private com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType queueType_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType.CMS;
+      private com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType queueType_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType.PULSAR;
       /**
        * <code>optional .com.yahoo.maha.worker.proto.QueueType queueType = 8;</code>
        */
@@ -3716,7 +3716,7 @@ public final class MahaWorkerReportingProto {
        */
       public Builder clearQueueType() {
         bitField0_ = (bitField0_ & ~0x00000080);
-        queueType_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType.CMS;
+        queueType_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.QueueType.PULSAR;
         onChanged();
         return this;
       }
@@ -3964,8 +3964,8 @@ public final class MahaWorkerReportingProto {
       "\n\n\006ORACLE\020\000\022\010\n\004HIVE\020\001\022\t\n\005DRUID\020\002\022\n\n\006PRES" +
       "TO\020\003*!\n\014OutputFormat\022\007\n\003CSV\020\000\022\010\n\004JSON\020\001*" +
       "\'\n\nReportType\022\n\n\006AD_HOC\020\000\022\r\n\tSCHEDULED\020\001" +
-      "*\037\n\tQueueType\022\007\n\003CMS\020\000\022\t\n\005KAFKA\020\001B\032B\030Mah",
-      "aWorkerReportingProto"
+      "*\"\n\tQueueType\022\n\n\006PULSAR\020\000\022\t\n\005KAFKA\020\001B\032B\030",
+      "MahaWorkerReportingProto"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
