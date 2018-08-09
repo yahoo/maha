@@ -167,39 +167,42 @@
    "bucketingConfigMap": {
       "erBucket": {
          "factoryClass": "com.yahoo.maha.service.factory.DefaultBucketingConfigFactory",
-         "config": [{
-	  "cube": "student_performance",
-		"internal": [{
-			"revision": 0,
-      "percent": 10
-		}, {
-      "revision": 1,
-      "percent": 90
+         "config": {"cube":
+    [{
+      "cube": "student_performance",
+      "internal": [{
+        "revision": 0,
+        "percent": 10
+      }, {
+        "revision": 1,
+        "percent": 90
+      }],
+      "external": [{
+        "revision": 0,
+        "percent": 90
+      }, {
+        "revision": 1,
+        "percent": 10
+      }],
+      "dryRun": [{
+        "revision": 0,
+        "percent": 10,
+        "engine" : "Oracle"
+      }, {
+        "revision": 1,
+        "percent": 10
+      }],
+      "userWhiteList": [{
+        "user" : "uid",
+        "revision": 0
+      }]
     }],
-		"external": [{
-			"revision": 0,
-      "percent": 90
-		}, {
-      "revision": 1,
-      "percent": 10
-		}],
-    "dryRun": [{
-			"revision": 0,
-      "percent": 10,
-      "engine" : "Oracle"
-		}, {
-      "revision": 1,
-      "percent": 10
-    }],
-    "userWhiteList": [{
-      "user" : "uid",
-      "revision": 0
-    }]
-}]
+    "queryGenerator": []
+}}
       },
       "irBucket": {
          "factoryClass": "com.yahoo.maha.service.factory.DefaultBucketingConfigFactory",
-         "config": [{
+         "config": {"cube":[{
 	  "cube": "student_performance",
 		"internal": [{
 			"revision": 0,
@@ -227,8 +230,9 @@
       "user" : "uid",
       "revision": 0
     }]
-}]
-      }
+}],
+     "queryGenerator": []
+    }
    },
    "utcTimeProviderMap": {
       "erUTC": {

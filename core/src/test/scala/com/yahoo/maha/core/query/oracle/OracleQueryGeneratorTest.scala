@@ -39,7 +39,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    val select = """SELECT to_char(f0.campaign_id) "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ao1.name "Advertiser Name", ao1."Advertiser Status" "Advertiser Status", TOTALROWS"""
+    val select = """SELECT f0.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ao1.name "Advertiser Name", ao1."Advertiser Status" "Advertiser Status", TOTALROWS"""
     assert(result.contains(select), result)
   }
 
@@ -56,7 +56,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    val select = """SELECT to_char(co2.id) "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ao1.name "Advertiser Name", co2."Campaign Status" "Campaign Status", TOTALROWS"""
+    val select = """SELECT co2.id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ao1.name "Advertiser Name", co2."Campaign Status" "Campaign Status", TOTALROWS"""
     assert(result.contains(select), result)
   }
 
@@ -73,7 +73,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    val select = """SELECT to_char(f0.campaign_id) "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ao1.name "Advertiser Name", ao1."Advertiser Status" "Advertiser Status""""
+    val select = """SELECT f0.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ao1.name "Advertiser Name", ao1."Advertiser Status" "Advertiser Status""""
     assert(result.contains(select), result)
   }
 
@@ -90,7 +90,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    val select = """SELECT to_char(ago1.campaign_id) "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ago1."Ad Group Status" "Ad Group Status""""
+    val select = """SELECT ago1.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ago1."Ad Group Status" "Ad Group Status""""
     assert(result.contains(select), result)
     assert(result.contains("campaign_id IN (SELECT id FROM campaign_oracle WHERE (DECODE(status, 'ON', 'ON', 'OFF') IN ('ON'))"),result)
   }
@@ -452,7 +452,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
         |SELECT *
-        |FROM (SELECT to_char(t3.id) "Keyword ID", to_char(ago2.campaign_id) "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ago2."Ad Group Status" "Ad Group Status", co1."Campaign Status" "Campaign Status"
+        |FROM (SELECT t3.id "Keyword ID", ago2.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ago2."Ad Group Status" "Ad Group Status", co1."Campaign Status" "Campaign Status"
         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
         |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions"
         |            FROM fact2 FactAlias
@@ -524,7 +524,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected =
       s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
-         |FROM (SELECT to_char(t4.id) "Keyword ID", t4.value "Keyword Value", to_char(ago3.campaign_id) "Campaign ID", co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", coalesce(f0."impressions", 1) "Impressions", coalesce(ROUND(f0."spend", 10), 0.0) "Spend"
+         |FROM (SELECT t4.id "Keyword ID", t4.value "Keyword Value", ago3.campaign_id "Campaign ID", co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", coalesce(f0."impressions", 1) "Impressions", coalesce(ROUND(f0."spend", 10), 0.0) "Spend"
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   ad_group_id, advertiser_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", SUM(spend) AS "spend"
          |            FROM fact2 FactAlias
@@ -602,7 +602,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          |SELECT *
-         |FROM (SELECT to_char(t3.id) "Keyword ID", coalesce(f0."impressions", 1) "Impressions", COALESCE(f0.device_id, 'UNKNOWN') "Device ID", COALESCE(f0.network_type, 'NONE') "Network Type", COALESCE(f0.pricing_type, 'NONE') "Pricing Type", co1."Campaign Status" "Campaign Status"
+         |FROM (SELECT t3.id "Keyword ID", coalesce(f0."impressions", 1) "Impressions", COALESCE(f0.device_id, 'UNKNOWN') "Device ID", COALESCE(f0.network_type, 'NONE') "Network Type", COALESCE(f0.pricing_type, 'NONE') "Pricing Type", co1."Campaign Status" "Campaign Status"
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END device_id, DECODE(network_type, 'TEST_PUBLISHER', 'Test Publisher', 'CONTENT_SYNDICATION', 'Content Syndication', 'EXTERNAL', 'Yahoo Partners', 'INTERNAL', 'Yahoo Properties', 'NONE') network_type, CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END pricing_type, campaign_id, keyword_id, SUM(impressions) AS "impressions"
          |            FROM fact2 FactAlias
@@ -1186,7 +1186,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected =
       s"""SELECT "Keyword ID", "Keyword Value", "Campaign Name", "Ad Group Name", "Ad Title", impressions AS "Impressions", CTR AS "CTR"
-         |FROM (SELECT to_char(f0.keyword_id) "Keyword ID", t4.value "Keyword Value", co1.campaign_name "Campaign Name", ago2.name "Ad Group Name", ado3.title "Ad Title", SUM(impressions) AS impressions, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS CTR, SUM(clicks) AS clicks
+         |FROM (SELECT f0.keyword_id "Keyword ID", t4.value "Keyword Value", co1.campaign_name "Campaign Name", ago2.name "Ad Group Name", ado3.title "Ad Title", SUM(impressions) AS impressions, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS CTR, SUM(clicks) AS clicks
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
          |                   ad_group_id, ad_id, campaign_id, keyword_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions
          |            FROM fact1 FactAlias
@@ -1219,7 +1219,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |             )
          |           t4 ON (f0.keyword_id = t4.id)
          |
-         |          GROUP BY to_char(f0.keyword_id), t4.value, co1.campaign_name, ago2.name, ado3.title
+         |          GROUP BY f0.keyword_id, t4.value, co1.campaign_name, ago2.name, ado3.title
          |)
          |   ORDER BY "Campaign Name" ASC NULLS LAST
         |""".stripMargin
@@ -1261,7 +1261,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected =
       s"""SELECT "Frequency", "Keyword ID", "Keyword Value", "Campaign Name", impressions AS "Impressions", CTR AS "CTR", spend AS "Spend"
-         |FROM (SELECT ksf0.frequency "Frequency", to_char(ksf0.keyword_id) "Keyword ID", t2.value "Keyword Value", co1.campaign_name "Campaign Name", SUM(impressions) AS impressions, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS CTR, SUM(spend) AS spend, SUM(clicks) AS clicks
+         |FROM (SELECT ksf0.frequency "Frequency", ksf0.keyword_id "Keyword ID", t2.value "Keyword Value", co1.campaign_name "Campaign Name", SUM(impressions) AS impressions, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS CTR, SUM(spend) AS spend, SUM(clicks) AS clicks
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
          |                   frequency, campaign_id, keyword_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions, SUM(spend) AS spend
          |            FROM k_stats_fact1 FactAlias
@@ -1282,7 +1282,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |             )
          |           t2 ON (ksf0.keyword_id = t2.id)
          |
-         |          GROUP BY ksf0.frequency, to_char(ksf0.keyword_id), t2.value, co1.campaign_name
+         |          GROUP BY ksf0.frequency, ksf0.keyword_id, t2.value, co1.campaign_name
          |)
          |   ORDER BY "Spend" DESC NULLS LAST
          |""".stripMargin
@@ -1324,7 +1324,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected =
       s"""SELECT *
-         |FROM (SELECT to_char(f0.keyword_id) "Keyword ID", t3.value "Keyword Value", ago2.name "Ad Group Name", co1.campaign_name "Campaign Name", coalesce(f0."impressions", 1) "Impressions", ROUND(f0."CTR", 10) "CTR", coalesce(ROUND(f0."spend", 10), 0.0) "Spend"
+         |FROM (SELECT f0.keyword_id "Keyword ID", t3.value "Keyword Value", ago2.name "Ad Group Name", co1.campaign_name "Campaign Name", coalesce(f0."impressions", 1) "Impressions", ROUND(f0."CTR", 10) "CTR", coalesce(ROUND(f0."spend", 10), 0.0) "Spend"
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
          |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", SUM(spend) AS "spend", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
          |            FROM fact2 FactAlias
@@ -1425,7 +1425,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          |SELECT *
-         |FROM (SELECT to_char(t3.id) "Keyword ID", to_char(ago2.campaign_id) "Campaign ID", ago2.name "Ad Group Name", to_char(t3.parent_id) "Ad Group ID", t3.value "Keyword Value", coalesce(f0."impressions", 1) "Impressions", co1.campaign_name "Campaign Name", ROUND(f0."CTR", 10) "CTR"
+         |FROM (SELECT t3.id "Keyword ID", ago2.campaign_id "Campaign ID", ago2.name "Ad Group Name", t3.parent_id "Ad Group ID", t3.value "Keyword Value", coalesce(f0."impressions", 1) "Impressions", co1.campaign_name "Campaign Name", ROUND(f0."CTR", 10) "CTR"
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
          |            FROM fact2 FactAlias
@@ -1491,7 +1491,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected =
       s"""SELECT *
-         |FROM (SELECT to_char(t4.id) "Keyword ID", to_char(ago3.campaign_id) "Campaign ID", ago3.name "Ad Group Name", to_char(t4.parent_id) "Ad Group ID", t4.value "Keyword Value", coalesce(f0."impressions", 1) "Impressions", co2.campaign_name "Campaign Name", ROUND(f0."CTR", 10) "CTR", ao1.name "Advertiser Name"
+         |FROM (SELECT t4.id "Keyword ID", ago3.campaign_id "Campaign ID", ago3.name "Ad Group Name", t4.parent_id "Ad Group ID", t4.value "Keyword Value", coalesce(f0."impressions", 1) "Impressions", co2.campaign_name "Campaign Name", ROUND(f0."CTR", 10) "CTR", ao1.name "Advertiser Name"
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   ad_group_id, advertiser_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
          |            FROM fact2 FactAlias
@@ -1559,7 +1559,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess)
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = s"""SELECT *
-                      |FROM (SELECT to_char(t3.id) "Keyword ID", coalesce(f0."impressions", 1) "Impressions", co1.campaign_name "Campaign Name", ROUND(f0."CTR", 10) "CTR"
+                      |FROM (SELECT t3.id "Keyword ID", coalesce(f0."impressions", 1) "Impressions", co1.campaign_name "Campaign Name", ROUND(f0."CTR", 10) "CTR"
                       |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
                       |                   keyword_id, campaign_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
                       |            FROM fact2 FactAlias
@@ -1639,7 +1639,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected =
       s"""SELECT *
-         |FROM (SELECT to_char(t4.id) "Keyword ID", to_char(ago3.campaign_id) "Campaign ID", ago3.name "Ad Group Name", to_char(t4.parent_id) "Ad Group ID", to_char(t4.advertiser_id) "Advertiser ID", t4.value "Keyword Value", coalesce(f0."impressions", 1) "Impressions", co2.campaign_name "Campaign Name", ROUND(f0."CTR", 10) "CTR", ao1.name "Advertiser Name"
+         |FROM (SELECT t4.id "Keyword ID", ago3.campaign_id "Campaign ID", ago3.name "Ad Group Name", t4.parent_id "Ad Group ID", t4.advertiser_id "Advertiser ID", t4.value "Keyword Value", coalesce(f0."impressions", 1) "Impressions", co2.campaign_name "Campaign Name", ROUND(f0."CTR", 10) "CTR", ao1.name "Advertiser Name"
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   ad_group_id, advertiser_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
          |            FROM fact2 FactAlias
@@ -1712,7 +1712,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = s"""
                       |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
-                      |FROM (SELECT to_char(f0.keyword_id) "Keyword ID", to_char(f0.campaign_id) "Campaign ID", f0."Month" "Month", to_char(f0.ad_group_id) "Ad Group ID", f0."Week" "Week", to_char(f0.stats_date, 'YYYY-MM-DD') "Day", coalesce(f0."impressions", 1) "Impressions", coalesce(f0."clicks", 0) "Clicks", ROUND(f0."CTR", 10) "CTR"
+                      |FROM (SELECT f0.keyword_id "Keyword ID", f0.campaign_id "Campaign ID", f0."Month" "Month", f0.ad_group_id "Ad Group ID", f0."Week" "Week", to_char(f0.stats_date, 'YYYY-MM-DD') "Day", coalesce(f0."impressions", 1) "Impressions", coalesce(f0."clicks", 0) "Clicks", ROUND(f0."CTR", 10) "CTR"
                       |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
                       |                   stats_date, ad_group_id, campaign_id, keyword_id, TRUNC(stats_date, 'MM') AS "Month", TRUNC(stats_date, 'IW') AS "Week", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
                       |            FROM fact2
@@ -1819,7 +1819,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = s"""
                       |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
-                      |FROM (SELECT f0."Month" "Month", to_char(f0.advertiser_id) "Advertiser ID"
+                      |FROM (SELECT f0."Month" "Month", f0.advertiser_id "Advertiser ID"
                       |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
                       |                   advertiser_id, TRUNC(stats_date, 'MM') AS "Month"
                       |            FROM fact2
@@ -1882,7 +1882,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = """SELECT *
-                     |      FROM (SELECT to_char(co1.id) "Campaign ID", to_char(ago2.id) "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name"
+                     |      FROM (SELECT co1.id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name"
                      |            FROM
                      |               ( (SELECT  advertiser_id, campaign_id, id
                      |            FROM ad_group_oracle
@@ -2001,7 +2001,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = """
                      |SELECT *
-                     |      FROM (SELECT to_char(co1.id) "Campaign ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name"
+                     |      FROM (SELECT co1.id "Campaign ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name"
                      |            FROM
                      |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT /*+ CampaignHint */ id, advertiser_id, campaign_name
                      |            FROM campaign_oracle
@@ -2073,7 +2073,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = s"""
                       |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
-                      |FROM (SELECT to_char(co2.id) "Campaign ID", to_char(af0.ad_group_id) "Ad Group ID", ao1."Advertiser Status" "Advertiser Status", co2.campaign_name "Campaign Name", coalesce(af0."impressions", 1) "Impressions", ROUND(af0."CTR", 10) "CTR"
+                      |FROM (SELECT co2.id "Campaign ID", af0.ad_group_id "Ad Group ID", ao1."Advertiser Status" "Advertiser Status", co2.campaign_name "Campaign Name", coalesce(af0."impressions", 1) "Impressions", ROUND(af0."CTR", 10) "CTR"
                       |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
                       |                   advertiser_id, campaign_id, ad_group_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
                       |            FROM ad_fact1 FactAlias
@@ -2296,7 +2296,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val expected =
        s"""SELECT *
-         |FROM (SELECT to_char(ado3.campaign_id) "Campaign ID", ago2.name "Ad Group Name", to_char(ado3.ad_group_id) "Ad Group ID", coalesce(af0."impressions", 1) "Impressions", co1.campaign_name "Campaign Name", ado3.title "Ad Title", to_char(ado3.id) "Ad ID"
+         |FROM (SELECT ado3.campaign_id "Campaign ID", ago2.name "Ad Group Name", ado3.ad_group_id "Ad Group ID", coalesce(af0."impressions", 1) "Impressions", co1.campaign_name "Campaign Name", ado3.title "Ad Title", ado3.id "Ad ID"
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_ad_stats 4) */
          |                   ad_id, campaign_id, ad_group_id, SUM(impressions) AS "impressions"
          |            FROM ad_fact1 FactAlias
@@ -2450,7 +2450,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val expected =
       s"""|SELECT *
-         |FROM (SELECT to_char(t1.id) "Keyword ID", ksf0."Month" "Month", to_char(t1.parent_id) "Ad Group ID", ksf0."Week" "Week", to_char(ksf0.stats_date, 'YYYY-MM-DD') "Day", coalesce(ksf0."impressions", 1) "Impressions", coalesce(ksf0."clicks", 0) "Clicks", ROUND(ksf0."CTR", 10) "CTR"
+         |FROM (SELECT t1.id "Keyword ID", ksf0."Month" "Month", t1.parent_id "Ad Group ID", ksf0."Week" "Week", to_char(ksf0.stats_date, 'YYYY-MM-DD') "Day", coalesce(ksf0."impressions", 1) "Impressions", coalesce(ksf0."clicks", 0) "Clicks", ROUND(ksf0."CTR", 10) "CTR"
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
          |                   stats_date, ad_group_id, keyword_id, TRUNC(stats_date, 'MM') AS "Month", TRUNC(stats_date, 'IW') AS "Week", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
          |            FROM k_stats_fact1 FactAlias
@@ -2504,7 +2504,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val expected =
       s"""SELECT *
-         |FROM (SELECT to_char(co1.id) "Campaign ID", coalesce(af0."impressions", 1) "Impressions", co1."Campaign Status" "Campaign Status"
+         |FROM (SELECT co1.id "Campaign ID", coalesce(af0."impressions", 1) "Impressions", co1."Campaign Status" "Campaign Status"
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_ad_stats 4) */
          |                   campaign_id, SUM(impressions) AS "impressions"
          |            FROM ad_fact1 FactAlias
@@ -2562,7 +2562,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val expected =
       s"""|SELECT *
-         |FROM (SELECT to_char(ado1.campaign_id) "Campaign ID", to_char(ado1.ad_group_id) "Ad Group ID", coalesce(af0."impressions", 1) "Impressions", ado1.title "Ad Title", to_char(ado1.id) "Ad ID"
+         |FROM (SELECT ado1.campaign_id "Campaign ID", ado1.ad_group_id "Ad Group ID", coalesce(af0."impressions", 1) "Impressions", ado1.title "Ad Title", ado1.id "Ad ID"
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_ad_stats 4) */
          |                   ad_id, campaign_id, ad_group_id, SUM(impressions) AS "impressions"
          |            FROM ad_fact1 FactAlias
@@ -2719,7 +2719,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
-         |FROM (SELECT to_char(ksnpo0.ad_id) "Ad ID", to_char(ksnpo0.stats_date, 'YYYY-MM-DD') "Day", ROUND(ksnpo0."Average CPC", 10) "Average CPC", coalesce(ROUND(CASE WHEN ((ksnpo0."avg_pos" >= 0.1) AND (ksnpo0."avg_pos" <= 500)) THEN ksnpo0."avg_pos" ELSE 0.0 END, 10), 0.0) "Average Position", coalesce(ksnpo0."impressions", 1) "Impressions", coalesce(ROUND(ksnpo0."max_bid", 10), 0.0) "Max Bid", coalesce(ROUND(ksnpo0."spend", 10), 0.0) "Spend", ROUND(ksnpo0."CTR", 10) "CTR"
+         |FROM (SELECT ksnpo0.ad_id "Ad ID", to_char(ksnpo0.stats_date, 'YYYY-MM-DD') "Day", ROUND(ksnpo0."Average CPC", 10) "Average CPC", coalesce(ROUND(CASE WHEN ((ksnpo0."avg_pos" >= 0.1) AND (ksnpo0."avg_pos" <= 500)) THEN ksnpo0."avg_pos" ELSE 0.0 END, 10), 0.0) "Average Position", coalesce(ksnpo0."impressions", 1) "Impressions", coalesce(ROUND(ksnpo0."max_bid", 10), 0.0) "Max Bid", coalesce(ROUND(ksnpo0."spend", 10), 0.0) "Spend", ROUND(ksnpo0."CTR", 10) "CTR"
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
          |                   ad_id, stats_date, SUM(impressions) AS "impressions", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS "avg_pos", SUM(spend) AS "spend", MAX(max_bid) AS "max_bid", (spend / clicks) AS "Average CPC", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
          |            FROM k_stats_new_partitioning_one
@@ -2845,7 +2845,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
 
     val expected = s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
-                      |FROM (SELECT to_char(vps0.publisher_id) "Publisher ID", coalesce(ROUND(vps0."spend", 10), 0.0) "Spend"
+                      |FROM (SELECT vps0.publisher_id "Publisher ID", coalesce(ROUND(vps0."spend", 10), 0.0) "Spend"
                       |      FROM (SELECT
                       |                   publisher_id, SUM(spend) AS "spend"
                       |            FROM v_publisher_stats
@@ -2892,7 +2892,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
 
     val expected = s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
-                     |FROM (SELECT to_char(vps0.publisher_id) "Publisher ID", coalesce(ROUND(vps0."spend", 10), 0.0) "Spend"
+                     |FROM (SELECT vps0.publisher_id "Publisher ID", coalesce(ROUND(vps0."spend", 10), 0.0) "Spend"
                      |      FROM (SELECT
                      |                   publisher_id, SUM(spend) AS "spend"
                      |            FROM v_publisher_stats
@@ -2969,7 +2969,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = s"""
                       |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
-                      |FROM (SELECT to_char(ago3.campaign_id) "Campaign ID", to_char(ago3.id) "Ad Group ID", ago3."Ad Group Status" "Ad Group Status", ao1."Advertiser Status" "Advertiser Status", co2.campaign_name "Campaign Name", coalesce(af0."impressions", 1) "Impressions", ROUND(af0."CTR", 10) "CTR"
+                      |FROM (SELECT ago3.campaign_id "Campaign ID", ago3.id "Ad Group ID", ago3."Ad Group Status" "Ad Group Status", ao1."Advertiser Status" "Advertiser Status", co2.campaign_name "Campaign Name", coalesce(af0."impressions", 1) "Impressions", ROUND(af0."CTR", 10) "CTR"
                       |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
                       |                   advertiser_id, campaign_id, ad_group_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
                       |            FROM ad_fact1 FactAlias
@@ -3041,7 +3041,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = """
                      |SELECT  *
-                     |      FROM (SELECT to_char(ao0.id) "Advertiser ID", to_char(co1.id) "Campaign ID", co1.campaign_name "Campaign Name", to_char(ago2.id) "Ad Group ID", ago2."Ad Group Status" "Ad Group Status"
+                     |      FROM (SELECT ao0.id "Advertiser ID", co1.id "Campaign ID", co1.campaign_name "Campaign Name", ago2.id "Ad Group ID", ago2."Ad Group Status" "Ad Group Status"
                      |            FROM
                      |               ( (SELECT  campaign_id, advertiser_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
                      |            FROM ad_group_oracle
@@ -3111,7 +3111,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          |SELECT "Keyword ID", "Keyword Value", "Campaign Name", "Ad Group ID", "Ad Group Status", "Ad Group Name", "Ad Title", impressions AS "Impressions", CTR AS "CTR"
-         |FROM (SELECT to_char(f0.keyword_id) "Keyword ID", t4.value "Keyword Value", co1.campaign_name "Campaign Name", to_char(f0.ad_group_id) "Ad Group ID", ago2."Ad Group Status" "Ad Group Status", ago2.name "Ad Group Name", ado3.title "Ad Title", SUM(impressions) AS impressions, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS CTR, SUM(clicks) AS clicks
+         |FROM (SELECT f0.keyword_id "Keyword ID", t4.value "Keyword Value", co1.campaign_name "Campaign Name", f0.ad_group_id "Ad Group ID", ago2."Ad Group Status" "Ad Group Status", ago2.name "Ad Group Name", ado3.title "Ad Title", SUM(impressions) AS impressions, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS CTR, SUM(clicks) AS clicks
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
          |                   ad_group_id, ad_id, campaign_id, keyword_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions
          |            FROM fact1 FactAlias
@@ -3144,7 +3144,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |             )
          |           t4 ON (f0.keyword_id = t4.id)
          |
-         |          GROUP BY to_char(f0.keyword_id), t4.value, co1.campaign_name, to_char(f0.ad_group_id), ago2."Ad Group Status", ago2.name, ado3.title
+         |          GROUP BY f0.keyword_id, t4.value, co1.campaign_name, f0.ad_group_id, ago2."Ad Group Status", ago2.name, ado3.title
          |) WHERE ( "Ad Group ID"   IS NULL) AND ( "Ad Group Status"   = 'ON')
          |   ORDER BY "Campaign Name" ASC NULLS LAST
          |""".stripMargin
@@ -3189,7 +3189,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = s"""
                       |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
-                      |FROM (SELECT to_char(f0.keyword_id) "Keyword ID", to_char(ago1.campaign_id) "Campaign ID", f0."Month" "Month", to_char(ago1.id) "Ad Group ID", ago1."Ad Group Status" "Ad Group Status", f0."Week" "Week", to_char(f0.stats_date, 'YYYY-MM-DD') "Day", coalesce(f0."impressions", 1) "Impressions", coalesce(f0."clicks", 0) "Clicks", ROUND(f0."CTR", 10) "CTR"
+                      |FROM (SELECT f0.keyword_id "Keyword ID", ago1.campaign_id "Campaign ID", f0."Month" "Month", ago1.id "Ad Group ID", ago1."Ad Group Status" "Ad Group Status", f0."Week" "Week", to_char(f0.stats_date, 'YYYY-MM-DD') "Day", coalesce(f0."impressions", 1) "Impressions", coalesce(f0."clicks", 0) "Clicks", ROUND(f0."CTR", 10) "CTR"
                       |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
                       |                   stats_date, ad_group_id, campaign_id, keyword_id, TRUNC(stats_date, 'MM') AS "Month", TRUNC(stats_date, 'IW') AS "Week", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
                       |            FROM fact2 FactAlias
@@ -3256,7 +3256,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = s"""
                       |SELECT  *
-                      |      FROM (SELECT to_char(co0.id) "Campaign ID", co0.campaign_name "Campaign Name", to_char(ago1.id) "Ad Group ID"
+                      |      FROM (SELECT co0.id "Campaign ID", co0.campaign_name "Campaign Name", ago1.id "Ad Group ID"
                       |            FROM
                       |               ( (SELECT  campaign_id, id, advertiser_id
                       |            FROM ad_group_oracle
@@ -3316,7 +3316,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          |SELECT *
-         |FROM (SELECT to_char(t3.id) "Keyword ID", coalesce(f0."impressions", 1) "Impressions", COALESCE(f0.device_id, 'UNKNOWN') "Device ID", COALESCE(f0.network_type, 'NONE') "Network Type", COALESCE(f0.pricing_type, 'NONE') "Pricing Type", co1."Campaign Status" "Campaign Status"
+         |FROM (SELECT t3.id "Keyword ID", coalesce(f0."impressions", 1) "Impressions", COALESCE(f0.device_id, 'UNKNOWN') "Device ID", COALESCE(f0.network_type, 'NONE') "Network Type", COALESCE(f0.pricing_type, 'NONE') "Pricing Type", co1."Campaign Status" "Campaign Status"
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END device_id, DECODE(network_type, 'TEST_PUBLISHER', 'Test Publisher', 'CONTENT_SYNDICATION', 'Content Syndication', 'EXTERNAL', 'Yahoo Partners', 'INTERNAL', 'Yahoo Properties', 'NONE') network_type, CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END pricing_type, campaign_id, keyword_id, SUM(impressions) AS "impressions"
          |            FROM fact2 FactAlias
@@ -3504,7 +3504,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Source", DECODE(stats_source, 1, spend, 0.0) AS "N Spend"
-         |FROM (SELECT co1.campaign_name "Campaign Name", to_char(af0.stats_source) "Source", SUM(spend) AS spend, stats_source AS stats_source
+         |FROM (SELECT co1.campaign_name "Campaign Name", af0.stats_source "Source", SUM(spend) AS spend, stats_source AS stats_source
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   campaign_id, stats_source, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
@@ -3519,7 +3519,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |             )
          |           co1 ON (af0.campaign_id = co1.id)
          |
-         |          GROUP BY co1.campaign_name, to_char(af0.stats_source), stats_source
+         |          GROUP BY co1.campaign_name, af0.stats_source, stats_source
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
        """.stripMargin
@@ -3712,7 +3712,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
-         |FROM (SELECT co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", to_char(af0.ad_group_id) "Ad Group ID", coalesce(ROUND(af0."spend", 10), 0.0) "Spend"
+         |FROM (SELECT co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", af0.ad_group_id "Ad Group ID", coalesce(ROUND(af0."spend", 10), 0.0) "Spend"
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, ad_group_id, SUM(spend) AS "spend"
          |            FROM ad_fact1 FactAlias
@@ -3875,7 +3875,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       s"""
          |
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Status", "Advertiser Name", "Advertiser ID", spend AS "Spend"
-         |FROM (SELECT co2."Campaign Status" "Campaign Status", ao1.name "Advertiser Name", to_char(co2.advertiser_id) "Advertiser ID", SUM(spend) AS spend
+         |FROM (SELECT co2."Campaign Status" "Campaign Status", ao1.name "Advertiser Name", co2.advertiser_id "Advertiser ID", SUM(spend) AS spend
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
@@ -3896,7 +3896,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |             )
          |           co2 ON ( af0.advertiser_id = co2.advertiser_id AND af0.campaign_id = co2.id)
          |
- |          GROUP BY co2."Campaign Status", ao1.name, to_char(co2.advertiser_id)
+ |          GROUP BY co2."Campaign Status", ao1.name, co2.advertiser_id
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
          |
@@ -3973,7 +3973,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Ad Status", "Ad User Count Flag", "Ad Impressions Flag", "Campaign Name", "Pricing Type", spend AS "Spend", user_count AS "User Count", impressions AS "Impressions"
-         |FROM (SELECT ado2."Ad Status" "Ad Status", to_char(ado2.user_count) "Ad User Count Flag", to_char(ado2.impressions) "Ad Impressions Flag", co1.campaign_name "Campaign Name", to_char(af0.price_type) "Pricing Type", SUM(af0.spend) AS spend, SUM(af0.user_count) AS user_count, SUM(af0.impressions) AS impressions
+         |FROM (SELECT ado2."Ad Status" "Ad Status", ado2.user_count "Ad User Count Flag", ado2.impressions "Ad Impressions Flag", co1.campaign_name "Campaign Name", af0.price_type "Pricing Type", SUM(af0.spend) AS spend, SUM(af0.user_count) AS user_count, SUM(af0.impressions) AS impressions
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, ad_id, campaign_id, SUM(impressions) AS impressions, SUM(spend) AS spend, SUM(user_count) AS user_count
          |            FROM ad_fact1 FactAlias
@@ -3994,7 +3994,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |             )
          |           ado2 ON (af0.ad_id = ado2.id)
          |
- |          GROUP BY ado2."Ad Status", to_char(ado2.user_count), to_char(ado2.impressions), co1.campaign_name, to_char(af0.price_type)
+ |          GROUP BY ado2."Ad Status", ado2.user_count, ado2.impressions, co1.campaign_name, af0.price_type
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
        """.stripMargin
@@ -4260,7 +4260,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       s"""
          |
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser ID", CASE WHEN DECODE(stats_source, 1, clicks, 0.0) = 0 THEN 0.0 ELSE DECODE(stats_source, 1, spend, 0.0) / DECODE(stats_source, 1, clicks, 0.0) END AS "N Average CPC", spend AS "Spend"
-         |FROM (SELECT co1.campaign_name "Campaign Name", to_char(co1.advertiser_id) "Advertiser ID", SUM(spend) AS spend, SUM(clicks) AS clicks, to_char(af0.stats_source) stats_source
+         |FROM (SELECT co1.campaign_name "Campaign Name", co1.advertiser_id "Advertiser ID", SUM(spend) AS spend, SUM(clicks) AS clicks, af0.stats_source stats_source
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, stats_source, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
@@ -4275,7 +4275,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |             )
          |           co1 ON ( af0.advertiser_id = co1.advertiser_id AND af0.campaign_id = co1.id)
          |
- |          GROUP BY co1.campaign_name, to_char(co1.advertiser_id), to_char(af0.stats_source)
+ |          GROUP BY co1.campaign_name, co1.advertiser_id, af0.stats_source
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
          |
@@ -4327,7 +4327,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       s"""
          |
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "impression_share_rounded" AS "Impression Share", spend AS "Spend"
-         |FROM (SELECT co1.campaign_name "Campaign Name", SUM(spend) AS spend, SUM(impressions) AS impressions, SUM(s_impressions) AS s_impressions, to_char(af0.show_flag) show_flag, (ROUND((DECODE(MAX(show_flag), 1, ROUND(CASE WHEN SUM(s_impressions) = 0 THEN 0.0 ELSE SUM(impressions) / (SUM(s_impressions)) END, 4), NULL)), 5)) AS "impression_share_rounded"
+         |FROM (SELECT co1.campaign_name "Campaign Name", SUM(spend) AS spend, SUM(impressions) AS impressions, SUM(s_impressions) AS s_impressions, af0.show_flag show_flag, (ROUND((DECODE(MAX(show_flag), 1, ROUND(CASE WHEN SUM(s_impressions) = 0 THEN 0.0 ELSE SUM(impressions) / (SUM(s_impressions)) END, 4), NULL)), 5)) AS "impression_share_rounded"
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   campaign_id, SUM(impressions) AS impressions, SUM(s_impressions) AS s_impressions, show_flag, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
@@ -4342,7 +4342,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |             )
          |           co1 ON (af0.campaign_id = co1.id)
          |
-         |          GROUP BY co1.campaign_name, to_char(af0.show_flag)
+         |          GROUP BY co1.campaign_name, af0.show_flag
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
          |
@@ -4396,7 +4396,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          |SELECT *
-         |FROM (SELECT to_char(af0.advertiser_id) "Advertiser ID", coalesce(af0."impressions", 1) "Impressions", ROUND((CASE WHEN af0."clicks" = 0 THEN 0.0 ELSE af0."spend" / af0."clicks" END), 10) "Average CPC"
+         |FROM (SELECT af0.advertiser_id "Advertiser ID", coalesce(af0."impressions", 1) "Impressions", ROUND((CASE WHEN af0."clicks" = 0 THEN 0.0 ELSE af0."spend" / af0."clicks" END), 10) "Average CPC"
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, SUM(impressions) AS "impressions", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(spend) AS "spend"
          |            FROM ad_fact1 FactAlias
@@ -4451,7 +4451,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = s"""
                       |SELECT "Advertiser ID", impressions AS "Impressions", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC"
-                      |FROM (SELECT to_char(af0.advertiser_id) "Advertiser ID", SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend
+                      |FROM (SELECT af0.advertiser_id "Advertiser ID", SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend
                       |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
                       |                   advertiser_id, ad_group_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend, SUM(impressions) AS impressions
                       |            FROM ad_fact1 FactAlias
@@ -4472,7 +4472,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |             )
                       |           ago2 ON ( af0.advertiser_id = ago2.advertiser_id AND af0.ad_group_id = ago2.id)
                       |
-                      |          GROUP BY to_char(af0.advertiser_id)
+                      |          GROUP BY af0.advertiser_id
                       |)
                       |""".stripMargin
 
@@ -4528,7 +4528,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
 
     val expected = s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
-                      |FROM (SELECT to_char(vps0.publisher_id) "Publisher ID", coalesce(ROUND(vps0."spend", 10), 0.0) "Spend"
+                      |FROM (SELECT vps0.publisher_id "Publisher ID", coalesce(ROUND(vps0."spend", 10), 0.0) "Spend"
                       |      FROM (SELECT
                       |                   publisher_id, SUM(spend) AS "spend"
                       |            FROM v_publisher_stats2
@@ -4607,7 +4607,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          | (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
-         |      FROM (SELECT to_char(ago2.advertiser_id) "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", to_char(ago2.id) "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", to_char(ago2.campaign_id) "Campaign ID"
+         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
          |            FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle
@@ -4629,7 +4629,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
  |           )
          |            ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
-         |      FROM (SELECT to_char(ago2.advertiser_id) "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", to_char(ago2.id) "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", to_char(ago2.campaign_id) "Campaign ID"
+         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
          |            FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle

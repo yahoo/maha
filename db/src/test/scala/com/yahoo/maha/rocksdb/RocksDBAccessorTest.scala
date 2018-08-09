@@ -6,7 +6,6 @@ import java.util.concurrent.TimeUnit
 
 import com.yahoo.maha.serde.StringSerDe
 import org.junit.Assert._
-import org.rocksdb.{Options, TtlDB}
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 import scala.collection.mutable
