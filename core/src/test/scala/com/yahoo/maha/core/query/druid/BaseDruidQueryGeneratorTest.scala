@@ -491,7 +491,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
               FactCol("impressions", IntType(3, 1))
               , FactCol("clicks", IntType(3, 0, 1, 800))
               , FactCol("spend", DecType(0, "0.0"))
-              , DruidConstDerFactCol("Der Fact Col A", DecType(), "{clicks}" / "{impressions}", "1")
+              , DruidDerFactCol("Const Der Fact Col A", DecType(), "{clicks}" / "{impressions}")
             )
           )
       }
@@ -516,7 +516,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
               ConstFactCol("impressions", IntType(3, 1), "0")
               , ConstFactCol("clicks", IntType(3, 0, 1, 800), "0")
               , FactCol("spend", DecType(0, "0.0"))
-              , DruidConstDerFactCol("Der Fact Col A", DecType(), "{clicks}" / "{impressions}", "0")
+              , DruidConstDerFactCol("Const Der Fact Col A", DecType(), "{clicks}" / "{impressions}", "0")
             )
           )
       }
@@ -540,7 +540,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
             FactCol("impressions", IntType(3, 1))
             , FactCol("clicks", IntType(3, 0, 1, 800))
             , FactCol("spend", DecType(0, "0.0"))
-            , DruidDerFactCol("Der Fact Col A", DecType(), "{clicks}" / "{impressions}")
+            , DruidDerFactCol("Const Der Fact Col A", DecType(), "{clicks}" / "{impressions}")
           )
         )
     }
@@ -557,7 +557,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("impressions", "Impressions", InBetweenEquality),
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),
-          PublicFactCol("Der Fact Col A", "Der Fact Col A", InBetweenEquality)
+          PublicFactCol("Const Der Fact Col A", "Const Der Fact Col A", InBetweenEquality)
         ), Set(EqualityFilter("Test Flag", "0", isForceFilter = true)),  getMaxDaysWindow, getMaxDaysLookBack
       )
   }
