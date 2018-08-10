@@ -460,7 +460,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
           new OrderByColumnSpec(fsc.alias, findDirection(fsc.order), findComparator(aliasColumnMap(fsc.alias).dataType))
         }
 
-      val limitSpec = if (orderByColumnSpecList.nonEmpty) {
+      val limitSpec = if ((aggregatorList.nonEmpty || postAggregatorList.nonEmpty) && orderByColumnSpecList.nonEmpty) {
         new DefaultLimitSpec(orderByColumnSpecList.asJava, threshold)
       } else {
         new DefaultLimitSpec(null, threshold)
