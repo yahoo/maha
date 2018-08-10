@@ -456,11 +456,12 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         .view
         .filter(_.isInstanceOf[FactSortByColumnInfo])
         .map(_.asInstanceOf[FactSortByColumnInfo])
+        .filter(fsc => !aliasColumnMap(fsc.alias).isInstanceOf[ConstFactCol])
         .map{ fsc : FactSortByColumnInfo =>
           new OrderByColumnSpec(fsc.alias, findDirection(fsc.order), findComparator(aliasColumnMap(fsc.alias).dataType))
         }
 
-      val limitSpec = if (orderByColumnSpecList.nonEmpty) {
+      val limitSpec = if ((aggregatorList.nonEmpty || postAggregatorList.nonEmpty) && orderByColumnSpecList.nonEmpty) {
         new DefaultLimitSpec(orderByColumnSpecList.asJava, threshold)
       } else {
         new DefaultLimitSpec(null, threshold)
