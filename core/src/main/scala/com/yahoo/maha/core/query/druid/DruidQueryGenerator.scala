@@ -456,6 +456,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         .view
         .filter(_.isInstanceOf[FactSortByColumnInfo])
         .map(_.asInstanceOf[FactSortByColumnInfo])
+        .filter(fsc => !aliasColumnMap(fsc.alias).isInstanceOf[ConstFactCol] && !aliasColumnMap(fsc.alias).isInstanceOf[BaseConstDerivedFactCol])
         .map{ fsc : FactSortByColumnInfo =>
           new OrderByColumnSpec(fsc.alias, findDirection(fsc.order), findComparator(aliasColumnMap(fsc.alias).dataType))
         }
