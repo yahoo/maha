@@ -253,7 +253,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
   test("dim fact sync fact driven with fact column sort with total rows should use LEFT OUTER JOIN with pagination and total row column") {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_w_fact_sort_total_rows.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
-    val request: ReportingRequest = getReportingRequestSync(jsonString).copy(forceFactDriven = true, forceDimensionDriven = false)
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
@@ -263,7 +263,6 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    println(result)
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
     assert(result.contains("ROW_NUMBER"), "Query should have pagination")
     assert(result.contains("TOTALROWS"), "Query should have total row column")
