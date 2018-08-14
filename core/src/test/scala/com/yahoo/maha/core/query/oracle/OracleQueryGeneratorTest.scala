@@ -2512,7 +2512,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            GROUP BY campaign_id
          |            HAVING (SUM(impressions) = 12345)
          |           ) af0
-         |           RIGHT OUTER JOIN
+         |           INNER JOIN
          |                (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT /*+ CampaignHint */ DECODE(status, 'ON', 'ON', 'OFF') AS "Campaign Status", id, advertiser_id
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
@@ -4651,6 +4651,98 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
  |           )
          |            ) WHERE ROWNUM <= 10) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 10)
+       """.stripMargin
+    resultSql should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("successfully generate dim only oracle query without union all for sync multi engine query for druid + oracle with metric filter") {
+    import DefaultQueryPipelineFactoryTest._
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Ad Group Status"},
+                              {"field": "Ad Group ID"},
+                              {"field": "Source"},
+                              {"field": "Pricing Type"},
+                              {"field": "Destination URL"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"},
+                              {"field": "Advertiser Currency"},
+                              {"field": "Campaign Device ID"},
+                              {"field": "Campaign ID"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": "between", "from": "10", "to": "1000000"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "ASC"}
+                          ],
+                          "includeRowCount" : true,
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":10
+                          }"""
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry, revision = Option(1))
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[MultiEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[MultiEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
+    val result = pipeline.withDruidCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Ad Group ID", 10)
+        row.addValue("Impressions", 100)
+        row.addValue("Clicks", 1)
+        rl.addRow(row)
+    }.withOracleCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Advertiser ID", 1)
+        row.addValue("Ad Group Status", "ON")
+        row.addValue("Ad Group ID", 10)
+        row.addValue("Source", 2)
+        row.addValue("Pricing Type", "CPC")
+        row.addValue("Destination URL", "url-10")
+        rl.addRow(row)
+    }.run()
+
+    assert(result.isSuccess, result)
+    val resultSql = pipeline.queryChain.subsequentQueryList.head.asString
+
+    val expected =
+      s"""
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
+         |            FROM
+         |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
+         |            FROM ad_group_oracle
+         |            WHERE (advertiser_id = 213) AND (id IN (10))
+         |             ) ago2
+         |          INNER JOIN
+         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            FROM campaign_oracle
+         |
+         |             ) co1
+         |              ON( ago2.advertiser_id = co1.advertiser_id AND ago2.campaign_id = co1.id )
+         |               INNER JOIN
+         |            (SELECT  currency, id
+         |            FROM advertiser_oracle
+         |
+         |             ) ao0
+         |              ON( co1.advertiser_id = ao0.id )
+         |               )
+         |
+ |           )
+         |            ) WHERE ROWNUM <= 10) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 10
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
   }

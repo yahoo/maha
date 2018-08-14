@@ -2,9 +2,9 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
-import com.yahoo.maha.core.bucketing.{BucketParams, CubeBucketSelected, BucketSelector}
+import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, CubeBucketSelected}
 import com.yahoo.maha.core.dimension.PublicDimension
-import com.yahoo.maha.core.fact.{BestCandidates, PublicFactCol}
+import com.yahoo.maha.core.fact.{BestCandidates, PublicFactCol, PublicFactColumn}
 import com.yahoo.maha.core.registry.{FactRowsCostEstimate, Registry}
 import com.yahoo.maha.core.request.Parameter.Distinct
 import com.yahoo.maha.core.request._
@@ -120,6 +120,7 @@ case class RequestModel(cube: String
                         , factSortByMap : Map[String, Order]
                         , dimSortByMap : Map[String, Order]
                         , hasFactFilters: Boolean
+                        , hasMetricFilters: Boolean
                         , hasNonFKFactFilters: Boolean
                         , hasDimFilters: Boolean
                         , hasNonFKDimFilters: Boolean
@@ -177,6 +178,7 @@ case class RequestModel(cube: String
     //1. fact ROJ driving dim (filter or no filter)
     //2. fact ROJ driving dim (filter or no filter) LOJ parent dim LOJ parent dim
     //3. fact ROJ driving dim IJ parent dim IJ parent dim
+    //4. fact IJ driving dim [IJ parent dim IJ parent dim] (metric filter)
     //fact driven query
     //1. fact LOJ driving dim (no filter)
     //2. fact LOJ driving dim (no filter) LOJ parent dim (no filter) LOJ parent dim (no filter)
@@ -191,7 +193,11 @@ case class RequestModel(cube: String
         //driving dim case
         if(dc.isDrivingDimension) {
           val joinType = if(forceDimDriven) {
-            RightOuterJoin
+            if(hasMetricFilters) {
+              InnerJoin
+            } else {
+              RightOuterJoin
+            }
           } else {
             if(anyDimHasNonFKNonForceFilter || anyDimsHasSchemaRequiredNonKeyField) {
               InnerJoin
@@ -262,6 +268,7 @@ case class RequestModel(cube: String
        factSortByMap=$factSortByMap
        dimSortByMap=$dimSortByMap
        hasFactFilters=$hasFactFilters
+       hasMetricFilters=$hasMetricFilters
        hasNonFKFactFilters=$hasNonFKFactFilters
        hasDimFilters=$hasDimFilters
        hasNonFKDimFilters=$hasNonFKDimFilters
@@ -655,6 +662,11 @@ object RequestModel extends Logging {
           //we don't count fk filters here
           val hasNonFKFactFilters = allFactFilters.filterNot(f => filterPostProcess(f.field)).nonEmpty
           val hasFactFilters = allFactFilters.nonEmpty
+          val hasMetricFilters = if(bestCandidatesOption.isDefined) {
+            val bestCandidates = bestCandidatesOption.get
+            val publicFact = bestCandidates.publicFact
+            allFactFilters.exists(f =>  publicFact.columnsByAliasMap.contains(f.field) && publicFact.columnsByAliasMap(f.field).isInstanceOf[PublicFactColumn])
+          } else false
 
           //we have to post process since the order of the sort by item could impact if conditions
           //let's add fact sort by's first
@@ -1026,6 +1038,7 @@ object RequestModel extends Logging {
             dimSortByMap = allDimSortBy.toMap,
             isFactDriven = isFactDriven,
             hasFactFilters = hasFactFilters,
+            hasMetricFilters = hasMetricFilters,
             hasNonFKFactFilters = hasNonFKFactFilters,
             hasFactSortBy = hasFactSortBy,
             hasDimFilters = hasDimFilters,
