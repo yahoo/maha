@@ -2580,6 +2580,66 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.publicDimToJoinTypeMap("productAd") == RightOuterJoin, "Should be RightOuterJoin as request is dimDriven")
   }
 
+  test(
+    """generate valid model for sync query with fields having dimension attribute,
+       filter on fact col and it is in the list of fields, force dimension driven,
+       order by fact""") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Ad Group ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Advertiser Status"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": "between", "from": "100", "to": "1000"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "forceDimensionDriven":true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess, res.errorMessage("Failed to build request model"))
+    val model = res.toOption.get
+    assert(model.requestCols.size === 4)
+    assert(model.requestCols.contains(DimColumnInfo("Campaign ID")) === true)
+    assert(model.requestCols.contains(DimColumnInfo("Advertiser Status")) === true)
+    assert(model.requestCols.contains(DimColumnInfo("Ad Group ID")) === true)
+    assert(model.requestCols.contains(FactColumnInfo("Impressions")) === true)
+    assert(model.hasDimSortBy === false)
+    assert(model.isDimDriven === true)
+    assert(model.hasFactFilters)
+    assert(model.hasMetricFilters)
+    assert(model.factFilters.size === 2)
+    assert(model.factFilters.map(_.field).contains("Advertiser ID"))
+    assert(model.factFilters.map(_.field).contains("Impressions"))
+    assert(model.dimColumnAliases.contains("Advertiser Status") === true)
+    assert(model.dimensionsCandidates.size === 2, s"dimensionsCandidates = ${model.dimensionsCandidates}")
+    assert(model.dimensionsCandidates.exists(_.dim.name == "ad_group") === true)
+    assert(model.dimensionsCandidates.exists(_.dim.name == "advertiser") === true)
+    assert(model.factSortByMap.contains("Impressions") === true)
+    assert(model.factSortByMap("Impressions") === DESC)
+
+    assert(model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields.exists(_ === "Ad Group ID") === true,
+      s"${model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields}")
+    assert(model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields.exists(_ === "Advertiser ID") === true,
+      s"${model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields}")
+    assert(model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields.exists(_ === "Advertiser Status") === true,
+      s"${model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields}")
+
+    assert(model.publicDimToJoinTypeMap("advertiser") == InnerJoin, "Should be inner join as request has fact filters")
+    assert(model.publicDimToJoinTypeMap("ad_group") == InnerJoin, "Should be inner join as request has fact filters")
+
+  }
 
   test(
     """generate valid model for sync query with fields having dimension attribute,

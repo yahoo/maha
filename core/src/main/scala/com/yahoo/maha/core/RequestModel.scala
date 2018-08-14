@@ -178,6 +178,7 @@ case class RequestModel(cube: String
     //1. fact ROJ driving dim (filter or no filter)
     //2. fact ROJ driving dim (filter or no filter) LOJ parent dim LOJ parent dim
     //3. fact ROJ driving dim IJ parent dim IJ parent dim
+    //4. fact IJ driving dim [IJ parent dim IJ parent dim] (metric filter)
     //fact driven query
     //1. fact LOJ driving dim (no filter)
     //2. fact LOJ driving dim (no filter) LOJ parent dim (no filter) LOJ parent dim (no filter)
@@ -192,7 +193,11 @@ case class RequestModel(cube: String
         //driving dim case
         if(dc.isDrivingDimension) {
           val joinType = if(forceDimDriven) {
-            RightOuterJoin
+            if(hasMetricFilters) {
+              InnerJoin
+            } else {
+              RightOuterJoin
+            }
           } else {
             if(anyDimHasNonFKNonForceFilter || anyDimsHasSchemaRequiredNonKeyField) {
               InnerJoin
