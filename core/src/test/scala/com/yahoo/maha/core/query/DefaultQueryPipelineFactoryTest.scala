@@ -3,13 +3,14 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.bucketing.{BucketSelector, BucketingConfig, CubeBucketingConfig, QueryGenBucketingConfig}
 import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator, SyncDruidQueryOptimizer}
-import com.yahoo.maha.core.query.hive.HiveQueryGenerator
+import com.yahoo.maha.core.query.hive.{HiveQueryGenerator, HiveQueryGeneratorV1}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.core.{EqualityFilter, BetweenFilter, DefaultPartitionColumnRenderer, RequestModel}
-import com.yahoo.maha.executor.{MockHiveQueryExecutor, MockOracleQueryExecutor, MockDruidQueryExecutor}
-import org.scalatest.{BeforeAndAfterAll, Matchers, FunSuite}
+import com.yahoo.maha.core.{BetweenFilter, DefaultPartitionColumnRenderer, EqualityFilter, RequestModel}
+import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockHiveQueryExecutor, MockOracleQueryExecutor}
+import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 import scala.util.Try
 
@@ -476,6 +477,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     OracleQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer)
     DruidQueryGenerator.register(queryGeneratorRegistry)
     HiveQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
+    HiveQueryGeneratorV1.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
   }
 
 
@@ -1627,5 +1629,34 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     assert(result.isSuccess, result)
     assert(!result.toOption.get.rowList.isEmpty)
+  }
+
+  test("successfully generate query with queryGeneratorBucket defined") {
+    val request: ReportingRequest = ReportingRequest.forceHive(getReportingRequestAsync(requestWithMetricSortAndDay))
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    object TestBucketingConfig extends BucketingConfig {
+      override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = None
+      override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = {
+        Some(QueryGenBucketingConfig.builder()
+          .internalBucketPercentage(Map(Version.v0 -> 100, Version.v1 -> 0))
+          .externalBucketPercentage(Map(Version.v0 -> 100, Version.v1 -> 0))
+          .dryRunPercentage(Map(Version.v1 -> 100))
+          .build())
+      }
+    }
+
+    val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
+
+    val queryPipelineTry = queryPipelineFactory.fromBucketSelector(new Tuple2(requestModel.get, None), QueryAttributes.empty, bucketSelector)
+    assert(queryPipelineTry._1.isSuccess, queryPipelineTry._1.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry._1.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
+    assert(queryPipelineTry._2.isDefined && queryPipelineTry._2.get.isSuccess)
+    assert(queryPipelineTry._2.get.get.queryChain.drivingQuery.engine.equals(HiveEngine))
+    assert(queryPipelineTry._3.isEmpty)
   }
 }
