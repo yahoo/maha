@@ -989,11 +989,15 @@ b. Dim Driven
     val factOnlySubqueryFields : Set[String] = if(isFactOnlyQuery) {
       queryContext.dims.view.map(_.publicDim.primaryKeyByAlias).filterNot(requestColAliasesSet).toSet
     } else Set.empty
+    val includePaginationOnDimensions = requestModel.isSyncRequest && !requestModel.includeRowCount
 
     def generateDimJoin(): Unit = {
       if (queryContext.dims.nonEmpty) {
-        val dsql = generateDimensionSql(queryContext, queryBuilderContext, true)
+        val dsql = generateDimensionSql(queryContext, queryBuilderContext, includePaginationOnDimensions)
         queryBuilder.addDimensionJoin(dsql.drivingDimensionSql)
+        if(dsql.hasPagination) {
+          queryBuilder.setHasDimensionPagination()
+        }
         //TODO: add support for optimal mutli dimension sort by metric query
         //TODO: right now it just does join with driving table
         dsql.multiDimensionJoinSql.foreach(queryBuilder.addMultiDimensionJoin)
@@ -1246,7 +1250,11 @@ ${queryBuilder.getJoinExpressions}
 ) ${queryBuilder.getOuterWhereClause}
    $orderByClause"""
 
-      if (requestModel.isSyncRequest && (requestModel.isFactDriven || requestModel.hasFactSortBy)) {
+      if (requestModel.isSyncRequest &&
+        (requestModel.includeRowCount ||
+          requestModel.isFactDriven ||
+          (includePaginationOnDimensions && !queryBuilder.getHasDimensionPagination))) {
+      //if (requestModel.isSyncRequest && (requestModel.isFactDriven || requestModel.hasFactSortBy)) {
         addPaginationWrapper(queryString, queryContext.requestModel.maxRows, queryContext.requestModel.startIndex, true)
       } else {
         queryString

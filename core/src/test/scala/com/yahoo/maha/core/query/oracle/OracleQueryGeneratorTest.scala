@@ -562,7 +562,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |   ORDER BY "Spend" DESC NULLS LAST) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120
          |
       """.stripMargin
-    
+
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -2505,7 +2505,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
 
     val expected =
-      s"""SELECT *
+      s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
          |FROM (SELECT co1.id "Campaign ID", coalesce(af0."impressions", 1) "Impressions", co1."Campaign Status" "Campaign Status", Count(*) OVER() TOTALROWS
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_ad_stats 4) */
          |                   campaign_id, SUM(impressions) AS "impressions"
@@ -2515,16 +2515,17 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            HAVING (SUM(impressions) = 12345)
          |           ) af0
          |           INNER JOIN
-         |                (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT /*+ CampaignHint */ DECODE(status, 'ON', 'ON', 'OFF') AS "Campaign Status", id, advertiser_id
+         |                (SELECT /*+ CampaignHint */ DECODE(status, 'ON', 'ON', 'OFF') AS "Campaign Status", id, advertiser_id
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
-         |             ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) co1
+         |             ) co1
          |            ON (af0.campaign_id = co1.id)
          |
-         |
-         |)
+ |)
+         |   ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
        """.stripMargin
 
+    println(result)
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
