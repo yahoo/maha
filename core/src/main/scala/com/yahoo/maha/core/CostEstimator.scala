@@ -24,7 +24,8 @@ case class RowsEstimate(rows: Long, isGrainOptimized: Boolean, scanRows:Long, is
 trait FactCostEstimator {
   def isGrainKey(grainKey: String): Boolean
   def grainPrefix(schemaRequiredEntity: String, entity:String):  String = s"$schemaRequiredEntity-$entity"
-  def allPrefix(entity: String): String
+  def allPrefix(entity: String): String = s"*-$entity"
+  def getGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter]): Option[Long]
   def getRowsEstimate(schemaRequiredEntitySet:Set[(String, Filter)]
                       , dimensionsCandidates: SortedSet[DimensionCandidate]
                       , factDimList: List[String]
@@ -33,31 +34,26 @@ trait FactCostEstimator {
                       , defaultRowCount:Long): RowsEstimate = {
     val schemaBasedGrainKeys = schemaRequiredEntitySet.map {
       case (requiredEntity, filter) =>
-        /*
-        val grainPrefix = s"$requiredEntity-"
-        highestLevelDim.fold {
-          s"$grainPrefix${factDimList.headOption.getOrElse("")}"
-        } { dc =>
-          s"$grainPrefix${dc.dim.grainKey}"
-        }
-        */
         dimensionsCandidates.headOption.map(entity => grainPrefix(requiredEntity, entity.dim.name)).getOrElse(requiredEntity)
     }
-    val schemaBasedResult = schemaBasedGrainKeys.find(factEstimator.isGrainKey)
-    val grainKey = schemaBasedResult.fold {
-      //all based grain key
-      factDimList.map(dimName => s"*-$dimName").find(factEstimator.isGrainKey).getOrElse("")
-    }(schemaBasedGrainKey => schemaBasedGrainKey)
-
+    val schemaBasedResult = schemaBasedGrainKeys.filter(isGrainKey).flatMap(grainKey => getGrainRows(grainKey, request, filters))
+    val (isGrainOptimized, rows) = if(schemaBasedResult.nonEmpty) {
+      (true, schemaBasedResult.min)
+    } else (false, defaultRowCount)
+    //all based grain key
+    val  allBasedResult = factDimList.map(allPrefix).filter(isGrainKey).flatMap(grainKey => getGrainRows(grainKey, request, filters))
+    val (isScanOptimized, scanRows) = if(allBasedResult.nonEmpty) {
+      (true, allBasedResult.max)
+    } else (false, Long.MaxValue)
+    RowsEstimate(rows, isGrainOptimized, scanRows, isScanOptimized)
   }
   def getCostEstimate(rowsEstimate: RowsEstimate, rowCostMultiplierOption: Option[CostMultiplier]) : Long = {
     val cost = for {
       rowCostMultiplier <- rowCostMultiplierOption
-      costMultiplier <- rowCostMultiplier.rows.find(rowsEstimate.rows)
+      costMultiplier <- rowCostMultiplier.rows.find(rowsEstimate.rows) if rowsEstimate.isGrainOptimized
     } yield (costMultiplier * rowsEstimate.rows).longValue()
     cost.getOrElse(Long.MaxValue)
   }
-  def getGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter]): Option[Long]
 }
 
 trait DimCostEstimator {
@@ -69,14 +65,10 @@ class DefaultDimEstimator extends DimCostEstimator {
 }
 
 class DefaultFactEstimator(grainKeySet: Set[String] = Set.empty
-                           , scanKeySet: Set[String] = Set.empty
-                           , allPrefix: String = "*-"
+                           , defaultRowCount: Long = 100
                           ) extends FactCostEstimator {
   def isGrainKey(grainKey: String): Boolean = grainKeySet(grainKey)
-  def getRowsEstimate(grainKey:String, request: ReportingRequest,filters: scala.collection.mutable.Map[String, Filter], defaultRowCount:Long): RowsEstimate = {
-    val estimateRows = (defaultRowCount * (request.numDays + 1)).longValue()
-    val isGrainOptimized = isGrainKey(grainKey)
-    val isScanOptimized = isGrainOptimized || scanKeySet("")
-    RowsEstimate(estimateRows, isGrainOptimized, isGrainOptimized)
+  def getGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter]): Option[Long] = {
+    Option((defaultRowCount * (request.numDays + 1)).longValue())
   }
 }
