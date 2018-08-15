@@ -226,11 +226,12 @@ b. Dim Driven
 
       var hasTotalRows = false
 
+      /*
       if (requestModel.includeRowCount && requestModel.isDimDriven && dimBundle.isDrivingDimension
         && ((!nonPrimaryBundleHasFilters && isDimOnly) || !isDimOnly)) {
         dimSelectSet += PAGINATION_ROW_COUNT
         hasTotalRows = true
-      }
+      }*/
 
       val dimSelect = dimSelectSet.mkString(", ")
       val dimWhere = generateWhereClause(dimBundle, subqueryBundles)
@@ -356,9 +357,10 @@ b. Dim Driven
           }
       }
 
+      /*
       if (requestModel.includeRowCount && requestModel.isDimDriven && dimBundle.isDrivingDimension) {
         dimSelectSet += PAGINATION_ROW_COUNT
-      }
+      }*/
 
       val dimSelect = dimSelectSet.mkString(", ")
       val dimWhere = generateWhereClause(dimBundle, Set.empty)
@@ -717,7 +719,8 @@ b. Dim Driven
       }
 
       if (queryContext.requestModel.includeRowCount && !queryContext.requestModel.hasFactSortBy) {
-        outerColumns += OracleQueryGenerator.ROW_COUNT_ALIAS
+        //outerColumns += OracleQueryGenerator.ROW_COUNT_ALIAS
+        outerColumns += PAGINATION_ROW_COUNT
       }
 
       dimQueryNotInOption.fold {
@@ -1197,7 +1200,8 @@ b. Dim Driven
       }
 
       if (queryContext.requestModel.includeRowCount) {
-        queryBuilder.addOuterColumn(OracleQueryGenerator.ROW_COUNT_ALIAS)
+        //queryBuilder.addOuterColumn(OracleQueryGenerator.ROW_COUNT_ALIAS)
+        queryBuilder.addOuterColumn(PAGINATION_ROW_COUNT)
         aliasColumnMapOfRequestCols += (OracleQueryGenerator.ROW_COUNT_ALIAS -> PAGINATION_ROW_COUNT_COL)
       }
 

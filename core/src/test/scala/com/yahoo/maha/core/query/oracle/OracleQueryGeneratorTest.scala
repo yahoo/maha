@@ -39,7 +39,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    val select = """SELECT f0.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ao1.name "Advertiser Name", ao1."Advertiser Status" "Advertiser Status", TOTALROWS"""
+    val select = """SELECT f0.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ao1.name "Advertiser Name", ao1."Advertiser Status" "Advertiser Status", Count(*) OVER() TOTALROWS"""
     assert(result.contains(select), result)
   }
 
@@ -56,7 +56,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    val select = """SELECT co2.id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ao1.name "Advertiser Name", co2."Campaign Status" "Campaign Status", TOTALROWS"""
+    val select = """SELECT co2.id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ao1.name "Advertiser Name", co2."Campaign Status" "Campaign Status", Count(*) OVER() TOTALROWS"""
     assert(result.contains(select), result)
   }
 
@@ -1868,6 +1868,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            ],
                            "paginationStartIndex":0,
                            "rowsPerPage":100,
+                           "includeRowCount": true,
                            "forceDimensionDriven": true
                          }"""
 
@@ -1882,7 +1883,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = """SELECT *
-                     |      FROM (SELECT co1.id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name"
+                     |      FROM (SELECT co1.id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", Count(*) OVER() TOTALROWS
                      |            FROM
                      |               ( (SELECT  advertiser_id, campaign_id, id
                      |            FROM ad_group_oracle
@@ -2489,6 +2490,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           ],
                           "forceDimensionDriven": true,
                           "paginationStartIndex":0,
+                          "includeRowCount": true,
                           "rowsPerPage":100
                         }"""
 
@@ -2504,7 +2506,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val expected =
       s"""SELECT *
-         |FROM (SELECT co1.id "Campaign ID", coalesce(af0."impressions", 1) "Impressions", co1."Campaign Status" "Campaign Status"
+         |FROM (SELECT co1.id "Campaign ID", coalesce(af0."impressions", 1) "Impressions", co1."Campaign Status" "Campaign Status", Count(*) OVER() TOTALROWS
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_ad_stats 4) */
          |                   campaign_id, SUM(impressions) AS "impressions"
          |            FROM ad_fact1 FactAlias
