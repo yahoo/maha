@@ -18,11 +18,11 @@ object AckStatus extends Enumeration {
   type AckStatus = Value
   val PROCESSED,    // This means processing is complete (success or failed) and message should be acknowledged
 
-  RETRY,            // This means message should be retries. For Kafka, it means ack and reenqueue, for CMS it means don't ack
+  RETRY,            // This means message should be retries. For Kafka, it means ack and reenqueue, for PULSAR it means don't ack
 
   DUPLICATE = Value // This means the job is already being processed by another worker.
   // For Kafka, this occurs during rebalance and the message ids are different. So the duplicate message should be acked.
-  // For CMS, this occurs when unacked messages are redelivered, in which case the message ids are same and the duplicate message shouldn't be acked else the job can't be retried.
+  // For PULSAR, this occurs when unacked messages are redelivered, in which case the message ids are same and the duplicate message shouldn't be acked else the job can't be retried.
 }
 
 case class WorkerConfig(mahaServiceConfig: MahaServiceConfig,
