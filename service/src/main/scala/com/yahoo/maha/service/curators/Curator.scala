@@ -120,7 +120,7 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
 
     if(requestModelResultTry.isFailure) {
       val message = requestModelResultTry.failed.get.getMessage
-      mahaRequestLogBuilder.logFailed(message)
+      mahaRequestLogBuilder.logFailed(message, Some(400))
       withError(curatorConfig,
         GeneralError.from(parRequestLabel
           , message, new MahaServiceBadRequestException(message, requestModelResultTry.failed.toOption))
@@ -225,7 +225,7 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
 
     if(requestModelResultTry.isFailure) {
       val message = requestModelResultTry.failed.get.getMessage
-      mahaRequestLogBuilder.logFailed(message)
+      mahaRequestLogBuilder.logFailed(message, Some(400))
       withError(curatorConfig,
         GeneralError.from(parRequestLabel
           , message, new MahaServiceBadRequestException(message, requestModelResultTry.failed.toOption))
