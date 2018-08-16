@@ -1944,18 +1944,20 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
         |SELECT *
         |      FROM (SELECT DISTINCT ao0."Advertiser Status" "Advertiser Status"
         |            FROM
-        |                (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+        |                (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
         |            FROM advertiser_oracle
         |            WHERE (id = 12345)
-        |             ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) ao0
+        |             ) ao0
+        |
         |
         |           )
+        |             WHERE ROWNUM >= 1 AND ROWNUM <= 100
       """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
-  test("successfully generate dim driven dim only query with filters and order by") {
+  test("successfully generate sync force dim driven dim only query with filters and order by and row count") {
     val jsonString = s"""{
                            "cube": "performance_stats",
                            "selectFields": [
@@ -1988,7 +1990,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            ],
                            "paginationStartIndex":0,
                            "rowsPerPage":100,
-                           "forceDimensionDriven": false
+                           "forceDimensionDriven": true,
+                           "includeRowCount": true
                           }"""
 
     val requestOption = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
@@ -2001,14 +2004,20 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = """
-                     |SELECT *
-                     |      FROM (SELECT co1.id "Campaign ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name"
+                     |SELECT  *
+                     |      FROM (SELECT ago2.campaign_id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", Count(*) OVER() TOTALROWS
                      |            FROM
-                     |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT /*+ CampaignHint */ id, advertiser_id, campaign_name
+                     |               ( (SELECT  campaign_id, advertiser_id, id
+                     |            FROM ad_group_oracle
+                     |            WHERE (advertiser_id = 12345)
+                     |            ORDER BY 1 ASC  ) ago2
+                     |          INNER JOIN
+                     |            (SELECT /*+ CampaignHint */ id, advertiser_id, campaign_name
                      |            FROM campaign_oracle
                      |            WHERE (advertiser_id = 12345)
-                     |            ORDER BY 1 ASC  ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) co1
-                     |          LEFT OUTER JOIN
+                     |             ) co1
+                     |              ON( ago2.advertiser_id = co1.advertiser_id AND ago2.campaign_id = co1.id )
+                     |               INNER JOIN
                      |            (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
                      |            FROM advertiser_oracle
                      |            WHERE (id = 12345)
@@ -2016,7 +2025,9 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                      |              ON( co1.advertiser_id = ao0.id )
                      |               )
                      |
-                     |           )""".stripMargin
+                     |           )
+                     |             WHERE ROWNUM >= 1 AND ROWNUM <= 100
+                     |""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }
