@@ -90,6 +90,17 @@ trait MahaService {
                             , requestModel: RequestModel): Try[QueryPipeline]
 
   /**
+    * generate query pipeline from model and bucketSelector
+    * @param registryName
+    * @param requestModel
+    * @param bucketSelector
+    * @return
+    */
+  def generateQueryPipelinesUsingBucketSelector(registryName: String
+                           , requestModel: RequestModel
+                           , bucketSelector: BucketSelector): (Try[QueryPipeline], Option[Try[QueryPipeline]])
+
+  /**
    * Executes the RequestModel and provide the RequestResult, logs failures with request log builder
    */
   def processRequestModel(registryName: String,
@@ -235,6 +246,17 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
     val queryPipelineFactory = registryConfig.queryPipelineFactory
 
     val queryPipelineTry = queryPipelineFactory.from(requestModel, QueryAttributes.empty)
+    queryPipelineTry
+  }
+
+  def generateQueryPipelinesUsingBucketSelector(registryName: String,
+                            requestModel: RequestModel,
+                            bucketSelector: BucketSelector): (Try[QueryPipeline], Option[Try[QueryPipeline]]) = {
+
+    val registryConfig = config.registry(registryName)
+    val queryPipelineFactory = registryConfig.queryPipelineFactory
+
+    val queryPipelineTry = queryPipelineFactory.fromBucketSelector(requestModel, QueryAttributes.empty, bucketSelector)
     queryPipelineTry
   }
 

@@ -100,7 +100,8 @@ trait BaseMahaServiceTest extends FunSuite with Logging {
   }
 
   protected[this] def getUserDir : String = {
-    val userDir = System.getProperty("user.dir")
+    //val userDir = System.getProperty("user.dir")
+    val userDir = "/Users/surabhip/git/maha/service/"
     s"$userDir"
   }
 

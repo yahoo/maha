@@ -11,7 +11,7 @@ import scalaz.{Failure, Success}
 /**
  * Created by pranavbhole on 06/06/17.
  */
-class MahaServiceTest extends BaseFactoryTest {
+class  MahaServiceTest extends BaseFactoryTest {
   test("Test MahaService Init and Validation test") {
     val jsonString = """{
                        |	"registryMap": {
