@@ -1497,7 +1497,7 @@ case class FactBestCandidate(fkCols: SortedSet[String]
                              , requestJoinCols: Set[String]
                              , filterCols: Set[String]
                              , factCost: Long
-                             , factRows: Long
+                             , factRows: RowsEstimate
                              , fact: Fact
                              , publicFact: PublicFact
                              , dimColMapping: Map[String, String]

@@ -4,6 +4,7 @@ package com.yahoo.maha.core
 
 import com.yahoo.maha.core.fact.CostMultiplier
 import com.yahoo.maha.core.request.ReportingRequest
+import grizzled.slf4j.Logging
 
 import scala.collection.SortedSet
 
@@ -21,7 +22,7 @@ case class RowsEstimate(rows: Long, isGrainOptimized: Boolean, scanRows:Long, is
   * 3. Non-grain based request where all rows are to be scanned and rolled up rows returned
   * 4. Non-grain based request where slice of rows are to be scanned and rows returned
   */
-trait FactCostEstimator {
+trait FactCostEstimator extends Logging {
   def isGrainKey(grainKey: String): Boolean
   def grainPrefix(schemaRequiredEntity: String, entity:String):  String = s"$schemaRequiredEntity-$entity"
   def allPrefix(entity: String): String = s"*-$entity"
@@ -36,16 +37,35 @@ trait FactCostEstimator {
       case (requiredEntity, filter) =>
         dimensionsCandidates.headOption.map(entity => grainPrefix(requiredEntity, entity.dim.name)).getOrElse(requiredEntity)
     }
-    val schemaBasedResult = schemaBasedGrainKeys.filter(isGrainKey).flatMap(grainKey => getGrainRows(grainKey, request, filters))
+    val schemaBasedResult = schemaBasedGrainKeys.filter(isGrainKey).flatMap {
+      grainKey =>
+        val grainRows = getGrainRows(grainKey, request, filters)
+        if(request.isDebugEnabled) {
+          info(s"schemaBasedResult grainKey=$grainKey grainRows=$grainRows")
+        }
+        grainRows
+    }
     val (isGrainOptimized, rows) = if(schemaBasedResult.nonEmpty) {
       (true, schemaBasedResult.min)
     } else (false, defaultRowCount)
     //all based grain key
-    val  allBasedResult = factDimList.map(allPrefix).filter(isGrainKey).flatMap(grainKey => getGrainRows(grainKey, request, filters))
+    val  allBasedResult = factDimList.map(allPrefix).filter(isGrainKey).flatMap{
+      grainKey =>
+        val grainRows = getGrainRows(grainKey, request, filters)
+        if(request.isDebugEnabled) {
+          info(s"allBasedResult grainKey=$grainKey grainRows=$grainRows")
+        }
+        grainRows
+    }
     val (isScanOptimized, scanRows) = if(allBasedResult.nonEmpty) {
       (true, allBasedResult.max)
     } else (false, Long.MaxValue)
-    RowsEstimate(rows, isGrainOptimized, scanRows, isScanOptimized)
+
+    val estimate = RowsEstimate(rows, isGrainOptimized, scanRows, isScanOptimized)
+    if(request.isDebugEnabled) {
+      info(s"$estimate")
+    }
+    estimate
   }
   def getCostEstimate(rowsEstimate: RowsEstimate, rowCostMultiplierOption: Option[CostMultiplier]) : Long = {
     val cost = for {

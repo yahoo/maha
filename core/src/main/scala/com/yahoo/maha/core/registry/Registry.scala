@@ -102,7 +102,7 @@ class RegistryBuilder{
 }
 
 case class DimColIdentity(publcDimName: String, primaryKeyAlias: String, columnName: String)
-case class FactRowsCostEstimate(rowsEstimate: Long, costEstimate: Long, isGrainOptimized: Boolean, isIndexOptimized: Boolean)
+case class FactRowsCostEstimate(rowsEstimate: RowsEstimate, costEstimate: Long, isGrainOptimized: Boolean, isIndexOptimized: Boolean)
 case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension]
                                       , factMap: Map[(String, Int), PublicFact]
                                       , keySet:Set[String]
@@ -322,43 +322,21 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
   
   def getFactRowsCostEstimate(dimensionsCandidates: SortedSet[DimensionCandidate], factCandidate: FactCandidate, reportingRequest: ReportingRequest,
                               entitySet: Set[PublicDimension], filters: mutable.Map[String, Filter], isDebug: Boolean): FactRowsCostEstimate = {
-    /*
-    val schemaRequiredEntity = entitySet.map(_.grainKey)
-    val highestLevelDim = dimensionsCandidates.lastOption
-    val factDimList = getDimList(factCandidate)
-    val schemaBasedGrainKeys = schemaRequiredEntity.map{
-      requiredEntity =>
-        val grainPrefix = s"$requiredEntity-"
-        highestLevelDim.fold {
-          s"$grainPrefix${factDimList.headOption.getOrElse("")}"
-        } { dc =>
-          s"$grainPrefix${dc.dim.grainKey}"
-        }
-    }
-    val schemaBasedResult = schemaBasedGrainKeys.find(factEstimator.isGrainKey)
-    val grainKey = schemaBasedResult.fold {
-      //all based grain key
-      factDimList.map(dimName => s"*-$dimName").find(factEstimator.isGrainKey).getOrElse("")
-    }(schemaBasedGrainKey => schemaBasedGrainKey)
-    */
     val factDimList = getDimList(factCandidate)
     val schemaRequiredEnityAndFilter = entitySet.map(pd => (pd.grainKey, filters(pd.primaryKeyByAlias)))
 
     val rowsEstimate = factEstimator.getRowsEstimate(schemaRequiredEnityAndFilter
-      , dimensionsCandidates.toList.map(_.dim.name)
+      , dimensionsCandidates
       , factDimList
       , reportingRequest
       , filters
       , factCandidate.fact.defaultRowCount)
-    /*
-    val rowsEstimate = factEstimator.getRowsEstimate(grainKey, reportingRequest, filters, factCandidate.fact.defaultRowCount)
     val costEstimate = factEstimator.getCostEstimate(rowsEstimate, factCandidate.fact.costMultiplierMap.get(reportingRequest.requestType))
-    */
     val isIndexOptimized = filters.keys.exists(factCandidate.publicFact.foreignKeyAliases)
     if(isDebug){
-      info(s"Fact Cost estimated for request with grainKey=$grainKey defaultRowCount=${factCandidate.fact.defaultRowCount} rowsEstimate=$rowsEstimate costEstimate=$costEstimate isGrainOptimized=${rowsEstimate.isGrainOptimized} isIndexOptimized=$isIndexOptimized")
+      info(s"Fact Cost estimated for request with defaultRowCount=${factCandidate.fact.defaultRowCount} rowsEstimate=$rowsEstimate costEstimate=$costEstimate isGrainOptimized=${rowsEstimate.isGrainOptimized} isIndexOptimized=$isIndexOptimized")
     }
-    FactRowsCostEstimate(rowsEstimate = rowsEstimate.rows, costEstimate = costEstimate, isGrainOptimized = rowsEstimate.isGrainOptimized, isIndexOptimized = isIndexOptimized)
+    FactRowsCostEstimate(rowsEstimate = rowsEstimate, costEstimate = costEstimate, isGrainOptimized = rowsEstimate.isGrainOptimized, isIndexOptimized = isIndexOptimized)
   }
   
   def getDimCardinalityEstimate(dimensionsCandidates: SortedSet[DimensionCandidate], 
