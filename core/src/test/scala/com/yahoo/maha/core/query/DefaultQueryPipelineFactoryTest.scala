@@ -1659,4 +1659,32 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     assert(queryPipelineTry._2.get.get.queryChain.drivingQuery.engine.equals(HiveEngine))
     assert(queryPipelineTry._3.isEmpty)
   }
+
+  test("successfully generate query with queryGeneratorBucket defined and no dryRun requestModel") {
+    val request: ReportingRequest = ReportingRequest.forceHive(getReportingRequestAsync(requestWithMetricSortAndDay))
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    object TestBucketingConfig extends BucketingConfig {
+      override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = None
+      override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = {
+        Some(QueryGenBucketingConfig.builder()
+          .internalBucketPercentage(Map(Version.v0 -> 100, Version.v1 -> 0))
+          .externalBucketPercentage(Map(Version.v0 -> 100, Version.v1 -> 0))
+          .dryRunPercentage(Map(Version.v1 -> 100))
+          .build())
+      }
+    }
+
+    val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
+
+    val queryPipelineTry = queryPipelineFactory.fromBucketSelector(requestModel.get, QueryAttributes.empty, bucketSelector)
+    assert(queryPipelineTry._1.isSuccess, queryPipelineTry._1.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry._1.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
+    assert(queryPipelineTry._2.isDefined && queryPipelineTry._2.get.isSuccess)
+    assert(queryPipelineTry._2.get.get.queryChain.drivingQuery.engine.equals(HiveEngine))
+  }
 }

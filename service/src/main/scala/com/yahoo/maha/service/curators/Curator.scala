@@ -235,8 +235,8 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
         val requestModelResult = requestModelResultTry.get
         requestModelValidator.validate(mahaRequestContext, requestModelResult)
         if(mahaRequestContext.reportingRequest.forceDimensionDriven) {
-          val sourcePipelineTry = mahaService.generateQueryPipeline(mahaRequestContext.registryName
-            , requestModelResultTry.get.model)
+          val sourcePipelineTry = mahaService.generateQueryPipelines(mahaRequestContext.registryName
+            , requestModelResultTry.get.model)._1
 
           if (sourcePipelineTry.isFailure) {
             val exception = sourcePipelineTry.failed.get
