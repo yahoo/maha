@@ -55,8 +55,8 @@ trait FactCostEstimator extends Logging {
     val (isGrainOptimized, rows) = if(schemaBasedResult.nonEmpty) {
       (true, schemaBasedResult.min)
     } else (false, getDefaultRows(defaultRowCount, request, filters))
-    //all based grain key
-    val  allBasedResult = factDimList.map(allPrefix).filter(isGrainKey).flatMap{
+    //all based grain key, take highest grain for fact table
+    val  allBasedResult = factDimList.headOption.map(allPrefix).filter(isGrainKey).flatMap{
       grainKey =>
         val grainRows = getGrainRows(grainKey, request, filters)
         if(request.isDebugEnabled) {

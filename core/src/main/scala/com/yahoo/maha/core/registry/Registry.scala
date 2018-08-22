@@ -102,7 +102,10 @@ class RegistryBuilder{
 }
 
 case class DimColIdentity(publcDimName: String, primaryKeyAlias: String, columnName: String)
-case class FactRowsCostEstimate(rowsEstimate: RowsEstimate, costEstimate: Long, isGrainOptimized: Boolean, isIndexOptimized: Boolean)
+case class FactRowsCostEstimate(rowsEstimate: RowsEstimate, costEstimate: Long, isIndexOptimized: Boolean) {
+  def isGrainOptimized: Boolean = rowsEstimate.isGrainOptimized
+  def isScanOptimized: Boolean = rowsEstimate.isScanOptimized
+}
 case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension]
                                       , factMap: Map[(String, Int), PublicFact]
                                       , keySet:Set[String]
@@ -336,7 +339,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     if(isDebug){
       info(s"Fact Cost estimated for request with defaultRowCount=${factCandidate.fact.defaultRowCount} rowsEstimate=$rowsEstimate costEstimate=$costEstimate isGrainOptimized=${rowsEstimate.isGrainOptimized} isIndexOptimized=$isIndexOptimized")
     }
-    FactRowsCostEstimate(rowsEstimate = rowsEstimate, costEstimate = costEstimate, isGrainOptimized = rowsEstimate.isGrainOptimized, isIndexOptimized = isIndexOptimized)
+    FactRowsCostEstimate(rowsEstimate = rowsEstimate, costEstimate = costEstimate, isIndexOptimized = isIndexOptimized)
   }
   
   def getDimCardinalityEstimate(dimensionsCandidates: SortedSet[DimensionCandidate], 
