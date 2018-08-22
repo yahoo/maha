@@ -5078,9 +5078,9 @@ class RequestModelTest extends FunSuite with Matchers {
 
   test("create model should succeed when sync query is not scan optimized") {
     val jsonString = s"""{
-                          "cube": "publicFact",
+                          "cube": "publicFact2",
                           "selectFields": [
-                              {"field": "Advertiser ID"},
+                              {"field": "Keyword ID"},
                               {"field": "Advertiser Name"},
                               {"field": "Impressions"},
                               {"field": "Clicks"}
@@ -5099,7 +5099,7 @@ class RequestModelTest extends FunSuite with Matchers {
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
-    assert(res.isSuccess)
+    assert(res.isSuccess, res.toString)
     assert(!res.get.factCost.head._2.isScanOptimized, "Fact should not be scan optimized!")
   }
 
