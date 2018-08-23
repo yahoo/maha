@@ -80,14 +80,14 @@ case class FactCol(name: String,
       case DruidFilteredRollup(filter, de, delegateAggregatorRollupExpression) =>
         columnContext.render(de.fieldNamePlaceHolder, Map.empty)
         columnContext.render(filter.field, Map.empty)
+      case PrestoCustomRollup(de) =>
+        de.sourceColumns.foreach((name: String) => columnContext.render(name, Map.empty))
       case DruidFilteredListRollup(filters, de, delegateAggregatorRollupExpression) =>
         columnContext.render(de.fieldNamePlaceHolder, Map.empty)
         for( filter <- filters) {
           columnContext.render(filter.field, Map.empty)
         }
       case DruidThetaSketchRollup =>
-      case PrestoCustomRollup(de) =>
-        de.sourceColumns.foreach((name: String) => columnContext.render(name, Map.empty))
       case customRollup: CustomRollup =>
         //error, we missed a check on custom rollup
         throw new IllegalArgumentException(s"Need a check on custom rollup")
