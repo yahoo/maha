@@ -30,7 +30,7 @@ trait FactCostEstimator extends Logging {
     s"$schemaRequiredEntity-$entity"
   }
   def allPrefix(entity: String): String = s"*-$entity"
-  def getSchemaBasedGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter]): Option[Long]
+  def getSchemaBasedGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter], defaultRowCount: Long): Option[Long]
   def getAllBasedGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter]): Option[Long]
   def getDefaultRows(defaultRowCount: Long, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter]) = {
     defaultRowCount * (request.numDays + 1)
@@ -47,7 +47,7 @@ trait FactCostEstimator extends Logging {
     }
     val schemaBasedResult = schemaBasedGrainKeys.filter(isGrainKey).flatMap {
       grainKey =>
-        val grainRows = getSchemaBasedGrainRows(grainKey, request, filters)
+        val grainRows = getSchemaBasedGrainRows(grainKey, request, filters, defaultRowCount)
         if(request.isDebugEnabled) {
           info(s"schemaBasedResult grainKey=$grainKey grainRows=$grainRows")
         }
@@ -96,13 +96,13 @@ class DefaultFactEstimator(grainKeySet: Set[String] = Set.empty
                            , defaultRowCount: Long = 100
                           ) extends FactCostEstimator {
   def isGrainKey(grainKey: String): Boolean = grainKeySet(grainKey)
-  def getGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter]): Option[Long] = {
+  def getGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter], defaultRowCount: Long): Option[Long] = {
     Option((defaultRowCount * (request.numDays + 1)).longValue())
   }
-  def getSchemaBasedGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter]): Option[Long] = {
-    getGrainRows(grainKey, request, filters)
+  def getSchemaBasedGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter], defaultRowCount: Long): Option[Long] = {
+    getGrainRows(grainKey, request, filters, defaultRowCount)
   }
   def getAllBasedGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter]): Option[Long] = {
-    getGrainRows(grainKey, request, filters)
+    getGrainRows(grainKey, request, filters, defaultRowCount)
   }
 }

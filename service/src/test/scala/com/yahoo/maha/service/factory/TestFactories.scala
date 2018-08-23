@@ -27,7 +27,7 @@ class TestFactEstimator extends FactCostEstimator {
     } else RowsEstimate(1000, true, Long.MaxValue, false)
   }
 
-  override def getSchemaBasedGrainRows(grainKey: String, request: ReportingRequest, filters: mutable.Map[String, Filter]): Option[Long] = Option(1000)
+  override def getSchemaBasedGrainRows(grainKey: String, request: ReportingRequest, filters: mutable.Map[String, Filter], defaultRowCount: Long): Option[Long] = Option(1000)
   override def getAllBasedGrainRows(grainKey: String, request: ReportingRequest, filters: mutable.Map[String, Filter]): Option[Long] = Option(1000)
 }
 
