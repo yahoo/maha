@@ -25,12 +25,12 @@ trait BaseHiveQueryGeneratorTest
     HiveQueryGeneratorV1.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
   }
 
-  override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
+  override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder, conditionalForcedFilter: Option[ConditionalForcedFilter]): Unit = {
     registryBuilder.register(s_stats_fact(forcedFilters))
     registryBuilder.register(aga_stats_fact(forcedFilters))
     registryBuilder.register(ce_stats(forcedFilters))
     registryBuilder.register(bidReco())
-    registryBuilder.register(pubfact2(forcedFilters))
+    registryBuilder.register(pubfact2(forcedFilters, conditionalForcedFilter))
   }
 
   protected[this] def s_stats_fact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
@@ -341,7 +341,7 @@ trait BaseHiveQueryGeneratorTest
       )
   }
 
-  def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+  def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty, conditionalForcedFilter: Option[ConditionalForcedFilter]): PublicFact = {
     import HiveExpression._
     import UDFHiveExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
@@ -358,6 +358,7 @@ trait BaseHiveQueryGeneratorTest
           , DimCol("start_time", IntType())
           , DimCol("stats_date", DateType("YYYY-MM-dd"))
           , DimCol("show_flag", IntType())
+          , HiveDerDimCol("Flag Present", IntType(), COALESCE("{show_flag}", "1"))
           , HiveDerDimCol("Month", DateType(), TEST_DATE_UDF("{stats_date}", "M"))
           , HiveDerDimCol("Week", DateType(), TEST_DATE_UDF("{stats_date}", "W"))
         ),
@@ -370,6 +371,8 @@ trait BaseHiveQueryGeneratorTest
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
           //          , FactCol("Average CPC", DecType(), OracleCustomRollup("{spend}" / "{clicks}"))
           , FactCol("CTR", DecType(), HiveCustomRollup(SUM("{clicks}" /- "{impressions}")))
+          , FactCol("conditional_metric", IntType())
+          , HiveDerFactCol("MTA Count", IntType(), COALESCE("{conditional_metric}", "0"))
           , HiveDerFactCol("Engagement Rate", DecType(), "100" * TEST_MATH_UDF("{engagement_count}", "{impressions}"), rollupExpression = NoopRollup)
           , HiveDerFactCol("Paid Engagement Rate", DecType(), "100" * TEST_MATH_UDAF("{engagement_count}", "0", "0", "{clicks}", "{impressions}"), rollupExpression = NoopRollup)
           , HiveDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}")
@@ -393,7 +396,8 @@ trait BaseHiveQueryGeneratorTest
           PubCol("campaign_id", "Campaign ID", InEquality),
           PubCol("advertiser_id", "Advertiser ID", InEquality),
           PubCol("restaurant_id", "Restaurant ID", InEquality),
-          PubCol("stats_source", "Source", Equality),
+          PubCol("stats_source", "Source", InEquality),
+          PubCol("Flag Present", "Flag", InEquality, hiddenFromJson = true),
           PubCol("price_type", "Pricing Type", In),
           PubCol("Month", "Month", Equality),
           PubCol("Week", "Week", Equality)
@@ -413,10 +417,12 @@ trait BaseHiveQueryGeneratorTest
           PublicFactCol("N Spend", "N Spend", InBetweenEquality),
           PublicFactCol("N Clicks", "N Clicks", InBetweenEquality),
           PublicFactCol("N Average CPC", "N Average CPC", InBetweenEquality),
-          PublicFactCol("impression_share_rounded", "Impression Share", InBetweenEquality)
+          PublicFactCol("impression_share_rounded", "Impression Share", InBetweenEquality),
+          PublicFactCol("MTA Count", "Conversion Assists", InBetweenEquality)
         ),
         forcedFilters,
-        getMaxDaysWindow, getMaxDaysLookBack
+        getMaxDaysWindow, getMaxDaysLookBack,
+        conditionalForcedFilter
       )
   }
 

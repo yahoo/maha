@@ -731,7 +731,7 @@ case class DimensionBuilder private[dimension](private val baseDim: Dimension, p
       }
       require(groupFlattened.size == 1, s"Schema $schema requires different columns across underlying tables : $groupFlattened")
     }
-    new PublicDim(name, grainKey, baseDim, columns, tableMap, forcedFilters, ts, revision)
+    new PublicDim(name, grainKey, baseDim, columns, tableMap, forcedFilters, highCardinalityFilters = ts, revision = revision)
   }
 
   @VisibleForTesting
@@ -823,6 +823,7 @@ case class PublicDim (name: String
                       , dims: Map[String, Dimension]
                       , forcedFilters: Set[ForcedFilter]
                       , private val highCardinalityFilters: Set[Filter]
+                      , conditionalForcedFilter: Option[ConditionalForcedFilter] = None
                       , revision: Int = 0) extends PublicDimension {
 
   def dimList : Iterable[Dimension] = dims.values
@@ -1005,5 +1006,7 @@ case class PublicDim (name: String
     } else false
     inclusiveCheck || exclusiveCheck
   }
+
+  override def conditionalForcedFilters: Option[ConditionalForcedFilter] = conditionalForcedFilter
 }
 

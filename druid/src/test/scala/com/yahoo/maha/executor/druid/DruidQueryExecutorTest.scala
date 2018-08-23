@@ -47,7 +47,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     server.shutdown
   }
 
-  override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
+  override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder, conditionalForcedFilter: Option[ConditionalForcedFilter]): Unit = {
     registryBuilder.register(pubfact(forcedFilters))
     registryBuilder.register(pubfact2())
     registryBuilder.register(pubfact3())

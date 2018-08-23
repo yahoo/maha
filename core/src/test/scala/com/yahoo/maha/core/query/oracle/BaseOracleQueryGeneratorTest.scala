@@ -25,7 +25,7 @@ trait BaseOracleQueryGeneratorTest
     DruidQueryGenerator.register(queryGeneratorRegistry, queryOptimizer = new SyncDruidQueryOptimizer(timeout = 5000))
   }
 
-  override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
+  override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder, conditionalForcedFilter: Option[ConditionalForcedFilter]): Unit = {
     registryBuilder.register(pubfact(forcedFilters))
     registryBuilder.register(pubfactV1(forcedFilters))
     registryBuilder.register(pubfact2(forcedFilters))

@@ -33,4 +33,5 @@ trait PublicTable {
         require(filter.isForceFilter, s"Forced Filter boolean ${filter.isForceFilter}, expected true")
     }
   }
+  def conditionalForcedFilters : Option[ConditionalForcedFilter]
 }
