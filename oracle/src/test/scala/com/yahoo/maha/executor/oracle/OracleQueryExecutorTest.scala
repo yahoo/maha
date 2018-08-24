@@ -575,6 +575,8 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     insertRows(insertSqlAdsStats, rowsAdsStats, "SELECT * FROM ad_stats_oracle")
   }
 
+  lazy val defaultRegistry = getDefaultRegistry()
+
   test("successfully execute async query for ad_stats") {
     val jsonString = s"""{
                           "cube": "ad_stats",
@@ -611,7 +613,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                         }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -665,7 +667,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -719,7 +721,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                         }"""
 
       val request: ReportingRequest = getReportingRequestSync(jsonString).copy(additionalParameters = Map(Parameter.Debug -> DebugValue(true)))
-      val registry = getDefaultRegistry()
+      val registry = defaultRegistry
       val requestModel = RequestModel.from(request, registry)
       assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -780,7 +782,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                         }"""
 
       val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
-      val registry = getDefaultRegistry()
+      val registry = defaultRegistry
       val requestModel = RequestModel.from(request, registry)
       assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -835,7 +837,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                         }"""
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -879,7 +881,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                         }"""
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -918,7 +920,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                         }"""
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 

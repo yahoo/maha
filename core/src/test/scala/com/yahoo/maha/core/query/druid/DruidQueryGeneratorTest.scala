@@ -12,6 +12,8 @@ import com.yahoo.maha.core.request.{ReportingRequest, RequestContext}
  */
 class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
+  lazy val defaultRegistry = getDefaultRegistry()
+
   test("registering Druid query generation multiple times should fail") {
     intercept[IllegalArgumentException] {
       val dummyQueryGenerator = new QueryGenerator[WithDruidEngine] {
@@ -42,7 +44,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val dimMapping = DefaultQueryPipelineFactory.findDimCandidatesMapping(requestModel.get)
     val dims = DefaultQueryPipelineFactory.findBestDimCandidates(DruidEngine, requestModel.get.schema, dimMapping, DefaultQueryPipelineFactory.druidMultiQueryEngineList)
     val queryContext = new QueryContextBuilder(DimOnlyQuery, requestModel.get).addDimTable(dims).build()
@@ -78,7 +80,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -116,7 +118,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -153,7 +155,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(!queryPipelineTry.isSuccess && queryPipelineTry.errorMessage("").contains("ToUse FilteredListAggregator filterList must have 2 or more filters"), "Query pipeline should have failed, but didn't" + queryPipelineTry.errorMessage(""))
   }
@@ -176,7 +178,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -204,7 +206,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val requestModelTry = RequestModel.from(request, getDefaultRegistry())
+    val requestModelTry = RequestModel.from(request, defaultRegistry)
     assert(requestModelTry.isSuccess, requestModelTry.errorMessage("Building request model failed"))
 
     val requestModel = requestModelTry.toOption.get.copy(
@@ -241,7 +243,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -272,7 +274,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", "someUser"))
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -304,7 +306,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", "someUser"))
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -332,7 +334,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", ""))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -375,7 +377,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -410,7 +412,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -448,7 +450,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -487,7 +489,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -525,7 +527,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -560,7 +562,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -585,7 +587,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -621,7 +623,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -659,7 +661,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -677,7 +679,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_wo_dim_filters.json")
       .getLines.mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -716,7 +718,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
       val request: ReportingRequest = getReportingRequestSync(jsonString)
-      val requestModel = RequestModel.from(request, getDefaultRegistry())
+      val requestModel = RequestModel.from(request, defaultRegistry)
       val queryPipelineTry = generatePipeline(requestModel.toOption.get)
       assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
   }
@@ -749,7 +751,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -787,7 +789,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     assert(queryPipelineTry.checkFailureMessage("requirement failed: Failed to find best candidate, forceEngine=None, engine disqualifyingSet=Set(Druid, Hive, Presto), candidates=Set((fact1,Druid))"))
@@ -818,7 +820,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModelTry = RequestModel.from(request, registry)
     assert(requestModelTry.isSuccess, requestModelTry.errorMessage("Building request model failed"))
 
@@ -856,7 +858,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModelTry = RequestModel.from(request, registry)
     assert(requestModelTry.isSuccess, requestModelTry.errorMessage("Building request model failed"))
 
@@ -894,7 +896,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModelTry = RequestModel.from(request, registry)
     assert(requestModelTry.isSuccess, requestModelTry.errorMessage("Building request model failed"))
 
@@ -935,7 +937,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModelTry = RequestModel.from(request, registry)
     assert(requestModelTry.isSuccess, requestModelTry.errorMessage("Building request model failed"))
 
@@ -975,7 +977,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModelTry = RequestModel.from(request, registry)
     assert(requestModelTry.isSuccess, requestModelTry.errorMessage("Building request model failed"))
 
@@ -1012,7 +1014,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", "someUser"))
-    val requestModelTry = RequestModel.from(request, getDefaultRegistry())
+    val requestModelTry = RequestModel.from(request, defaultRegistry)
     val requestModel = requestModelTry.toOption.get.copy(dimCardinalityEstimate = Option(12345))
     val queryPipelineTry = generatePipeline(requestModel)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
@@ -1043,7 +1045,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", "someUser"))
-    val requestModelTry = RequestModel.from(request, getDefaultRegistry())
+    val requestModelTry = RequestModel.from(request, defaultRegistry)
     val requestModel = requestModelTry.toOption.get.copy(dimCardinalityEstimate = None)
     val queryPipelineTry = generatePipeline(requestModel)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
@@ -1071,7 +1073,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", ""))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1108,7 +1110,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", ""))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1149,7 +1151,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", ""))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1186,7 +1188,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", ""))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1224,7 +1226,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", ""))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1262,7 +1264,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", ""))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1303,7 +1305,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString, InternalSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry, revision = Option.apply(1))
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1338,7 +1340,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString, InternalSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry, revision = Option.apply(1))
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1382,7 +1384,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1419,7 +1421,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1458,7 +1460,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Failed to get request model"))
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
@@ -1501,7 +1503,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", "someUser"))
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1537,7 +1539,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1573,7 +1575,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1616,7 +1618,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Failed to get request model"))
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
@@ -1658,7 +1660,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Failed to get request model"))
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
@@ -1706,7 +1708,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString, InternalSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry, revision = Option.apply(1))
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1738,7 +1740,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString, InternalSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry, revision = Option.apply(1))
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1778,7 +1780,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1810,7 +1812,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val requestModel = RequestModel.from(request, defaultRegistry)
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1881,7 +1883,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
       """.stripMargin
 
     val request: ReportingRequest = getReportingRequestSyncWithFactBias(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     require(requestModel.isSuccess, requestModel)
 
