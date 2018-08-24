@@ -3,11 +3,11 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core.CoreSchema._
-import com.yahoo.maha.core.DruidDerivedFunction.{LOOKUP, LOOKUP_WITH_DECODE, LOOKUP_WITH_DECODE_ON_OTHER_COLUMN, LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE}
+import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
-import com.yahoo.maha.core.dimension._
+import com.yahoo.maha.core.dimension.{DimCol, DruidFuncDimCol, _}
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
 
@@ -267,7 +267,9 @@ trait SharedDimSchema {
             , DimCol("device_id", IntType(3, (Map(1 -> "Desktop", 2 -> "Tablet", 3 -> "SmartPhone", -1 -> "UNKNOWN"), "UNKNOWN")))
             , DimCol("campaign_name", StrType(), annotations = Set(EscapingRequired, CaseInsensitive))
             , DimCol("status", StrType())
+            , DimCol("start_time", StrType())
             , OracleDerDimCol("Campaign Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
+            , OracleDerDimCol("Campaign Start Date", StrType(),FORMAT_DATE_WITH_LEAST("{start_time}", "YYYY-MM-DD HH24:MI:SS"))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , annotations = Set(OracleHashPartitioning, DimensionOracleStaticHint("CampaignHint"),PKCompositeIndex("AD_ID"))
@@ -285,9 +287,11 @@ trait SharedDimSchema {
             , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
             , DimCol("campaign_name", StrType(), annotations = Set(EscapingRequired, CaseInsensitive))
             , DimCol("status", StrType())
+            , DimCol("start_time", StrType())
             , HiveDerDimCol("Campaign Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
             , HivePartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
             , HivePartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
+            , HiveDerDimCol("Campaign Start Date", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "YYYY-MM-dd"), annotations = Set.empty)
           )
         )
       }
@@ -303,9 +307,11 @@ trait SharedDimSchema {
             , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
             , DimCol("campaign_name", StrType(), annotations = Set(EscapingRequired, CaseInsensitive))
             , DimCol("status", StrType())
+            , DimCol("start_time", StrType())
             , PrestoDerDimCol("Campaign Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
             , PrestoPartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
             , PrestoPartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
+            , PrestoDerDimCol("Campaign Start Date", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "YYYY-MM-dd"), annotations = Set.empty)
           ), None, Set.empty, None, Set.empty, Some("campaign_presto_underlying")
         )
       }
@@ -317,7 +323,9 @@ trait SharedDimSchema {
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+            , DimCol("start_time", StrType())
             , DruidFuncDimCol("campaign_name", StrType(), LOOKUP("campaign_lookup", "name"))
+            , DruidFuncDimCol("Campaign Start Date", StrType(),LOOKUP_WITH_TIMEFORMATTER("campaign_lookup","start_time","yyyy-MM-dd HH:mm:ss","yyyy-MM-dd"))
           )
           , Option(Map(AsyncRequest -> 14, SyncRequest -> 14))
         )
@@ -332,6 +340,7 @@ trait SharedDimSchema {
           , PubCol("campaign_name", "Campaign Name", InEqualityLike)
           , PubCol("Campaign Status", "Campaign Status", InNotInEquality)
           , PubCol("device_id", "Campaign Device ID", InEquality)
+          , PubCol("Campaign Start Date", "Campaign Start Date", InBetweenEquality)
         ), highCardinalityFilters = Set(NotInFilter("Campaign Status", List("DELETED")))
       )
   }

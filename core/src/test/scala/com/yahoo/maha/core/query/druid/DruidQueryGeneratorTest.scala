@@ -1904,4 +1904,39 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     println(expectedSubQueryJson)
     subSequentQuery should fullyMatch regex expectedSubQueryJson
   }
+
+  test("Druid Date Between filters : UnsupportedOperationException") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Clicks"},
+                            {"field": "Impressions"},
+                            {"field": "Campaign Name"},
+                            {"field": "Campaign ID"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Campaign Start Date", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, defaultRegistry)
+
+    intercept[org.scalatest.exceptions.TestFailedException] {
+      val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+      assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+      val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+      val json = """"""
+      println(result)
+    }
+  }
 }
