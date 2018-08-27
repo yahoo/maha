@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>5.183-SNAPSHOT</version>
+    <version>5.195-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -50,7 +50,7 @@
         <leveldb.version>1.8</leveldb.version>
         <rocksdb.version>5.13.4</rocksdb.version>
         <protobuf.version>2.6.1</protobuf.version>
-        <http4s.version>0.18.11</http4s.version>
+        <http4s.version>0.18.15</http4s.version>
         <maven-site-plugin.skip>true</maven-site-plugin.skip>
         <checkstyle.skip>true</checkstyle.skip>
         <freemarker.version>2.3.20</freemarker.version>
@@ -597,7 +597,7 @@
                 <plugin>
                     <groupId>org.scalatest</groupId>
                     <artifactId>scalatest-maven-plugin</artifactId>
-                    <version>1.0</version>
+                    <version>2.0.0</version>
                     <configuration>
                         <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                         <junitxml>.</junitxml>

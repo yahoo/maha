@@ -35,6 +35,9 @@ class RocksDBAccessor[K, V](builder: RocksDBAccessorBuilder[K, V]) extends Loggi
     options.setCreateIfMissing(builder.createIfMissing)
     options.setCompressionType(CompressionType.LZ4HC_COMPRESSION)
     options.setParanoidChecks(true)
+    options.optimizeForPointLookup(builder.cacheSize)
+    options.setMemTableConfig(new HashSkipListMemTableConfig)
+    options.setAllowConcurrentMemtableWrite(false)
     RocksDB.loadLibrary()
     if(builder.timeToLive.isDefined) {
       info(s"Creating rocksDB with timeToLive = ${builder.timeToLive.get} Seconds : ${dbFile.getAbsolutePath}")

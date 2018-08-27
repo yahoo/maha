@@ -392,7 +392,9 @@ trait QueryPipelineFactory {
 
   def from(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]]
 
-  def fromBucketSelector(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]]
+  def fromBucketSelector(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple3[Try[QueryPipeline], Option[Try[QueryPipeline]], Option[Try[QueryPipeline]]]
+
+  def fromBucketSelector(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]]
 
   def builder(requestModel: RequestModel, queryAttributes: QueryAttributes): Try[QueryPipelineBuilder]
 
@@ -853,7 +855,7 @@ OuterGroupBy operation has to be applied only in the following cases
                 val queryAttributesBuilder = subqueryqueryAttributes.toBuilder
                 val injectedInFilter = InFilter(field, values)
                 queryAttributesBuilder.addAttribute(QueryAttributes.injectedDimINFilter, InjectedDimFilterAttribute(injectedInFilter))
-                if (noRowCountRequestModel.startIndex <= 0) {
+                if (noRowCountRequestModel.startIndex <= 0 && !noRowCountRequestModel.hasMetricFilters) {
                   val injectedNotInFilter = NotInFilter(field, values)
                   queryAttributesBuilder.addAttribute(QueryAttributes.injectedDimNOTINFilter, InjectedDimFilterAttribute(injectedNotInFilter)).build
                 }
@@ -1157,12 +1159,24 @@ OuterGroupBy operation has to be applied only in the following cases
     }
   }
 
-  def fromBucketSelector(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]] = {
+  def fromBucketSelector(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple3[Try[QueryPipeline], Option[Try[QueryPipeline]], Option[Try[QueryPipeline]]] = {
     val queryPipelineBuilderTries = builder(requestModels, queryAttributes, bucketSelector)
-    if (queryPipelineBuilderTries._2.isDefined) {
-      (queryPipelineBuilderTries._1.map(_.build()), Option(queryPipelineBuilderTries._2.get.map(_.build())))
-    } else {
-      (queryPipelineBuilderTries._1.map(_.build()), None)
+    val queryPipeline: Try[QueryPipeline] = queryPipelineBuilderTries._1.map(_.build())
+    val queryPipelineDryRunQgen: Option[Try[QueryPipeline]] = {
+      if (queryPipelineBuilderTries._2.isDefined)
+        Option(queryPipelineBuilderTries._2.get.map(_.build()))
+      else None
     }
+    val queryPipelineDryRunCube: Option[Try[QueryPipeline]] = {
+      if (queryPipelineBuilderTries._3.isDefined)
+        Option(queryPipelineBuilderTries._3.get.map(_.build()))
+      else None
+    }
+    (queryPipeline, queryPipelineDryRunQgen, queryPipelineDryRunCube)
+  }
+
+  def fromBucketSelector(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]] = {
+    val queryPipelines = fromBucketSelector(new Tuple2[RequestModel, Option[RequestModel]](requestModel, None), queryAttributes, bucketSelector)
+    (queryPipelines._1, queryPipelines._2)
   }
 }

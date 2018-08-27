@@ -1,11 +1,11 @@
 package com.yahoo.maha.core.query.druid
 
-import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, InternalSchema}
+import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, InternalSchema, ResellerSchema}
 import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{POST_RESULT_DECODE, START_OF_THE_MONTH, START_OF_THE_WEEK}
 import com.yahoo.maha.core.FilterOperation.{Equality, In, InBetweenEquality, InEquality}
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{DimCol, DruidFuncDimCol, DruidPostResultFuncDimCol, PubCol}
+import com.yahoo.maha.core.dimension.{DimCol, DruidFuncDimCol, DruidPostResultFuncDimCol, PubCol, ConstDimCol}
 import com.yahoo.maha.core.fact.{PublicFactCol, _}
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
@@ -30,6 +30,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
     registryBuilder.register(pubfact4(forcedFilters))
     registryBuilder.register(pubfact_start_time(forcedFilters))
     registryBuilder.register(pubfact_minute_grain(forcedFilters))
+    registryBuilder.register(pubfact5(forcedFilters))
   }
 
   private[this] def factBuilder(annotations: Set[FactAnnotation]): FactBuilder = {
@@ -466,6 +467,98 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
         //Set(EqualityFilter("Source", "2")),
         Set(),
         getMaxDaysWindow, getMaxDaysLookBack, renderLocalTimeFilter = true
+      )
+  }
+
+  private[this] def pubfact5(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+
+    val tableOne  = {
+      ColumnContext.withColumnContext {
+        import DruidExpression._
+        implicit dc: ColumnContext =>
+          Fact.newFactForView(
+            "account_stats", DailyGrain, DruidEngine, Set(AdvertiserSchema, ResellerSchema),
+            Set(
+              DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+              , ConstDimCol("is_adjustment", StrType(1), "N")
+              , DimCol("stats_date", DateType("YYYY-MM-DD"))
+              , DimCol("test_flag", IntType())
+              , DimCol("Test Flag", IntType(), alias = Option("{test_flag}"))
+              , DruidFuncDimCol("Month", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
+              , DruidFuncDimCol("Week", DateType(), GET_INTERVAL_DATE("{stats_date}", "w"))
+            ),
+            Set(
+              FactCol("impressions", IntType(3, 1))
+              , FactCol("clicks", IntType(3, 0, 1, 800))
+              , FactCol("spend", DecType(0, "0.0"))
+              , DruidDerFactCol("Const Der Fact Col A", DecType(), "{clicks}" / "{impressions}")
+            )
+          )
+      }
+    }
+
+    val tableTwo  = {
+      ColumnContext.withColumnContext {
+        import DruidExpression._
+        implicit dc: ColumnContext =>
+          Fact.newFactForView(
+            "a_adjustments", DailyGrain, DruidEngine, Set(AdvertiserSchema, ResellerSchema),
+            Set(
+              DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+              , ConstDimCol("is_adjustment", StrType(1), "Y")
+              , DimCol("stats_date", DateType("YYYY-MM-DD"))
+              , DimCol("test_flag", IntType())
+              , DimCol("Test Flag", IntType(), alias = Option("{test_flag}"))
+              , DruidFuncDimCol("Month", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
+              , DruidFuncDimCol("Week", DateType(), GET_INTERVAL_DATE("{stats_date}", "w"))
+            ),
+            Set(
+              ConstFactCol("impressions", IntType(3, 1), "0")
+              , ConstFactCol("clicks", IntType(3, 0, 1, 800), "0")
+              , FactCol("spend", DecType(0, "0.0"))
+              , DruidConstDerFactCol("Const Der Fact Col A", DecType(), "{clicks}" / "{impressions}", "0")
+            )
+          )
+      }
+    }
+    val view = UnionView("account_a_stats", Seq(tableOne, tableTwo))
+
+    ColumnContext.withColumnContext {
+      import DruidExpression._
+      implicit dc: ColumnContext =>
+        Fact.newUnionView(view, DailyGrain, DruidEngine, Set(AdvertiserSchema, ResellerSchema),
+          Set(
+            DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+            , DimCol("stats_date", DateType("YYYY-MM-DD"))
+            , DimCol("test_flag", IntType())
+            , DimCol("Test Flag", IntType(), alias = Option("{test_flag}"))
+            , DimCol("is_adjustment", StrType(1))
+            , DruidFuncDimCol("Month", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
+            , DruidFuncDimCol("Week", DateType(), GET_INTERVAL_DATE("{stats_date}", "w"))
+          ),
+          Set(
+            FactCol("impressions", IntType(3, 1))
+            , FactCol("clicks", IntType(3, 0, 1, 800))
+            , FactCol("spend", DecType(0, "0.0"))
+            , DruidDerFactCol("Const Der Fact Col A", DecType(), "{clicks}" / "{impressions}")
+          )
+        )
+    }
+      .toPublicFact("a_stats",
+        Set(
+          PubCol("stats_date", "Day", InBetweenEquality),
+          PubCol("advertiser_id", "Advertiser ID", InEquality),
+          PubCol("is_adjustment", "Is Adjustment", Equality),
+          PubCol("Test Flag", "Test Flag", Equality),
+          PubCol("Month", "Month", Equality),
+          PubCol("Week", "Week", Equality)
+        ),
+        Set(
+          PublicFactCol("impressions", "Impressions", InBetweenEquality),
+          PublicFactCol("clicks", "Clicks", InBetweenEquality),
+          PublicFactCol("spend", "Spend", Set.empty),
+          PublicFactCol("Const Der Fact Col A", "Const Der Fact Col A", InBetweenEquality)
+        ), Set(EqualityFilter("Test Flag", "0", isForceFilter = true)),  getMaxDaysWindow, getMaxDaysLookBack
       )
   }
 
