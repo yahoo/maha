@@ -11,8 +11,10 @@ trait IngestionTimeUpdater {
   def engine : Engine
   def source: String
   def getIngestionTime(dataSource: String): Option[String]
+  def getIngestionTimeLong(dataSource: String): Option[Long]
 }
 
 case class NoopIngestionTimeUpdater(engine: Engine, source: String) extends IngestionTimeUpdater {
   override def getIngestionTime(dataSource: String): Option[String] = None
+  override def getIngestionTimeLong(dataSource: String): Option[Long] = None
 }
