@@ -7,7 +7,7 @@ import java.util.Date
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.{CompleteRowList, QueryAttributes, QueryPipelineResult, QueryRowList}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.core.{DruidEngine, Engine, OracleEngine, RequestModelResult}
+import com.yahoo.maha.core.{Engine, OracleEngine, RequestModelResult}
 import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
@@ -86,6 +86,8 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     override def getIngestionTime(dataSource: String): Option[String] = {
       Some(timeStampString)
     }
+
+    override def getIngestionTimeLong(dataSource: String): Option[Long] = Some(new Date().getTime)
   }
 
   class TestCurator extends DrilldownCurator {
