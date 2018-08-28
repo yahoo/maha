@@ -599,10 +599,10 @@ b. Dim Driven
     if(includePagination) {
       val paginationPredicates: ListBuffer[String] = new ListBuffer[String]()
       val minPosition: Int = if (si < 0) 1 else si + 1
-      paginationPredicates += ("ROWNUM >= " + minPosition)
+      paginationPredicates += ("ROW_NUMBER >= " + minPosition)
       if (mr > 0) {
         val maxPosition: Int = if (si <= 0) mr else minPosition - 1 + mr
-        paginationPredicates += ("ROWNUM <= " + maxPosition)
+        paginationPredicates += ("ROW_NUMBER <= " + maxPosition)
       }
       if (outerFiltersPresent)
         String.format(OUTER_PAGINATION_WRAPPER_WITH_FILTERS, queryString, paginationPredicates.toList.mkString(" AND "))
@@ -781,6 +781,11 @@ b. Dim Driven
         }
         aliasColumnMapOfRequestCols += (OracleQueryGenerator.ROW_COUNT_ALIAS -> PAGINATION_ROW_COUNT_COL)
       }
+
+      if(includePagination) {
+        outerColumns+=ROW_NUMBER_ALIAS
+      }
+
       val finalQueryString = String.format(queryStringTemplate, outerColumns.mkString(", "), dimQueryString, outerWhereClause)
       //there should be no pagination in the dimension sql since we disabled paginiation generation in above dimensionSql call
       val queryString = addOuterPaginationWrapper(finalQueryString
