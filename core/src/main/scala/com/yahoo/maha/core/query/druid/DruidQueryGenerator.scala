@@ -194,6 +194,7 @@ abstract class DruidQuery[T] extends Query with WithDruidEngine {
   def asString: String = DruidQuery.toJson(query)
   def maxRows: Int
   def isPaginated: Boolean
+  def queryGenVersion: Option[Version] = None
 }
 
 case class TimeseriesDruidQuery(queryContext: QueryContext
