@@ -13,17 +13,17 @@ import org.joda.time.DateTime
     it also takes care of the underline storage mechanism for job updates.
 */
 trait JobMetadata {
-  def insertJob(job:Job) //not used by maha-worker, it assumes that job is already created by producer
-  def deleteJob(job: Job)
-  def findById(jobId:Long)
-  def updateJobStatus(jobId:Long, jobStatus: JobStatus)
-  def updateJobAcquired(jobId : Long): Unit = {
+  def insertJob(job:Job):Boolean //not used by maha-worker, it assumes that job is already created by producer
+  def deleteJob(job: Job): Boolean
+  def findById(jobId:Long): Job
+  def updateJobStatus(jobId:Long, jobStatus: JobStatus): Boolean
+  def updateJobAcquired(jobId : Long): Boolean = {
     updateJobStatus(jobId, JobStatus.RUNNING)
   }
-  def updateJobEnded(jobId: Long, endStatus: JobStatus, message :String)
+  def updateJobEnded(jobId: Long, endStatus: JobStatus, message :String) : Boolean
 
   /*
     Method to find number of jobs with given status, especially used for throttling
    */
-  def countJobsByTypeAndStatus(jobType: JobType, jobStatus: JobStatus, jobCreatedTs: DateTime)
+  def countJobsByTypeAndStatus(jobType: JobType, jobStatus: JobStatus, jobCreatedTs: DateTime) : Int
 }

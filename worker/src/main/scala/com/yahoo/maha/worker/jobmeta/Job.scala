@@ -22,6 +22,7 @@ trait Job {
   def jobRequest: String
   def hostname: String
   def cubeName: String
+  def isDeleted: Boolean
 }
 
 case class AsyncJob(jobId: Long
@@ -35,4 +36,5 @@ case class AsyncJob(jobId: Long
                 , jobParentId: Long
                 , jobRequest: String
                 , hostname: String
-                , cubeName: String) extends Job
+                , cubeName: String
+                , isDeleted : Boolean = false) extends Job

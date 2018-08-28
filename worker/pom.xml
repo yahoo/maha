@@ -15,6 +15,10 @@
     <name>maha worker</name>
     <url>http://maven.apache.org</url>
 
+    <properties>
+        <slick.version>3.2.3</slick.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.google.protobuf</groupId>
@@ -59,6 +63,12 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.slick</groupId>
+            <artifactId>slick_${scala.major.version}</artifactId>
+            <version>${slick.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
