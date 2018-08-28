@@ -125,6 +125,8 @@ trait BaseQueryChainTest {
       override def engine: Engine = queryEngine
 
       override def aliasColumnMap: Map[String, Column] = Map.empty
+
+      override def queryGenVersion: Option[Version] = None
     }
   }
 

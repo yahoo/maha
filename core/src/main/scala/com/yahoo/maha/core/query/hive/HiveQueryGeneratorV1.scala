@@ -330,7 +330,8 @@ class HiveQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, udfS
       paramBuilder.build(),
       queryContext.requestModel.requestCols.map(_.alias),
       columnAliasToColMap.toMap,
-      IndexedSeq.empty
+      IndexedSeq.empty,
+      Option(Version.v1)
     )
   }
 
@@ -505,7 +506,8 @@ class HiveQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, udfS
       paramBuilder.build(),
       queryContext.requestModel.requestCols.map(_.alias),
       columnAliasToColMap.toMap,
-      IndexedSeq.empty
+      IndexedSeq.empty,
+      Option(Version.v1)
     )
   }
 }
