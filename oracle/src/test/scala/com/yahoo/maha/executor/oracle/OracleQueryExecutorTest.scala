@@ -1012,7 +1012,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                           ],
                           "paginationStartIndex":2,
                           "rowsPerPage":10,
-                          "isDimensionDriven" : true
+                          "forceDimensionDriven" : true
                         }"""
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
