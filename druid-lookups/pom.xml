@@ -5,7 +5,7 @@
     <parent>
         <artifactId>maha-parent</artifactId>
         <groupId>com.yahoo.maha</groupId>
-        <version>5.193-SNAPSHOT</version>
+        <version>5.200-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -15,7 +15,7 @@
 
 
     <properties>
-        <druid.version>0.11.0</druid.version>
+        <druid.version>0.12.2</druid.version>
     </properties>
 
     <dependencies>

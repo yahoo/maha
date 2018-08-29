@@ -23,6 +23,8 @@ import scala.util.Try
  */
 class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
 
+  lazy val defaultRegistry = getDefaultRegistry()
+
   test("registering Hive query generation multiple times should fail") {
     intercept[IllegalArgumentException] {
       val dummyQueryGenerator = new QueryGenerator[WithHiveEngine] {
@@ -66,7 +68,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_query_generator_test.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
@@ -75,7 +77,8 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
 
-    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    val resultQuery = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery]
+    assert(Version.v1.equals(resultQuery.queryGenVersion.get), "Expected v1 queryGenVersion")
 
   }
 
@@ -83,7 +86,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_query_generator_test_custom_rollups.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
@@ -100,7 +103,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "user_stats_hourly.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -118,7 +121,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_request_with_date_field.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -133,7 +136,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_request_with_escaping_required_field.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -148,7 +151,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_query_generator_test.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -163,7 +166,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_query_generator_test.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -177,7 +180,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_query_generator_test.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -192,7 +195,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_query_generator_test.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -212,7 +215,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_request_with_string_field.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -229,7 +232,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_request_with_min_max_dec_field.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -244,7 +247,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_request_with_constant_field.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -260,7 +263,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_request_with_fact_n_factder_field.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -276,7 +279,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_request_with_multiple_dimension.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -291,7 +294,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "ce_stats.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -306,7 +309,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_query_nooprollup_test.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -338,7 +341,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_query_with_non_fk_dim_filters_test.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -356,7 +359,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_query_with_wo_non_fk_dim_filters_test.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -374,7 +377,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_query_with_dim_like_filter.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -408,7 +411,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "hive_query_with_dim_like_filter_injection_testing.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -464,7 +467,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |}
       """.stripMargin
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -525,7 +528,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |}
       """.stripMargin
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -552,7 +555,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -596,7 +599,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -625,7 +628,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 

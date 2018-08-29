@@ -16,6 +16,8 @@ import com.yahoo.maha.core.request._
  * Created by jians on 11/12/15.
  */
 class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
+  lazy val defaultRegistry = getDefaultRegistry()
+
   test("registering Oracle query generation multiple times should fail") {
     intercept[IllegalArgumentException] {
       val dummyQueryGenerator = new QueryGenerator[WithOracleEngine] {
@@ -30,7 +32,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_wo_dim_filters.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -47,7 +49,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_with_multi_dim_join.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -64,7 +66,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_wo_dim_filters.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -81,7 +83,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_dim_driven_wo_dim_filters.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -99,7 +101,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_w_dim_filters.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -116,7 +118,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_w_dim_filters_new_part.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -133,7 +135,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_wo_dim_filters.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -148,7 +150,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_dim_driven_total_rows.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -166,7 +168,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_dim_driven_wo_dim_filters.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -186,7 +188,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_wo_dim_filters.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -203,7 +205,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_w_dim_filters.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -220,7 +222,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_wo_dim_sort.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -237,7 +239,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_w_dim_sort.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -254,7 +256,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_w_fact_sort_total_rows.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -272,7 +274,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_w_fact_sort.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -292,7 +294,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_w_fact_filter_total_rows.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -310,7 +312,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_w_fact_filter.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -330,7 +332,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_w_static_mapping.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     assert(requestModel.toOption.get.isFactDriven)
@@ -354,7 +356,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_w_default_value.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     assert(requestModel.toOption.get.isFactDriven)
@@ -380,7 +382,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_w_constant_field.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     assert(requestModel.toOption.get.isFactDriven)
@@ -398,7 +400,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_w_fact_filter.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     assert(requestModel.toOption.get.isFactDriven)
@@ -441,7 +443,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -514,7 +516,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -591,7 +593,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -659,7 +661,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -689,7 +691,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -719,7 +721,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -749,7 +751,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -779,7 +781,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -794,7 +796,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_w_hint.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -810,7 +812,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_dim_driven_w_dim_id_filters.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -844,7 +846,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isFailure, requestModel.errorMessage("Building request model should failed because days window exceeds the maximum"))
     assert(requestModel.checkFailureMessage("Max days window"), requestModel.errorMessage("Invalid error message"))
@@ -872,7 +874,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isFailure, requestModel.errorMessage("Building request model should failed because days look back exceeds the maximum"))
     assert(requestModel.checkFailureMessage("Max look back window"), requestModel.errorMessage("Invalid error message"))
@@ -900,7 +902,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isFailure, requestModel.errorMessage("Building request model should failed because days window exceeds the maximum"))
     assert(requestModel.checkFailureMessage("Max days window"), requestModel.errorMessage("Invalid error message"))
@@ -928,7 +930,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isFailure, requestModel.errorMessage("Building request model should failed because days look back exceeds the maximum"))
     assert(requestModel.checkFailureMessage("Max look back window"), requestModel.errorMessage("Invalid error message"))
@@ -956,7 +958,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isFailure, requestModel.errorMessage("Building request model should failed because days look back exceeds the maximum"))
     assert(requestModel.checkFailureMessage("Max look back window"), requestModel.errorMessage("Invalid error message"))
@@ -983,7 +985,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1000,7 +1002,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_w_hint.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1016,7 +1018,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_dec_max_min.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1033,7 +1035,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_int_max_min.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1050,7 +1052,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_division.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1067,7 +1069,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "dim_fact_fact_driven_safe_division.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1102,7 +1104,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1138,7 +1140,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1175,7 +1177,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1188,10 +1190,10 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       s"""SELECT "Keyword ID", "Keyword Value", "Campaign Name", "Ad Group Name", "Ad Title", impressions AS "Impressions", CTR AS "CTR"
          |FROM (SELECT f0.keyword_id "Keyword ID", t4.value "Keyword Value", co1.campaign_name "Campaign Name", ago2.name "Ad Group Name", ado3.title "Ad Title", SUM(impressions) AS impressions, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS CTR, SUM(clicks) AS clicks
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
-         |                   ad_group_id, ad_id, campaign_id, keyword_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions
+         |                   ad_group_id, advertiser_id, ad_id, campaign_id, keyword_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions
          |            FROM fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY ad_group_id, ad_id, campaign_id, keyword_id
+         |            GROUP BY ad_group_id, advertiser_id, ad_id, campaign_id, keyword_id
          |
          |           ) f0
          |                     LEFT OUTER JOIN
@@ -1199,25 +1201,25 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           co1 ON (f0.campaign_id = co1.id)
+         |           co1 ON ( f0.advertiser_id = co1.advertiser_id AND f0.campaign_id = co1.id)
          |           LEFT OUTER JOIN
          |           (SELECT  campaign_id, name, id, advertiser_id
          |            FROM ad_group_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           ago2 ON (f0.ad_group_id = ago2.id)
+         |           ago2 ON ( f0.advertiser_id = ago2.advertiser_id AND f0.ad_group_id = ago2.id)
          |           LEFT OUTER JOIN
          |           (SELECT  ad_group_id, campaign_id, title, id, advertiser_id
          |            FROM ad_dim_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           ado3 ON (f0.ad_id = ado3.id)
+         |           ado3 ON ( f0.advertiser_id = ado3.advertiser_id AND f0.ad_id = ado3.id)
          |           LEFT OUTER JOIN
          |           (SELECT  parent_id, value, id, advertiser_id
          |            FROM targetingattribute
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           t4 ON (f0.keyword_id = t4.id)
+         |           t4 ON ( f0.advertiser_id = t4.advertiser_id AND f0.keyword_id = t4.id)
          |
          |          GROUP BY f0.keyword_id, t4.value, co1.campaign_name, ago2.name, ado3.title
          |)
@@ -1250,7 +1252,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1260,13 +1262,14 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected =
-      s"""SELECT "Frequency", "Keyword ID", "Keyword Value", "Campaign Name", impressions AS "Impressions", CTR AS "CTR", spend AS "Spend"
+      s"""
+         |SELECT "Frequency", "Keyword ID", "Keyword Value", "Campaign Name", impressions AS "Impressions", CTR AS "CTR", spend AS "Spend"
          |FROM (SELECT ksf0.frequency "Frequency", ksf0.keyword_id "Keyword ID", t2.value "Keyword Value", co1.campaign_name "Campaign Name", SUM(impressions) AS impressions, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS CTR, SUM(spend) AS spend, SUM(clicks) AS clicks
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
-         |                   frequency, campaign_id, keyword_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions, SUM(spend) AS spend
+         |                   advertiser_id, frequency, campaign_id, keyword_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions, SUM(spend) AS spend
          |            FROM k_stats_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY frequency, campaign_id, keyword_id
+         |            GROUP BY advertiser_id, frequency, campaign_id, keyword_id
          |
          |           ) ksf0
          |                     LEFT OUTER JOIN
@@ -1274,15 +1277,15 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           co1 ON (ksf0.campaign_id = co1.id)
+         |           co1 ON ( ksf0.advertiser_id = co1.advertiser_id AND ksf0.campaign_id = co1.id)
          |           LEFT OUTER JOIN
          |           (SELECT  value, id, advertiser_id
          |            FROM targetingattribute
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           t2 ON (ksf0.keyword_id = t2.id)
+         |           t2 ON ( ksf0.advertiser_id = t2.advertiser_id AND ksf0.keyword_id = t2.id)
          |
-         |          GROUP BY ksf0.frequency, ksf0.keyword_id, t2.value, co1.campaign_name
+ |          GROUP BY ksf0.frequency, ksf0.keyword_id, t2.value, co1.campaign_name
          |)
          |   ORDER BY "Spend" DESC NULLS LAST
          |""".stripMargin
@@ -1313,7 +1316,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1382,7 +1385,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1414,7 +1417,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1481,7 +1484,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1550,7 +1553,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1629,7 +1632,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1702,7 +1705,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                          }"""
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1753,7 +1756,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val request: ReportingRequest = ReportingRequest
       .deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
       .copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     assert(requestModel.toOption.get.isDebugEnabled, requestModel.errorMessage("Debug should be enabled!"))
@@ -1809,7 +1812,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                          }"""
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1873,7 +1876,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                          }"""
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1883,7 +1886,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = """SELECT *
-                     |      FROM (SELECT co1.id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", Count(*) OVER() TOTALROWS
+                     |      FROM (SELECT co1.id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
                      |            FROM
                      |               ( (SELECT  advertiser_id, campaign_id, id
                      |            FROM ad_group_oracle
@@ -1903,7 +1906,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                      |              ON( co1.advertiser_id = ao0.id )
                      |               )
                      |
-                     |           ) WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
+                     |           ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -1930,7 +1933,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
       .copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true), Parameter.Distinct -> DistinctValue(true)))
 
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1942,7 +1945,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       """
         |SELECT *
-        |      FROM (SELECT DISTINCT ao0."Advertiser Status" "Advertiser Status"
+        |      FROM (SELECT DISTINCT ao0."Advertiser Status" "Advertiser Status", ROWNUM as ROW_NUMBER
         |            FROM
         |                (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
         |            FROM advertiser_oracle
@@ -1951,7 +1954,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
         |
         |
         |           )
-        |             WHERE ROWNUM >= 1 AND ROWNUM <= 100
+        |             WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
       """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -1995,7 +1998,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val requestOption = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(requestOption.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2005,7 +2008,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = """
                      |SELECT  *
-                     |      FROM (SELECT ago2.campaign_id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", Count(*) OVER() TOTALROWS
+                     |      FROM (SELECT ago2.campaign_id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
                      |            FROM
                      |               ( (SELECT  campaign_id, advertiser_id, id
                      |            FROM ad_group_oracle
@@ -2026,7 +2029,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                      |               )
                      |
                      |           )
-                     |             WHERE ROWNUM >= 1 AND ROWNUM <= 100
+                     |             WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
                      |""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -2075,7 +2078,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                          }"""
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), ResellerSchema).toOption.get
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2153,7 +2156,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                          }"""
 
     val request: ReportingRequest = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), ResellerSchema).toOption.get
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2231,7 +2234,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                          }"""
 
     val request: ReportingRequest = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2297,7 +2300,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2397,7 +2400,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       """.stripMargin
 
     val request: ReportingRequest = getReportingRequestSyncWithFactBias(jsonString, ResellerSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2450,7 +2453,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val request: ReportingRequest = ReportingRequest
       .deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
       .copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true), Parameter.TimeZone->TimeZoneValue("PST")))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     assert(requestModel.toOption.get.isDebugEnabled, requestModel.errorMessage("Debug should be enabled!"))
@@ -2506,7 +2509,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2565,7 +2568,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2644,7 +2647,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       """.stripMargin
 
     val request: ReportingRequest = getReportingRequestSyncWithFactBias(jsonString, ResellerSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2721,7 +2724,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       """.stripMargin
 
     val request: ReportingRequest = getReportingRequestSyncWithFactBias(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2778,7 +2781,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val requestOption = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(requestOption.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2814,7 +2817,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val requestOption = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(requestOption.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2850,7 +2853,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val requestOption = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), PublisherSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(requestOption.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2897,7 +2900,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val requestOption = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), PublisherSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(requestOption.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2973,7 +2976,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                          }"""
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), ResellerSchema).toOption.get
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -3045,7 +3048,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val requestOption = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(requestOption.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -3055,7 +3058,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = """
                      |SELECT  *
-                     |      FROM (SELECT ao0.id "Advertiser ID", co1.id "Campaign ID", co1.campaign_name "Campaign Name", ago2.id "Ad Group ID", ago2."Ad Group Status" "Ad Group Status"
+                     |      FROM (SELECT ao0.id "Advertiser ID", co1.id "Campaign ID", co1.campaign_name "Campaign Name", ago2.id "Ad Group ID", ago2."Ad Group Status" "Ad Group Status", ROWNUM as ROW_NUMBER
                      |            FROM
                      |               ( (SELECT  campaign_id, advertiser_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
                      |            FROM ad_group_oracle
@@ -3076,7 +3079,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                      |               )
                      |
                      |           )
-                     |            WHERE ( "Ad Group ID"   IS NULL) AND ROWNUM >= 1 AND ROWNUM <= 100
+                     |            WHERE ( "Ad Group ID"   IS NULL) AND ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
                      |           """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -3113,7 +3116,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -3127,10 +3130,10 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |SELECT "Keyword ID", "Keyword Value", "Campaign Name", "Ad Group ID", "Ad Group Status", "Ad Group Name", "Ad Title", impressions AS "Impressions", CTR AS "CTR"
          |FROM (SELECT f0.keyword_id "Keyword ID", t4.value "Keyword Value", co1.campaign_name "Campaign Name", f0.ad_group_id "Ad Group ID", ago2."Ad Group Status" "Ad Group Status", ago2.name "Ad Group Name", ado3.title "Ad Title", SUM(impressions) AS impressions, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS CTR, SUM(clicks) AS clicks
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
-         |                   ad_group_id, ad_id, campaign_id, keyword_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions
+         |                   ad_group_id, advertiser_id, ad_id, campaign_id, keyword_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions
          |            FROM fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY ad_group_id, ad_id, campaign_id, keyword_id
+         |            GROUP BY ad_group_id, advertiser_id, ad_id, campaign_id, keyword_id
          |
          |           ) f0
          |                     LEFT OUTER JOIN
@@ -3138,27 +3141,27 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           co1 ON (f0.campaign_id = co1.id)
+         |           co1 ON ( f0.advertiser_id = co1.advertiser_id AND f0.campaign_id = co1.id)
          |           LEFT OUTER JOIN
          |           (SELECT  campaign_id, name, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id, advertiser_id
          |            FROM ad_group_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           ago2 ON (f0.ad_group_id = ago2.id)
+         |           ago2 ON ( f0.advertiser_id = ago2.advertiser_id AND f0.ad_group_id = ago2.id)
          |           LEFT OUTER JOIN
          |           (SELECT  ad_group_id, campaign_id, title, id, advertiser_id
          |            FROM ad_dim_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           ado3 ON (f0.ad_id = ado3.id)
+         |           ado3 ON ( f0.advertiser_id = ado3.advertiser_id AND f0.ad_id = ado3.id)
          |           LEFT OUTER JOIN
          |           (SELECT  parent_id, value, id, advertiser_id
          |            FROM targetingattribute
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           t4 ON (f0.keyword_id = t4.id)
+         |           t4 ON ( f0.advertiser_id = t4.advertiser_id AND f0.keyword_id = t4.id)
          |
-         |          GROUP BY f0.keyword_id, t4.value, co1.campaign_name, f0.ad_group_id, ago2."Ad Group Status", ago2.name, ado3.title
+ |          GROUP BY f0.keyword_id, t4.value, co1.campaign_name, f0.ad_group_id, ago2."Ad Group Status", ago2.name, ado3.title
          |) WHERE ( "Ad Group ID"   IS NULL) AND ( "Ad Group Status"   = 'ON')
          |   ORDER BY "Campaign Name" ASC NULLS LAST
          |""".stripMargin
@@ -3193,7 +3196,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                          }"""
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -3259,7 +3262,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                          }"""
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), ResellerSchema).toOption.get
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -3270,7 +3273,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = s"""
                       |SELECT  *
-                      |      FROM (SELECT co0.id "Campaign ID", co0.campaign_name "Campaign Name", ago1.id "Ad Group ID"
+                      |      FROM (SELECT co0.id "Campaign ID", co0.campaign_name "Campaign Name", ago1.id "Ad Group ID", ROWNUM as ROW_NUMBER
                       |            FROM
                       |               ( (SELECT  campaign_id, id, advertiser_id
                       |            FROM ad_group_oracle
@@ -3285,7 +3288,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |               )
                       |
                       |           )
-                      |            WHERE ( "Ad Group ID"   IS NULL) AND ROWNUM >= 1 AND ROWNUM <= 200
+                      |            WHERE ( "Ad Group ID"   IS NULL) AND ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
                       |""".stripMargin
 
 
@@ -3318,7 +3321,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -3382,7 +3385,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -3435,7 +3438,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            }""".stripMargin
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -3455,10 +3458,10 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", spend AS "Spend"
          |FROM (SELECT co1.campaign_name "Campaign Name", SUM(spend) AS spend
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   campaign_id, SUM(spend) AS spend
+         |                   advertiser_id, campaign_id, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY campaign_id
+         |            GROUP BY advertiser_id, campaign_id
          |
          |           ) af0
          |                     LEFT OUTER JOIN
@@ -3466,7 +3469,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           co1 ON (af0.campaign_id = co1.id)
+         |           co1 ON ( af0.advertiser_id = co1.advertiser_id AND af0.campaign_id = co1.id)
          |
  |          GROUP BY co1.campaign_name
          |)
@@ -3501,7 +3504,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            }""".stripMargin
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -3520,10 +3523,10 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Source", DECODE(stats_source, 1, spend, 0.0) AS "N Spend"
          |FROM (SELECT co1.campaign_name "Campaign Name", af0.stats_source "Source", SUM(spend) AS spend, stats_source AS stats_source
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   campaign_id, stats_source, SUM(spend) AS spend
+         |                   advertiser_id, campaign_id, stats_source, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY campaign_id, stats_source
+         |            GROUP BY advertiser_id, campaign_id, stats_source
          |
          |           ) af0
          |                     LEFT OUTER JOIN
@@ -3531,9 +3534,9 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           co1 ON (af0.campaign_id = co1.id)
+         |           co1 ON ( af0.advertiser_id = co1.advertiser_id AND af0.campaign_id = co1.id)
          |
-         |          GROUP BY co1.campaign_name, af0.stats_source, stats_source
+ |          GROUP BY co1.campaign_name, af0.stats_source, stats_source
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
        """.stripMargin
@@ -3568,7 +3571,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            }""".stripMargin
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -3585,10 +3588,10 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Day", "Campaign Name", spend AS "Spend"
          |FROM (SELECT to_char(af0.stats_date, 'YYYY-MM-DD') "Day", co1.campaign_name "Campaign Name", SUM(spend) AS spend
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   campaign_id, stats_date, SUM(spend) AS spend
+         |                   advertiser_id, campaign_id, stats_date, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY campaign_id, stats_date
+         |            GROUP BY advertiser_id, campaign_id, stats_date
          |
          |           ) af0
          |                     LEFT OUTER JOIN
@@ -3596,9 +3599,9 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           co1 ON (af0.campaign_id = co1.id)
+         |           co1 ON ( af0.advertiser_id = co1.advertiser_id AND af0.campaign_id = co1.id)
          |
-         |          GROUP BY to_char(af0.stats_date, 'YYYY-MM-DD'), co1.campaign_name
+ |          GROUP BY to_char(af0.stats_date, 'YYYY-MM-DD'), co1.campaign_name
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
        """.stripMargin
@@ -3633,7 +3636,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            }""".stripMargin
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -3709,7 +3712,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            }""".stripMargin
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -3791,7 +3794,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            }""".stripMargin
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -3872,7 +3875,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            }""".stripMargin
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -3972,7 +3975,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            }""".stripMargin
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -3989,10 +3992,10 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Ad Status", "Ad User Count Flag", "Ad Impressions Flag", "Campaign Name", "Pricing Type", spend AS "Spend", user_count AS "User Count", impressions AS "Impressions"
          |FROM (SELECT ado2."Ad Status" "Ad Status", ado2.user_count "Ad User Count Flag", ado2.impressions "Ad Impressions Flag", co1.campaign_name "Campaign Name", af0.price_type "Pricing Type", SUM(af0.spend) AS spend, SUM(af0.user_count) AS user_count, SUM(af0.impressions) AS impressions
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, ad_id, campaign_id, SUM(impressions) AS impressions, SUM(spend) AS spend, SUM(user_count) AS user_count
+         |                   CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, advertiser_id, ad_id, campaign_id, SUM(impressions) AS impressions, SUM(spend) AS spend, SUM(user_count) AS user_count
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, ad_id, campaign_id
+         |            GROUP BY CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, advertiser_id, ad_id, campaign_id
          |
          |           ) af0
          |                     LEFT OUTER JOIN
@@ -4000,13 +4003,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           co1 ON (af0.campaign_id = co1.id)
+         |           co1 ON ( af0.advertiser_id = co1.advertiser_id AND af0.campaign_id = co1.id)
          |           LEFT OUTER JOIN
          |           (SELECT  campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Status", id, user_count, impressions, advertiser_id
          |            FROM ad_dim_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           ado2 ON (af0.ad_id = ado2.id)
+         |           ado2 ON ( af0.advertiser_id = ado2.advertiser_id AND af0.ad_id = ado2.id)
          |
  |          GROUP BY ado2."Ad Status", ado2.user_count, ado2.impressions, co1.campaign_name, af0.price_type
          |)
@@ -4041,7 +4044,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            }""".stripMargin
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -4057,14 +4060,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val expected =
       s"""
-         |
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend"
          |FROM (SELECT co1.campaign_name "Campaign Name", SUM(spend) AS spend, SUM(clicks) AS clicks
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend
+         |                   advertiser_id, campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY campaign_id
+         |            GROUP BY advertiser_id, campaign_id
          |
          |           ) af0
          |                     LEFT OUTER JOIN
@@ -4072,17 +4074,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           co1 ON (af0.campaign_id = co1.id)
+         |           co1 ON ( af0.advertiser_id = co1.advertiser_id AND af0.campaign_id = co1.id)
          |
  |          GROUP BY co1.campaign_name
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
-         |
-         |
        """
         .stripMargin
-    
-
     result should equal (expected)(after being whiteSpaceNormalised)
   }
 
@@ -4111,7 +4109,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            }""".stripMargin
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -4129,14 +4127,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val expected =
       s"""
-         |
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", avg_pos AS "Average Position", spend AS "Spend"
-         |FROM (SELECT co1.campaign_name "Campaign Name", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(impressions) AS impressions
+         |FROM (SELECT co1.campaign_name "Campaign Name", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(impressions) AS impressions
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   campaign_id, SUM(impressions) AS impressions, SUM(spend) AS spend
+         |                   advertiser_id, campaign_id, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY campaign_id
+         |            GROUP BY advertiser_id, campaign_id
          |
          |           ) af0
          |                     LEFT OUTER JOIN
@@ -4144,17 +4141,14 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           co1 ON (af0.campaign_id = co1.id)
+         |           co1 ON ( af0.advertiser_id = co1.advertiser_id AND af0.campaign_id = co1.id)
          |
  |          GROUP BY co1.campaign_name
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
          |
-         |
-         |
        """
         .stripMargin
-    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -4187,7 +4181,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            }""".stripMargin
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -4201,14 +4195,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val expected =
       s"""
-         |
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", avg_pos AS "Average Position", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend"
-         |FROM (SELECT co1.campaign_name "Campaign Name", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(impressions) AS impressions, SUM(clicks) AS clicks
+         |FROM (SELECT co1.campaign_name "Campaign Name", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(impressions) AS impressions, SUM(clicks) AS clicks
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   campaign_id, SUM(impressions) AS impressions, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend
+         |                   advertiser_id, campaign_id, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY campaign_id
+         |            GROUP BY advertiser_id, campaign_id
          |
          |           ) af0
          |                     LEFT OUTER JOIN
@@ -4216,16 +4209,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           co1 ON (af0.campaign_id = co1.id)
+         |           co1 ON ( af0.advertiser_id = co1.advertiser_id AND af0.campaign_id = co1.id)
          |
  |          GROUP BY co1.campaign_name
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
-         |
-         |
        """
         .stripMargin
-    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -4258,7 +4248,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            }""".stripMargin
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -4295,7 +4285,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
        """
         .stripMargin
-    
+
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -4325,7 +4315,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            }""".stripMargin
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -4339,14 +4329,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val expected =
       s"""
-         |
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "impression_share_rounded" AS "Impression Share", spend AS "Spend"
          |FROM (SELECT co1.campaign_name "Campaign Name", SUM(spend) AS spend, SUM(impressions) AS impressions, SUM(s_impressions) AS s_impressions, af0.show_flag show_flag, (ROUND((DECODE(MAX(show_flag), 1, ROUND(CASE WHEN SUM(s_impressions) = 0 THEN 0.0 ELSE SUM(impressions) / (SUM(s_impressions)) END, 4), NULL)), 5)) AS "impression_share_rounded"
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   campaign_id, SUM(impressions) AS impressions, SUM(s_impressions) AS s_impressions, show_flag, SUM(spend) AS spend
+         |                   advertiser_id, campaign_id, SUM(impressions) AS impressions, SUM(s_impressions) AS s_impressions, show_flag, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY campaign_id, show_flag
+         |            GROUP BY advertiser_id, campaign_id, show_flag
          |
          |           ) af0
          |                     LEFT OUTER JOIN
@@ -4354,15 +4343,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
          |             )
-         |           co1 ON (af0.campaign_id = co1.id)
+         |           co1 ON ( af0.advertiser_id = co1.advertiser_id AND af0.campaign_id = co1.id)
          |
-         |          GROUP BY co1.campaign_name, af0.show_flag
+ |          GROUP BY co1.campaign_name, af0.show_flag
          |)
          |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
-         |
        """
         .stripMargin
-    
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -4397,7 +4384,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                          }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -4454,7 +4441,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                          }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString, ResellerSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -4467,10 +4454,10 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |SELECT "Advertiser ID", impressions AS "Impressions", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC"
                       |FROM (SELECT af0.advertiser_id "Advertiser ID", SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend
                       |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-                      |                   advertiser_id, ad_group_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend, SUM(impressions) AS impressions
+                      |                   advertiser_id, campaign_id, ad_group_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend, SUM(impressions) AS impressions
                       |            FROM ad_fact1 FactAlias
                       |            WHERE (campaign_id IN (22222)) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-                      |            GROUP BY advertiser_id, ad_group_id
+                      |            GROUP BY advertiser_id, campaign_id, ad_group_id
                       |
                       |           ) af0
                       |                     INNER JOIN
@@ -4486,7 +4473,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |             )
                       |           ago2 ON ( af0.advertiser_id = ago2.advertiser_id AND af0.ad_group_id = ago2.id)
                       |
-                      |          GROUP BY af0.advertiser_id
+ |          GROUP BY af0.advertiser_id
                       |)
                       |""".stripMargin
 
@@ -4533,7 +4520,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
 
     val requestOption = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), PublisherSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(requestOption.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -4586,7 +4573,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           "rowsPerPage":10
                           }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry, revision = Option(1))
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -4700,7 +4687,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           "rowsPerPage":10
                           }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry, revision = Option(1))
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -4760,4 +4747,74 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
   }
+  test("successfully generate dim only oracle query with Correct RowNum and pagination") {
+    import DefaultQueryPipelineFactoryTest._
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Campaign Name"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"},
+                              {"field": "Campaign ID"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Campaign Status", "operator": "NOT IN", "values" : ["DELETED"]}
+                          ],
+                          "sortBy": [
+                              {"field": "Campaign Name", "order": "DESC"},
+                              {"field": "Campaign ID", "order": "DESC"}
+                          ],
+                          "includeRowCount" : true,
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":2,
+                          "rowsPerPage":40
+                          }"""
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry, revision = Option(1))
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[MultiEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[MultiEngineQuery].drivingQuery.isInstanceOf[OracleQuery])
+    val result = pipeline.withDruidCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Campaign ID", 10)
+        row.addValue("Impressions", 100)
+        row.addValue("Clicks", 1)
+        rl.addRow(row)
+    }.withOracleCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Campaign ID", 10)
+        row.addValue("Campaign Name", "test_campaign")
+        rl.addRow(row)
+    }.run()
+
+    assert(result.isSuccess, result)
+    val resultSql = pipeline.queryChain.drivingQuery.asString
+
+    val expected =
+      s"""
+         |SELECT  *
+         |      FROM (SELECT co0.campaign_name "Campaign Name", co0.id "Campaign ID", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
+         |            FROM
+         |                (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 213) AND (DECODE(status, 'ON', 'ON', 'OFF') NOT IN ('DELETED'))
+         |            ORDER BY 1 DESC NULLS LAST, 2 DESC  ) co0
+         |
+         |
+         |           )
+         |             WHERE ROW_NUMBER >= 3 AND ROW_NUMBER <= 42
+       """.stripMargin
+    resultSql should equal (expected)(after being whiteSpaceNormalised)
+  }
+
 }
