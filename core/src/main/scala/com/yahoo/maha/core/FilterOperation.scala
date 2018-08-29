@@ -31,6 +31,7 @@ case object IsNullFilterOperation extends FilterOperation { override def toStrin
 case object IsNotNullFilterOperation extends FilterOperation { override def toString = "IsNotNull" }
 case object OuterFilterOperation extends FilterOperation { override def toString = "Outer" }
 case object OrFilterOperation extends FilterOperation { override def toString = "Or" }
+case object GreaterThanFilterOperation extends FilterOperation { override def toString = ">" }
 
 object FilterOperation {
   val In : Set[FilterOperation] = Set(InFilterOperation)
@@ -53,6 +54,7 @@ object FilterOperation {
                                                                IsNullFilterOperation, IsNotNullFilterOperation)
   val InNotInEqualityLikeNullNotNull: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation, NotInFilterOperation,
                                                    LikeFilterOperation, IsNullFilterOperation, IsNotNullFilterOperation)
+  val InNotInBetweenEqualityNotEqualsGreaterLesser: Set[FilterOperation] = Set(InFilterOperation, NotInFilterOperation, BetweenFilterOperation, EqualityFilterOperation, NotEqualToFilterOperation, GreaterThanFilterOperation)
 }
 
 sealed trait Filter {
@@ -119,6 +121,16 @@ case class EqualityFilter(field: String, value: String
   val asValues: String = value
   override def canBeHighCardinalityFilter: Boolean = true
 }
+
+case class GreaterThanFilter(field: String, value: String
+                          , override val isForceFilter: Boolean = false
+                          , override val isOverridable: Boolean = false
+                         ) extends ForcedFilter {
+  override def operator = GreaterThanFilterOperation
+  val asValues: String = value
+  override def canBeHighCardinalityFilter: Boolean = true
+}
+
 sealed trait ValuesFilter extends ForcedFilter {
   def values: List[String]
   def renameField(newField: String): ValuesFilter
@@ -192,6 +204,8 @@ sealed trait InFilterRenderer[O] extends FilterRenderer[InFilter, O]
 sealed trait NotInFilterRenderer[O] extends FilterRenderer[NotInFilter, O]
 
 sealed trait EqualityFilterRenderer[O] extends FilterRenderer[EqualityFilter, O]
+
+sealed trait GreaterThanFilterRenderer[O] extends FilterRenderer[GreaterThanFilter, O]
 
 sealed trait LikeFilterRenderer[O] extends FilterRenderer[LikeFilter, O]
 
@@ -355,6 +369,42 @@ object SqlEqualityFilterRenderer extends EqualityFilterRenderer[SqlResult] {
         }
       case _ =>
         throw new IllegalArgumentException(s"Unsupported engine for EqualityFilterRenderer $engine")
+    }
+  }
+}
+
+object SqlGreaterThanFilterRenderer extends GreaterThanFilterRenderer[SqlResult] {
+  def render(name: String,
+             filter: GreaterThanFilter,
+             literalMapper: LiteralMapper,
+             column: Column,
+             engine: Engine,
+             grainOption : Option[Grain]) : SqlResult = {
+    val renderedValue = literalMapper.toLiteral(column, filter.value, grainOption)
+    engine match {
+      case OracleEngine =>
+        column.dataType match {
+          case StrType(_, _, _) if column.caseInSensitive =>
+            DefaultResult(s"""lower($name) > lower($renderedValue)""")
+          case _ =>
+            DefaultResult(s"""$name > $renderedValue""")
+        }
+      case HiveEngine =>
+        column.dataType match {
+          case StrType(_, _, _) if column.caseInSensitive =>
+            DefaultResult(s"""lower($name) > lower($renderedValue)""")
+          case _ =>
+            DefaultResult(s"""$name > $renderedValue""")
+        }
+      case PrestoEngine =>
+        column.dataType match {
+          case StrType(_, _, _) if column.caseInSensitive =>
+            DefaultResult(s"""lower($name) > lower($renderedValue)""")
+          case _ =>
+            DefaultResult(s"""$name > $renderedValue""")
+        }
+      case _ =>
+        throw new IllegalArgumentException(s"Unsupported engine for GreaterThanFilterRenderer $engine")
     }
   }
 }
@@ -857,6 +907,16 @@ object FilterSql {
           engine,
           grainOption
         )
+      case f@GreaterThanFilter(alias, value, _, _) =>
+        val finalAlias = preComputedAlias.getOrElse(alias)
+        SqlGreaterThanFilterRenderer.render(
+          finalAlias,
+          f,
+          literalMapper,
+          column,
+          engine,
+          grainOption
+        )
       case f@NotEqualToFilter(alias, value, _, _) =>
         val finalAlias = preComputedAlias.getOrElse(alias)
         SqlNotEqualToFilterRenderer.render(
@@ -972,6 +1032,12 @@ object Filter extends Logging {
           :: ("operator" -> toJSON(filter.operator.toString))
           :: ("value" -> toJSON(value))
           :: Nil)
+      case GreaterThanFilter(field, value, _, _) =>
+        makeObj(
+          ("field" -> toJSON(field))
+            :: ("operator" -> toJSON(filter.operator.toString))
+            :: ("value" -> toJSON(value))
+            :: Nil)
       case LikeFilter(field, value, _, _) =>
         makeObj(
           ("field" -> toJSON(field))
@@ -1084,6 +1150,11 @@ object Filter extends Logging {
               }
             case "=" | "equals" | "equal" =>
               val filter = EqualityFilter.applyJSON(field[String]("field"), stringField("value"), booleanFalse, booleanFalse)(json)
+              filter.flatMap {
+                f => nonEmptyString(f.value, f.field, "value").map(_ => f)
+              }
+            case ">" =>
+              val filter = GreaterThanFilter.applyJSON(field[String]("field"), stringField("value"), booleanFalse, booleanFalse)(json)
               filter.flatMap {
                 f => nonEmptyString(f.value, f.field, "value").map(_ => f)
               }

@@ -249,6 +249,31 @@ class RequestModelTest extends FunSuite with Matchers {
       )
   }
 
+  def pubfact5(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    getFactBuilder
+      .toPublicFact("publicFact5",
+        Set(
+          PubCol("stats_date", "Day", InBetweenEquality),
+          PubCol("ad_group_id", "Ad Group ID", InEquality),
+          PubCol("ad_id", "Ad ID", InEquality),
+          PubCol("campaign_id", "Campaign ID", InEquality),
+          PubCol("advertiser_id", "Advertiser ID", InNotInEqualityNotEquals),
+          PubCol("device_id", "Device ID", InNotInEqualityNotEquals),
+          PubCol("product_ad_id", "Product Ad ID", InEquality),
+          PubCol("stats_source", "Source", Equality),
+          PubCol("price_type", "Pricing Type", In),
+          PubCol("landing_page_url", "Destination URL", Set.empty),
+          PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality)
+        ),
+        Set(
+          PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
+          PublicFactCol("clicks", "Clicks", In)
+        ),
+        forcedFilters,
+        getMaxDaysWindow, getMaxDaysLookBack
+      )
+  }
+
   def keyword_dim : PublicDimension = {
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
       Dimension.newDimension("keyword_dim", HiveEngine, LevelFive, Set(AdvertiserSchema),
@@ -404,6 +429,7 @@ class RequestModelTest extends FunSuite with Matchers {
   
   def getDefaultRegistry(forcedFilters: Set[ForcedFilter] = Set.empty): Registry = {
     val registryBuilder = new RegistryBuilder
+    registryBuilder.register(pubfact5(forcedFilters))
     registryBuilder.register(pubfact4(forcedFilters))
     registryBuilder.register(pubfact3(forcedFilters))
     registryBuilder.register(pubfact2(forcedFilters))
