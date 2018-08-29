@@ -52,6 +52,14 @@ case class ReportingRequest(cube: String
   def isDebugEnabled : Boolean = {
     additionalParameters.contains(Parameter.Debug) && additionalParameters(Parameter.Debug).asInstanceOf[DebugValue].value
   }
+  def isTestEnabled : Boolean = {
+    additionalParameters.contains(Parameter.TestName)
+  }
+  def getTestName: Option[String] = {
+    if(isTestEnabled) {
+      Option(additionalParameters(Parameter.TestName).asInstanceOf[TestNameValue].value)
+    } else None
+  }
 }
 
 trait BaseRequest {
@@ -206,6 +214,14 @@ trait BaseRequest {
 
   def withCSVReportFormat(reportingRequest: ReportingRequest) : ReportingRequest = {
     reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.ReportFormat -> ReportFormatValue(CSVFormat)))
+  }
+
+  def withLabels(reportingRequest: ReportingRequest, labels: List[String]) : ReportingRequest = {
+    reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.Labels -> LabelsValue(labels)))
+  }
+
+  def withTestName(reportingRequest: ReportingRequest, testName: String) : ReportingRequest = {
+    reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.TestName -> TestNameValue(testName)))
   }
 
   def deserializeSyncWithFactBias(ba: Array[Byte]): Validation[NonEmptyList[JsonScalaz.Error], ReportingRequest] = {
