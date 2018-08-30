@@ -187,7 +187,7 @@
         "poolName": "maha-test-pool",
         "defaultTimeoutMillis": 10000,
         "threadPoolSize": 3,
-        "queueSize": 3
+        "queueSize": 10
       }
     }
   },
