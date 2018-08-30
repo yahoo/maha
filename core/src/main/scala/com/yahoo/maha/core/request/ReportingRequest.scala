@@ -55,10 +55,18 @@ case class ReportingRequest(cube: String
   def isTestEnabled : Boolean = {
     additionalParameters.contains(Parameter.TestName)
   }
+  def hasLabels: Boolean = {
+    additionalParameters.contains(Parameter.Labels)
+  }
   def getTestName: Option[String] = {
     if(isTestEnabled) {
       Option(additionalParameters(Parameter.TestName).asInstanceOf[TestNameValue].value)
     } else None
+  }
+  def getLabels: List[String] = {
+    if(hasLabels) {
+      additionalParameters(Parameter.Labels).asInstanceOf[LabelsValue].value
+    } else List.empty
   }
 }
 

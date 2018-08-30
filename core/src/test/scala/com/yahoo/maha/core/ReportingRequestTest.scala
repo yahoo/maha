@@ -1460,6 +1460,8 @@ class ReportingRequestTest extends FlatSpec {
       assert(request.toOption.get.additionalParameters(Parameter.ReportFormat) === ReportFormatValue(JsonFormat))
       assert(request.toOption.get.additionalParameters(Parameter.TestName) === TestNameValue("testname1"))
       assert(request.toOption.get.additionalParameters(Parameter.Labels) === LabelsValue(List("lb1","lb2","lb3")))
+      assert(request.toOption.get.getTestName === Option("testname1"))
+      assert(request.toOption.get.getLabels === List("lb1","lb2","lb3"))
     }
     
     //check csv format

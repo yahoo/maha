@@ -174,6 +174,9 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
         protoBuilder.setTestName(testName.get)
       }
     }
+    if(model.reportingRequest.hasLabels) {
+      model.reportingRequest.getLabels.foreach(protoBuilder.addLabels)
+    }
 
     if(factBestCandidateOption.isDefined) {
       val factBestCandidate = factBestCandidateOption.get
