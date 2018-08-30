@@ -3,7 +3,7 @@
 
 package com.yahoo.maha.worker.request
 
-import java.io.File
+import java.io.{File, IOException}
 
 import com.yahoo.maha.core.Schema
 import com.yahoo.maha.core.request.{BaseRequest, Parameter, ReportingRequest}
@@ -74,6 +74,14 @@ case class DefaultMahaWorkerProtoParser(requestTypeToSerDeMap: Map[ReportType, B
                                         schemaProvider : (String => Option[Schema])) extends MahaWorkerProtoParser with Logging {
   validate()
 
+  /*
+     Method to parse MahaCustomReportRequest to MahaWorkerRequest
+     Parse Proto can throw an exceptions in deserialization of reporting request and report file generation
+     Need to handle in the invocation point
+   */
+  @throws(classOf[IOException])
+  @throws(classOf[IllegalArgumentException])
+  @throws(classOf[UnsupportedOperationException])
   override def parseProto(mahaCustomReportRequest: MahaCustomReportRequest): MahaWorkerRequest = {
 
     val schemaOption = schemaProvider(mahaCustomReportRequest.getSchema)

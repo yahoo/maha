@@ -66,10 +66,34 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.typesafe.slick</groupId>
-            <artifactId>slick_${scala.major.version}</artifactId>
-            <version>${slick.version}</version>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.yahoo.maha</groupId>
+            <artifactId>maha-service</artifactId>
+            <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.druid</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.http4s</groupId>
+            <artifactId>http4s-dsl_${scala.major.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.http4s</groupId>
+            <artifactId>http4s-blaze-server_${scala.major.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.http4s</groupId>
+            <artifactId>http4s-blaze-client_${scala.major.version}</artifactId>
         </dependency>
     </dependencies>
 
