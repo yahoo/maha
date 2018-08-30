@@ -13,7 +13,7 @@ import grizzled.slf4j.Logging
 import scala.collection.mutable
 
 /*
-    Created by pranavbhole on 8/13/18
+    Created by hiral on 8/13/18
 */
 sealed trait ExecutionType
 case object AsyncExecution extends ExecutionType
@@ -160,7 +160,7 @@ class JobsState extends CommonState with Logging {
   }
 }
 
-case class WorkerStateActorConfig(name: String = "worker-state")
+case class WorkerStateActorConfig(name: String = "maha-worker-state")
 class WorkerStateActor(config: WorkerStateActorConfig) extends Actor with Logging  {
 
   val syncEngineStats :Map[Engine, EngineState] =

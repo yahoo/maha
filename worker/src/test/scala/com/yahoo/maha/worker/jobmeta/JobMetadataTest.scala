@@ -11,7 +11,7 @@ import scala.concurrent.duration._
 */
 class JobMetadataTest extends BaseWorkerTest {
 
-  val jobMetadataDao = new TestJobMetadataDao(jdbcConnection.get)
+  val jobMetadataDao:JobMetadata = new TestJobMetadataDao(jdbcConnection.get)
 
   val job = AsyncJob(jobId = 12345
     , jobType = AsyncOracle.name

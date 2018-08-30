@@ -46,7 +46,7 @@ case class TestJobMetadataDao(jdbcConnection: JdbcConnection) extends JobMetadat
     }
   }
 
-  override def deleteJob(job: Job): Future[Boolean] = Future.never
+  override def deleteJob(job: Job): Future[Boolean] = Future(true)
 
   override def findById(jobId: Long): Future[Option[Job]] = {
     val result:Future[Option[Job]] = Future {
@@ -84,25 +84,4 @@ case class TestJobMetadataDao(jdbcConnection: JdbcConnection) extends JobMetadat
   override def updateJobEnded(jobId: Long, endStatus: JobStatus, message: String): Future[Boolean] = Future(true)
 
   override def countJobsByTypeAndStatus(jobType: JobType, jobStatus: JobStatus, jobCreatedTs: DateTime): Future[Int] = Future(1)
-
-  def getMap(queryResult: ResultSet) : List[Map[String, AnyRef]] = {
-    val rowCount =
-      if (queryResult.last()) {
-        queryResult.getRow
-      }
-      else 0
-
-    queryResult.beforeFirst()
-    val md = queryResult.getMetaData
-    val colNames = (1 to md.getColumnCount) map md.getColumnName
-
-    val rows:List[Map[String, AnyRef]] =
-      for {i <- List.range(0, rowCount)} yield {
-        queryResult.next()
-        val results = colNames map(n => queryResult.getObject(n))
-        Map(colNames zip results:_*)
-      }
-    rows
-  }
-
 }

@@ -45,7 +45,7 @@ case class WorkerStateReporter(akkaConf: String) extends Logging {
       WorkerStateReporter.defaultConfig
     }
   }
-  val system = ActorSystem("reporting-workers", config)
+  val system = ActorSystem("maha-workers", config)
   lazy val workerStateActorPath: ActorPath = {
     val actorConfig = WorkerStateActorConfig()
     val props: Props = Props(classOf[WorkerStateActor], actorConfig).withMailbox("akka.actor.nonblocking_bounded_mailbox")
