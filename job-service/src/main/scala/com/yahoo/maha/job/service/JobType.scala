@@ -1,7 +1,7 @@
 // Copyright 2018, Oath Inc.
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 
-package com.yahoo.maha.worker.jobmeta
+package com.yahoo.maha.job.service
 
 import com.yahoo.maha.core._
 

@@ -1,6 +1,4 @@
-package com.yahoo.maha.worker.jobmeta
-
-import com.yahoo.maha.worker.BaseWorkerTest
+package com.yahoo.maha.job.service
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -9,7 +7,7 @@ import scala.concurrent.duration._
 /*
     Created by pranavbhole on 8/29/18
 */
-class JobMetadataTest extends BaseWorkerTest {
+class AsyncJobMetadataTest extends BaseJobServiceTest {
 
   val jobMetadataDao:JobMetadata = new TestJobMetadataDao(jdbcConnection.get)
 

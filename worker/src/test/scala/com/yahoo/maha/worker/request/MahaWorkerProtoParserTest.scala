@@ -5,7 +5,7 @@ import java.util.TimeZone
 import com.google.protobuf.ByteString
 import com.yahoo.maha.service.BaseMahaServiceTest
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
-import com.yahoo.maha.worker.BaseWorkerTest
+import com.yahoo.maha.worker.BaseJobServiceTest
 import com.yahoo.maha.worker.proto.MahaWorkerReportingProto._
 
 /*

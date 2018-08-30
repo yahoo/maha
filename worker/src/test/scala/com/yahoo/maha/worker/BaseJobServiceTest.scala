@@ -12,7 +12,7 @@ import org.scalatest.{FunSuite, Matchers}
 /*
     Created by pranavbhole on 8/29/18
 */
-trait BaseWorkerTest extends BaseMahaServiceTest with Matchers {
+trait BaseJobServiceTest extends BaseMahaServiceTest with Matchers {
   val mahaJobWorkerTable =
     s"""
        | create table maha_worker_job(

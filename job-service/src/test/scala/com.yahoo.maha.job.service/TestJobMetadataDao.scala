@@ -1,17 +1,12 @@
-package com.yahoo.maha.worker.jobmeta
+package com.yahoo.maha.job.service
 
-import java.sql.ResultSet
-
-import com.yahoo.maha.jdbc
 import com.yahoo.maha.jdbc.JdbcConnection
-import com.yahoo.maha.worker.jobmeta.JobStatus.JobStatus
+import com.yahoo.maha.job.service.JobStatus.JobStatus
 import grizzled.slf4j.Logging
 import org.joda.time.DateTime
-import scalaz.Failure
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.Success
+import scala.concurrent.Future
 
 
 /*
