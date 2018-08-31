@@ -3,6 +3,7 @@
 
 package com.yahoo.maha.worker
 
+import com.yahoo.maha.core.Engine
 import com.yahoo.maha.service.{DefaultMahaService, MahaService, MahaServiceConfig}
 import com.yahoo.maha.worker.AckStatus.AckStatus
 import com.yahoo.maha.worker.proto.MahaWorkerReportingProto.{MahaCustomReportRequest, OutputFormat, QueryEngine, ReportType}
@@ -27,7 +28,7 @@ object AckStatus extends Enumeration {
 
 case class WorkerConfig(mahaServiceConfig: MahaServiceConfig,
                         mahaWorkerProtoParser: MahaWorkerProtoParser,
-                        supportedEngines: Set[QueryEngine]
+                        supportedEngines: Set[Engine]
                      // deliveryConfig:
                      // jobMetaConfig:
                      )
@@ -40,7 +41,7 @@ trait BaseMahaWorker {
 
 abstract class Worker(workerConfig: WorkerConfig
                       , workerStateReporter: WorkerStateReporter
-                     ) extends Logging {
+                     ) extends BaseMahaWorker with Logging {
 
   val JOB_ID = "JobID"
 
@@ -54,24 +55,20 @@ abstract class Worker(workerConfig: WorkerConfig
 
     //Input Proto  Request Validation
     //Mandatory fields
-    if(!mahaService.isValidRegistry(inputProtoRequest.getRegistryName)) {
-      throw new IllegalArgumentException(s"Unknown registry, failed to find the given registry ${inputProtoRequest.getRegistryName} in mahaServiceConfig")
-    }
-    if(!inputProtoRequest.hasSchema) {
-      throw new IllegalArgumentException(s"Failed to find the Schema in MahaCustomReportRequest proto ${inputProtoRequest}")
-    }
-    if(!inputProtoRequest.hasJobId) {
-      throw new IllegalArgumentException(s"Failed to find the jobID in MahaCustomReportRequest proto ${inputProtoRequest}")
-    }
-    if(!inputProtoRequest.hasRawRequest) {
-      throw new IllegalArgumentException(s"Failed to find requestJson/rawRequest in MahaCustomReportRequest proto ${inputProtoRequest}")
-    }
-    if(!inputProtoRequest.hasDeliveryMethod) {
-      throw new IllegalArgumentException(s"Failed to find DeliveryMethod in MahaCustomReportRequest proto ${inputProtoRequest}")
-    }
-    if(!inputProtoRequest.hasOutputFormat) { // Is it good to default this to CSV ?
-      throw new IllegalArgumentException(s"Failed to find OutputFormat in MahaCustomReportRequest proto ${inputProtoRequest}")
-    }
+    require(mahaService.isValidRegistry(inputProtoRequest.getRegistryName), s"Unknown registry, failed to find the given registry ${inputProtoRequest.getRegistryName} in mahaServiceConfig")
+
+    require(inputProtoRequest.hasSchema, s"Failed to find the Schema in MahaCustomReportRequest proto ${inputProtoRequest}")
+
+    require(inputProtoRequest.hasJobId, s"Failed to find the jobID in MahaCustomReportRequest proto ${inputProtoRequest}")
+
+    require(inputProtoRequest.hasRawRequest, s"Failed to find requestJson/rawRequest in MahaCustomReportRequest proto ${inputProtoRequest}")
+
+    require(inputProtoRequest.hasDeliveryMethod, s"Failed to find DeliveryMethod in MahaCustomReportRequest proto ${inputProtoRequest}")
+
+    // Is it good to default this to CSV ?
+    require(inputProtoRequest.hasOutputFormat, s"Failed to find OutputFormat in MahaCustomReportRequest proto ${inputProtoRequest}")
+
+    require(inputProtoRequest.hasQueryEngine, s"Failed to find QueryEngine in MahaCustomReportRequest proto ${inputProtoRequest}")
 
     //Optional good to have fields
     if(!inputProtoRequest.hasQueueType) {
@@ -84,13 +81,16 @@ abstract class Worker(workerConfig: WorkerConfig
       warn(s"RequestSubmittedTime is not populated in the MahaCustomReportRequest ${inputProtoRequest}")
     }
 
-    val engine = inputProtoRequest.getQueryEngine
     val schemaOption = mahaWorkerProtoParser.schemaProvider(inputProtoRequest.getSchema)
     require(schemaOption.isDefined, s"CustomReportRequest does not contain schema: $inputProtoRequest")
 
-    if(!workerConfig.supportedEngines(engine)) {
-      warn(s"Unsupported worker engine=$engine jobId=${inputProtoRequest.getJobId}")
-    }
+    val engineOption = Engine.from(inputProtoRequest.getQueryEngine.toString)
+
+    require(engineOption.isDefined, s"Failed to decode the engine value = ${inputProtoRequest.getQueryEngine.toString} from proto to core Engine")
+
+    val engine = engineOption.get
+
+    require(workerConfig.supportedEngines.contains(engine), s"Unsupported worker engine=$engine jobId=${inputProtoRequest.getJobId}")
 
     mahaWorkerProtoParser.parseProto(inputProtoRequest)
   }

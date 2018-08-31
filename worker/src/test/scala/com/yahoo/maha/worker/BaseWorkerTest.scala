@@ -1,18 +1,13 @@
 package com.yahoo.maha.worker
 
-import java.sql.ResultSet
-import java.util.UUID
-
-import com.yahoo.maha.jdbc.JdbcConnection
 import com.yahoo.maha.service.BaseMahaServiceTest
-import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.joda.time.DateTime
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.Matchers
 
 /*
     Created by pranavbhole on 8/29/18
 */
-trait BaseJobServiceTest extends BaseMahaServiceTest with Matchers {
+trait BaseWorkerTest extends BaseMahaServiceTest with Matchers {
   val mahaJobWorkerTable =
     s"""
        | create table maha_worker_job(

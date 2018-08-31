@@ -1,9 +1,10 @@
 package com.yahoo.maha.worker.state
 
 import com.yahoo.maha.core.OracleEngine
-import com.yahoo.maha.worker.state.actor.{SyncExecution, WorkerStateActor}
+import com.yahoo.maha.worker.state.actor.{SyncExecution}
 import org.scalatest.{FunSuite, Matchers}
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 /*
@@ -25,6 +26,9 @@ class WorkerStateReporterTest extends  FunSuite with Matchers {
       actorTry =>
         assert(actorTry.isSuccess)
     }
+    import scala.concurrent.duration._
+    Await.result(workerStateActorFuture, 500 millis)
+
     assert(workerStateActorFuture.isCompleted)
   }
 

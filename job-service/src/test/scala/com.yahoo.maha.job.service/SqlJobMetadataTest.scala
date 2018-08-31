@@ -1,10 +1,7 @@
 package com.yahoo.maha.job.service
 
 import com.yahoo.maha.core.OracleEngine
-import com.yahoo.maha.jdbc.JdbcConnection
-import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.joda.time.DateTime
-
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
