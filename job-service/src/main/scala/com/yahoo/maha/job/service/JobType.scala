@@ -22,26 +22,36 @@ object JobType {
       case _=> throw new IllegalArgumentException(s"Failed to find the JobType for given engine $engine")
     }
   }
+  def fromString(name:String) : JobType = {
+    name match  {
+      case AsyncOracle.name=> AsyncOracle
+      case AsyncDruid.name=> AsyncDruid
+      case AsyncHive.name=> AsyncHive
+      case AsyncPresto.name=> AsyncPresto
+      case a=> throw new IllegalArgumentException(s"Unknown jobType $a")
+    }
+
+  }
 }
 
 case object AsyncOracle extends JobType {
-  override def engine: Engine = OracleEngine
-  override def name: String = "maha-async-oracle"
+  val engine: Engine = OracleEngine
+  val name: String = "maha-async-oracle"
 }
 case object AsyncDruid extends JobType {
-  override def engine: Engine = DruidEngine
-  override def name: String = "maha-async-druid"
+  val engine: Engine = DruidEngine
+  val name: String = "maha-async-druid"
 }
 case object AsyncPresto extends JobType {
-  override def engine: Engine = PrestoEngine
-  override def name: String = "maha-async-presto"
+  val engine: Engine = PrestoEngine
+  val name: String = "maha-async-presto"
 }
 
 /*
    Please note that async-hive is currently experimental in maha-workers
  */
 case object AsyncHive extends JobType {
-  override def engine: Engine = HiveEngine
-  override def name: String = "maha-async-hive"
+  val engine: Engine = HiveEngine
+  val name: String = "maha-async-hive"
 }
 

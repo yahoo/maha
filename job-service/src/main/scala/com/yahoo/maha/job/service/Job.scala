@@ -11,7 +11,7 @@ import org.joda.time.DateTime
 */
 trait Job {
   def jobId: Long
-  def jobType: String
+  def jobType: JobType
   def jobStatus: JobStatus
   def jobResponse: String
   def numAcquired: Int
@@ -26,7 +26,7 @@ trait Job {
 }
 
 case class AsyncJob(jobId: Long
-                , jobType: String
+                , jobType: JobType
                 , jobStatus: JobStatus
                 , jobResponse: String
                 , numAcquired: Int

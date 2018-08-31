@@ -1,6 +1,9 @@
-package com.yahoo.maha.job.service
+package com.yahoo.maha.worker.jobmeta
 
-import scala.concurrent.{Await, Future}
+import com.yahoo.maha.job.service.{AsyncJob, AsyncOracle, JobMetadata, JobStatus}
+import com.yahoo.maha.worker.BaseJobServiceTest
+
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
@@ -11,8 +14,8 @@ class AsyncJobMetadataTest extends BaseJobServiceTest {
 
   val jobMetadataDao:JobMetadata = new TestJobMetadataDao(jdbcConnection.get)
 
-  val jobOracle = AsyncJob(jobId = 12345
-    , jobType = AsyncOracle
+  val job = AsyncJob(jobId = 12345
+    , jobType = AsyncOracle.name
     , jobStatus = JobStatus.SUBMITTED
     , jobResponse = "{}"
     , numAcquired = 0
@@ -23,13 +26,10 @@ class AsyncJobMetadataTest extends BaseJobServiceTest {
     , jobRequest = "{}"
     , hostname = "localhost"
     , cubeName = "student_performance")
-  val hiveJob= jobOracle.copy(jobType = AsyncHive)
-  val druidJob= jobOracle.copy(jobType = AsyncDruid)
-  val prestoJob= jobOracle.copy(jobType = AsyncPresto)
 
   test("Test Job Creation") {
 
-    val insertFuture = jobMetadataDao.insertJob(jobOracle)
+    val insertFuture = jobMetadataDao.insertJob(job)
 
     Await.result(insertFuture, 500 millis)
     assert(insertFuture.isCompleted)
@@ -39,7 +39,7 @@ class AsyncJobMetadataTest extends BaseJobServiceTest {
       rs =>
         while (rs.next()) {
 
-          println("JobID= " + rs.getString("jobId"))
+          println("JobID= "+rs.getString("jobId"))
           count += 1
         }
     }
@@ -51,11 +51,10 @@ class AsyncJobMetadataTest extends BaseJobServiceTest {
       result =>
         assert(result.isSuccess, s"Future failure $result")
         assert(result.get.isDefined)
-        info("Found the job =" + result.get.get.jobId)
+        info("Found the job ="+result.get.get.jobId)
     }
-    Await.result(jobFuture, 500 millis)
+    Await.result(jobFuture, 1000 millis)
     assert(jobFuture.isCompleted)
   }
-
 
 }

@@ -1,12 +1,18 @@
-package com.yahoo.maha.job.service
+package com.yahoo.maha.worker.jobmeta
 
+import java.sql.ResultSet
+
+import com.yahoo.maha.jdbc
 import com.yahoo.maha.jdbc.JdbcConnection
 import com.yahoo.maha.job.service.JobStatus.JobStatus
+import com.yahoo.maha.job.service._
 import grizzled.slf4j.Logging
 import org.joda.time.DateTime
+import scalaz.Failure
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.Success
 
 
 /*
@@ -27,7 +33,7 @@ case class TestJobMetadataDao(jdbcConnection: JdbcConnection) extends JobMetadat
 
   override def insertJob(job: Job): Future[Boolean] = {
     Future {
-      val row = scala.collection.immutable.Seq(job.jobId, job.jobType.name, job.jobStatus.toString,
+      val row = scala.collection.immutable.Seq(job.jobId, job.jobType, job.jobStatus.toString,
         job.jobResponse, job.numAcquired, job.createdTimestamp,
         job.acquiredTimestamp, job.endedTimestamp,job.jobParentId,
         job.jobRequest, job.hostname,job.cubeName,
@@ -49,7 +55,7 @@ case class TestJobMetadataDao(jdbcConnection: JdbcConnection) extends JobMetadat
         rs =>
           if(rs.next()) {
             val job = AsyncJob(rs.getLong("jobId"),
-              JobType.fromString(rs.getString("jobType")),
+              rs.getString("jobType"),
               JobStatus.fromString(rs.getString("jobStatus")),
               rs.getString("jobResponse"),
               rs.getInt("numAcquired"),
