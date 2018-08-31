@@ -59,7 +59,7 @@ case class SqlJobMetadata(jdbcConnection: JdbcConnection, tableName :String) ext
 
   override def findById(jobId: Long): Future[Option[Job]] = {
     val result:Future[Option[Job]] = Future {
-      val resultSetTry = jdbcConnection.queryForObject(s"SELECT * from maha_worker_job where jobId=$jobId") {
+      val resultSetTry = jdbcConnection.queryForObject(s"SELECT * from $tableName where jobId=$jobId") {
         rs =>
           if(rs.next()) {
             val job = AsyncJob(rs.getLong("jobId"),
@@ -94,7 +94,7 @@ case class SqlJobMetadata(jdbcConnection: JdbcConnection, tableName :String) ext
     info("Result: "+result)
     if(result.isFailure) {
       error(s"Failed to update the job status $result")
-      false
+      throw result.failed.get
     } else true
   }
 
@@ -104,7 +104,7 @@ case class SqlJobMetadata(jdbcConnection: JdbcConnection, tableName :String) ext
     info("Result: "+result)
     if(result.isFailure) {
       error(s"Failed to update the job end status $result")
-      false
+      throw result.failed.get
     } else true
   }
 

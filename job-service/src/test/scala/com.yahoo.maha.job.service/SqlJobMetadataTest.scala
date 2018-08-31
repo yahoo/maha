@@ -1,8 +1,11 @@
 package com.yahoo.maha.job.service
 
+import com.yahoo.maha.core.OracleEngine
+import com.yahoo.maha.jdbc.JdbcConnection
+import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.joda.time.DateTime
 
-import scala.concurrent.{Await}
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
@@ -97,7 +100,35 @@ class SqlJobMetadataTest extends BaseJobServiceTest {
   }
 
   test("test SQL Job metadata failures") {
-    jobMetadataDao
+
+    val testDaoWithNoTable = new SqlJobMetadata(jdbcConnection.get, "test")
+
+  intercept[org.h2.jdbc.JdbcSQLException] {
+    val insertFuture = testDaoWithNoTable.insertJob(jobOracle.copy(cubeName = s""" " """))
+    Await.result(insertFuture, 500 millis)
+    assert(insertFuture.isCompleted)
+  }
+    intercept[org.h2.jdbc.JdbcSQLException] {
+      val insertFuture = testDaoWithNoTable.findById(123456)
+      Await.result(insertFuture, 500 millis)
+      assert(insertFuture.isCompleted)
+    }
+
+    intercept[org.h2.jdbc.JdbcSQLException] {
+      val insertFuture = testDaoWithNoTable.updateJobStatus(123456, JobStatus.FAILED)
+      Await.result(insertFuture, 500 millis)
+      assert(insertFuture.isCompleted)
+    }
+    intercept[org.h2.jdbc.JdbcSQLException] {
+      val insertFuture = testDaoWithNoTable.updateJobEnded(123456, JobStatus.FAILED, "error")
+      Await.result(insertFuture, 500 millis)
+      assert(insertFuture.isCompleted)
+    }
+    intercept[org.h2.jdbc.JdbcSQLException] {
+      val insertFuture = testDaoWithNoTable.countJobsByTypeAndStatus(JobType.getJobType(OracleEngine).get, JobStatus.FAILED, now)
+      Await.result(insertFuture, 500 millis)
+      assert(insertFuture.isCompleted)
+    }
 
   }
 
