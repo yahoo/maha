@@ -4,7 +4,6 @@ import java.util.UUID
 
 import com.google.common.io.Closer
 import com.yahoo.maha.core.DailyGrain
-import com.yahoo.maha.core.ddl.OracleDDLGenerator
 import com.yahoo.maha.jdbc.JdbcConnection
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.joda.time.{DateTime, DateTimeZone}

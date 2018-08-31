@@ -8,17 +8,17 @@ import com.yahoo.maha.core._
 /*
     Created by pranavbhole on 8/14/18
 */
-trait JobType {
+sealed trait JobType {
   def engine : Engine
   def name: String
 }
 object JobType {
-  def getJobType(engine: Engine): JobType = {
+  def getJobType(engine: Engine): Option[JobType] = {
     engine match  {
-      case OracleEngine => AsyncOracle
-      case DruidEngine => AsyncDruid
-      case HiveEngine=> AsyncHive
-      case PrestoEngine=> AsyncPresto
+      case OracleEngine => Some(AsyncOracle)
+      case DruidEngine => Some(AsyncDruid)
+      case HiveEngine=> Some(AsyncHive)
+      case PrestoEngine=> Some(AsyncPresto)
       case _=> throw new IllegalArgumentException(s"Failed to find the JobType for given engine $engine")
     }
   }

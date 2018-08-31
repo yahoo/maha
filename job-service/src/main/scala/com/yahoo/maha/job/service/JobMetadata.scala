@@ -15,7 +15,7 @@ import scala.concurrent.Future
 */
 trait JobMetadata {
   def insertJob(job:Job): Future[Boolean] //not used by maha-worker, it assumes that job is already created by producer
-  def deleteJob(job: Job): Future[Boolean]
+  def deleteJob(jobId:Long): Future[Boolean]
   def findById(jobId:Long): Future[Option[Job]]
   def updateJobStatus(jobId:Long, jobStatus: JobStatus): Future[Boolean]
   def updateJobAcquired(jobId : Long): Future[Boolean] = {
