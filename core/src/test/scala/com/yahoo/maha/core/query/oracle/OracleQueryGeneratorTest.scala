@@ -1886,7 +1886,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = """SELECT *
-                     |      FROM (SELECT co1.id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", Count(*) OVER() TOTALROWS
+                     |      FROM (SELECT co1.id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
                      |            FROM
                      |               ( (SELECT  advertiser_id, campaign_id, id
                      |            FROM ad_group_oracle
@@ -1906,7 +1906,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                      |              ON( co1.advertiser_id = ao0.id )
                      |               )
                      |
-                     |           ) WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
+                     |           ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -1945,7 +1945,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       """
         |SELECT *
-        |      FROM (SELECT DISTINCT ao0."Advertiser Status" "Advertiser Status"
+        |      FROM (SELECT DISTINCT ao0."Advertiser Status" "Advertiser Status", ROWNUM as ROW_NUMBER
         |            FROM
         |                (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
         |            FROM advertiser_oracle
@@ -1954,7 +1954,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
         |
         |
         |           )
-        |             WHERE ROWNUM >= 1 AND ROWNUM <= 100
+        |             WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
       """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -2008,7 +2008,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = """
                      |SELECT  *
-                     |      FROM (SELECT ago2.campaign_id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", Count(*) OVER() TOTALROWS
+                     |      FROM (SELECT ago2.campaign_id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
                      |            FROM
                      |               ( (SELECT  campaign_id, advertiser_id, id
                      |            FROM ad_group_oracle
@@ -2029,7 +2029,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                      |               )
                      |
                      |           )
-                     |             WHERE ROWNUM >= 1 AND ROWNUM <= 100
+                     |             WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
                      |""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -3058,7 +3058,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = """
                      |SELECT  *
-                     |      FROM (SELECT ao0.id "Advertiser ID", co1.id "Campaign ID", co1.campaign_name "Campaign Name", ago2.id "Ad Group ID", ago2."Ad Group Status" "Ad Group Status"
+                     |      FROM (SELECT ao0.id "Advertiser ID", co1.id "Campaign ID", co1.campaign_name "Campaign Name", ago2.id "Ad Group ID", ago2."Ad Group Status" "Ad Group Status", ROWNUM as ROW_NUMBER
                      |            FROM
                      |               ( (SELECT  campaign_id, advertiser_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
                      |            FROM ad_group_oracle
@@ -3079,7 +3079,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                      |               )
                      |
                      |           )
-                     |            WHERE ( "Ad Group ID"   IS NULL) AND ROWNUM >= 1 AND ROWNUM <= 100
+                     |            WHERE ( "Ad Group ID"   IS NULL) AND ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
                      |           """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -3273,7 +3273,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = s"""
                       |SELECT  *
-                      |      FROM (SELECT co0.id "Campaign ID", co0.campaign_name "Campaign Name", ago1.id "Ad Group ID"
+                      |      FROM (SELECT co0.id "Campaign ID", co0.campaign_name "Campaign Name", ago1.id "Ad Group ID", ROWNUM as ROW_NUMBER
                       |            FROM
                       |               ( (SELECT  campaign_id, id, advertiser_id
                       |            FROM ad_group_oracle
@@ -3288,7 +3288,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |               )
                       |
                       |           )
-                      |            WHERE ( "Ad Group ID"   IS NULL) AND ROWNUM >= 1 AND ROWNUM <= 200
+                      |            WHERE ( "Ad Group ID"   IS NULL) AND ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
                       |""".stripMargin
 
 
@@ -4747,4 +4747,74 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
   }
+  test("successfully generate dim only oracle query with Correct RowNum and pagination") {
+    import DefaultQueryPipelineFactoryTest._
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Campaign Name"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"},
+                              {"field": "Campaign ID"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Campaign Status", "operator": "NOT IN", "values" : ["DELETED"]}
+                          ],
+                          "sortBy": [
+                              {"field": "Campaign Name", "order": "DESC"},
+                              {"field": "Campaign ID", "order": "DESC"}
+                          ],
+                          "includeRowCount" : true,
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":2,
+                          "rowsPerPage":40
+                          }"""
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry, revision = Option(1))
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[MultiEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[MultiEngineQuery].drivingQuery.isInstanceOf[OracleQuery])
+    val result = pipeline.withDruidCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Campaign ID", 10)
+        row.addValue("Impressions", 100)
+        row.addValue("Clicks", 1)
+        rl.addRow(row)
+    }.withOracleCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Campaign ID", 10)
+        row.addValue("Campaign Name", "test_campaign")
+        rl.addRow(row)
+    }.run()
+
+    assert(result.isSuccess, result)
+    val resultSql = pipeline.queryChain.drivingQuery.asString
+
+    val expected =
+      s"""
+         |SELECT  *
+         |      FROM (SELECT co0.campaign_name "Campaign Name", co0.id "Campaign ID", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
+         |            FROM
+         |                (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 213) AND (DECODE(status, 'ON', 'ON', 'OFF') NOT IN ('DELETED'))
+         |            ORDER BY 1 DESC NULLS LAST, 2 DESC  ) co0
+         |
+         |
+         |           )
+         |             WHERE ROW_NUMBER >= 3 AND ROW_NUMBER <= 42
+       """.stripMargin
+    resultSql should equal (expected)(after being whiteSpaceNormalised)
+  }
+
 }

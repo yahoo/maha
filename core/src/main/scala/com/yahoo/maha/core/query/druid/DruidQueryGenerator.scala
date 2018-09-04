@@ -194,6 +194,7 @@ abstract class DruidQuery[T] extends Query with WithDruidEngine {
   def asString: String = DruidQuery.toJson(query)
   def maxRows: Int
   def isPaginated: Boolean
+  def queryGenVersion: Option[Version] = None
 }
 
 case class TimeseriesDruidQuery(queryContext: QueryContext
@@ -807,7 +808,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             FilterDruid.renderFilterDim(filter, fact.columnsByNameMap.map(e => e._1 -> e._2.name), fact.columnsByNameMap, Option(fact.grain))
           }.asJava
 
-        val dimFilter: AndDimFilter = Druids.newAndDimFilterBuilder().fields(dimFilterList).build
+        val dimFilter: AndDimFilter = new AndDimFilter(dimFilterList)
 
         new FilteredAggregatorFactory(getAggregatorFactory(dataType, druidFilteredListRollup.delegateAggregatorRollupExpression,
           alias, druidFilteredListRollup.factCol.fieldNamePlaceHolder), dimFilter)

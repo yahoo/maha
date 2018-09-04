@@ -88,4 +88,11 @@ message MahaRequestProto{
   optional bool isIndexOptimized = 48;
   optional string curator = 49;
   optional string reRunEngineQueryTable = 50;
+  optional bool isScanOptimized = 51;
+  optional int64 scanRows = 52;
+  optional int64 grainRows = 53;
+  optional bool isDebug = 54;
+  optional bool isTest = 55;
+  optional string testName = 56;
+  repeated string labels = 57;
 }
