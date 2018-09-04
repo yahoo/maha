@@ -4670,37 +4670,23 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     print(result)
     val expected =
       s"""
-         |SELECT *
-         |FROM (SELECT to_char(t3.id) "Keyword ID", to_char(ago2.campaign_id) "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ago2."Ad Group Status" "Ad Group Status", co1."Campaign Status" "Campaign Status"
+         SELECT *
+         |FROM (SELECT to_char(co1.id) "Campaign ID", coalesce(f0."impressions", 1) "Impressions"
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
-         |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions"
+         |                   campaign_id, SUM(impressions) AS "impressions"
          |            FROM fact2 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY ad_group_id, campaign_id, keyword_id
-         |
-        |           ) f0
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('2018-08-23', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('2018-08-30', 'YYYY-MM-DD')))
+         |            GROUP BY campaign_id
+         |            HAVING (SUM(impressions) > 1608)
+         |           ) f0
          |           RIGHT OUTER JOIN
-         |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  parent_id, id, advertiser_id
-         |            FROM targetingattribute
-         |            WHERE (advertiser_id = 12345)
-         |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) t3
-         |           INNER JOIN
-         |            (SELECT  campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id, advertiser_id
-         |            FROM ad_group_oracle
-         |            WHERE (advertiser_id = 12345)
-         |             ) ago2
-         |              ON( t3.advertiser_id = ago2.advertiser_id AND t3.parent_id = ago2.id )
-         |               INNER JOIN
-         |            (SELECT /*+ CampaignHint */ DECODE(status, 'ON', 'ON', 'OFF') AS "Campaign Status", id, advertiser_id
+         |                (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT /*+ CampaignHint */ id, advertiser_id
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)
-         |             ) co1
-         |              ON( ago2.advertiser_id = co1.advertiser_id AND ago2.campaign_id = co1.id )
-         |               )  ON (f0.keyword_id = t3.id)
+         |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) co1
+         |            ON (f0.campaign_id = co1.id)
          |
-        |
-        |
-        |) ORDER BY "Campaign Status" ASC NULLS LAST
+ |)
       """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
