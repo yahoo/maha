@@ -60,7 +60,6 @@
         <kryo.version>4.0.2</kryo.version>
         <lz4.version>1.4.1</lz4.version>
         <curator.version>4.0.1</curator.version>
-        <akka.version>2.5.4</akka.version>
     </properties>
 
 
