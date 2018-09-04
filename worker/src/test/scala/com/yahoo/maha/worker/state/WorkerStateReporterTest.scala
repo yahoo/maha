@@ -1,7 +1,7 @@
 package com.yahoo.maha.worker.state
 
-import com.yahoo.maha.core.OracleEngine
-import com.yahoo.maha.worker.state.actor.{SyncExecution}
+import com.yahoo.maha.core.{DruidEngine, OracleEngine}
+import com.yahoo.maha.worker.state.actor._
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.concurrent.Await
@@ -14,9 +14,22 @@ class WorkerStateReporterTest extends  FunSuite with Matchers {
 
   val workerStateReporter = WorkerStateReporter("test-config")
 
+  val workerStateReporterFromFile = WorkerStateReporter("src/main/test/resources/akkaActorConfigTest.conf")
+
   test("Test workerStateReporter") {
+
     workerStateReporter.jobStarted(SyncExecution, 12345, OracleEngine, 10000, 900, "maha-test-user")
     workerStateReporter.jobEnded(SyncExecution, 12345, OracleEngine, 10000, 900, "maha-test-user")
+
+    workerStateReporterFromFile.jobStarted(SyncExecution, 12345, OracleEngine, 10000, 900, "maha-test-user")
+    workerStateReporterFromFile.jobEnded(SyncExecution, 12345, OracleEngine, 10000, 900, "maha-test-user")
+
+    workerStateReporter.sendMessage(AllEngineStats)
+    workerStateReporter.sendMessage(GetEngineStats(DruidEngine))
+    workerStateReporter.sendMessage(AllEngineStats)
+    workerStateReporter.sendMessage(GetUserStats(""))
+    workerStateReporter.sendMessage(GetJobsStats)
+    workerStateReporter.sendMessage(SimulateDelay(1))
 
     val system = workerStateReporter.system
     val workerStateActorSelection = system.actorSelection(workerStateReporter.workerStateActorPath)
@@ -31,5 +44,6 @@ class WorkerStateReporterTest extends  FunSuite with Matchers {
 
     assert(workerStateActorFuture.isCompleted)
   }
+
 
 }

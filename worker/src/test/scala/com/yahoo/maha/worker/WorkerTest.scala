@@ -70,4 +70,152 @@ class WorkerTest extends BaseWorkerTest {
 
   }
 
+  test("Missing Registry Name in  proto") {
+
+    val mahaCustomReportRequestProto = MahaCustomReportRequest.newBuilder()
+      .setRawRequest(ByteString.copyFrom(jsonRequest.getBytes))
+      .setDeliveryMethod(DeliveryMethod.CONTENT_STORE)
+      .setQueryEngine(QueryEngine.ORACLE)
+      .setOutputFormat(OutputFormat.CSV)
+      .setJobId(12345)
+      .setSchema(StudentSchema.entryName)
+      .setReportType(ReportType.AD_HOC)
+      .setTimezone("UTC")
+      .setDryrun(false)
+      .setRevision(1)
+      .setRequestSubmittedTime(System.currentTimeMillis())
+      .setQueueType(QueueType.KAFKA)
+      .setUserId("maha-worker-user")
+//      .setRegistryName("er")
+      .build()
+
+    val exception  = intercept[IllegalArgumentException] {
+      val mahaWorkerRequest: MahaWorkerRequest = baseMahaWorker.initializeWork(mahaCustomReportRequestProto)
+    }
+
+    assert(exception.getMessage.contains("Unknown registry, failed to find the given registry"))
+  }
+
+  test("Missing Schema in  proto") {
+
+    val exception = intercept[com.google.protobuf.UninitializedMessageException] {
+      val mahaCustomReportRequestProto = MahaCustomReportRequest.newBuilder()
+        .setRawRequest(ByteString.copyFrom(jsonRequest.getBytes))
+        .setDeliveryMethod(DeliveryMethod.CONTENT_STORE)
+        .setQueryEngine(QueryEngine.ORACLE)
+        .setOutputFormat(OutputFormat.CSV)
+        .setJobId(12345)
+        //.setSchema(StudentSchema.entryName)
+        .setReportType(ReportType.AD_HOC)
+        .setTimezone("UTC")
+        .setDryrun(false)
+        .setRevision(1)
+        .setRequestSubmittedTime(System.currentTimeMillis())
+        .setQueueType(QueueType.KAFKA)
+        .setUserId("maha-worker-user")
+        .setRegistryName("er")
+        .build()
+       baseMahaWorker.initializeWork(mahaCustomReportRequestProto)
+    }
+    assert(exception.getMessage.contains("Message missing required fields: schema"))
+  }
+
+  test("Missing JobID in  proto") {
+
+    val exception = intercept[com.google.protobuf.UninitializedMessageException] {
+      val mahaCustomReportRequestProto = MahaCustomReportRequest.newBuilder()
+        .setRawRequest(ByteString.copyFrom(jsonRequest.getBytes))
+        .setDeliveryMethod(DeliveryMethod.CONTENT_STORE)
+        .setQueryEngine(QueryEngine.ORACLE)
+        .setOutputFormat(OutputFormat.CSV)
+        //.setJobId(12345)
+        .setSchema(StudentSchema.entryName)
+        .setReportType(ReportType.AD_HOC)
+        .setTimezone("UTC")
+        .setDryrun(false)
+        .setRevision(1)
+        .setRequestSubmittedTime(System.currentTimeMillis())
+        .setQueueType(QueueType.KAFKA)
+        .setUserId("maha-worker-user")
+        .setRegistryName("er")
+        .build()
+      baseMahaWorker.initializeWork(mahaCustomReportRequestProto)
+    }
+    assert(exception.getMessage.contains("Message missing required fields: job_id"))
+  }
+
+  test("Generate the warnings on missing optional fields") {
+    val mahaCustomReportRequestProto = MahaCustomReportRequest.newBuilder()
+      .setRawRequest(ByteString.copyFrom(jsonRequest.getBytes))
+      .setDeliveryMethod(DeliveryMethod.CONTENT_STORE)
+      .setQueryEngine(QueryEngine.ORACLE)
+      .setOutputFormat(OutputFormat.CSV)
+      .setJobId(12345)
+      .setSchema(StudentSchema.entryName)
+      .setReportType(ReportType.AD_HOC)
+      .setTimezone("UTC")
+      .setDryrun(false)
+      .setRevision(1)
+      //.setRequestSubmittedTime(System.currentTimeMillis())
+      //.setQueueType(QueueType.KAFKA)
+      //.setUserId("maha-worker-user")
+      .setRegistryName("er")
+      .build()
+    val workerRequest = baseMahaWorker.initializeWork(mahaCustomReportRequestProto)
+    assert(workerRequest.isInstanceOf[MahaWorkerRequest])
+
+  }
+
+  test("Unsupported Engine in  proto") {
+
+    val mahaCustomReportRequestProto = MahaCustomReportRequest.newBuilder()
+      .setRawRequest(ByteString.copyFrom(jsonRequest.getBytes))
+      .setDeliveryMethod(DeliveryMethod.CONTENT_STORE)
+      .setQueryEngine(QueryEngine.HIVE)
+      .setOutputFormat(OutputFormat.CSV)
+      .setJobId(12345)
+      .setSchema(StudentSchema.entryName)
+      .setReportType(ReportType.AD_HOC)
+      .setTimezone("UTC")
+      .setDryrun(false)
+      .setRevision(1)
+      .setRequestSubmittedTime(System.currentTimeMillis())
+      .setQueueType(QueueType.KAFKA)
+      .setUserId("maha-worker-user")
+      .setRegistryName("er")
+      .build()
+
+    val exception  = intercept[IllegalArgumentException] {
+      val mahaWorkerRequest: MahaWorkerRequest = baseMahaWorker.initializeWork(mahaCustomReportRequestProto)
+    }
+
+    assert(exception.getMessage.contains("Unsupported worker engine=Hive jobId=12345"))
+  }
+
+  test("Invalid Schema in  proto") {
+
+    val mahaCustomReportRequestProto = MahaCustomReportRequest.newBuilder()
+      .setRawRequest(ByteString.copyFrom(jsonRequest.getBytes))
+      .setDeliveryMethod(DeliveryMethod.CONTENT_STORE)
+      .setQueryEngine(QueryEngine.HIVE)
+      .setOutputFormat(OutputFormat.CSV)
+      .setJobId(12345)
+      .setSchema("invalidSchema")
+      .setReportType(ReportType.AD_HOC)
+      .setTimezone("UTC")
+      .setDryrun(false)
+      .setRevision(1)
+      .setRequestSubmittedTime(System.currentTimeMillis())
+      .setQueueType(QueueType.KAFKA)
+      .setUserId("maha-worker-user")
+      .setRegistryName("er")
+      .build()
+
+    val exception  = intercept[IllegalArgumentException] {
+      val mahaWorkerRequest: MahaWorkerRequest = baseMahaWorker.initializeWork(mahaCustomReportRequestProto)
+    }
+
+    assert(exception.getMessage.contains("CustomReportRequest does not contain correct schema invalidSchema"))
+  }
+
 }

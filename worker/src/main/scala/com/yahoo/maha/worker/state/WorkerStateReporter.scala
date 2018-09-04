@@ -62,7 +62,7 @@ case class WorkerStateReporter(akkaConf: String) extends Logging {
     sendMessage(JobEnded(executionType, jobId, engine, cost, estimatedRows, userId))
   }
 
-  private def sendMessage(actorMessage:WorkerStateActorMessage) = {
+  def sendMessage(actorMessage:WorkerStateActorMessage) = {
     try {
       system.actorSelection(workerStateActorPath).tell(actorMessage, Actor.noSender)
     } catch {

@@ -6,7 +6,7 @@ package com.yahoo.maha.worker
 import com.yahoo.maha.core.Engine
 import com.yahoo.maha.service.{DefaultMahaService, MahaService, MahaServiceConfig}
 import com.yahoo.maha.worker.AckStatus.AckStatus
-import com.yahoo.maha.worker.proto.MahaWorkerReportingProto.{MahaCustomReportRequest, OutputFormat, QueryEngine, ReportType}
+import com.yahoo.maha.worker.proto.MahaWorkerReportingProto.{MahaCustomReportRequest}
 import com.yahoo.maha.worker.request.{MahaWorkerProtoParser, MahaWorkerRequest}
 import com.yahoo.maha.worker.state.WorkerStateReporter
 import grizzled.slf4j.Logging
@@ -54,21 +54,18 @@ abstract class Worker(workerConfig: WorkerConfig
   def initializeWork(inputProtoRequest: MahaCustomReportRequest) : MahaWorkerRequest = {
 
     //Input Proto  Request Validation
-    //Mandatory fields
+    /*
+    Required Fields in proto
+    required bytes raw_request = 1;
+    required DeliveryMethod delivery_method = 2;
+    required QueryEngine query_engine = 3;
+    required OutputFormat output_format = 4;
+    required int64 job_id = 5;
+    required string schema = 6;
+    required ReportType report_type = 7;
+     */
+
     require(mahaService.isValidRegistry(inputProtoRequest.getRegistryName), s"Unknown registry, failed to find the given registry ${inputProtoRequest.getRegistryName} in mahaServiceConfig")
-
-    require(inputProtoRequest.hasSchema, s"Failed to find the Schema in MahaCustomReportRequest proto ${inputProtoRequest}")
-
-    require(inputProtoRequest.hasJobId, s"Failed to find the jobID in MahaCustomReportRequest proto ${inputProtoRequest}")
-
-    require(inputProtoRequest.hasRawRequest, s"Failed to find requestJson/rawRequest in MahaCustomReportRequest proto ${inputProtoRequest}")
-
-    require(inputProtoRequest.hasDeliveryMethod, s"Failed to find DeliveryMethod in MahaCustomReportRequest proto ${inputProtoRequest}")
-
-    // Is it good to default this to CSV ?
-    require(inputProtoRequest.hasOutputFormat, s"Failed to find OutputFormat in MahaCustomReportRequest proto ${inputProtoRequest}")
-
-    require(inputProtoRequest.hasQueryEngine, s"Failed to find QueryEngine in MahaCustomReportRequest proto ${inputProtoRequest}")
 
     //Optional good to have fields
     if(!inputProtoRequest.hasQueueType) {
@@ -82,7 +79,7 @@ abstract class Worker(workerConfig: WorkerConfig
     }
 
     val schemaOption = mahaWorkerProtoParser.schemaProvider(inputProtoRequest.getSchema)
-    require(schemaOption.isDefined, s"CustomReportRequest does not contain schema: $inputProtoRequest")
+    require(schemaOption.isDefined, s"CustomReportRequest does not contain correct schema ${inputProtoRequest.getSchema}: $inputProtoRequest")
 
     val engineOption = Engine.from(inputProtoRequest.getQueryEngine.toString)
 

@@ -68,8 +68,6 @@ case class JobEnded(executionType: ExecutionType, jobId: Long, engine: Engine, c
         val userStateOption = map.get(userId)
         if (userStateOption.isDefined) {
           userStateOption.foreach(_.removeJob(cost, estimatedRows))
-        } else {
-          //nothing to remove
         }
       case _ =>
     }
