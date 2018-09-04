@@ -3,9 +3,6 @@
 
 package com.yahoo.maha.worker.state
 
-/*
-    Created by pranavbhole on 8/13/18
-*/
 import java.io.File
 
 import akka.actor.{Actor, ActorPath, ActorSystem, Props}
@@ -14,6 +11,9 @@ import com.yahoo.maha.core.Engine
 import com.yahoo.maha.worker.state.actor._
 import grizzled.slf4j.Logging
 
+/*
+    Created by pranavbhole on 8/13/18
+*/
 object WorkerStateReporter extends Logging {
 
   // Use a bounded mailbox to prevent memory leaks in the rare case when jobs get piled up to be processed by the actor
