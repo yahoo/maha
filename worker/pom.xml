@@ -1,6 +1,5 @@
-<!-- Copyright 2018, Oath Inc.
- Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
- -->
+<!-- Copyright 2017, Yahoo Holdings Inc.
+     Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>maha-worker</artifactId>
@@ -9,41 +8,17 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.195-SNAPSHOT</version>
+        <version>5.203-SNAPSHOT</version>
     </parent>
 
     <name>maha worker</name>
     <url>http://maven.apache.org</url>
-
-    <properties>
-        <slick.version>3.2.3</slick.version>
-    </properties>
 
     <dependencies>
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
             <version>${protobuf.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.yahoo.maha</groupId>
-            <artifactId>maha-service</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.yahoo.maha</groupId>
-            <artifactId>maha-job-service</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-actor_${scala.major.version}</artifactId>
-            <version>${akka.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-slf4j_${scala.major.version}</artifactId>
-            <version>${akka.version}</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
@@ -69,36 +44,6 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.yahoo.maha</groupId>
-            <artifactId>maha-service</artifactId>
-            <version>${project.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.druid</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.http4s</groupId>
-            <artifactId>http4s-dsl_${scala.major.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.http4s</groupId>
-            <artifactId>http4s-blaze-server_${scala.major.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.http4s</groupId>
-            <artifactId>http4s-blaze-client_${scala.major.version}</artifactId>
         </dependency>
     </dependencies>
 

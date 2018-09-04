@@ -1,6 +1,6 @@
+// Copyright 2018, Yahoo Inc.
+// Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.job.service
-
-import java.sql.SQLException
 
 import com.yahoo.maha.jdbc.JdbcConnection
 import com.yahoo.maha.job.service.JobStatus.JobStatus

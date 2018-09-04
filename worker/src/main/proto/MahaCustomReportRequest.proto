@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // Copyright 2018, Yahoo Inc.
+=======
+// Copyright 2017, Yahoo Holdings Inc.
+>>>>>>> master
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.worker.proto;
 
@@ -20,6 +24,7 @@ message MahaCustomReportRequest {
     optional string userId = 13;
     optional bool dualWrite = 14;
     optional string registry_name = 15;
+    optional int32 queryGenVersion = 16;
 }
 
 message MahaProcessedReport {

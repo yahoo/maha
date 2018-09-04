@@ -418,7 +418,7 @@ object MahaServiceConfig {
             implicit val queryGeneratorRegistry = new QueryGeneratorRegistry
             generatorMap.filter(g => registryConfig.generators.contains(g._1)).foreach {
               case (name, generator) =>
-                queryGeneratorRegistry.register(generator.engine, generator)
+                queryGeneratorRegistry.register(generator.engine, generator, generator.version)
             }
             val queryExecutorContext = new QueryExecutorContext
             executorMap.filter(e => registryConfig.executors.contains(e._1)).foreach {

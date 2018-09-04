@@ -1661,6 +1661,37 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     assert(queryPipelineTry._3.isEmpty)
   }
 
+  test("successfully generate query with force queryGen version") {
+    val request: ReportingRequest = ReportingRequest.forceHive(getReportingRequestAsync(requestWithMetricSortAndDay))
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    object TestBucketingConfig extends BucketingConfig {
+      override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = None
+      override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = {
+        Some(QueryGenBucketingConfig.builder()
+          .internalBucketPercentage(Map(Version.v0 -> 100, Version.v1 -> 0))
+          .externalBucketPercentage(Map(Version.v0 -> 100, Version.v1 -> 0))
+          .dryRunPercentage(Map(Version.v1 -> 100))
+          .build())
+      }
+    }
+
+    val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
+
+    val queryPipelineBuilderTry = queryPipelineFactory.builder(requestModel.get, QueryAttributes.empty, Option(bucketSelector), Option(Version.v1))._1
+    assert(queryPipelineBuilderTry.isSuccess, queryPipelineBuilderTry)
+    val pipeline = queryPipelineBuilderTry.get.build()
+
+    assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
+    assert(Version.v1.equals(pipeline.queryChain.drivingQuery.queryGenVersion.get))
+
+    val queryPipelineTry = queryPipelineFactory.fromQueryGenVersion(requestModel.get, QueryAttributes.empty, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry)
+    assert(Version.v1.equals(queryPipelineTry.get.queryChain.drivingQuery.queryGenVersion.get))
+  }
+
   test("successfully generate query with queryGeneratorBucket defined and no dryRun requestModel") {
     val request: ReportingRequest = ReportingRequest.forceHive(getReportingRequestAsync(requestWithMetricSortAndDay))
     val registry = defaultRegistry
