@@ -1,4 +1,8 @@
+<<<<<<< HEAD
+// Copyright 2018, Yahoo Inc.
+=======
 // Copyright 2017, Yahoo Holdings Inc.
+>>>>>>> master
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.worker.proto;
 
