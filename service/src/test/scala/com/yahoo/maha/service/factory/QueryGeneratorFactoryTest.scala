@@ -67,6 +67,48 @@ class QueryGeneratorFactoryTest extends BaseFactoryTest {
     val json = parse(jsonString)
     val generatorResult = factory.fromJson(json)
     assert(generatorResult.isSuccess, generatorResult)
+    assert("HiveQueryGenerator".equals(generatorResult.toOption.get.getClass.getSimpleName), generatorResult)
+  }
+
+  test("successfully construct Hive query generator V0 from json") {
+    val jsonString =   """
+                         |{
+                         |"partitionColumnRendererClass" : "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
+                         |"partitionColumnRendererConfig" : [{"key": "value"}],
+                         |"udfRegistrationFactoryName" : "com.yahoo.maha.service.factory.DefaultMahaUDFRegistrationFactory",
+                         |"udfRegistrationFactoryConfig" : [{"key": "value"}],
+                         |"version": 0
+                         |}
+                       """.stripMargin
+
+    val factoryResult = getFactory[HiveQueryGeneratorFactory]("com.yahoo.maha.service.factory.HiveQueryGeneratorFactory", closer)
+    assert(factoryResult.isSuccess)
+    val factory = factoryResult.toOption.get
+    val json = parse(jsonString)
+    val generatorResult = factory.fromJson(json)
+    assert(generatorResult.isSuccess, generatorResult)
+    assert("HiveQueryGenerator".equals(generatorResult.toOption.get.getClass.getSimpleName), generatorResult)
+  }
+
+  test("successfully construct Hive query generator V1 from json") {
+    val jsonString =   """
+                         |{
+                         |"partitionColumnRendererClass" : "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
+                         |"partitionColumnRendererConfig" : [{"key": "value"}],
+                         |"udfRegistrationFactoryName" : "com.yahoo.maha.service.factory.DefaultMahaUDFRegistrationFactory",
+                         |"udfRegistrationFactoryConfig" : [{"key": "value"}],
+                         |"version": 1
+                         |}
+                       """.stripMargin
+
+    val factoryResult = getFactory[HiveQueryGeneratorFactory]("com.yahoo.maha.service.factory.HiveQueryGeneratorFactory", closer)
+    assert(factoryResult.isSuccess)
+    val factory = factoryResult.toOption.get
+    val json = parse(jsonString)
+    val generatorResult = factory.fromJson(json)
+
+    assert(generatorResult.isSuccess, generatorResult)
+    assert("HiveQueryGeneratorV1".equals(generatorResult.toOption.get.getClass.getSimpleName), generatorResult)
   }
 
   test("successfully construct Presto query generator from json") {

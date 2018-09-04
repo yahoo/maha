@@ -390,6 +390,8 @@ case class MultiQuery(unionQueryList: List[Query], fallbackQueryOption: Option[(
 trait QueryPipelineFactory {
   def from(requestModel: RequestModel, queryAttributes: QueryAttributes): Try[QueryPipeline]
 
+  def fromQueryGenVersion(requestModel: RequestModel, queryAttributes: QueryAttributes, queryGenVersion: Version): Try[QueryPipeline]
+
   def from(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]]
 
   def fromBucketSelector(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple3[Try[QueryPipeline], Option[Try[QueryPipeline]], Option[Try[QueryPipeline]]]
@@ -398,7 +400,7 @@ trait QueryPipelineFactory {
 
   def builder(requestModel: RequestModel, queryAttributes: QueryAttributes): Try[QueryPipelineBuilder]
 
-  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: Option[BucketSelector]): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]]
+  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: Option[BucketSelector], forceQueryGenVersion: Option[Version]): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]]
 
   def builder(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]]
 
@@ -803,7 +805,7 @@ OuterGroupBy operation has to be applied only in the following cases
     builder(requestModel, queryAttributes, None)._1
   }
 
-  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: Option[BucketSelector]): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]] = {
+  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: Option[BucketSelector], forceQueryGenVersion: Option[Version] = None): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]] = {
     def requestDebug(msg: => String): Unit = {
       if (requestModel.isDebugEnabled) {
         info(msg)
@@ -1119,23 +1121,27 @@ OuterGroupBy operation has to be applied only in the following cases
       }
 
       val (queryGenVersion: Version, dryRunQgenVersion: Option[Version]) = {
-        if (bucketSelector.isDefined) {
-          val engine = {
-            if (factBestCandidateOption.isDefined) {
-              factBestCandidateOption.get.fact.engine
-            } else {
-              bestDimCandidates.head.dim.engine
-            }
-          }
-          val bucketSelected = bucketSelector.get.selectBucketsForQueryGen(engine, new BucketParams()) // TODO: Pass bucket params
-          bucketSelected.fold(t => {
-            warn(s"No query generator buckets selected for engine: $engine")
-            (Version.DEFAULT, None)
-          }, bucket => {
-            (bucket.queryGenVersion, bucket.dryRunQueryGenVersion)
-          })
+        if (forceQueryGenVersion.isDefined) {
+          (forceQueryGenVersion.get, None)
         } else {
-          (Version.DEFAULT, None)
+          if (bucketSelector.isDefined) {
+            val engine = {
+              if (factBestCandidateOption.isDefined) {
+                factBestCandidateOption.get.fact.engine
+              } else {
+                bestDimCandidates.head.dim.engine
+              }
+            }
+            val bucketSelected = bucketSelector.get.selectBucketsForQueryGen(engine, new BucketParams()) // TODO: Pass bucket params
+            bucketSelected.fold(t => {
+              warn(s"No query generator buckets selected for engine: $engine")
+              (Version.DEFAULT, None)
+            }, bucket => {
+              (bucket.queryGenVersion, bucket.dryRunQueryGenVersion)
+            })
+          } else {
+            (Version.DEFAULT, None)
+          }
         }
       }
 
@@ -1148,6 +1154,10 @@ OuterGroupBy operation has to be applied only in the following cases
 
   def from(requestModel: RequestModel, queryAttributes: QueryAttributes): Try[QueryPipeline] = {
     builder(requestModel, queryAttributes, None)._1.map(_.build())
+  }
+
+  def fromQueryGenVersion(requestModel: RequestModel, queryAttributes: QueryAttributes, queryGenVerion: Version): Try[QueryPipeline] = {
+    builder(requestModel, queryAttributes, None, Option(queryGenVerion))._1.map(_.build())
   }
 
   def from(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]] = {
