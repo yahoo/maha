@@ -568,4 +568,63 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
     assert(result.primaryTableName == "fact_druid")
   }
 
+  test("Test forceDisQualifySet in findBestCandidates") {
+
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    val builder = new QueryContextBuilder(FactOnlyQuery, requestModel.get)
+    val bestFact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, Set(OracleEngine), Set(OracleEngine, DruidEngine), queryGeneratorRegistry = queryGeneratorRegistry )
+    builder.addFactBestCandidate(bestFact)
+    val queryContext = builder.build()
+    require(queryContext.isInstanceOf[FactualQueryContext])
+    val factQueryContext = queryContext.asInstanceOf[FactualQueryContext]
+    require(factQueryContext.factBestCandidate.fact.engine == DruidEngine)
+    require(factQueryContext.primaryTableName ==  "fact_druid")
+  }
+
+  test("Test forceDisQualifySet all in findBestCandidates") {
+
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    val builder = new QueryContextBuilder(FactOnlyQuery, requestModel.get)
+    intercept[IllegalArgumentException] {
+      DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, Set(OracleEngine, DruidEngine), Set(OracleEngine, DruidEngine), queryGeneratorRegistry = queryGeneratorRegistry )
+    }
+  }
+
+
 }
