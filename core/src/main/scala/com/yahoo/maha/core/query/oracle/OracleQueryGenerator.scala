@@ -990,6 +990,7 @@ b. Dim Driven
     val aliasColumnMapOfRequestCols = new mutable.HashMap[String, Column]()
     val isFactOnlyQuery = requestModel.isFactDriven && queryContext.dims.forall {
       db => (db.fields.filterNot(db.publicDim.isPrimaryKeyAlias).isEmpty && !db.hasNonFKSortBy
+        && db.hasLowCardinalityFilter
         && queryContext.factBestCandidate.publicFact.foreignKeyAliases(db.publicDim.primaryKeyByAlias))
     }
     val requestColAliasesSet = requestModel.requestCols.map(_.alias).toSet
