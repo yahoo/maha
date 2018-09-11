@@ -1,0 +1,23 @@
+# Copyright 2018, Oath Inc.
+# Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# Home page
+GET     /datasource                       controllers.DashBoard.dataSourceDashboard
+GET     /status                           controllers.DashBoard.statusCheck
+GET     /authcallback                     controllers.DashBoard.authcallback
+GET     /segments                         controllers.DashBoard.getDataSource
+GET     /:datasource/dimensions           controllers.DashBoard.getDimensions(datasource:String)
+GET     /:datasource/metrics              controllers.DashBoard.getMetrics(datasource:String)
+POST    /segmentcount                     controllers.DashBoard.getSegments
+GET     /                                 controllers.DashBoard.metaDataDashboard
+GET     /overlord/workers                 controllers.DashBoard.getWorkers
+GET     /lookups                          controllers.DashBoard.getLookUps
+GET     /kill/segments                    controllers.DashBoard.killSegments
+POST    /kill/segments/submit             controllers.DashBoard.submitKillSegments
+GET     /workers/:host/:action            controllers.DashBoard.enableDisableMiddleManager(host:String,action:String)
+GET     /jsroute                          controllers.DashBoard.jsRouter
+# Map static resources from the /public folder to the /assets URL path
+GET     /assets/*file               controllers.Assets.at(path="/public", file)

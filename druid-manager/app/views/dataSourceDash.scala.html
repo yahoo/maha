@@ -1,0 +1,228 @@
+@* Copyright 2018, Oath Inc.
+ Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms. *@
+
+@(
+    dataSourceOption: Option[String]
+    , startDateOption: Option[String]
+    , endDateOption: Option[String]
+    , dataSources: Seq[String]
+    , formattedTotalDataSourceSize: String
+    , segmentsMetricsByDatesCvs: String
+    , segmentsMetricsByDatesByShardsCvs: String
+    , taskKeysUnion: List[String]
+    , runningTasksCountByDate: Map[String, Int]
+    , pendingTasksCountByDate: Map[String, Int]
+    , waitingTasksCountByDate: Map[String, Int]
+    , successTasksCountByDate: Map[String, Int]
+    , failedTasksCountByDate: Map[String, Int]
+)
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Druid Manager</title>
+    <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/main.css")">
+    <link rel="icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
+    <link rel="stylesheet" href="@routes.Assets.at("bootstrap/css/bootstrap-datetimepicker.css")">
+    <link rel="stylesheet" href="@routes.Assets.at("bootstrap/css/bootstrap-datetimepicker.min.css")">
+    <link rel="stylesheet" href="@routes.Assets.at("bootstrap/css/bootstrap.min.css")">
+    <link href="https://netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap-combined.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="@routes.Assets.at("stylesheets/time.css")">
+    <script type="text/javascript" src="@routes.Assets.at("javascripts/jquery-1.11.1.min.js")"></script>
+    <script type="text/javascript" src="@routes.Assets.at("javascripts/dygraph-combined-dev.js")"></script>
+    <script type="text/javascript" src="@routes.Assets.at("bootstrap/js/moment.js")"></script>
+    <script type="text/javascript" src="@routes.Assets.at("bootstrap/js/bootstrap.js")"></script>
+    <script type="text/javascript" src="@routes.Assets.at("bootstrap/js/bootstrap-datetimepicker.min.js")"></script>
+
+    </head>
+    <body>
+        <nav class="navbar navbar-default  navbar-static-top ">
+            <div class="container-fluid">
+                <ul class="nav navbar-nav">
+                    <li class="active"><a href="/datasource">Data Source Info</a></li>
+                    <li><a href="/segments">Query Segments</a></li>
+                    <li><a href="/"> Metadata</a></li>
+                    <li><a href="/overlord/workers">Indexing Services</a></li>
+                    <li><a href="/lookups">Druid Lookups</a></li>
+                    <li><a href="/kill/segments">Kill Segments</a></li>
+                </ul>
+            </div>
+        </nav>
+        <div id="container">
+        <h1 id="dashboard">Data Source Dashboard</h1>
+
+        <form class="form-horizontal" method="GET">
+            <div class="control-group">
+                <div class="control-label ">Data Sources:</div>
+                <div class="controls">
+                    <select id="dataSources" name="dataSources">
+                    @for(dataSource <- dataSources) {
+                        @if(dataSourceOption.isDefined && dataSource ==  dataSourceOption.get) {
+                            <option value="@dataSource" selected>@dataSource</option>
+                        } else {
+                            <option value="@dataSource">@dataSource</option>
+                        }
+                    }
+                    </select>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">Start Date:</div>
+                <div class="controls">
+                    <div class="input-append" id='datetimepickerstart'>
+                        <input type='text' class="span2" style="background-color:#fff; width:180px" data-date-format="YYYY-MM-DDTHH:mm:00" id="start" name="startDate" readonly/>
+                        <span class="add-on"><span class="glyphicon glyphicon-calendar"></span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">End Date:</div>
+                <div class="controls">
+                    <div class="input-append" id='datetimepickerend'>
+                        <input type='text' class="span2" style="background-color:#fff; width:180px" data-date-format="YYYY-MM-DDTHH:mm:00"id="end" name="endDate" readonly/>
+                        <span class="add-on"><span class="glyphicon glyphicon-calendar"></span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="controls">
+                    <button class="btn" type="submit">Load</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">Total Size:</div>
+                <div class="controls">
+                    <input type='text' class="span2" style="width:206px" readonly value="@formattedTotalDataSourceSize"/>
+                </div>
+            </div>
+        </form>
+        <h2 class="dashboard">Segments Total Size (Bytes)</h2>
+        <table style="margin-left: 0.5em; width:710px;">
+            <tbody>
+                <tr>
+                    <td valign="top"><div id="segmentsmetricsbydatesgraph" style="width:600px; height:250px;"></div></td>
+                    <td valign="top">&nbsp; &nbsp;</td>
+                    <td valign="top" width="100px;"><div id="segmentsmetricsbydateslabels" style="display: none;"></div></td>
+                </tr>
+            </tbody>
+        </table>
+        <h2 class="dashboard">Stacked Shards Size (Bytes)</h2>
+        <table style="margin-left: 0.5em; width:710px;">
+            <tbody>
+                <tr>
+                    <td valign="top"><div id="segmentsmetricsbydatesbyshardsgraph" style="width:600px; height:250px;"></div></td>
+                    <td valign="top">&nbsp; &nbsp;</td>
+                    <td valign="top" width="100px;"><div id="segmentsmetricsbydatesbyshardslabels" style="display: none;"></div></td>
+                </tr>
+            </tbody>
+        </table>
+        <h2 class="dashboard">Tasks Status</h2>
+        <div style="margin: 2em; width:710px;">
+            <table class="table table-bordered table-hover">
+                <thead>
+                    <tr>
+                        <th style="vertical-align: top;">Date</th>
+                        <th style="vertical-align: top; width:80px;">Failed (@failedTasksCountByDate.foldLeft(0)((acc, kv) => acc + kv._2))</th>
+                        <th style="vertical-align: top; width:80px;">Waiting (@waitingTasksCountByDate.foldLeft(0)((acc, kv) => acc + kv._2))</th>
+                        <th style="vertical-align: top; width:80px;">Pending (@pendingTasksCountByDate.foldLeft(0)((acc, kv) => acc + kv._2))</th>
+                        <th style="vertical-align: top; width:80px;">Running (@runningTasksCountByDate.foldLeft(0)((acc, kv) => acc + kv._2))</th>
+                        <th style="vertical-align: top; width:80px;">Success (@successTasksCountByDate.foldLeft(0)((acc, kv) => acc + kv._2))</th>
+
+                    </tr>
+                </thead>
+                <tbody>
+                    @for(date <- taskKeysUnion) {
+                        <tr>
+                            <th style="font-weight: normal;">@date</th>
+                            @if(failedTasksCountByDate.get(date).isDefined) {
+                                <th style="font-weight: bold; color: red;">@failedTasksCountByDate.get(date).get</th>
+                            } else {
+                                <th style="font-weight: normal;">--</th>
+                            }
+
+                            @if(waitingTasksCountByDate.get(date).isDefined) {
+                                <th style="font-weight: bold; color: red;">@waitingTasksCountByDate.get(date).get</th>
+                            } else {
+                                <th style="font-weight: normal;">--</th>
+                            }
+
+                            @if(pendingTasksCountByDate.get(date).isDefined) {
+                                <th style="font-weight: bold; color: red;">@pendingTasksCountByDate.get(date).get</th>
+                            } else {
+                                <th style="font-weight: normal;">--</th>
+                            }
+
+                            @if(runningTasksCountByDate.get(date).isDefined) {
+                                <th style="font-weight: bold; color: black;">@runningTasksCountByDate.get(date).get</th>
+                            } else {
+                                <th style="font-weight: normal;">--</th>
+                            }
+
+                            @if(successTasksCountByDate.get(date).isDefined) {
+                                <th style="font-weight: normal; color: gray;">@successTasksCountByDate.get(date).get</th>
+                            } else {
+                                <th style="font-weight: normal;">--</th>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+
+        <script type="text/javascript">
+            byDateGraph = new Dygraph(
+                document.getElementById("segmentsmetricsbydatesgraph"),
+                "@segmentsMetricsByDatesCvs",
+                {
+                    stepPlot: true
+                    , labelsKMG2: true
+                    , labelsUTC: true
+                    , labelsDiv: document.getElementById("segmentsmetricsbydateslabels")
+                }
+            );
+            byShardGraph = new Dygraph(
+                document.getElementById("segmentsmetricsbydatesbyshardsgraph"),
+                "@segmentsMetricsByDatesByShardsCvs",
+                {
+                    stepPlot: true
+                    , labelsKMG2: true
+                    , stackedGraph: true
+                    , stackedGraphNaNFill: "none"
+                    , labelsUTC: true
+                    , labelsDiv: document.getElementById("segmentsmetricsbydatesbyshardslabels")
+                }
+            );
+        </script>
+
+        <script type="text/javascript">
+            $(function () {
+                $('#datetimepickerstart').datetimepicker({
+                    useSeconds: false,
+                    defaultDate: @if(startDateOption.isDefined) { "@startDateOption.get" } else { "" }
+                });
+                $('#datetimepickerend').datetimepicker({
+                    useSeconds: false,
+                    defaultDate: @if(endDateOption.isDefined) { "@endDateOption.get" } else { "" }
+                });
+                $("#datetimepickerstart").on("dp.change",function (e) {
+                   $('#datetimepickerend').data("DateTimePicker").setMinDate(e.date);
+                });
+                $("#datetimepickerend").on("dp.change",function (e) {
+                   $('#datetimepickerstart').data("DateTimePicker").setMaxDate(e.date);
+                });
+            });
+        </script>
+
+        </div>
+
+    </body>
+</html>
