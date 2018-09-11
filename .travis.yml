@@ -9,7 +9,7 @@ jdk:
 - oraclejdk8
 
 install: true
-script: ./scripts/build.sh
+script: ./travis/build.sh
 
 after_success:
 - 'if [ "${TRAVIS_PULL_REQUEST}" = "false" ] && [ "${TRAVIS_BRANCH}" = "master" ]; then ./travis/publish_to_bintray.sh; else echo "skipping publish"; fi'
