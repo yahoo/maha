@@ -4399,12 +4399,18 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |SELECT *
          |FROM (SELECT af0.advertiser_id "Advertiser ID", coalesce(af0."impressions", 1) "Impressions", ROUND((CASE WHEN af0."clicks" = 0 THEN 0.0 ELSE af0."spend" / af0."clicks" END), 10) "Average CPC"
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   advertiser_id, SUM(impressions) AS "impressions", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(spend) AS "spend"
+         |                   advertiser_id, ad_group_id, SUM(impressions) AS "impressions", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(spend) AS "spend"
          |            FROM ad_fact1 FactAlias
-         |            WHERE (ad_group_id IN (SELECT id FROM ad_group_oracle WHERE (DECODE(status, 'ON', 'ON', 'OFF') = 'ON') AND (advertiser_id = 12345) AND (campaign_id IN (22222)))) AND (advertiser_id = 12345) AND (campaign_id IN (22222)) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY advertiser_id
+         |            WHERE (advertiser_id = 12345) AND (campaign_id IN (22222)) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY advertiser_id, ad_group_id
          |
          |           ) af0
+         |           INNER JOIN
+         |           (SELECT  id, advertiser_id
+         |            FROM ad_group_oracle
+         |            WHERE (advertiser_id = 12345) AND (campaign_id IN (22222)) AND (DECODE(status, 'ON', 'ON', 'OFF') = 'ON')
+         |             )
+         |           ago1 ON ( af0.advertiser_id = ago1.advertiser_id AND af0.ad_group_id = ago1.id)
          |
          |)
        """.stripMargin
@@ -4815,6 +4821,68 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |             WHERE ROW_NUMBER >= 3 AND ROW_NUMBER <= 42
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Skip inSubquery clause for high cardinality dimension filtering") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Advertiser ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Impressions",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Average CPC",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Booking Country", "operator": "IN", "values": ["US"]},
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                         }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+
+    val expected =
+      s"""
+         |SELECT *
+         |FROM (SELECT af0.advertiser_id "Advertiser ID", coalesce(af0."impressions", 1) "Impressions", ROUND((CASE WHEN af0."clicks" = 0 THEN 0.0 ELSE af0."spend" / af0."clicks" END), 10) "Average CPC"
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   advertiser_id, SUM(impressions) AS "impressions", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(spend) AS "spend"
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY advertiser_id
+         |
+         |           ) af0
+         |           INNER JOIN
+         |           (SELECT  id
+         |            FROM advertiser_oracle
+         |            WHERE (id = 12345) AND (booking_country IN ('US'))
+         |             )
+         |           ao1 ON (af0.advertiser_id = ao1.id)
+         |
+         |)
+       """.stripMargin
+
+    result should equal (expected)(after being whiteSpaceNormalised)
   }
 
 }
