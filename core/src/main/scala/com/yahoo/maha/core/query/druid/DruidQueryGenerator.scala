@@ -18,12 +18,13 @@ import com.yahoo.maha.query.aggregation.{RoundingDoubleSumAggregatorFactory, Rou
 import grizzled.slf4j.Logging
 import io.druid.jackson.DefaultObjectMapper
 import io.druid.java.util.common.granularity.GranularityType
+import io.druid.js.JavaScriptConfig
 import io.druid.math.expr.ExprMacroTable
 import io.druid.query.aggregation._
 import io.druid.query.aggregation.datasketches.theta.{SketchMergeAggregatorFactory, SketchModule}
 import io.druid.query.aggregation.post.{ArithmeticPostAggregator, FieldAccessPostAggregator}
 import io.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec, ExtractionDimensionSpec}
-import io.druid.query.extraction.{MapLookupExtractor, SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
+import io.druid.query.extraction._
 import io.druid.query.filter.{AndDimFilter, DimFilter}
 import io.druid.query.groupby.GroupByQuery
 import io.druid.query.groupby.GroupByQuery.Builder
@@ -1065,6 +1066,10 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                 case _ =>
                   (new DefaultDimensionSpec(name, alias), Option.empty)
               }
+
+            case javascript@JAVASCRIPT(_, function) =>
+              val exFn = new JavaScriptExtractionFn(function, false, JavaScriptConfig.getEnabledInstance)
+              (new ExtractionDimensionSpec(javascript.dimColName, alias, getDimValueType(column), exFn, null), Option.empty)
             case DRUID_TIME_FORMAT(fmt, zone) =>
               val exFn = new TimeFormatExtractionFn(fmt, zone, null, null, false)
               (new ExtractionDimensionSpec(DRUID_TIME_FORMAT.sourceDimColName, outputName, getDimValueType(column), exFn, null), Option.empty)
@@ -1103,6 +1108,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             case dayOfWeekFunc@DAY_OF_WEEK(fieldName) =>
               renderColumnWithAlias(fact, column, alias)
             case decodeDimFunction@DECODE_DIM(fieldName, args @ _*) =>
+              renderColumnWithAlias(fact, column, alias)
+            case javascript@JAVASCRIPT(fieldName, function) =>
               renderColumnWithAlias(fact, column, alias)
             case datetimeFormatter@DATETIME_FORMATTER(fieldName, index, length) =>
               renderColumnWithAlias(fact, column, alias)

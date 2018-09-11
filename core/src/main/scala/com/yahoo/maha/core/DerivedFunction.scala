@@ -67,6 +67,9 @@ object DruidDerivedFunction {
       }
     }
   }
+  case class JAVASCRIPT(fieldName: String, function: String) extends DruidDerivedFunction {
+    val dimColName = fieldName.replaceAll("[}{]","")
+  }
 
   case class LOOKUP(lookupNamespace: String, valueColumn: String, dimensionOverrideMap: Map[String, String] = Map.empty) extends DruidDerivedFunction
 
