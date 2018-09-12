@@ -4,7 +4,7 @@ package com.yahoo.maha.core
 
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, CubeBucketSelected}
 import com.yahoo.maha.core.dimension.PublicDimension
-import com.yahoo.maha.core.fact.{BestCandidates, PublicFactCol, PublicFactColumn}
+import com.yahoo.maha.core.fact.{BestCandidates, PublicFact, PublicFactCol, PublicFactColumn}
 import com.yahoo.maha.core.registry.{FactRowsCostEstimate, Registry}
 import com.yahoo.maha.core.request.Parameter.Distinct
 import com.yahoo.maha.core.request._
@@ -710,18 +710,7 @@ object RequestModel extends Logging {
               val pubCol = publicFact.columnsByAliasMap(filter.field)
               require(pubCol.filters.contains(filter.operator),
                 s"Unsupported filter operation : cube=${publicFact.name}, col=${filter.field}, operation=${filter.operator}")
-              require(
-                publicFact.dataTypeForAlias(pubCol.alias) match {
-                  case StrType(length, _, _) => filter match {
-                    case InFilter(_, values, _, _) if length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length) => true
-                    case NotInFilter(_, values, _, _) if length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length) => true
-                    case EqualityFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
-                    case NotEqualToFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
-                    case LikeFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
-                    case _ => false
-                  }
-                  case _ => true
-                }, s"Value for ${filter.field} exceeds max length.")
+              require(validateLengthForFilterValue(Some(publicFact), None, filter), s"Value for ${filter.field} exceeds max length.")
           }
 
           //if we are dim driven, add primary key of highest level dim
@@ -828,18 +817,7 @@ object RequestModel extends Logging {
                         val pubCol = publicDim.columnsByAliasMap(filter.field)
                         require(pubCol.filters.contains(filter.operator),
                           s"Unsupported filter operation : dimension=${publicDim.name}, col=${filter.field}, operation=${filter.operator}, expected=${pubCol.filters}")
-                        require(
-                          publicDim.nameToDataTypeMap(pubCol.name) match {
-                            case StrType(length, _, _) => filter match {
-                              case InFilter(_, values, _, _) if length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length) => true
-                              case NotInFilter(_, values, _, _) if length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length) => true
-                              case EqualityFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
-                              case NotEqualToFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
-                              case LikeFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
-                              case _ => false
-                            }
-                            case _ => true
-                          }, s"Value for ${filter.field} exceeds max length.")
+                        require(validateLengthForFilterValue(None, Some(publicDim), filter), s"Value for ${filter.field} exceeds max length.")
                     }
 
                     val hasNonFKSortBy = allDimSortBy.exists {
@@ -1141,6 +1119,21 @@ object RequestModel extends Logging {
     }
   }
 
+  def validateLengthForFilterValue(publicFactOption: Option[PublicFact], publicDimOption: Option[PublicDimension], filter: Filter): Boolean = {
+    val pubCol = if (publicFactOption.isDefined) publicFactOption.get.columnsByAliasMap(filter.field) else publicDimOption.get.columnsByAliasMap(filter.field)
+    val dataType = if (publicFactOption.isDefined) publicFactOption.get.dataTypeForAlias(pubCol.alias) else publicDimOption.get.nameToDataTypeMap(pubCol.name)
+    dataType match {
+      case StrType(length, _, _) => filter match {
+        case InFilter(_, values, _, _) if length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length) => true
+        case NotInFilter(_, values, _, _) if length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length) => true
+        case EqualityFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
+        case NotEqualToFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
+        case LikeFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
+        case _ => false
+      }
+      case _ => true
+    }
+  }
 }
 
 case class RequestModelResult(model: RequestModel, dryRunModelTry: Option[Try[RequestModel]])
