@@ -1120,15 +1120,22 @@ object RequestModel extends Logging {
   }
 
   def validateLengthForFilterValue(publicFactOption: Option[PublicFact], publicDimOption: Option[PublicDimension], filter: Filter): Boolean = {
-    val pubCol = if (publicFactOption.isDefined) publicFactOption.get.columnsByAliasMap(filter.field) else publicDimOption.get.columnsByAliasMap(filter.field)
-    val dataType = if (publicFactOption.isDefined) publicFactOption.get.dataTypeForAlias(pubCol.alias) else publicDimOption.get.nameToDataTypeMap(pubCol.name)
+    val dataType = {
+      if (publicFactOption.isDefined) publicFactOption.get.dataTypeForAlias(publicFactOption.get.columnsByAliasMap(filter.field).alias)
+      else if (publicDimOption.isDefined) publicDimOption.get.nameToDataTypeMap(publicDimOption.get.columnsByAliasMap(filter.field).name)
+      else None
+    }
+
     dataType match {
+      case None => throw new IllegalArgumentException(s"Both PublicFact and PublicDimension cannot be undefined.")
       case StrType(length, _, _) => filter match {
         case InFilter(_, values, _, _) if length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length) => true
         case NotInFilter(_, values, _, _) if length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length) => true
         case EqualityFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
         case NotEqualToFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
         case LikeFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
+        case BetweenFilter(_, from, to) if from.length <= MAX_ALLOWED_STR_LEN && to.length <= MAX_ALLOWED_STR_LEN => true
+        case IsNullFilter(_, _, _) | IsNotNullFilter(_, _, _) => true
         case _ => false
       }
       case _ => true
