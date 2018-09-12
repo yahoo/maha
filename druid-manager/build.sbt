@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 name := "druid-manager"
 
-version := "1.1"
+version := "1.1.1.1"
 
 scalaVersion := "2.12.6"
 
@@ -49,3 +49,18 @@ routesGenerator := InjectedRoutesGenerator
 
 fork in run := false
 
+maintainer := "Yahoo <yahoo@example.com>"
+
+packageSummary := "A tool for managing Apache Druid cluster"
+
+packageDescription := "A tool for managing Apache Druid cluster"
+
+rpmRelease := "1"
+
+rpmVendor := "yahoo"
+
+rpmUrl := Some("https://github.com/yahoo/maha/tree/master/druid-manager")
+
+rpmLicense := Some("Apachei v2")
+
+rpmGroup := Some("druid-manager")
