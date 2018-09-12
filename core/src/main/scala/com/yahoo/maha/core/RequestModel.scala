@@ -302,6 +302,8 @@ case class RequestModel(cube: String
 }
 
 object RequestModel extends Logging {
+  private[this] val MAX_ALLOWED_STR_LEN = 3999
+
   val Logger = LoggerFactory.getLogger(classOf[RequestModel])
 
   def from(request: ReportingRequest, registry: Registry, utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider, revision: Option[Int] = None) : Try[RequestModel] = {
@@ -708,6 +710,18 @@ object RequestModel extends Logging {
               val pubCol = publicFact.columnsByAliasMap(filter.field)
               require(pubCol.filters.contains(filter.operator),
                 s"Unsupported filter operation : cube=${publicFact.name}, col=${filter.field}, operation=${filter.operator}")
+              require(
+                publicFact.dataTypeForAlias(pubCol.alias) match {
+                  case StrType(length, _, _) => filter match {
+                    case InFilter(_, values, _, _) if length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length) => true
+                    case NotInFilter(_, values, _, _) if length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length) => true
+                    case EqualityFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
+                    case NotEqualToFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
+                    case LikeFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
+                    case _ => false
+                  }
+                  case _ => true
+                }, s"Value for ${filter.field} exceeds max length.")
           }
 
           //if we are dim driven, add primary key of highest level dim
@@ -816,13 +830,12 @@ object RequestModel extends Logging {
                           s"Unsupported filter operation : dimension=${publicDim.name}, col=${filter.field}, operation=${filter.operator}, expected=${pubCol.filters}")
                         require(
                           publicDim.nameToDataTypeMap(pubCol.name) match {
-                            case StrType(0, _, _) => true
                             case StrType(length, _, _) => filter match {
-                              case InFilter(_, values, _, _) if values.forall(_.length <= length) => true
-                              case NotInFilter(_, values, _, _) if values.forall(_.length <= length) => true
-                              case EqualityFilter(_, value, _, _) if value.length <= length => true
-                              case NotEqualToFilter(_, value, _, _) if value.length <= length => true
-                              case LikeFilter(_, value, _, _) if value.length <= length => true
+                              case InFilter(_, values, _, _) if length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length) => true
+                              case NotInFilter(_, values, _, _) if length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length) => true
+                              case EqualityFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
+                              case NotEqualToFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
+                              case LikeFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
                               case _ => false
                             }
                             case _ => true
