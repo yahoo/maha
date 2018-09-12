@@ -1,3 +1,3 @@
 #!/bin/bash
 set -ev
-yum install rpm-build -y
+sudo apt-get install rpm
