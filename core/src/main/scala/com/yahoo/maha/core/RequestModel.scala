@@ -814,6 +814,19 @@ object RequestModel extends Logging {
                         val pubCol = publicDim.columnsByAliasMap(filter.field)
                         require(pubCol.filters.contains(filter.operator),
                           s"Unsupported filter operation : dimension=${publicDim.name}, col=${filter.field}, operation=${filter.operator}, expected=${pubCol.filters}")
+                        require(
+                          publicDim.nameToDataTypeMap(pubCol.name) match {
+                            case StrType(0, _, _) => true
+                            case StrType(length, _, _) => filter match {
+                              case InFilter(_, values, _, _) if values.forall(_.length <= length) => true
+                              case NotInFilter(_, values, _, _) if values.forall(_.length <= length) => true
+                              case EqualityFilter(_, value, _, _) if value.length <= length => true
+                              case NotEqualToFilter(_, value, _, _) if value.length <= length => true
+                              case LikeFilter(_, value, _, _) if value.length <= length => true
+                              case _ => false
+                            }
+                            case _ => true
+                          }, s"Value for ${filter.field} exceeds max length.")
                     }
 
                     val hasNonFKSortBy = allDimSortBy.exists {
