@@ -57,10 +57,14 @@ packageDescription := "A tool for managing Apache Druid cluster"
 
 rpmRelease := "1"
 
+version in Rpm := sys.props.getOrElse("version", default = "1.0.0")
+
 rpmVendor := "yahoo"
 
 rpmUrl := Some("https://github.com/yahoo/maha/tree/master/druid-manager")
 
 rpmLicense := Some("Apache v2")
+
+rpmBrpJavaRepackJars := true
 
 rpmGroup := Some("druid-manager")
