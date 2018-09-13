@@ -4,12 +4,8 @@ set -ev
 cd $TRAVIS_BUILD_DIR/druid-manager
 
 if [ "${TRAVIS_PULL_REQUEST}" != "false" ] || [ "${TRAVIS_BRANCH}" != "master" ]; then
-    echo "TRAVIS_BUILD_ID= ${TRAVIS_BUILD_ID}";
-    VERSION=$TRAVIS_BUILD_ID;
-    echo "VERSION = ${VERSION}";
     sbt ++$TRAVIS_SCALA_VERSION package;
 else 
-    echo "TRAVIS_BUILD_ID= ${TRAVIS_BUILD_ID}";
     VERSION=$TRAVIS_BUILD_ID;
     echo "VERSION = ${VERSION}";
     sbt ++$TRAVIS_SCALA_VERSION -Dversion=$VERSION rpm:packageBin;
