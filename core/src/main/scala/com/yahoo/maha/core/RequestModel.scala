@@ -710,7 +710,7 @@ object RequestModel extends Logging {
               val pubCol = publicFact.columnsByAliasMap(filter.field)
               require(pubCol.filters.contains(filter.operator),
                 s"Unsupported filter operation : cube=${publicFact.name}, col=${filter.field}, operation=${filter.operator}")
-              require(validateLengthForFilterValue(Some(publicFact), None, filter), s"Value for ${filter.field} exceeds max length.")
+              require(validateLengthForFilterValue(publicFact, filter), s"Value for ${filter.field} exceeds max length.")
           }
 
           //if we are dim driven, add primary key of highest level dim
@@ -817,7 +817,7 @@ object RequestModel extends Logging {
                         val pubCol = publicDim.columnsByAliasMap(filter.field)
                         require(pubCol.filters.contains(filter.operator),
                           s"Unsupported filter operation : dimension=${publicDim.name}, col=${filter.field}, operation=${filter.operator}, expected=${pubCol.filters}")
-                        require(validateLengthForFilterValue(None, Some(publicDim), filter), s"Value for ${filter.field} exceeds max length.")
+                        require(validateLengthForFilterValue(publicDim, filter), s"Value for ${filter.field} exceeds max length.")
                     }
 
                     val hasNonFKSortBy = allDimSortBy.exists {
@@ -1119,15 +1119,17 @@ object RequestModel extends Logging {
     }
   }
 
-  def validateLengthForFilterValue(publicFactOption: Option[PublicFact], publicDimOption: Option[PublicDimension], filter: Filter): Boolean = {
+  def validateLengthForFilterValue(publicTable: PublicTable, filter: Filter): Boolean = {
     val dataType = {
-      if (publicFactOption.isDefined) publicFactOption.get.dataTypeForAlias(publicFactOption.get.columnsByAliasMap(filter.field).alias)
-      else if (publicDimOption.isDefined) publicDimOption.get.nameToDataTypeMap(publicDimOption.get.columnsByAliasMap(filter.field).name)
-      else None
+      publicTable match {
+        case publicDim: PublicDimension => publicDim.nameToDataTypeMap(publicDim.columnsByAliasMap(filter.field).name)
+        case publicFact: PublicFact => publicFact.dataTypeForAlias(publicFact.columnsByAliasMap(filter.field).alias)
+        case _ => None
+      }
     }
 
     dataType match {
-      case None => throw new IllegalArgumentException(s"Both PublicFact and PublicDimension cannot be undefined.")
+      case None => throw new IllegalArgumentException(s"Unable to find expected PublicTable as PublicFact or PublicDimension")
       case StrType(length, _, _) => filter match {
         case InFilter(_, values, _, _) if length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length) => true
         case NotInFilter(_, values, _, _) if length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length) => true
