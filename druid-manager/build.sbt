@@ -61,6 +61,6 @@ rpmVendor := "yahoo"
 
 rpmUrl := Some("https://github.com/yahoo/maha/tree/master/druid-manager")
 
-rpmLicense := Some("Apachei v2")
+rpmLicense := Some("Apache v2")
 
 rpmGroup := Some("druid-manager")
