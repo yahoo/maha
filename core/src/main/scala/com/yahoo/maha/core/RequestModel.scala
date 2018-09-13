@@ -1137,7 +1137,7 @@ object RequestModel extends Logging {
         case NotEqualToFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
         case LikeFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
         case BetweenFilter(_, from, to) if from.length <= MAX_ALLOWED_STR_LEN && to.length <= MAX_ALLOWED_STR_LEN => true
-        case IsNullFilter(_, _, _) | IsNotNullFilter(_, _, _) => true
+        case IsNullFilter(_, _, _) | IsNotNullFilter(_, _, _) | PushDownFilter(_) | OuterFilter(_) | OrFliter(_) | AndFilter(_) | OrFilter(_) | DefaultResult(_, _) | OrFilterMeta(_, _) => true
         case _ => false
       }
       case _ => true
