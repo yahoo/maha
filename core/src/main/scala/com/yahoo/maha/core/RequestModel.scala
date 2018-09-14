@@ -711,7 +711,8 @@ object RequestModel extends Logging {
               val pubCol = publicFact.columnsByAliasMap(filter.field)
               require(pubCol.filters.contains(filter.operator),
                 s"Unsupported filter operation : cube=${publicFact.name}, col=${filter.field}, operation=${filter.operator}")
-              require(validateLengthForFilterValue(publicFact, filter)._1, s"Value for ${filter.field} exceeds max length of ${validateLengthForFilterValue(publicFact, filter)._2} characters.")
+              val (isValidFilter, length) = validateLengthForFilterValue(publicFact, filter)
+              require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
           }
 
           //if we are dim driven, add primary key of highest level dim
@@ -818,7 +819,8 @@ object RequestModel extends Logging {
                         val pubCol = publicDim.columnsByAliasMap(filter.field)
                         require(pubCol.filters.contains(filter.operator),
                           s"Unsupported filter operation : dimension=${publicDim.name}, col=${filter.field}, operation=${filter.operator}, expected=${pubCol.filters}")
-                        require(validateLengthForFilterValue(publicDim, filter)._1, s"Value for ${filter.field} exceeds max length of ${validateLengthForFilterValue(publicFact, filter)._2} characters.")
+                        val (isValidFilter, length) = validateLengthForFilterValue(publicDim, filter)
+                        require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
                     }
 
                     val hasNonFKSortBy = allDimSortBy.exists {
