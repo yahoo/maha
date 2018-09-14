@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 name := "druid-manager"
 
-version := "1.1.1.1"
+version := "1.1"
 
 scalaVersion := "2.12.6"
 
