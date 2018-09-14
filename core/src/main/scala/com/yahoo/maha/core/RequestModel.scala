@@ -302,7 +302,8 @@ case class RequestModel(cube: String
 }
 
 object RequestModel extends Logging {
-  private[this] val MAX_ALLOWED_STR_LEN = 3999
+  private[this] val MAX_ALLOWED_STR_LEN = 3999: Int
+  def max_allowed_str_len: Int = MAX_ALLOWED_STR_LEN
 
   val Logger = LoggerFactory.getLogger(classOf[RequestModel])
 
@@ -1144,13 +1145,9 @@ object RequestModel extends Logging {
         case BetweenFilter(_, from, to) =>
           if (from.length <= MAX_ALLOWED_STR_LEN && to.length <= MAX_ALLOWED_STR_LEN) true else false
         case IsNullFilter(_, _, _) | IsNotNullFilter(_, _, _) | PushDownFilter(_) | OuterFilter(_) | OrFliter(_) => true
-        case _ => throw new Exception(s"Unhandled FilterOperation.")
+        case _ => throw new Exception(s"Unhandled FilterOperation $filter.")
       }
-      case _ => filter match {
-        case InFilter(_, _, _, _) | NotInFilter(_, _, _, _) | EqualityFilter(_, _, _, _) | NotEqualToFilter(_, _, _, _) | LikeFilter(_, _, _, _) | BetweenFilter(_, _, _) | IsNullFilter(_, _, _) | IsNotNullFilter(_, _, _) | PushDownFilter(_) | OuterFilter(_) | OrFliter(_) =>
-          true
-        case _ => throw new Exception(s"Unhandled FilterOperation.")
-      }
+      case _ => true
     }
   }
 }

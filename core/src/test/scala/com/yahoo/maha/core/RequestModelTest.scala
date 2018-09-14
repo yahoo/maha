@@ -17,6 +17,8 @@ import com.yahoo.maha.core.request._
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.{FunSuite, Matchers}
 
+import scala.util.Random
+
 /**
  * Created by jians on 10/23/15.
  */
@@ -5375,9 +5377,8 @@ class RequestModelTest extends FunSuite with Matchers {
   test("test validateLengthForFilterValue for publicDim") {
     val publicDim = defaultRegistry.getDimension("campaign")
     val field = "Campaign Name"
-    val values = List("abc", "def", "someNameLongerThanColumnLength")
     val value = "someNameLongerThanColumnLength"
-    val failFilters = List(InFilter(field, values), NotInFilter(field, values), EqualityFilter(field, value), NotEqualToFilter(field, value), LikeFilter(field, value))
+    val failFilters = List(InFilter(field, List(value)), NotInFilter(field, List(value)), EqualityFilter(field, value), NotEqualToFilter(field, value), LikeFilter(field, value))
     val passFilters = List(BetweenFilter(field, fromDate, toDate), IsNullFilter(field), IsNotNullFilter(field))
     for (filter <- failFilters) {
       assert(RequestModel.validateLengthForFilterValue(publicDim.get, filter) === false)
@@ -5390,11 +5391,20 @@ class RequestModelTest extends FunSuite with Matchers {
   test("test validateLengthForFilterValue for publicFact") {
     val publicFact = defaultRegistry.getFact("publicFact")
     val field = "Impressions"
-    val values = List("1000", "500", "2000")
     val value = "2500"
-    val filters = List(InFilter(field, values), NotInFilter(field, values), EqualityFilter(field, value), NotEqualToFilter(field, value), LikeFilter(field, value), BetweenFilter(field, fromDate, toDate), IsNullFilter(field), IsNotNullFilter(field))
+    val filters = List(InFilter(field, List(value)), NotInFilter(field, List(value)), EqualityFilter(field, value), NotEqualToFilter(field, value), LikeFilter(field, value), BetweenFilter(field, fromDate, toDate), IsNullFilter(field), IsNotNullFilter(field))
     for (filter <- filters) {
       assert(RequestModel.validateLengthForFilterValue(publicFact.get, filter) === true)
+    }
+  }
+
+  test("test validateLengthForFilterValue for string of length greater than max allowed") {
+    val publicDim = defaultRegistry.getDimension("campaign")
+    val field = "Campaign Status"
+    val value = Random.alphanumeric take RequestModel.max_allowed_str_len + 1 mkString ""
+    val filters = List(InFilter(field, List(value)), NotInFilter(field, List(value)), EqualityFilter(field, value), NotEqualToFilter(field, value), LikeFilter(field, value))
+    for (filter <- filters) {
+      assert(RequestModel.validateLengthForFilterValue(publicDim.get, filter) === false)
     }
   }
 }
