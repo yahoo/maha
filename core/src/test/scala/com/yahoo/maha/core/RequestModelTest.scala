@@ -5381,10 +5381,10 @@ class RequestModelTest extends FunSuite with Matchers {
     val failFilters = List(InFilter(field, List(value)), NotInFilter(field, List(value)), EqualityFilter(field, value), NotEqualToFilter(field, value), LikeFilter(field, value))
     val passFilters = List(BetweenFilter(field, fromDate, toDate), IsNullFilter(field), IsNotNullFilter(field))
     for (filter <- failFilters) {
-      assert(RequestModel.validateLengthForFilterValue(publicDim.get, filter) === false)
+      assert(RequestModel.validateLengthForFilterValue(publicDim.get, filter)._1 === false)
     }
     for (filter <- passFilters) {
-      assert(RequestModel.validateLengthForFilterValue(publicDim.get, filter) === true)
+      assert(RequestModel.validateLengthForFilterValue(publicDim.get, filter)._1 === true)
     }
   }
 
@@ -5394,7 +5394,7 @@ class RequestModelTest extends FunSuite with Matchers {
     val value = "2500"
     val filters = List(InFilter(field, List(value)), NotInFilter(field, List(value)), EqualityFilter(field, value), NotEqualToFilter(field, value), LikeFilter(field, value), BetweenFilter(field, fromDate, toDate), IsNullFilter(field), IsNotNullFilter(field))
     for (filter <- filters) {
-      assert(RequestModel.validateLengthForFilterValue(publicFact.get, filter) === true)
+      assert(RequestModel.validateLengthForFilterValue(publicFact.get, filter)._1 === true)
     }
   }
 
@@ -5404,7 +5404,7 @@ class RequestModelTest extends FunSuite with Matchers {
     val value = Random.alphanumeric take RequestModel.max_allowed_str_len + 1 mkString ""
     val filters = List(InFilter(field, List(value)), NotInFilter(field, List(value)), EqualityFilter(field, value), NotEqualToFilter(field, value), LikeFilter(field, value))
     for (filter <- filters) {
-      assert(RequestModel.validateLengthForFilterValue(publicDim.get, filter) === false)
+      assert(RequestModel.validateLengthForFilterValue(publicDim.get, filter)._1 === false)
     }
   }
 }

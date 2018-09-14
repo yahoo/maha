@@ -711,7 +711,7 @@ object RequestModel extends Logging {
               val pubCol = publicFact.columnsByAliasMap(filter.field)
               require(pubCol.filters.contains(filter.operator),
                 s"Unsupported filter operation : cube=${publicFact.name}, col=${filter.field}, operation=${filter.operator}")
-              require(validateLengthForFilterValue(publicFact, filter), s"Value for ${filter.field} exceeds max length.")
+              require(validateLengthForFilterValue(publicFact, filter)._1, s"Value for ${filter.field} exceeds max length of ${validateLengthForFilterValue(publicFact, filter)._2} characters.")
           }
 
           //if we are dim driven, add primary key of highest level dim
@@ -818,7 +818,7 @@ object RequestModel extends Logging {
                         val pubCol = publicDim.columnsByAliasMap(filter.field)
                         require(pubCol.filters.contains(filter.operator),
                           s"Unsupported filter operation : dimension=${publicDim.name}, col=${filter.field}, operation=${filter.operator}, expected=${pubCol.filters}")
-                        require(validateLengthForFilterValue(publicDim, filter), s"Value for ${filter.field} exceeds max length.")
+                        require(validateLengthForFilterValue(publicDim, filter)._1, s"Value for ${filter.field} exceeds max length of ${validateLengthForFilterValue(publicFact, filter)._2} characters.")
                     }
 
                     val hasNonFKSortBy = allDimSortBy.exists {
@@ -1120,7 +1120,7 @@ object RequestModel extends Logging {
     }
   }
 
-  def validateLengthForFilterValue(publicTable: PublicTable, filter: Filter): Boolean = {
+  def validateLengthForFilterValue(publicTable: PublicTable, filter: Filter): (Boolean, Int) = {
     val dataType = {
       publicTable match {
         case publicDim: PublicDimension => publicDim.nameToDataTypeMap(publicDim.columnsByAliasMap(filter.field).name)
@@ -1133,21 +1133,39 @@ object RequestModel extends Logging {
       case None => throw new IllegalArgumentException(s"Unable to find expected PublicTable as PublicFact or PublicDimension.")
       case StrType(length, _, _) => filter match {
         case InFilter(_, values, _, _) =>
-          if (length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length)) true else false
+          if (length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length))
+            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+          else
+            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
         case NotInFilter(_, values, _, _) =>
-          if (length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length)) true else false
+          if (length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length))
+            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+          else
+            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
         case EqualityFilter(_, value, _, _) =>
-          if (length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length) true else false
+          if (length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length)
+            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+          else
+            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
         case NotEqualToFilter(_, value, _, _) =>
-          if (length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length) true else false
+          if (length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length)
+            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+          else
+            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
         case LikeFilter(_, value, _, _) =>
-          if (length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length) true else false
+          if (length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length)
+            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+          else
+            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
         case BetweenFilter(_, from, to) =>
-          if (from.length <= MAX_ALLOWED_STR_LEN && to.length <= MAX_ALLOWED_STR_LEN) true else false
-        case IsNullFilter(_, _, _) | IsNotNullFilter(_, _, _) | PushDownFilter(_) | OuterFilter(_) | OrFliter(_) => true
+          if (from.length <= MAX_ALLOWED_STR_LEN && to.length <= MAX_ALLOWED_STR_LEN)
+            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+          else
+            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+        case IsNullFilter(_, _, _) | IsNotNullFilter(_, _, _) | PushDownFilter(_) | OuterFilter(_) | OrFliter(_) => (true, MAX_ALLOWED_STR_LEN)
         case _ => throw new Exception(s"Unhandled FilterOperation $filter.")
       }
-      case _ => true
+      case _ => (true, MAX_ALLOWED_STR_LEN)
     }
   }
 }
