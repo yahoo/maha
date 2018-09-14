@@ -106,6 +106,7 @@ case class DimensionBundle(dim: Dimension
                            , hasNonPushDownFilters: Boolean
                            , hasPKRequested: Boolean
                            , hasNonFKNonForceFilters: Boolean
+                           , hasLowCardinalityFilter: Boolean
                             ) {
   //only filtering on primary key alias then subquery candidate
   lazy val isSubQueryCandidate: Boolean = fields.filterNot(publicDim.isPrimaryKeyAlias).isEmpty

@@ -64,7 +64,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , DruidFuncDimCol("Start Hour", DateType("HH"), DATETIME_FORMATTER("{start_time}", 8, 2))
           , DimCol("ageBucket", StrType())
           , DimCol("woeids", StrType())
-          , DimCol("segments", StrType())
+          , DruidFuncDimCol("segments", StrType(), JAVASCRIPT("{segments}", "function(x) { return x > 0; }"))
 
         ),
         Set(

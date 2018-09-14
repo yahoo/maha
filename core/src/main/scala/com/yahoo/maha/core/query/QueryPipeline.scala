@@ -458,7 +458,7 @@ object DefaultQueryPipelineFactory extends Logging {
                   info(s"hasLowCardinalityDimFilters=${requestModel.hasLowCardinalityDimFilters} forceDimDriven=${requestModel.forceDimDriven} hasDimAndFactOperations=${requestModel.hasDimAndFactOperations}")
                   info(s"isFactDriven=${requestModel.isFactDriven} hasIndexInOutput=$hasIndexInOutput dimEngines=$dimEngines dimCandidates=${requestModel.dimensionsCandidates.map(_.dim.name)}")
                 }
-                QueryPipeline.syncNonDruidDisqualifyingSet
+                QueryPipeline.syncNonDruidDisqualifyingSet ++ forceDisqualifySet
               } else if (requestModel.hasFactSortBy
                 || (requestModel.hasDimSortBy && !requestModel.hasNonFKFactFilters)
                 || (!requestModel.hasDimAndFactOperations)
@@ -620,6 +620,7 @@ object DefaultQueryPipelineFactory extends Logging {
                   , hasNonPushDownFilters = dc.hasNonPushDownFilters
                   , hasPKRequested = dc.hasPKRequested
                   , hasNonFKNonForceFilters = dc.hasNonFKNonForceFilters
+                  , hasLowCardinalityFilter = dc.hasLowCardinalityFilter
                 )
               }
             }
