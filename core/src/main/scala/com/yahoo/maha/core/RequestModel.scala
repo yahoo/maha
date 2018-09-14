@@ -1129,18 +1129,28 @@ object RequestModel extends Logging {
     }
 
     dataType match {
-      case None => throw new IllegalArgumentException(s"Unable to find expected PublicTable as PublicFact or PublicDimension")
+      case None => throw new IllegalArgumentException(s"Unable to find expected PublicTable as PublicFact or PublicDimension.")
       case StrType(length, _, _) => filter match {
-        case InFilter(_, values, _, _) if length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length) => true
-        case NotInFilter(_, values, _, _) if length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length) => true
-        case EqualityFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
-        case NotEqualToFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
-        case LikeFilter(_, value, _, _) if length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length => true
-        case BetweenFilter(_, from, to) if from.length <= MAX_ALLOWED_STR_LEN && to.length <= MAX_ALLOWED_STR_LEN => true
-        case IsNullFilter(_, _, _) | IsNotNullFilter(_, _, _) | PushDownFilter(_) | OuterFilter(_) | OrFliter(_) | AndFilter(_) | OrFilter(_) | DefaultResult(_, _) | OrFilterMeta(_, _) => true
-        case _ => false
+        case InFilter(_, values, _, _) =>
+          if (length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length)) true else false
+        case NotInFilter(_, values, _, _) =>
+          if (length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length)) true else false
+        case EqualityFilter(_, value, _, _) =>
+          if (length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length) true else false
+        case NotEqualToFilter(_, value, _, _) =>
+          if (length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length) true else false
+        case LikeFilter(_, value, _, _) =>
+          if (length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length) true else false
+        case BetweenFilter(_, from, to) =>
+          if (from.length <= MAX_ALLOWED_STR_LEN && to.length <= MAX_ALLOWED_STR_LEN) true else false
+        case IsNullFilter(_, _, _) | IsNotNullFilter(_, _, _) | PushDownFilter(_) | OuterFilter(_) | OrFliter(_) => true
+        case _ => throw new Exception(s"Unhandled FilterOperation.")
       }
-      case _ => true
+      case _ => filter match {
+        case InFilter(_, _, _, _) | NotInFilter(_, _, _, _) | EqualityFilter(_, _, _, _) | NotEqualToFilter(_, _, _, _) | LikeFilter(_, _, _, _) | BetweenFilter(_, _, _) | IsNullFilter(_, _, _) | IsNotNullFilter(_, _, _) | PushDownFilter(_) | OuterFilter(_) | OrFliter(_) =>
+          true
+        case _ => throw new Exception(s"Unhandled FilterOperation.")
+      }
     }
   }
 }

@@ -345,7 +345,7 @@ class RequestModelTest extends FunSuite with Matchers {
           DimCol("id", IntType(), annotations = Set(PrimaryKey))
           , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
           , DimCol("status", StrType())
-          , DimCol("name", StrType())
+          , DimCol("name", StrType(20))
         )
         , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
       ).toPublicDimension("campaign",
@@ -5372,5 +5372,30 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.factFilters.find(_.field === "Device ID").get.asInstanceOf[NotInFilter].values === List("3"))
   }
 
+  test("test validateLengthForFilterValue for publicDim") {
+    val publicDim = defaultRegistry.getDimension("campaign")
+    val field = "Campaign Name"
+    val values = List("abc", "def", "someNameLongerThanColumnLength")
+    val value = "someNameLongerThanColumnLength"
+    val failFilters = List(InFilter(field, values), NotInFilter(field, values), EqualityFilter(field, value), NotEqualToFilter(field, value), LikeFilter(field, value))
+    val passFilters = List(BetweenFilter(field, fromDate, toDate), IsNullFilter(field), IsNotNullFilter(field))
+    for (filter <- failFilters) {
+      assert(RequestModel.validateLengthForFilterValue(publicDim.get, filter) === false)
+    }
+    for (filter <- passFilters) {
+      assert(RequestModel.validateLengthForFilterValue(publicDim.get, filter) === true)
+    }
+  }
+
+  test("test validateLengthForFilterValue for publicFact") {
+    val publicFact = defaultRegistry.getFact("publicFact")
+    val field = "Impressions"
+    val values = List("1000", "500", "2000")
+    val value = "2500"
+    val filters = List(InFilter(field, values), NotInFilter(field, values), EqualityFilter(field, value), NotEqualToFilter(field, value), LikeFilter(field, value), BetweenFilter(field, fromDate, toDate), IsNullFilter(field), IsNotNullFilter(field))
+    for (filter <- filters) {
+      assert(RequestModel.validateLengthForFilterValue(publicFact.get, filter) === true)
+    }
+  }
 }
 
