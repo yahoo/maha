@@ -4,7 +4,7 @@ package com.yahoo.maha.core
 
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, CubeBucketSelected}
 import com.yahoo.maha.core.dimension.PublicDimension
-import com.yahoo.maha.core.fact.{BestCandidates, PublicFactCol, PublicFactColumn}
+import com.yahoo.maha.core.fact.{BestCandidates, PublicFact, PublicFactCol, PublicFactColumn}
 import com.yahoo.maha.core.registry.{FactRowsCostEstimate, Registry}
 import com.yahoo.maha.core.request.Parameter.Distinct
 import com.yahoo.maha.core.request._
@@ -302,6 +302,9 @@ case class RequestModel(cube: String
 }
 
 object RequestModel extends Logging {
+  private[this] val MAX_ALLOWED_STR_LEN = 3999: Int
+  def max_allowed_str_len: Int = MAX_ALLOWED_STR_LEN
+
   val Logger = LoggerFactory.getLogger(classOf[RequestModel])
 
   def from(request: ReportingRequest, registry: Registry, utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider, revision: Option[Int] = None) : Try[RequestModel] = {
@@ -708,6 +711,8 @@ object RequestModel extends Logging {
               val pubCol = publicFact.columnsByAliasMap(filter.field)
               require(pubCol.filters.contains(filter.operator),
                 s"Unsupported filter operation : cube=${publicFact.name}, col=${filter.field}, operation=${filter.operator}")
+              val (isValidFilter, length) = validateLengthForFilterValue(publicFact, filter)
+              require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
           }
 
           //if we are dim driven, add primary key of highest level dim
@@ -814,6 +819,8 @@ object RequestModel extends Logging {
                         val pubCol = publicDim.columnsByAliasMap(filter.field)
                         require(pubCol.filters.contains(filter.operator),
                           s"Unsupported filter operation : dimension=${publicDim.name}, col=${filter.field}, operation=${filter.operator}, expected=${pubCol.filters}")
+                        val (isValidFilter, length) = validateLengthForFilterValue(publicDim, filter)
+                        require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
                     }
 
                     val hasNonFKSortBy = allDimSortBy.exists {
@@ -1115,6 +1122,54 @@ object RequestModel extends Logging {
     }
   }
 
+  def validateLengthForFilterValue(publicTable: PublicTable, filter: Filter): (Boolean, Int) = {
+    val dataType = {
+      publicTable match {
+        case publicDim: PublicDimension => publicDim.nameToDataTypeMap(publicDim.columnsByAliasMap(filter.field).name)
+        case publicFact: PublicFact => publicFact.dataTypeForAlias(publicFact.columnsByAliasMap(filter.field).alias)
+        case _ => None
+      }
+    }
+
+    dataType match {
+      case None => throw new IllegalArgumentException(s"Unable to find expected PublicTable as PublicFact or PublicDimension.")
+      case StrType(length, _, _) => filter match {
+        case InFilter(_, values, _, _) =>
+          if (length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length))
+            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+          else
+            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+        case NotInFilter(_, values, _, _) =>
+          if (length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length))
+            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+          else
+            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+        case EqualityFilter(_, value, _, _) =>
+          if (length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length)
+            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+          else
+            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+        case NotEqualToFilter(_, value, _, _) =>
+          if (length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length)
+            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+          else
+            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+        case LikeFilter(_, value, _, _) =>
+          if (length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length)
+            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+          else
+            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+        case BetweenFilter(_, from, to) =>
+          if (from.length <= MAX_ALLOWED_STR_LEN && to.length <= MAX_ALLOWED_STR_LEN)
+            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+          else
+            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+        case IsNullFilter(_, _, _) | IsNotNullFilter(_, _, _) | PushDownFilter(_) | OuterFilter(_) | OrFliter(_) => (true, MAX_ALLOWED_STR_LEN)
+        case _ => throw new Exception(s"Unhandled FilterOperation $filter.")
+      }
+      case _ => (true, MAX_ALLOWED_STR_LEN)
+    }
+  }
 }
 
 case class RequestModelResult(model: RequestModel, dryRunModelTry: Option[Try[RequestModel]])
