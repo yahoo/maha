@@ -1131,39 +1131,23 @@ object RequestModel extends Logging {
       }
     }
 
+    def validateLength(values : List[String], maxLength:Int) : (Boolean, Int) = {
+      val expectedLength = if (maxLength == 0) MAX_ALLOWED_STR_LEN else maxLength
+      if (values.forall(_.length <= expectedLength))
+        (true, expectedLength)
+      else
+        (false, expectedLength)
+    }
+
     dataType match {
       case None => throw new IllegalArgumentException(s"Unable to find expected PublicTable as PublicFact or PublicDimension.")
       case StrType(length, _, _) => filter match {
-        case InFilter(_, values, _, _) =>
-          if (length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length))
-            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
-          else
-            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
-        case NotInFilter(_, values, _, _) =>
-          if (length == 0 && values.forall(_.length <= MAX_ALLOWED_STR_LEN) || values.forall(_.length <= length))
-            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
-          else
-            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
-        case EqualityFilter(_, value, _, _) =>
-          if (length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length)
-            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
-          else
-            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
-        case NotEqualToFilter(_, value, _, _) =>
-          if (length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length)
-            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
-          else
-            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
-        case LikeFilter(_, value, _, _) =>
-          if (length == 0 && value.length <= MAX_ALLOWED_STR_LEN || value.length <= length)
-            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
-          else
-            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
-        case BetweenFilter(_, from, to) =>
-          if (from.length <= MAX_ALLOWED_STR_LEN && to.length <= MAX_ALLOWED_STR_LEN)
-            (true, if (length == 0) MAX_ALLOWED_STR_LEN else length)
-          else
-            (false, if (length == 0) MAX_ALLOWED_STR_LEN else length)
+        case InFilter(_, values, _, _) => validateLength(values, length)
+        case NotInFilter(_, values, _, _) => validateLength(values, length)
+        case EqualityFilter(_, value, _, _) => validateLength(List(value), length)
+        case NotEqualToFilter(_, value, _, _) => validateLength(List(value), length)
+        case LikeFilter(_, value, _, _) => validateLength(List(value), length)
+        case BetweenFilter(_, from, to) => validateLength(List(from, to), length)
         case IsNullFilter(_, _, _) | IsNotNullFilter(_, _, _) | PushDownFilter(_) | OuterFilter(_) | OrFliter(_) => (true, MAX_ALLOWED_STR_LEN)
         case _ => throw new Exception(s"Unhandled FilterOperation $filter.")
       }
