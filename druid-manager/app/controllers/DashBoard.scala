@@ -491,9 +491,10 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
               hostResponse.json.as[JsObject].fields.toList.map {
                 field =>
                   val lookupName = field._1
-                  val lookupSize = getLookupSize(host, field._2, lookupName)
-                  val lastTime = getLastTime(host, lookupName)
-                  getSingleLookup(oracleCache, lookupName, lookupSize, lastTime, host)
+                  val extractionNamespaceType = getExtractionNamespaceType(host, lookupName)
+                  val lookupSize = getLookupSize(host, field._2, lookupName, extractionNamespaceType)
+                  val lastTime = getLastTime(host, lookupName, extractionNamespaceType)
+                  getSingleLookup(oracleCache, lookupName, lookupSize, lastTime, host, extractionNamespaceType)
               }
           }
           val tupleAwait = Try {
@@ -526,81 +527,72 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
     }
   }
 
-  private def getLastTime(host: String, lookupName: String) = {
-
+  private def getExtractionNamespaceType(host: String, lookupName: String) = {
     val headers = druidAuthHeaderProvider.getAuthHeaders
-    val tupleFuture = ws.url(s"$druidHistoricalsHttpScheme://$host/druid/coordinator/v1/lookups/config/historicalLookupTier/$lookupName").withHeaders(headers.head._1 -> headers.head._2).get().map {
-      hostResponse =>
-        val lastTimeGet = (hostResponse.json \ "lookupExtractorFactory" \ "extractionNamespace" \ "type").as[String] match {
-          case "mahajdbc" => ws.url(s"$druidHistoricalsHttpScheme://$host/druid/v1/namespaces/$lookupName/lastUpdatedTime?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace").withHeaders(headers.head._1 -> headers.head._2).get()
-          case "mahainmemorydb" => ws.url(s"$druidHistoricalsHttpScheme://$host/druid/v1/namespaces/$lookupName/lastUpdatedTime?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace").withHeaders(headers.head._1 -> headers.head._2).get()
-        }
-        val lastTimeFuture = lastTimeGet.map {
-          nameResponse => new DateTime(nameResponse.body.toLong)
-        }
-        val lastTimeAwait = Try {
-          Await.result(lastTimeFuture, 120 second)
-        }
-        lastTimeAwait match {
-          case Success(lastTime) => {
-            lastTime
-          }
-          case Failure(e) =>
-            Logger.error(s"unable to get lookup last updated time : ${e.printStackTrace}")
-            new DateTime(0L)
-        }
+    val typeFuture = ws.url(s"$druidHistoricalsHttpScheme://$host/druid/coordinator/v1/lookups/config/historicalLookupTier/$lookupName").withHeaders(headers.head._1 -> headers.head._2).get().map {
+      hostResponse => (hostResponse.json \ "lookupExtractorFactory" \ "extractionNamespace" \ "type").as[String]
     }
-    val tupleAwait = Try {
-      Await.result(tupleFuture, 120 second)
+    val typeAwait = Try {
+      Await.result(typeFuture, 120 second)
     }
-    tupleAwait match {
-      case Success(tupleList) => {
-        Logger.debug(s"successfully got lookup for $host")
-        (host -> tupleList)
+    typeAwait match {
+      case Success(extractionNamespaceType) => {
+        Logger.debug(s"successfully got lookup type for $host")
+        extractionNamespaceType
       }
       case Failure(e) =>
-        Logger.error(s"unable to get lookup for host - $host: ${e.printStackTrace}")
+        Logger.error(s"unable to get lookup type for host - $host: ${e.printStackTrace}")
         throw new UnsupportedOperationException("exception occurred while getting tupleList")
     }
   }
 
-  private def getLookupSize(host: String, value: JsValue, lookupName: String) = {
+  private def getLastTime(host: String, lookupName: String, extractionNamespaceType: String) = {
+
     val headers = druidAuthHeaderProvider.getAuthHeaders
-    val tupleFuture = ws.url(s"$druidHistoricalsHttpScheme://$host/druid/coordinator/v1/lookups/config/historicalLookupTier/$lookupName").withHeaders(headers.head._1 -> headers.head._2).get().map {
-      hostResponse =>
-        val lookupFuture = (hostResponse.json \ "lookupExtractorFactory" \ "extractionNamespace" \ "type").as[String] match {
-          case "mahainmemorydb" =>
-            ws.url(s"$druidHistoricalsHttpScheme://$host/druid/v1/namespaces/$lookupName?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace").withHeaders(headers.head._1 -> headers.head._2).get()
-            .map(_.body.toString)
-            val lookupSizeAwait = Try {
-              Await.result(lookupFuture, 120 second)
-            }
-            lookupSizeAwait match {
-              case Success(size) => {
-                size
-              }
-              case Failure(e) =>
-                Logger.error(s"unable to get size for $host: ${e.printStackTrace}")
-                N_A
-            }
-          case _ => Json.stringify(value)
-        }
+    val lastTimeGet = if (lookupName == "mahainmemorydb") {
+      ws.url(s"$druidHistoricalsHttpScheme://$host/druid/v1/namespaces/$lookupName/lastUpdatedTime?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace").withHeaders(headers.head._1 -> headers.head._2).get()
+    } else {
+      ws.url(s"$druidHistoricalsHttpScheme://$host/druid/v1/namespaces/$lookupName/lastUpdatedTime?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace").withHeaders(headers.head._1 -> headers.head._2).get()
     }
-    val tupleAwait = Try {
-      Await.result(tupleFuture, 120 second)
+    val lastTimeFuture = lastTimeGet.map {
+      nameResponse => new DateTime(nameResponse.body.toLong)
     }
-    tupleAwait match {
-      case Success(tupleList) => {
-        Logger.debug(s"successfully got lookup for $host")
-        (host -> tupleList)
+    val lastTimeAwait = Try {
+      Await.result(lastTimeFuture, 120 second)
+    }
+    lastTimeAwait match {
+      case Success(lastTime) => {
+        lastTime
       }
       case Failure(e) =>
-        Logger.error(s"unable to get lookup for host - $host: ${e.printStackTrace}")
-        throw new UnsupportedOperationException("exception occurred while getting tupleList")
+        Logger.error(s"unable to get lookup last updated time : ${e.printStackTrace}")
+        new DateTime(0L)
+    }
+
+  }
+
+  private def getLookupSize(host: String, value: JsValue, lookupName: String, extractionNamespaceType: String) = {
+    val headers = druidAuthHeaderProvider.getAuthHeaders
+    if (extractionNamespaceType == "mahainmemorydb") {
+      val lookupFuture = ws.url(s"$druidHistoricalsHttpScheme://$host/druid/v1/namespaces/$lookupName?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace").withHeaders(headers.head._1 -> headers.head._2).get()
+        .map(_.body.toString)
+      val lookupSizeAwait = Try {
+        Await.result(lookupFuture, 120 second)
+      }
+      lookupSizeAwait match {
+        case Success(size) => {
+          size
+        }
+        case Failure(e) =>
+          Logger.error(s"unable to get size for $host: ${e.printStackTrace}")
+          N_A
+      }
+    } else {
+      Json.stringify(value)
     }
   }
 
-  private def getSingleLookup(oracleCache: mutable.Map[String, OracleValue], lookupName: String, lookupSize: String, lastTime: DateTime, host: String) = {
+  private def getSingleLookup(oracleCache: mutable.Map[String, OracleValue], lookupName: String, lookupSize: String, lastTime: DateTime, host: String, extractionNamespaceType: String) = {
     var (oracleLastUpdated: String, oracleSize: String) = (N_A, N_A)
     val headers = druidAuthHeaderProvider.getAuthHeaders
     val lookupTierURL = s"$druidCoordinator/druid/coordinator/v1/lookups/config/historicalLookupTier/$lookupName"
@@ -657,7 +649,7 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
 
     val lookupTierFuture = ws.url(lookupTierURL).withHeaders(headers.head._1 -> headers.head._2).get().map {
       tierReponse =>
-        val table = if (lookupName == "ad_lookup" || lookupName == "adgroup_lookup"){
+        val table = if (extractionNamespaceType == "mahainmemorydb"){
           Option(lookupName.split("_lookup")(0))
         } else {
           (tierReponse.json \ "lookupExtractorFactory" \ "extractionNamespace" \ "table") match {
