@@ -529,7 +529,7 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
 
   private def getExtractionNamespaceType(host: String, lookupName: String) = {
     val headers = druidAuthHeaderProvider.getAuthHeaders
-    val typeFuture = ws.url(s"$druidHistoricalsHttpScheme://$host/druid/coordinator/v1/lookups/config/historicalLookupTier/$lookupName").withHeaders(headers.head._1 -> headers.head._2).get().map {
+    val typeFuture = ws.url(s"$druidCoordinator/druid/coordinator/v1/lookups/config/historicalLookupTier/$lookupName").withHeaders(headers.head._1 -> headers.head._2).get().map {
       hostResponse => (hostResponse.json \ "lookupExtractorFactory" \ "extractionNamespace" \ "type").as[String]
     }
     val typeAwait = Try {
