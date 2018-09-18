@@ -264,6 +264,7 @@ trait SharedDimSchema {
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , OraclePartDimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+            , OraclePartDimCol("advertiser_id_alias", IntType(), alias = Some("advertiser_id"), annotations = Set(ForeignKey("advertiser")))
             , DimCol("device_id", IntType(3, (Map(1 -> "Desktop", 2 -> "Tablet", 3 -> "SmartPhone", -1 -> "UNKNOWN"), "UNKNOWN")))
             , DimCol("campaign_name", StrType(), annotations = Set(EscapingRequired, CaseInsensitive))
             , DimCol("status", StrType())

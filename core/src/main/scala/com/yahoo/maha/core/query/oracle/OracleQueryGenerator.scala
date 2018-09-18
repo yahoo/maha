@@ -220,7 +220,7 @@ b. Dim Driven
 
       if (dimBundle.dim.partitionColumns.nonEmpty) {
         dimBundle.dim.partitionColumns.foreach {
-          d => dimSelectSet += d.name
+          d => dimSelectSet += d.alias.getOrElse(d.name)
         }
       }
 
