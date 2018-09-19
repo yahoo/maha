@@ -43,8 +43,6 @@ abstract class Worker(workerConfig: WorkerConfig
                       , workerStateReporter: WorkerStateReporter
                      ) extends BaseMahaWorker with Logging {
 
-  val JOB_ID = "JobID"
-
   val mahaService:MahaService = DefaultMahaService(workerConfig.mahaServiceConfig)
 
   def work(getData: Array[Byte]): AckStatus
