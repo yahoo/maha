@@ -31,7 +31,8 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
                             jdbcConnectionToGetLookupTimeStamp: Option[JdbcConnection],
                             lookupTimestampSql: Option[String],
                             druidAuthHeaderProvider: DruidAuthHeaderProvider,
-                            authValidator: AuthValidator) extends Controller {
+                            authValidator: AuthValidator,
+                            historicalLookupTierName: String) extends Controller {
 
   implicit val context = scala.concurrent.ExecutionContext.Implicits.global
   private val dateFormat: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
@@ -529,7 +530,7 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
 
   private def getExtractionNamespaceType(host: String, lookupName: String) = {
     val headers = druidAuthHeaderProvider.getAuthHeaders
-    val typeFuture = ws.url(s"$druidCoordinator/druid/coordinator/v1/lookups/config/historicalLookupTier/$lookupName").withHeaders(headers.head._1 -> headers.head._2).get().map {
+    val typeFuture = ws.url(s"$druidCoordinator/druid/coordinator/v1/lookups/config/$historicalLookupTierName/$lookupName").withHeaders(headers.head._1 -> headers.head._2).get().map {
       hostResponse => (hostResponse.json \ "lookupExtractorFactory" \ "extractionNamespace" \ "type").as[String]
     }
     val typeAwait = Try {
@@ -595,7 +596,7 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
   private def getSingleLookup(oracleCache: mutable.Map[String, OracleValue], lookupName: String, lookupSize: String, lastTime: DateTime, host: String, extractionNamespaceType: String) = {
     var (oracleLastUpdated: String, oracleSize: String) = (N_A, N_A)
     val headers = druidAuthHeaderProvider.getAuthHeaders
-    val lookupTierURL = s"$druidCoordinator/druid/coordinator/v1/lookups/config/historicalLookupTier/$lookupName"
+    val lookupTierURL = s"$druidCoordinator/druid/coordinator/v1/lookups/config/$historicalLookupTierName/$lookupName"
 
     def getOracleLookup(table: Option[String]) = {
 
