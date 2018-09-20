@@ -3,10 +3,6 @@
 package com.yahoo.maha.api.jersey
 
 import java.util.UUID
-import javax.servlet.http.HttpServletRequest
-import javax.ws.rs.container.{AsyncResponse, Suspended}
-import javax.ws.rs.core.{Context, MediaType}
-import javax.ws.rs.{Path, Produces, _}
 
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request.{BaseRequest, ReportingRequest, RequestContext}
@@ -15,6 +11,10 @@ import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.service._
 import com.yahoo.maha.service.utils.MahaConstants
 import grizzled.slf4j.Logging
+import javax.servlet.http.HttpServletRequest
+import javax.ws.rs.container.{AsyncResponse, Suspended}
+import javax.ws.rs.core.{Context, MediaType}
+import javax.ws.rs.{Path, Produces, _}
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.MDC

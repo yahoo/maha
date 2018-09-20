@@ -2,15 +2,15 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.parrequest2.future;
 
-import java.util.function.Function;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.yahoo.maha.parrequest2.EitherUtils;
-import scala.util.Either;
 import com.yahoo.maha.parrequest2.GeneralError;
+import scala.util.Either;
 
 import java.util.concurrent.CancellationException;
+import java.util.function.Function;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;

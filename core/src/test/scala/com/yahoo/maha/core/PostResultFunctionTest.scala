@@ -3,8 +3,6 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.core.DruidPostResultFunction.START_OF_THE_WEEK
-import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol}
-import com.yahoo.maha.core.fact.ConstFactCol
 import com.yahoo.maha.core.query.{PostResultRowData, Row}
 import org.scalatest.{FunSuite, Matchers}
 

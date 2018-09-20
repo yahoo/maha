@@ -4,8 +4,6 @@ package utils
 
 import java.util.Properties
 
-import com.zaxxer.hikari.{HikariDataSource, HikariConfig}
-
 case class DatabaseConnDetails (jdbcUrl: String, dbUsername: String, dbPassword: String, maxPoolSize: Int)
 
 object HikariCpDataSource {

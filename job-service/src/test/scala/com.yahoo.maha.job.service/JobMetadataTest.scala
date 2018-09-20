@@ -8,9 +8,9 @@ import com.yahoo.maha.job.service.JobStatus.JobStatus
 import org.joda.time.DateTime
 import org.scalatest.{FunSuite, Matchers}
 
-import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 /*
     Created by pranavbhole on 8/30/18

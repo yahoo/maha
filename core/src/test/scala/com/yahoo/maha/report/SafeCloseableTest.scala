@@ -4,8 +4,8 @@ package com.yahoo.maha.report
 
 import java.io.{Closeable, IOException}
 
-import org.scalatest.{FunSuite, Matchers}
 import org.mockito.Mockito._
+import org.scalatest.{FunSuite, Matchers}
 /**
   * Created by hiral on 3/9/18.
   */

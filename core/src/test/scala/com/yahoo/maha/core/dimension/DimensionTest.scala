@@ -3,10 +3,10 @@
 package com.yahoo.maha.core.dimension
 
 import com.yahoo.maha.core.BaseExpressionTest.PRESTO_TIMESTAMP_TO_FORMATTED_DATE
-import com.yahoo.maha.core.FilterOperation._
-import com.yahoo.maha.core._
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.DruidPostResultFunction.START_OF_THE_WEEK
+import com.yahoo.maha.core.FilterOperation._
+import com.yahoo.maha.core._
 import com.yahoo.maha.core.ddl.{HiveDDLAnnotation, OracleDDLAnnotation}
 import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
 import org.scalatest.{FunSuite, Matchers}
@@ -241,8 +241,8 @@ class DimensionTest extends FunSuite with Matchers {
   test("newDimension should fail with derived expression with unknown referenced fields") {
     val thrown = intercept[IllegalArgumentException] {
       {
-        import com.yahoo.maha.core.HiveExpression._
         import com.yahoo.maha.core.BaseExpressionTest._
+        import com.yahoo.maha.core.HiveExpression._
         ColumnContext.withColumnContext { implicit cc =>
           Dimension.newDimension("dim1", HiveEngine, LevelOne, Set(AdvertiserSchema),
             Set(
@@ -280,8 +280,8 @@ class DimensionTest extends FunSuite with Matchers {
   test("newDimension should fail with columns with different engines") {
     intercept[ClassCastException] {
       {
-        import com.yahoo.maha.core.HiveExpression._
         import com.yahoo.maha.core.BaseExpressionTest._
+        import com.yahoo.maha.core.HiveExpression._
         ColumnContext.withColumnContext { implicit cc =>
           Dimension.newDimension("dim1", HiveEngine, LevelOne, Set(AdvertiserSchema),
             Set(
@@ -714,8 +714,8 @@ class DimensionTest extends FunSuite with Matchers {
 
   test("withAlternateEngine druid should, covering Druid dervied expressions") {
     val dim1 = dimBuilder
-    import com.yahoo.maha.core._
     import com.yahoo.maha.core.DruidDerivedFunction.DECODE_DIM
+    import com.yahoo.maha.core._
     ColumnContext.withColumnContext { implicit  cc : ColumnContext =>
       dim1.withAlternateEngine("dim2", "dim", DruidEngine,
         Set(

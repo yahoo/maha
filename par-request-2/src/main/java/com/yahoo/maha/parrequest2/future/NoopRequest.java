@@ -3,8 +3,8 @@
 package com.yahoo.maha.parrequest2.future;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import scala.util.Either;
 import com.yahoo.maha.parrequest2.GeneralError;
+import scala.util.Either;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

@@ -5,12 +5,12 @@ package com.yahoo.maha.parrequest2.future;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.yahoo.maha.parrequest2.EitherUtils;
-import com.yahoo.maha.parrequest2.ParCallable;
-import scala.util.Either;
 import com.yahoo.maha.parrequest2.GeneralError;
-import scala.Option;
+import com.yahoo.maha.parrequest2.ParCallable;
 import scala.Function1;
+import scala.Option;
 import scala.Unit;
+import scala.util.Either;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;

@@ -2,10 +2,9 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.api.jersey
 
-import javax.ws.rs.core.MediaType
-
 import com.yahoo.maha.api.jersey.example.ExampleMahaService
 import com.yahoo.maha.service.utils.MahaConstants
+import javax.ws.rs.core.MediaType
 import junit.framework.TestCase.assertNotNull
 import org.apache.http.client.methods.{HttpGet, HttpPost}
 import org.apache.http.entity.StringEntity

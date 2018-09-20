@@ -5,11 +5,12 @@ package com.yahoo.maha.core.dimension
 
 import com.google.common.annotations.VisibleForTesting
 import com.yahoo.maha.core.DruidDerivedFunction.GET_INTERVAL_DATE
-import com.yahoo.maha.core.ddl.{DDLAnnotation, HiveDDLAnnotation}
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.ddl.{DDLAnnotation, HiveDDLAnnotation}
 import com.yahoo.maha.core.request.RequestType
-import scala.collection.{SortedSet, mutable}
+
 import scala.collection.immutable.TreeSet
+import scala.collection.{SortedSet, mutable}
 
 /**
  * Created by hiral on 10/2/15.

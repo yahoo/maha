@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.log
 
-import java.net.{ServerSocket, SocketTimeoutException}
+import java.net.ServerSocket
 import java.util
 import java.util.Properties
 
@@ -17,12 +17,11 @@ import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.common.security.auth.SecurityProtocol
 import org.apache.kafka.common.utils.Time
+import org.mockito.Matchers._
+import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 import scala.collection.JavaConverters._
-import org.mockito.Mockito._
-import org.mockito.Matchers._
-
 import scala.concurrent.ExecutionException
 
 

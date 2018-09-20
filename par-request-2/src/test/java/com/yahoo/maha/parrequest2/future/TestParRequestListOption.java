@@ -2,11 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.parrequest2.future;
 
-import com.yahoo.maha.parrequest2.EitherUtils;
-import com.yahoo.maha.parrequest2.GeneralError;
-import com.yahoo.maha.parrequest2.Nothing;
-import com.yahoo.maha.parrequest2.ParCallable;
-
+import com.yahoo.maha.parrequest2.*;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.testng.ITestContext;
 import org.testng.ITestNGMethod;
@@ -17,7 +13,6 @@ import org.testng.annotations.Test;
 import scala.Option;
 import scala.util.Either;
 import scala.util.Right;
-import com.yahoo.maha.parrequest2.RetryAnalyzerImpl;
 
 import java.util.List;
 import java.util.stream.Collectors;

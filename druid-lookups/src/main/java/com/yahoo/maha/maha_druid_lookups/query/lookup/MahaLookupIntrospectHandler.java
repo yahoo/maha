@@ -3,9 +3,9 @@
 package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
 import com.google.common.collect.ImmutableMap;
-import io.druid.java.util.common.ISE;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaExtractionCacheManager;
 import io.druid.common.utils.ServletResourceUtils;
+import io.druid.java.util.common.ISE;
 import io.druid.query.extraction.MapLookupExtractor;
 import io.druid.query.lookup.LookupIntrospectHandler;
 

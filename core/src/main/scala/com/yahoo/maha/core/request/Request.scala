@@ -2,20 +2,17 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.request
 
-import com.yahoo.maha.core.Engine
-import enumeratum.EnumEntry
-import enumeratum.Enum
-import enumeratum.EnumEntry.{Snakecase, Uppercase}
-import org.json4s.scalaz.JsonScalaz
-
-import scalaz.syntax.applicative._
 import _root_.scalaz.{Success, Validation, syntax}
-import org.json4s.{JValue, _}
-import org.json4s.scalaz.JsonScalaz._
-
-import Validation.FlatMap._
+import com.yahoo.maha.core.Engine
+import enumeratum.{Enum, EnumEntry}
+import enumeratum.EnumEntry.{Snakecase, Uppercase}
 import grizzled.slf4j.Logging
 import org.json4s.JsonAST.JValue
+import org.json4s.scalaz.JsonScalaz
+import scalaz.syntax.applicative._
+import org.json4s._
+import org.json4s.scalaz.JsonScalaz._
+import _root_.scalaz.Validation.FlatMap._
 
 /**
  * Created by jians on 10/5/15.

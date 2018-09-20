@@ -109,7 +109,7 @@ object QueryRowList {
   val ROW_COUNT_ALIAS: String = "TOTALROWS"
 }
 
-import QueryRowList._
+import com.yahoo.maha.core.query.QueryRowList._
 trait QueryRowList extends RowList {
 
   override val columns: IndexedSeq[ColumnInfo] = query.queryContext.requestModel.requestCols

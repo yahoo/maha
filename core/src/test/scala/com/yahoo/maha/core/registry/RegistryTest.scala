@@ -2,13 +2,13 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.registry
 
-import com.yahoo.maha.core.FilterOperation._
-import com.yahoo.maha.core.dimension._
-import com.yahoo.maha.core._
 import com.yahoo.maha.core.CoreSchema._
-import com.yahoo.maha.core.fact.{PublicFactCol, FactCol, Fact, PublicFact}
-import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest, RequestType}
-import org.scalatest.{Matchers, FunSuite}
+import com.yahoo.maha.core.FilterOperation._
+import com.yahoo.maha.core._
+import com.yahoo.maha.core.dimension._
+import com.yahoo.maha.core.fact.{Fact, FactCol, PublicFact, PublicFactCol}
+import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
+import org.scalatest.{FunSuite, Matchers}
 
 /**
  * Created by jians on 10/21/15.

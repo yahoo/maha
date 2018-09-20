@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.MissingLookupConfig;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.PasswordProvider;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestPasswordProvider;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
 import io.druid.metadata.MetadataStorageConnectorConfig;

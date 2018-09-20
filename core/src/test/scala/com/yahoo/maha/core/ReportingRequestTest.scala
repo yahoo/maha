@@ -11,7 +11,6 @@ import org.apache.commons.lang3.StringUtils.EMPTY
 import org.joda.time.DateTimeZone
 import org.json4s.scalaz.JsonScalaz
 import org.scalatest.FlatSpec
-
 import scalaz.{IList, ValidationNel}
 
 /**

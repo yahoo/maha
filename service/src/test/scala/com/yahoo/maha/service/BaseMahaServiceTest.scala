@@ -6,21 +6,21 @@ import java.net.{InetSocketAddress, ServerSocket}
 import java.nio.file.Paths
 import java.util.UUID
 
+import cats.effect.IO
 import com.google.common.io.Closer
-import com.yahoo.maha.core.{DailyGrain, OracleEngine}
 import com.yahoo.maha.core.ddl.OracleDDLGenerator
 import com.yahoo.maha.core.registry.Registry
+import com.yahoo.maha.core.{DailyGrain, OracleEngine}
 import com.yahoo.maha.jdbc.JdbcConnection
 import com.yahoo.maha.service.utils.MahaConstants
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import grizzled.slf4j.Logging
 import org.apache.log4j.MDC
+import org.http4s._
+import org.http4s.dsl.io._
 import org.http4s.server.blaze.BlazeBuilder
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.FunSuite
-import cats.effect.IO
-import org.http4s._
-import org.http4s.dsl.io._
 
 /**
  * Created by pranavbhole on 21/03/18.

@@ -6,7 +6,6 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
-
 import grizzled.slf4j.Logging
 
 import scala.collection.{SortedSet, mutable}

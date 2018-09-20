@@ -5,9 +5,9 @@ package com.yahoo.maha.core.query
 import java.io.{File, FileNotFoundException}
 import java.nio.file.{Files, StandardOpenOption}
 
-import com.yahoo.maha.core.{IntType, RequestModel, StrType}
 import com.yahoo.maha.core.query.oracle.BaseOracleQueryGeneratorTest
 import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.core.{IntType, RequestModel, StrType}
 import com.yahoo.maha.report.FileRowCSVWriterProvider
 
 import scala.collection.mutable.ArrayBuffer

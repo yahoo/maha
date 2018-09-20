@@ -7,11 +7,11 @@ package com.yahoo.maha.executor.druid
  */
 
 import java.io.Closeable
-import javax.net.ssl.SSLContext
 
 import com.ning.http.client.{AsyncHttpClient, AsyncHttpClientConfig, Response}
 import com.yahoo.maha.executor.druid.filters.TimeoutThrottlingFilter
 import grizzled.slf4j.Logging
+import javax.net.ssl.SSLContext
 import org.apache.http.HttpHeaders
 import org.apache.http.entity.ContentType;
 

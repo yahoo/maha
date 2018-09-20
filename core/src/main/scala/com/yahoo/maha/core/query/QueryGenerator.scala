@@ -5,7 +5,6 @@ package com.yahoo.maha.core.query
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact.FactBestCandidate
-import com.yahoo.maha.core.query.Version.{v0, v1, v2}
 
 import scala.collection.mutable
 

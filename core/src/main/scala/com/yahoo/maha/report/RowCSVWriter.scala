@@ -6,12 +6,12 @@ package com.yahoo.maha.report
  * Created by hiral on 1/20/16.
  */
 
-import com.opencsv.CSVWriter
-import com.yahoo.maha.core.query.Row
 import java.io._
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, StandardOpenOption}
 
+import com.opencsv.CSVWriter
+import com.yahoo.maha.core.query.Row
 import org.apache.commons.lang.StringUtils
 
 
@@ -71,7 +71,7 @@ object RowCSVWriter {
   }
 }
 
-import RowCSVWriter._
+import com.yahoo.maha.report.RowCSVWriter._
 
 class RowCSVWriter(pw: PrintWriter, separator: Char, quotechar: Char, escapechar: Char, lineEnd: String) extends AutoCloseable {
 

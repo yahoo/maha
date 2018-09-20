@@ -2,12 +2,11 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
+import _root_.scalaz.{Scalaz, syntax}
 import org.json4s._
 import org.json4s.scalaz.JsonScalaz
 import org.json4s.scalaz.JsonScalaz._
-
-import _root_.scalaz.{Scalaz, syntax}
-import syntax.validation._
+import _root_.scalaz.syntax.validation._
 
 /**
  * Created by hiral on 2/25/16.

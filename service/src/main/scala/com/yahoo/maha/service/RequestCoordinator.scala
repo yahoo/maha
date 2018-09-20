@@ -8,11 +8,11 @@ import com.yahoo.maha.service.utils.MahaRequestLogBuilder
 import grizzled.slf4j.Logging
 import org.json4s.scalaz.JsonScalaz
 import org.slf4j.LoggerFactory
+import scalaz.{NonEmptyList, Validation}
 
 import scala.collection.JavaConverters._
-import scala.collection.{SortedSet, mutable}
 import scala.collection.mutable.ArrayBuffer
-import scalaz.{NonEmptyList, Validation}
+import scala.collection.{SortedSet, mutable}
 
 case class RequestCoordinatorError(generalError: GeneralError, curatorError: Option[CuratorError] = None)
   extends GeneralError(generalError.stage, generalError.message, generalError.throwableOption)

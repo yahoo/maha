@@ -4,11 +4,7 @@ package com.yahoo.maha.parrequest2.future;
 
 import com.yahoo.maha.parrequest2.GeneralError;
 import com.yahoo.maha.parrequest2.ParCallable;
-
 import com.yahoo.maha.parrequest2.RetryAnalyzerImpl;
-import com.yahoo.maha.parrequest2.future.ParFunction;
-import com.yahoo.maha.parrequest2.future.ParRequest;
-import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor;
 import org.slf4j.MDC;
 import org.testng.ITestContext;
 import org.testng.ITestNGMethod;

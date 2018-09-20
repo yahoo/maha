@@ -3,7 +3,7 @@
 package com.yahoo.maha.core.ddl
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{OracleDerDimCol, DimCol}
+import com.yahoo.maha.core.dimension.{DimCol, OracleDerDimCol}
 
 import scala.collection.mutable
 

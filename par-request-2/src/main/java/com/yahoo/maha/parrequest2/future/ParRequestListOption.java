@@ -5,10 +5,10 @@ package com.yahoo.maha.parrequest2.future;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.yahoo.maha.parrequest2.EitherUtils;
-import com.yahoo.maha.parrequest2.ParCallable;
-import scala.util.Either;
-import scala.Option;
 import com.yahoo.maha.parrequest2.GeneralError;
+import com.yahoo.maha.parrequest2.ParCallable;
+import scala.Option;
+import scala.util.Either;
 
 import java.util.ArrayList;
 import java.util.List;

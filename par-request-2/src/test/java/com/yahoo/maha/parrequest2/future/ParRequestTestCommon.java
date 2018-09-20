@@ -3,10 +3,10 @@
 package com.yahoo.maha.parrequest2.future;
 
 
-import scala.util.Right;
 import com.yahoo.maha.parrequest2.GeneralError;
 import com.yahoo.maha.parrequest2.ParCallable;
 import scala.util.Either;
+import scala.util.Right;
 
 /**
  * Created by hiral on 6/25/14.

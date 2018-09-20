@@ -3,9 +3,9 @@
 package com.yahoo.maha.core.bucketing
 
 import com.yahoo.maha.core.Engine
+import com.yahoo.maha.core.query.Version
 import com.yahoo.maha.core.registry.Registry
 import grizzled.slf4j.Logging
-import com.yahoo.maha.core.query.Version
 import org.apache.commons.lang3.StringUtils._
 
 import scala.util.Try

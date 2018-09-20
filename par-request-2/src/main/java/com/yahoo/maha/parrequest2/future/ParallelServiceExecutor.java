@@ -2,34 +2,21 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.parrequest2.future;
 
-import java.util.function.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.common.util.concurrent.*;
 import com.yahoo.maha.parrequest2.CustomRejectPolicy;
-import com.yahoo.maha.parrequest2.ParCallable;
-import scala.util.Either;
-import scala.util.Right;
 import com.yahoo.maha.parrequest2.GeneralError;
-import scala.Option;
-
+import com.yahoo.maha.parrequest2.ParCallable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.Option;
+import scala.util.Either;
+import scala.util.Right;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;

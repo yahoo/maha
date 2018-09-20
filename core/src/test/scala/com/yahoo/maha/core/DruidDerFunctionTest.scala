@@ -2,8 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
-import com.yahoo.maha.core.DruidDerivedFunction.{GET_INTERVAL_DATE}
-import org.scalatest.{Matchers, FunSuite}
+import org.scalatest.{FunSuite, Matchers}
 
 /**
  * Created by jians on 10/30/15.

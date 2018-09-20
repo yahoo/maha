@@ -4,17 +4,16 @@ package com.yahoo.maha.core.request
 
 import java.nio.charset.StandardCharsets
 
+import _root_.scalaz._
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.request.ReportFormatType.{CSVFormat, JsonFormat}
 import org.joda.time.DateTime
+import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.scalaz.JsonScalaz
-
-import _root_.scalaz._
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
-import org.json4s._
 import org.json4s.scalaz.JsonScalaz._
 
+import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
 
 /**
@@ -285,9 +284,8 @@ trait BaseRequest {
 }
 
 object ReportingRequest extends BaseRequest {
-  import syntax.validation._
-  import syntax.applicative._
   import Validation.FlatMap._
+  import syntax.validation._
 
   def deserializeWithAdditionalParameters(ba: Array[Byte]
                                           , schema: Schema

@@ -2,9 +2,9 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.fact
 
+import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
@@ -55,8 +55,8 @@ trait BaseFactTest extends FunSuite with Matchers {
   //create a new fact builder for each call
   def fact1WithForceFilters(forceFilters: Set[ForceFilter]) : FactBuilder = {
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
-      import com.yahoo.maha.core.HiveExpression._
       import com.yahoo.maha.core.BaseExpressionTest._
+      import com.yahoo.maha.core.HiveExpression._
       Fact.newFact(
         "fact1", DailyGrain, HiveEngine, Set(AdvertiserSchema),
         Set(

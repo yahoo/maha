@@ -1,15 +1,6 @@
 // Copyright 2018, Oath Inc.
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package filter
-import akka.stream.Materializer
-import com.google.common.base.Charsets
-import com.google.common.hash.Hashing
-import com.yahoo.maha.core.auth.{AuthValidator, ValidationResult}
-import play.api.Logger
-import play.api.mvc._
-
-import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
 
 class AuthenticationFilter(authValidator: AuthValidator)(implicit val mat: Materializer) extends Filter {
 

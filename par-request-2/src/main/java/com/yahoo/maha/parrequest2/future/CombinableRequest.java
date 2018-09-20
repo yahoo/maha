@@ -3,8 +3,8 @@
 package com.yahoo.maha.parrequest2.future;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import scala.util.Either;
 import com.yahoo.maha.parrequest2.GeneralError;
+import scala.util.Either;
 
 /**
  * Base class for combinable requests, a future needs to be exposed for combining

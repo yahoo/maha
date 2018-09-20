@@ -10,8 +10,8 @@ import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
 import org.apache.commons.lang3.StringUtils
 
-import scala.collection.{SortedSet, mutable}
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.{SortedSet, mutable}
 import scala.util.Try
 
 /**

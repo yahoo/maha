@@ -4,11 +4,11 @@ package com.yahoo.maha.parrequest2.future;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.yahoo.maha.parrequest2.EitherUtils;
-import com.yahoo.maha.parrequest2.ParCallable;
-import scala.util.Either;
 import com.yahoo.maha.parrequest2.GeneralError;
+import com.yahoo.maha.parrequest2.ParCallable;
 import scala.Option;
 import scala.Tuple6;
+import scala.util.Either;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;

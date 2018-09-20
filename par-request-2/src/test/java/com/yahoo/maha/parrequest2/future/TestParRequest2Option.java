@@ -5,7 +5,6 @@ package com.yahoo.maha.parrequest2.future;
 import com.yahoo.maha.parrequest2.GeneralError;
 import com.yahoo.maha.parrequest2.Nothing;
 import com.yahoo.maha.parrequest2.ParCallable;
-
 import com.yahoo.maha.parrequest2.RetryAnalyzerImpl;
 import org.testng.ITestContext;
 import org.testng.ITestNGMethod;
@@ -13,7 +12,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
-
 import scala.Option;
 import scala.Tuple2;
 import scala.util.Either;
