@@ -31,6 +31,7 @@ class DruidManagerLoader extends ApplicationLoader {
     val druidBroker = context.initialConfiguration.getString("druid.broker").getOrElse(throw new UnsupportedOperationException("druid.broker not defined in config"))
     val druidHistoricalsHttpScheme = context.initialConfiguration.getString("druid.historicals.http.scheme").getOrElse("https")
     val wsTimeout = context.initialConfiguration.getInt("mgr.ws.timeout.time").getOrElse(throw new UnsupportedOperationException("mgr.ws.timeout.time not defined in config"))
+    val historicalLookupTierName = context.initialConfiguration.getString("historical.lookup.tier.name").getOrElse("historicalLookupTier")
 
     val client = AhcWSClient()
 
@@ -80,7 +81,8 @@ class DruidManagerLoader extends ApplicationLoader {
       jdbcConnectionToGetLookupTimeStamp,
       lookupTimestampSql,
       druidAuthHeaderProvider,
-      authValidator
+      authValidator,
+      historicalLookupTierName
     )
 
     private[this] lazy val assetsController = new controllers.Assets(httpErrorHandler, assetsMetadata)

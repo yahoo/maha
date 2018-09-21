@@ -6,7 +6,7 @@ cd $TRAVIS_BUILD_DIR/druid-manager
 if [ "${TRAVIS_PULL_REQUEST}" != "false" ] || [ "${TRAVIS_BRANCH}" != "master" ]; then
     sbt ++$TRAVIS_SCALA_VERSION package;
 else 
-    VERSION="1.1.3";
+    VERSION="1.1.4";
     echo "VERSION = ${VERSION}";
     sbt ++$TRAVIS_SCALA_VERSION -Dversion=$VERSION rpm:packageBin > sbt_package.out;
     curl -T $TRAVIS_BUILD_DIR/druid-manager/target/rpm/RPMS/noarch/druid-manager-$VERSION-1.noarch.rpm -u$BINTRAY_USER:$BINTRAY_API_KEY https://api.bintray.com/content/yahoo/rpm/druid-manager/$VERSION/druid-manager-$VERSION-1.noarch.rpm;
