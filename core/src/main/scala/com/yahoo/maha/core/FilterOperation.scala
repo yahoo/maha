@@ -14,11 +14,11 @@ import com.yahoo.maha.core.request.fieldExtended
 import grizzled.slf4j.Logging
 import io.druid.query.extraction.{SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
 import org.json4s.scalaz.JsonScalaz
+
+import scala.collection.{Iterable, mutable}
 import scalaz.syntax.applicative._
 import org.json4s._
 import org.json4s.scalaz.JsonScalaz._
-
-import scala.collection.{Iterable, mutable}
 
 sealed trait FilterOperation
 case object InFilterOperation extends FilterOperation { override def toString = "In" }
@@ -475,7 +475,7 @@ object SqlIsNotNullFilterRenderer extends IsNotNullFilterRenderer[SqlResult] {
 }
 
 object FilterDruid {
-  import io.druid.query.filter._
+  import io.druid.query.filter.{DimFilter, NotDimFilter, OrDimFilter, SearchQueryDimFilter, SelectorDimFilter}
   import io.druid.query.groupby.having._
   import io.druid.query.search.InsensitiveContainsSearchQuerySpec
   import org.joda.time.DateTime
@@ -906,6 +906,7 @@ object FilterSql {
 
 object Filter extends Logging {
   import JsonUtils._
+
   import _root_.scalaz.Validation
   import Validation.FlatMap._
 
