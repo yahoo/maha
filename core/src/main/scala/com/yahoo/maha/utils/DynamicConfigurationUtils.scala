@@ -17,9 +17,7 @@ object DynamicConfigurationUtils extends Logging {
 
   def extractDynamicFields(json: JValue): Map[String, (String, String)] = {
     val dynamicFieldMap = new mutable.HashMap[String, (String, String)]()
-    val dynamicFields = json.filterField(_._2 match {
-      case JString(s) => DYNAMIC_CONFIG_PATTERN.matcher(s).find()
-      case _ => false})
+    val dynamicFields = getDynamicFields(json)
 
     dynamicFields.foreach(f => {
       require(f._2.isInstanceOf[JString], s"Cannot extract dynamic property from non-string field: $f")
@@ -35,15 +33,11 @@ object DynamicConfigurationUtils extends Logging {
   }
 
   def getDynamicFields(json: JValue): List[JField] = {
-    println("Matching now...")
     json.filterField(_._2 match {
       case JString(s) => {
-        println("Is string")
         DYNAMIC_CONFIG_PATTERN.matcher(s).find()
       }
-      case a => {
-        println("Is other: " + a)
-        false
-      }})
+      case a => false
+    })
   }
 }
