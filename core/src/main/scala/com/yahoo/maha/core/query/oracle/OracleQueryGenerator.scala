@@ -255,7 +255,7 @@ b. Dim Driven
         val partitionKeyConditions = new mutable.LinkedHashSet[String]()
         dimBundle.dim.partitionColumns.map {
           partCol =>
-            val name = partCol.name
+            val name = partCol.alias.getOrElse(partCol.name)
             val alias = dimBundle.publicDim.keyColumnToAliasMap(name)
             val prevName = prevPublicDim.aliasToNameMapFull(alias)
             if (prevName.nonEmpty) {
