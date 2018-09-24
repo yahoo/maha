@@ -107,7 +107,7 @@ object PrestoExpression {
   case class DAY_OF_WEEK(s: PrestoExp, fmt: String) extends BasePrestoExpression {
     val hasRollupExpression = s.hasRollupExpression
     val hasNumericOperation = s.hasNumericOperation
-    def asString : String = s"from_unixtime(unix_timestamp(${s.asString}, '$fmt'), 'EEEE')"
+    def asString : String = s"date_format(date_parse(${s.asString}, '$fmt'), '%W')"
   }
 
   case class COALESCE(s: PrestoExp, default: PrestoExp) extends BasePrestoExpression {
