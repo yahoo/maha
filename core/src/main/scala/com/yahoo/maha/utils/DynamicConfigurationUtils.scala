@@ -35,8 +35,15 @@ object DynamicConfigurationUtils extends Logging {
   }
 
   def getDynamicFields(json: JValue): List[JField] = {
+    println("Matching now...")
     json.filterField(_._2 match {
-      case JString(s) => DYNAMIC_CONFIG_PATTERN.matcher(s).find()
-      case _ => false})
+      case JString(s) => {
+        println("Is string")
+        DYNAMIC_CONFIG_PATTERN.matcher(s).find()
+      }
+      case a => {
+        println("Is other: " + a)
+        false
+      }})
   }
 }
