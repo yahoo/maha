@@ -5,13 +5,13 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache;
 import com.google.common.primitives.Chars;
 import com.google.common.util.concurrent.Striped;
 import com.google.inject.Inject;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import io.druid.java.util.common.IAE;
 import io.druid.java.util.common.lifecycle.Lifecycle;
 import io.druid.java.util.common.logger.Logger;
 import io.druid.java.util.emitter.service.ServiceEmitter;
 import io.druid.java.util.emitter.service.ServiceMetricEvent;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

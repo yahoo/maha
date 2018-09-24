@@ -7,7 +7,7 @@ import java.util.concurrent.Executors
 
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.bucketing.{BucketSelector, BucketingConfig, DefaultBucketingConfig, QueryGenBucketingConfigBuilder}
+import com.yahoo.maha.core.bucketing.{BucketSelector, DefaultBucketingConfig, QueryGenBucketingConfigBuilder}
 import com.yahoo.maha.core.registry.{Registry, RegistryBuilder}
 import com.yahoo.maha.core.request._
 import org.joda.time.{DateTime, DateTimeZone}

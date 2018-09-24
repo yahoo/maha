@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.dimension
 
-import com.yahoo.maha.core.{ClassNameHashCode, WithOracleEngine, HiveDerivedExpression, WithHiveEngine}
+import com.yahoo.maha.core.{ClassNameHashCode, WithOracleEngine}
 
 /**
  * Created by hiral on 10/2/15.

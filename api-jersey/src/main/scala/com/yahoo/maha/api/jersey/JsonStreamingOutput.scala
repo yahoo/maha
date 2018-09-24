@@ -3,12 +3,12 @@
 package com.yahoo.maha.api.jersey
 
 import java.io.OutputStream
-import javax.ws.rs.core.StreamingOutput
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.service.RequestCoordinatorResult
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
 import com.yahoo.maha.service.output.JsonOutputFormat
+import javax.ws.rs.core.StreamingOutput
 
 class JsonStreamingOutput(override val requestCoordinatorResult: RequestCoordinatorResult,
                                override val ingestionTimeUpdaterMap : Map[Engine, IngestionTimeUpdater] = Map.empty

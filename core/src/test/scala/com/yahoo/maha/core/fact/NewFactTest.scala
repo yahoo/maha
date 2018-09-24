@@ -2,10 +2,10 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.fact
 
-import com.yahoo.maha.core.DruidDerivedFunction.GET_INTERVAL_DATE
-import com.yahoo.maha.core._
 import com.yahoo.maha.core.CoreSchema._
+import com.yahoo.maha.core.DruidDerivedFunction.GET_INTERVAL_DATE
 import com.yahoo.maha.core.DruidPostResultFunction.POST_RESULT_DECODE
+import com.yahoo.maha.core._
 import com.yahoo.maha.core.ddl.OracleDDLAnnotation
 import com.yahoo.maha.core.dimension.{DimCol, DruidFuncDimCol, OracleDerDimCol}
 

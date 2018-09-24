@@ -3,10 +3,10 @@
 package com.yahoo.maha.core.fact
 
 import com.yahoo.maha.core.CoreSchema._
-import com.yahoo.maha.core.{ColumnContext, DailyGrain, InFilter, InFilterOperation, IntType, OracleEngine, PrimaryKey, StrType}
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
 import com.yahoo.maha.core.dimension.DimCol
 import com.yahoo.maha.core.request.SyncRequest
+import com.yahoo.maha.core.{ColumnContext, DailyGrain, InFilter, InFilterOperation, IntType, OracleEngine, PrimaryKey, StrType}
 
 /**
  * Created by shengyao on 2/10/16.

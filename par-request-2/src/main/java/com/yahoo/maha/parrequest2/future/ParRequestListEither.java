@@ -7,7 +7,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.yahoo.maha.parrequest2.EitherUtils;
 import com.yahoo.maha.parrequest2.GeneralError;
 import com.yahoo.maha.parrequest2.ParCallable;
-import scala.Option;
 import scala.util.Either;
 
 import java.util.ArrayList;

@@ -3,7 +3,7 @@
 package com.yahoo.maha.core.fact
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.query.{FactualQueryContext, Query, QueryContext}
+import com.yahoo.maha.core.query.{FactualQueryContext, QueryContext}
 
 /**
  * Created by hiral on 10/7/15.

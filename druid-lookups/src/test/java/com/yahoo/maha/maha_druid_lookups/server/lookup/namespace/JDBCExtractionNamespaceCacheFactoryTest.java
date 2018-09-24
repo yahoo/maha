@@ -1,8 +1,8 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
-import io.druid.java.util.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
+import io.druid.java.util.emitter.service.ServiceEmitter;
 import io.druid.metadata.MetadataStorageConnectorConfig;
 import org.joda.time.Period;
 import org.mockito.InjectMocks;

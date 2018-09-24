@@ -2,12 +2,11 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query
 
-import com.yahoo.maha.core.{DecType, RequestModel}
-import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator}
+import com.yahoo.maha.core.query.druid.DruidQueryGenerator
 import com.yahoo.maha.core.query.oracle.BaseOracleQueryGeneratorTest
 import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.core.{DecType, RequestModel}
 
-import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
 
 /**

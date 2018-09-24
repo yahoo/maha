@@ -3,8 +3,8 @@
 package com.yahoo.maha.core
 
 import grizzled.slf4j.Logging
-import org.joda.time.{DateTime, Days, DateTimeZone}
 import org.joda.time.format._
+import org.joda.time.{DateTime, DateTimeZone, Days}
 
 /**
  * Created by jians on 10/21/15.

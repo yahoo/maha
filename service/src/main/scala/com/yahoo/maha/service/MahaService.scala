@@ -24,12 +24,12 @@ import grizzled.slf4j.Logging
 import javax.sql.DataSource
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.scalaz.JsonScalaz._
-
-import scala.collection.mutable
-import scala.util.Try
 import scalaz.Validation.FlatMap._
 import scalaz.syntax.validation._
 import scalaz.{Failure, ValidationNel, _}
+
+import scala.collection.mutable
+import scala.util.Try
 
 
 /**

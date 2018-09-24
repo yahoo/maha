@@ -1,7 +1,7 @@
 package com.yahoo.maha.core.helper
 
-import com.yahoo.maha.core.{DruidEngine, HiveEngine, OracleEngine, PrestoEngine}
 import com.yahoo.maha.core.query.{InnerJoin, LeftOuterJoin, RightOuterJoin}
+import com.yahoo.maha.core.{DruidEngine, HiveEngine, OracleEngine, PrestoEngine}
 import org.scalatest.{FunSuiteLike, Matchers}
 
 class SqlHelperTest extends FunSuiteLike with Matchers{

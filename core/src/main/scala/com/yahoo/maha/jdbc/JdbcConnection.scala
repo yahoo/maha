@@ -10,9 +10,11 @@ package com.yahoo.maha.jdbc
  */
 
 import java.sql._
+
 import javax.sql.DataSource
-import scala.util.{Failure, Success, Try}
+
 import scala.concurrent._
+import scala.util.{Failure, Success, Try}
 
 case class JdbcConnection(dataSource: DataSource, fetchSize: Int = 10) {
 

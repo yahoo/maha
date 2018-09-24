@@ -6,7 +6,7 @@ import com.yahoo.maha.api.example.ExampleSchema.WikiSchema
 import com.yahoo.maha.core.DruidDerivedFunction.DRUID_TIME_FORMAT
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{DruidFuncDimCol, DimCol, PubCol}
+import com.yahoo.maha.core.dimension.{DimCol, DruidFuncDimCol, PubCol}
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.registry.{DimensionRegistrationFactory, FactRegistrationFactory, RegistryBuilder}
 import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}

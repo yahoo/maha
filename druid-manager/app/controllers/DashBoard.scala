@@ -4,24 +4,6 @@ package controllers
 
 import java.text.SimpleDateFormat
 
-import com.yahoo.maha.core.auth.{AuthValidator, DruidAuthHeaderProvider}
-import com.yahoo.maha.jdbc.JdbcConnection
-import controllers.bean.{DataSourceMetrics, SegmentMetrics}
-import javax.inject.Inject
-import org.joda.time.DateTime
-import org.json4s.NoTypeHints
-import play.api.Logger
-import play.api.libs.json._
-import play.api.libs.ws._
-import play.api.mvc._
-import play.api.routing.JavaScriptReverseRouter
-
-import scala.collection.immutable.{ListMap, Map}
-import scala.collection.mutable
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import scala.util.{Failure, Success, Try}
-
 class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
                             druildIndexer: String,
                             druidBroker : String,
@@ -405,7 +387,7 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
   }
 
   def getWorkers() = Action.async{ request =>
-    import org.json4s.jackson.Serialization
+
     implicit val formats = Serialization.formats(NoTypeHints)
     Logger.debug(s"ws call started: ${druidCoordinator}/druid/indexer/v1/worker")
 
@@ -475,7 +457,7 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
 
   def getLookUps() = Action {
     request =>
-    import org.json4s.jackson.Serialization
+
     implicit val formats = Serialization.formats(NoTypeHints)
     val oracleCache = mutable.Map[String, OracleValue]()
       val headers = druidAuthHeaderProvider.getAuthHeaders

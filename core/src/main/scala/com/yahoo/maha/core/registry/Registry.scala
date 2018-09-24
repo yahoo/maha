@@ -3,7 +3,7 @@
 package com.yahoo.maha.core.registry
 
 import com.yahoo.maha.core.dimension.PublicDimension
-import com.yahoo.maha.core.fact.{Fact, FactCandidate, PublicFact}
+import com.yahoo.maha.core.fact.{FactCandidate, PublicFact}
 import com.yahoo.maha.core.request.{ReportingRequest, RequestType}
 import com.yahoo.maha.core.{DefaultDimEstimator, DefaultFactEstimator, _}
 import grizzled.slf4j.Logging

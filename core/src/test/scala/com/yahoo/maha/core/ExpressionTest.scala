@@ -3,7 +3,7 @@
 package com.yahoo.maha.core
 
 import io.druid.jackson.DefaultObjectMapper
-import org.scalatest.{Matchers, FunSuite}
+import org.scalatest.{FunSuite, Matchers}
 
 /**
  * Created by hiral on 10/12/15.

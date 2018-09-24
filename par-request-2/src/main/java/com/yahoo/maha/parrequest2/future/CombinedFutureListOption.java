@@ -6,13 +6,13 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.yahoo.maha.parrequest2.GeneralError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.Option;
 import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;
-import com.yahoo.maha.parrequest2.GeneralError;
-import scala.Option;
 
 import java.util.Collections;
 import java.util.List;

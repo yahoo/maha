@@ -2,8 +2,8 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query
 
-import com.yahoo.maha.core.{DruidEngine, OracleEngine}
-import org.scalatest.{Matchers, FunSuite}
+import com.yahoo.maha.core.OracleEngine
+import org.scalatest.{FunSuite, Matchers}
 
 /**
  * Created by pranavbhole on 06/12/16.

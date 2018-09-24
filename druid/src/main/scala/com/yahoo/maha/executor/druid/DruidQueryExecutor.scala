@@ -5,6 +5,7 @@ package com.yahoo.maha.executor.druid
 import java.io.Closeable
 import java.math.MathContext
 import java.nio.charset.StandardCharsets
+
 import com.google.common.cache.{CacheBuilder, CacheLoader}
 import com.ning.http.client.Response
 import com.yahoo.maha.core._
@@ -16,6 +17,7 @@ import org.joda.time.format.DateTimeFormatter
 import org.json4s.DefaultFormats
 import org.json4s.JsonAST._
 import org.json4s.jackson.JsonMethods._
+
 import scala.collection.concurrent.TrieMap
 import scala.util.{Failure, Try}
 

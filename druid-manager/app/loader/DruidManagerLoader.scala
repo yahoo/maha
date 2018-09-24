@@ -2,21 +2,6 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package loader
 
-import com.yahoo.maha.core.auth.{AuthValidator, DruidAuthHeaderProvider}
-import com.yahoo.maha.jdbc.JdbcConnection
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.PasswordProvider
-import controllers.AssetsComponents
-import filter.AuthenticationFilter
-import play.api.ApplicationLoader.Context
-import play.api.i18n.I18nComponents
-import play.api.libs.ws.ahc.AhcWSClient
-import play.api.routing.Router
-import play.api.{Application, ApplicationLoader, BuiltInComponentsFromContext}
-import router.Routes
-import utils.{DatabaseConnDetails, HikariCpDataSource}
-
-import scala.collection.immutable.Map
-
 class DruidManagerLoader extends ApplicationLoader {
 
  override def load(context:Context):Application = {

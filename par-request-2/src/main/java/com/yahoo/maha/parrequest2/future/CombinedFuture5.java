@@ -6,10 +6,10 @@ import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.yahoo.maha.parrequest2.EitherUtils;
-import scala.util.Either;
-import scala.util.Right;
 import com.yahoo.maha.parrequest2.GeneralError;
 import scala.Tuple5;
+import scala.util.Either;
+import scala.util.Right;
 
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicBoolean;

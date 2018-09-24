@@ -10,7 +10,6 @@ import com.yahoo.maha.core.DruidDerivedFunction.{DECODE_DIM, GET_INTERVAL_DATE}
 import com.yahoo.maha.core.DruidPostResultFunction.{POST_RESULT_DECODE, START_OF_THE_MONTH, START_OF_THE_WEEK}
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact.{DruidConstDerFactCol, PublicFactCol, _}
 import com.yahoo.maha.core.lookup.LongRangeLookup

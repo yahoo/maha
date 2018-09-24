@@ -7,8 +7,8 @@ import com.yahoo.maha.job.service.JobStatus.JobStatus
 import grizzled.slf4j.Logging
 import org.joda.time.DateTime
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 /*
     Created by pranavbhole on 8/31/18
