@@ -550,7 +550,7 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
   private def getLastTime(host: String, lookupName: String, extractionNamespaceType: String) = {
 
     val headers = druidAuthHeaderProvider.getAuthHeaders
-    val lastTimeGet = if (lookupName == "mahainmemorydb") {
+    val lastTimeGet = if (extractionNamespaceType == "mahainmemorydb") {
       ws.url(s"$druidHistoricalsHttpScheme://$host/druid/v1/namespaces/$lookupName/lastUpdatedTime?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace").withHeaders(headers.head._1 -> headers.head._2).get()
     } else {
       ws.url(s"$druidHistoricalsHttpScheme://$host/druid/v1/namespaces/$lookupName/lastUpdatedTime?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace").withHeaders(headers.head._1 -> headers.head._2).get()
