@@ -220,17 +220,16 @@ b. Dim Driven
 
       if (dimBundle.dim.partitionColumns.nonEmpty) {
         dimBundle.dim.partitionColumns.foreach {
-          d => dimSelectSet += d.name
+          d => dimSelectSet += d.alias.getOrElse(d.name)
         }
       }
 
-      var hasTotalRows = false
-
+      /*
       if (requestModel.includeRowCount && requestModel.isDimDriven && dimBundle.isDrivingDimension
         && ((!nonPrimaryBundleHasFilters && isDimOnly) || !isDimOnly)) {
         dimSelectSet += PAGINATION_ROW_COUNT
         hasTotalRows = true
-      }
+      }*/
 
       val dimSelect = dimSelectSet.mkString(", ")
       val dimWhere = generateWhereClause(dimBundle, subqueryBundles)
@@ -256,7 +255,7 @@ b. Dim Driven
         val partitionKeyConditions = new mutable.LinkedHashSet[String]()
         dimBundle.dim.partitionColumns.map {
           partCol =>
-            val name = partCol.name
+            val name = partCol.alias.getOrElse(partCol.name)
             val alias = dimBundle.publicDim.keyColumnToAliasMap(name)
             val prevName = prevPublicDim.aliasToNameMapFull(alias)
             if (prevName.nonEmpty) {
@@ -286,7 +285,7 @@ b. Dim Driven
           s"""SELECT $optionalHint $dimSelect
             FROM ( $innerSql )
             WHERE $MAX_SNAPSHOT_TS_ALIAS = $snapshotColumnName"""
-          , None, None, hasPagination = false, hasTotalRows = hasTotalRows)
+          , None, None, hasPagination = false, hasTotalRows = false)
       } else {
         if (supportingRenderedDimension.isDefined) {
           RenderedDimension(dimAlias,
@@ -294,13 +293,13 @@ b. Dim Driven
             FROM ${dimension.name} INNER JOIN ( ${supportingRenderedDimension.get.sql} ) ${supportingRenderedDimension.get.dimAlias}
             ${supportingRenderedDimension.get.onCondition.get}
             $dimWhere
-            $dimOrderBy """, onCondition, supportingRenderedDimension, hasPagination = false, hasTotalRows = hasTotalRows)
+            $dimOrderBy """, onCondition, supportingRenderedDimension, hasPagination = false, hasTotalRows = false)
         } else {
           RenderedDimension(dimAlias,
             s"""SELECT $optionalHint $dimSelect
             FROM ${dimension.name}
             $dimWhere
-            $dimOrderBy """, onCondition, supportingRenderedDimension, hasPagination = false, hasTotalRows = hasTotalRows)
+            $dimOrderBy """, onCondition, supportingRenderedDimension, hasPagination = false, hasTotalRows = false)
         }
       }
     }
@@ -356,9 +355,10 @@ b. Dim Driven
           }
       }
 
+      /*
       if (requestModel.includeRowCount && requestModel.isDimDriven && dimBundle.isDrivingDimension) {
         dimSelectSet += PAGINATION_ROW_COUNT
-      }
+      }*/
 
       val dimSelect = dimSelectSet.mkString(", ")
       val dimWhere = generateWhereClause(dimBundle, Set.empty)
@@ -599,10 +599,10 @@ b. Dim Driven
     if(includePagination) {
       val paginationPredicates: ListBuffer[String] = new ListBuffer[String]()
       val minPosition: Int = if (si < 0) 1 else si + 1
-      paginationPredicates += ("ROWNUM >= " + minPosition)
+      paginationPredicates += ("ROW_NUMBER >= " + minPosition)
       if (mr > 0) {
         val maxPosition: Int = if (si <= 0) mr else minPosition - 1 + mr
-        paginationPredicates += ("ROWNUM <= " + maxPosition)
+        paginationPredicates += ("ROW_NUMBER <= " + maxPosition)
       }
       if (outerFiltersPresent)
         String.format(OUTER_PAGINATION_WRAPPER_WITH_FILTERS, queryString, paginationPredicates.toList.mkString(" AND "))
@@ -717,7 +717,8 @@ b. Dim Driven
       }
 
       if (queryContext.requestModel.includeRowCount && !queryContext.requestModel.hasFactSortBy) {
-        outerColumns += OracleQueryGenerator.ROW_COUNT_ALIAS
+        //outerColumns += OracleQueryGenerator.ROW_COUNT_ALIAS
+        outerColumns += PAGINATION_ROW_COUNT
       }
 
       dimQueryNotInOption.fold {
@@ -747,7 +748,8 @@ b. Dim Driven
       val queryBuilderContext = new QueryBuilderContext
 
       //TODO: figure out what to do with multi dim sql, but we shouldnt have any here, maybe throw error
-      val dimensionSql = generateDimensionSql(queryContext, queryBuilderContext, includePagination)
+      //shoudln't include pagination wrapper in dim sql, should be in outer clause
+      val dimensionSql = generateDimensionSql(queryContext, queryBuilderContext, includePagination = false)
       val dimQueryString = dimensionSql.drivingDimensionSql
       val aliasColumnMap = queryBuilderContext.aliasColumnMap
 
@@ -779,11 +781,19 @@ b. Dim Driven
         }
         aliasColumnMapOfRequestCols += (OracleQueryGenerator.ROW_COUNT_ALIAS -> PAGINATION_ROW_COUNT_COL)
       }
-      val finalQueryString = String.format(queryStringTemplate, outerColumns.mkString(", "), dimQueryString, outerWhereClause)
-      val queryString = if(dimensionSql.hasPagination) finalQueryString else {
-        addOuterPaginationWrapper(finalQueryString, queryContext.requestModel.maxRows, queryContext.requestModel.startIndex, includePagination,
-          requestModel.outerFilters.size > 0)
+
+      if(includePagination) {
+        outerColumns+=ROW_NUMBER_ALIAS
       }
+
+      val finalQueryString = String.format(queryStringTemplate, outerColumns.mkString(", "), dimQueryString, outerWhereClause)
+      //there should be no pagination in the dimension sql since we disabled paginiation generation in above dimensionSql call
+      val queryString = addOuterPaginationWrapper(finalQueryString
+        , queryContext.requestModel.maxRows
+        , queryContext.requestModel.startIndex
+        , includePagination
+        , requestModel.outerFilters.nonEmpty)
+
       new OracleQuery(
         queryContext,
         queryString,
@@ -833,7 +843,6 @@ b. Dim Driven
           case StrType(_, sm, _) if sm.isDefined && queryContext.requestModel.isDimDriven =>
             val defaultValue = sm.get.default
             s"""COALESCE(${alias}, '$defaultValue')"""
-          case IntType(_, _, _, _, _) | DecType(_, _, _, _, _, _) => toChar(alias)
           case DateType(fmt) if fmt.isDefined => s"to_char($alias, '${fmt.get}')"
           case _ => alias
         }
@@ -981,17 +990,22 @@ b. Dim Driven
     val aliasColumnMapOfRequestCols = new mutable.HashMap[String, Column]()
     val isFactOnlyQuery = requestModel.isFactDriven && queryContext.dims.forall {
       db => (db.fields.filterNot(db.publicDim.isPrimaryKeyAlias).isEmpty && !db.hasNonFKSortBy
+        && db.hasLowCardinalityFilter
         && queryContext.factBestCandidate.publicFact.foreignKeyAliases(db.publicDim.primaryKeyByAlias))
     }
     val requestColAliasesSet = requestModel.requestCols.map(_.alias).toSet
     val factOnlySubqueryFields : Set[String] = if(isFactOnlyQuery) {
       queryContext.dims.view.map(_.publicDim.primaryKeyByAlias).filterNot(requestColAliasesSet).toSet
     } else Set.empty
+    val includePaginationOnDimensions = requestModel.isSyncRequest && !requestModel.includeRowCount
 
     def generateDimJoin(): Unit = {
       if (queryContext.dims.nonEmpty) {
-        val dsql = generateDimensionSql(queryContext, queryBuilderContext, true)
+        val dsql = generateDimensionSql(queryContext, queryBuilderContext, includePaginationOnDimensions)
         queryBuilder.addDimensionJoin(dsql.drivingDimensionSql)
+        if(dsql.hasPagination) {
+          queryBuilder.setHasDimensionPagination()
+        }
         //TODO: add support for optimal mutli dimension sort by metric query
         //TODO: right now it just does join with driving table
         dsql.multiDimensionJoinSql.foreach(queryBuilder.addMultiDimensionJoin)
@@ -1198,7 +1212,8 @@ b. Dim Driven
       }
 
       if (queryContext.requestModel.includeRowCount) {
-        queryBuilder.addOuterColumn(OracleQueryGenerator.ROW_COUNT_ALIAS)
+        //queryBuilder.addOuterColumn(OracleQueryGenerator.ROW_COUNT_ALIAS)
+        queryBuilder.addOuterColumn(PAGINATION_ROW_COUNT)
         aliasColumnMapOfRequestCols += (OracleQueryGenerator.ROW_COUNT_ALIAS -> PAGINATION_ROW_COUNT_COL)
       }
 
@@ -1243,7 +1258,11 @@ ${queryBuilder.getJoinExpressions}
 ) ${queryBuilder.getOuterWhereClause}
    $orderByClause"""
 
-      if (requestModel.isSyncRequest && (requestModel.isFactDriven || requestModel.hasFactSortBy)) {
+      if (requestModel.isSyncRequest &&
+        (requestModel.includeRowCount ||
+          requestModel.isFactDriven ||
+          (includePaginationOnDimensions && !queryBuilder.getHasDimensionPagination))) {
+      //if (requestModel.isSyncRequest && (requestModel.isFactDriven || requestModel.hasFactSortBy)) {
         addPaginationWrapper(queryString, queryContext.requestModel.maxRows, queryContext.requestModel.startIndex, true)
       } else {
         queryString

@@ -17,6 +17,8 @@ import com.yahoo.maha.core.request._
 import org.joda.time.{DateTime, DateTimeZone}
 import org.scalatest.{FunSuite, Matchers}
 
+import scala.util.Random
+
 /**
  * Created by jians on 10/23/15.
  */
@@ -345,7 +347,7 @@ class RequestModelTest extends FunSuite with Matchers {
           DimCol("id", IntType(), annotations = Set(PrimaryKey))
           , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
           , DimCol("status", StrType())
-          , DimCol("name", StrType())
+          , DimCol("name", StrType(20))
         )
         , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
       ).toPublicDimension("campaign",
@@ -401,7 +403,7 @@ class RequestModelTest extends FunSuite with Matchers {
       )
     }
   }
-  
+
   def getDefaultRegistry(forcedFilters: Set[ForcedFilter] = Set.empty): Registry = {
     val registryBuilder = new RegistryBuilder
     registryBuilder.register(pubfact4(forcedFilters))
@@ -416,8 +418,10 @@ class RequestModelTest extends FunSuite with Matchers {
     registryBuilder.register(ad_group)
     registryBuilder.register(keyword_dim)
     registryBuilder.register(product_ad_dim)
-    registryBuilder.build(factEstimator = new DefaultFactEstimator(Set("advertiser-ad","advertiser-adgroup","advertiser-campaign", "advertiser-campaign-adgroup", "advertiser-adgroup-ad", "advertiser-campaign-adgroup-ad")))
+    registryBuilder.build(factEstimator = new DefaultFactEstimator(Set("*-productAd","advertiser-ad","advertiser-adgroup","advertiser-campaign", "advertiser-campaign-adgroup", "advertiser-adgroup-ad", "advertiser-campaign-adgroup-ad")))
   }
+
+  lazy val defaultRegistry: Registry = getDefaultRegistry()
 
   test("create model should fail when non existing cube requested") {
     val jsonString = s"""{
@@ -469,7 +473,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
   }
@@ -495,7 +499,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
   }
@@ -519,7 +523,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
   }
@@ -543,7 +547,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
   }
@@ -567,7 +571,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     res.isFailure shouldBe true
     res.failed.get.getMessage should startWith (s"requirement failed: ${UnknownFieldNameError("Field")}")
@@ -593,7 +597,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     res.isFailure shouldBe true
     res.failed.get.getMessage should startWith (s"requirement failed: ${UnknownFieldNameError("Filter")}")
@@ -619,7 +623,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     res.isFailure shouldBe true
     res.failed.get.getMessage should startWith ("requirement failed: Failed to determine dim or fact source for ordering by Blah")
@@ -645,7 +649,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     res.isFailure shouldBe true
     res.failed.get.getMessage should startWith ("requirement failed: Ordering fields must be in requested fields")
@@ -674,7 +678,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     res.isFailure shouldBe true
     res.failed.get.getMessage should startWith (s"requirement failed: ${UnknownFieldNameError("Site ID")}")
@@ -701,7 +705,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     res.isFailure shouldBe true
     res.failed.get.getMessage should startWith (s"requirement failed: ${NoRelationWithPrimaryKeyError(request.cube, "Site ID", Option("Site Status"))}")
@@ -729,7 +733,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     res.isFailure shouldBe true
     res.failed.get.getMessage should startWith (s"requirement failed: ${NoRelationWithPrimaryKeyError(request.cube, "Site ID")}")
@@ -756,7 +760,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     res.isFailure shouldBe true
     res.failed.get.getMessage should startWith (s"requirement failed: ${NoRelationWithPrimaryKeyError(request.cube, "Site ID", Option("Site Status"))}")
@@ -782,7 +786,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     res.isFailure shouldBe true
     res.failed.get.getMessage should startWith ("requirement failed: No candidates found for request!")
@@ -808,13 +812,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
     assert(res.toOption.get.isDimDriven, "Request should be dim driven but isn't!")
     assert(res.toOption.get.hasDimFilters)
     assert(!res.toOption.get.hasDimSortBy)
     assert(res.toOption.get.hasFactFilters)
+    assert(!res.toOption.get.hasMetricFilters)
     assert(!res.toOption.get.hasFactSortBy)
     assert(res.get.publicDimToJoinTypeMap("campaign") == InnerJoin, "Should inner join as request is filtering on dim for nonDimDriven Case")
   }
@@ -841,13 +846,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
     assert(res.toOption.get.isDimDriven, "Request should be dim driven but isn't!")
     assert(res.toOption.get.hasDimFilters)
     assert(res.toOption.get.hasDimSortBy)
     assert(res.toOption.get.hasFactFilters)
+    assert(!res.toOption.get.hasMetricFilters)
     assert(!res.toOption.get.hasFactSortBy)
     assert(res.toOption.get.factFilters.size === 1)
     assert(res.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
@@ -878,13 +884,15 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
     assert(res.toOption.get.isFactDriven, "Request should be fact driven but isn't!")
     assert(res.toOption.get.hasDimFilters)
     assert(res.toOption.get.hasDimSortBy)
     assert(res.toOption.get.hasFactFilters)
+    assert(!res.toOption.get.hasMetricFilters)
+    assert(!res.toOption.get.hasMetricFilters)
     assert(!res.toOption.get.hasFactSortBy)
     assert(res.toOption.get.factFilters.size === 1)
     assert(res.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
@@ -914,13 +922,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
     assert(!res.toOption.get.isDimDriven, "Request should not be dim driven but is!")
     assert(res.toOption.get.hasDimFilters)
     assert(res.toOption.get.hasDimSortBy)
     assert(res.toOption.get.hasFactFilters)
+    assert(!res.toOption.get.hasMetricFilters)
     assert(!res.toOption.get.hasFactSortBy)
     assert(res.toOption.get.factFilters.size === 1)
     assert(res.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
@@ -950,13 +959,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
     assert(res.toOption.get.isDimDriven, "Request should be dim driven but isn't!")
     assert(!res.toOption.get.hasDimFilters)
     assert(res.toOption.get.hasDimSortBy)
     assert(res.toOption.get.hasFactFilters)
+    assert(!res.toOption.get.hasMetricFilters)
     assert(!res.toOption.get.hasFactSortBy)
     assert(res.toOption.get.factFilters.size === 1)
     assert(res.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
@@ -987,13 +997,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
     assert(!res.toOption.get.isDimDriven, "Request should not be dim driven but is!")
     assert(!res.toOption.get.hasDimFilters)
     assert(res.toOption.get.hasDimSortBy)
     assert(res.toOption.get.hasFactFilters)
+    assert(!res.toOption.get.hasMetricFilters)
     assert(!res.toOption.get.hasFactSortBy)
     assert(res.toOption.get.factFilters.size === 1)
     assert(res.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
@@ -1023,13 +1034,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
     assert(!res.toOption.get.isDimDriven, "Request should not be dim driven but is!")
     assert(!res.toOption.get.hasDimFilters)
     assert(!res.toOption.get.hasDimSortBy)
     assert(res.toOption.get.hasFactFilters)
+    assert(res.toOption.get.hasMetricFilters)
     assert(!res.toOption.get.hasFactSortBy)
     assert(res.get.publicDimToJoinTypeMap.isEmpty)
   }
@@ -1056,13 +1068,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
     assert(!res.toOption.get.isDimDriven, "Request should not be dim driven but is!")
     assert(!res.toOption.get.hasDimFilters)
     assert(!res.toOption.get.hasDimSortBy)
     assert(res.toOption.get.hasFactFilters)
+    assert(res.toOption.get.hasMetricFilters)
     assert(res.toOption.get.hasFactSortBy)
     assert(res.get.publicDimToJoinTypeMap.isEmpty)
 
@@ -1090,13 +1103,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
     assert(!res.toOption.get.isDimDriven, "Request should not be dim driven but is!")
     assert(!res.toOption.get.hasDimFilters)
     assert(!res.toOption.get.hasDimSortBy)
     assert(res.toOption.get.hasFactFilters)
+    assert(!res.toOption.get.hasMetricFilters)
     assert(res.toOption.get.hasFactSortBy)
     assert(res.toOption.get.factFilters.size === 1)
     assert(res.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
@@ -1126,13 +1140,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
     assert(!res.toOption.get.isDimDriven, "Request should not be dim driven but is!")
     assert(res.toOption.get.hasDimFilters)
     assert(!res.toOption.get.hasDimSortBy)
     assert(res.toOption.get.hasFactFilters)
+    assert(!res.toOption.get.hasMetricFilters)
     assert(res.toOption.get.hasFactSortBy)
     assert(res.toOption.get.factFilters.size === 1)
     assert(res.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
@@ -1163,13 +1178,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
     assert(!res.toOption.get.isDimDriven, "Request should not be dim driven but is!")
     assert(!res.toOption.get.hasDimFilters)
     assert(res.toOption.get.hasDimSortBy)
     assert(res.toOption.get.hasFactFilters)
+    assert(res.toOption.get.hasMetricFilters)
     assert(!res.toOption.get.hasFactSortBy)
     assert(res.get.publicDimToJoinTypeMap(res.get.dimensionsCandidates.find(_.isDrivingDimension).get.dim.dimList.head.name) == LeftOuterJoin, "Driving dim should left outer join as request is not forced dimension driven")
     assert(res.get.publicDimToJoinTypeMap("campaign") == LeftOuterJoin, "Should left outer join as request is not filtering on dim")
@@ -1217,28 +1233,28 @@ class RequestModelTest extends FunSuite with Matchers {
 
 
     val request1: ReportingRequest = getReportingRequestSync(jsonString1)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res1 = RequestModel.from(request1, registry)
     assert(res1.isSuccess, s"Create model failed : $res1")
     assert(!res1.toOption.get.isDimDriven, "Request should not be dim driven but is!")
     assert(!res1.toOption.get.hasDimFilters)
     assert(!res1.toOption.get.hasDimSortBy)
     assert(res1.toOption.get.hasFactFilters)
+    assert(res1.toOption.get.hasMetricFilters)
     assert(!res1.toOption.get.hasFactSortBy)
     assert(res1.get.publicDimToJoinTypeMap.isEmpty)
 
 
     val request2: ReportingRequest = getReportingRequestSync(jsonString2)
-    val res2 = RequestModel.from(request1, registry)
+    val res2 = RequestModel.from(request2, registry)
     assert(res2.isSuccess, s"Create model failed : $res2")
     assert(!res2.toOption.get.isDimDriven, "Request should not be dim driven but is!")
     assert(!res2.toOption.get.hasDimFilters)
     assert(!res2.toOption.get.hasDimSortBy)
     assert(res2.toOption.get.hasFactFilters)
+    assert(res2.toOption.get.hasMetricFilters)
     assert(!res2.toOption.get.hasFactSortBy)
     assert(res2.get.publicDimToJoinTypeMap.isEmpty)
-
-    assert(res1 === res2)
   }
 
   test("order of filter should not change request model for async query with fact filter") {
@@ -1283,25 +1299,25 @@ class RequestModelTest extends FunSuite with Matchers {
 
 
     val request1: ReportingRequest = getReportingRequestAsync(jsonString1)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res1 = RequestModel.from(request1, registry)
     assert(res1.isSuccess, s"Create model failed : $res1")
     assert(!res1.toOption.get.isDimDriven, "Request should not be dim driven but is!")
     assert(!res1.toOption.get.hasDimFilters)
     assert(!res1.toOption.get.hasDimSortBy)
     assert(res1.toOption.get.hasFactFilters)
+    assert(res1.toOption.get.hasMetricFilters)
     assert(!res1.toOption.get.hasFactSortBy)
 
     val request2: ReportingRequest = getReportingRequestAsync(jsonString2)
-    val res2 = RequestModel.from(request1, registry)
+    val res2 = RequestModel.from(request2, registry)
     assert(res2.isSuccess, s"Create model failed : $res2")
     assert(!res2.toOption.get.isDimDriven, "Request should not be dim driven but is!")
     assert(!res2.toOption.get.hasDimFilters)
     assert(!res2.toOption.get.hasDimSortBy)
     assert(res2.toOption.get.hasFactFilters)
+    assert(res2.toOption.get.hasMetricFilters)
     assert(!res2.toOption.get.hasFactSortBy)
-
-    assert(res1 === res2)
   }
 
   test("order of filter should not change request model for sync query with dim filter") {
@@ -1347,13 +1363,14 @@ class RequestModelTest extends FunSuite with Matchers {
 
 
     val request1: ReportingRequest = getReportingRequestSync(jsonString1)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res1 = RequestModel.from(request1, registry)
     assert(res1.isSuccess, s"Create model failed : $res1")
     assert(res1.toOption.get.isDimDriven, "Request should be dim driven but isn't!")
     assert(res1.toOption.get.hasDimFilters)
     assert(!res1.toOption.get.hasDimSortBy)
     assert(res1.toOption.get.hasFactFilters)
+    assert(!res1.toOption.get.hasMetricFilters)
     assert(!res1.toOption.get.hasFactSortBy)
     assert(res1.toOption.get.factFilters.size === 2)
     assert(res1.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
@@ -1367,6 +1384,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(res2.toOption.get.hasDimFilters)
     assert(!res2.toOption.get.hasDimSortBy)
     assert(res2.toOption.get.hasFactFilters)
+    assert(!res2.toOption.get.hasMetricFilters)
     assert(!res2.toOption.get.hasFactSortBy)
     assert(res2.toOption.get.factFilters.size === 2)
     assert(res2.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
@@ -1421,13 +1439,14 @@ class RequestModelTest extends FunSuite with Matchers {
 
 
     val request1: ReportingRequest = getReportingRequestAsync(jsonString1)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res1 = RequestModel.from(request1, registry)
     assert(res1.isSuccess, s"Create model failed : $res1")
     assert(!res1.toOption.get.isDimDriven, "Request should not be dim driven but is!")
     assert(res1.toOption.get.hasDimFilters)
     assert(!res1.toOption.get.hasDimSortBy)
     assert(res1.toOption.get.hasFactFilters)
+    assert(!res1.toOption.get.hasMetricFilters)
     assert(!res1.toOption.get.hasFactSortBy)
     assert(res1.get.publicDimToJoinTypeMap("campaign") == InnerJoin, "Should inner join as request is filtering on dim")
 
@@ -1439,6 +1458,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(res2.toOption.get.hasDimFilters)
     assert(!res2.toOption.get.hasDimSortBy)
     assert(res2.toOption.get.hasFactFilters)
+    assert(!res2.toOption.get.hasMetricFilters)
     assert(!res2.toOption.get.hasFactSortBy)
     assert(res2.get.publicDimToJoinTypeMap("campaign") == InnerJoin, "Should inner join as request is filtering on dim")
 
@@ -1490,13 +1510,14 @@ class RequestModelTest extends FunSuite with Matchers {
 
 
     val request1: ReportingRequest = getReportingRequestSync(jsonString1)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res1 = RequestModel.from(request1, registry)
     assert(res1.isSuccess, s"Create model failed : $res1")
     assert(!res1.toOption.get.isDimDriven, "Request should not be dim driven but is!")
     assert(!res1.toOption.get.hasDimFilters)
     assert(!res1.toOption.get.hasDimSortBy)
     assert(res1.toOption.get.hasFactFilters)
+    assert(!res1.toOption.get.hasMetricFilters)
     assert(res1.toOption.get.hasFactSortBy)
     assert(res1.toOption.get.factFilters.size === 1)
     assert(res1.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
@@ -1510,6 +1531,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(!res2.toOption.get.hasDimFilters)
     assert(!res2.toOption.get.hasDimSortBy)
     assert(res2.toOption.get.hasFactFilters)
+    assert(!res2.toOption.get.hasMetricFilters)
     assert(res2.toOption.get.hasFactSortBy)
     assert(res2.toOption.get.factFilters.size === 1)
     assert(res2.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
@@ -1561,13 +1583,14 @@ class RequestModelTest extends FunSuite with Matchers {
 
 
     val request1: ReportingRequest = getReportingRequestAsync(jsonString1)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res1 = RequestModel.from(request1, registry)
     assert(res1.isSuccess, s"Create model failed : $res1")
     assert(!res1.toOption.get.isDimDriven, "Request should not be dim driven but is!")
     assert(!res1.toOption.get.hasDimFilters)
     assert(!res1.toOption.get.hasDimSortBy)
     assert(res1.toOption.get.hasFactFilters)
+    assert(!res1.toOption.get.hasMetricFilters)
     assert(res1.toOption.get.hasFactSortBy)
     assert(res1.toOption.get.factFilters.size === 1)
     assert(res1.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
@@ -1579,6 +1602,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(!res2.toOption.get.hasDimFilters)
     assert(!res2.toOption.get.hasDimSortBy)
     assert(res2.toOption.get.hasFactFilters)
+    assert(!res2.toOption.get.hasMetricFilters)
     assert(res2.toOption.get.hasFactSortBy)
     assert(res2.toOption.get.factFilters.size === 1)
     assert(res2.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
@@ -1631,13 +1655,14 @@ class RequestModelTest extends FunSuite with Matchers {
 
 
     val request1: ReportingRequest = getReportingRequestSync(jsonString1)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res1 = RequestModel.from(request1, registry)
     assert(res1.isSuccess, s"Create model failed : $res1")
     assert(res1.toOption.get.isDimDriven, "Request should be dim driven but isn't!")
     assert(!res1.toOption.get.hasDimFilters)
     assert(res1.toOption.get.hasDimSortBy)
     assert(res1.toOption.get.hasFactFilters)
+    assert(!res1.toOption.get.hasMetricFilters)
     assert(!res1.toOption.get.hasFactSortBy)
     assert(res1.toOption.get.factFilters.size === 1)
     assert(res1.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
@@ -1651,6 +1676,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(!res2.toOption.get.hasDimFilters)
     assert(res2.toOption.get.hasDimSortBy)
     assert(res2.toOption.get.hasFactFilters)
+    assert(!res2.toOption.get.hasMetricFilters)
     assert(!res2.toOption.get.hasFactSortBy)
     assert(res2.toOption.get.factFilters.size === 1)
     assert(res2.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
@@ -1705,13 +1731,14 @@ class RequestModelTest extends FunSuite with Matchers {
 
 
     val request1: ReportingRequest = getReportingRequestAsync(jsonString1)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res1 = RequestModel.from(request1, registry)
     assert(res1.isSuccess, s"Create model failed : $res1")
     assert(!res1.toOption.get.isDimDriven, "Request should not be dim driven but is!")
     assert(!res1.toOption.get.hasDimFilters)
     assert(res1.toOption.get.hasDimSortBy)
     assert(res1.toOption.get.hasFactFilters)
+    assert(!res1.toOption.get.hasMetricFilters)
     assert(!res1.toOption.get.hasFactSortBy)
     assert(res1.toOption.get.factFilters.size === 1)
     assert(res1.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
@@ -1723,6 +1750,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(!res2.toOption.get.hasDimFilters)
     assert(res2.toOption.get.hasDimSortBy)
     assert(res2.toOption.get.hasFactFilters)
+    assert(!res2.toOption.get.hasMetricFilters)
     assert(!res2.toOption.get.hasFactSortBy)
     assert(res2.toOption.get.factFilters.size === 1)
     assert(res2.toOption.get.factFilters.map(_.field).contains("Advertiser ID"))
@@ -1751,13 +1779,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
     assert(res.toOption.get.isDimDriven, "Request should be dim driven but isn't!")
     assert(res.toOption.get.hasDimFilters)
     assert(!res.toOption.get.hasDimSortBy)
     assert(res.toOption.get.hasFactFilters)
+    assert(!res.toOption.get.hasMetricFilters)
     assert(!res.toOption.get.hasFactSortBy)
     assert(res.toOption.get.requestCols
       .filter(_.isInstanceOf[ConstantColumnInfo])
@@ -1791,7 +1820,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isFailure, res.errorMessage("Create model failed "))
   }
@@ -1817,7 +1846,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
      val request: ReportingRequest = getReportingRequestSync(jsonString)
-     val registry = getDefaultRegistry()
+     val registry = defaultRegistry
      val res = RequestModel.from(request, registry)
      assert(res.isFailure, res.errorMessage("Create model failed "))
    }
@@ -1843,7 +1872,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
   }
@@ -1870,13 +1899,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
     assert(res.toOption.get.isDimDriven, "Request should be dim driven but isn't!")
     assert(res.toOption.get.hasDimFilters)
     assert(!res.toOption.get.hasDimSortBy)
     assert(res.toOption.get.hasFactFilters)
+    assert(!res.toOption.get.hasMetricFilters)
     assert(!res.toOption.get.hasFactSortBy)
     assert(res.toOption.get.requestCols
       .filter(_.isInstanceOf[ConstantColumnInfo])
@@ -1909,13 +1939,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
     assert(res.toOption.get.isFactDriven, "Request should be fact driven but isn't!")
     assert(res.toOption.get.hasDimFilters)
     assert(!res.toOption.get.hasDimSortBy)
     assert(res.toOption.get.hasFactFilters)
+    assert(!res.toOption.get.hasMetricFilters)
     assert(!res.toOption.get.hasFactSortBy)
     assert(res.toOption.get.requestCols
       .filter(_.isInstanceOf[ConstantColumnInfo])
@@ -1948,13 +1979,14 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
     assert(!res.toOption.get.isDimDriven, "Request should not be dim driven but is!")
     assert(res.toOption.get.hasDimFilters)
     assert(!res.toOption.get.hasDimSortBy)
     assert(res.toOption.get.hasFactFilters)
+    assert(!res.toOption.get.hasMetricFilters)
     assert(!res.toOption.get.hasFactSortBy)
     assert(res.toOption.get.requestCols
       .filter(_.isInstanceOf[ConstantColumnInfo])
@@ -1984,7 +2016,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     res.isFailure shouldBe true
     res.failed.get.getMessage should startWith ("requirement failed: required filter for cube=publicFact, schema=advertiser, fact=fact1 not found = Set(Advertiser ID)")
@@ -2014,7 +2046,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -2025,6 +2057,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.hasDimSortBy === true)
     assert(model.isDimDriven === true)
     assert(model.hasFactFilters)
+    assert(!res.toOption.get.hasMetricFilters)
     assert(model.dimColumnAliases.contains("Advertiser Status") === true)
     assert(model.dimensionsCandidates.size === 1, s"dimensionsCandidates = ${model.dimensionsCandidates}")
     assert(model.dimensionsCandidates.exists(_.dim.name == "advertiser") === true)
@@ -2065,7 +2098,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -2076,6 +2109,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.hasDimSortBy === true)
     assert(model.isDimDriven === true)
     assert(model.hasFactFilters)
+    assert(!model.hasMetricFilters)
     assert(model.dimColumnAliases.contains("Advertiser Status") === true)
     assert(model.dimensionsCandidates.size === 1, s"dimensionsCandidates = ${model.dimensionsCandidates}")
     assert(model.dimensionsCandidates.exists(_.dim.name == "advertiser") === true)
@@ -2118,7 +2152,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -2128,6 +2162,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.hasDimSortBy === true)
     assert(model.isDimDriven === false)
     assert(model.hasFactFilters)
+    assert(!model.hasMetricFilters)
     assert(model.factFilters.size === 1)
     assert(model.factFilters.map(_.field).contains("Advertiser ID"))
     assert(model.dimColumnAliases.contains("Advertiser Status") === true)
@@ -2165,7 +2200,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, s"$res")
     val model = res.toOption.get
@@ -2175,6 +2210,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.hasDimSortBy === true)
     assert(model.isDimDriven === true)
     assert(model.hasFactFilters)
+    assert(!model.hasMetricFilters)
     assert(model.dimColumnAliases === Set("Advertiser ID"), model.dimColumnAliases )
     assert(model.dimensionsCandidates.size === 1, s"dimensionsCandidates = ${model.dimensionsCandidates}")
     assert(model.dimSortByMap.contains("Advertiser ID") === true)
@@ -2212,7 +2248,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -2222,6 +2258,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.hasDimSortBy === true)
     assert(model.isDimDriven === true)
     assert(model.hasFactFilters)
+    assert(!model.hasMetricFilters)
     assert(model.dimColumnAliases === Set("Advertiser ID"))
     assert(model.dimensionsCandidates.size === 1, s"dimensionsCandidates = ${model.dimensionsCandidates}")
     assert(model.dimSortByMap.contains("Advertiser ID") === true)
@@ -2259,7 +2296,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -2269,6 +2306,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.hasDimSortBy === false)
     assert(model.isDimDriven === false)
     assert(model.hasFactFilters)
+    assert(!model.hasMetricFilters)
     assert(model.factFilters.size === 1)
     assert(model.factFilters.map(_.field).contains("Advertiser ID"))
     assert(model.dimColumnAliases.isEmpty === true)
@@ -2301,7 +2339,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, s"$res")
     val model = res.toOption.get
@@ -2312,6 +2350,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.hasDimSortBy === true)
     assert(model.isDimDriven === true)
     assert(model.hasFactFilters)
+    assert(!model.hasMetricFilters)
     assert(model.dimColumnAliases === Set("Advertiser ID", "Campaign ID"), model.dimColumnAliases )
     assert(model.dimensionsCandidates.size === 1, s"dimensionsCandidates = ${model.dimensionsCandidates}")
     assert(model.dimSortByMap.contains("Advertiser ID") === true)
@@ -2347,7 +2386,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, s"$res")
     val model = res.toOption.get
@@ -2358,6 +2397,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.hasDimSortBy === true)
     assert(model.isDimDriven === true)
     assert(model.hasFactFilters)
+    assert(!model.hasMetricFilters)
     assert(model.dimColumnAliases === Set("Advertiser ID", "Campaign ID"), model.dimColumnAliases )
     assert(model.dimensionsCandidates.size === 1, s"dimensionsCandidates = ${model.dimensionsCandidates}")
     assert(model.dimSortByMap.contains("Advertiser ID") === true)
@@ -2397,7 +2437,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -2408,6 +2448,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.hasDimSortBy === false)
     assert(model.isDimDriven === false)
     assert(model.hasFactFilters)
+    assert(!model.hasMetricFilters)
     assert(model.factFilters.size === 1)
     assert(model.factFilters.map(_.field).contains("Advertiser ID"))
     assert(model.dimColumnAliases.isEmpty === true)
@@ -2437,7 +2478,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -2446,6 +2487,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.requestCols.contains(DimColumnInfo("Campaign ID")) === true, res.errorMessage("Campaign ID Missing"))
     assert(model.isDimDriven === true, res.errorMessage("Not a dim driven query"))
     assert(model.hasFactFilters, res.errorMessage("Fact Filters missing"))
+    assert(!model.hasMetricFilters)
     assert(model.factFilters.size === 1, res.errorMessage("Fact Filters != 1"))
     assert(model.factFilters.map(_.field).contains("Advertiser ID"))
     assert(model.dimColumnAliases.isEmpty === false, res.errorMessage("Dim Candidates empty"))
@@ -2495,7 +2537,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -2542,6 +2584,66 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.publicDimToJoinTypeMap("productAd") == RightOuterJoin, "Should be RightOuterJoin as request is dimDriven")
   }
 
+  test(
+    """generate valid model for sync query with fields having dimension attribute,
+       filter on fact col and it is in the list of fields, force dimension driven,
+       order by fact""") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Ad Group ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Advertiser Status"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": "between", "from": "100", "to": "1000"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "forceDimensionDriven":true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess, res.errorMessage("Failed to build request model"))
+    val model = res.toOption.get
+    assert(model.requestCols.size === 4)
+    assert(model.requestCols.contains(DimColumnInfo("Campaign ID")) === true)
+    assert(model.requestCols.contains(DimColumnInfo("Advertiser Status")) === true)
+    assert(model.requestCols.contains(DimColumnInfo("Ad Group ID")) === true)
+    assert(model.requestCols.contains(FactColumnInfo("Impressions")) === true)
+    assert(model.hasDimSortBy === false)
+    assert(model.isDimDriven === true)
+    assert(model.hasFactFilters)
+    assert(model.hasMetricFilters)
+    assert(model.factFilters.size === 2)
+    assert(model.factFilters.map(_.field).contains("Advertiser ID"))
+    assert(model.factFilters.map(_.field).contains("Impressions"))
+    assert(model.dimColumnAliases.contains("Advertiser Status") === true)
+    assert(model.dimensionsCandidates.size === 2, s"dimensionsCandidates = ${model.dimensionsCandidates}")
+    assert(model.dimensionsCandidates.exists(_.dim.name == "ad_group") === true)
+    assert(model.dimensionsCandidates.exists(_.dim.name == "advertiser") === true)
+    assert(model.factSortByMap.contains("Impressions") === true)
+    assert(model.factSortByMap("Impressions") === DESC)
+
+    assert(model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields.exists(_ === "Ad Group ID") === true,
+      s"${model.dimensionsCandidates.find(_.dim.name == "ad_group").get.fields}")
+    assert(model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields.exists(_ === "Advertiser ID") === true,
+      s"${model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields}")
+    assert(model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields.exists(_ === "Advertiser Status") === true,
+      s"${model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields}")
+
+    assert(model.publicDimToJoinTypeMap("advertiser") == InnerJoin, "Should be inner join as request has fact filters")
+    assert(model.publicDimToJoinTypeMap("ad_group") == InnerJoin, "Should be inner join as request has fact filters")
+
+  }
 
   test(
     """generate valid model for sync query with fields having dimension attribute,
@@ -2568,7 +2670,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -2580,6 +2682,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.hasDimSortBy === true)
     assert(model.isDimDriven === true)
     assert(model.hasFactFilters)
+    assert(!model.hasMetricFilters)
     assert(model.factFilters.size === 2)
     assert(model.factFilters.map(_.field).contains("Advertiser ID"))
     assert(model.factFilters.map(_.field).contains("Ad Group ID"))
@@ -2629,7 +2732,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -2641,6 +2744,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.hasDimSortBy === true)
     assert(model.isDimDriven === true)
     assert(model.hasFactFilters)
+    assert(!model.hasMetricFilters)
     assert(model.factFilters.size === 2)
     assert(model.factFilters.map(_.field).contains("Advertiser ID"))
     assert(model.factFilters.map(_.field).contains("Ad Group ID"))
@@ -2689,7 +2793,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -2700,6 +2804,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.hasDimSortBy === true)
     assert(model.isDimDriven === false)
     assert(model.hasFactFilters)
+    assert(!model.hasMetricFilters)
     assert(model.factFilters.size === 2)
     assert(model.factFilters.map(_.field).contains("Advertiser ID"))
     assert(model.factFilters.map(_.field).contains("Ad Group ID"))
@@ -2743,7 +2848,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -2754,6 +2859,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.hasDimSortBy === true)
     assert(model.isDimDriven)
     assert(model.hasFactFilters)
+    assert(!model.hasMetricFilters)
     assert(model.factFilters.size === 2)
     assert(model.factFilters.map(_.field).contains("Advertiser ID"))
     assert(model.factFilters.map(_.field).contains("Ad Group ID"))
@@ -2798,7 +2904,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -2809,6 +2915,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.hasDimSortBy === true)
     assert(model.isDimDriven)
     assert(model.hasFactFilters === true)
+    assert(!model.hasMetricFilters)
     assert(model.factFilters.size === 2)
     assert(model.factFilters.exists(_.field === "Advertiser ID") === true)
     assert(model.factFilters.exists(_.field === "Ad Group ID") === true)
@@ -2850,7 +2957,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -2860,6 +2967,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.hasDimSortBy === true)
     assert(model.isDimDriven === false)
     assert(model.hasFactFilters === true)
+    assert(!model.hasMetricFilters)
     assert(model.factFilters.exists(_.field === "Advertiser ID") === true)
     assert(model.factFilters.exists(_.field === "Ad Group ID") === true)
     assert(model.dimColumnAliases.contains("Advertiser Status") === true)
@@ -2900,7 +3008,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -2958,7 +3066,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -3015,7 +3123,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -3070,7 +3178,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -3125,7 +3233,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -3185,7 +3293,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -3246,7 +3354,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -3315,7 +3423,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -3384,7 +3492,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -3468,7 +3576,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -3551,7 +3659,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -3586,7 +3694,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -3620,7 +3728,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isFailure, "request model should fail")
     res.failed.get.getMessage should startWith ("requirement failed: Unsupported filter operation : cube=publicFact, col=Clicks, operation=Between")
@@ -3648,7 +3756,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isFailure, "request model should fail")
     res.failed.get.getMessage should startWith ("requirement failed: Unsupported filter operation : cube=publicFact, col=Source, operation=Between")
@@ -3675,7 +3783,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isFailure, "request model should fail")
     res.failed.get.getMessage should startWith ("requirement failed: Unsupported filter operation : dimension=campaign, col=Campaign Status, operation=Between")
@@ -3702,7 +3810,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isFailure, "request model should fail")
     res.failed.get.getMessage should startWith ("requirement failed: Missing required field: cube=publicFact2, field=Keyword ID")
@@ -3730,7 +3838,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("request model should succeed"))
   }
@@ -3753,7 +3861,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isFailure, res.errorMessage("Should be : Max days window exceeded expected=8, actual=20 for cube/fact=publicFact2"))
   }
@@ -3780,7 +3888,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isFailure, "request model should fail")
     res.failed.get.getMessage should startWith ("requirement failed: Missing required filter: cube=publicFact3, field=Ad Group ID")
@@ -3809,7 +3917,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("request model should succeed"))
   }
@@ -3837,7 +3945,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isFailure, "request model should fail")
     res.failed.get.getMessage should startWith ("requirement failed: Missing dependent column : cube=publicFact2, field=Destination URL, depensOnColumn=Ad ID")
@@ -3867,7 +3975,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("request model should succeed"))
   }
@@ -3926,7 +4034,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -3985,7 +4093,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -4020,7 +4128,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -4054,7 +4162,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -4106,7 +4214,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -4130,7 +4238,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -4235,7 +4343,7 @@ class RequestModelTest extends FunSuite with Matchers {
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val bucketParams = new BucketParams(new UserInfo("test-user", false)) // isInternal = false
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
     val requestModelResult = RequestModelFactory.fromBucketSelector(request, bucketParams, registry, bucketSelector)
     assert(requestModelResult.isSuccess)
@@ -4278,7 +4386,7 @@ class RequestModelTest extends FunSuite with Matchers {
     }
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val bucketParams = new BucketParams(new UserInfo("test-user", false)) // isInternal = false
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
     val requestModelResult = RequestModelFactory.fromBucketSelector(request, bucketParams, registry, bucketSelector)
     assert(requestModelResult.isSuccess)
@@ -4321,7 +4429,7 @@ class RequestModelTest extends FunSuite with Matchers {
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val bucketParams = new BucketParams(new UserInfo("test-user", false)) // isInternal = false
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
     val requestModelResult = RequestModelFactory.fromBucketSelector(request, bucketParams, registry, bucketSelector)
     assert(requestModelResult.isSuccess)
@@ -4365,7 +4473,7 @@ class RequestModelTest extends FunSuite with Matchers {
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val bucketParams = new BucketParams(new UserInfo("test-user", false)) // isInternal = false
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
     val requestModelResult = RequestModelFactory.fromBucketSelector(request, bucketParams, registry, bucketSelector)
     assert(requestModelResult.isSuccess)
@@ -4409,7 +4517,7 @@ class RequestModelTest extends FunSuite with Matchers {
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val bucketParams = new BucketParams(new UserInfo("test-user", false)) // isInternal = false
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
     val requestModels = RequestModelFactory.fromBucketSelector(request, bucketParams, registry, bucketSelector)
     assert(requestModels.isSuccess)
@@ -4448,7 +4556,7 @@ class RequestModelTest extends FunSuite with Matchers {
       override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = None
     }
 
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
 
@@ -4500,7 +4608,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -4528,7 +4636,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     res.isFailure shouldBe true
     res.failed.get.getMessage should startWith ("requirement failed: ERROR_CODE:10008 Incompatible columns found in request, Device Type is not compatible with Set(Device ID)")
@@ -4553,7 +4661,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
   }
@@ -4578,7 +4686,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isFailure, res.errorMessage("Create model succeeded even with duplidate fields "))
   }
@@ -4606,7 +4714,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isFailure, res.errorMessage("Create model succeeded even with duplidate fields "))
   }
@@ -4632,7 +4740,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isFailure, res.errorMessage("Create model succeeded even with forbidden schema "))
     res.failed.get.getMessage should startWith ("requirement failed: ERROR_CODE:10007 (Ad Format Name, Spend) can't be used with advertiser schema in publicFact cube")
@@ -4658,7 +4766,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed with non forbidden schema"))
   }
@@ -4689,7 +4797,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Create model failed "))
   }
@@ -4720,7 +4828,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isFailure, res.errorMessage("OuterFilter Ad Group ID is not in selected column list"))
     res.failed.get.getMessage should startWith ("requirement failed: OuterFilter Ad Group ID is not in selected column list")
@@ -4779,7 +4887,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isFailure)
     res.failed.get.getMessage should startWith ("requirement failed: Or filter cannot have combination of fact and dim filters, factFilters=Some(List(EqualityFilter(Impressions,1,false,false))) dimFilters=Some(List(EqualityFilter(Campaign ID,1,false,false)))")
@@ -4811,7 +4919,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     val orOp = OrFilterOperation
     assert(res.isSuccess)
@@ -4854,7 +4962,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess)
     assert(!res.get.orFilterMeta.isEmpty)
@@ -4893,7 +5001,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -4929,7 +5037,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     val model = res.toOption.get
@@ -4940,6 +5048,61 @@ class RequestModelTest extends FunSuite with Matchers {
 
     assert(model.publicDimToJoinTypeMap("advertiser") == LeftOuterJoin, "Should LeftOuterJoin as request fact driven")
     assert(model.publicDimToJoinTypeMap("campaign") == LeftOuterJoin, "Should LeftOuterJoin as request fact driven")
+  }
+
+  test("create model should succeed when sync query is scan optimized") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Campaign Name"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Clicks", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess)
+    assert(res.get.factCost.head._2.isScanOptimized, "Fact should be scan optimized!")
+  }
+
+  test("create model should succeed when sync query is not scan optimized") {
+    val jsonString = s"""{
+                          "cube": "publicFact2",
+                          "selectFields": [
+                              {"field": "Keyword ID"},
+                              {"field": "Advertiser Name"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Clicks", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess, res.toString)
+    assert(!res.get.factCost.head._2.isScanOptimized, "Fact should not be scan optimized!")
   }
 
   test("create model should succeed when query is grain optimized") {
@@ -4964,7 +5127,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess)
     assert(res.get.factCost.head._2.isGrainOptimized, "Fact should be grain optimized!")
@@ -4991,7 +5154,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess)
     assert(!res.get.factCost.head._2.isGrainOptimized, "Fact should not be grain optimized!")
@@ -5018,7 +5181,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess)
     assert(res.get.factCost.head._2.isIndexOptimized, "Fact should be index optimized!")
@@ -5044,7 +5207,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString, InternalSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess)
     assert(!res.get.factCost.head._2.isIndexOptimized, "Fact should not be index optimized!")
@@ -5072,7 +5235,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess)
     assert(!res.get.dimensionsCandidates.headOption.get.hasLowCardinalityFilter, "Dim should have low cardinality filter")
@@ -5100,7 +5263,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess)
     assert(!res.get.dimensionsCandidates.headOption.get.hasLowCardinalityFilter, "Dim should have low cardinality filter")
@@ -5128,7 +5291,7 @@ class RequestModelTest extends FunSuite with Matchers {
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess)
     assert(res.get.dimensionsCandidates.headOption.get.hasLowCardinalityFilter, "Dim should have low cardinality filter")
@@ -5152,7 +5315,7 @@ class RequestModelTest extends FunSuite with Matchers {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     res.isFailure shouldBe true
     res.failed.get.getMessage should equal("requirement failed: Unsupported filter operation : cube=publicFact4, col=Advertiser ID, operation=Like")
@@ -5176,7 +5339,7 @@ class RequestModelTest extends FunSuite with Matchers {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess)
     val model = res.toOption.get
@@ -5203,7 +5366,7 @@ class RequestModelTest extends FunSuite with Matchers {
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess)
     val model = res.toOption.get
@@ -5211,5 +5374,38 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.factFilters.find(_.field === "Device ID").get.asInstanceOf[NotInFilter].values === List("3"))
   }
 
+  test("test validateLengthForFilterValue for publicDim") {
+    val publicDim = defaultRegistry.getDimension("campaign")
+    val field = "Campaign Name"
+    val value = "someNameLongerThanColumnLength"
+    val failFilters = List(InFilter(field, List(value)), NotInFilter(field, List(value)), EqualityFilter(field, value), NotEqualToFilter(field, value), LikeFilter(field, value))
+    val passFilters = List(BetweenFilter(field, fromDate, toDate), IsNullFilter(field), IsNotNullFilter(field))
+    for (filter <- failFilters) {
+      assert(RequestModel.validateLengthForFilterValue(publicDim.get, filter)._1 === false)
+    }
+    for (filter <- passFilters) {
+      assert(RequestModel.validateLengthForFilterValue(publicDim.get, filter)._1 === true)
+    }
+  }
+
+  test("test validateLengthForFilterValue for publicFact") {
+    val publicFact = defaultRegistry.getFact("publicFact")
+    val field = "Impressions"
+    val value = "2500"
+    val filters = List(InFilter(field, List(value)), NotInFilter(field, List(value)), EqualityFilter(field, value), NotEqualToFilter(field, value), LikeFilter(field, value), BetweenFilter(field, fromDate, toDate), IsNullFilter(field), IsNotNullFilter(field))
+    for (filter <- filters) {
+      assert(RequestModel.validateLengthForFilterValue(publicFact.get, filter)._1 === true)
+    }
+  }
+
+  test("test validateLengthForFilterValue for string of length greater than max allowed") {
+    val publicDim = defaultRegistry.getDimension("campaign")
+    val field = "Campaign Status"
+    val value = Random.alphanumeric take RequestModel.max_allowed_str_len + 1 mkString ""
+    val filters = List(InFilter(field, List(value)), NotInFilter(field, List(value)), EqualityFilter(field, value), NotEqualToFilter(field, value), LikeFilter(field, value))
+    for (filter <- filters) {
+      assert(RequestModel.validateLengthForFilterValue(publicDim.get, filter)._1 === false)
+    }
+  }
 }
 

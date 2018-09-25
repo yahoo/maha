@@ -2,6 +2,8 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.datasource
 
+import java.lang
+
 import com.yahoo.maha.core.Engine
 
 /**
@@ -11,8 +13,13 @@ trait IngestionTimeUpdater {
   def engine : Engine
   def source: String
   def getIngestionTime(dataSource: String): Option[String]
+  def getIngestionTimeLong(dataSource: String): Option[Long]
+  def getIngestionTimeLongAsJava(dataSource: String): Option[java.lang.Long] = {
+    getIngestionTimeLong(dataSource).map(lang.Long.valueOf(_))
+  }
 }
 
 case class NoopIngestionTimeUpdater(engine: Engine, source: String) extends IngestionTimeUpdater {
   override def getIngestionTime(dataSource: String): Option[String] = None
+  override def getIngestionTimeLong(dataSource: String): Option[Long] = None
 }

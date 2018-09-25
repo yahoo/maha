@@ -575,6 +575,8 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     insertRows(insertSqlAdsStats, rowsAdsStats, "SELECT * FROM ad_stats_oracle")
   }
 
+  lazy val defaultRegistry = getDefaultRegistry()
+
   test("successfully execute async query for ad_stats") {
     val jsonString = s"""{
                           "cube": "ad_stats",
@@ -611,7 +613,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                         }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -665,7 +667,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -719,7 +721,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                         }"""
 
       val request: ReportingRequest = getReportingRequestSync(jsonString).copy(additionalParameters = Map(Parameter.Debug -> DebugValue(true)))
-      val registry = getDefaultRegistry()
+      val registry = defaultRegistry
       val requestModel = RequestModel.from(request, registry)
       assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -780,7 +782,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                         }"""
 
       val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
-      val registry = getDefaultRegistry()
+      val registry = defaultRegistry
       val requestModel = RequestModel.from(request, registry)
       assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -835,7 +837,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                         }"""
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -879,7 +881,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                         }"""
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -918,7 +920,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                         }"""
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -990,5 +992,48 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     assert(columnValueExtractor.getColumnValue(5, decWithScaleAndLength, resultSet) == null)
     assertThrows[UnsupportedOperationException](columnValueExtractor.getColumnValue(5, invalidType, resultSet))
 
+  }
+
+  test("successfully execute driving and non union dim only query with pagination") {
+    val jsonString = s"""{
+                          "cube": "ad_stats",
+                          "selectFields": [
+                            {"field": "Ad ID"},
+                            {"field": "Ad Title"},
+                            {"field": "Ad Status"},
+                            {"field": "Ad Date Created"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "1"}
+                          ],
+                          "sortBy": [
+                            {"field": "Ad Title", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":2,
+                          "rowsPerPage":10,
+                          "forceDimensionDriven" : true
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    println(sqlQuery)
+
+    val result = queryPipeline.execute(queryExecutorContext)
+    result match {
+      case scala.util.Success(queryPipelineResult) =>
+        val inmem = queryPipelineResult.rowList
+        assert(!inmem.isEmpty)
+      case any =>
+        throw new UnsupportedOperationException(s"unexpected row list : $any")
+    }
   }
 }

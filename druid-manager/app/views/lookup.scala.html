@@ -1,0 +1,79 @@
+@* Copyright 2018, Oath Inc.
+Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms. *@
+@(lookupsMap : Map[String, List[(String, String, String, String, String)]])
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/main.css")">
+        <link rel="icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
+        <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/main.css")">
+        <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <link rel="stylesheet" href="@routes.Assets.at("stylesheets/dataTables.css")">
+        <script type="text/javascript" src ="@routes.Assets.at("javascripts/dataTables.js")"></script>
+            <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+
+    </head>
+    <body>
+        <nav class="navbar navbar-default navbar-static-top ">
+            <div class="container-fluid">
+                <ul class="nav navbar-nav">
+                    <li><a href="/datasource">Data Source Info</a></li>
+                    <li><a href="/segments">Query Segments</a></li>
+                    <li><a href="/"> Metadata</a></li>
+                    <li><a href="/overlord/workers">Indexing Services</a></li>
+                    <li class="active"><a href="/lookups">Druid Lookups</a></li>
+                    <li><a href="/kill/segments">Kill Segments</a></li>
+                </ul>
+            </div>
+        </nav>
+        <div class="container-fluid">
+            <div class="row text-center text-primary lead">
+                <h3>Druid Lookups</h3>
+                <hr>
+            </div>
+            <div class="row text-center " id="container">
+            </div>
+            <div class="row text-center " id="container-fluid">
+            </div>
+            <div class="row">
+                <div class="col-sm-1"></div>
+                <div class="col-sm-10">
+                    <table class="table table-bordered table-hover table-striped" id="lookup-table" style="table-layout : fixed ; word-wrap : break-word ;">
+                        <thead>
+                        <tr>
+                            <th>Host </th>
+                            <th>Lookup Name</th>
+                            <th>Lookup Size</th>
+                            <th>Oracle Size</th>
+                            <th>Lookup Last Updated Time</th>
+                            <th>Oracle Last Updated Time</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @for((k, list) <- lookupsMap) {
+                            @for((v) <- list) {
+                                <tr>
+                                    <td>@k</td>
+                                    <td>@v._1</td>
+                                    <td>@v._2</td>
+                                    <td>@v._3</td>
+                                    <td>@v._4</td>
+                                    <td>@v._5</td>
+                                </tr>
+                            }
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-sm-1"></div>
+            </div>
+            <script>
+                $(document).ready(function(){
+                    $('#lookup-table').dataTable();
+                });
+            </script>
+        </div>
+    </body>
+</html>

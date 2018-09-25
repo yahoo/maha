@@ -2,15 +2,17 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.base.Throwables;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import com.metamx.common.lifecycle.LifecycleStart;
-import com.metamx.common.lifecycle.LifecycleStop;
-import com.metamx.common.logger.Logger;
+import io.druid.java.util.common.lifecycle.LifecycleStart;
+import io.druid.java.util.common.lifecycle.LifecycleStop;
+import io.druid.java.util.common.logger.Logger;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
 import io.druid.guice.ManageLifecycle;
 import org.apache.http.HttpEntity;
@@ -32,12 +34,14 @@ import org.apache.http.ssl.SSLContexts;
 import javax.net.ssl.SSLContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Random;
+import java.net.URLEncoder;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 @ManageLifecycle
 public class LookupService {
@@ -55,6 +59,7 @@ public class LookupService {
     private String serviceScheme = "http";
     private String servicePort = "4080";
     private final AuthHeaderProvider authHeaderProvider;
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Inject
     public LookupService(@Named("lookupServiceProperties") final Properties lookupServiceProperties, AuthHeaderProvider authHeaderProvider) {
@@ -126,15 +131,20 @@ public class LookupService {
         if(authHeaders != null) {
             authHeaders.entrySet().stream().forEach(e -> httpGet.addHeader(e.getKey(), e.getValue()));
         }
-        httpGet.setURI(new URIBuilder()
+        URIBuilder uriBuilder = new URIBuilder()
                 .setScheme(serviceScheme)
                 .setHost(getHost())
                 .setPort(Integer.valueOf(servicePort))
                 .setPath("/druid/v1/namespaces/" + lookupData.extractionNamespace.getLookupName())
                 .addParameter("namespaceclass", lookupData.extractionNamespace.getClass().getName())
                 .addParameter("key", lookupData.key)
-                .addParameter("valueColumn", lookupData.valueColumn)
-                .build());
+                .addParameter("valueColumn", lookupData.valueColumn);
+
+        if(lookupData.decodeConfigOptional.isPresent()) {
+            uriBuilder.addParameter("decodeConfig", URLEncoder.encode(objectMapper.writeValueAsString(lookupData.decodeConfigOptional.get()), UTF_8.toString()));
+        }
+
+        httpGet.setURI(uriBuilder.build());
         final HttpResponse response = httpclient.execute(httpGet);
         final HttpEntity entity = response.getEntity();
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -201,43 +211,44 @@ public class LookupService {
     public static class LookupData {
         String key;
         String valueColumn;
+        Optional<DecodeConfig> decodeConfigOptional = Optional.empty();
         ExtractionNamespace extractionNamespace;
 
         public LookupData(ExtractionNamespace extractionNamespace) {
             this.extractionNamespace = extractionNamespace;
         }
 
-        public LookupData(ExtractionNamespace extractionNamespace, String key, String valueColumn) {
+        public LookupData(ExtractionNamespace extractionNamespace, String key, String valueColumn, Optional<DecodeConfig> decodeConfigOptional) {
             this.extractionNamespace = extractionNamespace;
             this.key = key;
             this.valueColumn = valueColumn;
+            this.decodeConfigOptional = decodeConfigOptional;
         }
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            LookupData otherLookupData = (LookupData) o;
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            LookupData that = (LookupData) o;
+            boolean result = Objects.equals(key, that.key) &&
+                    Objects.equals(valueColumn, that.valueColumn) &&
+                    Objects.equals(extractionNamespace, that.extractionNamespace);
 
-            if (!this.key.equals(otherLookupData.key) || !this.valueColumn.equals(otherLookupData.valueColumn) ||
-                    !this.extractionNamespace.equals(otherLookupData.extractionNamespace)) {
-                return false;
+            if(decodeConfigOptional.isPresent() && that.decodeConfigOptional.isPresent()) {
+                result &= Objects.equals(decodeConfigOptional.get(), that.decodeConfigOptional.get());
             }
-
-            return true;
+            return result;
         }
 
         @Override
         public int hashCode() {
-            int result = key.hashCode();
-            result = 31 * result + valueColumn.hashCode();
-            result = 31 * result + extractionNamespace.hashCode();
-            return result;
+
+            if(decodeConfigOptional.isPresent())
+                return Objects.hash(key, valueColumn, decodeConfigOptional.get(), extractionNamespace);
+            else
+                return Objects.hash(key, valueColumn, extractionNamespace);
         }
+
     }
 
     @LifecycleStart

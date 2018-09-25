@@ -10,11 +10,13 @@ import com.google.protobuf.{ByteString, UninitializedMessageException}
 import com.yahoo.maha.proto.MahaRequestLog
 import grizzled.slf4j.Logging
 import kafka.server.{KafkaConfig, KafkaServer}
-import kafka.utils.{TestUtils, ZkUtils}
+import kafka.utils.TestUtils
+import kafka.zk.KafkaZkClient
 import org.apache.curator.test.TestingServer
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
-import org.apache.kafka.common.protocol.SecurityProtocol
+import org.apache.kafka.common.security.auth.SecurityProtocol
+import org.apache.kafka.common.utils.Time
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 import scala.collection.JavaConverters._
@@ -71,8 +73,8 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
     //kafkaServer = new KafkaServerStartable(kafkaConfig)
     kafkaServer.startup()
 
-    val zkUtils = ZkUtils(zkConnect, 10000, 10000, false)
-    TestUtils.createTopic(zkUtils, TOPIC ,1,1,Seq(kafkaServer))
+    val zkClient = KafkaZkClient(zkConnect, false, 10000, 10000, 100, Time.SYSTEM)
+    TestUtils.createTopic(zkClient, TOPIC ,1,1,Seq(kafkaServer))
 
     kafkaBroker = TestUtils.getBrokerListStrFromServers(Seq(kafkaServer),SecurityProtocol.PLAINTEXT)
     info(s"Started kafka server at $kafkaBroker")

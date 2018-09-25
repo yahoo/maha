@@ -77,7 +77,7 @@ case class IsDimDriven(value: Boolean) extends FactualQueryCondition {
 }
 case class MinRowsEstimate(value: Long) extends FactualQueryCondition {
   protected def evalContext(queryContext: FactualQueryContext): Boolean = {
-    queryContext.factBestCandidate.factRows >= value
+    queryContext.factBestCandidate.factRows.rows >= value
   }
 }
 case class FactCondition(conditions: Set[QueryCondition]) {

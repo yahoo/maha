@@ -140,6 +140,7 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
   override def logQueryPipeline(queryPipeline: QueryPipeline): Unit = {
     val drivingQuery = queryPipeline.queryChain.drivingQuery
     val model = queryPipeline.queryChain.drivingQuery.queryContext.requestModel
+    val factBestCandidateOption = queryPipeline.factBestCandidate
     protoBuilder.setDrivingQueryEngine(drivingQuery.engine.toString)
     protoBuilder.setDrivingTable(drivingQuery.tableName)
     protoBuilder.setQueryChainType(queryPipeline.queryChain.getClass.getSimpleName)
@@ -164,6 +165,34 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
 
     if (cubeRevision.isDefined) {
       protoBuilder.setCubeRevision(cubeRevision.get)
+    }
+    protoBuilder.setIsDebug(model.isDebugEnabled)
+    protoBuilder.setIsTest(model.reportingRequest.isTestEnabled)
+    if(model.reportingRequest.isTestEnabled) {
+      val testName = model.reportingRequest.getTestName
+      if(testName.isDefined) {
+        protoBuilder.setTestName(testName.get)
+      }
+    }
+    if(model.reportingRequest.hasLabels) {
+      model.reportingRequest.getLabels.foreach(protoBuilder.addLabels)
+    }
+
+    if(factBestCandidateOption.isDefined) {
+      val factBestCandidate = factBestCandidateOption.get
+      protoBuilder.setIsIndexOptimized(factBestCandidate.isIndexOptimized)
+      protoBuilder.setIsGrainOptimized(factBestCandidate.isGrainOptimized)
+      protoBuilder.setIsScanOptimized(factBestCandidate.factRows.isScanOptimized)
+      if(factBestCandidate.isGrainOptimized) {
+        protoBuilder.setGrainRows(factBestCandidate.factRows.rows)
+      } else {
+        protoBuilder.setGrainRows(0)
+      }
+      if(factBestCandidate.factRows.isScanOptimized) {
+        protoBuilder.setScanRows(factBestCandidate.factRows.scanRows)
+      } else {
+        protoBuilder.setScanRows(0)
+      }
     }
 
     val columnInfoIterator: Iterator[SortByColumnInfo] = model.requestSortByCols.iterator

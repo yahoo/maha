@@ -4,25 +4,24 @@ package com.yahoo.maha.service.factory
 
 import java.io.Closeable
 import java.util.concurrent.RejectedExecutionHandler
-import javax.sql.DataSource
 
 import com.google.common.io.Closer
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.query.ResultSetTransformer
-import com.yahoo.maha.core.bucketing.{BucketingConfig, CubeBucketingConfig, CubeBucketingConfigBuilder, DefaultBucketingConfig}
+import com.yahoo.maha.core.bucketing._
+import com.yahoo.maha.core.query.{ResultSetTransformer, _}
 import com.yahoo.maha.core.query.druid.DruidQueryOptimizer
-import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.druid.{AuthHeaderProvider, DruidQueryExecutorConfig}
 import com.yahoo.maha.executor.presto.PrestoQueryTemplate
 import com.yahoo.maha.log.MahaRequestLogWriter
 import com.yahoo.maha.parrequest2.CustomRejectPolicy
 import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor
-import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
 import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
-import com.yahoo.maha.service.config.{JsonDataSourceConfig, PassThroughPasswordProvider, PasswordProvider}
+import com.yahoo.maha.service.config.{PassThroughPasswordProvider, PasswordProvider}
 import com.yahoo.maha.service.curators.Curator
 import com.yahoo.maha.service.error.{FailedToConstructFactory, MahaServiceError}
+import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
+import javax.sql.DataSource
 import org.json4s.JValue
 import org.json4s.JsonAST.JString
 
@@ -170,11 +169,10 @@ class DefaultPrestoQueryTemplateFactory extends PrestoQueryTemplateFactory {
 }
 
 object DefaultBucketingConfigFactory {
-  import org.json4s.scalaz.JsonScalaz.{Error, _}
-
   import _root_.scalaz._
   import Scalaz._
   import Validation.FlatMap._
+  import org.json4s.scalaz.JsonScalaz.{Error, _}
 
   case class RevisionPercentConfig(revision: Int, percent: Int)
   case class RevisionPercentEngineConfig(revision: Int, percent: Int, engine: Option[Engine])
@@ -184,6 +182,13 @@ object DefaultBucketingConfigFactory {
                         , external: List[RevisionPercentConfig]
                         , dryRun: List[RevisionPercentEngineConfig]
                         , userWhiteList: List[UserRevisionConfig])
+  case class QueryGenConfig(engine: String
+                        , internal: List[RevisionPercentConfig]
+                        , external: List[RevisionPercentConfig]
+                        , dryRun: List[RevisionPercentConfig]
+                        , userWhiteList: List[UserRevisionConfig])
+  case class CombinedBucketingConfig(cubeBucketingConfigMapList: List[CubeConfig],
+                                     queryGenBucketingConfigList: List[QueryGenConfig])
   implicit def engineJSON: JSONR[Engine] = new JSONR[Engine] {
     override def read(json: JValue): Result[Engine] = {
       json match {
@@ -210,14 +215,24 @@ object DefaultBucketingConfigFactory {
     , fieldExtended[List[RevisionPercentEngineConfig]]("dryRun")
     , fieldExtended[List[UserRevisionConfig]]("userWhiteList")
   )
+  implicit def queryGenConfigJSON: JSONR[QueryGenConfig] = QueryGenConfig.applyJSON(fieldExtended[String]("engine")
+    , fieldExtended[List[RevisionPercentConfig]]("internal")
+    , fieldExtended[List[RevisionPercentConfig]]("external")
+    , fieldExtended[List[RevisionPercentConfig]]("dryRun")
+    , fieldExtended[List[UserRevisionConfig]]("userWhiteList")
+  )
+  implicit def bucketingConfigJSON: JSONR[CombinedBucketingConfig] = CombinedBucketingConfig.applyJSON(
+    fieldExtended[List[CubeConfig]]("cube"),
+    fieldExtended[List[QueryGenConfig]]("queryGenerator"))
 
   def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[BucketingConfig] = {
     import _root_.scalaz.Scalaz._
-    val cubeConfigResult: MahaServiceConfig.MahaConfigResult[List[CubeConfig]] = fromJSON[List[CubeConfig]](config)
+    val bucketingConfigResult: MahaServiceConfig.MahaConfigResult[CombinedBucketingConfig] = fromJSON[CombinedBucketingConfig](config)
 
-    cubeConfigResult.flatMap {
-      listCubeConfig =>
-        val builtConfig: MahaServiceConfig.MahaConfigResult[List[(String, CubeBucketingConfig)]] = listCubeConfig.map {
+    bucketingConfigResult.flatMap {
+      bucketingConfig =>
+        val builtCubeConfig: MahaServiceConfig.MahaConfigResult[List[(String, CubeBucketingConfig)]] =
+          bucketingConfig.cubeBucketingConfigMapList.map {
           cubeConfig =>
             Validation.fromTryCatchNonFatal {
               val bldr = new CubeBucketingConfigBuilder
@@ -240,13 +255,38 @@ object DefaultBucketingConfigFactory {
               (cubeConfig.cube, bldr.build())
             }.leftMap(t => FailedToConstructFactory(t.getMessage, Option(t)).asInstanceOf[MahaServiceError]).toValidationNel
         }.sequence[MahaServiceConfig.MahaConfigResult, (String, CubeBucketingConfig)]
-        builtConfig.map {
-          builtConfigList =>
-            new DefaultBucketingConfig(builtConfigList.toMap, Map.empty) // TODO: Create QueryGenBucketingConfig map
-        }
+
+        val builtQgenConfig: MahaServiceConfig.MahaConfigResult[List[(Engine, QueryGenBucketingConfig)]] =
+          bucketingConfig.queryGenBucketingConfigList.map {
+          queryGenConfig =>
+            Validation.fromTryCatchNonFatal {
+              val bldr = new QueryGenBucketingConfigBuilder
+              val internal = queryGenConfig.internal.map {
+                case RevisionPercentConfig(r, p) => (Version.from(r).get, p)
+              }.toMap
+              bldr.internalBucketPercentage(internal)
+              val external = queryGenConfig.external.map {
+                case RevisionPercentConfig(r, p) => (Version.from(r).get, p)
+              }.toMap
+              bldr.externalBucketPercentage(external)
+              val dryRun = queryGenConfig.dryRun.map {
+                case RevisionPercentConfig(r, p) => (Version.from(r).get, p)
+              }.toMap
+              bldr.dryRunPercentage(dryRun)
+              val userWhiteList = queryGenConfig.userWhiteList.map {
+                case UserRevisionConfig(u, r) => (u, Version.from(r).get)
+              }.toMap
+              bldr.userWhiteList(userWhiteList)
+              (Engine.from(queryGenConfig.engine).get, bldr.build())
+            }.leftMap(t => FailedToConstructFactory(t.getMessage, Option(t)).asInstanceOf[MahaServiceError]).toValidationNel
+        }.sequence[MahaServiceConfig.MahaConfigResult, (Engine, QueryGenBucketingConfig)]
+
+        (builtCubeConfig |@| builtQgenConfig)((cubeConfigList, qgenConfigList) =>
+          new DefaultBucketingConfig(cubeConfigList.toMap, qgenConfigList.toMap))
     }
   }
 }
+
 class DefaultBucketingConfigFactory extends BucketingConfigFactory {
 
   def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[BucketingConfig] = {

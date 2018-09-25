@@ -16,9 +16,9 @@ import com.google.common.collect.Maps;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
-import com.metamx.common.logger.Logger;
-import com.metamx.emitter.service.ServiceEmitter;
-import com.metamx.emitter.service.ServiceMetricEvent;
+import io.druid.java.util.common.logger.Logger;
+import io.druid.java.util.emitter.service.ServiceEmitter;
+import io.druid.java.util.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.KafkaManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
@@ -34,6 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -101,8 +102,9 @@ public class InMemoryDBLookupExtractor<U> extends LookupExtractor
             }
 
             if (!extractionNamespace.isCacheEnabled()) {
+                Optional<DecodeConfig> decodeConfigOptional = (decodeConfig == null) ? Optional.empty() : Optional.of(decodeConfig);
                 byte[] cacheByteValue = lookupService.lookup(new LookupService.LookupData(extractionNamespace,
-                        dimension, valueColumn));
+                        dimension, valueColumn, decodeConfigOptional));
                 return (cacheByteValue == null || cacheByteValue.length == 0) ? null : new String(cacheByteValue, UTF_8);
             } else {
                 final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
@@ -126,17 +128,35 @@ public class InMemoryDBLookupExtractor<U> extends LookupExtractor
                     return null;
                 }
 
-                Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
-                Message message = parser.parseFrom(cacheByteValue);
-                Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
-                Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn);
+                return handleDecode(decodeConfig, cacheByteValue, valueColumn);
 
-                return Strings.emptyToNull(message.getField(field).toString());
             }
 
         } catch (Exception e) {
             LOG.error(e, "Caught exception while lookup");
             return null;
+        }
+    }
+
+    private String handleDecode(DecodeConfig decodeConfig, byte[] cacheByteValue, String valueColumn) throws Exception {
+        Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
+        Message message = parser.parseFrom(cacheByteValue);
+        Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
+
+        if (decodeConfig != null) {
+            Descriptors.FieldDescriptor columnToCheckField = descriptor.findFieldByName(decodeConfig.getColumnToCheck());
+
+            if (decodeConfig.getValueToCheck().equals(message.getField(columnToCheckField).toString())) {
+                Descriptors.FieldDescriptor columnIfValueMatchedField = descriptor.findFieldByName(decodeConfig.getColumnIfValueMatched());
+                return Strings.emptyToNull(message.getField(columnIfValueMatchedField).toString());
+            } else {
+                Descriptors.FieldDescriptor columnIfValueNotMatched = descriptor.findFieldByName(decodeConfig.getColumnIfValueNotMatched());
+                return Strings.emptyToNull(message.getField(columnIfValueNotMatched).toString());
+            }
+        }
+        else {
+            Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn);
+            return Strings.emptyToNull(message.getField(field).toString());
         }
     }
 

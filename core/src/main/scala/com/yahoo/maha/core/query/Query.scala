@@ -19,13 +19,15 @@ trait Query {
   def asString: String
   def tableName: String = queryContext.primaryTableName
   def aliasColumnMapJava : java.util.Map[String, Column] = aliasColumnMap.asJava
+  def queryGenVersion: Option[Version]
 }
 
 case class OracleQuery(queryContext: QueryContext, 
                        asString: String,
                        parameters: QueryParameters, 
                        aliasColumnMap: Map[String, Column],
-                       additionalColumns: IndexedSeq[String]) extends Query with WithOracleEngine
+                       additionalColumns: IndexedSeq[String],
+                       queryGenVersion: Option[Version] = None) extends Query with WithOracleEngine
 
 case class HiveQuery(queryContext: QueryContext,
                      asString: String, 
@@ -33,7 +35,8 @@ case class HiveQuery(queryContext: QueryContext,
                      parameters: QueryParameters, 
                      columnHeaders: IndexedSeq[String],
                      aliasColumnMap: Map[String, Column],
-                     additionalColumns: IndexedSeq[String]) extends Query with WithHiveEngine
+                     additionalColumns: IndexedSeq[String],
+                     queryGenVersion: Option[Version] = None) extends Query with WithHiveEngine
 
 case class PrestoQuery(queryContext: QueryContext,
                      asString: String,
@@ -41,7 +44,8 @@ case class PrestoQuery(queryContext: QueryContext,
                      parameters: QueryParameters,
                      columnHeaders: IndexedSeq[String],
                      aliasColumnMap: Map[String, Column],
-                     additionalColumns: IndexedSeq[String]) extends Query with WithPrestoEngine
+                     additionalColumns: IndexedSeq[String],
+                     queryGenVersion: Option[Version] = None) extends Query with WithPrestoEngine
 
 object NoopQuery extends Query {
   override def queryContext: QueryContext = throw new UnsupportedOperationException("NoopQuery")
@@ -53,4 +57,6 @@ object NoopQuery extends Query {
   override def engine: Engine = throw new UnsupportedOperationException("NoopQuery")
 
   override def aliasColumnMap: Map[String, Column] = throw new UnsupportedOperationException("NoopQuery")
+
+  override def queryGenVersion: Option[Version] = throw new UnsupportedOperationException("NoopQuery")
 }

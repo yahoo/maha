@@ -86,13 +86,13 @@ trait MahaService {
                            bucketParams: BucketParams): Try[RequestModelResult]
 
   /**
-    * generate query pipeline from model
+    * generate query pipeline from model and bucketSelector
     * @param registryName
     * @param requestModel
     * @return
     */
-  def generateQueryPipeline(registryName: String
-                            , requestModel: RequestModel): Try[QueryPipeline]
+  def generateQueryPipelines(registryName: String
+                           , requestModel: RequestModel): (Try[QueryPipeline], Option[Try[QueryPipeline]])
 
   /**
    * Executes the RequestModel and provide the RequestResult, logs failures with request log builder
@@ -233,13 +233,15 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
     ParRequestResult(queryPipelineTry, finalResult, dryRunResult)
   }
 
-  def generateQueryPipeline(registryName: String,
-                                     requestModel: RequestModel): Try[QueryPipeline] = {
+  def generateQueryPipelines(registryName: String,
+                            requestModel: RequestModel): (Try[QueryPipeline], Option[Try[QueryPipeline]]) = {
 
     val registryConfig = config.registry(registryName)
     val queryPipelineFactory = registryConfig.queryPipelineFactory
+    val bucketSelector = registryConfig.bucketSelector
 
-    val queryPipelineTry = queryPipelineFactory.from(requestModel, QueryAttributes.empty)
+    val queryPipelineTry = queryPipelineFactory.fromBucketSelector(requestModel, QueryAttributes.empty, bucketSelector)
+
     queryPipelineTry
   }
 
@@ -259,7 +261,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
     validateRegistry(registryName)
     val registryConfig = config.registry(registryName)
 
-    val queryPipelineTry = generateQueryPipeline(registryName, requestModel)
+    val queryPipelineTry = generateQueryPipelines(registryName, requestModel)._1
     if(queryPipelineTry.isFailure) {
       val error = queryPipelineTry.failed.get
       val message = s"Failed to compile the query pipeline ${error.getMessage}"
@@ -285,7 +287,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
     val registryConfig = config.registry(registryName)
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
 
-    val queryPipelineTry = generateQueryPipeline(registryName, requestModel)
+    val queryPipelineTry = generateQueryPipelines(registryName, requestModel)._1
     if(queryPipelineTry.isFailure) {
       val error = queryPipelineTry.failed.get
       val message = s"Failed to compile the query pipeline ${error.getMessage}"
@@ -421,7 +423,7 @@ object MahaServiceConfig {
             implicit val queryGeneratorRegistry = new QueryGeneratorRegistry
             generatorMap.filter(g => registryConfig.generators.contains(g._1)).foreach {
               case (name, generator) =>
-                queryGeneratorRegistry.register(generator.engine, generator)
+                queryGeneratorRegistry.register(generator.engine, generator, generator.version)
             }
             val queryExecutorContext = new QueryExecutorContext
             executorMap.filter(e => registryConfig.executors.contains(e._1)).foreach {

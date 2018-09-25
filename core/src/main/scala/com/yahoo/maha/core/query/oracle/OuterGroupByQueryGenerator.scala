@@ -173,7 +173,8 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       val fact = queryContext.factBestCandidate.fact
 
       val dimCols = queryContext.factBestCandidate.dimColMapping.toList.collect {
-        case (dimCol, alias) if queryContext.factBestCandidate.requestCols(dimCol) =>
+        case (dimCol, alias) if (queryContext.factBestCandidate.requestCols(dimCol)
+          || queryContext.factBestCandidate.publicFact.foreignKeyAliases(alias)) =>
           val column = fact.columnsByNameMap(dimCol)
           (column, alias)
       }
@@ -217,7 +218,10 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
           groupedFactCols.foreach {
             case (f:FactCol, colAlias: String) if f.rollupExpression.isInstanceOf[OracleCustomRollup] =>
               customRollupSet.add((f,colAlias))
-              queryBuilderContext.setFactColAlias(f.alias.getOrElse(f.name), colAlias, f)
+              //if custom rollup depends on itself as a primitive col, then don't add to context
+              if(!f.rollupExpression.asInstanceOf[OracleCustomRollup].expression.sourceColumns(f.name)) {
+                queryBuilderContext.setFactColAlias(f.alias.getOrElse(f.name), colAlias, f)
+              }
             case _=> // ignore for all the other cases as they are handled
           }
           customRollupSet

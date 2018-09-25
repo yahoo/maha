@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import io.druid.metadata.MetadataStorageConnectorConfig;
 import org.joda.time.Period;
 
@@ -14,6 +15,7 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Map;
 
 @JsonTypeName("mahajdbc")
 public class JDBCExtractionNamespace implements ExtractionNamespace
@@ -37,6 +39,7 @@ public class JDBCExtractionNamespace implements ExtractionNamespace
 
     private boolean firstTimeCaching = true;
     private Timestamp previousLastUpdateTimestamp;
+    private final Map<String, Integer> columnIndexMap;
 
     @JsonCreator
     public JDBCExtractionNamespace(
@@ -67,6 +70,20 @@ public class JDBCExtractionNamespace implements ExtractionNamespace
         this.pollPeriod = pollPeriod == null ? new Period(0L) : pollPeriod;
         this.cacheEnabled = cacheEnabled;
         this.lookupName = lookupName;
+        int index = 0;
+        ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
+        for(String col : columnList) {
+            builder.put(col, index);
+            index += 1;
+        }
+        this.columnIndexMap = builder.build();
+    }
+
+    public int getColumnIndex(String valueColumn) {
+        if(columnIndexMap != null && valueColumn != null && columnIndexMap.containsKey(valueColumn)) {
+            return columnIndexMap.get(valueColumn);
+        }
+        return -1;
     }
 
     public MetadataStorageConnectorConfig getConnectorConfig()

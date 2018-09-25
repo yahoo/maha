@@ -75,6 +75,8 @@ class JsonStreamingOutputTest extends FunSuite {
     override def getIngestionTime(dataSource: String): Option[String] = {
       Some(timeStampString)
     }
+
+    override def getIngestionTimeLong(dataSource: String): Option[Long] = Some(new Date().getTime)
   }
 
   class TestCurator extends DrilldownCurator {
@@ -119,6 +121,7 @@ class JsonStreamingOutputTest extends FunSuite {
     val result = stringStream.toString()
     stringStream.close()
     assert(result === s"""{"header":{"lastIngestTime":"$timeStampString","source":"student_grade_sheet","cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,1]],"curators":{}}""")
+    assert(jsonStreamingOutput.ingestionTimeUpdaterMap.get(OracleEngine).get.getIngestionTimeLong("abc").isDefined)
   }
 
   test("Test JsonStreamingOutput with DefaultCurator and valid other curator result") {

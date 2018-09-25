@@ -13,10 +13,12 @@ import scala.collection.{SortedSet, mutable}
 /**
  * Created by shengyao on 12/16/15.
  */
-class HiveQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends HiveQueryGeneratorCommon(partitionColumnRenderer, udfStatements) {
+class HiveQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends HiveQueryGeneratorCommon(partitionColumnRenderer, udfStatements) with Logging {
 
   override val engine: Engine = HiveEngine
+  override val version: Version = Version.v1
   override def generate(queryContext: QueryContext): Query = {
+    info(s"Generating Hive query using HiveQueryGeneratorV1: ${queryContext.getClass.getName}")
     queryContext match {
       case context : CombinedQueryContext =>
         generateQuery(context)
@@ -321,6 +323,7 @@ class HiveQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, udfS
     }
     val paramBuilder = new QueryParameterBuilder
 
+   info(s"Generated Hive query with outergroupby: $parameterizedQuery")
     new HiveQuery(
       queryContext,
       parameterizedQuery,
@@ -328,7 +331,8 @@ class HiveQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, udfS
       paramBuilder.build(),
       queryContext.requestModel.requestCols.map(_.alias),
       columnAliasToColMap.toMap,
-      IndexedSeq.empty
+      IndexedSeq.empty,
+      Option(Version.v1)
     )
   }
 
@@ -503,7 +507,8 @@ class HiveQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, udfS
       paramBuilder.build(),
       queryContext.requestModel.requestCols.map(_.alias),
       columnAliasToColMap.toMap,
-      IndexedSeq.empty
+      IndexedSeq.empty,
+      Option(Version.v1)
     )
   }
 }

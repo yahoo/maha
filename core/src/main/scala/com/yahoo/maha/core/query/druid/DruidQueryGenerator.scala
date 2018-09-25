@@ -18,12 +18,13 @@ import com.yahoo.maha.query.aggregation.{RoundingDoubleSumAggregatorFactory, Rou
 import grizzled.slf4j.Logging
 import io.druid.jackson.DefaultObjectMapper
 import io.druid.java.util.common.granularity.GranularityType
+import io.druid.js.JavaScriptConfig
 import io.druid.math.expr.ExprMacroTable
 import io.druid.query.aggregation._
 import io.druid.query.aggregation.datasketches.theta.{SketchMergeAggregatorFactory, SketchModule}
 import io.druid.query.aggregation.post.{ArithmeticPostAggregator, FieldAccessPostAggregator}
 import io.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec, ExtractionDimensionSpec}
-import io.druid.query.extraction.{MapLookupExtractor, SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
+import io.druid.query.extraction._
 import io.druid.query.filter.{AndDimFilter, DimFilter}
 import io.druid.query.groupby.GroupByQuery
 import io.druid.query.groupby.GroupByQuery.Builder
@@ -194,6 +195,7 @@ abstract class DruidQuery[T] extends Query with WithDruidEngine {
   def asString: String = DruidQuery.toJson(query)
   def maxRows: Int
   def isPaginated: Boolean
+  def queryGenVersion: Option[Version] = None
 }
 
 case class TimeseriesDruidQuery(queryContext: QueryContext
@@ -456,6 +458,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         .view
         .filter(_.isInstanceOf[FactSortByColumnInfo])
         .map(_.asInstanceOf[FactSortByColumnInfo])
+        .filter(fsc => !aliasColumnMap(fsc.alias).isInstanceOf[ConstFactCol] && !aliasColumnMap(fsc.alias).isInstanceOf[BaseConstDerivedFactCol])
         .map{ fsc : FactSortByColumnInfo =>
           new OrderByColumnSpec(fsc.alias, findDirection(fsc.order), findComparator(aliasColumnMap(fsc.alias).dataType))
         }
@@ -806,7 +809,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             FilterDruid.renderFilterDim(filter, fact.columnsByNameMap.map(e => e._1 -> e._2.name), fact.columnsByNameMap, Option(fact.grain))
           }.asJava
 
-        val dimFilter: AndDimFilter = Druids.newAndDimFilterBuilder().fields(dimFilterList).build
+        val dimFilter: AndDimFilter = new AndDimFilter(dimFilterList)
 
         new FilteredAggregatorFactory(getAggregatorFactory(dataType, druidFilteredListRollup.delegateAggregatorRollupExpression,
           alias, druidFilteredListRollup.factCol.fieldNamePlaceHolder), dimFilter)
@@ -1063,6 +1066,10 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                 case _ =>
                   (new DefaultDimensionSpec(name, alias), Option.empty)
               }
+
+            case javascript@JAVASCRIPT(_, function) =>
+              val exFn = new JavaScriptExtractionFn(function, false, JavaScriptConfig.getEnabledInstance)
+              (new ExtractionDimensionSpec(javascript.dimColName, alias, getDimValueType(column), exFn, null), Option.empty)
             case DRUID_TIME_FORMAT(fmt, zone) =>
               val exFn = new TimeFormatExtractionFn(fmt, zone, null, null, false)
               (new ExtractionDimensionSpec(DRUID_TIME_FORMAT.sourceDimColName, outputName, getDimValueType(column), exFn, null), Option.empty)
@@ -1102,6 +1109,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               renderColumnWithAlias(fact, column, alias)
             case decodeDimFunction@DECODE_DIM(fieldName, args @ _*) =>
               renderColumnWithAlias(fact, column, alias)
+            case javascript@JAVASCRIPT(fieldName, function) =>
+              renderColumnWithAlias(fact, column, alias)
             case datetimeFormatter@DATETIME_FORMATTER(fieldName, index, length) =>
               renderColumnWithAlias(fact, column, alias)
 
@@ -1111,7 +1120,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null), Option.empty)
 
             case lookupFunc@LOOKUP_WITH_DECODE(lookupNamespace, valueColumn, dimensionOverrideMap, args @ _*) =>
-              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, lookupFunc.default.getOrElse(DruidQuery.replaceMissingValueWith), false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
               val mapLookup = new MapLookupExtractor(lookupFunc.map.asJava, false)
               val mapExFn = new LookupExtractionFn(mapLookup, false, lookupFunc.default.getOrElse(null), false, true)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
@@ -1119,9 +1128,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                 Option.apply(new ExtractionDimensionSpec(alias, alias, getDimValueType(column), mapExFn, null)))
 
             case lookupFunc@LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE(lookupNamespace, valueColumn, retainMissingValue, injective, dimensionOverrideMap, args @ _*) =>
-              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, lookupFunc.lookupWithDecode.default.getOrElse(DruidQuery.replaceMissingValueWith), false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
               val mapLookup = new MapLookupExtractor(lookupFunc.lookupWithDecode.map.asJava, false)
-              val mapExFn = new LookupExtractionFn(mapLookup, retainMissingValue, lookupFunc.lookupWithDecode.default.getOrElse(null), injective, true)
+              val mapExFn = new LookupExtractionFn(mapLookup, retainMissingValue, null, injective, true)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null),
                 Option.apply(new ExtractionDimensionSpec(alias, alias, getDimValueType(column), mapExFn, null)))

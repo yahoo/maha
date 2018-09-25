@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>5.179-SNAPSHOT</version>
+    <version>5.211-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -34,7 +34,7 @@
         <httpclient.version>4.5.5</httpclient.version>
         <guava.version>24.1.1-jre</guava.version>
         <jodatime.version>2.9.9</jodatime.version>
-        <druid.version>0.11.0</druid.version>
+        <druid.version>0.12.2</druid.version>
         <scala.arm.version>2.0</scala.arm.version>
         <opencsv.version>3.8</opencsv.version>
         <esapi.version>2.1.0.1</esapi.version>
@@ -50,15 +50,18 @@
         <leveldb.version>1.8</leveldb.version>
         <rocksdb.version>5.13.4</rocksdb.version>
         <protobuf.version>2.6.1</protobuf.version>
-        <http4s.version>0.18.11</http4s.version>
+        <http4s.version>0.18.15</http4s.version>
         <maven-site-plugin.skip>true</maven-site-plugin.skip>
         <checkstyle.skip>true</checkstyle.skip>
         <freemarker.version>2.3.20</freemarker.version>
         <enumeratum.version>1.5.13</enumeratum.version>
-        <kafka.version>0.10.2.1</kafka.version>
+        <kafka.version>1.1.0</kafka.version>
         <caffeine.version>2.6.2</caffeine.version>
         <archaius.version>0.7.6</archaius.version>
         <bytebuddy.version>1.8.12</bytebuddy.version>
+        <kryo.version>4.0.2</kryo.version>
+        <lz4.version>1.4.1</lz4.version>
+        <curator.version>4.0.1</curator.version>
     </properties>
 
 
@@ -129,6 +132,11 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.lz4</groupId>
+                <artifactId>lz4-java</artifactId>
+                <version>${lz4.version}</version>
             </dependency>
             <dependency>
                 <groupId>joda-time</groupId>
@@ -524,14 +532,6 @@
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <configuration>
-                        <source>${maven.compiler.target}</source>
-                        <target>${maven.compiler.target}</target>
-                    </configuration>
-                </plugin>
-                <plugin>
                     <groupId>org.scoverage</groupId>
                     <artifactId>scoverage-maven-plugin</artifactId>
                     <version>${scoverage.plugin.version}</version>
@@ -555,7 +555,7 @@
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <version>3.2.1</version>
+                    <version>3.3.2</version>
                     <executions>
                         <execution>
                             <goals>
@@ -568,8 +568,17 @@
                     <configuration>
                         <jvmArgs>
                             <jvmArg>-Xms64m</jvmArg>
-                            <jvmArg>-Xmx1024m</jvmArg>
+                            <jvmArg>-Xmx2048m</jvmArg>
                         </jvmArgs>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.8.0</version>
+                    <configuration>
+                        <source>${maven.compiler.target}</source>
+                        <target>${maven.compiler.target}</target>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -590,7 +599,7 @@
                 <plugin>
                     <groupId>org.scalatest</groupId>
                     <artifactId>scalatest-maven-plugin</artifactId>
-                    <version>1.0</version>
+                    <version>2.0.0</version>
                     <configuration>
                         <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                         <junitxml>.</junitxml>
@@ -669,7 +678,7 @@
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
-                <version>3.2.1</version>
+                <version>3.3.2</version>
                 <executions>
                     <execution>
                         <goals>
