@@ -255,7 +255,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           PubCol("price_type", "Pricing Type", In)
         ),
         Set(
-          PublicFactCol("impressions", "Impressions", InBetweenEquality),
+          PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),
           PublicFactCol("max_bid", "Max Bid", Set.empty),
@@ -635,7 +635,6 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                           "cube": "ad_stats",
                           "selectFields": [
                             {"field": "Day"},
-                            {"field": "Hour"},
                             {"field": "Campaign ID"},
                             {"field": "Ad Group ID"},
                             {"field": "Ad ID"},
@@ -655,6 +654,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                           "filterExpressions": [
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
                             {"field": "Advertiser ID", "operator": "=", "value": "1"},
+                            {"field": "Impressions", "operator": ">", "value": "1007" },
                             {"field": "Pricing Type", "operator": "in", "values": ["CPC","CPA"] }
                           ],
                           "sortBy": [
@@ -674,7 +674,67 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryPipeline = queryPipelineTry.toOption.get
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    
+
+    val result = queryPipeline.execute(queryExecutorContext)
+
+    result match {
+      case scala.util.Success(queryPipelineResult) =>
+        assert(!queryPipelineResult.rowList.isEmpty)
+        print("\nHERERERERERERERE\n")
+        print(queryPipelineResult.rowList)
+        val inmem = queryPipelineResult.rowList
+        assert(!inmem.isEmpty)
+        inmem.foreach {
+          row =>
+//            assert(!row.getValue("Ad ID").toString.matches("1003"))
+            print("\n" + row.getValue("Ad ID") + "\n")
+            row.getValue("Ad ID").toString match {
+              case "1000" | "1001" | "1002" | "1003" =>
+                print("/BLEH/n")
+                print(row.getValue("Ad ID"))
+                assert(false)
+              case "1004" | "1005" | "1006" | "1007" =>
+                print("/BLEHYEP/n")
+                assert(true)
+            }
+
+        }
+      case any =>
+        throw new UnsupportedOperationException(s"unexpected row list : $any")
+    }
+  }
+
+  test("successfully execute sync query for ad_stats with greater than filter") {
+    val jsonString = s"""{
+                          "cube": "ad_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Ad ID"},
+                            {"field": "Impressions"},
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "1"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":1,
+                          "rowsPerPage":100
+                        }"""
+
+    print(jsonString)
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+
     val result = queryPipeline.execute(queryExecutorContext)
     result match {
       case scala.util.Success(queryPipelineResult) =>
