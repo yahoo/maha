@@ -781,7 +781,7 @@ object DynamicMahaServiceConfig {
       c.asInstanceOf[JObject].obj.foreach(map => {
       val dynamicFields = extractDynamicFields(map._2)
         for ((_, (propertyKey, defaultValue)) <- dynamicFields) {
-          val objectName = map._1
+          val objectName = map._1.toLowerCase
           require(objectNameMap.contains(objectName), s"Dynamic object with name $objectName not present in objectMap: $objectNameMap")
           if (dynamicProperties.contains(propertyKey)) {
             dynamicProperties(propertyKey).objects.put(objectName, objectNameMap(objectName))

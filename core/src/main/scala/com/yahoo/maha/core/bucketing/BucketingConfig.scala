@@ -157,6 +157,10 @@ class DefaultBucketingConfig(cubeBucketingConfigMap:scala.collection.immutable.M
                              queryGenBucketingConfigMap:scala.collection.immutable.Map[Engine,QueryGenBucketingConfig]) extends BucketingConfig {
   validate()
 
+  def this() {
+    this(Map.empty, Map.empty)
+  }
+
   private[this] def validate(): Unit = {
 
     cubeBucketingConfigMap.foreach {
