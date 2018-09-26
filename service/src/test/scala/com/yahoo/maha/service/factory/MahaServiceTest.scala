@@ -2,11 +2,13 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.factory
 
+import java.nio.charset.StandardCharsets
 import java.util.UUID
 
-import com.yahoo.maha.service.MahaServiceConfig
-
+import com.yahoo.maha.service.{DynamicMahaServiceConfig, MahaServiceConfig}
 import scalaz.{Failure, Success}
+import org.json4s.jackson.JsonMethods.parse
+import org.json4s.scalaz.JsonScalaz.fromJSON
 
 /**
  * Created by pranavbhole on 06/06/17.
@@ -549,5 +551,226 @@ class MahaServiceTest extends BaseFactoryTest {
                        |	""".stripMargin
     val mahaServiceResult = MahaServiceConfig.fromJson(invalidJson.getBytes("utf-8"))
     assert(mahaServiceResult.isFailure)
+  }
+
+  test("Find dynamic objects successfully in a json containing dyanmic property values") {
+    val jsonString =
+      s"""{
+         |	"registryMap": {
+         |		"er": {
+         |			"factRegistrationClass": "com.yahoo.maha.service.example.SampleFactSchemaRegistrationFactory",
+         |			"dimensionRegistrationClass": "com.yahoo.maha.service.example.SampleDimensionSchemaRegistrationFactory",
+         |			"executors": ["oracleExec"],
+         |			"generators": ["oracle", "druid"],
+         |			"bucketingConfigName": "erBucket",
+         |			"utcTimeProviderName": "erUTC",
+         |			"parallelServiceExecutorName": "erPSE",
+         |			"dimEstimatorFactoryClass": "com.yahoo.maha.service.factory.DefaultDimCostEstimatorFactory",
+         |			"dimEstimatorFactoryConfig": "",
+         |			"factEstimatorFactoryClass": "com.yahoo.maha.service.factory.DefaultFactCostEstimatorFactory",
+         |			"factEstimatorFactoryConfig": "",
+         |			"defaultPublicFactRevisionMap": {},
+         |			"defaultPublicDimRevisionMap": {}
+         |		}
+         |	},
+         | "executorMap": {
+         |      "oracleExec": {
+         |         "factoryClass": "com.yahoo.maha.service.factory.OracleQueryExecutoryFactory",
+         |         "config": {
+         |        "dataSourceName": "oracleDataSource",
+         |        "jdbcConnectionFetchSize": 100,
+         |        "lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
+         |        "lifecycleListenerFactoryConfig": [
+         |          {
+         |            "key": "value"
+         |          }
+         |        ]
+         |      }
+         |  }
+         },
+         |	"generatorMap": {
+         |		 "oracle": {
+         |         "factoryClass": "com.yahoo.maha.service.factory.OracleQueryGeneratorFactory",
+         |         "config": {
+         |            "partitionColumnRendererClass": "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
+         |            "partitionColumnRendererConfig": [
+         |               {
+         |                  "key": "value"
+         |               }
+         |            ],
+         |            "literalMapperClass": "com.yahoo.maha.service.factory.DefaultOracleLiteralMapperFactory",
+         |            "literalMapperConfig": [
+         |               {
+         |                  "key": "value"
+         |               }
+         |            ]
+         |         }
+         |      },
+         |      "druid": {
+         |         "factoryClass": "com.yahoo.maha.service.factory.DruidQueryGeneratorFactory",
+         |         "config": {
+         |            "queryOptimizerClass": "com.yahoo.maha.service.factory.DefaultDruidQueryOptimizerFactory",
+         |            "queryOptimizerConfig": [
+         |               {
+         |                  "key": "value"
+         |               }
+         |            ],
+         |            "dimCardinality": 40000,
+         |            "maximumMaxRows": 5000,
+         |            "maximumTopNMaxRows": 400,
+         |            "maximumMaxRowsAsync": 100000
+         |         }
+         |      }
+         |	},
+         |	"bucketingConfigMap": {
+         |      "erBucket": {
+         |         "factoryClass": "com.yahoo.maha.service.factory.DefaultBucketingConfigFactory",
+         |         "config": [{
+         |	  "cube": "student_performance",
+         |		"internal": [{
+         |			"revision": 0,
+         |      "percent": 10
+         |		}, {
+         |      "revision": 1,
+         |      "percent": 90
+         |    }],
+         |		"external": [{
+         |			"revision": 0,
+         |      "percent": "<%(student_performance.external.rev0.percent, 90)%>"
+         |		}, {
+         |      "revision": 1,
+         |      "percent": "<%(student_performance.external.rev1.percent, 10)%>"
+         |		}],
+         |    "dryRun": [{
+         |			"revision": 0,
+         |      "percent": 10
+         |		}, {
+         |      "revision": 1,
+         |      "percent": 10
+         |    }],
+         |    "userWhiteList": [{
+         |      "user" : "uid",
+         |      "revision": 0
+         |    }]
+         |}]
+         |      },
+         |      "irBucket": {
+         |         "factoryClass": "com.yahoo.maha.service.factory.DefaultBucketingConfigFactory",
+         |         "config": [{
+         |	  "cube": "student_performance",
+         |		"internal": [{
+         |			"revision": 0,
+         |      "percent": 10
+         |		}, {
+         |      "revision": 1,
+         |      "percent": 90
+         |    }],
+         |		"external": [{
+         |			"revision": 0,
+         |      "percent": 90
+         |		}, {
+         |      "revision": 1,
+         |      "percent": 10
+         |		}],
+         |    "dryRun": [{
+         |			"revision": 0,
+         |      "percent": 100
+         |		}, {
+         |      "revision": 1,
+         |      "percent": 10
+         |    }],
+         |    "userWhiteList": [{
+         |      "user" : "uid",
+         |      "revision": 0
+         |    }]
+         |}]
+         |      }
+         |   },
+         |	"utcTimeProviderMap": {
+         |		"erUTC": {
+         |         "factoryClass": "com.yahoo.maha.service.factory.PassThroughUTCTimeProviderFactory",
+         |         "config": {
+         |            "k": "v"
+         |         }
+         |      },
+         |      "irUTC": {
+         |         "factoryClass": "com.yahoo.maha.service.factory.PassThroughUTCTimeProviderFactory",
+         |         "config": {
+         |            "k": "v"
+         |         }
+         |      }
+         |	},
+         | "datasourceMap" : {
+         |    "oracleDataSource" : {
+         |      "factoryClass": "com.yahoo.maha.service.factory.HikariDataSourceFactory",
+         |      "config": {
+         |        "driverClassName": "org.h2.Driver",
+         |        "jdbcUrl": "jdbc:h2:mem:h2dbId;MODE=Oracle;DB_CLOSE_DELAY=-1",
+         |        "username": "sa",
+         |        "passwordProviderFactoryClassName": "com.yahoo.maha.service.factory.PassThroughPasswordProviderFactory",
+         |        "passwordProviderConfig": [
+         |          {
+         |            "key": "value"
+         |          }
+         |        ],
+         |        "passwordKey": "h2.test.database.password",
+         |        "poolName": "test-pool",
+         |        "dataSourceName": "test-datasource",
+         |        "maximumPoolSize": 10,
+         |        "minimumIdle": 0,
+         |        "autoCommit": true,
+         |        "connectionTestQuery": "SELECT 1 FROM DUAL",
+         |        "validationTimeout": 1000000,
+         |        "idleTimeout": 1000000,
+         |        "maxLifetime": 10000000,
+         |        "dataSourceProperties": [
+         |          {
+         |            "key": "key1",
+         |            "value": "val1"
+         |          }
+         |        ]
+         |      }
+         |    }
+         |  },
+         | "parallelServiceExecutorConfigMap": {
+         |    "erpse": {
+         |         "factoryClass": "com.yahoo.maha.service.factory.DefaultParallelServiceExecutoryFactory",
+         |         "config": {
+         |            "rejectedExecutionHandlerClass": "com.yahoo.maha.service.factory.DefaultRejectedExecutionHandlerFactory",
+         |            "rejectedExecutionHandlerConfig": "",
+         |            "poolName": "maha-test-pool",
+         |            "defaultTimeoutMillis": 10000,
+         |            "threadPoolSize": 3,
+         |            "queueSize": 3
+         |         }
+         |      }
+         | }
+         | ,
+         |   "mahaRequestLoggingConfig" : {
+         |    "factoryClass": "com.yahoo.maha.service.factory.NoopMahaRequestLogWriterFactory",
+         |    "config" : {},
+         |    "isLoggingEnabled" : false
+         |   },
+         |"curatorMap": {
+         |      "default": {
+         |         "factoryClass": "com.yahoo.maha.service.factory.DefaultCuratorFactory",
+         |         "config": {
+         |         }
+         |      },
+         |      "timeshift": {
+         |         "factoryClass": "com.yahoo.maha.service.factory.TimeShiftCuratorFactory",
+         |         "config": {
+         |         }
+         |      }
+         |   }
+         |}""".stripMargin
+
+    //println(jsonString)
+    val json = parse(jsonString)
+    val dynamicObjects = DynamicMahaServiceConfig.findDynamicProperties(json, Map("oracleexec" -> new Object, "erbucket" -> new Object))
+    println(dynamicObjects)
+    assert(dynamicObjects.size == 1)
+    val result = DynamicMahaServiceConfig.fromJson(jsonString.getBytes(StandardCharsets.UTF_8))
+    assert(result.isSuccess, s"Failed to create dynamic config: $result")
   }
 }
