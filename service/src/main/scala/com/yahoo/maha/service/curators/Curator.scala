@@ -120,7 +120,7 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
 
     if(requestModelResultTry.isFailure) {
       val message = requestModelResultTry.failed.get.getMessage
-      mahaRequestLogBuilder.logFailed(message)
+      mahaRequestLogBuilder.logFailed(message, Some(400))
       withError(curatorConfig,
         GeneralError.from(parRequestLabel
           , message, new MahaServiceBadRequestException(message, requestModelResultTry.failed.toOption))
@@ -225,7 +225,7 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
 
     if(requestModelResultTry.isFailure) {
       val message = requestModelResultTry.failed.get.getMessage
-      mahaRequestLogBuilder.logFailed(message)
+      mahaRequestLogBuilder.logFailed(message, Some(400))
       withError(curatorConfig,
         GeneralError.from(parRequestLabel
           , message, new MahaServiceBadRequestException(message, requestModelResultTry.failed.toOption))
@@ -235,8 +235,8 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
         val requestModelResult = requestModelResultTry.get
         requestModelValidator.validate(mahaRequestContext, requestModelResult)
         if(mahaRequestContext.reportingRequest.forceDimensionDriven) {
-          val sourcePipelineTry = mahaService.generateQueryPipeline(mahaRequestContext.registryName
-            , requestModelResultTry.get.model)
+          val sourcePipelineTry = mahaService.generateQueryPipelines(mahaRequestContext.registryName
+            , requestModelResultTry.get.model)._1
 
           if (sourcePipelineTry.isFailure) {
             val exception = sourcePipelineTry.failed.get

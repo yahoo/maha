@@ -390,13 +390,17 @@ case class MultiQuery(unionQueryList: List[Query], fallbackQueryOption: Option[(
 trait QueryPipelineFactory {
   def from(requestModel: RequestModel, queryAttributes: QueryAttributes): Try[QueryPipeline]
 
+  def fromQueryGenVersion(requestModel: RequestModel, queryAttributes: QueryAttributes, queryGenVersion: Version): Try[QueryPipeline]
+
   def from(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]]
 
-  def fromBucketSelector(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]]
+  def fromBucketSelector(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple3[Try[QueryPipeline], Option[Try[QueryPipeline]], Option[Try[QueryPipeline]]]
+
+  def fromBucketSelector(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]]
 
   def builder(requestModel: RequestModel, queryAttributes: QueryAttributes): Try[QueryPipelineBuilder]
 
-  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: Option[BucketSelector]): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]]
+  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: Option[BucketSelector], forceQueryGenVersion: Option[Version]): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]]
 
   def builder(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]]
 
@@ -428,7 +432,7 @@ object DefaultQueryPipelineFactory extends Logging {
   }
 
   def findBestFactCandidate(requestModel: RequestModel, forceDisqualifySet: Set[Engine] = Set.empty, dimEngines: Set[Engine], queryGeneratorRegistry: QueryGeneratorRegistry): FactBestCandidate = {
-    require(requestModel.bestCandidates.isDefined, s"Cannot create fact best candidate without best candidates : $requestModel")
+    require(requestModel.bestCandidates.isDefined, s"Cannot create fact best candidate without best candidates : ${requestModel.reportingRequest}")
     //schema specific rules?
     requestModel.schema match {
       case _ =>
@@ -454,7 +458,7 @@ object DefaultQueryPipelineFactory extends Logging {
                   info(s"hasLowCardinalityDimFilters=${requestModel.hasLowCardinalityDimFilters} forceDimDriven=${requestModel.forceDimDriven} hasDimAndFactOperations=${requestModel.hasDimAndFactOperations}")
                   info(s"isFactDriven=${requestModel.isFactDriven} hasIndexInOutput=$hasIndexInOutput dimEngines=$dimEngines dimCandidates=${requestModel.dimensionsCandidates.map(_.dim.name)}")
                 }
-                QueryPipeline.syncNonDruidDisqualifyingSet
+                QueryPipeline.syncNonDruidDisqualifyingSet ++ forceDisqualifySet
               } else if (requestModel.hasFactSortBy
                 || (requestModel.hasDimSortBy && !requestModel.hasNonFKFactFilters)
                 || (!requestModel.hasDimAndFactOperations)
@@ -616,6 +620,7 @@ object DefaultQueryPipelineFactory extends Logging {
                   , hasNonPushDownFilters = dc.hasNonPushDownFilters
                   , hasPKRequested = dc.hasPKRequested
                   , hasNonFKNonForceFilters = dc.hasNonFKNonForceFilters
+                  , hasLowCardinalityFilter = dc.hasLowCardinalityFilter
                 )
               }
             }
@@ -801,7 +806,7 @@ OuterGroupBy operation has to be applied only in the following cases
     builder(requestModel, queryAttributes, None)._1
   }
 
-  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: Option[BucketSelector]): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]] = {
+  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: Option[BucketSelector], forceQueryGenVersion: Option[Version] = None): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]] = {
     def requestDebug(msg: => String): Unit = {
       if (requestModel.isDebugEnabled) {
         info(msg)
@@ -853,7 +858,7 @@ OuterGroupBy operation has to be applied only in the following cases
                 val queryAttributesBuilder = subqueryqueryAttributes.toBuilder
                 val injectedInFilter = InFilter(field, values)
                 queryAttributesBuilder.addAttribute(QueryAttributes.injectedDimINFilter, InjectedDimFilterAttribute(injectedInFilter))
-                if (noRowCountRequestModel.startIndex <= 0) {
+                if (noRowCountRequestModel.startIndex <= 0 && !noRowCountRequestModel.hasMetricFilters) {
                   val injectedNotInFilter = NotInFilter(field, values)
                   queryAttributesBuilder.addAttribute(QueryAttributes.injectedDimNOTINFilter, InjectedDimFilterAttribute(injectedNotInFilter)).build
                 }
@@ -1071,7 +1076,7 @@ OuterGroupBy operation has to be applied only in the following cases
                     , requestModel.isDebugEnabled
                   )
                 } else {
-                  throw new IllegalArgumentException(s"Fact driven dim only query is not valid : $requestModel")
+                  throw new IllegalArgumentException(s"Fact driven dim only query is not valid : ${requestModel.reportingRequest}")
                 }
               }
             }
@@ -1117,23 +1122,27 @@ OuterGroupBy operation has to be applied only in the following cases
       }
 
       val (queryGenVersion: Version, dryRunQgenVersion: Option[Version]) = {
-        if (bucketSelector.isDefined) {
-          val engine = {
-            if (factBestCandidateOption.isDefined) {
-              factBestCandidateOption.get.fact.engine
-            } else {
-              bestDimCandidates.head.dim.engine
-            }
-          }
-          val bucketSelected = bucketSelector.get.selectBucketsForQueryGen(engine, new BucketParams()) // TODO: Pass bucket params
-          bucketSelected.fold(t => {
-            warn(s"No query generator buckets selected for engine: $engine")
-            (Version.DEFAULT, None)
-          }, bucket => {
-            (bucket.queryGenVersion, bucket.dryRunQueryGenVersion)
-          })
+        if (forceQueryGenVersion.isDefined) {
+          (forceQueryGenVersion.get, None)
         } else {
-          (Version.DEFAULT, None)
+          if (bucketSelector.isDefined) {
+            val engine = {
+              if (factBestCandidateOption.isDefined) {
+                factBestCandidateOption.get.fact.engine
+              } else {
+                bestDimCandidates.head.dim.engine
+              }
+            }
+            val bucketSelected = bucketSelector.get.selectBucketsForQueryGen(engine, new BucketParams()) // TODO: Pass bucket params
+            bucketSelected.fold(t => {
+              warn(s"No query generator buckets selected for engine: $engine")
+              (Version.DEFAULT, None)
+            }, bucket => {
+              (bucket.queryGenVersion, bucket.dryRunQueryGenVersion)
+            })
+          } else {
+            (Version.DEFAULT, None)
+          }
         }
       }
 
@@ -1148,6 +1157,10 @@ OuterGroupBy operation has to be applied only in the following cases
     builder(requestModel, queryAttributes, None)._1.map(_.build())
   }
 
+  def fromQueryGenVersion(requestModel: RequestModel, queryAttributes: QueryAttributes, queryGenVerion: Version): Try[QueryPipeline] = {
+    builder(requestModel, queryAttributes, None, Option(queryGenVerion))._1.map(_.build())
+  }
+
   def from(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]] = {
     val queryPipelineBuilderTries = builder(requestModels, queryAttributes)
     if (queryPipelineBuilderTries._2.isDefined) {
@@ -1157,12 +1170,24 @@ OuterGroupBy operation has to be applied only in the following cases
     }
   }
 
-  def fromBucketSelector(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]] = {
+  def fromBucketSelector(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple3[Try[QueryPipeline], Option[Try[QueryPipeline]], Option[Try[QueryPipeline]]] = {
     val queryPipelineBuilderTries = builder(requestModels, queryAttributes, bucketSelector)
-    if (queryPipelineBuilderTries._2.isDefined) {
-      (queryPipelineBuilderTries._1.map(_.build()), Option(queryPipelineBuilderTries._2.get.map(_.build())))
-    } else {
-      (queryPipelineBuilderTries._1.map(_.build()), None)
+    val queryPipeline: Try[QueryPipeline] = queryPipelineBuilderTries._1.map(_.build())
+    val queryPipelineDryRunQgen: Option[Try[QueryPipeline]] = {
+      if (queryPipelineBuilderTries._2.isDefined)
+        Option(queryPipelineBuilderTries._2.get.map(_.build()))
+      else None
     }
+    val queryPipelineDryRunCube: Option[Try[QueryPipeline]] = {
+      if (queryPipelineBuilderTries._3.isDefined)
+        Option(queryPipelineBuilderTries._3.get.map(_.build()))
+      else None
+    }
+    (queryPipeline, queryPipelineDryRunQgen, queryPipelineDryRunCube)
+  }
+
+  def fromBucketSelector(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: BucketSelector): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]] = {
+    val queryPipelines = fromBucketSelector(new Tuple2[RequestModel, Option[RequestModel]](requestModel, None), queryAttributes, bucketSelector)
+    (queryPipelines._1, queryPipelines._2)
   }
 }

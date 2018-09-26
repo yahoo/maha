@@ -1,0 +1,247 @@
+@* Copyright 2018, Oath Inc.
+Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms. *@
+@(workerLists: List[Map[String, Any]],workerConfig: String
+        )
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Druid Manager</title>
+        <link rel="icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+        <script type="text/javascript" src ="@routes.DashBoard.jsRouter"></script>
+        <script>
+         function submitTask(){
+             $('#container').empty()
+             var task = $.trim( $('#taskJSON').val() )
+             console.log("Entered task JSON : " + task)
+             if(task!=''){
+                 if(isJson(task)){
+
+                 }else{
+                     $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong> Please enter valid JSON</strong> </div>')
+                     return;
+                 }
+
+             }else{
+                 $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong> JSON cannot be empty</strong> </div>')
+                 return;
+             }
+         }
+
+         function isJson(str) {
+             try {
+                 JSON.parse(str);
+             } catch (e) {
+                 return false;
+             }
+             return true;
+         }
+
+         function enableDisableMM(host,btnId){
+         $('#container').empty()
+         var requestType =  $('#'+btnId).val().toString()
+         //This routes the requeest to enable
+         if(requestType.localeCompare('enable')==0){
+            console.log("Enable request going to call enable  API for host " + host )
+            var enableRoute = jsRoutes.controllers.DashBoard.enableDisableMiddleManager(host,'enable')
+            enableRoute.ajax({
+                  contentType : 'application/json',
+                  beforeSend: function(){
+
+                 },
+                 complete: function(){
+
+                 },
+                 timeout: 60000,
+                 success: function(result) {
+                  try{
+                   console.log("AJAX call result are : " +result)
+                   var res = JSON.parse(result)
+                  if(res[host].toString().localeCompare('enabled')==0){
+                     console.log("successfully enabled middle manager "+host)
+                      $('#'+btnId).removeClass('btn-primary').addClass('btn-danger')
+                      $('#'+btnId).html('Disable')
+                      $('#'+btnId).val('disable')
+                  }
+                  else if(res[host].toString().localeCompare('unauthorized')==0){
+                    $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong> Not Authorized </strong> </div>')
+                  }
+                  else{
+                    $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong>  Failed to enable Middle Manager </strong> </div>')
+                  }
+             }
+             catch(er){
+                console.log(" failed to execute ajax call er"+ er)
+                $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong>  Failed to enable Middle Manager </strong> </div>')
+            }
+            },
+
+         error: function(x, t, m) {
+         console.log(" failed to execute the AJAX error "+ t)
+         $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong>  Error : '+x.responseText+'</strong> </div>')
+         }
+         ,
+         failure: function(x) {
+         console.log(" failed to execute the AJAX failure "+ x)
+         $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong> Failed to enable Middle Manager </strong> </div>')
+         }
+         })
+
+         }else{
+         console.log("Disable request going to call disable  API for host  " + host)
+         var disableRoute = jsRoutes.controllers.DashBoard.enableDisableMiddleManager(host,'disable')
+            disableRoute.ajax({
+                  contentType : 'application/json',
+                  beforeSend: function(){
+
+                 },
+                 complete: function(){
+
+                 },
+                 timeout: 60000,
+                 success: function(result) {
+                  try{
+                   console.log("AJAX result are : " +result)
+                   var res = JSON.parse(result)
+                  if(res[host].toString().localeCompare('disabled')==0){
+                     console.log("successfully disabled middle manager "+host)
+                     $('#'+btnId).removeClass('btn-danger').addClass('btn-primary')
+                     $('#'+btnId).html('Enable')
+                     $('#'+btnId).val('enable')
+                  }
+                  else if(res[host].toString().localeCompare('unauthorized')==0){
+                    $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong> Not Authorized </strong> </div>')
+                  }
+                  else{
+                    $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong>  Failed to disable Middle Manager </strong> </div>')
+                  }
+             }
+             catch(er){
+                console.log(" failed to execute AJAX er"+ er)
+                $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong>  Failed to disable Middle Manager </strong> </div>')
+            }
+            },
+
+         error: function(x, t, m) {
+         console.log(" failed to execute the AJAX error "+ t)
+         $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong>  Error : '+x.responseText+'</strong> </div>')
+         }
+         ,
+         failure: function(x) {
+         console.log(" failed to execute the AJAX failure "+ x)
+         $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong> Failed to disable Middle Manager </strong> </div>')
+         }
+         })
+         }
+         }
+
+      </script>
+    </head>
+    <body>
+        <nav class="navbar navbar-default navbar-static-top ">
+            <div class="container-fluid">
+                <ul class="nav navbar-nav">
+                    <li><a href="/datasource">Data Source Info</a></li>
+                    <li><a href="/segments">Query Segments</a></li>
+                    <li><a href="/"> Metadata</a></li>
+                    <li class="active"><a href="/overlord/workers">Indexing Services</a></li>
+                    <li><a href="/lookups">Druid Lookups</a></li>
+                    <li><a href="/kill/segments">Kill Segments</a></li>
+                </ul>
+            </div>
+        </nav>
+        <div class="container">
+            <div class="row text-center text-primary lead">
+                <h3>Indexing  Services</h3>
+            </div>
+            <div class="row text-center " id="container">
+            </div>
+            <div class="row">
+                <div class="col-sm-2">
+                    <nav>
+                        <ul class="nav nav-pills nav-stacked ">
+                            <li class="active "><a href="#workers">Middle Managers</a></li>
+                            <li ><a href="#workersConfig">Workers Config</a></li>
+                            @*<li ><a href="#submitTask">Submit Task</a></li>*@
+                            @*<li><a href="#killTask">Kill Task</a></li>*@
+                            @*<li><a href="#specGen">Spec File Generator</a></li>*@
+                        </ul>
+                    </nav>
+                </div>
+                <div class="col-sm-10">
+                    <div class="tab-content">
+                        <div class="tab-pane fade in active well well-lg" id="workers">
+                            <div class="form-group">
+                                <table class="table table-bordered table-hover" id="workerTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Middle Manager </th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    @for(worker <- workerLists.sortBy(_("host").toString)) {
+                                        <tr >
+                                            <td >@worker("host")</td>
+                                            <td>
+                                            @if(worker("status").asInstanceOf[Boolean]) {
+                                                <button value="disable" onclick="enableDisableMM('@worker("host").toString', 'btn@worker("host").toString.replace('.', '_').replace(':', '_')')" class="btn btn-danger" id="btn@worker("host").toString.replace('.', '_').replace(':', '_')">
+                                                    <span class="glyphicon"></span>  Disable</button>
+                                            } else {
+                                                <button onclick="enableDisableMM('@worker("host").toString', 'btn@worker("host").toString.replace('.', '_').replace(':', '_')')" class="btn btn-primary" value="enable" id="btn@worker("host").toString.replace('.', '_').replace(':', '_')">
+                                                    <span class="glyphicon"></span>  Enable</button>
+                                            }
+                                            </td>
+                                        </tr>
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        @*<div class="tab-pane fade well well-lg" id="submitTask">*@
+                            @*<div class="form-group">*@
+                                @*<label for="submitTask">Enter JSON</label>*@
+                                @*<textarea class="form-control" rows="15" id="taskJSON"></textarea>*@
+                            @*</div>*@
+                            @*<div class="form-group">*@
+                                @*<button onclick="submitTask()" class="btn btn-info ">*@
+                                    @*<span class="glyphicon  glyphicon-ok-sign"></span> Submit*@
+                                @*</button>*@
+                            @*</div>*@
+                        @*</div>*@
+                        @*<div class="tab-pane fade  well well-lg" id="killTask">*@
+                            @*<h5>Kill Task</h5>*@
+                            @*<p>To be done!</p>*@
+                        @*</div>*@
+                        @*<div id="specGen" class="tab-pane fade  well well-lg">*@
+                            @*<h5>Spec File Generator</h5>*@
+                            @*<p>To be done</p>*@
+                        @*</div>*@
+                        <div id="workersConfig" class="tab-pane fade  well well-lg">
+                        <h5>Workers Configuration</h5>
+                        <p>@workerConfig</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <script>
+            $(document).ready(function () {
+                $(".nav-pills a").click(function () {
+                    $(this).tab('show');
+                });
+                $('.nav-pills a').on('shown.bs.tab', function (event) {
+                    var x = $(event.target).text();         // active tab
+                    var y = $(event.relatedTarget).text();  // previous tab
+                    $(".act span").text(x);
+                    $(".prev span").text(y);
+                });
+            });
+         </script>
+        </div>
+    </body>
+</html>

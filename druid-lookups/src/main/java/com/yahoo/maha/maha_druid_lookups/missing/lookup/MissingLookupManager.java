@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.missing.lookup;
 
-import com.metamx.common.logger.Logger;
+import io.druid.java.util.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.PasswordProvider;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -46,7 +46,7 @@ public class MissingLookupManager<T extends MissingLookupExtractionNamespaceFact
                                 LOGGER.error("Bad key/message from topic [%s]", consumerKafkaTopic);
                                 continue;
                             }
-                            LOGGER.debug("Read key[%s] val[%s]", dimension, new String(extractionNamespaceByteArray));
+                            LOGGER.info("Read key[%s] val[%s]", dimension, new String(extractionNamespaceByteArray));
                             try {
                                 missingLookupExtractionNamespaceFactory.process(dimension,
                                         extractionNamespaceByteArray,

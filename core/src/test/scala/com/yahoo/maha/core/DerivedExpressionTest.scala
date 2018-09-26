@@ -410,8 +410,8 @@ class DerivedExpressionTest extends FunSuite with Matchers {
     import PrestoExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       DimCol("stats_date", DateType())
-      val col = PrestoDerDimCol("Day of Week", StrType(), DAY_OF_WEEK	("stats_date", "yyyyMMdd"))
-      col.derivedExpression.render(col.name) should equal("from_unixtime(unix_timestamp(stats_date, 'yyyyMMdd'), 'EEEE')")
+      val col = PrestoDerDimCol("Day of Week", StrType(), DAY_OF_WEEK	("stats_date", "%Y%m%d"))
+      col.derivedExpression.render(col.name) should equal("date_format(date_parse(stats_date, '%Y%m%d'), '%W')")
     }
     assert(!SUM("stats_date").isUDF, "Presto Expr is not supposed to be a UDF")
   }

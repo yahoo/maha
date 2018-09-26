@@ -2,8 +2,9 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.example
 
-import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
-import com.yahoo.maha.core.query.QueryRowList
+import com.yahoo.maha.core.Engine
+import com.yahoo.maha.core.bucketing._
+import com.yahoo.maha.core.query.{QueryRowList, Version}
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParFunction
@@ -240,5 +241,44 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
     }
 
     assert(executionException.source.get.getMessage.contains("ERROR_CODE:10005 Failed to find primary key alias for Student Status Unknown Column"))
+  }
+
+  test("Test MahaService with Example Schema generating valid query pipeline") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Student Name"},
+                            {"field": "Admitted Year"},
+                            {"field": "Student Status"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                         "sortBy": [
+                            {"field": "Admitted Year", "order": "Asc"},
+                            {"field": "Student ID", "order": "Desc"}
+                          ]
+                        }"""
+
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", true))
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+
+    val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams)
+    assert(requestModelResultTry.isSuccess)
+
+    val queryPipelines = mahaService.generateQueryPipelines("er", requestModelResultTry.get.model)
+    assert(queryPipelines._1.isSuccess)
   }
 }

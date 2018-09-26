@@ -2,9 +2,9 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
-import com.yahoo.maha.core.bucketing.{BucketParams, CubeBucketSelected, BucketSelector}
+import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, CubeBucketSelected}
 import com.yahoo.maha.core.dimension.PublicDimension
-import com.yahoo.maha.core.fact.{BestCandidates, PublicFactCol}
+import com.yahoo.maha.core.fact.{BestCandidates, PublicFact, PublicFactCol, PublicFactColumn}
 import com.yahoo.maha.core.registry.{FactRowsCostEstimate, Registry}
 import com.yahoo.maha.core.request.Parameter.Distinct
 import com.yahoo.maha.core.request._
@@ -120,6 +120,7 @@ case class RequestModel(cube: String
                         , factSortByMap : Map[String, Order]
                         , dimSortByMap : Map[String, Order]
                         , hasFactFilters: Boolean
+                        , hasMetricFilters: Boolean
                         , hasNonFKFactFilters: Boolean
                         , hasDimFilters: Boolean
                         , hasNonFKDimFilters: Boolean
@@ -177,6 +178,7 @@ case class RequestModel(cube: String
     //1. fact ROJ driving dim (filter or no filter)
     //2. fact ROJ driving dim (filter or no filter) LOJ parent dim LOJ parent dim
     //3. fact ROJ driving dim IJ parent dim IJ parent dim
+    //4. fact IJ driving dim [IJ parent dim IJ parent dim] (metric filter)
     //fact driven query
     //1. fact LOJ driving dim (no filter)
     //2. fact LOJ driving dim (no filter) LOJ parent dim (no filter) LOJ parent dim (no filter)
@@ -191,7 +193,11 @@ case class RequestModel(cube: String
         //driving dim case
         if(dc.isDrivingDimension) {
           val joinType = if(forceDimDriven) {
-            RightOuterJoin
+            if(hasMetricFilters) {
+              InnerJoin
+            } else {
+              RightOuterJoin
+            }
           } else {
             if(anyDimHasNonFKNonForceFilter || anyDimsHasSchemaRequiredNonKeyField) {
               InnerJoin
@@ -262,6 +268,7 @@ case class RequestModel(cube: String
        factSortByMap=$factSortByMap
        dimSortByMap=$dimSortByMap
        hasFactFilters=$hasFactFilters
+       hasMetricFilters=$hasMetricFilters
        hasNonFKFactFilters=$hasNonFKFactFilters
        hasDimFilters=$hasDimFilters
        hasNonFKDimFilters=$hasNonFKDimFilters
@@ -295,6 +302,9 @@ case class RequestModel(cube: String
 }
 
 object RequestModel extends Logging {
+  private[this] val MAX_ALLOWED_STR_LEN = 3999: Int
+  def max_allowed_str_len: Int = MAX_ALLOWED_STR_LEN
+
   val Logger = LoggerFactory.getLogger(classOf[RequestModel])
 
   def from(request: ReportingRequest, registry: Registry, utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider, revision: Option[Int] = None) : Try[RequestModel] = {
@@ -655,6 +665,11 @@ object RequestModel extends Logging {
           //we don't count fk filters here
           val hasNonFKFactFilters = allFactFilters.filterNot(f => filterPostProcess(f.field)).nonEmpty
           val hasFactFilters = allFactFilters.nonEmpty
+          val hasMetricFilters = if(bestCandidatesOption.isDefined) {
+            val bestCandidates = bestCandidatesOption.get
+            val publicFact = bestCandidates.publicFact
+            allFactFilters.exists(f =>  publicFact.columnsByAliasMap.contains(f.field) && publicFact.columnsByAliasMap(f.field).isInstanceOf[PublicFactColumn])
+          } else false
 
           //we have to post process since the order of the sort by item could impact if conditions
           //let's add fact sort by's first
@@ -696,6 +711,8 @@ object RequestModel extends Logging {
               val pubCol = publicFact.columnsByAliasMap(filter.field)
               require(pubCol.filters.contains(filter.operator),
                 s"Unsupported filter operation : cube=${publicFact.name}, col=${filter.field}, operation=${filter.operator}")
+              val (isValidFilter, length) = validateLengthForFilterValue(publicFact, filter)
+              require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
           }
 
           //if we are dim driven, add primary key of highest level dim
@@ -802,6 +819,8 @@ object RequestModel extends Logging {
                         val pubCol = publicDim.columnsByAliasMap(filter.field)
                         require(pubCol.filters.contains(filter.operator),
                           s"Unsupported filter operation : dimension=${publicDim.name}, col=${filter.field}, operation=${filter.operator}, expected=${pubCol.filters}")
+                        val (isValidFilter, length) = validateLengthForFilterValue(publicDim, filter)
+                        require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
                     }
 
                     val hasNonFKSortBy = allDimSortBy.exists {
@@ -1026,6 +1045,7 @@ object RequestModel extends Logging {
             dimSortByMap = allDimSortBy.toMap,
             isFactDriven = isFactDriven,
             hasFactFilters = hasFactFilters,
+            hasMetricFilters = hasMetricFilters,
             hasNonFKFactFilters = hasNonFKFactFilters,
             hasFactSortBy = hasFactSortBy,
             hasDimFilters = hasDimFilters,
@@ -1102,6 +1122,38 @@ object RequestModel extends Logging {
     }
   }
 
+  def validateLengthForFilterValue(publicTable: PublicTable, filter: Filter): (Boolean, Int) = {
+    val dataType = {
+      publicTable match {
+        case publicDim: PublicDimension => publicDim.nameToDataTypeMap(publicDim.columnsByAliasMap(filter.field).name)
+        case publicFact: PublicFact => publicFact.dataTypeForAlias(publicFact.columnsByAliasMap(filter.field).alias)
+        case _ => None
+      }
+    }
+
+    def validateLength(values : List[String], maxLength:Int) : (Boolean, Int) = {
+      val expectedLength = if (maxLength == 0) MAX_ALLOWED_STR_LEN else maxLength
+      if (values.forall(_.length <= expectedLength))
+        (true, expectedLength)
+      else
+        (false, expectedLength)
+    }
+
+    dataType match {
+      case None => throw new IllegalArgumentException(s"Unable to find expected PublicTable as PublicFact or PublicDimension.")
+      case StrType(length, _, _) => filter match {
+        case InFilter(_, values, _, _) => validateLength(values, length)
+        case NotInFilter(_, values, _, _) => validateLength(values, length)
+        case EqualityFilter(_, value, _, _) => validateLength(List(value), length)
+        case NotEqualToFilter(_, value, _, _) => validateLength(List(value), length)
+        case LikeFilter(_, value, _, _) => validateLength(List(value), length)
+        case BetweenFilter(_, from, to) => validateLength(List(from, to), length)
+        case IsNullFilter(_, _, _) | IsNotNullFilter(_, _, _) | PushDownFilter(_) | OuterFilter(_) | OrFliter(_) => (true, MAX_ALLOWED_STR_LEN)
+        case _ => throw new Exception(s"Unhandled FilterOperation $filter.")
+      }
+      case _ => (true, MAX_ALLOWED_STR_LEN)
+    }
+  }
 }
 
 case class RequestModelResult(model: RequestModel, dryRunModelTry: Option[Try[RequestModel]])

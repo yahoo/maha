@@ -529,7 +529,9 @@ class ReportingRequestTest extends FlatSpec {
                               "Generated-Query" : "generated-query",
                               "Query-Engine" : "druid",
                               "debug" : true,
-                              "registryName" : "maha"
+                              "registryName" : "maha",
+                              "testName" : "test1",
+                              "labels" : ["label1","label2"]
                           }
                           }"""
     val request =  ReportingRequest.deserializeWithAdditionalParameters(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
@@ -1445,12 +1447,21 @@ class ReportingRequestTest extends FlatSpec {
 
     //check json format
     {
-      val serializeRequest = new String(ReportingRequest.serialize(ReportingRequest.withJsonReportFormat(getReportingRequest(jsonString))))
+      val serializeRequest = new String(ReportingRequest.serialize(
+        ReportingRequest
+          .withLabels(ReportingRequest
+            .withTestName(ReportingRequest
+              .withJsonReportFormat(getReportingRequest(jsonString)), "testname1"), List("lb1","lb2","lb3"))
+      ))
       val request = getReportingRequestValidationAsyncWithAdditionalParameters(serializeRequest, None)
       assert(request.isSuccess)
       assert(request.toOption.get.schema === AdvertiserSchema)
       assert(request.toOption.get.additionalParameters.contains(Parameter.ReportFormat))
       assert(request.toOption.get.additionalParameters(Parameter.ReportFormat) === ReportFormatValue(JsonFormat))
+      assert(request.toOption.get.additionalParameters(Parameter.TestName) === TestNameValue("testname1"))
+      assert(request.toOption.get.additionalParameters(Parameter.Labels) === LabelsValue(List("lb1","lb2","lb3")))
+      assert(request.toOption.get.getTestName === Option("testname1"))
+      assert(request.toOption.get.getLabels === List("lb1","lb2","lb3"))
     }
     
     //check csv format

@@ -6,9 +6,10 @@ import com.google.inject.Inject;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
-import com.metamx.common.logger.Logger;
-import com.metamx.emitter.service.ServiceEmitter;
-import com.metamx.emitter.service.ServiceMetricEvent;
+import io.druid.java.util.common.logger.Logger;
+import io.druid.java.util.emitter.service.ServiceEmitter;
+import io.druid.java.util.emitter.service.ServiceMetricEvent;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
@@ -16,6 +17,7 @@ import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 /**
@@ -107,11 +109,11 @@ public class InMemoryDBExtractionNamespaceCacheFactory
     }
 
     @Override
-    public byte[] getCacheValue(final InMemoryDBExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key, String valueColumn) {
+    public byte[] getCacheValue(final InMemoryDBExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key, String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
 
         try {
             if (!extractionNamespace.isCacheEnabled()) {
-                return lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn));
+                return lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn, decodeConfigOptional));
             }
 
             final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());

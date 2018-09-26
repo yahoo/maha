@@ -69,6 +69,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
         , ingestionTimeUpdater
         , tableName
         , dimCols
+        , true
       )
       writeDataRows(jsonGenerator, qpr.rowList, rowCountOption, curatorResult.requestModelReference.model.reportingRequest)
     }
@@ -97,6 +98,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
         , ingestionTimeUpdater
         , tableName
         , dimCols
+        , false
       )
       writeDataRows(jsonGenerator, qpr.rowList, None, curatorResult.requestModelReference.model.reportingRequest)
       jsonGenerator.writeEndObject() //}
@@ -125,6 +127,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
                           , ingestionTimeUpdater: IngestionTimeUpdater
                           , tableName: String
                           , dimCols: Set[String]
+                          , isDefault: Boolean
                          ) {
     jsonGenerator.writeFieldName("header") // "header":
     jsonGenerator.writeStartObject() // {
@@ -171,6 +174,25 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
     jsonGenerator.writeEndArray() // ]
     jsonGenerator.writeFieldName("maxRows")
     jsonGenerator.writeNumber(reportingRequest.rowsPerPage)
+    if(reportingRequest.isDebugEnabled) {
+      jsonGenerator.writeFieldName("debug")
+      jsonGenerator.writeStartObject()
+      if(isDefault && reportingRequest.isTestEnabled) {
+        jsonGenerator.writeFieldName("testName")
+        jsonGenerator.writeString(reportingRequest.getTestName.get)
+      }
+      if(isDefault && reportingRequest.hasLabels) {
+        jsonGenerator.writeFieldName("labels")
+        val labels = reportingRequest.getLabels
+        jsonGenerator.writeStartArray()
+        labels.foreach {
+          label =>
+            jsonGenerator.writeString(label)
+        }
+        jsonGenerator.writeEndArray()
+      }
+      jsonGenerator.writeEndObject()
+    }
     jsonGenerator.writeEndObject()
   }
 

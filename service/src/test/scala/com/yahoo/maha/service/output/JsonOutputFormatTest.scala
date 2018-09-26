@@ -7,7 +7,7 @@ import java.util.Date
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.{CompleteRowList, QueryAttributes, QueryPipelineResult, QueryRowList}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.core.{DruidEngine, Engine, OracleEngine, RequestModelResult}
+import com.yahoo.maha.core.{Engine, OracleEngine, RequestModelResult}
 import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
@@ -72,7 +72,16 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
   val (fd_pse, fd_queryPipeline, fd_query, fd_queryChain)  = {
 
     val requestModel = mahaService.generateRequestModel(REGISTRY
-      , ReportingRequest.forceDruid(reportingRequest.copy(forceDimensionDriven = false, forceFactDriven = true))
+      , ReportingRequest
+        .enableDebug(
+          ReportingRequest.withLabels(
+            ReportingRequest.withTestName(
+              ReportingRequest.forceDruid(
+                reportingRequest.copy(forceDimensionDriven = false, forceFactDriven = true)
+              ), "test1"
+            ), List("lb1","lb2","lb3")
+          )
+        )
       , BucketParams(UserInfo("test", false), forceRevision = Option(1))).toOption.get
     val factory = registry.queryPipelineFactory.from(requestModel.model, QueryAttributes.empty)
     val queryChain = factory.get.queryChain
@@ -86,6 +95,8 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     override def getIngestionTime(dataSource: String): Option[String] = {
       Some(timeStampString)
     }
+
+    override def getIngestionTimeLong(dataSource: String): Option[Long] = Some(new Date().getTime)
   }
 
   class TestCurator extends DrilldownCurator {
@@ -128,6 +139,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     stringStream.close()
     val expected  = s""""cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,"Test Result",null]],"curators":{}}"""
     assert(result.contains(expected))
+    assert(jsonStreamingOutput.ingestionTimeUpdaterMap.get(OracleEngine).get.getIngestionTimeLongAsJava("abc").isDefined)
   }
 
   test("Test JsonOutputFormat with DefaultCurator and valid other curator result") {
@@ -283,6 +295,6 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
     stringStream.close()
-    assert(result === """{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,"Test Result",1]],"curators":{}}""")
+    assert(result === """{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200,"debug":{"testName":"test1","labels":["lb1","lb2","lb3"]}},"rows":[[123,234,345,99,"Test Result",1]],"curators":{}}""")
   }
 }

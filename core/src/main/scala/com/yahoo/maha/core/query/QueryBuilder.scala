@@ -65,6 +65,14 @@ class QueryBuilder(val initSize: Int, val orderBySize: Int) {
 
   private[this] lazy val outerQueryEndClauses: LinkedHashSet[String] = new LinkedHashSet[String]
 
+  private[this] var hasDimensionPagination: Boolean = false
+
+  def getHasDimensionPagination: Boolean = hasDimensionPagination
+
+  def setHasDimensionPagination(): Unit = {
+    hasDimensionPagination = true
+  }
+
   def addOuterColumn(fragment: String) {
     outerSelectColumns += fragment
   }

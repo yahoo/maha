@@ -383,6 +383,8 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     new DruidQueryGenerator(new SyncDruidQueryOptimizer(), 40000, maximumMaxRowsAsync = maximumMaxRowsAsync)
   }
 
+  lazy val defaultRegistry = getDefaultRegistry()
+
   test("success case for TimeSeries query"){
     val jsonString = s"""{
                           "cube": "k_stats",
@@ -398,7 +400,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -439,7 +441,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "debug": true
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString).copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -479,7 +481,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -517,7 +519,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":2
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -561,7 +563,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":2
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -595,7 +597,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -639,7 +641,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":2
                         }""".stripMargin
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -707,7 +709,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":2
                         }""".stripMargin
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -748,7 +750,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":2
                         }""".stripMargin
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -769,7 +771,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         val expected =
           s"""
             |SELECT *
-            |FROM (SELECT to_char(ffst0.stats_date, 'YYYYMMdd') "Day", to_char(ffst0.id) "Keyword ID", coalesce(ffst0."impresssions", 1) "Impressions", ao1."Advertiser Status" "Advertiser Status"
+            |FROM (SELECT to_char(ffst0.stats_date, 'YYYYMMdd') "Day", ffst0.id "Keyword ID", coalesce(ffst0."impresssions", 1) "Impressions", ao1."Advertiser Status" "Advertiser Status"
             |      FROM (SELECT
             |                   advertiser_id, id, stats_date, SUM(impresssions) AS "impresssions"
             |            FROM fd_fact_s_term FactAlias
@@ -848,7 +850,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":2
                         }""".stripMargin
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -912,7 +914,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":2
                         }""".stripMargin
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -976,7 +978,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":2
                         }""".stripMargin
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1041,7 +1043,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":2
                         }""".stripMargin
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1105,7 +1107,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":2
                         }""".stripMargin
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1170,7 +1172,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":2
                         }""".stripMargin
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1202,7 +1204,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1261,7 +1263,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":2
                         }""".stripMargin
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1334,7 +1336,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "includeRowCount":true
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1420,7 +1422,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":2
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1497,7 +1499,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":2
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1548,7 +1550,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":2
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1593,7 +1595,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1630,7 +1632,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val expected =
     """
        | (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
-       |      FROM (SELECT to_char(t0.id) "Keyword ID", t0.value "Keyword Value"
+       |      FROM (SELECT t0.id "Keyword ID", t0.value "Keyword Value"
        |            FROM
        |                (SELECT  value, id, advertiser_id
        |            FROM targetingattribute
@@ -1640,7 +1642,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
        |
        |           )
        |            ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
-       |      FROM (SELECT to_char(t0.id) "Keyword ID", t0.value "Keyword Value"
+       |      FROM (SELECT t0.id "Keyword ID", t0.value "Keyword Value"
        |            FROM
        |                (SELECT  value, id, advertiser_id
        |            FROM targetingattribute
@@ -1678,7 +1680,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1713,7 +1715,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     
     val expected = s"""
                        | (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
-                       |      FROM (SELECT to_char(t0.id) "Keyword ID", t0.value "Keyword Value"
+                       |      FROM (SELECT t0.id "Keyword ID", t0.value "Keyword Value"
                        |            FROM
                        |                (SELECT  id, value, advertiser_id
                        |            FROM targetingattribute
@@ -1723,7 +1725,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                        |
                        |           )
                        |            ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
-                       |      FROM (SELECT to_char(t0.id) "Keyword ID", t0.value "Keyword Value"
+                       |      FROM (SELECT t0.id "Keyword ID", t0.value "Keyword Value"
                        |            FROM
                        |                (SELECT  id, value, advertiser_id
                        |            FROM targetingattribute
@@ -1757,7 +1759,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":2
                         }""".stripMargin
     val request: ReportingRequest = getReportingRequestSync(jsonString).copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1792,7 +1794,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1833,7 +1835,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "rowsPerPage":100
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1916,7 +1918,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
       """.stripMargin
 
     val request: ReportingRequest = getReportingRequestSyncWithFactBias(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1993,7 +1995,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
       """.stripMargin
 
     val request: ReportingRequest = getReportingRequestSyncWithFactBias(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2069,7 +2071,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
          |}
        """.stripMargin
     val request: ReportingRequest = getReportingRequestSync(jsonString, InternalSchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2171,7 +2173,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
          |}
        """.stripMargin
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2192,7 +2194,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         val expected =
           s"""
              |SELECT *
-             |FROM (SELECT to_char(ffst0.stats_date, 'YYYYMMdd') "Day", to_char(ffst0.id) "Keyword ID", coalesce(ffst0."impresssions", 1) "Impressions", ao1."Advertiser Status" "Advertiser Status"
+             |FROM (SELECT to_char(ffst0.stats_date, 'YYYYMMdd') "Day", ffst0.id "Keyword ID", coalesce(ffst0."impresssions", 1) "Impressions", ao1."Advertiser Status" "Advertiser Status"
              |      FROM (SELECT
              |                   advertiser_id, id, stats_date, SUM(impresssions) AS "impresssions"
              |            FROM fd_fact_s_term FactAlias
@@ -2265,7 +2267,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           "isDimDriven" : true
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString, AdvertiserLowLatencySchema)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2306,7 +2308,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
       """
         |
         | (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
-        |      FROM (SELECT to_char(ago1.id) "Ad Group ID", to_char(co0.id) "Campaign ID", co0.campaign_name "Campaign Name"
+        |      FROM (SELECT ago1.id "Ad Group ID", co0.id "Campaign ID", co0.campaign_name "Campaign Name"
         |            FROM
         |               ( (SELECT  campaign_id, id, advertiser_id
         |            FROM ad_group_oracle
@@ -2322,7 +2324,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         |
         |           )
         |            ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
-        |      FROM (SELECT to_char(ago1.id) "Ad Group ID", to_char(co0.id) "Campaign ID", co0.campaign_name "Campaign Name"
+        |      FROM (SELECT ago1.id "Ad Group ID", co0.id "Campaign ID", co0.campaign_name "Campaign Name"
         |            FROM
         |               ( (SELECT  campaign_id, id, advertiser_id
         |            FROM ad_group_oracle
