@@ -680,22 +680,15 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     result match {
       case scala.util.Success(queryPipelineResult) =>
         assert(!queryPipelineResult.rowList.isEmpty)
-        print("\nHERERERERERERERE\n")
-        print(queryPipelineResult.rowList)
         val inmem = queryPipelineResult.rowList
         assert(!inmem.isEmpty)
         inmem.foreach {
           row =>
-//            assert(!row.getValue("Ad ID").toString.matches("1003"))
-            print("\n" + row.getValue("Ad ID") + "\n")
             row.getValue("Ad ID").toString match {
-              case "1000" | "1001" | "1002" | "1003" =>
-                print("/BLEH/n")
-                print(row.getValue("Ad ID"))
-                assert(false)
               case "1004" | "1005" | "1006" | "1007" =>
-                print("/BLEHYEP/n")
                 assert(true)
+              case any =>
+                assert(false)
             }
 
         }
