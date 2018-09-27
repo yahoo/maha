@@ -623,7 +623,20 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
 
-    print(result)
+    val expected =
+      s"""SELECT CONCAT_WS(",",NVL(advertiser_id, ''), NVL(mang_impressions, ''))
+          FROM(
+            SELECT CAST(COALESCE(account_id, 0L) as STRING) advertiser_id, CAST(COALESCE(impressions, 0L) as STRING) mang_impressions
+            FROM(SELECT account_id, SUM(impressions) impressions
+            FROM s_stats_fact
+            WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+            GROUP BY account_id
+            HAVING (SUM(impressions) > 1608)
+              )
+          ssf0
+      )""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
 
   }
 
