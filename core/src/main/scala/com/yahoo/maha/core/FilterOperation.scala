@@ -525,7 +525,7 @@ object SqlIsNotNullFilterRenderer extends IsNotNullFilterRenderer[SqlResult] {
 }
 
 object FilterDruid {
-  import io.druid.query.filter.{DimFilter, NotDimFilter, OrDimFilter, SearchQueryDimFilter, SelectorDimFilter}
+  import io.druid.query.filter.{DimFilter, NotDimFilter, OrDimFilter, SearchQueryDimFilter, SelectorDimFilter, BoundDimFilter}
   import io.druid.query.groupby.having._
   import io.druid.query.search.InsensitiveContainsSearchQuerySpec
   import org.joda.time.DateTime
@@ -809,6 +809,10 @@ object FilterDruid {
         val name = aliasToNameMapFull(alias)
         val column = columnsByNameMap(name)
         new EqualToHavingSpec(alias, druidLiteralMapper.toNumber(column, value))
+      case f @ GreaterThanFilter(alias, value, _, _) =>
+        val name = aliasToNameMapFull(alias)
+        val column = columnsByNameMap(name)
+        new GreaterThanHavingSpec(alias, druidLiteralMapper.toNumber(column, value))
       case f @ LikeFilter(_, _, _, _) =>
         throw new UnsupportedOperationException(s"Like filter not supported on Druid fact fields : $f")
       case f =>
