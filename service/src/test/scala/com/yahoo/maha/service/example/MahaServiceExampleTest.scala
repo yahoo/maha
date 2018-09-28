@@ -2,9 +2,8 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.example
 
-import com.yahoo.maha.core.Engine
 import com.yahoo.maha.core.bucketing._
-import com.yahoo.maha.core.query.{QueryRowList, Version}
+import com.yahoo.maha.core.query.{QueryRowList}
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParFunction
