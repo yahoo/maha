@@ -114,9 +114,6 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    print("HERERERERERERERERERERERE\n")
-    print(result)
-    print("\nHERERERERERERERERERERERE")
     val json = """limit":1020"""
 
     assert(result.contains(json), result)
