@@ -261,7 +261,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
           PubCol("Month", "Month", InBetweenEquality)
         ),
         Set(
-          PublicFactCol("impresssions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
+          PublicFactCol("impresssions", "Impressions", InBetweenEquality),
           PublicFactCol("Impression Share", "Impression Share", InBetweenEquality),
           PublicFactCol("conversions", "Conversions", InBetweenEquality),
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
@@ -414,64 +414,6 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         assert(row.getValue(key) != null)
       }
     }
-  }
-
-  test("success case for TimeSeries query with greater than filter"){
-    val jsonString = s"""{
-                          "cube": "k_stats",
-                          "selectFields": [
-                            {"field": "Day"},
-                            {"field": "Impressions"}
-                          ],
-                          "filterExpressions": [
-                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
-                            {"field": "Advertiser ID", "operator": "=", "value": "213"},
-                            {"field": "Impressions", "operator": "=", "value": "16"}
-                          ],
-                          "paginationStartIndex":20,
-                          "rowsPerPage":100
-                        }"""
-    val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
-    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
-
-    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
-    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
-    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
-    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-    val query =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
-    print("HERERERERERE\n")
-    print(query)
-    print("HERERERERERE\n")
-    val executor = getDruidQueryExecutor("http://localhost:6667/mock/timeseries")
-    val rowList= new CompleteRowList(query)
-    val result=  executor.execute(query,rowList, QueryAttributes.empty)
-    assert(!result.rowList.isEmpty)
-    result.rowList.foreach{
-      row=>
-    }
-
-    result.rowList.foreach{row =>
-      val map = row.aliasMap
-      for((key,value)<-map) {
-        print(key + "= " + row.getValue(key) + " ")
-        assert(row.getValue(key) != null)
-      }
-      print("\n")
-    }
-
-//    result.rowList.foreach{row =>
-//
-//      row.getValue("Impressions").toString match {
-//        case "17" =>
-//          assert(true)
-//        case any =>
-//          assert(true)
-//      }
-//
-//    }
   }
 
   test("success case for TimeSeries query with debugging"){
