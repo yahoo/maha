@@ -445,7 +445,6 @@
                 <groupId>com.typesafe.akka</groupId>
                 <artifactId>akka-actor_${scala.major.version}</artifactId>
                 <version>${akka.version}</version>
-                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
