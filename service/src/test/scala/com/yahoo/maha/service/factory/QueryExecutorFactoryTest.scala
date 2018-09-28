@@ -72,6 +72,30 @@ class QueryExecutorFactoryTest extends BaseFactoryTest {
     }
   }
 
+  test("Test Oracle Query Executor Instantiation without fetch size") {
+    val jsonString =
+      """
+        |{
+        |"dataSourceName": "oracleDataSource",
+        |"lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
+        |"lifecycleListenerFactoryConfig" : [{"key": "value"}]
+        |}
+        |
+      """.stripMargin
+
+    val factoryResult = getFactory[QueryExecutoryFactory]("com.yahoo.maha.service.factory.OracleQueryExecutoryFactory", closer)
+    assert(factoryResult.isSuccess)
+    val factory = factoryResult.toOption.get
+    val json = parse(jsonString)
+    val generatorResult = factory.fromJson(json)
+    assert(generatorResult.isSuccess, generatorResult)
+    assert(generatorResult.toList.head.isInstanceOf[OracleQueryExecutor])
+    generatorResult.foreach {
+      executor =>
+        assert(executor.engine == OracleEngine)
+    }
+  }
+
   test("Test Druid Query Executor Instantiation") {
 
     val jsonString =
