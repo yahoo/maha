@@ -4675,7 +4675,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   campaign_id, SUM(impressions) AS "impressions"
          |            FROM fact2 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('2018-08-23', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('2018-08-30', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY campaign_id
          |            HAVING (SUM(impressions) > 1608)
          |           ) f0

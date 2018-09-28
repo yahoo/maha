@@ -701,21 +701,35 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                           "cube": "ad_stats",
                           "selectFields": [
                             {"field": "Day"},
+                            {"field": "Hour"},
+                            {"field": "Campaign ID"},
+                            {"field": "Ad Group ID"},
                             {"field": "Ad ID"},
+                            {"field": "Ad Title"},
+                            {"field": "Ad Status"},
+                            {"field": "Ad Date Created"},
+                            {"field": "Ad Date Modified"},
+                            {"field": "Ad Date Modified Timestamp"},
+                            {"field": "Pricing Type"},
                             {"field": "Impressions"},
+                            {"field": "Clicks"},
+                            {"field": "Max Bid"},
+                            {"field": "Average CPC"},
+                            {"field": "Spend"},
+                            {"field": "CTR"}
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
-                            {"field": "Advertiser ID", "operator": "=", "value": "1"}
+                            {"field": "Advertiser ID", "operator": "=", "value": "1"},
+                            {"field": "Pricing Type", "operator": "in", "values": ["CPC","CPA"] }
                           ],
                           "sortBy": [
-                            {"field": "Impressions", "order": "Desc"}
+                            {"field": "Ad Title", "order": "Desc"}
                           ],
                           "paginationStartIndex":1,
                           "rowsPerPage":100
                         }"""
 
-    print(jsonString)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
     val requestModel = RequestModel.from(request, registry)
