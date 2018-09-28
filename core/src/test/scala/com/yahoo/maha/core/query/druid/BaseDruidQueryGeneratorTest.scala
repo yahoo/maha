@@ -3,7 +3,7 @@ package com.yahoo.maha.core.query.druid
 import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, InternalSchema}
 import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{POST_RESULT_DECODE, START_OF_THE_MONTH, START_OF_THE_WEEK}
-import com.yahoo.maha.core.FilterOperation.{Equality, In, InBetweenEquality, InEquality}
+import com.yahoo.maha.core.FilterOperation.{Equality, In, InBetweenEquality, InEquality, InNotInBetweenEqualityNotEqualsGreaterLesser}
 import com.yahoo.maha.core.{ColumnContext, DateType, DecType, DefaultPartitionColumnRenderer, DruidEngine, DruidExpression, EqualityFilter, EscapingRequired, ForcedFilter, ForeignKey, HourlyGrain, IntType, MinuteGrain, StrType}
 import com.yahoo.maha.core.dimension.{DimCol, DruidFuncDimCol, DruidPostResultFuncDimCol, PubCol}
 import com.yahoo.maha.core.fact._
@@ -213,7 +213,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           //PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality)
         ),
         Set(
-          PublicFactCol("impressions", "Impressions", InBetweenEquality),
+          PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),
           PublicFactCol("derived_avg_pos", "Average Position", Set.empty),
