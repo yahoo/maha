@@ -28,8 +28,9 @@
         <appender-ref ref="STDOUT" />
     </appender>
 
-    <logger name="com.yahoo.curveball.reporting.mview" level="WARN" />
-    <logger name="com.zaxxer.hikari" level="DEBUG"/>
+    <logger name="com.zaxxer.hikari" level="ERROR"/>
+    <logger name="org.http4s.server.blaze" level="ERROR"/>
+    <logger name="com.yahoo.maha.core.query" level="ERROR"/>
 
     <root level="INFO">
         <appender-ref ref="ASYNCFILE" />
