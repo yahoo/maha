@@ -690,7 +690,6 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
               case any =>
                 assert(false)
             }
-
         }
       case any =>
         throw new UnsupportedOperationException(s"unexpected row list : $any")
