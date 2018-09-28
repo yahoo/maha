@@ -630,7 +630,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     }
   }
 
-  test("successfully execute sync query for ad_stats") {
+  test("successfully execute sync query for ad_stats with greater than filter") {
     val jsonString = s"""{
                           "cube": "ad_stats",
                           "selectFields": [
@@ -696,7 +696,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     }
   }
 
-  test("successfully execute sync query for ad_stats with greater than filter") {
+  test("successfully execute sync query for ad_stats") {
     val jsonString = s"""{
                           "cube": "ad_stats",
                           "selectFields": [
