@@ -10,7 +10,7 @@ class SetTestLoggerLevelTest extends FunSuite {
   val logger  = org.slf4j.LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)
   logger match {
     case classicLogger:ch.qos.logback.classic.Logger =>
-      classicLogger.setLevel(ch.qos.logback.classic.Level.ERROR)
+      classicLogger.setLevel(ch.qos.logback.classic.Level.INFO)
       println("Setting Logger Level to ERROR")
     case _=>
   }
