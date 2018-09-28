@@ -1,6 +1,7 @@
 package com.yahoo.maha.core.auth
 
 import org.scalatest.{FunSuite, Matchers}
+import play.api.mvc.Results
 
 class AuthValidatorTest extends FunSuite with Matchers {
 
@@ -10,6 +11,8 @@ class AuthValidatorTest extends FunSuite with Matchers {
     val validationResult: ValidationResult = authValidator.validate(null)
     assert(validationResult.success)
     assert(validationResult.user.isEmpty)
+    assert(authValidator.handleAuthCallback(null) == Results.Ok)
+    assert(authValidator.handleAuthFailure(null) == Results.Ok)
   }
 
   test("test DefaultDruidAuthHeaderProvider") {

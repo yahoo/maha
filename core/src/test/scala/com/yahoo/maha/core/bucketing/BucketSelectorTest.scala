@@ -141,6 +141,50 @@ class BucketSelectorTest extends FunSuite {
     assert(response.failed.get.getMessage.contains("Total external bucket percentage is not 100%"))
   }
 
+  test("test max percentage sum exceed 100") {
+
+    val params = BucketParams(UserInfo("maha-test", false))
+
+    assert(params.toString().contains("UserId: maha-test"))
+
+    intercept[IllegalArgumentException] {
+      QueryGenBucketingConfig.builder()
+        .internalBucketPercentage(Map(Version.v1 -> 101))
+        .externalBucketPercentage(Map(Version.v1 -> 100))
+        .dryRunPercentage(Map(Version.v1 -> 100))
+        .build()
+    }
+
+    intercept[IllegalArgumentException] {
+      QueryGenBucketingConfig.builder()
+        .internalBucketPercentage(Map(Version.v1 -> 100))
+        .externalBucketPercentage(Map(Version.v1 -> 101))
+        .dryRunPercentage(Map(Version.v1 -> 100))
+        .userWhiteList(Map("abc"-> Version.v1))
+        .build()
+    }
+
+    intercept[IllegalArgumentException] {
+      CubeBucketingConfig.builder()
+        .internalBucketPercentage(Map(1 -> 100))
+        .externalBucketPercentage(Map(1 -> 101))
+        .build()
+    }
+    intercept[IllegalArgumentException] {
+      CubeBucketingConfig.builder()
+        .internalBucketPercentage(Map(1 -> 101))
+        .externalBucketPercentage(Map(1 -> 100))
+        .build()
+    }
+
+    new DefaultBucketingConfig()
+    val default = new DefaultBucketingConfig(Map("maha"-> CubeBucketingConfig.builder()
+      .internalBucketPercentage(Map(1 -> 100))
+      .externalBucketPercentage(Map(1 -> 100))
+      .build()), Map.empty)
+
+  }
+
   object TestEmptyBucketingConfigForQueryGenerator extends BucketingConfig {
     override def getConfigForCube(cube: String) = None
     override def getConfigForQueryGen(engine: Engine) = None
