@@ -130,7 +130,7 @@ class BaseUTCTimeProviderTest extends FunSuite {
     val localMinuteFilter = new BetweenFilter("Minute", "00", "20")
 
     val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), Some(localMinuteFilter), timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[BetweenFilter], Option[BetweenFilter]]]
-    val (from, to) = if (isDST()) ("15", "19") else ("14", "18")
+    val (from, to) = if (isDST()) ("14", "18") else ("15", "19")
 
     assertEquals("2016-03-06", utcDayFilter.from)
     assertEquals("2016-03-09", utcDayFilter.to)
@@ -340,7 +340,7 @@ class BaseUTCTimeProviderTest extends FunSuite {
 
 
   test("Case: Timezone: AU, Day - between, Hour - in") {
-    val curOffsetHours = if (isDST()) 10 else 11
+    val curOffsetHours = if (isDST()) 11 else 10
     val timezone = Option("Australia/Melbourne")
     val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
     val localHourFilter = new InFilter("Hour", List("02", "06", "09"))
