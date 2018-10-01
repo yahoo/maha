@@ -4,11 +4,9 @@ package com.yahoo.maha.service.factory
 
 import java.nio.charset.StandardCharsets
 import java.util.UUID
-
 import com.yahoo.maha.service.{DynamicMahaServiceConfig, MahaServiceConfig}
 import scalaz.{Failure, Success}
 import org.json4s.jackson.JsonMethods.parse
-import org.json4s.scalaz.JsonScalaz.fromJSON
 
 /**
  * Created by pranavbhole on 06/06/17.

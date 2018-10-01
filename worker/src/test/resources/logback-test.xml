@@ -29,9 +29,9 @@
     </appender>
 
     <logger name="com.zaxxer.hikari" level="ERROR"/>
+    <logger name="com.yahoo.maha.executor" level="ERROR"/>
     <logger name="org.http4s" level="ERROR"/>
     <logger name="com.yahoo.maha.core" level="ERROR"/>
-
 
     <root level="INFO">
         <appender-ref ref="ASYNCFILE" />

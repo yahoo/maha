@@ -5,7 +5,6 @@ package com.yahoo.maha.service
 
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.Callable
-import java.util.regex.Pattern
 
 import com.yahoo.maha.utils.DynamicConfigurationUtils._
 import com.google.common.io.Closer
@@ -13,7 +12,7 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, BucketingConfig}
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.registry.{DimensionRegistrationFactory, FactRegistrationFactory, Registry, RegistryBuilder}
-import com.yahoo.maha.core.request.{ReportingRequest, fieldExtended}
+import com.yahoo.maha.core.request.{ReportingRequest}
 import com.yahoo.maha.log.MahaRequestLogWriter
 import com.yahoo.maha.parrequest2.future.{ParRequest, ParallelServiceExecutor}
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
@@ -24,9 +23,8 @@ import com.yahoo.maha.service.factory._
 import com.yahoo.maha.service.utils.BaseMahaRequestLogBuilder
 import grizzled.slf4j.Logging
 import javax.sql.DataSource
-import org.json4s
 import org.json4s.JsonAST.JObject
-import org.json4s.{JString, JValue}
+import org.json4s.{JValue}
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.scalaz.JsonScalaz._
 
