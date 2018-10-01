@@ -3,9 +3,14 @@
 
 package com.yahoo.maha.worker
 
+import com.yahoo.maha.job.service.JobStatus.JobStatus
+import com.yahoo.maha.job.service.{Job, JobMetadata, JobType}
 import com.yahoo.maha.service.BaseMahaServiceTest
 import org.joda.time.DateTime
 import org.scalatest.Matchers
+
+import scala.concurrent.Future
+import scala.util.Success
 
 /*
     Created by pranavbhole on 8/29/18
@@ -32,5 +37,6 @@ trait BaseWorkerTest extends BaseMahaServiceTest with Matchers {
   val now = new DateTime()
   val result = jdbcConnection.get.execute(mahaJobWorkerTable)
   assert(result.isSuccess, s"Failed to create job table $result")
+
 
 }
