@@ -9,6 +9,7 @@ import com.yahoo.maha.worker.state.WorkerStateReporter
 */
 case class SyncReportWorker(workerConfig: WorkerConfig
                             , workerStateReporter: WorkerStateReporter) extends Worker(workerConfig, workerStateReporter) {
-  override def work(getData: Array[Byte]): AckStatus =  ???
+  //TODO
+  override def work(getData: Array[Byte]): AckStatus =  AckStatus.PROCESSED
 
 }
