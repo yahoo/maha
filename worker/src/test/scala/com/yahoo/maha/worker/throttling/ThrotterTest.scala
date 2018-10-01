@@ -33,6 +33,21 @@ class ThrotterTest extends BaseWorkerTest {
     override def countJobsByTypeAndStatus(jobType: JobType, jobStatus: JobStatus, jobCreatedTs: DateTime): Future[Int] = Future(2)
   }
 
+  val failedJobMeta = new JobMetadata {
+    override def insertJob(job: Job): Future[Boolean] = Future(true)
+
+    override def deleteJob(jobId: Long): Future[Boolean] = Future(true)
+
+    override def findById(jobId: Long): Future[Option[Job]] = Future(None)
+
+    override def updateJobStatus(jobId: Long, jobStatus: JobStatus): Future[Boolean] = Future(true)
+
+    override def updateJobEnded(jobId: Long, endStatus: JobStatus, message: String): Future[Boolean] = Future(true)
+
+    override def countJobsByTypeAndStatus(jobType: JobType, jobStatus: JobStatus, jobCreatedTs: DateTime): Future[Int] = Future.never
+  }
+
+
   val jsonRequest = s"""{
                           "cube": "student_performance",
                           "selectFields": [
@@ -87,6 +102,16 @@ class ThrotterTest extends BaseWorkerTest {
     val result = throttler.throttle(mahaWorkerRequest)
 
     assert(result == true)
+  }
+
+  test("Engine Base throttling should not throttle with count > threshold with failing jobMeta") {
+    val throttler = EngineBasedThrottler(EngineThrottlingConfig(true, 0, 1, 100, 2), failedJobMeta, JobMetaExecConfig(100, 2))
+
+    val mahaWorkerRequest:MahaWorkerRequest = defaultMahaWorkerProtoParser.parseProto(mahaCustomReportRequestProto)
+
+    val result = throttler.throttle(mahaWorkerRequest)
+
+    assert(result == false)
   }
 
 

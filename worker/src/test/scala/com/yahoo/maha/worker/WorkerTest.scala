@@ -71,6 +71,9 @@ class WorkerTest extends BaseWorkerTest {
 
     assert(mahaWorkerRequest.jobId === 12345)
 
+    val syncReportWorker = new SyncReportWorker(workerConfig, workerStateReporter)
+    syncReportWorker.work(null)
+
   }
 
   test("Missing Registry Name in  proto") {

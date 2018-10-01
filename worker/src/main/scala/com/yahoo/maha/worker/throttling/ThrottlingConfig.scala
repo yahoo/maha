@@ -82,24 +82,30 @@ case class EngineBasedThrottler(throttlingConfig: EngineThrottlingConfig, jobMet
   }
 
   def getRunningJobs(engine: Engine, jobType:JobType): Int = {
-    val jobCreatedTs = DateTime.now(DateTimeZone.UTC).minusMinutes(throttlingConfig.lookbackMins)
-    val countOfRunningJobsFuture = jobMetadata.countJobsByTypeAndStatus(jobType, JobStatus.RUNNING, jobCreatedTs)
+    try {
+      val jobCreatedTs = DateTime.now(DateTimeZone.UTC).minusMinutes(throttlingConfig.lookbackMins)
+      val countOfRunningJobsFuture = jobMetadata.countJobsByTypeAndStatus(jobType, JobStatus.RUNNING, jobCreatedTs)
 
-    Await.result(countOfRunningJobsFuture, jobMetaExecConfig.maxWaitMills millis)
+      Await.result(countOfRunningJobsFuture, jobMetaExecConfig.maxWaitMills millis)
 
-    val runningJobCount: Int = if(countOfRunningJobsFuture.value.isEmpty) {
-      warn(s"Failed to get the runningJobCount in ${jobMetaExecConfig.maxWaitMills}")
-      0
-    } else {
-      countOfRunningJobsFuture.value.get match {
-        case Success(count) =>  count
-        case Failure(t) =>  {
-          error(s"Failed to get the result from jobMeta ${t.getMessage}", t)
-          0
+      val runningJobCount: Int = if(countOfRunningJobsFuture.value.isEmpty) {
+        warn(s"Failed to get the runningJobCount in ${jobMetaExecConfig.maxWaitMills}")
+        0
+      } else {
+        countOfRunningJobsFuture.value.get match {
+          case Success(count) =>  count
+          case Failure(t) =>  {
+            error(s"Failed to get the result from jobMeta ${t.getMessage}", t)
+            0
+          }
         }
       }
+      runningJobCount
+    } catch {
+      case e:Exception =>
+        e.printStackTrace()
+        0
     }
-    runningJobCount
   }
 
 }
