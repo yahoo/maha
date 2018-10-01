@@ -509,7 +509,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     insertRows(insertSqlAdsStats, rowsAdsStats, "SELECT * FROM ad_stats_presto")
   }
 
-  test("successfully execute asyncs query for ad_stats") {
+  test("successfully execute async query for ad_stats with greater than filter") {
     val jsonString = s"""{
                           "cube": "ad_stats",
                           "selectFields": [

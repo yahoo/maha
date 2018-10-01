@@ -674,7 +674,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryPipeline = queryPipelineTry.toOption.get
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    
+
     val result = queryPipeline.execute(queryExecutorContext)
     result match {
       case scala.util.Success(queryPipelineResult) =>
