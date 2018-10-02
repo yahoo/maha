@@ -4684,15 +4684,14 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-    assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
+    assert(queryPipelineTry.isSuccess, "Fail to get the query pipeline")
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     print(result)
     val expected =
       s"""
          SELECT *
-         |FROM (SELECT to_char(co1.id) "Campaign ID", coalesce(f0."impressions", 1) "Impressions"
+         |FROM (SELECT co1.id "Campaign ID", coalesce(f0."impressions", 1) "Impressions"
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   campaign_id, SUM(impressions) AS "impressions"
          |            FROM fact2 FactAlias
@@ -4700,7 +4699,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            GROUP BY campaign_id
          |            HAVING (SUM(impressions) > 1608)
          |           ) f0
-         |           RIGHT OUTER JOIN
+         |           INNER JOIN
          |                (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT /*+ CampaignHint */ id, advertiser_id
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 12345)

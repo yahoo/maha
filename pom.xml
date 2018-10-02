@@ -19,7 +19,7 @@
         <spring.version>4.3.17.RELEASE</spring.version>
         <maven.clover.skip>true</maven.clover.skip>
         <scoverage.aggregate>true</scoverage.aggregate>
-        <scoverage.minimum.coverage>80</scoverage.minimum.coverage>
+        <scoverage.minimum.coverage>90</scoverage.minimum.coverage>
         <target_jdk_version>1.8</target_jdk_version>
         <maven-surefire-plugin.version>2.20.1</maven-surefire-plugin.version>
         <maven-surefire-report-plugin.version>${maven-surefire-plugin.version}</maven-surefire-report-plugin.version>
