@@ -2,9 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
-import com.yahoo.maha.core.dimension.Dimension
 import com.yahoo.maha.core.query.{DimensionBundle, FactualQueryContext}
-import org.apache.commons.lang3.StringUtils
 
 import scala.collection.mutable
 
@@ -25,7 +23,6 @@ trait PartitionColumnRenderer {
 }
 
 /* Please note that this is DefaultPartitionColumnRenderer which is not schema specific
-Schema Specific renderer is implemented in the cdw module
 */
 object DefaultPartitionColumnRenderer extends PartitionColumnRenderer {
 

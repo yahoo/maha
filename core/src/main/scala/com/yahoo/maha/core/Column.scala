@@ -45,6 +45,10 @@ trait Column {
   def annotationsWithEngineRequirement: Set[ColumnAnnotation] = annotations.filter(_.isInstanceOf[EngineRequirement])
 }
 
+trait ConstColumn extends Column {
+  def constantValue: String
+}
+
 trait DerivedColumn extends Column {
   override val isDerivedColumn: Boolean = true
   def derivedExpression : DerivedExpression[_]

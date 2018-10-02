@@ -120,7 +120,7 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
 
     if(requestModelResultTry.isFailure) {
       val message = requestModelResultTry.failed.get.getMessage
-      mahaRequestLogBuilder.logFailed(message)
+      mahaRequestLogBuilder.logFailed(message, Some(400))
       withError(curatorConfig,
         GeneralError.from(parRequestLabel
           , message, new MahaServiceBadRequestException(message, requestModelResultTry.failed.toOption))
@@ -225,7 +225,7 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
 
     if(requestModelResultTry.isFailure) {
       val message = requestModelResultTry.failed.get.getMessage
-      mahaRequestLogBuilder.logFailed(message)
+      mahaRequestLogBuilder.logFailed(message, Some(400))
       withError(curatorConfig,
         GeneralError.from(parRequestLabel
           , message, new MahaServiceBadRequestException(message, requestModelResultTry.failed.toOption))
@@ -235,8 +235,8 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
         val requestModelResult = requestModelResultTry.get
         requestModelValidator.validate(mahaRequestContext, requestModelResult)
         if(mahaRequestContext.reportingRequest.forceDimensionDriven) {
-          val sourcePipelineTry = mahaService.generateQueryPipeline(mahaRequestContext.registryName
-            , requestModelResultTry.get.model)
+          val sourcePipelineTry = mahaService.generateQueryPipelines(mahaRequestContext.registryName
+            , requestModelResultTry.get.model)._1
 
           if (sourcePipelineTry.isFailure) {
             val exception = sourcePipelineTry.failed.get
@@ -291,20 +291,21 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
         } else {
           val model = requestModelResult.model
           val curatorResult = CuratorResult(this, curatorConfig, None, requestModelResult)
-          if (model.dimCardinalityEstimate.isEmpty) {
-            val message = "No way to estimate dim cardinality for fact driven request!"
-            mahaRequestLogBuilder.logFailed(message)
-            withError(curatorConfig, GeneralError.from(parRequestLabel, message))
-          }
-          else if (model.dimCardinalityEstimate.get.intValue <= FACT_ONLY_LIMIT) {
-            val count = model.dimCardinalityEstimate.get.intValue
-            mahaRequestContext.mutableState.put(RowCountCurator.name, count)
-            mahaRequestLogBuilder.logSuccess()
-            withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
+          if (model.dimCardinalityEstimate.nonEmpty) {
+            if(model.dimCardinalityEstimate.get.intValue <= FACT_ONLY_LIMIT) {
+              val count = model.dimCardinalityEstimate.get.intValue
+              mahaRequestContext.mutableState.put(RowCountCurator.name, count)
+              mahaRequestLogBuilder.logSuccess()
+              withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
+            } else {
+              mahaRequestContext.mutableState.put(RowCountCurator.name, FACT_ONLY_LIMIT)
+              mahaRequestLogBuilder.logSuccess()
+              withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
+            }
           } else {
-            mahaRequestContext.mutableState.put(RowCountCurator.name, FACT_ONLY_LIMIT)
-            mahaRequestLogBuilder.logSuccess()
-            withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
+            val message = "No row count can be estimated without dim cardinality estimate"
+            mahaRequestLogBuilder.logFailed(message, Option(400))
+            withError(curatorConfig, GeneralError.from(parRequestLabel, message))
           }
         }
       }

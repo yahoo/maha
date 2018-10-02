@@ -8,14 +8,17 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
-import com.metamx.common.logger.Logger;
+import io.druid.java.util.common.logger.Logger;
 import io.druid.query.extraction.ExtractionFn;
 import io.druid.query.lookup.LookupReferencesManager;
 
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @JsonTypeName("mahaRegisteredLookup")
 public class MahaRegisteredLookupExtractionFn implements ExtractionFn
@@ -34,6 +37,9 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     private final String valueColumn;
     private final DecodeConfig decodeConfig;
     private final Map<String, String> dimensionOverrideMap;
+    private final boolean useQueryLevelCache;
+    volatile Cache<String, String> cache = null;
+    private final Object cacheLock = new Object();
 
     @JsonCreator
     public MahaRegisteredLookupExtractionFn(
@@ -46,7 +52,8 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
             @JsonProperty("optimize") Boolean optimize,
             @Nullable @JsonProperty("valueColumn") String valueColumn,
             @Nullable @JsonProperty("decode") DecodeConfig decodeConfig,
-            @Nullable @JsonProperty("dimensionOverrideMap") Map<String, String> dimensionOverrideMap
+            @Nullable @JsonProperty("dimensionOverrideMap") Map<String, String> dimensionOverrideMap,
+            @Nullable @JsonProperty("useQueryLevelCache") Boolean useQueryLevelCache
     )
     {
         Preconditions.checkArgument(lookup != null, "`lookup` required");
@@ -60,6 +67,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
         this.valueColumn = valueColumn;
         this.decodeConfig = decodeConfig;
         this.dimensionOverrideMap = dimensionOverrideMap;
+        this.useQueryLevelCache = useQueryLevelCache == null ? false : useQueryLevelCache;
     }
 
     @JsonProperty("lookup")
@@ -110,6 +118,12 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
         return dimensionOverrideMap;
     }
 
+    @JsonProperty("useQueryLevelCache")
+    public boolean isUseQueryLevelCache()
+    {
+        return useQueryLevelCache;
+    }
+
     @Override
     public byte[] getCacheKey()
     {
@@ -133,19 +147,25 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     @Override
     public String apply(String value)
     {
-        MahaLookupQueryElement mahaLookupQueryElement = new MahaLookupQueryElement();
-        mahaLookupQueryElement.setDimension(value);
-        mahaLookupQueryElement.setValueColumn(valueColumn);
-        mahaLookupQueryElement.setDecodeConfig(decodeConfig);
-        mahaLookupQueryElement.setDimensionOverrideMap(dimensionOverrideMap);
+        String serializedElement = isUseQueryLevelCache() ?
+                ensureCache().get(value, key -> getSerializedLookupQueryElement(value)) :
+                getSerializedLookupQueryElement(value);
+        return ensureDelegate().apply(serializedElement);
+    }
 
+    String getSerializedLookupQueryElement(String value) {
         String serializedElement = "";
         try {
+            MahaLookupQueryElement mahaLookupQueryElement = new MahaLookupQueryElement();
+            mahaLookupQueryElement.setDimension(value);
+            mahaLookupQueryElement.setValueColumn(valueColumn);
+            mahaLookupQueryElement.setDecodeConfig(decodeConfig);
+            mahaLookupQueryElement.setDimensionOverrideMap(dimensionOverrideMap);
             serializedElement = objectMapper.writeValueAsString(mahaLookupQueryElement);
         } catch (JsonProcessingException e) {
             LOG.error(e, e.getMessage());
         }
-        return ensureDelegate().apply(serializedElement);
+        return serializedElement;
     }
 
     @Override
@@ -164,6 +184,21 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     public ExtractionType getExtractionType()
     {
         return ensureDelegate().getExtractionType();
+    }
+
+    Cache<String, String> ensureCache() {
+        if(null == cache) {
+            synchronized (cacheLock) {
+                if(null == cache) {
+                    this.cache = Caffeine
+                            .newBuilder()
+                            .maximumSize(10_000)
+                            .expireAfterWrite(5, TimeUnit.MINUTES)
+                            .build();
+                }
+            }
+        }
+        return cache;
     }
 
     private MahaLookupExtractionFn ensureDelegate()
@@ -209,6 +244,11 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
         if (!getLookup().equals(that.getLookup())) {
             return false;
         }
+
+        if(isUseQueryLevelCache() != that.isUseQueryLevelCache()) {
+            return false;
+        }
+
         return getReplaceMissingValueWith() != null
                 ? getReplaceMissingValueWith().equals(that.getReplaceMissingValueWith())
                 : that.getReplaceMissingValueWith() == null;
@@ -222,6 +262,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
         result = 31 * result + (getReplaceMissingValueWith() != null ? getReplaceMissingValueWith().hashCode() : 0);
         result = 31 * result + (isInjective() ? 1 : 0);
         result = 31 * result + (isOptimize() ? 1 : 0);
+        result = 31 * result + (isUseQueryLevelCache() ? 1 : 0);
         return result;
     }
 
@@ -237,6 +278,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
                 ", optimize=" + optimize +
                 ", valueColumn=" + valueColumn +
                 ", decodeConfig=" + decodeConfig +
+                ", useQueryLevelCache=" + useQueryLevelCache +
                 '}';
     }
 }

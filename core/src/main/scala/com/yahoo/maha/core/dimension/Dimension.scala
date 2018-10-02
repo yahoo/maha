@@ -25,11 +25,15 @@ sealed trait DimensionColumn extends Column {
   }
 }
 
+trait ConstDimensionColumn extends DimensionColumn with ConstColumn
+
 trait DerivedDimensionColumn extends DimensionColumn with DerivedColumn
 
 abstract class BaseDimCol extends DimensionColumn {
   columnContext.register(this)
 }
+
+abstract class BaseConstDimCol extends BaseDimCol with ConstDimensionColumn
 
 abstract class BaseDerivedDimCol extends BaseDimCol with DerivedDimensionColumn
 
@@ -72,7 +76,7 @@ case class ConstDimCol(name: String,
                        columnContext: ColumnContext,
                        alias: Option[String],
                        annotations: Set[ColumnAnnotation],
-                       filterOperationOverrides: Set[FilterOperation]) extends BaseDimCol {
+                       filterOperationOverrides: Set[FilterOperation]) extends BaseConstDimCol {
 
   override val isDerivedColumn: Boolean = false
   def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : DimensionColumn = {

@@ -5,10 +5,11 @@ package com.yahoo.maha.service.utils
 import java.nio.charset.StandardCharsets
 
 import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
-import com.yahoo.maha.core.{PrestoEngine, DruidEngine, OracleEngine}
+import com.yahoo.maha.core.{DruidEngine, OracleEngine, PrestoEngine}
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.log.MahaRequestLogWriter
 import com.yahoo.maha.service.curators.DefaultCurator
 import com.yahoo.maha.service.{MahaRequestContext, MahaServiceConfig}
 import org.mockito.Mockito._
@@ -48,9 +49,9 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
 
   val queryAttributeBuilder  = new QueryAttributeBuilder
   val engineStats = new EngineQueryStats()
-  engineStats.addStat(EngineQueryStat(PrestoEngine, System.currentTimeMillis(), System.currentTimeMillis()))
-  engineStats.addStat(EngineQueryStat(OracleEngine, System.currentTimeMillis(), System.currentTimeMillis()))
-  engineStats.addStat(EngineQueryStat(DruidEngine, System.currentTimeMillis(), System.currentTimeMillis()))
+  engineStats.addStat(EngineQueryStat(PrestoEngine, System.currentTimeMillis(), System.currentTimeMillis(), "presto"))
+  engineStats.addStat(EngineQueryStat(OracleEngine, System.currentTimeMillis(), System.currentTimeMillis(), "oracle"))
+  engineStats.addStat(EngineQueryStat(DruidEngine, System.currentTimeMillis(), System.currentTimeMillis(), "druid"))
   queryAttributeBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineStats))
   queryAttributeBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineStats))
 
@@ -76,6 +77,8 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     assert(proto.getStatus == 200)
     assert(proto.getRequestId == "123")
     assert(proto.getUserId == "abc")
+    assert(MahaRequestLogHelper.hostname.isDefined)
+    assert(MahaRequestLogHelper.logger.isErrorEnabled)
   }
 
   test("Test MahaRequestLogHelper LogFailed with status") {
@@ -99,6 +102,10 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     assert(proto.getStatus == 400)
     assert(proto.getRequestId == "123")
     assert(proto.getUserId == "abc")
+    assert(proto.getFirstSubsequentQueryEngine === "Oracle")
+    assert(proto.getFirstSubsequentQueryTable=== "oracle")
+    assert(proto.getReRunEngine.toString === "Druid")
+    assert(proto.getReRunEngineQueryTable === "druid")
   }
 
   test("Test MahaRequestLogHelper LogFailed with status and null request context") {

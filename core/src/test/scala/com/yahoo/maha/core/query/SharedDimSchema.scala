@@ -136,6 +136,8 @@ trait SharedDimSchema {
             , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
             , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
             , DimCol("status", StrType())
+            , DimCol("impressions", IntType())
+            , DimCol("user_count", IntType())
             , OracleDerDimCol("Ad Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
@@ -157,8 +159,8 @@ trait SharedDimSchema {
                 , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
                 , DimCol("status", StrType())
                 , HiveDerDimCol("Ad Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
-                , HivePartDimCol("load_time", StrType())
-                , HivePartDimCol("shard", StrType(10, default="all"))
+                , HivePartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
+                , HivePartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
               )
           )
       }
@@ -172,6 +174,8 @@ trait SharedDimSchema {
           , PubCol("campaign_id", "Campaign ID", InEquality)
           , PubCol("ad_group_id", "Ad Group ID", InEquality)
           , PubCol("Ad Status", "Ad Status", InNotInEquality)
+          , PubCol("impressions", "Ad Impressions Flag", InEquality)
+          , PubCol("user_count", "Ad User Count Flag", InEquality)
         ), highCardinalityFilters = Set(NotInFilter("Ad Status", List("DELETED")))
       )
   }
@@ -282,8 +286,8 @@ trait SharedDimSchema {
             , DimCol("campaign_name", StrType(), annotations = Set(EscapingRequired, CaseInsensitive))
             , DimCol("status", StrType())
             , HiveDerDimCol("Campaign Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
-            , HivePartDimCol("load_time", StrType())
-            , HivePartDimCol("shard", StrType(10, default="all"))
+            , HivePartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
+            , HivePartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
           )
         )
       }
@@ -343,6 +347,7 @@ trait SharedDimSchema {
             , DimCol("status", StrType())
             , DimCol("managed_by", IntType())
             , DimCol("currency", StrType())
+            , DimCol("booking_country", StrType())
             , DimCol("device_id", IntType(3, (Map(1 -> "Desktop", 2 -> "Tablet", 3 -> "SmartPhone", -1 -> "UNKNOWN"), "UNKNOWN")))
             , OracleDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
           )
@@ -364,9 +369,10 @@ trait SharedDimSchema {
             , DimCol("status", StrType())
             , DimCol("managed_by", IntType())
             , DimCol("currency", StrType())
+            , DimCol("booking_country", StrType())
             , HiveDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
-            , HivePartDimCol("load_time", StrType())
-            , HivePartDimCol("shard", StrType(10, default="all"))
+            , HivePartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
+            , HivePartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
           )
         )
       }
@@ -382,9 +388,10 @@ trait SharedDimSchema {
             , DimCol("name", StrType())
             , DimCol("status", StrType())
             , DimCol("managed_by", IntType())
+            , DimCol("booking_country", StrType())
             , PrestoDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
-            , PrestoPartDimCol("load_time", StrType())
-            , PrestoPartDimCol("shard", StrType(10, default="all"))
+            , PrestoPartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
+            , PrestoPartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
           )
         )
       }
@@ -415,8 +422,9 @@ trait SharedDimSchema {
           , PubCol("name", "Advertiser Name", Equality)
           , PubCol("Advertiser Status", "Advertiser Status", InEquality)
           , PubCol("currency", "Advertiser Currency", InEquality)
+          , PubCol("booking_country", "Booking Country", InEquality)
           , PubCol("device_id", "Advertiser Device ID", InEquality)
-        ), highCardinalityFilters = Set(NotInFilter("Advertiser Status", List("DELETED")))
+        ), highCardinalityFilters = Set(NotInFilter("Advertiser Status", List("DELETED")), InFilter("Booking Country", List("US")))
       )
   }
 
@@ -453,8 +461,8 @@ trait SharedDimSchema {
             , DimCol("managed_by", IntType())
             , DimCol("timezone", StrType())
             , HiveDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
-            , HivePartDimCol("load_time", StrType())
-            , HivePartDimCol("shard", StrType(10, default="all"))
+            , HivePartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
+            , HivePartDimCol("shard", StrType(10, default="all"), partitionLevel = SecondPartitionLevel)
           )
         )
       }
@@ -844,7 +852,7 @@ trait SharedDimSchema {
           DruidEngine,
           Set(
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
-            , DruidFuncDimCol("external_site_name", StrType(), LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE("site_lookup", "external_site_name", true, true, dimensionOverrideMap = Map.empty, "null", "Others", "", "Others"))
+            , DruidFuncDimCol("external_site_name", StrType(), LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE("site_lookup", "external_site_name", true, true, dimensionOverrideMap = Map.empty, "null", "Others", "", "Others", "Others"))
           ), None
         )
       }

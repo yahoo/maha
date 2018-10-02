@@ -1,0 +1,27 @@
+# Eclipse
+.classpath
+.project
+.settings/
+.checkstyle
+
+# Intellij
+.idea/
+*.iml
+*.iws
+_site/
+
+# Mac
+.DS_Store
+
+# Maven
+log/
+target/
+
+# Vim
+*~
+
+test-output
+/target
+*.log
+env/
+

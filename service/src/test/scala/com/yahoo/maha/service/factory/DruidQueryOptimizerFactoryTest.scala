@@ -2,14 +2,17 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.factory
 
-import com.yahoo.maha.core.query.druid.{SyncDruidQueryOptimizer, AsyncDruidQueryOptimizer}
+import com.yahoo.maha.core.query.druid.{AsyncDruidQueryOptimizer, SyncDruidQueryOptimizer}
+import com.yahoo.maha.service.{DefaultMahaServiceConfigContext, MahaServiceConfigContext}
 import org.json4s.jackson.JsonMethods._
-import org.scalatest.{Matchers, FunSuite}
+import org.scalatest.{FunSuite, Matchers}
 
 /**
  * Created by pranavbhole on 31/05/17.
  */
 class DruidQueryOptimizerFactoryTest extends BaseFactoryTest {
+  implicit val context: MahaServiceConfigContext = DefaultMahaServiceConfigContext()
+
   test("Test instantiation of SyncDruidQueryOptimizer from factory") {
 
     val jsonString =   """

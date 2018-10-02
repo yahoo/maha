@@ -5,13 +5,16 @@ package com.yahoo.maha.service.factory
 import com.yahoo.maha.service.config.PasswordProvider
 import com.yahoo.maha.core.UTCTimeProvider
 import com.yahoo.maha.core.query.ExecutionLifecycleListener
+import com.yahoo.maha.service.{DefaultMahaServiceConfigContext, MahaServiceConfigContext}
 import org.json4s.jackson.JsonMethods._
-import org.scalatest.{Matchers, FunSuite}
+import org.scalatest.{FunSuite, Matchers}
 
 /**
  * Created by pranavbhole on 31/05/17.
  */
 class FactoryTest extends BaseFactoryTest {
+  implicit val context: MahaServiceConfigContext = DefaultMahaServiceConfigContext()
+
   test("Test PassThroughPasswordProviderFactory ") {
     val factoryResult = getFactory[PasswordProviderFactory]("com.yahoo.maha.service.factory.PassThroughPasswordProviderFactory", closer)
     assert(factoryResult.isSuccess)

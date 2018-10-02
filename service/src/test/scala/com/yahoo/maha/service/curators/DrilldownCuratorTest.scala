@@ -198,7 +198,7 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)
     val requestModelResult = mahaService
       .generateRequestModel(REGISTRY, reportingRequest, bucketParams).toOption.get
-    val qp = mahaService.generateQueryPipeline(REGISTRY, requestModelResult.model)
+    val qp = mahaService.generateQueryPipelines(REGISTRY, requestModelResult.model)._1
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
     val defaultCurator = new DefaultCurator()
     //val requestResultParRequest: ParRequest[RequestResult] = pse.immediateResult("requestResult", new Left[GeneralError, RequestResult](GeneralError.from("stage","fail")))
@@ -261,7 +261,7 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)
     val requestModelResult = mahaService
       .generateRequestModel(REGISTRY, reportingRequest, bucketParams).toOption.get
-    val qp = mahaService.generateQueryPipeline(REGISTRY, requestModelResult.model)
+    val qp = mahaService.generateQueryPipelines(REGISTRY, requestModelResult.model)._1
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
     val defaultCurator = new DefaultCurator()
     val requestResultParRequest: ParRequest[RequestResult] = pse.immediateResult("requestResult"

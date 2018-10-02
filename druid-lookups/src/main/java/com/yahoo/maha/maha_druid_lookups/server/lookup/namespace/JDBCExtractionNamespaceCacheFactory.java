@@ -2,10 +2,12 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
+import com.google.common.base.Strings;
 import com.google.inject.Inject;
-import com.metamx.common.logger.Logger;
-import com.metamx.emitter.service.ServiceEmitter;
-import com.metamx.emitter.service.ServiceMetricEvent;
+import io.druid.java.util.common.logger.Logger;
+import io.druid.java.util.emitter.service.ServiceEmitter;
+import io.druid.java.util.emitter.service.ServiceMetricEvent;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.RowMapper;
@@ -16,7 +18,9 @@ import org.skife.jdbi.v2.util.TimestampMapper;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -25,7 +29,7 @@ import java.util.concurrent.ConcurrentMap;
  *
  */
 public class JDBCExtractionNamespaceCacheFactory
-        implements ExtractionNamespaceCacheFactory<JDBCExtractionNamespace>
+        implements ExtractionNamespaceCacheFactory<JDBCExtractionNamespace, List<String>>
 {
     private static final Logger LOG = new Logger(JDBCExtractionNamespaceCacheFactory.class);
     private static final String COMMA_SEPARATOR = ",";
@@ -43,7 +47,7 @@ public class JDBCExtractionNamespaceCacheFactory
             final String id,
             final JDBCExtractionNamespace extractionNamespace,
             final String lastVersion,
-            final Map<String, String> cache
+            final Map<String, List<String>> cache
     )
     {
         final long lastCheck = lastVersion == null ? Long.MIN_VALUE/2 : Long.parseLong(lastVersion);
@@ -165,34 +169,65 @@ public class JDBCExtractionNamespaceCacheFactory
     }
 
     @Override
-    public void updateCache(final JDBCExtractionNamespace extractionNamespace, final Map<String, String> cache,
+    public void updateCache(final JDBCExtractionNamespace extractionNamespace, final Map<String, List<String>> cache,
                             final String key, final byte[] value) {
-        try {
-            if (!extractionNamespace.isCacheEnabled()) {
-                lookupService.update(new LookupService.LookupData(extractionNamespace, key), value);
-            } else {
-                cache.put(key, new String(value, "UTF-8"));
-            }
-        } catch(UnsupportedEncodingException e) {
-            LOG.error(e, "Caught exception while updating cache");
-            emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_FAILURE, 1));
-        }
+        //No-Op
     }
 
     @Override
-    public byte[] getCacheValue(final JDBCExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key) {
+    public byte[] getCacheValue(final JDBCExtractionNamespace extractionNamespace, final Map<String, List<String>> cache, final String key, final String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
         if (!extractionNamespace.isCacheEnabled()) {
-            byte[] value = lookupService.lookup(new LookupService.LookupData(extractionNamespace, key));
+            byte[] value = lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn, decodeConfigOptional));
             value = (value == null) ? new byte[0] : value;
             LOG.info("Cache value [%s]", new String(value));
             return value;
         }
-        String value = cache.get(key);
+        List<String> cacheValue = cache.get(key);
+        if(cacheValue == null) {
+            return new byte[0];
+        }
+
+        if(decodeConfigOptional.isPresent()) {
+            return handleDecode(extractionNamespace, cacheValue, decodeConfigOptional.get());
+        }
+
+        int index = extractionNamespace.getColumnIndex(valueColumn);
+        if(index == -1) {
+            LOG.error("invalid valueColumn [%s]", valueColumn);
+            return new byte[0];
+        }
+        String value = cacheValue.get(index);
         return (value == null) ? new byte[0] : value.getBytes();
     }
 
+    private byte[] handleDecode(JDBCExtractionNamespace extractionNamespace, List<String> cacheValue, DecodeConfig decodeConfig) {
+
+        final int columnToCheckIndex = extractionNamespace.getColumnIndex(decodeConfig.getColumnToCheck());
+        if (columnToCheckIndex < 0 || columnToCheckIndex >= cacheValue.size() ) {
+            return new byte[0];
+        }
+
+        final String valueFromColumnToCheck = cacheValue.get(columnToCheckIndex);
+
+        if(valueFromColumnToCheck != null && valueFromColumnToCheck.equals(decodeConfig.getValueToCheck())) {
+            final int columnIfValueMatchedIndex = extractionNamespace.getColumnIndex(decodeConfig.getColumnIfValueMatched());
+            if (columnIfValueMatchedIndex < 0) {
+                return new byte[0];
+            }
+            String value = cacheValue.get(columnIfValueMatchedIndex);
+            return (value == null) ? new byte[0] : value.getBytes();
+        } else {
+            final int columnIfValueNotMatchedIndex = extractionNamespace.getColumnIndex(decodeConfig.getColumnIfValueNotMatched());
+            if (columnIfValueNotMatchedIndex < 0) {
+                return new byte[0];
+            }
+            String value = cacheValue.get(columnIfValueNotMatchedIndex);
+            return (value == null) ? new byte[0] : value.getBytes();
+        }
+    }
+
     @Override
-    public String getCacheSize(final JDBCExtractionNamespace extractionNamespace, final Map<String, String> cache) {
+    public String getCacheSize(final JDBCExtractionNamespace extractionNamespace, final Map<String, List<String>> cache) {
         if (!extractionNamespace.isCacheEnabled()) {
             return String.valueOf(lookupService.getSize());
         }

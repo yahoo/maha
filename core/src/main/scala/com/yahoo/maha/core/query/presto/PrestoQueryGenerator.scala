@@ -112,7 +112,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
 
       columnInfo match {
         case FactColumnInfo(alias) =>
-          QueryGeneratorHelper.handleFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.underlyingTableName.getOrElse(factCandidate.fact.name))
+          QueryGeneratorHelper.handleOuterFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.underlyingTableName.getOrElse(factCandidate.fact.name), false)
           /*if (queryBuilderContext.containsFactColNameForAlias(alias)) {
             val col = queryBuilderContext.getFactColByAlias(alias)
             val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)
@@ -601,11 +601,11 @@ object PrestoQueryGenerator extends Logging {
   val ANY_PARTITIONING_SCHEME = PrestoPartitioningScheme("") //no name needed since class name hashcode
 
   def register(queryGeneratorRegistry: QueryGeneratorRegistry, partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) = {
-    if(!queryGeneratorRegistry.isEngineRegistered(PrestoEngine)) {
+    if(!queryGeneratorRegistry.isEngineRegistered(PrestoEngine, Option(Version.DEFAULT))) {
       val generator = new PrestoQueryGenerator(partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements)
       queryGeneratorRegistry.register(PrestoEngine, generator)
     } else {
-      queryGeneratorRegistry.getGenerator(PrestoEngine).foreach {
+      queryGeneratorRegistry.getDefaultGenerator(PrestoEngine).foreach {
         qg =>
           if(!qg.isInstanceOf[PrestoQueryGenerator]) {
             warn(s"Another query generator registered for PrestoEngine : ${qg.getClass.getCanonicalName}")

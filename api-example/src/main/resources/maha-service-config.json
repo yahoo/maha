@@ -55,33 +55,7 @@
     "oracleExec": {
       "factoryClass": "com.yahoo.maha.service.factory.OracleQueryExecutoryFactory",
       "config": {
-        "dataSourceFactoryClass": "com.yahoo.maha.service.factory.HikariDataSourceFactory",
-        "dataSourceFactoryConfig": {
-          "driverClassName": "org.h2.Driver",
-          "jdbcUrl": "jdbc:h2:mem:h2dbId;MODE=Oracle;DB_CLOSE_DELAY=-1",
-          "username": "sa",
-          "passwordProviderFactoryClassName": "com.yahoo.maha.service.factory.PassThroughPasswordProviderFactory",
-          "passwordProviderConfig": [
-            {
-              "key": "value"
-            }
-          ],
-          "passwordKey": "h2.test.database.password",
-          "poolName": "test-pool",
-          "maximumPoolSize": 10,
-          "minimumIdle": 1,
-          "autoCommit": true,
-          "connectionTestQuery": "SELECT 1 FROM DUAL",
-          "validationTimeout": 1000000,
-          "idleTimeout": 1000000,
-          "maxLifetime": 10000000,
-          "dataSourceProperties": [
-            {
-              "key": "propertyKey",
-              "value": "propertyValue"
-            }
-          ]
-        },
+        "dataSourceName" : "oracleDataSource",
         "jdbcConnectionFetchSize": 10,
         "lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
         "lifecycleListenerFactoryConfig": [
@@ -139,33 +113,7 @@
     "prestoExec": {
       "factoryClass": "com.yahoo.maha.service.factory.PrestoQueryExecutoryFactory",
       "config": {
-        "dataSourceFactoryClass": "com.yahoo.maha.service.factory.HikariDataSourceFactory",
-        "dataSourceFactoryConfig": {
-          "driverClassName": "org.h2.Driver",
-          "jdbcUrl": "jdbc:h2:mem:$h2dbId;MODE=Oracle;DB_CLOSE_DELAY=-1",
-          "username": "sa",
-          "passwordProviderFactoryClassName": "com.yahoo.maha.service.factory.PassThroughPasswordProviderFactory",
-          "passwordProviderConfig": [
-            {
-              "key": "value"
-            }
-          ],
-          "passwordKey": "h2.test.database.password",
-          "poolName": "test-pool",
-          "maximumPoolSize": 10,
-          "minimumIdle": 1,
-          "autoCommit": true,
-          "connectionTestQuery": "SELECT 1 FROM DUAL",
-          "validationTimeout": 1000000,
-          "idleTimeout": 1000000,
-          "maxLifetime": 10000000,
-          "dataSourceProperties": [
-            {
-              "key": "propertyKey",
-              "value": "propertyValue"
-            }
-          ]
-        },
+        "dataSourceName" : "prestoDataSource",
         "jdbcConnectionFetchSize": 10,
         "lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
         "lifecycleListenerFactoryConfig": [
@@ -228,81 +176,87 @@
   "bucketingConfigMap": {
     "studentBucket": {
       "factoryClass": "com.yahoo.maha.service.factory.DefaultBucketingConfigFactory",
-      "config": [
-        {
-          "cube": "student_performance",
-          "internal": [
-            {
-              "revision": 0,
-              "percent": 10
-            },
-            {
-              "revision": 1,
-              "percent": 90
-            }
-          ],
-          "external": [
-            {
-              "revision": 0,
-              "percent": 90
-            },
-            {
-              "revision": 1,
-              "percent": 10
-            }
-          ],
-          "dryRun": [
-            {
-              "revision": 0,
-              "percent": 10,
-              "engine": "Oracle"
-            },
-            {
-              "revision": 1,
-              "percent": 10
-            }
-          ],
-          "userWhiteList": [
-            {
-              "user": "uid",
-              "revision": 0
-            }
-          ]
-        }
-      ]
+      "config": {
+        "cube":[
+          {
+            "cube": "student_performance",
+            "internal": [
+              {
+                "revision": 0,
+                "percent": 10
+              },
+              {
+                "revision": 1,
+                "percent": 90
+              }
+            ],
+            "external": [
+              {
+                "revision": 0,
+                "percent": 90
+              },
+              {
+                "revision": 1,
+                "percent": 10
+              }
+            ],
+            "dryRun": [
+              {
+                "revision": 0,
+                "percent": 10,
+                "engine": "Oracle"
+              },
+              {
+                "revision": 1,
+                "percent": 10
+              }
+            ],
+            "userWhiteList": [
+              {
+                "user": "uid",
+                "revision": 0
+              }
+            ]
+          }
+        ],
+        "queryGenerator": []
+      }
     },
     "wikiBucket": {
       "factoryClass": "com.yahoo.maha.service.factory.DefaultBucketingConfigFactory",
-      "config": [
-        {
-          "cube": "wikiticker_stats",
-          "internal": [
-            {
-              "revision": 0,
-              "percent": 100
-            }
-          ],
-          "external": [
-            {
-              "revision": 0,
-              "percent": 100
-            }
-          ],
-          "dryRun": [
-            {
-              "revision": 0,
-              "percent": 0,
-              "engine": "Druid"
-            }
-          ],
-          "userWhiteList": [
-            {
-              "user": "uid",
-              "revision": 0
-            }
-          ]
-        }
-      ]
+      "config": {
+        "cube": [
+          {
+            "cube": "wikiticker_stats",
+            "internal": [
+              {
+                "revision": 0,
+                "percent": 100
+              }
+            ],
+            "external": [
+              {
+                "revision": 0,
+                "percent": 100
+              }
+            ],
+            "dryRun": [
+              {
+                "revision": 0,
+                "percent": 0,
+                "engine": "Druid"
+              }
+            ],
+            "userWhiteList": [
+              {
+                "user": "uid",
+                "revision": 0
+              }
+            ]
+          }
+        ],
+        "queryGenerator": []
+      }
     }
   },
   "utcTimeProviderMap": {
@@ -340,6 +294,66 @@
         "defaultTimeoutMillis": 10000,
         "threadPoolSize": 3,
         "queueSize": 3
+      }
+    }
+  },
+  "datasourceMap" : {
+    "oracleDataSource": {
+      "factoryClass": "com.yahoo.maha.service.factory.HikariDataSourceFactory",
+      "config": {
+        "driverClassName": "org.h2.Driver",
+        "jdbcUrl": "jdbc:h2:mem:h2dbId;MODE=Oracle;DB_CLOSE_DELAY=-1",
+        "username": "sa",
+        "passwordProviderFactoryClassName": "com.yahoo.maha.service.factory.PassThroughPasswordProviderFactory",
+        "passwordProviderConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "passwordKey": "h2.test.database.password",
+        "poolName": "test-pool",
+        "maximumPoolSize": 10,
+        "minimumIdle": 1,
+        "autoCommit": true,
+        "connectionTestQuery": "SELECT 1 FROM DUAL",
+        "validationTimeout": 1000000,
+        "idleTimeout": 1000000,
+        "maxLifetime": 10000000,
+        "dataSourceProperties": [
+          {
+            "key": "propertyKey",
+            "value": "propertyValue"
+          }
+        ]
+      }
+    },
+    "prestoDataSource": {
+      "factoryClass": "com.yahoo.maha.service.factory.HikariDataSourceFactory",
+      "config": {
+        "driverClassName": "org.h2.Driver",
+        "jdbcUrl": "jdbc:h2:mem:$h2dbId;MODE=Oracle;DB_CLOSE_DELAY=-1",
+        "username": "sa",
+        "passwordProviderFactoryClassName": "com.yahoo.maha.service.factory.PassThroughPasswordProviderFactory",
+        "passwordProviderConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "passwordKey": "h2.test.database.password",
+        "poolName": "test-pool",
+        "maximumPoolSize": 10,
+        "minimumIdle": 1,
+        "autoCommit": true,
+        "connectionTestQuery": "SELECT 1 FROM DUAL",
+        "validationTimeout": 1000000,
+        "idleTimeout": 1000000,
+        "maxLifetime": 10000000,
+        "dataSourceProperties": [
+          {
+            "key": "propertyKey",
+            "value": "propertyValue"
+          }
+        ]
       }
     }
   },

@@ -3,7 +3,7 @@
 package com.yahoo.maha.service.curators
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelected, BucketSelector}
+import com.yahoo.maha.core.bucketing.{BucketParams, CubeBucketSelected, BucketSelector}
 import com.yahoo.maha.core.fact.PublicFact
 import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.request.{CuratorJsonConfig, Field, ReportingRequest}
@@ -135,6 +135,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
       , selectFields = allSelectedFields
       , sortBy = if (drilldownConfig.ordering != IndexedSeq.empty) drilldownConfig.ordering else drillDownOrdering
       , rowsPerPage = drilldownConfig.maxRows.toInt
+      , paginationStartIndex = 0   // DrillDown Curator do not care about the start index as it look up the data based on the injected filters from base requests
       , forceDimensionDriven = false
       , forceFactDriven = true
       , filterExpressions = filterExpressions
@@ -212,7 +213,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
       val selectedRevisionTry = Try(registryConfig.registry.defaultPublicFactRevisionMap(drilldownConfig.cube))
 
       val selectedRevision: Option[Int] = if(selectedRevisionTry.isFailure){
-        val bucketSelectedTry : Try[BucketSelected] = selector.selectBuckets(
+        val bucketSelectedTry : Try[CubeBucketSelected] = selector.selectBucketsForCube(
           drilldownConfig.cube
           , context.bucketParams.copy(forceRevision = None)
         )

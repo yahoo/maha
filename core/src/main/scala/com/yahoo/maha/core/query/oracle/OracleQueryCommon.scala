@@ -39,6 +39,7 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
   final protected[this] val PAGINATION_ROW_COUNT_COL = ColumnContext.withColumnContext { implicit cc =>
     DimCol(OracleQueryGenerator.ROW_COUNT_ALIAS, IntType())
   }
+  final protected[this] val ROW_NUMBER_ALIAS = "ROWNUM as ROW_NUMBER"
 
   // Definition Prototypes
   def generateDimensionSql(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext, includePagination: Boolean): DimensionSql

@@ -102,6 +102,8 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
             @QueryParam("debug") @DefaultValue("false") debug: Boolean,
             @QueryParam("forceEngine") forceEngine: String,
             @QueryParam("forceRevision") forceRevision: Int,
+            @QueryParam("testName") testName: String,
+            @QueryParam("labels") labels: java.util.List[String],
             @Context httpServletRequest: HttpServletRequest,
             @Suspended response: AsyncResponse) : Unit = {
 
@@ -114,7 +116,16 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
 
     val userId: String = Option(MDC.get(MahaConstants.USER_ID)).getOrElse("unknown")
     val requestId: String = Option(MDC.get(MahaConstants.REQUEST_ID)).getOrElse(UUID.randomUUID().toString)
-    val (reportingRequest: ReportingRequest, rawJson: Array[Byte]) = createReportingRequest(requestId, userId, httpServletRequest, schemaOption.get, debug, forceEngine)
+    val (reportingRequest: ReportingRequest, rawJson: Array[Byte]) = createReportingRequest(
+      requestId
+      , userId
+      , httpServletRequest
+      , schemaOption.get
+      , debug
+      , forceEngine
+      , testName
+      , labels
+    )
 
     val bucketParams: BucketParams = BucketParams(UserInfo(userId, Try(MDC.get(MahaConstants.IS_INTERNAL).toBoolean).getOrElse(false)), forceRevision = Option(forceRevision))
 
@@ -150,7 +161,9 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
                                      , httpServletRequest: HttpServletRequest
                                      , schema: Schema
                                      , debug: Boolean
-                                     , forceEngine: String) : (ReportingRequest, Array[Byte]) = {
+                                     , forceEngine: String
+                                     , testName: String
+                                     , labels: java.util.List[String]) : (ReportingRequest, Array[Byte]) = {
     val rawJson = IOUtils.toByteArray(httpServletRequest.getInputStream)
     val reportingRequestResult = baseRequest.deserializeSync(rawJson, schema)
     require(reportingRequestResult.isSuccess, reportingRequestResult.toString)
@@ -175,7 +188,20 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
         } else {
           withDebug
         }
-        withEngine
+        val withTestName = if(StringUtils.isNotBlank(testName)) {
+          ReportingRequest.withTestName(withEngine, testName)
+        } else {
+          withEngine
+        }
+
+        val withLabels = if(labels != null && !labels.isEmpty) {
+          import scala.collection.JavaConverters._
+          ReportingRequest.withLabels(withTestName, labels.asScala.toList)
+        } else {
+          withTestName
+        }
+
+        withLabels
       }
     }
     (ReportingRequest.addRequestContext(request, RequestContext(requestId, userId)), rawJson)

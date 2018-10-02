@@ -212,7 +212,39 @@ class MahaResourceTest {
     assertEquals(s"should return status 200, ${httpResponse.getStatusLine}", 200, httpResponse.getStatusLine.getStatusCode)
     val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
     
-    assert(responseJson.contains("""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[213,200,100,125]],"curators":{}}"""))
+    assert(responseJson.contains("""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200,"debug":{}},"rows":[[213,200,100,125]],"curators":{}}"""), jsonRequest)
+  }
+
+  @Test
+  def successfulSyncRequestWithTestNameAndLabels(){
+    assertNotNull("jetty must be initialised", MahaResourceTest.server)
+    val httpClient: CloseableHttpClient = HttpClientBuilder.create().build()
+    val httpPost: HttpPost = new HttpPost("http://localhost:7875/appName/registry/academic/schemas/student/query?debug=true&forceEngine=oracle&testName=tn1&labels=lb1&labels=lb2")
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "${ExampleMahaService.yesterday}", "to": "${ExampleMahaService.today}"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val httpEntity: HttpEntity = new StringEntity(jsonRequest)
+    httpPost.setEntity(httpEntity)
+    httpPost.setHeader(HttpHeaders.ACCEPT,MediaType.APPLICATION_JSON)
+    httpPost.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
+    httpPost.setHeader("RequestId", "successfulSyncRequest")
+    val httpResponse: HttpResponse = httpClient.execute(httpPost)
+    assertEquals(s"should return status 200, ${httpResponse.getStatusLine}", 200, httpResponse.getStatusLine.getStatusCode)
+    val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
+
+    //assert(responseJson.contains("""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200,"debug":{}},"rows":[[213,200,100,125]],"curators":{}}"""), responseJson)
+    val expectedJson = """{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200,"debug":{"testName":"tn1","labels":["lb1","lb2"]}},"rows":[[213,200,100,125]],"curators":{}}"""
+    assert(responseJson.contains(expectedJson), responseJson)
   }
 
   @Test
@@ -269,7 +301,7 @@ class MahaResourceTest {
     assertEquals(s"should return status 200, ${httpResponse.getStatusLine}", 200, httpResponse.getStatusLine.getStatusCode)
     val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
     
-    assert(responseJson.contains("""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[213,200,100,125]],"curators":{}}"""))
+    assert(responseJson.contains("""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200,"debug":{}},"rows":[[213,200,100,125]],"curators":{}}"""), responseJson)
   }
 
   @Test

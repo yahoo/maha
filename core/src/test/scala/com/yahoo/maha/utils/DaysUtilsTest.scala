@@ -198,4 +198,23 @@ class DaysUtilsTest extends FunSuite with Matchers {
     assert(DaysUtils.getNumberOfDaysFromToday("2015-06-20") > 365)
     assert(DaysUtils.getNumberOfDaysFromToday("2050-06-20") < 0)
   }
+
+  test("Test invalid long list for days IN Filter") {
+    intercept[IllegalArgumentException] {
+      val dayFilter = InFilter("Day", List("2015-12-24", "20160104abc"))
+      DaysUtils.getDaysIntoLongList(dayFilter.values)
+    }
+  }
+
+  test("Test invalid date string for conversion to long list") {
+    intercept[IllegalArgumentException] {
+      DaysUtils.getDayIntoLongList("")
+    }
+  }
+
+  test("getDisjointSetTuples for empty timestamps") {
+    assert(DaysUtils.getDisjointSetTuplesForDays(List.empty).equals(List.empty))
+    assert(DaysUtils.getDisjointSetTuplesForHours(List.empty).equals(List.empty))
+  }
+
 }

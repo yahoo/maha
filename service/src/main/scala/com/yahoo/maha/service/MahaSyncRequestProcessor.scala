@@ -3,9 +3,10 @@
 package com.yahoo.maha.service
 
 import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.log.MahaRequestLogWriter
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest}
-import com.yahoo.maha.service.utils.{MahaRequestLogBuilder, MahaRequestLogHelper, MahaRequestLogWriter}
+import com.yahoo.maha.service.utils.{MahaRequestLogBuilder, MahaRequestLogHelper}
 import grizzled.slf4j.Logging
 
 trait BaseMahaRequestProcessor {

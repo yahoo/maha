@@ -11,6 +11,7 @@ import org.joda.time.Period;
 import javax.annotation.Nullable;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
+import java.util.Objects;
 
 @JsonTypeName("mahainmemorydb")
 public class InMemoryDBExtractionNamespace implements ExtractionNamespace {
@@ -33,6 +34,8 @@ public class InMemoryDBExtractionNamespace implements ExtractionNamespace {
     private final String lookupName;
     @JsonProperty
     private String tsColumn = "last_updated";
+    @JsonProperty
+    private final MissingLookupConfig missingLookupConfig;
 
     private Long lastUpdatedTime = -1L;
 
@@ -54,12 +57,15 @@ public class InMemoryDBExtractionNamespace implements ExtractionNamespace {
                                          @NotNull @JsonProperty(value = "lookupName", required = true)
                                          final String lookupName,
                                          @Nullable @JsonProperty(value = "tsColumn", required = false)
-                                         final String tsColumn) {
+                                         final String tsColumn,
+                                         @NotNull @JsonProperty(value = "missingLookupConfig", required = false)
+                                             final MissingLookupConfig missingLookupConfig) {
         this.rocksDbInstanceHDFSPath = Preconditions.checkNotNull(rocksDbInstanceHDFSPath, "rocksDbInstanceHDFSPath");
         this.lookupAuditingHDFSPath = Preconditions.checkNotNull(lookupAuditingHDFSPath, "lookupAuditingHDFSPath");
         this.namespace = Preconditions.checkNotNull(namespace, "namespace");
         this.pollPeriod = Preconditions.checkNotNull(pollPeriod, "pollPeriod");
         this.kafkaTopic = kafkaTopic;
+        this.missingLookupConfig = missingLookupConfig;
         this.cacheEnabled = cacheEnabled;
         this.lookupAuditingEnabled = lookupAuditingEnabled;
         this.lookupName = lookupName;
@@ -93,6 +99,10 @@ public class InMemoryDBExtractionNamespace implements ExtractionNamespace {
         return kafkaTopic;
     }
 
+    public MissingLookupConfig getMissingLookupConfig() {
+        return missingLookupConfig;
+    }
+
     //@Override
     public boolean isCacheEnabled() {
         return cacheEnabled;
@@ -118,51 +128,46 @@ public class InMemoryDBExtractionNamespace implements ExtractionNamespace {
     @Override
     public String toString() {
         return String.format(
-                "CdwExtractionNamespace = { namespace = %s, rocksDbInstanceHDFSPath = { %s }, pollPeriod = %s, kafkaTopic = %s }",
+                "InMemoryDBExtractionNamespace = { namespace = %s, rocksDbInstanceHDFSPath = { %s }, pollPeriod = %s, kafkaTopic = %s, missingLookupConfig = %s }",
                 namespace,
                 rocksDbInstanceHDFSPath,
                 pollPeriod,
-                kafkaTopic
+                kafkaTopic,
+                missingLookupConfig
         );
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        InMemoryDBExtractionNamespace namespace1 = (InMemoryDBExtractionNamespace) o;
-
-        if (!rocksDbInstanceHDFSPath.equals(namespace1.rocksDbInstanceHDFSPath)) {
-            return false;
-        }
-        if (!namespace.equals(namespace1.namespace)) {
-            return false;
-        }
-        if (!kafkaTopic.equals(namespace1.kafkaTopic)) {
-            return false;
-        }
-        if(!tsColumn.equals(namespace1.tsColumn)) {
-            return false;
-        }
-        if(!lookupName.equals(namespace1.lookupName)) {
-            return false;
-        }
-        return pollPeriod.equals(namespace1.pollPeriod);
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        InMemoryDBExtractionNamespace that = (InMemoryDBExtractionNamespace) o;
+        return cacheEnabled == that.cacheEnabled &&
+                lookupAuditingEnabled == that.lookupAuditingEnabled &&
+                Objects.equals(rocksDbInstanceHDFSPath, that.rocksDbInstanceHDFSPath) &&
+                Objects.equals(lookupAuditingHDFSPath, that.lookupAuditingHDFSPath) &&
+                Objects.equals(namespace, that.namespace) &&
+                Objects.equals(pollPeriod, that.pollPeriod) &&
+                Objects.equals(kafkaTopic, that.kafkaTopic) &&
+                Objects.equals(lookupName, that.lookupName) &&
+                Objects.equals(tsColumn, that.tsColumn) &&
+                Objects.equals(missingLookupConfig, that.missingLookupConfig) &&
+                Objects.equals(lastUpdatedTime, that.lastUpdatedTime);
     }
 
     @Override
     public int hashCode() {
-        int result = rocksDbInstanceHDFSPath.hashCode();
-        result = 31 * result + namespace.hashCode();
-        result = 31 * result + pollPeriod.hashCode();
-        result = 31 * result + kafkaTopic.hashCode();
-        result = 31 * result + tsColumn.hashCode();
-        result = 31 * result + lookupName.hashCode();
-        return result;
+
+        return Objects.hash(rocksDbInstanceHDFSPath,
+                lookupAuditingHDFSPath,
+                namespace,
+                pollPeriod,
+                kafkaTopic,
+                cacheEnabled,
+                lookupAuditingEnabled,
+                lookupName,
+                tsColumn,
+                missingLookupConfig,
+                lastUpdatedTime);
     }
 }

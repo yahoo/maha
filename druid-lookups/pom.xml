@@ -5,7 +5,7 @@
     <parent>
         <artifactId>maha-parent</artifactId>
         <groupId>com.yahoo.maha</groupId>
-        <version>5.134-SNAPSHOT</version>
+        <version>5.212-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -15,7 +15,7 @@
 
 
     <properties>
-        <druid.version>0.11.0</druid.version>
+        <druid.version>0.12.2</druid.version>
     </properties>
 
     <dependencies>
@@ -130,6 +130,17 @@
             <groupId>io.druid</groupId>
             <artifactId>druid-common</artifactId>
             <version>${druid.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>16.0.1</version>
         </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>
@@ -138,7 +149,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_${scala.major.version}</artifactId>
+            <artifactId>kafka_2.11</artifactId>
             <version>0.10.2.0</version>
             <exclusions>
                 <exclusion>
@@ -236,7 +247,7 @@
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
-            <version>2.5.0</version>
+            <version>${caffeine.version}</version>
         </dependency>
     </dependencies>
 

@@ -111,12 +111,15 @@ case class DryRunValue(value: Boolean) extends ParameterValue[Boolean]
 case class GeneratedQueryValue(value: String) extends ParameterValue[String]
 case class QueryEngineValue(value: Engine) extends ParameterValue[Engine]
 case class DebugValue(value: Boolean) extends ParameterValue[Boolean]
+case class TestNameValue(value: String) extends ParameterValue[String]
+case class LabelsValue(value: List[String]) extends ParameterValue[List[String]]
 case class RequestIdValue(value: String) extends ParameterValue[String]
 case class UserIdValue(value: String) extends ParameterValue[String]
 case class TimeZoneValue(value: String) extends ParameterValue[String]
 case class SchemaValue(value: String) extends ParameterValue[String]
 case class DistinctValue(value: Boolean) extends ParameterValue[Boolean]
 case class JobNameValue(value: String) extends ParameterValue[String]
+case class RegistryNameValue(value: String) extends ParameterValue[String]
 
 sealed abstract class Parameter(override val entryName: String) extends EnumEntry with Snakecase with Uppercase
 
@@ -128,12 +131,15 @@ object Parameter extends Enum[Parameter] with Logging {
   case object GeneratedQuery extends Parameter("Generated-Query")
   case object QueryEngine extends Parameter("Query-Engine")
   case object Debug extends Parameter("debug")
+  case object TestName extends Parameter("TestName")
+  case object Labels extends Parameter("Labels")
   case object RequestId extends Parameter("Request-Id")
   case object UserId extends Parameter("User-Id")
   case object TimeZone extends Parameter("TimeZone")
   case object Schema extends Parameter("Schema")
   case object Distinct extends Parameter("Distinct")
   case object JobName extends Parameter("Job-Name")
+  case object RegistryName extends Parameter("RegistryName")
 
   import syntax.validation._
   def deserializeParameters(json: JValue) : JsonScalaz.Result[Map[Parameter, ParameterValue[_]]] = {
@@ -166,12 +172,15 @@ object Parameter extends Enum[Parameter] with Logging {
               )
           }
           case Debug => fieldExtended[Boolean](name)(json).map(d => p -> DebugValue(d))
+          case TestName => fieldExtended[String](name)(json).map(d => p -> TestNameValue(d))
+          case Labels => fieldExtended[List[String]](name)(json).map(ct => p -> LabelsValue(ct))
           case RequestId => fieldExtended[String](name)(json).map(ct => p -> RequestIdValue(ct))
           case UserId => fieldExtended[String](name)(json).map(ct => p -> UserIdValue(ct))
           case TimeZone => fieldExtended[String](name)(json).map(ct => p -> TimeZoneValue(ct))
           case Schema => fieldExtended[String](name)(json).map(ct => p -> SchemaValue(ct))
           case Distinct => fieldExtended[Boolean](name)(json).map(d => p -> DistinctValue(d))
           case JobName => fieldExtended[String](name)(json).map(ct => p -> JobNameValue(ct))
+          case RegistryName => fieldExtended[String](name)(json).map(ct => p -> RegistryNameValue(ct))
         }
         Option(result)
     }
@@ -190,12 +199,15 @@ object Parameter extends Enum[Parameter] with Logging {
       case GeneratedQuery => p.entryName -> JString(v.asInstanceOf[GeneratedQueryValue].value)
       case QueryEngine => p.entryName -> JString(v.asInstanceOf[QueryEngineValue].value.toString)
       case Debug => p.entryName -> JBool(v.asInstanceOf[DebugValue].value)
+      case TestName => p.entryName -> JString(v.asInstanceOf[TestNameValue].value)
+      case Labels => p.entryName -> JArray(v.asInstanceOf[LabelsValue].value.map(JString(_)))
       case RequestId => p.entryName -> JString(v.asInstanceOf[RequestIdValue].value.toString)
       case UserId => p.entryName -> JString(v.asInstanceOf[UserIdValue].value.toString)
       case TimeZone => p.entryName -> JString(v.asInstanceOf[TimeZoneValue].value.toString)
       case Schema => p.entryName -> JString(v.asInstanceOf[SchemaValue].value.toString)
       case Distinct => p.entryName -> JBool(v.asInstanceOf[DistinctValue].value)
       case JobName => p.entryName -> JString(v.asInstanceOf[JobNameValue].value)
+      case RegistryName => p.entryName -> JString(v.asInstanceOf[RegistryNameValue].value)
     }
     
   }

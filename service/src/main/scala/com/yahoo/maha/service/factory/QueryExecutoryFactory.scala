@@ -2,13 +2,17 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.factory
 
-import com.yahoo.maha.executor.oracle.OracleQueryExecutor
-import com.yahoo.maha.executor.presto.{PrestoQueryExecutor, PrestoQueryTemplate}
-import com.yahoo.maha.service.MahaServiceConfig
+import javax.sql.DataSource
+
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.druid.{AuthHeaderProvider, DruidQueryExecutor, DruidQueryExecutorConfig}
+import com.yahoo.maha.executor.oracle.OracleQueryExecutor
+import com.yahoo.maha.executor.presto.{PrestoQueryExecutor, PrestoQueryTemplate}
 import com.yahoo.maha.jdbc.JdbcConnection
+import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
+import com.yahoo.maha.service.error.ServiceConfigurationError
+import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
 import org.json4s.JValue
 
 import scalaz.Validation.FlatMap._
@@ -20,34 +24,45 @@ import scalaz.syntax.applicative._
 class OracleQueryExecutoryFactory extends QueryExecutoryFactory {
   """
     |{
-    |"dataSourceFactoryClass": "",
-    |"dataSourceFactoryConfig": [],
+    |"dataSourceName": "",
     |"jdbcConnectionFetchSize" 10,
     |"lifecycleListenerFactoryClass": "",
     |"lifecycleListenerFactoryConfig" : []
     |}
   """.stripMargin
-  override def fromJson(configJson: JValue): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
+  override def fromJson(configJson: JValue)(implicit context:MahaServiceConfigContext): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
     import org.json4s.scalaz.JsonScalaz._
-    val dataSourceFactoryClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("dataSourceFactoryClass")(configJson)
-    val dataSourceFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("dataSourceFactoryConfig")(configJson)
+
+    import scalaz.Validation.FlatMap._
+    import scalaz.syntax.applicative._
+
+    val dataSourceNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("dataSourceName")(configJson).map(_.toLowerCase)
     val jdbcConnectionFetchSizeOptionResult: MahaServiceConfig.MahaConfigResult[Option[Int]] = fieldExtended[Option[Int]]("jdbcConnectionFetchSize")(configJson)
     val lifecycleListenerFactoryClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("lifecycleListenerFactoryClass")(configJson)
     val lifecycleListenerFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("lifecycleListenerFactoryConfig")(configJson)
 
+    import _root_.scalaz._
+    import syntax.validation._
+
+    for {
+      dataSourceName <- dataSourceNameResult
+    } yield  {
+      if(!context.dataSourceMap.contains(dataSourceName)) {
+        return Failure(List(ServiceConfigurationError(s"Failed to find Oracle dataSourceName $dataSourceName in dataSourceMap"))).toValidationNel.asInstanceOf[MahaConfigResult[QueryExecutor]]
+      }
+    }
+
     val jdbcConnetionResult : MahaServiceConfig.MahaConfigResult[JdbcConnection] = for {
-      dataSourceFactoryClass <- dataSourceFactoryClassResult
-      dataSourceFactoryConfig <- dataSourceFactoryConfigResult
-      dataSourceFactory <-  getFactory[DataSourceFactory](dataSourceFactoryClass, this.closer)
-      dataSource <- dataSourceFactory.fromJson(dataSourceFactoryConfig)
+      dataSourceName <- dataSourceNameResult
+      dataSource <- context.dataSourceMap.get(dataSourceName).successNel[Option[DataSource]].asInstanceOf[MahaServiceConfig.MahaConfigResult[Option[DataSource]]]
       jdbcConnectionFetchSizeOption <- jdbcConnectionFetchSizeOptionResult
     } yield {
         if(jdbcConnectionFetchSizeOption.isDefined) {
-          new JdbcConnection(dataSource, jdbcConnectionFetchSizeOption.get)
+          new JdbcConnection(dataSource.get, jdbcConnectionFetchSizeOption.get)
         } else {
-          new JdbcConnection(dataSource)
+          new JdbcConnection(dataSource.get)
         }
-      }
+    }
 
     val lifecycleListener : MahaServiceConfig.MahaConfigResult[ExecutionLifecycleListener] = for {
       lifecycleListenerFactoryClass <- lifecycleListenerFactoryClassResult
@@ -80,7 +95,7 @@ class DruidQueryExecutoryFactory extends QueryExecutoryFactory {
     |}
   """.stripMargin
 
-  override def fromJson(configJson: JValue): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
+  override def fromJson(configJson: JValue)(implicit context:MahaServiceConfigContext): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
     import org.json4s.scalaz.JsonScalaz._
     val druidQueryExecutorConfigFactoryClassNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("druidQueryExecutorConfigFactoryClassName")(configJson)
     val druidQueryExecutorConfigJsonConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("druidQueryExecutorConfigJsonConfig")(configJson)
@@ -136,8 +151,7 @@ class PrestoQueryExecutoryFactory extends QueryExecutoryFactory {
 
   """
     |{
-    |"dataSourceFactoryClass": "",
-    |"dataSourceFactoryConfig": [],
+    |"dataSourceName": "",
     |"jdbcConnectionFetchSize": 10,
     |"lifecycleListenerFactoryClass" : "",
     |"lifecycleListenerFactoryConfig" : [],
@@ -146,28 +160,36 @@ class PrestoQueryExecutoryFactory extends QueryExecutoryFactory {
     |}
   """.stripMargin
 
-  override def fromJson(configJson: JValue): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
+  override def fromJson(configJson: JValue)(implicit context:MahaServiceConfigContext): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
     import org.json4s.scalaz.JsonScalaz._
 
-    val dataSourceFactoryClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("dataSourceFactoryClass")(configJson)
-    val dataSourceFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("dataSourceFactoryConfig")(configJson)
+    val dataSourceNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("dataSourceName")(configJson).map(_.toLowerCase)
     val jdbcConnectionFetchSizeOptionResult: MahaServiceConfig.MahaConfigResult[Option[Int]] = fieldExtended[Option[Int]]("jdbcConnectionFetchSize")(configJson)
     val lifecycleListenerFactoryClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("lifecycleListenerFactoryClass")(configJson)
     val lifecycleListenerFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("lifecycleListenerFactoryConfig")(configJson)
     val prestoQueryTemplateFactoryNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("prestoQueryTemplateFactoryName")(configJson)
     val prestoQueryTemplateFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("prestoQueryTemplateFactoryConfig")(configJson)
 
+    import _root_.scalaz._
+    import syntax.validation._
+
+    for {
+      dataSourceName <- dataSourceNameResult
+    } yield  {
+      if(!context.dataSourceMap.contains(dataSourceName)) {
+        return Failure(List(ServiceConfigurationError(s"Failed to find presto dataSourceName $dataSourceName in dataSourceMap"))).toValidationNel.asInstanceOf[MahaConfigResult[QueryExecutor]]
+      }
+    }
+
     val jdbcConnetionResult : MahaServiceConfig.MahaConfigResult[JdbcConnection] = for {
-      dataSourceFactoryClass <- dataSourceFactoryClassResult
-      dataSourceFactoryConfig <- dataSourceFactoryConfigResult
-      dataSourceFactory <-  getFactory[DataSourceFactory](dataSourceFactoryClass, this.closer)
-      dataSource <- dataSourceFactory.fromJson(dataSourceFactoryConfig)
+      dataSourceName <- dataSourceNameResult
+      dataSource <- context.dataSourceMap.get(dataSourceName).successNel[Option[DataSource]].asInstanceOf[MahaServiceConfig.MahaConfigResult[Option[DataSource]]]
       jdbcConnectionFetchSizeOption <- jdbcConnectionFetchSizeOptionResult
     } yield {
       if(jdbcConnectionFetchSizeOption.isDefined) {
-        new JdbcConnection(dataSource, jdbcConnectionFetchSizeOption.get)
+        new JdbcConnection(dataSource.get, jdbcConnectionFetchSizeOption.get)
       } else {
-        new JdbcConnection(dataSource)
+        new JdbcConnection(dataSource.get)
       }
     }
 

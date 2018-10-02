@@ -10,7 +10,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.metamx.common.logger.Logger;
+import io.druid.java.util.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import io.druid.query.lookup.LookupExtractor;
@@ -19,21 +19,22 @@ import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-public class JDBCLookupExtractor extends LookupExtractor
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+public class JDBCLookupExtractor<U extends List<String>> extends LookupExtractor
 {
     private static final Logger LOG = new Logger(JDBCLookupExtractor.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
-    private final Map<String, String> map;
+    private final Map<String, U> map;
     private final JDBCExtractionNamespace extractionNamespace;
-    private static final String CONTROL_A_SEPARATOR = "\u0001";
     private LookupService lookupService;
     private final Map<String, Integer> columnIndexMap;
 
-    public JDBCLookupExtractor(JDBCExtractionNamespace extractionNamespace, Map<String, String> map, LookupService lookupService)
+    public JDBCLookupExtractor(JDBCExtractionNamespace extractionNamespace, Map<String, U> map, LookupService lookupService)
     {
         this.extractionNamespace = extractionNamespace;
         this.map = Preconditions.checkNotNull(map, "map");
@@ -47,7 +48,7 @@ public class JDBCLookupExtractor extends LookupExtractor
         this.columnIndexMap = builder.build();
     }
 
-    public Map<String, String> getMap()
+    public Map<String, U> getMap()
     {
         return ImmutableMap.copyOf(map);
     }
@@ -73,39 +74,39 @@ public class JDBCLookupExtractor extends LookupExtractor
                 return Strings.emptyToNull(dimensionOverrideMap.get(dimension));
             }
 
-            String cacheValue;
             if (!extractionNamespace.isCacheEnabled()) {
-                cacheValue = new String(lookupService.lookup(new LookupService.LookupData(extractionNamespace,
-                        dimension)), "UTF-8");
+                Optional<DecodeConfig> decodeConfigOptional = (decodeConfig == null) ? Optional.empty() : Optional.of(decodeConfig);
+                byte[] cacheByteValue = lookupService.lookup(new LookupService.LookupData(extractionNamespace,
+                        dimension, valueColumn, decodeConfigOptional));
+                return (cacheByteValue == null || cacheByteValue.length == 0) ? null : new String(cacheByteValue, UTF_8);
             } else {
-                cacheValue = map.get(dimension);
-            }
-
-            if (Strings.isNullOrEmpty(cacheValue)) {
-                return null;
-            }
-
-            List<String> row = Arrays.asList(cacheValue.split(CONTROL_A_SEPARATOR));
-            if(decodeConfig != null) {
-                return handleDecode(row, decodeConfig);
-            }
-            else {
-                int columnIndex = getColumnIndex(extractionNamespace, valueColumn);
-                if (columnIndex < 0) {
+                U cacheValueArray = map.get(dimension);
+                if(cacheValueArray == null) {
                     return null;
                 }
-                return Strings.emptyToNull(row.get(columnIndex));
+                if(decodeConfig != null) {
+                    return handleDecode(cacheValueArray, decodeConfig);
+                }
+                else {
+                    int columnIndex = getColumnIndex(extractionNamespace, valueColumn);
+                    if (columnIndex < 0 || columnIndex >= cacheValueArray.size()) {
+                        LOG.error("Invalid columnIndex [%s], cacheValueArray is [%s]", columnIndex, cacheValueArray);
+                        return null;
+                    }
+                    return Strings.emptyToNull(cacheValueArray.get(columnIndex));
+                }
             }
+
         } catch(Exception e) {
             LOG.error(e, "Exception in JDBCLookupExtractor apply");
         }
         return null;
     }
 
-    private String handleDecode(List<String> row, DecodeConfig decodeConfig) {
+    private String handleDecode(U row, DecodeConfig decodeConfig) {
 
         final int columnToCheckIndex = getColumnIndex(extractionNamespace, decodeConfig.getColumnToCheck());
-        if (columnToCheckIndex < 0) {
+        if (columnToCheckIndex < 0 || columnToCheckIndex >= row.size() ) {
             return null;
         }
 
@@ -151,15 +152,10 @@ public class JDBCLookupExtractor extends LookupExtractor
     {
         try {
             final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            for (Map.Entry<String, String> entry : map.entrySet()) {
+            for (Map.Entry<String, U> entry : map.entrySet()) {
                 final String key = entry.getKey();
-                final String val = entry.getValue();
                 if (!Strings.isNullOrEmpty(key)) {
                     outputStream.write(key.getBytes());
-                }
-                outputStream.write((byte)0xFF);
-                if (!Strings.isNullOrEmpty(val)) {
-                    outputStream.write(val.getBytes());
                 }
                 outputStream.write((byte)0xFF);
             }

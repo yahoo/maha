@@ -3,12 +3,9 @@
 package com.yahoo.maha.core.bucketing
 
 import com.yahoo.maha.core.Engine
+import com.yahoo.maha.core.query.Version
 import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution
 import org.apache.commons.math3.exception.MathArithmeticException
-
-import scala.collection.mutable
-
-
 
 /**
   * Created by shrav87 on 8/23/16.
@@ -37,7 +34,7 @@ case class CubeBucketingConfig(internalBucketPercentage:Map[Int,Int] = Map.empty
     }
   }
 
-  def validate(cube: String = "") = {
+  def validate() = {
     val internalSum = internalBucketPercentage.values.sum
     require(internalSum==100,s"Total internal bucket percentage is not 100% but $internalSum")
 
@@ -81,22 +78,106 @@ class CubeBucketingConfigBuilder {
   }
 }
 
-
-trait BucketingConfig {
-  def getConfig(cube: String): Option[CubeBucketingConfig]
-}
-
-class DefaultBucketingConfig(bucketingConfigMap:scala.collection.immutable.Map[String,CubeBucketingConfig]) extends BucketingConfig {
+case class QueryGenBucketingConfig(internalBucketPercentage:Map[Version,Int] = Map.empty, //version,%
+                               externalBucketPercentage:Map[Version,Int] = Map.empty,//version,%
+                               dryRunPercentage: Map[Version,Int] = Map.empty, //version,%
+                               userWhiteList:Map[String,Version] = Map.empty // userId,version
+                              ) {
   validate()
 
-  private[this] def validate(): Unit = {
-    for((cubeName,bucketingConfig)<-bucketingConfigMap) {
-      bucketingConfig.validate(cubeName)
+  val internalDistribution = new EnumeratedIntegerDistribution(internalBucketPercentage.keys.map(_.number).toArray,
+    internalBucketPercentage.values.map(percentage => percentage.toDouble/100).toArray)
+
+  val externalDistribution = new EnumeratedIntegerDistribution(externalBucketPercentage.keys.map(_.number).toArray,
+    externalBucketPercentage.values.map(percentage => percentage.toDouble/100).toArray)
+
+  val dryRunDistribution: Option[EnumeratedIntegerDistribution] = {
+    try {
+      Some(new EnumeratedIntegerDistribution(dryRunPercentage.keys.map(_.number).toArray,
+        dryRunPercentage.values.map(percentage => percentage.toDouble/100).toArray))
+    } catch {
+      case e: MathArithmeticException => // All probabilities are 0
+        None
     }
   }
 
-  override def getConfig(cube: String): Option[CubeBucketingConfig] = {
-    bucketingConfigMap.get(cube)
+  def validate() = {
+    val internalSum = internalBucketPercentage.values.sum
+    require(internalSum==100,s"Total internal bucket percentage is not 100% but $internalSum")
+
+    val externalSum = externalBucketPercentage.values.sum
+    require(externalBucketPercentage.values.sum == 100,s"Total external bucket percentage is not 100% but $externalSum")
+  }
+}
+
+object QueryGenBucketingConfig {
+  def builder() = new QueryGenBucketingConfigBuilder
+}
+
+class QueryGenBucketingConfigBuilder {
+  private var internalBucketPercentage: Map[Version, Int] = Map.empty
+  private var externalBucketPercentage: Map[Version, Int] = Map.empty
+  private var dryRunPercentage: Map[Version, Int] = Map.empty
+  private var userWhiteList: Map[String, Version] = Map.empty
+
+  def internalBucketPercentage(map: Map[Version, Int]): QueryGenBucketingConfigBuilder = {
+    internalBucketPercentage = map
+    this
+  }
+
+  def externalBucketPercentage(map: Map[Version, Int]): QueryGenBucketingConfigBuilder = {
+    externalBucketPercentage = map
+    this
+  }
+
+  def dryRunPercentage(map: Map[Version, Int]): QueryGenBucketingConfigBuilder = {
+    dryRunPercentage = map
+    this
+  }
+
+  def userWhiteList(map: Map[String, Version]): QueryGenBucketingConfigBuilder = {
+    userWhiteList = map
+    this
+  }
+
+  def build(): QueryGenBucketingConfig = {
+    val config = new QueryGenBucketingConfig(internalBucketPercentage.toMap, externalBucketPercentage.toMap, dryRunPercentage.toMap, userWhiteList.toMap)
+    config.validate()
+    config
+  }
+}
+
+
+trait BucketingConfig {
+  def getConfigForCube(cube: String): Option[CubeBucketingConfig]
+  def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig]
+}
+
+class DefaultBucketingConfig(cubeBucketingConfigMap:scala.collection.immutable.Map[String,CubeBucketingConfig],
+                             queryGenBucketingConfigMap:scala.collection.immutable.Map[Engine,QueryGenBucketingConfig]) extends BucketingConfig {
+  validate()
+
+  def this() {
+    this(Map.empty, Map.empty)
+  }
+
+  private[this] def validate(): Unit = {
+
+    cubeBucketingConfigMap.foreach {
+      case (_, bucketingConfig) => bucketingConfig.validate()
+    }
+
+    queryGenBucketingConfigMap.foreach {
+      case (_, bucketingConfig) => bucketingConfig.validate()
+    }
+  }
+
+  override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = {
+    cubeBucketingConfigMap.get(cube)
+  }
+
+  override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = {
+    queryGenBucketingConfigMap.get(engine)
   }
 }
 

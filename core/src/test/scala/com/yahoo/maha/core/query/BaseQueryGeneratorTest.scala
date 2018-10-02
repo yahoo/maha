@@ -7,9 +7,10 @@ import java.util.concurrent.Executors
 
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.bucketing.{BucketSelector, BucketingConfig, DefaultBucketingConfig, QueryGenBucketingConfigBuilder}
 import com.yahoo.maha.core.registry.{Registry, RegistryBuilder}
 import com.yahoo.maha.core.request._
-import org.joda.time.{DateTimeZone, DateTime}
+import org.joda.time.{DateTime, DateTimeZone}
 
 import scala.concurrent.ExecutionContext
 import scala.util.Try
@@ -21,6 +22,7 @@ trait BaseQueryGeneratorTest {
 
   CoreSchema.register()
 
+  protected[this] val druidMultiQueryEngineList = DefaultQueryPipelineFactory.druidMultiQueryEngineList
   protected[this] val fromDate = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7))
   protected[this] val fromDateMinusOne = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(8))
   protected[this] val fromDateMinus10 = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7).minusDays(10))
@@ -71,6 +73,20 @@ trait BaseQueryGeneratorTest {
 
   protected[this] def generatePipeline(requestModel: RequestModel, queryAttributes: QueryAttributes) : Try[QueryPipeline] = {
     queryPipelineFactory.from(requestModel, queryAttributes)
+  }
+
+  protected[this] def generatePipelineForQgenVersion(registry: Registry, requestModel: RequestModel, queryGenVersion: Version) : Try[QueryPipeline] = {
+    val qgenBucketingConfig = new QueryGenBucketingConfigBuilder()
+      .externalBucketPercentage(Map(queryGenVersion -> 100))
+      .internalBucketPercentage(Map(queryGenVersion -> 100)).build()
+    val bucketingConfig = new DefaultBucketingConfig(Map.empty,
+      Map(HiveEngine -> qgenBucketingConfig,
+        OracleEngine -> qgenBucketingConfig,
+        DruidEngine -> qgenBucketingConfig,
+        PrestoEngine -> qgenBucketingConfig
+      ))
+    val bucketSelector = new BucketSelector(registry, bucketingConfig)
+    queryPipelineFactory.fromBucketSelector((requestModel, None), QueryAttributes.empty, bucketSelector)._1
   }
 
   protected[this] def getBaseDir : String = {

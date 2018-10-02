@@ -6,7 +6,7 @@ import com.google.common.io.Files;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
-import com.metamx.emitter.service.ServiceEmitter;
+import io.druid.java.util.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.AdProtos;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
@@ -23,7 +23,9 @@ import org.testng.annotations.Test;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.Optional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -71,7 +73,7 @@ public class InMemoryDBExtractionNamespaceCacheFactoryTest {
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
             InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
-                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated"
+                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
             );
 
             Message msgFromKafka = AdProtos.Ad.newBuilder()
@@ -132,7 +134,7 @@ public class InMemoryDBExtractionNamespaceCacheFactoryTest {
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
             InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
-                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated"
+                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
             );
 
             Message msgFromKafka = AdProtos.Ad.newBuilder()
@@ -193,18 +195,12 @@ public class InMemoryDBExtractionNamespaceCacheFactoryTest {
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
             InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
-                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated"
+                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
             );
 
-            byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080");
+            byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "title", Optional.empty());
 
-            Parser<Message> parser = new TestProtobufSchemaFactory().getProtobufParser(extractionNamespace.getNamespace());
-            Message updatedMessage = parser.parseFrom(value);
-
-            Descriptors.Descriptor descriptor = new TestProtobufSchemaFactory().getProtobufDescriptor(extractionNamespace.getNamespace());
-            Descriptors.FieldDescriptor field = descriptor.findFieldByName("title");
-
-            Assert.assertEquals(updatedMessage.getField(field).toString(), "some title");
+            Assert.assertEquals(new String(value, UTF_8), "some title");
 
         } finally {
             if(db != null) {
@@ -231,10 +227,10 @@ public class InMemoryDBExtractionNamespaceCacheFactoryTest {
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
             InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
-                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated"
+                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
             );
 
-            byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080");
+            byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "title", Optional.empty());
 
             Assert.assertEquals(value, new byte[0]);
 

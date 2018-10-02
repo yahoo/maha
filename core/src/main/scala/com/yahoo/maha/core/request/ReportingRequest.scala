@@ -52,6 +52,22 @@ case class ReportingRequest(cube: String
   def isDebugEnabled : Boolean = {
     additionalParameters.contains(Parameter.Debug) && additionalParameters(Parameter.Debug).asInstanceOf[DebugValue].value
   }
+  def isTestEnabled : Boolean = {
+    additionalParameters.contains(Parameter.TestName)
+  }
+  def hasLabels: Boolean = {
+    additionalParameters.contains(Parameter.Labels)
+  }
+  def getTestName: Option[String] = {
+    if(isTestEnabled) {
+      Option(additionalParameters(Parameter.TestName).asInstanceOf[TestNameValue].value)
+    } else None
+  }
+  def getLabels: List[String] = {
+    if(hasLabels) {
+      additionalParameters(Parameter.Labels).asInstanceOf[LabelsValue].value
+    } else List.empty
+  }
 }
 
 trait BaseRequest {
@@ -208,6 +224,14 @@ trait BaseRequest {
     reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.ReportFormat -> ReportFormatValue(CSVFormat)))
   }
 
+  def withLabels(reportingRequest: ReportingRequest, labels: List[String]) : ReportingRequest = {
+    reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.Labels -> LabelsValue(labels)))
+  }
+
+  def withTestName(reportingRequest: ReportingRequest, testName: String) : ReportingRequest = {
+    reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.TestName -> TestNameValue(testName)))
+  }
+
   def deserializeSyncWithFactBias(ba: Array[Byte]): Validation[NonEmptyList[JsonScalaz.Error], ReportingRequest] = {
     deserialize(ba, SYNC_REQUEST, None, deserializeAdditionalParameters =  false, factBiasOption)
   }
@@ -290,7 +314,7 @@ object ReportingRequest extends BaseRequest {
                   , bias: Option[Bias]
                   , defaultDayIfNeeded: Boolean = false): Validation[NonEmptyList[JsonScalaz.Error], ReportingRequest] = {
 
-    val json = {
+    val json : JValue = {
         Try(parse(new String(ba, StandardCharsets.UTF_8))) match {
         case t if t.isSuccess => t.get
         case t if t.isFailure => {

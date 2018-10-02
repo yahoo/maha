@@ -6,7 +6,7 @@ import java.io.OutputStream
 
 import com.fasterxml.jackson.core.{JsonEncoding, JsonGenerator}
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.yahoo.maha.core.query.{QueryRowList, RowList}
+import com.yahoo.maha.core.query.{InMemRowList, QueryRowList, RowList}
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{ColumnInfo, DimColumnInfo, Engine, FactColumnInfo}
 import com.yahoo.maha.service.RequestCoordinatorResult
@@ -69,6 +69,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
         , ingestionTimeUpdater
         , tableName
         , dimCols
+        , true
       )
       writeDataRows(jsonGenerator, qpr.rowList, rowCountOption, curatorResult.requestModelReference.model.reportingRequest)
     }
@@ -97,6 +98,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
         , ingestionTimeUpdater
         , tableName
         , dimCols
+        , false
       )
       writeDataRows(jsonGenerator, qpr.rowList, None, curatorResult.requestModelReference.model.reportingRequest)
       jsonGenerator.writeEndObject() //}
@@ -125,6 +127,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
                           , ingestionTimeUpdater: IngestionTimeUpdater
                           , tableName: String
                           , dimCols: Set[String]
+                          , isDefault: Boolean
                          ) {
     jsonGenerator.writeFieldName("header") // "header":
     jsonGenerator.writeStartObject() // {
@@ -171,6 +174,25 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
     jsonGenerator.writeEndArray() // ]
     jsonGenerator.writeFieldName("maxRows")
     jsonGenerator.writeNumber(reportingRequest.rowsPerPage)
+    if(reportingRequest.isDebugEnabled) {
+      jsonGenerator.writeFieldName("debug")
+      jsonGenerator.writeStartObject()
+      if(isDefault && reportingRequest.isTestEnabled) {
+        jsonGenerator.writeFieldName("testName")
+        jsonGenerator.writeString(reportingRequest.getTestName.get)
+      }
+      if(isDefault && reportingRequest.hasLabels) {
+        jsonGenerator.writeFieldName("labels")
+        val labels = reportingRequest.getLabels
+        jsonGenerator.writeStartArray()
+        labels.foreach {
+          label =>
+            jsonGenerator.writeString(label)
+        }
+        jsonGenerator.writeEndArray()
+      }
+      jsonGenerator.writeEndObject()
+    }
     jsonGenerator.writeEndObject()
   }
 
@@ -178,6 +200,10 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
     jsonGenerator.writeFieldName("rows") // "rows":
     jsonGenerator.writeStartArray() // [
     val numColumns = rowList.columns.size
+    val rowListSize: Option[Int] = rowList match {
+      case inMemRowList: InMemRowList => Option(inMemRowList.size)
+      case _ => None
+    }
 
     rowList.foreach {
       row => {
@@ -191,6 +217,8 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
           jsonGenerator.writeObject(rowCountOption.get)
         } else if(reportingRequest.includeRowCount && row.aliasMap.contains(QueryRowList.ROW_COUNT_ALIAS)) {
           jsonGenerator.writeObject(row.getValue(QueryRowList.ROW_COUNT_ALIAS))
+        } else if(reportingRequest.includeRowCount && rowListSize.isDefined) {
+              jsonGenerator.writeObject(rowListSize.get)
         }
         jsonGenerator.writeEndArray()
       }

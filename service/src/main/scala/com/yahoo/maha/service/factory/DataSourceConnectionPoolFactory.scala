@@ -3,9 +3,9 @@
 package com.yahoo.maha.service.factory
 
 import java.util.Properties
-import javax.sql.DataSource
 
-import com.yahoo.maha.service.MahaServiceConfig
+import javax.sql.DataSource
+import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
 import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
 import com.yahoo.maha.service.config.PasswordProvider
 import com.yahoo.maha.core.request._
@@ -13,10 +13,8 @@ import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.json4s.JValue
 import org.json4s.scalaz.JsonScalaz
 import org.json4s.scalaz.JsonScalaz._
-
 import _root_.scalaz._
 import syntax.applicative._
-import syntax.validation._
 import Validation.FlatMap._
 
 /**
@@ -69,7 +67,7 @@ class HikariDataSourceFactory extends DataSourceFactory {
     |}
   """.stripMargin
 
-  override def fromJson(configJson: JValue): MahaConfigResult[DataSource] = {
+  override def fromJson(configJson: JValue)(implicit context: MahaServiceConfigContext): MahaConfigResult[DataSource] = {
     import org.json4s.scalaz.JsonScalaz._
     val driverClassNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("driverClassName")(configJson)
     val jdbcUrlResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("jdbcUrl")(configJson)

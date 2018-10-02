@@ -3,14 +3,16 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Preconditions;
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
-import com.metamx.common.lifecycle.LifecycleStart;
-import com.metamx.common.lifecycle.LifecycleStop;
-import com.metamx.common.logger.Logger;
-import com.metamx.emitter.service.ServiceEmitter;
-import com.metamx.emitter.service.ServiceMetricEvent;
+import io.druid.java.util.common.lifecycle.LifecycleStart;
+import io.druid.java.util.common.lifecycle.LifecycleStop;
+import io.druid.java.util.common.logger.Logger;
+import io.druid.java.util.emitter.service.ServiceEmitter;
+import io.druid.java.util.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
 import io.druid.guice.ManageLifecycle;
 import org.apache.commons.io.FileUtils;
@@ -18,9 +20,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.rocksdb.Options;
-import org.rocksdb.RocksDB;
-import org.rocksdb.RocksDBException;
+import org.rocksdb.*;
 import org.zeroturnaround.zip.ZipUtil;
 
 import java.io.File;
@@ -29,9 +29,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.Properties;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -41,14 +39,18 @@ public class RocksDBManager {
     private static final Logger LOG = new Logger(RocksDBManager.class);
     private static final ConcurrentMap<String, RocksDBSnapshot> rocksDBSnapshotMap = new ConcurrentHashMap<>();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final String TEMPORARY_PATH = "/home/y/tmp/cdw_lookups";
+    private static final String TEMPORARY_PATH = StandardSystemProperty.JAVA_IO_TMPDIR.value();
     private static final String ROCKSDB_LOCATION_PROP_NAME = "rocksdb.location";
+    private static final String ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME = "rocksdb.block_cache_size";
     private static final String SNAPSHOT_FILE_NAME = "/rocksDBSnapshot";
     private static final int UPLOAD_LOOKUP_AUDIT_MAX_RETRY = 3;
     private static final Random RANDOM = new Random();
     private static final int BOUND = 6 * 60 * 60 * 1000;
+    private static final String STATS_KEY = "rocksdb.stats";
+    private static final long DEFAULT_BLOCK_CACHE_SIZE = (long)2 * 1024 * 1024 * 1024;
 
     private String rocksdbLocation;
+    private long blockCacheSize;
     private FileSystem fileSystem;
 
     @Inject
@@ -56,9 +58,15 @@ public class RocksDBManager {
     @Inject
     ServiceEmitter serviceEmitter;
 
+    static {
+        RocksDB.loadLibrary();
+    }
+
     @Inject
     public RocksDBManager(@Named("rocksdbProperties") final Properties rocksdbProperties, Configuration config) throws IOException {
         this.rocksdbLocation = rocksdbProperties.getProperty(ROCKSDB_LOCATION_PROP_NAME, TEMPORARY_PATH);
+        this.blockCacheSize = Long.parseLong(rocksdbProperties.getProperty(ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME, String.valueOf(DEFAULT_BLOCK_CACHE_SIZE)));
+        Preconditions.checkArgument(blockCacheSize > 0);
         this.fileSystem = FileSystem.get(config);
     }
 
@@ -98,7 +106,7 @@ public class RocksDBManager {
             }
         }
 
-        final String hdfsPath = String.format("%s/load_time=%s/cdw_rocksdb.zip",
+        final String hdfsPath = String.format("%s/load_time=%s/rocksdb.zip",
                 extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime);
 
         LOG.info(String.format("hdfsPath [%s]", hdfsPath));
@@ -123,7 +131,7 @@ public class RocksDBManager {
             FileUtils.forceMkdir(file);
         }
 
-        final String localZippedFileNameWithPath = String.format("%s/%s/cdw_rocksdb_%s.zip",
+        final String localZippedFileNameWithPath = String.format("%s/%s/rocksdb_%s.zip",
                 rocksdbLocation, extractionNamespace.getNamespace(), loadTime);
         LOG.info(String.format("localZippedFileNameWithPath [%s]", localZippedFileNameWithPath));
 
@@ -179,6 +187,8 @@ public class RocksDBManager {
             rocksDBSnapshot.kafkaConsumerGroupId = UUID.randomUUID().toString();
             rocksDBSnapshot.kafkaPartitionOffset = new ConcurrentHashMap<Integer, Long>();
             kafkaExtractionManager.applyChangesSinceBeginning(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.rocksDB, rocksDBSnapshot.kafkaPartitionOffset);
+            LOG.info(rocksDBSnapshot.rocksDB.getProperty(STATS_KEY));
+
             if (extractionNamespace.isLookupAuditingEnabled()) {
                 long sleepTime = 30000;
                 int retryCount = 0;
@@ -198,6 +208,7 @@ public class RocksDBManager {
 
         if (oldDb != null) {
             try {
+                LOG.info(oldDb.getProperty(STATS_KEY));
                 LOG.info("Waiting for 10 seconds before cleaning");
                 Thread.sleep(10000);
                 oldDb.close();
@@ -211,8 +222,20 @@ public class RocksDBManager {
     }
 
     private RocksDB openRocksDB(String localPath) throws RocksDBException {
-        final Options options = new Options().setCreateIfMissing(true);
-        final RocksDB newDb = RocksDB.open(options, localPath);
+
+        String optionsFileName = OptionsUtil.getLatestOptionsFileName(localPath, Env.getDefault());
+
+        DBOptions dbOptions = new DBOptions();
+        List<ColumnFamilyDescriptor> columnFamilyDescriptors = new ArrayList<>();
+        OptionsUtil.loadOptionsFromFile(localPath + "/" + optionsFileName, Env.getDefault(), dbOptions, columnFamilyDescriptors);
+
+        Preconditions.checkArgument(columnFamilyDescriptors.size() > 0);
+        columnFamilyDescriptors.get(0).getOptions().optimizeForPointLookup(blockCacheSize).setMemTableConfig(new HashSkipListMemTableConfig());
+        dbOptions.setWalDir(localPath).setAllowConcurrentMemtableWrite(false);
+
+        List<ColumnFamilyHandle> columnFamilyHandles = new ArrayList<>();
+        RocksDB newDb = RocksDB.open(dbOptions, localPath, columnFamilyDescriptors, columnFamilyHandles);
+        LOG.info(newDb.getProperty(STATS_KEY));
         return newDb;
     }
 
@@ -308,7 +331,7 @@ public class RocksDBManager {
                         FileUtils.forceMkdir(file);
                     }
 
-                    final String localFileNameWithPath = String.format("%s/%s/%s/cdw_rocksdb.zip",
+                    final String localFileNameWithPath = String.format("%s/%s/%s/rocksdb.zip",
                             rocksdbLocation, "lookup_auditing", extractionNamespace.getNamespace());
                     LOG.info(String.format("localFileNameWithPath [%s]", localFileNameWithPath));
 
@@ -326,7 +349,7 @@ public class RocksDBManager {
                 try {
                     cleanup(String.format("%s/%s/%s", rocksdbLocation, "lookup_auditing", extractionNamespace.getNamespace()));
                     if (!isSuccessMarkerPresent(successMarkerPath)) {
-                        fileSystem.delete(new Path(String.format("%s/load_time=%s/cdw_rocksdb.zip",
+                        fileSystem.delete(new Path(String.format("%s/load_time=%s/rocksdb.zip",
                                 extractionNamespace.getLookupAuditingHDFSPath(), loadTime)), false);
                     }
                     sleepTime = 2 * sleepTime;
@@ -346,7 +369,7 @@ public class RocksDBManager {
                                        String loadTime, String successMarkerPath, String localFileNameWithPath)
             throws IOException {
 
-        final String hdfsLookupAuditingPath = String.format("%s/load_time=%s/cdw_rocksdb.zip",
+        final String hdfsLookupAuditingPath = String.format("%s/load_time=%s/rocksdb.zip",
                 extractionNamespace.getLookupAuditingHDFSPath(), loadTime);
 
         Path path = new Path(String.format("%s/load_time=%s",

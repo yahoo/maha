@@ -1,0 +1,185 @@
+@* Copyright 2018, Oath Inc.
+Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms. *@
+@(sources: Seq[String])
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Kill segments</title>
+        <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/main.css")">
+        <link rel="icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
+        <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <link rel="stylesheet" href="@routes.Assets.at("stylesheets/dataTables.css")">
+        <script type="text/javascript" src ="@routes.Assets.at("javascripts/dataTables.js")"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+        <script type="text/javascript" src ="@routes.DashBoard.jsRouter"></script>
+        <script type="text/javascript" src="@routes.Assets.at("bootstrap/js/moment.js")"></script>
+        <script type="text/javascript" src="@routes.Assets.at("bootstrap/js/bootstrap-datetimepicker.min.js")"></script>
+        <link rel="stylesheet" href="@routes.Assets.at("stylesheets/time.css")">
+        <link rel="stylesheet" href="@routes.Assets.at("bootstrap/css/bootstrap-datetimepicker.css")">
+        <link rel="stylesheet" href="@routes.Assets.at("bootstrap/css/bootstrap-datetimepicker.min.css")">
+
+        <script type="text/javascript">
+            $(function () {
+                $('#load').hide();
+
+                var d = new Date();
+                var month = d.getMonth();
+                var day = d.getDate();
+                var year = d.getFullYear();
+
+                //initializing start date to a week back by default
+                $('#datetimepickerstart').datetimepicker({
+                    collapse: true,
+                    defaultDate: new Date(new Date(year, month, day, 00, 00 ,00).setDate(new Date(year, month, day, 00, 00 ,00 ,00).getDate())),
+                });
+
+                //initializing end date
+                $('#datetimepickerend').datetimepicker({
+                    defaultDate: new Date(year, month, day, 00, 00,00,00)
+                });
+
+                $("#datetimepickerstart").on("dp.change",function (e) {
+                    console.log(e.date);
+                    $('#datetimepickerend').data("DateTimePicker").setMinDate(e.date);
+                });
+                $("#datetimepickerend").on("dp.change",function (e) {
+                    $('#datetimepickerstart').data("DateTimePicker").setMaxDate(e.date);
+                });
+            });
+
+            function submitKillSegments() {
+                var datasource = $("#source").val();
+                var startDate = $("#datetimepickerstart").data().date + "Z";
+                var endDate = $("#datetimepickerend").data().date + "Z";
+                var interval = startDate + "/" + endDate;
+                var load = '{"type":"kill", "dataSource":"' + datasource + '", "interval":"' + interval + '"}';
+                console.log("Constructed load for killing a segment : " + load);
+                var route = jsRoutes.controllers.DashBoard.submitKillSegments;
+                route().ajax({
+                    data: load,
+                    contentType: 'application/json',
+                    beforeSend: function() {
+                        $('#load').show();
+                    },
+                    complete: function() {
+                        $('#load').hide();
+                    },
+                    timeout: 120000,
+                    success: function(result) {
+                        try {
+                            console.log("query result are : " + result)
+                            var res = JSON.parse(result);
+                            if (res.error !== undefined) {
+                                $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong>  Error : ' + res.error + '</strong> </div>')
+                            } else {
+                                $("#container").append('<div class="alert alert-success fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong> Successfully killed with ID: ' + res.task + ' </strong> </div>')
+                            }
+
+                        } catch (er) {
+                            console.log(" failed to execute query er" + er)
+                            $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong>  Error occurred while getting values </strong> </div>')
+                        }
+                    },
+
+                    error: function(x, t, m) {
+                        console.log(" failed to execute the query error " + t)
+                        $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong>  Error : ' + x.responseText + '</strong> </div>')
+                    },
+                    failure: function(x) {
+                        console.log(" failed to execute the query failure " + x)
+                        $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong> Failed to get values</strong> </div>')
+                    }
+                });
+            }
+        </script>
+
+    </head>
+    <body>
+        <nav class="navbar navbar-default navbar-static-top ">
+            <div class="container-fluid">
+                <ul class="nav navbar-nav">
+                    <li><a href="/datasource">Data Source Info</a></li>
+                    <li><a href="/segments">Query Segments</a></li>
+                    <li><a href="/"> Metadata</a></li>
+                    <li><a href="/overlord/workers">Indexing Services</a></li>
+                    <li><a href="/lookups">Druid Lookups</a></li>
+                    <li class="active"><a href="/kill/segments">Kill Segments</a></li>
+                </ul>
+            </div>
+        </nav>
+        <div class="row text-center text-info"> <h3>Kill Segments</h3> </div>
+        <div class="row" id="container"></div>
+        <div class="row">
+            <div class="col-md-4"></div>
+            <div class="col-md-4 text-center" id="load">
+                <img src="@routes.Assets.at("images/load.gif")">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-1"></div>
+            <div class="col-md-10">
+                <div class="well well-sm">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="row">
+                                <div class='col-md-2'></div>
+                                <div class="col-md-2  text-primary">
+                                    <b>DataSource: </b>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class='col-md-2'></div>
+                                <div class="col-md-2  text-primary text-left">
+                                    <select id="source" name="source">
+                                    @for(source <- sources) {
+                                        <option class="text-info" value="@source">@source</option>
+                                    }
+                                    </select>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class='col-md-2'>
+                        </div>
+                        <div class='col-md-4'>
+                            <div class="form-group">
+                                <div class="control-label"><label for="datetimepickerstart">Start Date:</label></div>
+                                <div class="controls">
+                                    <div class="input-append" id='datetimepickerstart'>
+                                        <input type='text' class="form-control" style="background-color : #fff" data-date-format="YYYY-MM-DDTHH:mm:ss.000" name="startDate" readonly/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class='col-md-4'>
+                            <div class="form-group">
+                                <div class="control-label"><label for="datetimepickerend">End Date:</label></div>
+                                <div class="controls">
+                                    <div class="input-append" id='datetimepickerend'>
+                                        <input type='text' class="form-control" style="background-color : #fff" data-date-format="YYYY-MM-DDTHH:mm:ss.000" name="startDate" readonly/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-md-5"></div>
+                        <div class="col-md-2 text-center">
+                            <button onclick="submitKillSegments()" class="btn btn-primary text-center">
+                                Submit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

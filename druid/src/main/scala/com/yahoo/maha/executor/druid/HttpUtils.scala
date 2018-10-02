@@ -92,10 +92,24 @@ class HttpUtils(config:AsyncHttpClientConfig, enableRetryOn500: Boolean, retryDe
 
 object ClientConfig{
 
-  def getConfig( maxConnectionsPerHost:Int, maxConnections:Int,connectionTimeout:Int,timeoutRetryInterval:Int,timeoutThreshold:Int,degradationConfig:String,readTimeout:Int,requestTimeout:Int,pooledConnectionIdleTimeout:Int,timeoutMaxResponseTimeInMs:Int,sslContextVersion:String, commaSeparatedCipherSuitesList:String): AsyncHttpClientConfig ={
+  def getConfig(maxConnectionsPerHost:Int
+                , maxConnections:Int
+                , connectionTimeout:Int
+                , timeoutRetryInterval:Int
+                , timeoutThreshold:Int
+                , degradationConfig:String
+                , readTimeout:Int
+                , requestTimeout:Int
+                , pooledConnectionIdleTimeout:Int
+                , timeoutMaxResponseTimeInMs:Int
+                , sslContextVersion:String
+                , commaSeparatedCipherSuitesList:String
+                , customizeBuilder: Option[(AsyncHttpClientConfig.Builder) => Unit] = None
+               ): AsyncHttpClientConfig ={
     val builder =  new AsyncHttpClientConfig.Builder()
     val sslContext: SSLContext = SSLContext.getInstance(sslContextVersion)
     sslContext.init(null, null, null)
+    customizeBuilder.foreach(_(builder))
     builder.setAllowPoolingConnections(true)
       .setMaxConnectionsPerHost(maxConnectionsPerHost)
       .setMaxConnections(maxConnections)

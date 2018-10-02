@@ -5,6 +5,7 @@ package com.yahoo.maha.core.query
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact.FactBestCandidate
+import com.yahoo.maha.core.query.Version.{v0, v1, v2}
 
 import scala.collection.mutable
 
@@ -176,6 +177,7 @@ trait QueryGenerator[T <: EngineRequirement] {
   def generate(queryContext: QueryContext): Query
   def engine: Engine
   def validateEngineConstraints(requestModel: RequestModel): Boolean = true
+  def version: Version = Version.DEFAULT
 }
 
 trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
@@ -223,17 +225,18 @@ object QueryGeneratorHelper {
     }
   }
 
-  def handleFactColInfo(queryBuilderContext: QueryBuilderContext
+  def handleOuterFactColInfo(queryBuilderContext: QueryBuilderContext
                         , alias : String
                         , factCandidate : FactBestCandidate
                         , renderFactCol: (String, String, Column, String) => String
                         , duplicateAliasMapping: Map[String, Set[String]]
-                        , tableAlias : String) : String = {
+                        , tableAlias : String
+                        , isOuterGroupBy: Boolean) : String = {
     if (queryBuilderContext.containsFactColNameForAlias(alias)) {
       val col = queryBuilderContext.getFactColByAlias(alias)
       val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)
       val finalAliasOrExpression = {
-        if(queryBuilderContext.isDimensionCol(alias)) {
+        if(queryBuilderContext.isDimensionCol(alias) && !isOuterGroupBy) {
           val factAlias = queryBuilderContext.getAliasForTable(tableAlias)
           val factExp = queryBuilderContext.getFactColExpressionOrNameForAlias(alias)
           s"$factAlias.$factExp"
@@ -259,18 +262,64 @@ object QueryGeneratorHelper {
   }
 }
 
+sealed trait VersionNumber {
+  def number: Int
+}
+case class Version private(number: Int) extends VersionNumber {
+  require(!Version.versions.contains(number), s"Version $number already exists: ${Version.versions}")
+  Version.versions.+=((number, this))
+}
+
+object Version {
+  private val versions: mutable.Map[Int, Version] = new mutable.HashMap[Int, Version]()
+  val v0: Version = Version(0)
+  val v1: Version = Version(1)
+  val v2: Version = Version(2)
+  val DEFAULT = v0
+
+  def from(number: Int) : Option[Version] = {
+    versions.get(number)
+  }
+}
+
 class QueryGeneratorRegistry {
-  private[this] var queryGeneratorRegistry : Map[Engine, QueryGenerator[_]] = Map.empty
 
-  def isEngineRegistered(engine: Engine): Boolean = synchronized {
-    queryGeneratorRegistry.contains(engine)
+  private[this] var queryGeneratorRegistry : Map[Engine, Map[Version , QueryGenerator[_]]] = Map.empty
+
+  def isEngineRegistered(engine: Engine, version: Option[Version]): Boolean = synchronized {
+    queryGeneratorRegistry.contains(engine) && queryGeneratorRegistry(engine).contains(version.getOrElse(Version.DEFAULT))
   }
 
-  def register[U <: QueryGenerator[_]](engine: Engine, qg: U) : Unit = synchronized {
-    require(!queryGeneratorRegistry.contains(engine), s"Query generator already defined for engine : $engine")
-    queryGeneratorRegistry += (engine -> qg)
+  def register[U <: QueryGenerator[_]](engine: Engine, qg: U, version: Version = Version.DEFAULT) : Unit = synchronized {
+    require(!isEngineRegistered(engine, Option(version)), s"Query generator already defined for engine : $engine and version $version")
+    if (queryGeneratorRegistry.contains(engine)) {
+      queryGeneratorRegistry += (engine -> (Map(version -> qg) ++ queryGeneratorRegistry(engine)))
+    } else {
+      queryGeneratorRegistry += (engine -> Map(version -> qg))
+    }
   }
 
-  def getGenerator(engine: Engine): Option[QueryGenerator[EngineRequirement]] =
-    queryGeneratorRegistry.get(engine).asInstanceOf[Option[QueryGenerator[EngineRequirement]]]
+  def getDefaultGenerator(engine: Engine): Option[QueryGenerator[EngineRequirement]] = {
+    for {
+      versionGeneratorMap <- queryGeneratorRegistry.get(engine)
+      generator <- versionGeneratorMap.get(Version.DEFAULT).asInstanceOf[Option[QueryGenerator[EngineRequirement]]]
+    } yield generator
+  }
+
+  // This method validates engine constraints and falls back to default generator if validation fails
+  def getValidGeneratorForVersion(engine: Engine, version: Version, requestModel: Option[RequestModel]): Option[QueryGenerator[EngineRequirement]] = {
+    for {
+      versionGeneratorMap <- queryGeneratorRegistry.get(engine)
+      generator <- {
+        val generator = versionGeneratorMap.get(version)
+        val isValidationNeeded = requestModel.isDefined && generator.isDefined
+        if (!isValidationNeeded || generator.get.validateEngineConstraints(requestModel.get)) {
+          generator
+        } else {
+          versionGeneratorMap.get(Version.DEFAULT)
+        }
+      }.asInstanceOf[Option[QueryGenerator[EngineRequirement]]]
+    } yield generator
+  }
+
 }

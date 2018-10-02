@@ -2,20 +2,19 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.factory
 
-import com.yahoo.maha.service.MahaServiceConfig
-import com.yahoo.maha.core.{DefaultUDFRegistrationFactory, _}
-import com.yahoo.maha.core.query.QueryGenerator
+import com.yahoo.maha.core._
+import com.yahoo.maha.core.query.{QueryGenerator, Version}
 import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, DruidQueryOptimizer}
-import com.yahoo.maha.core.query.hive.HiveQueryGenerator
+import com.yahoo.maha.core.query.hive.{HiveQueryGenerator, HiveQueryGeneratorV1}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.query.presto.PrestoQueryGenerator
 import com.yahoo.maha.core.request._
+import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
+import com.yahoo.maha.service.config.JsonDataSourceConfig
+import javax.sql.DataSource
 import org.json4s.JValue
-
-import scalaz.Validation
-import _root_.scalaz._
-import syntax.applicative._
-import Validation.FlatMap._
+import scalaz.Validation.FlatMap._
+import scalaz.syntax.applicative._
 
 /**
  * Created by pranavbhole on 25/05/17.
@@ -31,7 +30,7 @@ class OracleQueryGeneratorFactory extends QueryGeneratorFactory {
     |}
   """.stripMargin
 
-  override def fromJson(configJson: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
+  override def fromJson(configJson: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
     import org.json4s.scalaz.JsonScalaz._
     val partitionColumnRendererClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("partitionColumnRendererClass")(configJson)
     val partitionColumnRendererConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("partitionColumnRendererConfig")(configJson)
@@ -73,7 +72,7 @@ class DruidQueryGeneratorFactory extends QueryGeneratorFactory {
     |}
   """.stripMargin
 
-  override def fromJson(configJson: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
+  override def fromJson(configJson: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
     import org.json4s.scalaz.JsonScalaz._
     val queryOptimizerClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("queryOptimizerClass")(configJson)
     val queryOptimizerConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("queryOptimizerConfig")(configJson)
@@ -103,16 +102,18 @@ class HiveQueryGeneratorFactory extends QueryGeneratorFactory {
     |"partitionColumnRendererClass" : "DefaultPartitionColumnRendererFactory",
     |"partitionColumnRendererConfig" : [{"key": "value"}],
     |"udfRegistrationFactoryName" : "",
-    |"udfRegistrationFactoryConfig" : []
+    |"udfRegistrationFactoryConfig" : [],
+    |"version": 0
     |}
   """.stripMargin
 
-  override def fromJson(configJson: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
+  override def fromJson(configJson: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
     import org.json4s.scalaz.JsonScalaz._
     val partitionColumnRendererClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("partitionColumnRendererClass")(configJson)
     val partitionColumnRendererConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("partitionColumnRendererConfig")(configJson)
     val udfRegistrationFactoryNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("udfRegistrationFactoryName")(configJson)
     val udfRegistrationFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("udfRegistrationFactoryConfig")(configJson)
+    val versionResult: MahaServiceConfig.MahaConfigResult[Int] = fieldExtended[Int]("version")(configJson)
 
     val partitionColumnRenderer: MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] = for {
       partitionColumnRendererClass <- partitionColumnRendererClassResult
@@ -127,8 +128,22 @@ class HiveQueryGeneratorFactory extends QueryGeneratorFactory {
       udfStatements <- udfStatementsFactory.fromJson(udfRegistrationFactoryConfig)
     } yield udfStatements
 
+    val version: Version = {
+      if (versionResult.isSuccess) {
+        Version.from(versionResult.toOption.get).getOrElse(Version.DEFAULT)
+      } else {
+        Version.DEFAULT
+      }
+    }
     (partitionColumnRenderer |@| udfStatements) {
-      (renderer, stmt) => new HiveQueryGenerator(renderer, stmt)
+      (renderer, stmt) => {
+        version match {
+          case Version.v1 =>
+            new HiveQueryGeneratorV1(renderer, stmt)
+          case _ =>
+            new HiveQueryGenerator(renderer, stmt)
+        }
+      }
     }
   }
 
@@ -145,7 +160,7 @@ class PrestoQueryGeneratorFactory extends QueryGeneratorFactory {
     |}
   """.stripMargin
 
-  override def fromJson(configJson: org.json4s.JValue) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
+  override def fromJson(configJson: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
     import org.json4s.scalaz.JsonScalaz._
     val partitionColumnRendererClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("partitionColumnRendererClass")(configJson)
     val partitionColumnRendererConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("partitionColumnRendererConfig")(configJson)

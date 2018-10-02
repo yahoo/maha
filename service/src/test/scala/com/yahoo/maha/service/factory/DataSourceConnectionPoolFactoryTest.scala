@@ -3,9 +3,10 @@
 package com.yahoo.maha.service.factory
 
 import java.util.UUID
-import javax.sql.DataSource
 
+import javax.sql.DataSource
 import com.yahoo.maha.jdbc.JdbcConnection
+import com.yahoo.maha.service.{DefaultMahaServiceConfigContext, MahaServiceConfigContext}
 import com.zaxxer.hikari.HikariDataSource
 import org.json4s.JValue
 import org.json4s.jackson.JsonMethods._
@@ -15,6 +16,8 @@ import org.scalatest.{FunSuite, Matchers}
  * Created by pranavbhole on 31/05/17.
  */
 class DataSourceConnectionPoolFactoryTest extends BaseFactoryTest{
+  implicit val context: MahaServiceConfigContext = DefaultMahaServiceConfigContext()
+
 
   test("Test Creation of HikariDataSource") {
     val uuid = UUID.randomUUID().toString.replace("-","")
