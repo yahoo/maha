@@ -5460,5 +5460,32 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.factFilters.exists(_.field === "Impressions") === true)
     assert(model.factFilters.find(_.field === "Impressions").get.asInstanceOf[GreaterThanFilter].value === "1608")
   }
+
+  test("create model should succeed when Less than used") {
+    val jsonString = s"""{
+                        "cube": "publicFact5",
+                        "selectFields": [
+                            {"field": "Impressions"},
+                            {"field": "Device ID"}
+                        ],
+                        "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "in", "values": ["1608"]},
+                            {"field": "Impressions", "operator": "<", "value": "1608"}
+                        ],
+                        "sortBy": [
+                        ],
+                        "paginationStartIndex":20,
+                        "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess,res)
+    val model = res.toOption.get
+    assert(model.factFilters.exists(_.field === "Impressions") === true)
+    assert(model.factFilters.find(_.field === "Impressions").get.asInstanceOf[LessThanFilter].value === "1608")
+  }
 }
 

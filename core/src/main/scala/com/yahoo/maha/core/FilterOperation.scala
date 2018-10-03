@@ -1230,6 +1230,11 @@ object Filter extends Logging {
               filter.flatMap {
                 f => nonEmptyString(f.value, f.field, "value").map(_ => f)
               }
+            case "<" =>
+              val filter = LessThanFilter.applyJSON(field[String]("field"), stringField("value"), booleanFalse, booleanFalse)(json)
+              filter.flatMap {
+                f => nonEmptyString(f.value, f.field, "value").map(_ => f)
+              }
             case "like" =>
               val filter = LikeFilter.applyJSON(field[String]("field"), stringField("value"), booleanFalse, booleanFalse)(json)
               filter.flatMap {
