@@ -251,6 +251,31 @@ class RequestModelTest extends FunSuite with Matchers {
       )
   }
 
+  def pubfact5(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    getFactBuilder
+      .toPublicFact("publicFact5",
+        Set(
+          PubCol("stats_date", "Day", InBetweenEquality),
+          PubCol("ad_group_id", "Ad Group ID", InEquality),
+          PubCol("ad_id", "Ad ID", InEquality),
+          PubCol("campaign_id", "Campaign ID", InEquality),
+          PubCol("advertiser_id", "Advertiser ID", InNotInEqualityNotEquals),
+          PubCol("device_id", "Device ID", InNotInEqualityNotEquals),
+          PubCol("product_ad_id", "Product Ad ID", InEquality),
+          PubCol("stats_source", "Source", Equality),
+          PubCol("price_type", "Pricing Type", In),
+          PubCol("landing_page_url", "Destination URL", Set.empty),
+          PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality)
+        ),
+        Set(
+          PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
+          PublicFactCol("clicks", "Clicks", In)
+        ),
+        forcedFilters,
+        getMaxDaysWindow, getMaxDaysLookBack
+      )
+  }
+
   def keyword_dim : PublicDimension = {
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
       Dimension.newDimension("keyword_dim", HiveEngine, LevelFive, Set(AdvertiserSchema),
@@ -406,6 +431,7 @@ class RequestModelTest extends FunSuite with Matchers {
 
   def getDefaultRegistry(forcedFilters: Set[ForcedFilter] = Set.empty): Registry = {
     val registryBuilder = new RegistryBuilder
+    registryBuilder.register(pubfact5(forcedFilters))
     registryBuilder.register(pubfact4(forcedFilters))
     registryBuilder.register(pubfact3(forcedFilters))
     registryBuilder.register(pubfact2(forcedFilters))
@@ -5406,6 +5432,60 @@ class RequestModelTest extends FunSuite with Matchers {
     for (filter <- filters) {
       assert(RequestModel.validateLengthForFilterValue(publicDim.get, filter)._1 === false)
     }
+  }
+
+  test("create model should succeed when Greater than used") {
+    val jsonString = s"""{
+                        "cube": "publicFact5",
+                        "selectFields": [
+                            {"field": "Impressions"},
+                            {"field": "Device ID"}
+                        ],
+                        "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "in", "values": ["1608"]},
+                            {"field": "Impressions", "operator": ">", "value": "1608"}
+                        ],
+                        "sortBy": [
+                        ],
+                        "paginationStartIndex":20,
+                        "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess,res)
+    val model = res.toOption.get
+    assert(model.factFilters.exists(_.field === "Impressions") === true)
+    assert(model.factFilters.find(_.field === "Impressions").get.asInstanceOf[GreaterThanFilter].value === "1608")
+  }
+
+  test("create model should succeed when Less than used") {
+    val jsonString = s"""{
+                        "cube": "publicFact5",
+                        "selectFields": [
+                            {"field": "Impressions"},
+                            {"field": "Device ID"}
+                        ],
+                        "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "in", "values": ["1608"]},
+                            {"field": "Impressions", "operator": "<", "value": "1608"}
+                        ],
+                        "sortBy": [
+                        ],
+                        "paginationStartIndex":20,
+                        "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess,res)
+    val model = res.toOption.get
+    assert(model.factFilters.exists(_.field === "Impressions") === true)
+    assert(model.factFilters.find(_.field === "Impressions").get.asInstanceOf[LessThanFilter].value === "1608")
   }
 }
 

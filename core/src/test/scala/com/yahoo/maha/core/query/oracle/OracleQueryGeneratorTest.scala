@@ -4662,6 +4662,102 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     resultSql should equal (expected)(after being whiteSpaceNormalised)
   }
 
+  test("Greater than filter should work for Oracle Sync") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, "Fail to get the query pipeline")
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    print(result)
+    val expected =
+      s"""
+         SELECT *
+         |FROM (SELECT co1.id "Campaign ID", coalesce(f0."impressions", 1) "Impressions"
+         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
+         |                   campaign_id, SUM(impressions) AS "impressions"
+         |            FROM fact2 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY campaign_id
+         |            HAVING (SUM(impressions) > 1608)
+         |           ) f0
+         |           INNER JOIN
+         |                (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT /*+ CampaignHint */ id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) co1
+         |            ON (f0.campaign_id = co1.id)
+         |)
+      """.stripMargin
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("Less than filter should work for Oracle Sync") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": "<", "value": "1608"}
+                          ],
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, "Fail to get the query pipeline")
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    print(result)
+    val expected =
+      s"""
+         SELECT *
+         |FROM (SELECT co1.id "Campaign ID", coalesce(f0."impressions", 1) "Impressions"
+         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
+         |                   campaign_id, SUM(impressions) AS "impressions"
+         |            FROM fact2 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY campaign_id
+         |            HAVING (SUM(impressions) < 1608)
+         |           ) f0
+         |           INNER JOIN
+         |                (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT /*+ CampaignHint */ id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) co1
+         |            ON (f0.campaign_id = co1.id)
+         |)
+      """.stripMargin
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
   test("successfully generate dim only oracle query without union all for sync multi engine query for druid + oracle with metric filter") {
     import DefaultQueryPipelineFactoryTest._
     val jsonString = s"""{

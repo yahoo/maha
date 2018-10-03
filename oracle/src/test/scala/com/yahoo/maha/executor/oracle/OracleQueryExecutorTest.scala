@@ -255,7 +255,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           PubCol("price_type", "Pricing Type", In)
         ),
         Set(
-          PublicFactCol("impressions", "Impressions", InBetweenEquality),
+          PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),
           PublicFactCol("max_bid", "Max Bid", Set.empty),
@@ -676,7 +676,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val queryPipeline = queryPipelineTry.toOption.get
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    
+
     val result = queryPipeline.execute(queryExecutorContext)
     result match {
       case scala.util.Success(queryPipelineResult) =>
@@ -685,6 +685,139 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
         throw new UnsupportedOperationException(s"unexpected row list : $any")
     }
   }
+
+  test("successfully execute sync query for ad_stats with greater than filter") {
+    val jsonString = s"""{
+                          "cube": "ad_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Campaign ID"},
+                            {"field": "Ad Group ID"},
+                            {"field": "Ad ID"},
+                            {"field": "Ad Title"},
+                            {"field": "Ad Status"},
+                            {"field": "Ad Date Created"},
+                            {"field": "Ad Date Modified"},
+                            {"field": "Ad Date Modified Timestamp"},
+                            {"field": "Pricing Type"},
+                            {"field": "Impressions"},
+                            {"field": "Clicks"},
+                            {"field": "Max Bid"},
+                            {"field": "Average CPC"},
+                            {"field": "Spend"},
+                            {"field": "CTR"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "1"},
+                            {"field": "Impressions", "operator": ">", "value": "1007" },
+                            {"field": "Pricing Type", "operator": "in", "values": ["CPC","CPA"] }
+                          ],
+                          "sortBy": [
+                            {"field": "Ad Title", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":1,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+
+    val result = queryPipeline.execute(queryExecutorContext)
+
+    result match {
+      case scala.util.Success(queryPipelineResult) =>
+        assert(!queryPipelineResult.rowList.isEmpty)
+        val inmem = queryPipelineResult.rowList
+        assert(!inmem.isEmpty)
+        inmem.foreach {
+          row =>
+            row.getValue("Ad ID").toString match {
+              case "1004" | "1005" | "1006" | "1007" =>
+                assert(true)
+              case any =>
+                assert(false)
+            }
+        }
+      case any =>
+        throw new UnsupportedOperationException(s"unexpected row list : $any")
+    }
+  }
+
+  test("successfully execute sync query for ad_stats with less than filter") {
+    val jsonString = s"""{
+                          "cube": "ad_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Campaign ID"},
+                            {"field": "Ad Group ID"},
+                            {"field": "Ad ID"},
+                            {"field": "Ad Title"},
+                            {"field": "Ad Status"},
+                            {"field": "Ad Date Created"},
+                            {"field": "Ad Date Modified"},
+                            {"field": "Ad Date Modified Timestamp"},
+                            {"field": "Pricing Type"},
+                            {"field": "Impressions"},
+                            {"field": "Clicks"},
+                            {"field": "Max Bid"},
+                            {"field": "Average CPC"},
+                            {"field": "Spend"},
+                            {"field": "CTR"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "1"},
+                            {"field": "Impressions", "operator": "<", "value": "1007" },
+                            {"field": "Pricing Type", "operator": "in", "values": ["CPC","CPA"] }
+                          ],
+                          "sortBy": [
+                            {"field": "Ad Title", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":1,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+
+    val result = queryPipeline.execute(queryExecutorContext)
+
+    result match {
+      case scala.util.Success(queryPipelineResult) =>
+        assert(!queryPipelineResult.rowList.isEmpty)
+        val inmem = queryPipelineResult.rowList
+        assert(!inmem.isEmpty)
+        inmem.foreach {
+          row =>
+            row.getValue("Ad ID").toString match {
+              case "1000" | "1001" | "1002" =>
+                assert(true)
+              case any =>
+                assert(false)
+            }
+        }
+      case any =>
+        throw new UnsupportedOperationException(s"unexpected row list : $any")
+    }
+  }
+
 
   test("successfully execute dim driven sync query for ad_group_stats") {
     withMockDruidQueryExecutor(rl => rl.foreach(r => r)) {
