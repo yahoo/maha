@@ -105,6 +105,50 @@ CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
+  test("generating presto query with less than filter") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": "<", "value": "1608"}
+                          ]
+                          }"""
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    assert(result != null && result.length > 0)
+
+    val expected = s"""SELECT advertiser_id, mang_impressions
+    FROM(
+      SELECT CAST(COALESCE(account_id, 0) as VARCHAR) advertiser_id, CAST(COALESCE(impressions, 0) as VARCHAR) mang_impressions
+        FROM(SELECT account_id, SUM(impressions) impressions
+          FROM s_stats_fact_underlying
+          WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+    GROUP BY account_id
+    HAVING (SUM(impressions) < 1608)
+    )
+    ssfu0
+    )""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
   test("generating presto query with custom rollups") {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "presto_query_generator_test_custom_rollups.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)

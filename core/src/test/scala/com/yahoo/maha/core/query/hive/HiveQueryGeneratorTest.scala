@@ -659,6 +659,50 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
 
   }
 
+  test("generating hive query with less than filter") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": "<", "value": "1608"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+
+    val expected =
+      s"""SELECT CONCAT_WS(",",NVL(advertiser_id, ''), NVL(mang_impressions, ''))
+          FROM(
+            SELECT CAST(COALESCE(account_id, 0L) as STRING) advertiser_id, CAST(COALESCE(impressions, 0L) as STRING) mang_impressions
+            FROM(SELECT account_id, SUM(impressions) impressions
+            FROM s_stats_fact
+            WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+            GROUP BY account_id
+            HAVING (SUM(impressions) < 1608)
+              )
+          ssf0
+      )""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+
+  }
+
   /*
   // Outer Group By
   test("Successfully generated Outer Group By Query with dim non id field and fact field") {

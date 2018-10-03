@@ -101,7 +101,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "filterExpressions": [
                             {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
                             {"field": "Advertiser ID", "operator": "=", "value": "12345"},
-                            {"field": "Impressions", "operator": ">", "value": "12345"}
+                            {"field": "Impressions", "operator": ">", "value": "1000"}
                           ],
                           "sortBy": [
                             {"field": "Impressions", "order": "Asc"}
@@ -116,7 +116,38 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    val json = """limit":1020"""
+    val json = """{"type":"greaterThan","aggregation":"Impressions","value":1000}]}"""
+
+    assert(result.contains(json), result)
+  }
+
+  test("Druid query should be generated with less than filter") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Impressions", "operator": "<", "value": "1000"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Asc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":0
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val json = """{"type":"lessThan","aggregation":"Impressions","value":1000}]}"""
 
     assert(result.contains(json), result)
   }
