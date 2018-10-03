@@ -520,7 +520,64 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
     mapAwait match {
       case Success(map) => {
         Logger.debug("successfully get all mappings for lookups")
-        Ok(views.html.lookup(map))
+        val tierFuture = ws.url(s"$druidCoordinator/druid/coordinator/v1/lookups/config").withHttpHeaders(headers.head._1 -> headers.head._2)
+          .get()
+        val tierWithLookupFuture = tierFuture.map {
+          response => {
+            val tiers = response.json.as[JsArray].value.map(_.as[String]).toList
+            Logger.debug(s"successfully got tiers: $tiers")
+            val tierList = tiers.map {
+              tier =>
+                val lookupFuture = ws.url(s"$druidCoordinator/druid/coordinator/v1/lookups/config/$tier").withHttpHeaders(headers.head._1 -> headers.head._2).get().map {
+                  lookupResponse =>
+                    val lookupList = lookupResponse.json.as[JsArray].value.map(_.as[String]).toList.map {
+                      lookup =>
+                        val configFuture = ws.url(s"$druidCoordinator/druid/coordinator/v1/lookups/config/$tier/$lookup").withHttpHeaders(headers.head._1 -> headers.head._2).get().map {
+                          configResponse =>
+                            Json.prettyPrint(configResponse.json.as[JsObject])
+                        }
+                        val configAwait = Try {
+                          Await.result(configFuture, 20 second)
+                        }
+                        configAwait match {
+                          case Success(config) => {
+                            Logger.debug(s"successfully got configuration for $lookup")
+                            (lookup, config)
+                          }
+                          case Failure(e) =>
+                            Logger.error(s"unable to get config for lookup - $tier/$lookup: ${e.printStackTrace}")
+                            throw new UnsupportedOperationException("exception occurred while getting lookup config")
+                        }
+                    }
+                    lookupList.toList
+                }
+                val lookupAwait = Try {
+                  Await.result(lookupFuture, 20 second)
+                }
+                lookupAwait match {
+                  case Success(lookupList) => {
+                    Logger.debug(s"successfully got lookups for $tier")
+                    (tier.toString -> lookupList)
+                  }
+                  case Failure(e) =>
+                    Logger.error(s"unable to get lookups for tier - $tier: ${e.printStackTrace}")
+                    throw new UnsupportedOperationException("exception occurred while getting tupleList")
+                }
+            }
+            tierList.toMap
+          }
+        }
+        val tierwithLookupAwait = Try {
+          Await.result(tierWithLookupFuture, 20 second)
+        }
+        tierwithLookupAwait match {
+          case Success(tierList) =>
+            Logger.debug(s"successfully got tierList")
+            Ok(views.html.lookup(map, tierList))
+          case Failure(e) =>
+            Logger.error(s"unable to get tierList: ${e.printStackTrace}")
+            throw new UnsupportedOperationException("exception occurred while getting tupleList")
+        }
       }
       case Failure(e) =>
         Logger.error(s"unable to get mapping for lookups: ${e.printStackTrace}")
@@ -543,7 +600,8 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
       }
       case Failure(e) =>
         Logger.error(s"unable to get lookup type for host - $host: ${e.printStackTrace}")
-        throw new UnsupportedOperationException("exception occurred while getting tupleList")
+        Logger.debug("exception occurred while getting tupleList")
+        ""
     }
   }
 
