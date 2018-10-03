@@ -558,6 +558,56 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
   }
 
+  test("successfully execute async query for ad_stats with less than filter") {
+    val jsonString = s"""{
+                          "cube": "ad_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Ad ID"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "1"},
+                            {"field": "Impressions", "operator": "<", "value": "2014"}
+                          ],
+                          "sortBy": [
+                            {"field": "Ad ID", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty).get.build()
+    val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    val result = queryPipeline.execute(queryExecutorContext)
+
+    result match {
+      case scala.util.Success(queryPipelineResult) =>
+        val inmem = queryPipelineResult.rowList
+        assert(!inmem.isEmpty)
+        inmem.foreach({ row =>
+          row.getValue("Ad ID").toString match {
+            case "1000" | "1001" | "1002" | "1003" =>
+              assert(true)
+            case any =>
+              assert(false)
+          }
+        })
+      case any =>
+        any.failed.get.printStackTrace()
+        throw new UnsupportedOperationException(s"unexpected row list : $any")
+    }
+
+  }
+
+
   test("successfully execute async query for ad_stats") {
     val jsonString = s"""{
                           "cube": "ad_stats",
