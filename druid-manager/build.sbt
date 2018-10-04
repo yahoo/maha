@@ -29,9 +29,9 @@ libraryDependencies +=filters
 
 libraryDependencies += "log4j" % "log4j" % "1.2.17"
 
-libraryDependencies += "com.yahoo.maha" % "maha-core" % "5.210"
+libraryDependencies += "com.yahoo.maha" % "maha-core" % "5.194"
 
-libraryDependencies += "com.yahoo.maha" % "maha-druid-executor" % "5.210"
+libraryDependencies += "com.yahoo.maha" % "maha-druid-executor" % "5.185"
 
 libraryDependencies += "org.bouncycastle" % "bcpkix-jdk15on" % "1.53"
 
