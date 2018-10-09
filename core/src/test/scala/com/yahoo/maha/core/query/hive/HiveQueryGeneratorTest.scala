@@ -709,7 +709,8 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
                           "cube": "s_stats",
                           "selectFields": [
                               {"field": "Advertiser ID"},
-                              {"field": "Impressions"}
+                              {"field": "Impressions"},
+                              {"field": "Advertiser Name"}
                           ],
                           "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
@@ -733,7 +734,26 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
 
     val expected =
       s"""
+         |SELECT CONCAT_WS(",",NVL(advertiser_id, ''), NVL(mang_impressions, ''), NVL(mang_advertiser_name, ''))
+         |FROM(
+         |SELECT CAST(COALESCE(ssf0.account_id, 0L) as STRING) advertiser_id, CAST(COALESCE(impressions, 0L) as STRING) mang_impressions, COALESCE(a1.mang_advertiser_name, "NA") mang_advertiser_name
+         |FROM(SELECT account_id, SUM(impressions) impressions
+         |FROM s_stats_fact
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id
          |
+         |       )
+         |ssf0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM advertiser_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |ssf0.account_id = a1.a1_id
+         |       )
+         |ORDER BY mang_impressions ASC
        """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)

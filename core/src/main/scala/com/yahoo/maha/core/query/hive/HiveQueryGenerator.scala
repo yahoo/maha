@@ -473,6 +473,16 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
     val outerCols = generateOuterColumns(queryContext, queryBuilderContext, queryBuilder, renderOuterColumn)
     val concatenatedCols = generateConcatenatedCols(queryContext, queryBuilderContext)
 
+    val orderByColSet  = generateOrderBySet(queryContext, queryBuilderContext)
+    val orderByString = {
+      if(orderByColSet.isEmpty) {
+        ""
+      } else {
+        s"ORDER BY ${orderByColSet.mkString(",")}"
+      }
+
+    }
+
     val parameterizedQuery : String = {
       val dimJoinQuery = queryBuilder.getJoinExpressions
 
@@ -484,6 +494,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
           |FROM($factQueryFragment)
           |$factViewAlias
           |$dimJoinQuery)
+          |$orderByString
        """.stripMargin
     }
 

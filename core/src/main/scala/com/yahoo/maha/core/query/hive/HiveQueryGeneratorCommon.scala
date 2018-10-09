@@ -42,6 +42,22 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
     "CONCAT_WS(\",\"," + (renderedConcateColumns).mkString(", ") + ")"
   }
 
+  def generateOrderBySet(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext) : Set[String] = {
+    val model = queryContext.requestModel
+    val result = new mutable.LinkedHashSet[String]
+    model.requestSortByCols.map {
+      case FactSortByColumnInfo(alias, order) =>
+        val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)
+        s"$finalAlias ${order}"
+      case DimSortByColumnInfo(alias, order) =>
+        val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
+        s"$finalAlias ${order}"
+      case a=> throw new IllegalArgumentException(s"Unhandled SortByColumnInfo $a")
+    }.foreach(result.add(_))
+
+    result.toSet
+  }
+
   // render outercols with column expression
   def generateOuterColumns(queryContext: CombinedQueryContext,
                            queryBuilderContext: QueryBuilderContext,
