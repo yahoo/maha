@@ -296,7 +296,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
           |       )
          |ssf0
          |)
-         |
+         |ORDER BY mang_impressions ASC
         """.stripMargin
 
 
@@ -742,7 +742,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
          |GROUP BY account_id
          |
-         |       )
+ |       )
          |ssf0
          |LEFT OUTER JOIN (
          |SELECT name AS mang_advertiser_name, id a1_id
