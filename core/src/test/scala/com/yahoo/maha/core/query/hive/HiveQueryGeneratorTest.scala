@@ -760,6 +760,64 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
 
   }
 
+  test("generating hive query with dim and fact sort by") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"},
+                              {"field": "Advertiser Name"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "ASC"},  {"field": "Advertiser Name", "order": "DESC"}
+                           ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(",",NVL(advertiser_id, ''), NVL(mang_impressions, ''), NVL(mang_advertiser_name, ''))
+         |FROM(
+         |SELECT CAST(COALESCE(ssf0.account_id, 0L) as STRING) advertiser_id, CAST(COALESCE(impressions, 0L) as STRING) mang_impressions, COALESCE(a1.mang_advertiser_name, "NA") mang_advertiser_name
+         |FROM(SELECT account_id, SUM(impressions) impressions
+         |FROM s_stats_fact
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id
+         |
+ |       )
+         |ssf0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM advertiser_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |ssf0.account_id = a1.a1_id
+         |       )
+         |ORDER BY mang_impressions ASC,mang_advertiser_name DESC
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+
+  }
+
+
   /*
   // Outer Group By
   test("Successfully generated Outer Group By Query with dim non id field and fact field") {
