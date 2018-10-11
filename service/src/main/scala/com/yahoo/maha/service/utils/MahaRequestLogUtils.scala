@@ -38,6 +38,8 @@ trait BaseMahaRequestLogBuilder {
   def logSuccess()
 
   def dryRun(): BaseMahaRequestLogBuilder
+
+  def setJobId(jobId: Long)
 }
 
 trait CuratorMahaRequestLogBuilder extends BaseMahaRequestLogBuilder
@@ -60,6 +62,10 @@ case class CuratorMahaRequestLogHelper(delegate: BaseMahaRequestLogBuilder) exte
 
   override def dryRun(): BaseMahaRequestLogBuilder = {
     delegate.dryRun()
+  }
+
+  override def setJobId(jobId: Long): Unit =  {
+    delegate.setJobId(jobId)
   }
 }
 
@@ -283,5 +289,9 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
 
   override def dryRun(): BaseMahaRequestLogBuilder = {
     new MahaRequestLogHelper(mahaRequestContext, mahaRequestLogWriter, s"$curator-dryrun")
+  }
+
+  override def setJobId(jobId: Long): Unit =  {
+    protoBuilder.setJobId(jobId)
   }
 }
