@@ -585,7 +585,40 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
     }
   }
 
-  private def getExtractionNamespaceType(host: String, lookupName: String) = {
+
+  def getLookUpsQuery = Action(parse.json) { request: Request[JsValue] =>
+    Logger.info(s"Received query Load Status request with load ${request.body}")
+    val headers = druidAuthHeaderProvider.getAuthHeaders
+    val postBody = request.body
+    val host = (postBody \ "hostname").as[String]
+    val tier = (postBody \ "tier").as[String]
+    val lookup = (postBody \ "lookup").as[String]
+    val namespace = (postBody \ "namespace").as[String]
+    val key = (postBody \ "key").as[String]
+    val valueColumn = (postBody \ "valueColumn").as[String]
+
+    val endpoint = s"https://${host}/druid/v1/namespaces/${lookup}?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.${namespace}&key=${key}&valueColumn=${valueColumn}"
+    val queryFuture = ws.url(endpoint).withHeaders(headers.head._1 -> headers.head._2).get()
+    val queryResultFuture = queryFuture.map {
+      response =>
+        val resultString = response.body
+        resultString
+    }
+    val resultAwait = Try {
+      Await.result(queryResultFuture, 120 second)
+    }
+    resultAwait match {
+      case Success(resultString) =>
+        Logger.debug(s"successfully got query result")
+        Ok(s"""$resultString""")
+      case Failure(e) =>
+        Logger.error(s"unable to get resultString: ${e.printStackTrace}")
+        throw new UnsupportedOperationException("exception occurred while getting result")
+    }
+  }
+
+
+    private def getExtractionNamespaceType(host: String, lookupName: String) = {
     val headers = druidAuthHeaderProvider.getAuthHeaders
     val typeFuture = ws.url(s"$druidCoordinator/druid/coordinator/v1/lookups/config/$historicalLookupTierName/$lookupName").withHeaders(headers.head._1 -> headers.head._2).get().map {
       hostResponse => (hostResponse.json \ "lookupExtractorFactory" \ "extractionNamespace" \ "type").as[String]
@@ -755,7 +788,8 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
         controllers.routes.javascript.DashBoard.getDimensions,
         controllers.routes.javascript.DashBoard.getSegments,
         controllers.routes.javascript.DashBoard.enableDisableMiddleManager,
-        controllers.routes.javascript.DashBoard.submitKillSegments
+        controllers.routes.javascript.DashBoard.submitKillSegments,
+        controllers.routes.javascript.DashBoard.getLookUpsQuery
       )
     ).as("text/javascript")
   }
