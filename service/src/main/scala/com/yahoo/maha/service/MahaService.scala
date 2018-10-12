@@ -5,41 +5,80 @@ package com.yahoo.maha.service
 
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.Callable
-import java.util.regex.Pattern
 
-import com.yahoo.maha.utils.DynamicConfigurationUtils._
 import com.google.common.io.Closer
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, BucketingConfig}
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.registry.{DimensionRegistrationFactory, FactRegistrationFactory, Registry, RegistryBuilder}
-import com.yahoo.maha.core.request.{ReportingRequest, fieldExtended}
+import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.log.MahaRequestLogWriter
 import com.yahoo.maha.parrequest2.future.{ParRequest, ParallelServiceExecutor}
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
+import com.yahoo.maha.service.config.JsonMahaServiceConfig._
 import com.yahoo.maha.service.config._
+import com.yahoo.maha.service.config.dynamic.DynamicConfigurationUtils._
+import com.yahoo.maha.service.config.dynamic.DynamicPropertyInfo
 import com.yahoo.maha.service.curators.Curator
 import com.yahoo.maha.service.error._
 import com.yahoo.maha.service.factory._
 import com.yahoo.maha.service.utils.BaseMahaRequestLogBuilder
 import grizzled.slf4j.Logging
 import javax.sql.DataSource
-import org.json4s
+import org.json4s.JValue
 import org.json4s.JsonAST.JObject
-import org.json4s.{JString, JValue}
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.scalaz.JsonScalaz._
-
-import scala.collection.mutable
-import scala.util.Try
 import scalaz.Validation.FlatMap._
 import scalaz.syntax.validation._
 import scalaz.{Failure, ValidationNel, _}
+
+import scala.collection.mutable
+import scala.util.Try
 
 
 /**
  * Created by hiral on 5/26/17.
  */
+case class DynamicRegistryConfig(private var name: String,
+                            private var registry: Registry,
+                            private var queryPipelineFactory: QueryPipelineFactory,
+                            private var queryExecutorContext: QueryExecutorContext,
+                            private var bucketSelector: BucketSelector,
+                            private var utcTimeProvider: UTCTimeProvider,
+                            private var parallelServiceExecutor: ParallelServiceExecutor) {
+
+  def updateRegistry(registry: Registry): Unit = {
+    this.registry = registry
+  }
+
+  def updateQueryPipelineFactory(queryPipelineFactory: QueryPipelineFactory): Unit = {
+    this.queryPipelineFactory = queryPipelineFactory
+  }
+
+  def updateQueryExecutorContext(queryExecutorContext: QueryExecutorContext): Unit = {
+    this.queryExecutorContext = queryExecutorContext
+  }
+
+  def updateBucketSelector(bucketSelector: BucketSelector): Unit = {
+    this.bucketSelector = bucketSelector
+  }
+
+  def getBucketSelector: BucketSelector = bucketSelector
+
+  def getRegistry: Registry = registry
+
+  def getName: String = name
+
+  def updateUTCTimeProvider(utcTimeProvider: UTCTimeProvider): Unit = {
+    this.utcTimeProvider = utcTimeProvider
+  }
+
+  def updateParallelServiceExecutor(parallelServiceExecutor: ParallelServiceExecutor): Unit = {
+    this.parallelServiceExecutor = parallelServiceExecutor
+  }
+}
+
 case class RegistryConfig(name: String, registry: Registry, queryPipelineFactory: QueryPipelineFactory, queryExecutorContext: QueryExecutorContext, bucketSelector: BucketSelector, utcTimeProvider: UTCTimeProvider, parallelServiceExecutor: ParallelServiceExecutor)
 
 case class MahaServiceConfig(context: MahaServiceConfigContext, registry: Map[String, RegistryConfig], mahaRequestLogWriter: MahaRequestLogWriter, curatorMap: Map[String, Curator])
@@ -665,33 +704,20 @@ object MahaServiceConfig {
 }
 
 
-case class DynamicMahaServiceConfig(dynamicProperties: Map[String, DynamicPropertyInfo], context: MahaServiceConfigContext, registry: Map[String, RegistryConfig], mahaRequestLogWriter: MahaRequestLogWriter, curatorMap: Map[String, Curator])
+case class DynamicMahaServiceConfig(dynamicProperties: Map[String, DynamicPropertyInfo],
+                                    context: MahaServiceConfigContext,
+                                    registry: Map[String, DynamicRegistryConfig],
+                                    mahaRequestLogWriter: MahaRequestLogWriter,
+                                    curatorMap: Map[String, Curator],
+                                    jsonMahaServiceConfig: JsonMahaServiceConfig)
 
 object DynamicMahaServiceConfig {
 
   import MahaServiceConfig._
-  def getDynamicObject(obj: Object): Object = {
-    val dynamicClass = DynamicWrapper.getDynamicClassFor(obj)
-    val dynamicInstance = dynamicClass.newInstance()
-    dynamicClass.getField(DynamicWrapper.CURRENT_OBJECT).set(dynamicInstance, obj)
-    dynamicInstance
-  }
-
-  def getDynamicObjects(namedObjectMap: MahaServiceConfig.MahaConfigResult[Map[String, Object]]): MahaServiceConfig.MahaConfigResult[Map[String, Object]] = {
-    val dynamicObjectMap = new mutable.HashMap[String, Object]()
-    namedObjectMap.foreach(map => {
-      for ((name, obj) <- map) {
-        val dynamicInstance = getDynamicObject(obj)
-        dynamicObjectMap.+=((name, dynamicInstance))
-      }
-    })
-    dynamicObjectMap.toMap.successNel[MahaServiceError]
-  }
 
   def createObject(ba: Array[Byte], objectName: String): Option[Object] = {
     None
   }
-
 
   def fromJson(ba: Array[Byte]): MahaServiceConfig.MahaConfigResult[DynamicMahaServiceConfig] = {
     val json = {
@@ -731,16 +757,18 @@ object DynamicMahaServiceConfig {
       postCuratorContext = postParallelServiceExecutorContext.copy(curatorMap = curatorMap)
       mahaRequestLogWriter <- initKafkaLogWriter(jsonMahaServiceConfig.jsonMahaRequestLogConfig)(postCuratorContext)
     } yield {
-      val objectNameMap = mergeMaps(bucketConfigMap, utcTimeProviderMap, generatorMap, executorMap, registryMap, parallelServiceExecutorConfig, curatorMap)
-      val dynamicProperties = findDynamicProperties(json, objectNameMap.toMap)
-      for ((_, dynamicProperty) <- dynamicProperties) {
-        dynamicProperty.objects.keys.foreach(objName => {
-          val dynamicObject = getDynamicObject(objectNameMap(objName))
-          objectNameMap.put(objName, dynamicObject)
-        })
-      }
+      val objectNameMapNew = Map(
+        BUCKETING_CONFIG_MAP -> bucketConfigMap,
+        UTC_TIME_PROVIDER_MAP -> utcTimeProviderMap,
+        GENERATOR_MAP -> generatorMap,
+        EXECUTOR_MAP -> executorMap,
+        REGISTRY_MAP -> registryMap,
+        PSE_CONFIG_MAP -> parallelServiceExecutorConfig,
+        CURATOR_MAP -> curatorMap
+      )
+      val dynamicProperties = findDynamicProperties(json, objectNameMapNew)
 
-      val resultMap: Map[String, RegistryConfig] = registryMap.map {
+      val resultMap: Map[String, DynamicRegistryConfig] = registryMap.map {
         case (regName, registry) => {
           val registryConfig = jsonMahaServiceConfig.registryMap.get(regName.toLowerCase).get
 
@@ -754,7 +782,7 @@ object DynamicMahaServiceConfig {
             case (_, executor) =>
               queryExecutorContext.register(executor)
           }
-          (regName -> RegistryConfig(regName,
+          (regName -> DynamicRegistryConfig(regName,
             registry,
             new DefaultQueryPipelineFactory(),
             queryExecutorContext,
@@ -763,7 +791,7 @@ object DynamicMahaServiceConfig {
             parallelServiceExecutorConfig.get(registryConfig.parallelServiceExecutorName).get))
         }
       }
-      DynamicMahaServiceConfig(dynamicProperties, postCuratorContext, resultMap, mahaRequestLogWriter, curatorMap)
+      DynamicMahaServiceConfig(dynamicProperties, postCuratorContext, resultMap, mahaRequestLogWriter, curatorMap, jsonMahaServiceConfig)
     }
     dynamicMahaServiceConfig
   }
@@ -779,11 +807,14 @@ object DynamicMahaServiceConfig {
   def findDynamicProperties(json: JValue, objectNameMap: Map[String, Object]): Map[String, DynamicPropertyInfo] = {
     val dynamicProperties = new mutable.HashMap[String, DynamicPropertyInfo]()
     implicit val formats = org.json4s.DefaultFormats
+    val jsonMap = new mutable.HashMap[String, String]()
+    json.asInstanceOf[JObject].values.map(f => f._2.asInstanceOf[Map[String, Any]].keys.foreach(k => jsonMap.put(k, f._1)))
+
     json.children.foreach(c => {
       c.asInstanceOf[JObject].obj.foreach(map => {
       val dynamicFields = extractDynamicFields(map._2)
-        for ((_, (propertyKey, defaultValue)) <- dynamicFields) {
-          val objectName = map._1.toLowerCase
+        for ((propertyKey, (name, defaultValue)) <- dynamicFields) {
+          val objectName = jsonMap(map._1)
           require(objectNameMap.contains(objectName), s"Dynamic object with name $objectName not present in objectMap: $objectNameMap")
           if (dynamicProperties.contains(propertyKey)) {
             dynamicProperties(propertyKey).objects.put(objectName, objectNameMap(objectName))

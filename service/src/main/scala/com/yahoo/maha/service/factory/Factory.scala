@@ -3,14 +3,16 @@
 package com.yahoo.maha.service.factory
 
 import java.io.Closeable
+import java.util
 import java.util.concurrent.RejectedExecutionHandler
 
 import com.google.common.io.Closer
+import com.netflix.config.{PollResult, PolledConfigurationSource}
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing._
 import com.yahoo.maha.core.query.{ResultSetTransformer, _}
 import com.yahoo.maha.core.query.druid.DruidQueryOptimizer
-import com.yahoo.maha.core.request._
+import com.yahoo.maha.service.request._
 import com.yahoo.maha.executor.druid.{AuthHeaderProvider, DruidQueryExecutorConfig}
 import com.yahoo.maha.executor.presto.PrestoQueryTemplate
 import com.yahoo.maha.log.MahaRequestLogWriter
@@ -189,6 +191,21 @@ object DefaultBucketingConfigFactory {
                         , userWhiteList: List[UserRevisionConfig])
   case class CombinedBucketingConfig(cubeBucketingConfigMapList: List[CubeConfig],
                                      queryGenBucketingConfigList: List[QueryGenConfig])
+
+
+  class DBConfigurationSource extends PolledConfigurationSource {
+    @throws[Exception]
+    var i = 0
+    override def poll(initial: Boolean, checkPoint: Any): PollResult = {
+      i += 1
+      val map: util.Map[String, AnyRef] = new util.HashMap()
+      //println("Returning new value: " + i)
+      map.put("student_performance.external.rev0.percent", s"$i")
+      map.put("student_performance.external.rev1.percent", s"${100-i}")
+      PollResult.createFull(map)
+    }
+  }
+
   implicit def engineJSON: JSONR[Engine] = new JSONR[Engine] {
     override def read(json: JValue): Result[Engine] = {
       json match {
