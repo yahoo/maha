@@ -400,7 +400,7 @@ trait QueryPipelineFactory {
 
   def builder(requestModel: RequestModel, queryAttributes: QueryAttributes): Try[QueryPipelineBuilder]
 
-  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: Option[BucketSelector], forceQueryGenVersion: Option[Version]): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]]
+  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: Option[BucketSelector], forceQueryGenVersion: Option[Version], fallbackDisqualifySet: Set[Engine]): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]]
 
   def builder(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]]
 
@@ -806,7 +806,7 @@ OuterGroupBy operation has to be applied only in the following cases
     builder(requestModel, queryAttributes, None)._1
   }
 
-  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: Option[BucketSelector], forceQueryGenVersion: Option[Version] = None): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]] = {
+  def builder(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: Option[BucketSelector], forceQueryGenVersion: Option[Version] = None, fallbackDisqualifySet: Set[Engine] = Set.empty): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]] = {
     def requestDebug(msg: => String): Unit = {
       if (requestModel.isDebugEnabled) {
         info(msg)
@@ -878,7 +878,7 @@ OuterGroupBy operation has to be applied only in the following cases
             && requestModel.isDimDriven
           ) {
             requestDebug("hasFallbackQueryAndRowList")
-            val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(noRowCountRequestModel, Set(factBestCandidateOption.get.fact.engine))
+            val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(noRowCountRequestModel, Set(factBestCandidateOption.get.fact.engine) ++ fallbackDisqualifySet)
             val query = getDimFactQuery(newBestDimCandidates, newFactBestCandidateOption.get, noRowCountRequestModel, queryAttributes, queryGenVersion)
             Option((query, QueryPipeline.completeRowList(query)))
           } else {
@@ -920,7 +920,7 @@ OuterGroupBy operation has to be applied only in the following cases
           val factEngines = requestModel.bestCandidates.get.facts.values.map(_.fact.engine).toSet
           val factBestCandidateEngine = factBestCandidateOption.get.fact.engine
           if (factEngines.size > 1) {
-            val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(requestModel, Set(factBestCandidateEngine))
+            val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(requestModel, Set(factBestCandidateEngine) ++ fallbackDisqualifySet)
             if (newFactBestCandidateOption.isEmpty) {
               requestDebug("No fact best candidate found for fallback query for request!")
             }
@@ -968,7 +968,7 @@ OuterGroupBy operation has to be applied only in the following cases
           && requestModel.bestCandidates.get.facts.values.map(_.fact.engine).toSet.size > 1
           && requestModel.forceQueryEngine.isEmpty
         ) {
-          val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(requestModel, Set(factBestCandidateOption.get.fact.engine))
+          val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(requestModel, Set(factBestCandidateOption.get.fact.engine) ++ fallbackDisqualifySet)
           val query = getDimFactQuery(newBestDimCandidates, newFactBestCandidateOption.get, requestModel, queryAttributes, queryGenVersion)
           Option((query, QueryPipeline.completeRowList(query)))
         } else {
@@ -1041,7 +1041,7 @@ OuterGroupBy operation has to be applied only in the following cases
                   val factBestCandidateEngine = factBestCandidateOption.get.fact.engine
                   if (requestModel.bestCandidates.isDefined
                     && factEngines.size > 1) {
-                    val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(requestModel, Set(factBestCandidateEngine))
+                    val (newFactBestCandidateOption, newBestDimCandidates) = findBestCandidates(requestModel, Set(factBestCandidateEngine) ++ fallbackDisqualifySet)
                     if (newFactBestCandidateOption.isEmpty) {
                       info("No fact best candidate found for fallback query for request!")
                     }
