@@ -55,8 +55,32 @@ class HiveQueryGeneratorV2(partitionColumnRenderer:PartitionColumnRenderer, udfS
 
     def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], factCandidate: FactBestCandidate): String = {
 
+      def renderNormalOuterColumnWithoutCasting(column: Column, finalAlias: String) : String = {
+        val renderedCol = column.dataType match {
+          case DecType(_, _, Some(default), Some(min), Some(max), _) =>
+            val minMaxClause = s"CASE WHEN (($finalAlias >= ${min}) AND ($finalAlias <= ${max})) THEN $finalAlias ELSE ${default} END"
+            s"""ROUND(COALESCE($minMaxClause, ${default}), 10)"""
+          case DecType(_, _, Some(default), _, _, _) =>
+            s"""ROUND(COALESCE($finalAlias, ${default}), 10)"""
+          case DecType(_, _, _, _, _, _) =>
+            s"""ROUND(COALESCE($finalAlias, 0L), 10)"""
+          case IntType(_,sm,_,_,_) =>
+            s"""COALESCE($finalAlias, 0L)"""
+          case DateType(_) => s"""getFormattedDate($finalAlias)"""
+          case StrType(_, sm, df) =>
+            val defaultValue = df.getOrElse("NA")
+            s"""COALESCE($finalAlias, "$defaultValue")"""
+          case _ => s"""COALESCE($finalAlias, "NA")"""
+        }
+        if (column.annotations.contains(EscapingRequired)) {
+          s"""getCsvEscapedString(CAST(NVL($finalAlias, '') AS STRING))"""
+        } else {
+          renderedCol
+        }
+      }
+
       def renderFactCol(alias: String, finalAliasOrExpression: String, col: Column, finalAlias: String): String = {
-        val postFilterAlias = renderNormalOuterColumn(col, finalAliasOrExpression)
+        val postFilterAlias = renderNormalOuterColumnWithoutCasting(col, finalAliasOrExpression)
         s"""$postFilterAlias $finalAlias"""
       }
 
@@ -68,7 +92,7 @@ class HiveQueryGeneratorV2(partitionColumnRenderer:PartitionColumnRenderer, udfS
           val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
           val publicDim = queryBuilderContext.getDimensionForColAlias(alias)
           val referredAlias = s"${queryBuilderContext.getAliasForTable(publicDim.name)}.$finalAlias"
-          val postFilterAlias = renderNormalOuterColumn(col, referredAlias)
+          val postFilterAlias = renderNormalOuterColumnWithoutCasting(col, referredAlias)
           s"""$postFilterAlias $finalAlias"""
         case ConstantColumnInfo(alias, value) =>
           val finalAlias = getConstantColAlias(alias)
@@ -164,14 +188,51 @@ class HiveQueryGeneratorV2(partitionColumnRenderer:PartitionColumnRenderer, udfS
       queryBuilder.addFactViewColumn(exp)
     }
 
+    def generateOrderByClause(queryContext: CombinedQueryContext,
+                             queryBuilder: QueryBuilder): Unit = {
+      val model = queryContext.requestModel
+      model.requestSortByCols.map {
+        case FactSortByColumnInfo(alias, order) =>
+          val colExpression = queryBuilderContext.getFactColNameForAlias(alias)
+          s"$colExpression ${order}"
+        case DimSortByColumnInfo(alias, order) =>
+          val dimColName = queryBuilderContext.getDimensionColNameForAlias(alias)
+          s"$dimColName ${order}"
+        case a => throw new IllegalArgumentException(s"Unhandled SortByColumnInfo $a")
+      }.foreach(queryBuilder.addOrderBy(_))
+    }
+
+    def generateConcatenatedColsWithCast(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext): String = {
+      def castAsString(finalAlias: String):String = {
+        s"CAST($finalAlias AS STRING)"
+      }
+      val renderedConcateColumns = queryContext.requestModel.requestCols.map {
+        case ConstantColumnInfo(alias, _) =>
+          val finalAlias = getConstantColAlias(alias)
+          s"""NVL(${castAsString(finalAlias)}, '')"""
+        case DimColumnInfo(alias) =>
+          val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
+          s"""NVL(${castAsString(finalAlias)}, '')"""
+        case FactColumnInfo(alias)=>
+          val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)
+          s"""NVL(${castAsString(finalAlias)}, '')"""
+      }
+      "CONCAT_WS(\",\"," + (renderedConcateColumns).mkString(", ") + ")"
+    }
+
+
     /**
      * Final Query
      */
 
     val factQueryFragment = generateFactQueryFragment(queryContext, queryBuilder, renderDerivedFactCols, renderRollupExpression, renderColumnWithAlias)
     generateDimSelects(dims, queryBuilderContext, queryBuilder, requestModel, fact, factViewAlias)
+
+    generateOrderByClause(queryContext, queryBuilder)
+    val orderByClause = queryBuilder.getOrderByClause
+
     val outerCols = generateOuterColumns(queryContext, queryBuilderContext, queryBuilder, renderOuterColumn)
-    val concatenatedCols = generateConcatenatedCols(queryContext, queryBuilderContext)
+    val concatenatedCols = generateConcatenatedColsWithCast(queryContext, queryBuilderContext)
 
     val parameterizedQuery : String = {
       val dimJoinQuery = queryBuilder.getJoinExpressions
@@ -183,7 +244,8 @@ class HiveQueryGeneratorV2(partitionColumnRenderer:PartitionColumnRenderer, udfS
           |SELECT $outerCols
           |FROM($factQueryFragment)
           |$factViewAlias
-          |$dimJoinQuery)
+          |$dimJoinQuery
+          |$orderByClause)
        """.stripMargin
     }
 
