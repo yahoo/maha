@@ -487,9 +487,9 @@ class BaseUTCTimeProviderTest extends FunSuite {
   }
 
   private def isDST(): Boolean = {
-      //DST (UTC+10) starts on April 2, 3 AM, ends on Oct 1, 2 AM, then UTC+11
+      //DST (UTC+10) starts on April 2, 3 AM, ends on Oct 7, 2 AM, then UTC+11
       val DST_START = 40203
-      val DST_END = 100102
+      val DST_END = 100702
       val today = new DateTime(DateTimeZone.forID("Australia/Melbourne"))
       val monDayHour = today.hourOfDay().get() + today.dayOfMonth().get() * 100 + today.monthOfYear().get() * 10000
       monDayHour >= DST_START && monDayHour < DST_END

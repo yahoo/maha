@@ -93,7 +93,7 @@ trait BaseHiveQueryGeneratorTest
           PubCol("device_id", "Device ID", InEquality)
         ),
         Set(
-          PublicFactCol("impressions", "Impressions", InBetweenEquality),
+          PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),
           PublicFactCol("avg_pos", "Average Position", Set.empty),

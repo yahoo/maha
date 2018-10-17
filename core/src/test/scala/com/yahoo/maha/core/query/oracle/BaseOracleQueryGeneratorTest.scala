@@ -112,7 +112,7 @@ trait BaseOracleQueryGeneratorTest
           PubCol("device_id", "Device ID", InEquality)
         ),
         Set(
-          PublicFactCol("impressions", "Impressions", InBetweenEquality),
+          PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
           PublicFactCol("impressions", "Total Impressions", InBetweenEquality),
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),

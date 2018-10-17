@@ -7,12 +7,10 @@ import com.yahoo.maha.service.request._
 import java.nio.charset.StandardCharsets
 import java.util
 import java.util.UUID
-
 import com.netflix.config._
 import com.yahoo.maha.service.{DynamicMahaServiceConfig, MahaServiceConfig}
 import scalaz.{Failure, Success}
 import org.json4s.jackson.JsonMethods.parse
-import org.json4s.scalaz.JsonScalaz.fromJSON
 
 /**
  * Created by pranavbhole on 06/06/17.

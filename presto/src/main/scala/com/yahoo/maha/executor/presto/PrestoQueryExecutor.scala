@@ -2,8 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.executor.presto
 
-import java.sql.{ResultSet, ResultSetMetaData}
-
+import java.sql.{ResultSetMetaData}
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.query.{ResultSetTransformer, _}
 import com.yahoo.maha.jdbc.JdbcConnection

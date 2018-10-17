@@ -106,7 +106,7 @@ case class QueryGenBucketingConfig(internalBucketPercentage:Map[Version,Int] = M
     require(internalSum==100,s"Total internal bucket percentage is not 100% but $internalSum")
 
     val externalSum = externalBucketPercentage.values.sum
-    require(externalBucketPercentage.values.sum==100,s"Total external bucket percentage is not 100% but $externalSum")
+    require(externalBucketPercentage.values.sum == 100,s"Total external bucket percentage is not 100% but $externalSum")
   }
 }
 

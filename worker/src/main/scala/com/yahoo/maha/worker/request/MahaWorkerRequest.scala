@@ -5,7 +5,7 @@ package com.yahoo.maha.worker.request
 
 import java.io.{File, IOException}
 
-import com.yahoo.maha.core.Schema
+import com.yahoo.maha.core.{Engine, Schema}
 import com.yahoo.maha.core.request.{BaseRequest, Parameter, ReportingRequest}
 import com.yahoo.maha.worker.proto.MahaWorkerReportingProto.{MahaCustomReportRequest, OutputFormat, QueryEngine, ReportType}
 import grizzled.slf4j.Logging
@@ -26,6 +26,12 @@ trait MahaWorkerRequest {
   def reportFile: File
   def registryName: String = mahaCustomReportRequest.getRegistryName // putting variables on top for accessibility
   def jobId: Long = mahaCustomReportRequest.getJobId
+  def engine: Engine = {
+    val name = mahaCustomReportRequest.getQueryEngine.name
+    val engineOption = Engine.from(name)
+    require(engineOption.isDefined, s"invalid value engine value ${name} in MahaCustomReportRequest")
+    engineOption.get
+  }
 }
 
 /*

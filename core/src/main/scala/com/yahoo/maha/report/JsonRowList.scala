@@ -8,7 +8,7 @@ import java.nio.file.{Files, StandardOpenOption}
 
 import com.fasterxml.jackson.core.{JsonEncoding, JsonGenerator}
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.yahoo.maha.core.query.{Query, QueryRowList, Row, RowList}
+import com.yahoo.maha.core.query.{Query, QueryRowList, Row}
 import com.yahoo.maha.core.{Column, ColumnInfo, DimColumnInfo, FactColumnInfo}
 import org.slf4j.{Logger, LoggerFactory}
 

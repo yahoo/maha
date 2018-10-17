@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>5.211-SNAPSHOT</version>
+    <version>5.216-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -62,6 +62,7 @@
         <kryo.version>4.0.2</kryo.version>
         <lz4.version>1.4.1</lz4.version>
         <curator.version>4.0.1</curator.version>
+        <akka.version>2.5.4</akka.version>
     </properties>
 
 
@@ -439,6 +440,11 @@
                 <artifactId>http4s-blaze-client_${scala.major.version}</artifactId>
                 <version>${http4s.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.typesafe.akka</groupId>
+                <artifactId>akka-actor_${scala.major.version}</artifactId>
+                <version>${akka.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

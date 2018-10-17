@@ -4662,6 +4662,409 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     resultSql should equal (expected)(after being whiteSpaceNormalised)
   }
 
+
+  test("Do not include the NOT IN clause if requested max rows < in filter size") {
+    import DefaultQueryPipelineFactoryTest._
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Ad Group Status"},
+                              {"field": "Ad Group ID"},
+                              {"field": "Source"},
+                              {"field": "Pricing Type"},
+                              {"field": "Destination URL"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"},
+                              {"field": "Advertiser Currency"},
+                              {"field": "Campaign Device ID"},
+                              {"field": "Campaign ID"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "ASC"}
+                          ],
+                          "includeRowCount" : true,
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":9
+                          }"""
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry, revision = Option(1))
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[MultiEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[MultiEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
+    val result = pipeline.withDruidCallback {
+      rl =>
+        (1 to 10).toList.foreach {
+          i =>
+            val row = rl.newRow
+            row.addValue("Ad Group ID", 10+i)
+            row.addValue("Impressions", 100)
+            row.addValue("Clicks", 1)
+            rl.addRow(row)
+        }
+
+    }.withOracleCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Advertiser ID", 1)
+        row.addValue("Ad Group Status", "ON")
+        row.addValue("Ad Group ID", 10)
+        row.addValue("Source", 2)
+        row.addValue("Pricing Type", "CPC")
+        row.addValue("Destination URL", "url-10")
+        rl.addRow(row)
+    }.run()
+
+    assert(result.isSuccess, result)
+    val resultSql = pipeline.queryChain.subsequentQueryList.head.asString
+
+    val expected =
+      s"""
+         | SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
+         |            FROM
+         |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
+         |            FROM ad_group_oracle
+         |            WHERE (advertiser_id = 213) AND (id IN (12,15,18,17,11,20,14,16,19,13))
+         |             ) ago2
+         |          INNER JOIN
+         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            FROM campaign_oracle
+         |
+         |             ) co1
+         |              ON( ago2.advertiser_id = co1.advertiser_id AND ago2.campaign_id = co1.id )
+         |               INNER JOIN
+         |            (SELECT  currency, id
+         |            FROM advertiser_oracle
+         |
+         |             ) ao0
+         |              ON( co1.advertiser_id = ao0.id )
+         |               )
+         |
+         |           )
+         |            ) WHERE ROWNUM <= 10) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 10
+       """.stripMargin
+    resultSql should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Generate dim only query without union all for any middle page(not last)") {
+    import DefaultQueryPipelineFactoryTest._
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Ad Group Status"},
+                              {"field": "Ad Group ID"},
+                              {"field": "Source"},
+                              {"field": "Pricing Type"},
+                              {"field": "Destination URL"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"},
+                              {"field": "Advertiser Currency"},
+                              {"field": "Campaign Device ID"},
+                              {"field": "Campaign ID"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "ASC"}
+                          ],
+                          "includeRowCount" : true,
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":31,
+                          "rowsPerPage":10
+                          }"""
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry, revision = Option(1))
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[MultiEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[MultiEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
+    val result = pipeline.withDruidCallback {
+      rl =>
+        (1 to 45).toList.foreach {
+          i =>
+            val row = rl.newRow
+            row.addValue("Ad Group ID", 10+i)
+            row.addValue("Impressions", 100)
+            row.addValue("Clicks", 1)
+            rl.addRow(row)
+        }
+
+    }.withOracleCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Advertiser ID", 1)
+        row.addValue("Ad Group Status", "ON")
+        row.addValue("Ad Group ID", 10)
+        row.addValue("Source", 2)
+        row.addValue("Pricing Type", "CPC")
+        row.addValue("Destination URL", "url-10")
+        rl.addRow(row)
+    }.run()
+
+    assert(result.isSuccess, result)
+    val resultSql = pipeline.queryChain.subsequentQueryList.head.asString
+
+    val expected =
+      s"""
+         | SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
+         |            FROM
+         |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
+         |            FROM ad_group_oracle
+         |            WHERE (advertiser_id = 213) AND (id IN (45,39,30,51,48,27,33,54,12,15,42,36,21,18,24,53,41,35,17,50,44,23,38,47,26,11,32,14,20,29,46,52,28,34,55,40,49,43,22,16,37,19,25,31,13))
+         |             ) ago2
+         |          INNER JOIN
+         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            FROM campaign_oracle
+         |
+         |             ) co1
+         |              ON( ago2.advertiser_id = co1.advertiser_id AND ago2.campaign_id = co1.id )
+         |               INNER JOIN
+         |            (SELECT  currency, id
+         |            FROM advertiser_oracle
+         |
+         |             ) ao0
+         |              ON( co1.advertiser_id = ao0.id )
+         |               )
+         |
+         |           )
+         |            ) WHERE ROWNUM <= 45) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 45
+       """.stripMargin
+    resultSql should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Generate dim only query wit union all for last page)") {
+    import DefaultQueryPipelineFactoryTest._
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Ad Group Status"},
+                              {"field": "Ad Group ID"},
+                              {"field": "Source"},
+                              {"field": "Pricing Type"},
+                              {"field": "Destination URL"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"},
+                              {"field": "Advertiser Currency"},
+                              {"field": "Campaign Device ID"},
+                              {"field": "Campaign ID"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "ASC"}
+                          ],
+                          "includeRowCount" : true,
+                          "forceDimensionDriven": true,
+                          "rowsPerPage":20
+                          }"""
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry, revision = Option(1))
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[MultiEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[MultiEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
+    val result = pipeline.withDruidCallback {
+      rl =>
+        (1 to 15).toList.foreach {
+          i =>
+            val row = rl.newRow
+            row.addValue("Ad Group ID", 10+i)
+            row.addValue("Impressions", 100)
+            row.addValue("Clicks", 1)
+            rl.addRow(row)
+        }
+
+    }.withOracleCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Advertiser ID", 1)
+        row.addValue("Ad Group Status", "ON")
+        row.addValue("Ad Group ID", 10)
+        row.addValue("Source", 2)
+        row.addValue("Pricing Type", "CPC")
+        row.addValue("Destination URL", "url-10")
+        rl.addRow(row)
+    }.run()
+
+    assert(result.isSuccess, result)
+    val resultSql = pipeline.queryChain.subsequentQueryList.head.asString
+
+    val expected =
+      s"""
+         |(SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
+         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
+         |            FROM
+         |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
+         |            FROM ad_group_oracle
+         |            WHERE (advertiser_id = 213) AND (id IN (12,15,21,18,24,17,23,11,14,20,22,16,19,25,13))
+         |             ) ago2
+         |          INNER JOIN
+         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            FROM campaign_oracle
+         |
+         |             ) co1
+         |              ON( ago2.advertiser_id = co1.advertiser_id AND ago2.campaign_id = co1.id )
+         |               INNER JOIN
+         |            (SELECT  currency, id
+         |            FROM advertiser_oracle
+         |
+         |             ) ao0
+         |              ON( co1.advertiser_id = ao0.id )
+         |               )
+         |
+         |           )
+         |            ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
+         |            FROM
+         |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
+         |            FROM ad_group_oracle
+         |            WHERE (advertiser_id = 213) AND (id NOT IN (12,15,21,18,24,17,23,11,14,20,22,16,19,25,13))
+         |             ) ago2
+         |          INNER JOIN
+         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            FROM campaign_oracle
+         |
+         |             ) co1
+         |              ON( ago2.advertiser_id = co1.advertiser_id AND ago2.campaign_id = co1.id )
+         |               INNER JOIN
+         |            (SELECT  currency, id
+         |            FROM advertiser_oracle
+         |
+         |             ) ao0
+         |              ON( co1.advertiser_id = ao0.id )
+         |               )
+         |
+         |           )
+         |            ) WHERE ROWNUM <= 20) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 20)
+       """.stripMargin
+    resultSql should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Greater than filter should work for Oracle Sync") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, "Fail to get the query pipeline")
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    print(result)
+    val expected =
+      s"""
+         SELECT *
+         |FROM (SELECT co1.id "Campaign ID", coalesce(f0."impressions", 1) "Impressions"
+         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
+         |                   campaign_id, SUM(impressions) AS "impressions"
+         |            FROM fact2 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY campaign_id
+         |            HAVING (SUM(impressions) > 1608)
+         |           ) f0
+         |           INNER JOIN
+         |                (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT /*+ CampaignHint */ id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) co1
+         |            ON (f0.campaign_id = co1.id)
+         |)
+      """.stripMargin
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("Less than filter should work for Oracle Sync") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": "<", "value": "1608"}
+                          ],
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, "Fail to get the query pipeline")
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    print(result)
+    val expected =
+      s"""
+         SELECT *
+         |FROM (SELECT co1.id "Campaign ID", coalesce(f0."impressions", 1) "Impressions"
+         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
+         |                   campaign_id, SUM(impressions) AS "impressions"
+         |            FROM fact2 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY campaign_id
+         |            HAVING (SUM(impressions) < 1608)
+         |           ) f0
+         |           INNER JOIN
+         |                (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT /*+ CampaignHint */ id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) co1
+         |            ON (f0.campaign_id = co1.id)
+         |)
+      """.stripMargin
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
   test("successfully generate dim only oracle query without union all for sync multi engine query for druid + oracle with metric filter") {
     import DefaultQueryPipelineFactoryTest._
     val jsonString = s"""{
