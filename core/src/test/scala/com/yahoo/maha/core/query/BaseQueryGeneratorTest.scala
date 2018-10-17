@@ -71,6 +71,10 @@ trait BaseQueryGeneratorTest {
     queryPipelineFactory.from(requestModel, QueryAttributes.empty)
   }
 
+  protected[this] def generatePipelineV2(requestModel: RequestModel) : Try[QueryPipeline] = {
+    queryPipelineFactory.fromQueryGenVersion(requestModel, QueryAttributes.empty, Version.v2)
+  }
+
   protected[this] def generatePipeline(requestModel: RequestModel, queryAttributes: QueryAttributes) : Try[QueryPipeline] = {
     queryPipelineFactory.from(requestModel, queryAttributes)
   }
