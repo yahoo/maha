@@ -7,12 +7,14 @@ package com.yahoo.maha.core
  */
 
 import com.google.common.collect.Lists
-import com.yahoo.maha.core.DruidDerivedFunction.{DATETIME_FORMATTER, DRUID_TIME_FORMAT}
+import com.yahoo.maha.core.DruidDerivedFunction.{DATETIME_FORMATTER, DRUID_TIME_FORMAT, JAVASCRIPT}
 import com.yahoo.maha.core.DruidPostResultFunction.{START_OF_THE_MONTH, START_OF_THE_WEEK}
 import com.yahoo.maha.core.dimension.{DruidFuncDimCol, DruidPostResultFuncDimCol}
 import com.yahoo.maha.core.request.fieldExtended
 import grizzled.slf4j.Logging
+import io.druid.js.JavaScriptConfig
 import io.druid.query.extraction.{SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
+import io.druid.query.filter.JavaScriptDimFilter
 import org.json4s.scalaz.JsonScalaz
 
 import scala.collection.{Iterable, mutable}
@@ -33,6 +35,7 @@ case object OuterFilterOperation extends FilterOperation { override def toString
 case object OrFilterOperation extends FilterOperation { override def toString = "Or" }
 case object GreaterThanFilterOperation extends FilterOperation { override def toString = ">" }
 case object LessThanFilterOperation extends FilterOperation { override def toString = "<" }
+case object NoopFilterOperation extends FilterOperation
 
 object FilterOperation {
   val In : Set[FilterOperation] = Set(InFilterOperation)
@@ -141,6 +144,15 @@ case class LessThanFilter(field: String, value: String
   override def canBeHighCardinalityFilter: Boolean = true
 }
 
+case class JavaScriptFilter(field: String, function: String
+                          , override val isForceFilter: Boolean = false
+                          , override val isOverridable: Boolean = false
+                         ) extends ForcedFilter {
+  override def operator = NoopFilterOperation
+  val asValues: String = function
+  override def canBeHighCardinalityFilter: Boolean = true
+}
+
 sealed trait ValuesFilter extends ForcedFilter {
   def values: List[String]
   def renameField(newField: String): ValuesFilter
@@ -226,6 +238,8 @@ sealed trait NotEqualToFilterRenderer[O] extends FilterRenderer[NotEqualToFilter
 sealed trait IsNullFilterRenderer[O] extends FilterRenderer[IsNullFilter, O]
 
 sealed trait IsNotNullFilterRenderer[O] extends FilterRenderer[IsNotNullFilter, O]
+
+sealed trait JavaScriptFilterRenderer[O] extends FilterRenderer[JavaScriptFilter, O]
 
 sealed trait SqlResult {
   def filter: String
@@ -764,6 +778,9 @@ object FilterDruid {
       case f @ LikeFilter(alias, value, _, _) =>
         val spec = new InsensitiveContainsSearchQuerySpec(druidLiteralMapper.toLiteral(column, value, grainOption))
         new SearchQueryDimFilter(columnAlias, spec, null)
+      case f @ JavaScriptFilter(alias, func, _, _) => {
+        new JavaScriptDimFilter(alias, func, null, JavaScriptConfig.getEnabledInstance)
+      }
       case f =>
         throw new UnsupportedOperationException(s"Unhandled filter operation $f")
     }
