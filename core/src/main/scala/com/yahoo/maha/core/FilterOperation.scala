@@ -35,6 +35,7 @@ case object OuterFilterOperation extends FilterOperation { override def toString
 case object OrFilterOperation extends FilterOperation { override def toString = "Or" }
 case object GreaterThanFilterOperation extends FilterOperation { override def toString = ">" }
 case object LessThanFilterOperation extends FilterOperation { override def toString = "<" }
+case object NoopFilterOperator extends FilterOperation
 
 object FilterOperation {
   val In : Set[FilterOperation] = Set(InFilterOperation)
@@ -147,7 +148,7 @@ case class JavaScriptFilter(field: String, function: String
                           , override val isForceFilter: Boolean = false
                           , override val isOverridable: Boolean = false
                          ) extends ForcedFilter {
-  override def operator = EqualityFilterOperation
+  override def operator = NoopFilterOperator
   val asValues: String = function
   override def canBeHighCardinalityFilter: Boolean = true
 }
