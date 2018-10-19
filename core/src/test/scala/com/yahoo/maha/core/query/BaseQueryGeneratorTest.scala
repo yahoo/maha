@@ -90,7 +90,7 @@ trait BaseQueryGeneratorTest {
         PrestoEngine -> qgenBucketingConfig
       ))
     val bucketSelector = new BucketSelector(registry, bucketingConfig)
-    queryPipelineFactory.fromBucketSelector((requestModel, None), QueryAttributes.empty, bucketSelector)._1
+    queryPipelineFactory.fromBucketSelector((requestModel, None), QueryAttributes.empty, bucketSelector, None)._1
   }
 
   protected[this] def getBaseDir : String = {

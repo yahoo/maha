@@ -1651,7 +1651,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
 
-    val queryPipelineTry = queryPipelineFactory.fromBucketSelector(new Tuple2(requestModel.get, None), QueryAttributes.empty, bucketSelector)
+    val queryPipelineTry = queryPipelineFactory.fromBucketSelector(new Tuple2(requestModel.get, None), QueryAttributes.empty, bucketSelector, None)
     assert(queryPipelineTry._1.isSuccess, queryPipelineTry._1.errorMessage("Fail to get the query pipeline"))
     val pipeline = queryPipelineTry._1.toOption.get
 
