@@ -90,7 +90,7 @@ trait MahaService {
     * @return
     */
   def generateQueryPipelines(registryName: String
-                           , requestModel: RequestModel): (Try[QueryPipeline], Option[Try[QueryPipeline]])
+                           , requestModel: RequestModel, forceQueryGenVersion: Option[Version]= None): (Try[QueryPipeline], Option[Try[QueryPipeline]])
 
   /**
    * Executes the RequestModel and provide the RequestResult, logs failures with request log builder
@@ -232,13 +232,13 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
   }
 
   def generateQueryPipelines(registryName: String,
-                            requestModel: RequestModel): (Try[QueryPipeline], Option[Try[QueryPipeline]]) = {
+                            requestModel: RequestModel, forceQueryGenVersion: Option[Version]): (Try[QueryPipeline], Option[Try[QueryPipeline]]) = {
 
     val registryConfig = config.registry(registryName)
     val queryPipelineFactory = registryConfig.queryPipelineFactory
     val bucketSelector = registryConfig.bucketSelector
 
-    val queryPipelineTry = queryPipelineFactory.fromBucketSelector(requestModel, QueryAttributes.empty, bucketSelector)
+    val queryPipelineTry = queryPipelineFactory.fromBucketSelector(requestModel, QueryAttributes.empty, bucketSelector, forceQueryGenVersion)
 
     queryPipelineTry
   }
