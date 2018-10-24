@@ -277,7 +277,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
     val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams)
     assert(requestModelResultTry.isSuccess)
 
-    val queryPipelines = mahaService.generateQueryPipelines("er", requestModelResultTry.get.model)
+    val queryPipelines = mahaService.generateQueryPipelines("er", requestModelResultTry.get.model, None)
     assert(queryPipelines._1.isSuccess)
   }
 }
