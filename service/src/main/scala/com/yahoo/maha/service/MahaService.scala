@@ -238,10 +238,17 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
     val queryPipelineFactory = registryConfig.queryPipelineFactory
     val bucketSelector = registryConfig.bucketSelector
 
-    val queryPipelineTry = queryPipelineFactory.fromBucketSelector(requestModel, QueryAttributes.empty, bucketSelector, forceQueryGenVersion)
+    val shouldUseQueryGenSelector = if(forceQueryGenVersion.isDefined && forceQueryGenVersion.get != Version.DEFAULT) {
+      true
+    } else false
+
+    val queryPipelineTry = if(shouldUseQueryGenSelector) {
+      (queryPipelineFactory.fromQueryGenVersion(requestModel, QueryAttributes.empty, forceQueryGenVersion.get), None)
+    } else queryPipelineFactory.fromBucketSelector(requestModel, QueryAttributes.empty, bucketSelector, forceQueryGenVersion)
 
     queryPipelineTry
   }
+
 
   private def processQueryPipeline(registryConfig: RegistryConfig,
                            queryPipeline: QueryPipeline,

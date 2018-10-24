@@ -3,7 +3,7 @@
 package com.yahoo.maha.service.example
 
 import com.yahoo.maha.core.bucketing._
-import com.yahoo.maha.core.query.{QueryRowList}
+import com.yahoo.maha.core.query.{QueryRowList, Version}
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParFunction
@@ -277,7 +277,10 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
     val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams)
     assert(requestModelResultTry.isSuccess)
 
-    val queryPipelines = mahaService.generateQueryPipelines("er", requestModelResultTry.get.model)
+    val queryPipelines = mahaService.generateQueryPipelines("er", requestModelResultTry.get.model, None)
     assert(queryPipelines._1.isSuccess)
+
+    val queryPipelinesWithForceVersion = mahaService.generateQueryPipelines("er", requestModelResultTry.get.model, Some(Version.v1))
+    assert(queryPipelinesWithForceVersion._1.isFailure)
   }
 }
