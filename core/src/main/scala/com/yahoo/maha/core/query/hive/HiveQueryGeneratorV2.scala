@@ -270,7 +270,8 @@ class HiveQueryGeneratorV2(partitionColumnRenderer:PartitionColumnRenderer, udfS
       paramBuilder.build(),
       queryContext.requestModel.requestCols.map(_.alias),
       columnAliasToColMap.toMap,
-      IndexedSeq.empty
+      IndexedSeq.empty,
+      queryGenVersion = Some(Version.v2)
     )
   }
 }

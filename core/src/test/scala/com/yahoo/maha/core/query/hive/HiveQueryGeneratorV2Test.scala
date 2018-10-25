@@ -793,7 +793,11 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     val queryPipelineTry = generatePipelineV2(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
-    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    val queryChain = queryPipelineTry.toOption.get.queryChain
+
+    val result =  queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    assert(queryChain.drivingQuery.queryGenVersion.isDefined)
+    assert(queryChain.drivingQuery.queryGenVersion.get == Version.v2)
 
     val expected =
       s"""
