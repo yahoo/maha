@@ -8,6 +8,7 @@ import java.util.UUID
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
@@ -647,7 +648,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty, None)._1.get.build()
+    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty, None, BucketParams())._1.get.build()
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
 
     val result = queryPipeline.execute(queryExecutorContext)
@@ -703,7 +704,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty, None)._1.get.build()
+    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty, None, BucketParams())._1.get.build()
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
 
     val result = queryPipeline.execute(queryExecutorContext)

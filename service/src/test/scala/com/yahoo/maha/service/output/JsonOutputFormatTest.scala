@@ -59,11 +59,12 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
   val mahaRequestLogBuilder = MahaRequestLogHelper(mahaRequestContext, mahaService.mahaRequestLogWriter)
   val (pse, queryPipeline, query, queryChain)  = {
+    val bucketParams = BucketParams(UserInfo("test", false))
 
     val requestModel = mahaService.generateRequestModel(REGISTRY
       , reportingRequest
-      , BucketParams(UserInfo("test", false))).toOption.get
-    val factory = registry.queryPipelineFactory.from(requestModel.model, QueryAttributes.empty)
+      , bucketParams).toOption.get
+    val factory = registry.queryPipelineFactory.from(requestModel.model, QueryAttributes.empty, bucketParams)
     val queryChain = factory.get.queryChain
     val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)
     (pse, factory.get, queryChain.drivingQuery, queryChain)
@@ -83,7 +84,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
           )
         )
       , BucketParams(UserInfo("test", false), forceRevision = Option(1))).toOption.get
-    val factory = registry.queryPipelineFactory.from(requestModel.model, QueryAttributes.empty)
+    val factory = registry.queryPipelineFactory.from(requestModel.model, QueryAttributes.empty, bucketParams)
     val queryChain = factory.get.queryChain
     val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)
     (pse, factory.get, queryChain.drivingQuery, queryChain)

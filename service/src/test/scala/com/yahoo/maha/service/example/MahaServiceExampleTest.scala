@@ -277,10 +277,10 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
     val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams)
     assert(requestModelResultTry.isSuccess)
 
-    val queryPipelines = mahaService.generateQueryPipelines("er", requestModelResultTry.get.model, None)
+    val queryPipelines = mahaService.generateQueryPipelines("er", requestModelResultTry.get.model, BucketParams())
     assert(queryPipelines._1.isSuccess)
 
-    val queryPipelinesWithForceVersion = mahaService.generateQueryPipelines("er", requestModelResultTry.get.model, Some(Version.v1))
+    val queryPipelinesWithForceVersion = mahaService.generateQueryPipelines("er", requestModelResultTry.get.model, BucketParams(forceQueryGenVersion = Some(Version.v1)))
     assert(queryPipelinesWithForceVersion._1.isFailure)
   }
 }
