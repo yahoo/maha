@@ -3,7 +3,7 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.bucketing.{BucketSelector, BucketingConfig, CubeBucketingConfig, QueryGenBucketingConfig}
+import com.yahoo.maha.core.bucketing._
 import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator, SyncDruidQueryOptimizer}
 import com.yahoo.maha.core.query.hive.{HiveQueryGenerator, HiveQueryGeneratorV1}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
@@ -1651,7 +1651,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
 
-    val queryPipelineTry = queryPipelineFactory.fromBucketSelector(new Tuple2(requestModel.get, None), QueryAttributes.empty, bucketSelector, None)
+    val queryPipelineTry = queryPipelineFactory.fromBucketSelector(new Tuple2(requestModel.get, None), QueryAttributes.empty, bucketSelector, BucketParams())
     assert(queryPipelineTry._1.isSuccess, queryPipelineTry._1.errorMessage("Fail to get the query pipeline"))
     val pipeline = queryPipelineTry._1.toOption.get
 
@@ -1680,7 +1680,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
 
-    val queryPipelineBuilderTry = queryPipelineFactory.builder(requestModel.get, QueryAttributes.empty, Option(bucketSelector), Option(Version.v1))._1
+    val queryPipelineBuilderTry = queryPipelineFactory.builder(requestModel.get, QueryAttributes.empty, Option(bucketSelector), BucketParams(forceQueryGenVersion = Option(Version.v1)))._1
     assert(queryPipelineBuilderTry.isSuccess, queryPipelineBuilderTry)
     val pipeline = queryPipelineBuilderTry.get.build()
 
@@ -1711,7 +1711,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
 
-    val queryPipelineTry = queryPipelineFactory.fromBucketSelector(requestModel.get, QueryAttributes.empty, bucketSelector, None)
+    val queryPipelineTry = queryPipelineFactory.fromBucketSelector(requestModel.get, QueryAttributes.empty, bucketSelector, BucketParams())
     assert(queryPipelineTry._1.isSuccess, queryPipelineTry._1.errorMessage("Fail to get the query pipeline"))
     val pipeline = queryPipelineTry._1.toOption.get
 
