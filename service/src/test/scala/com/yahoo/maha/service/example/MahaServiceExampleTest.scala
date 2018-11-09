@@ -24,6 +24,27 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
     server.shutdownNow()
   }
 
+  val jsonRequestHive = s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Marks Obtained"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                         "sortBy": [
+                            {"field": "Marks Obtained", "order": "Asc"}
+                          ]
+                        }"""
+
+  val reportingRequestHive  =  {
+    val reportingRequestHiveResult = ReportingRequest.deserializeAsync(jsonRequestHive.getBytes, schema = StudentSchema)
+    require(reportingRequestHiveResult.isSuccess)
+    ReportingRequest.forceHive(reportingRequestHiveResult.toOption.get)
+  }
+
   test("Test MahaService with Example Schema") {
 
     val jsonRequest = s"""{
@@ -283,4 +304,15 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
     val queryPipelinesWithForceVersion = mahaService.generateQueryPipelines("er", requestModelResultTry.get.model, BucketParams(forceQueryGenVersion = Some(Version.v1)))
     assert(queryPipelinesWithForceVersion._1.isFailure)
   }
+
+  test("Test Query Gen bucketing") {
+    val bucketParams = BucketParams(userInfo = UserInfo("maha", true), forceRevision = Some(0))
+    val requestModelHiveResultTry  = mahaService.generateRequestModel("er", reportingRequestHive, bucketParams)
+    assert(requestModelHiveResultTry.isSuccess)
+
+    val queryPipelinesWithQueryGenBuckets = mahaService.generateQueryPipelines("er", requestModelHiveResultTry.get.model, bucketParams)
+    assert(queryPipelinesWithQueryGenBuckets._1.isSuccess)
+    assert(queryPipelinesWithQueryGenBuckets._1.get.queryChain.drivingQuery.queryGenVersion == Some(Version.v2))
+  }
+
 }

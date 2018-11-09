@@ -14,10 +14,11 @@ import scala.collection.{SortedSet, mutable}
 /**
  * Created by shengyao on 12/16/15.
  */
-class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends HiveQueryGeneratorCommon(partitionColumnRenderer, udfStatements) {
+class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends HiveQueryGeneratorCommon(partitionColumnRenderer, udfStatements) with Logging {
 
   override val engine: Engine = HiveEngine
   override def generate(queryContext: QueryContext): Query = {
+    info(s"Generating Hive query using HiveQueryGeneratorV0, version ${version}")
     queryContext match {
       case context : CombinedQueryContext =>
         generateQuery(context)
