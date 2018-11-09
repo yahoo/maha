@@ -3,15 +3,15 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.bucketing.BucketSelector
-import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator, SyncDruidQueryOptimizer}
+import com.yahoo.maha.core.bucketing.{BucketParams}
+import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, SyncDruidQueryOptimizer}
 import com.yahoo.maha.core.query.hive.HiveQueryGenerator
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.core.{BetweenFilter, DefaultPartitionColumnRenderer, EqualityFilter, RequestModel}
+import com.yahoo.maha.core.{DefaultPartitionColumnRenderer, RequestModel}
 import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockHiveQueryExecutor, MockOracleQueryExecutor}
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
-import org.mockito.Mockito._
+
 import scala.util.Try
 
 /**
@@ -203,14 +203,14 @@ class QueryPipelineWithFallbackTest extends FunSuite with Matchers with BeforeAn
     altQueryGeneratorRegistry.register(HiveEngine, new HiveQueryGenerator(DefaultPartitionColumnRenderer, Set.empty))
     val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
 
-    var builder = queryPipelineFactoryLocal.builder(requestModel.toOption.get, QueryAttributes.empty, None, None, Set.empty)
+    var builder = queryPipelineFactoryLocal.builder(requestModel.toOption.get, QueryAttributes.empty, None, BucketParams(), Set.empty)
     var pipeline = builder._1.toOption.get.build()
     assert(pipeline.isInstanceOf[QueryPipelineWithFallback])
     assert(pipeline.fallbackQueryChainOption.isDefined, "Expected fallback query to be present")
     var fallbackEngine = pipeline.fallbackQueryChainOption.get.drivingQuery.engine
     assert(OracleEngine.equals(fallbackEngine), s"Expected engine: Oracle, Actual: $fallbackEngine")
 
-    builder  = queryPipelineFactoryLocal.builder(requestModel.toOption.get, QueryAttributes.empty, None, None, Set(OracleEngine))
+    builder  = queryPipelineFactoryLocal.builder(requestModel.toOption.get, QueryAttributes.empty, None, BucketParams(), Set(OracleEngine))
     pipeline = builder._1.toOption.get.build()
     assert(pipeline.isInstanceOf[QueryPipelineWithFallback])
     assert(pipeline.fallbackQueryChainOption.isDefined, "Expected fallback query to be present")
@@ -218,7 +218,7 @@ class QueryPipelineWithFallbackTest extends FunSuite with Matchers with BeforeAn
     assert(HiveEngine.equals(fallbackEngine), s"Expected engine: Hive, Actual: $fallbackEngine")
 
 
-    builder  = queryPipelineFactoryLocal.builder(requestModel.toOption.get, QueryAttributes.empty, None, None, Set(OracleEngine, HiveEngine))
+    builder  = queryPipelineFactoryLocal.builder(requestModel.toOption.get, QueryAttributes.empty, None, BucketParams(), Set(OracleEngine, HiveEngine))
     pipeline = builder._1.toOption.get.build()
     assert(pipeline.fallbackQueryChainOption.isEmpty, s"No fallback query expected: $pipeline")
   }
