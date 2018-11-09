@@ -21,7 +21,7 @@ class HiveQueryGeneratorV2(partitionColumnRenderer:PartitionColumnRenderer, udfS
 
   override val engine: Engine = HiveEngine
   override def generate(queryContext: QueryContext): Query = {
-    info(s"Generating Hive query using HiveQueryGeneratorV2: ${queryContext.getClass.getName}")
+    info(s"Generating Hive query using HiveQueryGeneratorV2:, version ${version}")
     queryContext match {
       case context : CombinedQueryContext =>
         generateQuery(context)
