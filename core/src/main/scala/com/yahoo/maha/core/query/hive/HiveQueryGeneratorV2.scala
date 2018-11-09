@@ -15,12 +15,13 @@ import scala.collection.{SortedSet, mutable}
  * Created by pranavbhole on 10/16/18.
   * Copy of the HiveQueryGenerator.scala with sorting feature
  */
-class HiveQueryGeneratorV2(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends HiveQueryGeneratorCommon(partitionColumnRenderer, udfStatements) {
+class HiveQueryGeneratorV2(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends HiveQueryGeneratorCommon(partitionColumnRenderer, udfStatements) with Logging {
 
   override val version = Version.v2
 
   override val engine: Engine = HiveEngine
   override def generate(queryContext: QueryContext): Query = {
+    info(s"Generating Hive query using HiveQueryGeneratorV2: ${queryContext.getClass.getName}")
     queryContext match {
       case context : CombinedQueryContext =>
         generateQuery(context)

@@ -34,7 +34,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
     ExampleSchema.register()
 
     def pubfactOracle: PublicFact = {
-      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+     val builder = ColumnContext.withColumnContext { implicit dc: ColumnContext =>
         import com.yahoo.maha.core.OracleExpression._
         Fact.newFact(
           "student_grade_sheet", DailyGrain, OracleEngine, Set(StudentSchema),
@@ -54,7 +54,14 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           )
         )
       }
-        .toPublicFact("student_performance",
+      ColumnContext.withColumnContext {
+        implicit dc: ColumnContext =>
+        builder.withAlternativeEngine("student_hive","student_grade_sheet", HiveEngine,
+          discarding = Set("total_marks", "Performance Factor"))
+      }
+
+
+      builder.toPublicFact("student_performance",
           Set(
             PubCol("class_id", "Class ID", InEquality),
             PubCol("student_id", "Student ID", InEquality),

@@ -1,278 +1,379 @@
 {
-    "registryMap": {
-      "er": {
-         "factRegistrationClass": "com.yahoo.maha.service.example.SampleFactSchemaRegistrationFactory",
-         "dimensionRegistrationClass": "com.yahoo.maha.service.example.SampleDimensionSchemaRegistrationFactory",
-         "executors": [
-            "oracleExec",
-            "druidExec",
-            "prestoExec"
-         ],
-         "generators": [
-            "oracle",
-            "druid",
-            "presto",
-            "hive"
-         ],
-         "bucketingConfigName": "erBucket",
-         "utcTimeProviderName": "erUTC",
-         "parallelServiceExecutorName": "erParallelExec",
-         "dimEstimatorFactoryClass": "com.yahoo.maha.service.factory.TestDimCostEstimatoryFactory",
-         "dimEstimatorFactoryConfig": "",
-         "factEstimatorFactoryClass": "com.yahoo.maha.service.factory.TestFactCostEstimatoryFactory",
-         "factEstimatorFactoryConfig": "",
-         "defaultPublicFactRevisionMap": {
-            "student_performance": 0
-         },
-         "defaultPublicDimRevisionMap": {
-            "student": 0
-         }
+  "registryMap": {
+    "er": {
+      "factRegistrationClass": "com.yahoo.maha.service.example.SampleFactSchemaRegistrationFactory",
+      "dimensionRegistrationClass": "com.yahoo.maha.service.example.SampleDimensionSchemaRegistrationFactory",
+      "executors": [
+        "oracleExec",
+        "druidExec",
+        "prestoExec"
+      ],
+      "generators": [
+        "oracle",
+        "druid",
+        "presto",
+        "hive",
+        "hive_v2"
+      ],
+      "bucketingConfigName": "erBucket",
+      "utcTimeProviderName": "erUTC",
+      "parallelServiceExecutorName": "erParallelExec",
+      "dimEstimatorFactoryClass": "com.yahoo.maha.service.factory.TestDimCostEstimatoryFactory",
+      "dimEstimatorFactoryConfig": "",
+      "factEstimatorFactoryClass": "com.yahoo.maha.service.factory.TestFactCostEstimatoryFactory",
+      "factEstimatorFactoryConfig": "",
+      "defaultPublicFactRevisionMap": {
+        "student_performance": 0
+      },
+      "defaultPublicDimRevisionMap": {
+        "student": 0
       }
-   },
-   "executorMap": {
-      "oracleExec": {
-         "factoryClass": "com.yahoo.maha.service.factory.OracleQueryExecutoryFactory",
-         "config": {
-            "dataSourceName": "oracleDataSource",
-            "jdbcConnectionFetchSize": 10,
-            "lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
-            "lifecycleListenerFactoryConfig": [
-               {
-                  "key": "value"
-               }
-            ]
-         }
-      },
-      "druidExec": {
-         "factoryClass": "com.yahoo.maha.service.factory.DruidQueryExecutoryFactory",
-         "config": {
-            "druidQueryExecutorConfigFactoryClassName": "com.yahoo.maha.service.factory.DefaultDruidQueryExecutorConfigFactory",
-            "druidQueryExecutorConfigJsonConfig": {
-               "maxConnectionsPerHost": 100,
-               "maxConnections": 10000,
-               "connectionTimeout": 140000,
-               "timeoutRetryInterval": 100,
-               "timeoutThreshold": 9000,
-               "degradationConfigName": "TestConfig",
-               "url": "http://localhost:druidLocalPort/mock/studentPerf",
-               "headers": {
-                  "key": "value"
-               },
-               "readTimeout": 10000,
-               "requestTimeout": 10000,
-               "pooledConnectionIdleTimeout": 10000,
-               "timeoutMaxResponseTimeInMs": 30000,
-               "enableRetryOn500": true,
-               "retryDelayMillis": 1000,
-               "maxRetry": 3,
-               "enableFallbackOnUncoveredIntervals" : true
-            },
-            "lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
-            "lifecycleListenerFactoryConfig": [
-               {
-                  "key": "value"
-               }
-            ],
-            "resultSetTransformersFactoryClassName": "com.yahoo.maha.service.factory.DefaultResultSetTransformersFactory",
-            "resultSetTransformersFactoryConfig": [
-               {
-                  "key": "value"
-               }
-            ],
-            "authHeaderProviderFactoryClassName": "com.yahoo.maha.service.factory.NoopAuthHeaderProviderFactory",
-            "authHeaderProviderFactoryConfig" : {
-               "domain" : "Maha",
-               "service" :"MahaProviderService",
-               "privateKeyName" : "sa",
-               "privateKeyId" : "sa"
-            }
-         }
-      },
-     "prestoExec": {
-       "factoryClass": "com.yahoo.maha.service.factory.PrestoQueryExecutoryFactory",
-       "config": {
-         "dataSourceName" : "prestoDataSource",
-         "jdbcConnectionFetchSize": 10,
-         "lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
-         "lifecycleListenerFactoryConfig": [
-           {
-             "key": "value"
-           }
-         ],
-         "prestoQueryTemplateFactoryName" : "com.yahoo.maha.service.factory.DefaultPrestoQueryTemplateFactory",
-         "prestoQueryTemplateFactoryConfig" : [{"key": "value"}]
-       }
-     }
-   },
-   "generatorMap": {
-      "oracle": {
-         "factoryClass": "com.yahoo.maha.service.factory.OracleQueryGeneratorFactory",
-         "config": {
-            "partitionColumnRendererClass": "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
-            "partitionColumnRendererConfig": [
-               {
-                  "key": "value"
-               }
-            ],
-            "literalMapperClass": "com.yahoo.maha.service.factory.DefaultOracleLiteralMapperFactory",
-            "literalMapperConfig": [
-               {
-                  "key": "value"
-               }
-            ]
-         }
-      },
-      "druid": {
-         "factoryClass": "com.yahoo.maha.service.factory.DruidQueryGeneratorFactory",
-         "config": {
-            "queryOptimizerClass": "com.yahoo.maha.service.factory.DefaultDruidQueryOptimizerFactory",
-            "queryOptimizerConfig": [
-               {
-                  "key": "value"
-               }
-            ],
-            "dimCardinality": 40000,
-            "maximumMaxRows": 5000,
-            "maximumTopNMaxRows": 400,
-            "maximumMaxRowsAsync": 100000
-         }
-      },
-     "presto": {
-       "factoryClass": "com.yahoo.maha.service.factory.PrestoQueryGeneratorFactory",
-       "config": {
-         "partitionColumnRendererClass": "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
-         "partitionColumnRendererConfig": [
-           {
-             "key": "value"
-           }
-         ],
-         "udfRegistrationFactoryName" : "com.yahoo.maha.service.factory.DefaultMahaUDFRegistrationFactory",
-         "udfRegistrationFactoryConfig" : [{"key": "value"}]
-       }
-     },
-     "hive": {
-       "factoryClass": "com.yahoo.maha.service.factory.HiveQueryGeneratorFactory",
-       "config": {
-         "partitionColumnRendererClass": "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
-         "partitionColumnRendererConfig": [
-           {
-             "key": "value"
-           }
-         ],
-         "udfRegistrationFactoryName" : "com.yahoo.maha.service.factory.DefaultMahaUDFRegistrationFactory",
-         "udfRegistrationFactoryConfig" : [{"key": "value"}]
-       }
-     }
-   },
-   "bucketingConfigMap": {
-      "erBucket": {
-         "factoryClass": "com.yahoo.maha.service.factory.DefaultBucketingConfigFactory",
-         "config": {"cube":
-    [{
-      "cube": "student_performance",
-      "internal": [{
-        "revision": 0,
-        "percent": 10
-      }, {
-        "revision": 1,
-        "percent": 90
-      }],
-      "external": [{
-        "revision": 0,
-        "percent": 90
-      }, {
-        "revision": 1,
-        "percent": 10
-      }],
-      "dryRun": [{
-        "revision": 0,
-        "percent": 10,
-        "engine" : "Oracle"
-      }, {
-        "revision": 1,
-        "percent": 10
-      }],
-      "userWhiteList": [{
-        "user" : "uid",
-        "revision": 0
-      }]
-    }],
-    "queryGenerator": []
-}}
-      },
-      "irBucket": {
-         "factoryClass": "com.yahoo.maha.service.factory.DefaultBucketingConfigFactory",
-         "config": {"cube":[{
-	  "cube": "student_performance",
-		"internal": [{
-			"revision": 0,
-      "percent": 10
-		}, {
-      "revision": 1,
-      "percent": 90
-    }],
-		"external": [{
-			"revision": 0,
-      "percent": 90
-		}, {
-      "revision": 1,
-      "percent": 10
-		}],
-    "dryRun": [{
-			"revision": 0,
-      "percent": 100,
-      "engine" : "Oracle"
-		}, {
-      "revision": 1,
-      "percent": 10
-    }],
-    "userWhiteList": [{
-      "user" : "uid",
-      "revision": 0
-    }]
-}],
-     "queryGenerator": []
     }
-   },
-   "utcTimeProviderMap": {
-      "erUTC": {
-         "factoryClass": "com.yahoo.maha.service.factory.PassThroughUTCTimeProviderFactory",
-         "config": {
-            "k": "v"
-         }
-      },
-      "irUTC": {
-         "factoryClass": "com.yahoo.maha.service.factory.PassThroughUTCTimeProviderFactory",
-         "config": {
-            "k": "v"
-         }
+  },
+  "executorMap": {
+    "oracleExec": {
+      "factoryClass": "com.yahoo.maha.service.factory.OracleQueryExecutoryFactory",
+      "config": {
+        "dataSourceName": "oracleDataSource",
+        "jdbcConnectionFetchSize": 10,
+        "lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
+        "lifecycleListenerFactoryConfig": [
+          {
+            "key": "value"
+          }
+        ]
       }
-   },
-   "parallelServiceExecutorConfigMap": {
-      "erParallelExec": {
-         "factoryClass": "com.yahoo.maha.service.factory.DefaultParallelServiceExecutoryFactory",
-         "config": {
-            "rejectedExecutionHandlerClass": "com.yahoo.maha.service.factory.DefaultRejectedExecutionHandlerFactory",
-            "rejectedExecutionHandlerConfig": "",
-            "poolName": "maha-test-pool",
-            "defaultTimeoutMillis": 10000,
-            "threadPoolSize": 10,
-            "queueSize": 100
-         }
-      },
-      "irParallelExec": {
-         "factoryClass": "com.yahoo.maha.service.factory.DefaultParallelServiceExecutoryFactory",
-         "config": {
-            "rejectedExecutionHandlerClass": "com.yahoo.maha.service.factory.DefaultRejectedExecutionHandlerFactory",
-            "rejectedExecutionHandlerConfig": "",
-            "poolName": "maha-test-pool",
-            "defaultTimeoutMillis": 10000,
-            "threadPoolSize": 3,
-            "queueSize": 3
-         }
+    },
+    "druidExec": {
+      "factoryClass": "com.yahoo.maha.service.factory.DruidQueryExecutoryFactory",
+      "config": {
+        "druidQueryExecutorConfigFactoryClassName": "com.yahoo.maha.service.factory.DefaultDruidQueryExecutorConfigFactory",
+        "druidQueryExecutorConfigJsonConfig": {
+          "maxConnectionsPerHost": 100,
+          "maxConnections": 10000,
+          "connectionTimeout": 140000,
+          "timeoutRetryInterval": 100,
+          "timeoutThreshold": 9000,
+          "degradationConfigName": "TestConfig",
+          "url": "http://localhost:druidLocalPort/mock/studentPerf",
+          "headers": {
+            "key": "value"
+          },
+          "readTimeout": 10000,
+          "requestTimeout": 10000,
+          "pooledConnectionIdleTimeout": 10000,
+          "timeoutMaxResponseTimeInMs": 30000,
+          "enableRetryOn500": true,
+          "retryDelayMillis": 1000,
+          "maxRetry": 3,
+          "enableFallbackOnUncoveredIntervals": true
+        },
+        "lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
+        "lifecycleListenerFactoryConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "resultSetTransformersFactoryClassName": "com.yahoo.maha.service.factory.DefaultResultSetTransformersFactory",
+        "resultSetTransformersFactoryConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "authHeaderProviderFactoryClassName": "com.yahoo.maha.service.factory.NoopAuthHeaderProviderFactory",
+        "authHeaderProviderFactoryConfig": {
+          "domain": "Maha",
+          "service": "MahaProviderService",
+          "privateKeyName": "sa",
+          "privateKeyId": "sa"
+        }
       }
-   },
-  "datasourceMap" : {
+    },
+    "prestoExec": {
+      "factoryClass": "com.yahoo.maha.service.factory.PrestoQueryExecutoryFactory",
+      "config": {
+        "dataSourceName": "prestoDataSource",
+        "jdbcConnectionFetchSize": 10,
+        "lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
+        "lifecycleListenerFactoryConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "prestoQueryTemplateFactoryName": "com.yahoo.maha.service.factory.DefaultPrestoQueryTemplateFactory",
+        "prestoQueryTemplateFactoryConfig": [
+          {
+            "key": "value"
+          }
+        ]
+      }
+    }
+  },
+  "generatorMap": {
+    "oracle": {
+      "factoryClass": "com.yahoo.maha.service.factory.OracleQueryGeneratorFactory",
+      "config": {
+        "partitionColumnRendererClass": "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
+        "partitionColumnRendererConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "literalMapperClass": "com.yahoo.maha.service.factory.DefaultOracleLiteralMapperFactory",
+        "literalMapperConfig": [
+          {
+            "key": "value"
+          }
+        ]
+      }
+    },
+    "druid": {
+      "factoryClass": "com.yahoo.maha.service.factory.DruidQueryGeneratorFactory",
+      "config": {
+        "queryOptimizerClass": "com.yahoo.maha.service.factory.DefaultDruidQueryOptimizerFactory",
+        "queryOptimizerConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "dimCardinality": 40000,
+        "maximumMaxRows": 5000,
+        "maximumTopNMaxRows": 400,
+        "maximumMaxRowsAsync": 100000
+      }
+    },
+    "presto": {
+      "factoryClass": "com.yahoo.maha.service.factory.PrestoQueryGeneratorFactory",
+      "config": {
+        "partitionColumnRendererClass": "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
+        "partitionColumnRendererConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "udfRegistrationFactoryName": "com.yahoo.maha.service.factory.DefaultMahaUDFRegistrationFactory",
+        "udfRegistrationFactoryConfig": [
+          {
+            "key": "value"
+          }
+        ]
+      }
+    },
+    "hive": {
+      "factoryClass": "com.yahoo.maha.service.factory.HiveQueryGeneratorFactory",
+      "config": {
+        "partitionColumnRendererClass": "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
+        "partitionColumnRendererConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "udfRegistrationFactoryName": "com.yahoo.maha.service.factory.DefaultMahaUDFRegistrationFactory",
+        "udfRegistrationFactoryConfig": [
+          {
+            "key": "value"
+          }
+        ]
+      }
+    },
+    "hive_v2": {
+      "factoryClass": "com.yahoo.maha.service.factory.HiveQueryGeneratorFactory",
+      "config": {
+        "partitionColumnRendererClass": "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
+        "partitionColumnRendererConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "udfRegistrationFactoryName": "com.yahoo.maha.service.factory.DefaultMahaUDFRegistrationFactory",
+        "udfRegistrationFactoryConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "version" : 2
+      }
+    }
+  },
+  "bucketingConfigMap": {
+    "erBucket": {
+      "factoryClass": "com.yahoo.maha.service.factory.DefaultBucketingConfigFactory",
+      "config": {
+        "cube": [
+          {
+            "cube": "student_performance",
+            "internal": [
+              {
+                "revision": 0,
+                "percent": 10
+              },
+              {
+                "revision": 1,
+                "percent": 90
+              }
+            ],
+            "external": [
+              {
+                "revision": 0,
+                "percent": 90
+              },
+              {
+                "revision": 1,
+                "percent": 10
+              }
+            ],
+            "dryRun": [
+              {
+                "revision": 0,
+                "percent": 10,
+                "engine": "Oracle"
+              },
+              {
+                "revision": 1,
+                "percent": 10
+              }
+            ],
+            "userWhiteList": [
+              {
+                "user": "uid",
+                "revision": 0
+              }
+            ]
+          }
+        ],
+        "queryGenerator": [
+          {
+            "engine": "hive",
+            "internal": [
+              {
+                "revision": 0,
+                "percent": 0
+              },
+              {
+                "revision": 2,
+                "percent": 100
+              }
+            ],
+            "external": [
+              {
+                "revision": 0,
+                "percent": 100
+              },
+              {
+                "revision": 2,
+                "percent": 0
+              }
+            ],
+            "dryRun": [
+              {
+                "revision": 2,
+                "percent": 50
+              }
+            ],
+            "userWhiteList": [
+              {
+                "user": "pranavbhole",
+                "revision": 2
+              },
+              {
+                "user": "pavanb",
+                "revision": 2
+              }
+            ]
+          }
+
+        ]
+      }
+    }
+  },
+  "irBucket": {
+    "factoryClass": "com.yahoo.maha.service.factory.DefaultBucketingConfigFactory",
+    "config": {
+      "cube": [
+        {
+          "cube": "student_performance",
+          "internal": [
+            {
+              "revision": 0,
+              "percent": 10
+            },
+            {
+              "revision": 1,
+              "percent": 90
+            }
+          ],
+          "external": [
+            {
+              "revision": 0,
+              "percent": 90
+            },
+            {
+              "revision": 1,
+              "percent": 10
+            }
+          ],
+          "dryRun": [
+            {
+              "revision": 0,
+              "percent": 100,
+              "engine": "Oracle"
+            },
+            {
+              "revision": 1,
+              "percent": 10
+            }
+          ],
+          "userWhiteList": [
+            {
+              "user": "uid",
+              "revision": 0
+            }
+          ]
+        }
+      ],
+      "queryGenerator": [
+      ]
+    }
+  },
+  "utcTimeProviderMap": {
+    "erUTC": {
+      "factoryClass": "com.yahoo.maha.service.factory.PassThroughUTCTimeProviderFactory",
+      "config": {
+        "k": "v"
+      }
+    },
+    "irUTC": {
+      "factoryClass": "com.yahoo.maha.service.factory.PassThroughUTCTimeProviderFactory",
+      "config": {
+        "k": "v"
+      }
+    }
+  },
+  "parallelServiceExecutorConfigMap": {
+    "erParallelExec": {
+      "factoryClass": "com.yahoo.maha.service.factory.DefaultParallelServiceExecutoryFactory",
+      "config": {
+        "rejectedExecutionHandlerClass": "com.yahoo.maha.service.factory.DefaultRejectedExecutionHandlerFactory",
+        "rejectedExecutionHandlerConfig": "",
+        "poolName": "maha-test-pool",
+        "defaultTimeoutMillis": 10000,
+        "threadPoolSize": 10,
+        "queueSize": 100
+      }
+    },
+    "irParallelExec": {
+      "factoryClass": "com.yahoo.maha.service.factory.DefaultParallelServiceExecutoryFactory",
+      "config": {
+        "rejectedExecutionHandlerClass": "com.yahoo.maha.service.factory.DefaultRejectedExecutionHandlerFactory",
+        "rejectedExecutionHandlerConfig": "",
+        "poolName": "maha-test-pool",
+        "defaultTimeoutMillis": 10000,
+        "threadPoolSize": 3,
+        "queueSize": 3
+      }
+    }
+  },
+  "datasourceMap": {
     "oracleDataSource": {
       "factoryClass": "com.yahoo.maha.service.factory.HikariDataSourceFactory",
       "config": {
@@ -332,52 +433,46 @@
       }
     }
   },
-   "mahaRequestLoggingConfig" : {
+  "mahaRequestLoggingConfig": {
     "factoryClass": "com.yahoo.maha.service.factory.KafkaMahaRequestLogWriterFactory",
-    "config" : {
-      "kafkaBrokerList" : "",
-      "bootstrapServers" : "",
-      "producerType" : "",
-      "serializerClass" : "" ,
-      "requestRequiredAcks" : "",
-      "kafkaBlockOnBufferFull" : "",
-      "batchNumMessages" : "" ,
-      "topicName" : "",
-      "bufferMemory" : "",
-      "maxBlockMs" : ""
+    "config": {
+      "kafkaBrokerList": "",
+      "bootstrapServers": "",
+      "producerType": "",
+      "serializerClass": "",
+      "requestRequiredAcks": "",
+      "kafkaBlockOnBufferFull": "",
+      "batchNumMessages": "",
+      "topicName": "",
+      "bufferMemory": "",
+      "maxBlockMs": ""
     },
-    "isLoggingEnabled" : false
-   },
-   "curatorMap": {
-      "fail": {
-         "factoryClass": "com.yahoo.maha.service.factory.FailingCuratorFactory",
-         "config": {
-         }
-      },
-      "default": {
-         "factoryClass": "com.yahoo.maha.service.factory.DefaultCuratorFactory",
-         "config": {
-         }
-      },
-     "rowcount": {
-       "factoryClass": "com.yahoo.maha.service.factory.RowCountCuratorFactory",
-       "config": {
-       }
-     },
-      "timeshift": {
-         "factoryClass": "com.yahoo.maha.service.factory.TimeShiftCuratorFactory",
-         "config": {
-         }
-      },
-      "drilldown": {
-         "factoryClass": "com.yahoo.maha.service.factory.DrillDownCuratorFactory",
-         "config": {
-         }
-      },
-      "totalmetrics": {
-         "factoryClass": "com.yahoo.maha.service.factory.TotalMetricsCuratorFactory",
-         "config": {
-         }
-      }
-   }
+    "isLoggingEnabled": false
+  },
+  "curatorMap": {
+    "fail": {
+      "factoryClass": "com.yahoo.maha.service.factory.FailingCuratorFactory",
+      "config": {}
+    },
+    "default": {
+      "factoryClass": "com.yahoo.maha.service.factory.DefaultCuratorFactory",
+      "config": {}
+    },
+    "rowcount": {
+      "factoryClass": "com.yahoo.maha.service.factory.RowCountCuratorFactory",
+      "config": {}
+    },
+    "timeshift": {
+      "factoryClass": "com.yahoo.maha.service.factory.TimeShiftCuratorFactory",
+      "config": {}
+    },
+    "drilldown": {
+      "factoryClass": "com.yahoo.maha.service.factory.DrillDownCuratorFactory",
+      "config": {}
+    },
+    "totalmetrics": {
+      "factoryClass": "com.yahoo.maha.service.factory.TotalMetricsCuratorFactory",
+      "config": {}
+    }
+  }
 }
