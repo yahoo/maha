@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
-import io.druid.java.util.common.logger.Logger;
+import com.metamx.common.logger.Logger;
 import io.druid.query.extraction.ExtractionFn;
 import io.druid.query.lookup.LookupReferencesManager;
 
@@ -19,6 +19,8 @@ import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import com.google.common.base.Strings;
 
 @JsonTypeName("mahaRegisteredLookup")
 public class MahaRegisteredLookupExtractionFn implements ExtractionFn
@@ -147,6 +149,8 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     @Override
     public String apply(String value)
     {
+        if("".equals(Strings.nullToEmpty(value)))
+            return null;
         String serializedElement = isUseQueryLevelCache() ?
                 ensureCache().get(value, key -> getSerializedLookupQueryElement(value)) :
                 getSerializedLookupQueryElement(value);

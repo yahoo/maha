@@ -809,7 +809,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             FilterDruid.renderFilterDim(filter, fact.columnsByNameMap.map(e => e._1 -> e._2.name), fact.columnsByNameMap, Option(fact.grain))
           }.asJava
 
-        val dimFilter: AndDimFilter = new AndDimFilter(dimFilterList)
+        val dimFilter: AndDimFilter = Druids.newAndDimFilterBuilder().fields(dimFilterList).build
 
         new FilteredAggregatorFactory(getAggregatorFactory(dataType, druidFilteredListRollup.delegateAggregatorRollupExpression,
           alias, druidFilteredListRollup.factCol.fieldNamePlaceHolder), dimFilter)
