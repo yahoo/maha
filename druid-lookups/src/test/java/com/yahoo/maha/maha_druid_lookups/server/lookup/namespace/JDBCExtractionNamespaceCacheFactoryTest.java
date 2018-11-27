@@ -1,6 +1,6 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
-import io.druid.java.util.emitter.service.ServiceEmitter;
+import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import io.druid.metadata.MetadataStorageConnectorConfig;

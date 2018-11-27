@@ -19,5 +19,6 @@ GET     /kill/segments                    controllers.DashBoard.killSegments
 POST    /kill/segments/submit             controllers.DashBoard.submitKillSegments
 GET     /workers/:host/:action            controllers.DashBoard.enableDisableMiddleManager(host:String,action:String)
 GET     /jsroute                          controllers.DashBoard.jsRouter
+POST    /lookups/query                    controllers.DashBoard.getLookUpsQuery
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)

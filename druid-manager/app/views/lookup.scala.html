@@ -1,6 +1,6 @@
 @* Copyright 2018, Oath Inc.
 Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms. *@
-@(lookupsMap : Map[String, List[(String, String, String, String, String)]])
+@(lookupsMap: Map[String, List[(String, String, String, String, String)]], tierLookupConfigMap: Map[String, List[(String, String)]])
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -12,9 +12,14 @@ Licensed under the terms of the Apache License 2.0. Please see LICENSE file in p
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
         <link rel="stylesheet" href="@routes.Assets.at("stylesheets/dataTables.css")">
         <script type="text/javascript" src ="@routes.Assets.at("javascripts/dataTables.js")"></script>
-            <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
-
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+        <script type="text/javascript" src ="@routes.DashBoard.jsRouter"></script>
     </head>
+    <style>
+        .table-fit {
+            width: 1px;
+        }
+    </style>
     <body>
         <nav class="navbar navbar-default navbar-static-top ">
             <div class="container-fluid">
@@ -38,42 +43,281 @@ Licensed under the terms of the Apache License 2.0. Please see LICENSE file in p
             <div class="row text-center " id="container-fluid">
             </div>
             <div class="row">
-                <div class="col-sm-1"></div>
-                <div class="col-sm-10">
-                    <table class="table table-bordered table-hover table-striped" id="lookup-table" style="table-layout : fixed ; word-wrap : break-word ;">
-                        <thead>
-                        <tr>
-                            <th>Host </th>
-                            <th>Lookup Name</th>
-                            <th>Lookup Size</th>
-                            <th>Oracle Size</th>
-                            <th>Lookup Last Updated Time</th>
-                            <th>Oracle Last Updated Time</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        @for((k, list) <- lookupsMap) {
-                            @for((v) <- list) {
-                                <tr>
-                                    <td>@k</td>
-                                    <td>@v._1</td>
-                                    <td>@v._2</td>
-                                    <td>@v._3</td>
-                                    <td>@v._4</td>
-                                    <td>@v._5</td>
-                                </tr>
-                            }
-                        }
-                        </tbody>
-                    </table>
+                <div class="col-md-3"></div>
+                <div class="col-md-6">
+                    <ul class="nav nav-tabs nav-justified">
+                        <li class="active"><a data-toggle="tab" href="#lookups">Lookup Size</a></li>
+                        <li><a data-toggle="tab" href="#configs">Configurations</a></li>
+
+                        <li><a data-toggle="tab" href="#query">Query</a></li>
+
+                    </ul>
                 </div>
-                <div class="col-sm-1"></div>
+                <div class="col-md-2"></div>
             </div>
-            <script>
-                $(document).ready(function(){
-                    $('#lookup-table').dataTable();
-                });
-            </script>
+            <br>
+            <div class="tab-content">
+                <div id="lookups" class="row tab-pane fade in active">
+                    <div class="row">
+                        <div class="col-sm-1"></div>
+                        <div class="col-sm-10">
+                            <table class="table table-bordered table-hover table-striped" id="lookup-table" style="table-layout : fixed ; word-wrap : break-word ;">
+                                <thead>
+                                    <tr>
+                                        <th>Host </th>
+                                        <th>Lookup Name</th>
+                                        <th>Lookup Size</th>
+                                        <th>Oracle Size</th>
+                                        <th>Lookup Last Updated Time</th>
+                                        <th>Oracle Last Updated Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @for((k, list) <- lookupsMap) {
+                                    @for((v) <- list) {
+                                        <tr>
+                                            <td>@k</td>
+                                            <td>@v._1</td>
+                                            <td>@v._2</td>
+                                            <td>@v._3</td>
+                                            <td>@v._4</td>
+                                            <td>@v._5</td>
+                                        </tr>
+                                    }
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-sm-1"></div>
+                    </div>
+                    <script>
+                            $(document).ready(function(){
+                                $('#lookup-table').dataTable();
+                            });
+                    </script>
+                </div>
+                <div id="configs" class="tab-pane fade">
+                    <div class="row">
+                        <div class="col-sm-1"></div>
+                        <div class="col-sm-10">
+                            <table class="table table-bordered table-hover table-striped table-fit" id="configs-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col" class="col-auto">Tier Name</th>
+                                        <th scope="col" class="col-auto">Lookup Name</th>
+                                        <th scope="col" class="col-md-auto">Lookup Configuration</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @for((tier, lookupConfList) <- tierLookupConfigMap) {
+                                    @for((lookup, conf) <- lookupConfList) {
+                                        <tr>
+                                            <td scope="row">@tier</td>
+                                            <td>@lookup</td>
+                                            <td><pre>@conf</pre></td>
+                                        </tr>
+                                    }
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-sm-1"></div>
+                        <script>
+                                $(document).ready(function(){
+                                    $('#configs-table').dataTable();
+                                });
+                        </script>
+                    </div>
+                </div>
+
+                <div id="query" class="tab-pane fade">
+                    <div id="query-job-tab" class="row tab-pane fade in active">
+                        <div class="row ">
+                            <div class="col-md-4"></div>
+                            <div class="col-md-4">
+                                <div class="row  well well-sm">
+                                    <div class="col-md-8">
+                                        <label>Key</label>
+                                        <input class="form-control" id="key" placeholder="Enter Key Here">
+                                    </div>
+                                </div>
+                                <div class="row  well well-sm">
+                                    <div class="col-md-8">
+                                        <label>Value Column</label>
+                                        <input class="form-control" id="valueColumn" placeholder="Enter Value Column Here">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4"></div>
+                            <div class ="col-md-4 well well-lg">
+
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="row ">
+                                            <div class="col-md-12">
+                                                <label for="historicalhost">Historical Host</label>
+                                                <select class="form-control" id="historicalhost">
+                                                    @for((k, list) <- lookupsMap) {
+                                                    <option value="@k">@k</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <br>
+
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="row ">
+                                            <div class="col-md-12">
+                                                <label for="tier">Tier</label>
+                                                <select class="form-control" id="tier" onChange="setupLookup()">
+                                                    <option value="" selected disabled>Please select</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <br>
+
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="row ">
+                                            <div class="col-md-12">
+                                                <label for="lookup">Look Up</label>
+                                                <select class="form-control" id="lookup" ></select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <br><br>
+                                    <div class="col-md-4">
+                                        <button type="submit" class="btn btn-success"  onclick="fetchResult()">Submit</button>
+                                    </div>
+                                    <div class="col-md-4"></div>
+                                    <div class="col-md-4"></div>
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4"></div>
+                            <div class ="col-md-4 well well-lg">
+                                <div id="query-result" class="row tab-pane fade in active">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
         </div>
+        <script>
+            var mapOfTierLookup = new Map();
+
+            $(document).ready(function(){
+
+                @for((k,v) <- tierLookupConfigMap){
+                    if(mapOfTierLookup.has("@k") === false){
+                        var mp = new Map();
+                        mapOfTierLookup.set("@k",mp);
+                    }
+                    var mapOfLookupConfig = mapOfTierLookup.get("@k");
+                    @for(tuple <- v){
+                        var json = '@tuple._2.replace("\n", "")';
+                        var v1 = json.replace(/&quot;/g, "\"");
+                        var obj = JSON.parse(v1);
+                        var namespace = obj.lookupExtractorFactory.extractionNamespace.type
+                        mapOfLookupConfig.set("@tuple._1",namespace);
+                    }
+                }
+
+                var tierList = document.getElementById("tier");
+                var i = 1;
+                for(var [k,v] of mapOfTierLookup){
+                    tierList.options[i] = new Option(k, k);
+                    i++;
+                }
+
+            });
+
+            function setupLookup(){
+                var preLookup = document.getElementById("lookup");
+                for (i = 0; i < preLookup.options.length; i++) {
+                    preLookup.options[i] = null;
+                }
+
+                var tierList = document.getElementById("tier");
+                var lookupList = document.getElementById("lookup");
+                var tierListSelectedValue = tierList.options[tierList.selectedIndex].value;
+
+                for(var [k,v] of mapOfTierLookup){
+                    if(k === tierListSelectedValue){
+                        var mp = mapOfTierLookup.get(k);
+                        var i = 0;
+                        for(var [lookup,config] of mp){
+                            lookupList.options[i] = new Option(lookup, lookup);
+                            i++;
+                        }
+                    }
+                }
+            }
+
+            function fetchResult(){
+                var hostname = document.getElementById("historicalhost").value;
+                var tier = document.getElementById("tier").value;
+                var lookup = document.getElementById("lookup").value;
+                var namespace = '';
+                if(mapOfTierLookup.get(tier).get(lookup) === 'mahajdbc'){
+                    namespace = 'JDBCExtractionNamespace';
+                }
+                else{
+                    namespace = 'InMemoryDBExtractionNamespace';
+                }
+                var key = document.getElementById("key").value;
+                var valueColumn = document.getElementById("valueColumn").value;
+
+                var load = '{"hostname":\"'+ hostname+'\","tier":\"'+ tier+'\","lookup":\"'+ lookup+'\","namespace":\"'+ namespace+'\","key":\"'+ key+'\","valueColumn":\"'+ valueColumn+'\"}';
+                console.log("Constructed load for druid lookup query : "+load)
+
+
+                var route = jsRoutes.controllers.DashBoard.getLookUpsQuery
+                route().ajax({
+                                data: load,
+                                contentType : 'application/json',
+                                timeout: 60000,
+                                success: function(result) {
+                                    try{
+                                        console.log("query result are : " +result)
+                                        document.getElementById("query-result").innerHTML = result;
+                                    }
+                                    catch(er){
+                                        console.log(" failed to execute query er"+ er)
+                                        $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong>  Error occurred while getting values </strong> </div>')
+                                    }
+                                },
+                                error: function(x, t, m) {
+                                        console.log(" failed to execute the query error "+ t)
+                                        $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong>  Error : '+x.responseText+'</strong> </div>')
+                                },
+                                failure: function(x) {
+                                        console.log(" failed to execute the query failure "+ x)
+                                        $("#container").append('<div class="alert alert-danger fade in" id="alert"> <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a> <strong> Failed to get values</strong> </div>')
+                                }
+                })
+
+            }
+
+
+        </script>
     </body>
 </html>

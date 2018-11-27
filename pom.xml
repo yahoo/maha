@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>5.209-SNAPSHOT</version>
+    <version>5.226-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -34,7 +34,7 @@
         <httpclient.version>4.5.5</httpclient.version>
         <guava.version>24.1.1-jre</guava.version>
         <jodatime.version>2.9.9</jodatime.version>
-        <druid.version>0.12.2</druid.version>
+        <druid.version>0.11.0</druid.version>
         <scala.arm.version>2.0</scala.arm.version>
         <opencsv.version>3.8</opencsv.version>
         <esapi.version>2.1.0.1</esapi.version>
@@ -57,9 +57,12 @@
         <enumeratum.version>1.5.13</enumeratum.version>
         <kafka.version>1.1.0</kafka.version>
         <caffeine.version>2.6.2</caffeine.version>
+        <archaius.version>0.7.6</archaius.version>
+        <bytebuddy.version>1.8.12</bytebuddy.version>
         <kryo.version>4.0.2</kryo.version>
         <lz4.version>1.4.1</lz4.version>
         <curator.version>4.0.1</curator.version>
+        <akka.version>2.5.4</akka.version>
     </properties>
 
 
@@ -419,6 +422,7 @@
                 <artifactId>leveldbjni-all</artifactId>
                 <version>${leveldb.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.http4s</groupId>
                 <artifactId>http4s-dsl_${scala.major.version}</artifactId>
@@ -436,6 +440,11 @@
                 <artifactId>http4s-blaze-client_${scala.major.version}</artifactId>
                 <version>${http4s.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.typesafe.akka</groupId>
+                <artifactId>akka-actor_${scala.major.version}</artifactId>
+                <version>${akka.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

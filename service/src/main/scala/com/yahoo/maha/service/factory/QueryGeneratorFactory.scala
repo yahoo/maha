@@ -5,7 +5,7 @@ package com.yahoo.maha.service.factory
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.query.{QueryGenerator, Version}
 import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, DruidQueryOptimizer}
-import com.yahoo.maha.core.query.hive.{HiveQueryGenerator, HiveQueryGeneratorV1}
+import com.yahoo.maha.core.query.hive.{HiveQueryGenerator, HiveQueryGeneratorV1, HiveQueryGeneratorV2}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.query.presto.PrestoQueryGenerator
 import com.yahoo.maha.core.request._
@@ -138,6 +138,8 @@ class HiveQueryGeneratorFactory extends QueryGeneratorFactory {
     (partitionColumnRenderer |@| udfStatements) {
       (renderer, stmt) => {
         version match {
+          case Version.v2 =>
+            new HiveQueryGeneratorV2(renderer, stmt)
           case Version.v1 =>
             new HiveQueryGeneratorV1(renderer, stmt)
           case _ =>

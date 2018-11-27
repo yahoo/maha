@@ -2,7 +2,6 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.example
 
-import com.yahoo.maha.core.Engine
 import com.yahoo.maha.core.bucketing._
 import com.yahoo.maha.core.query.{QueryRowList, Version}
 import com.yahoo.maha.core.request._
@@ -23,6 +22,27 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
   override protected def afterAll(): Unit =  {
     super.afterAll()
     server.shutdownNow()
+  }
+
+  val jsonRequestHive = s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Marks Obtained"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                         "sortBy": [
+                            {"field": "Marks Obtained", "order": "Asc"}
+                          ]
+                        }"""
+
+  val reportingRequestHive  =  {
+    val reportingRequestHiveResult = ReportingRequest.deserializeAsync(jsonRequestHive.getBytes, schema = StudentSchema)
+    require(reportingRequestHiveResult.isSuccess)
+    ReportingRequest.forceHive(reportingRequestHiveResult.toOption.get)
   }
 
   test("Test MahaService with Example Schema") {
@@ -278,7 +298,21 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
     val requestModelResultTry  = mahaService.generateRequestModel("er", reportingRequest, bucketParams)
     assert(requestModelResultTry.isSuccess)
 
-    val queryPipelines = mahaService.generateQueryPipelines("er", requestModelResultTry.get.model)
+    val queryPipelines = mahaService.generateQueryPipelines("er", requestModelResultTry.get.model, BucketParams())
     assert(queryPipelines._1.isSuccess)
+
+    val queryPipelinesWithForceVersion = mahaService.generateQueryPipelines("er", requestModelResultTry.get.model, BucketParams(forceQueryGenVersion = Some(Version.v1)))
+    assert(queryPipelinesWithForceVersion._1.isFailure)
   }
+
+  test("Test Query Gen bucketing") {
+    val bucketParams = BucketParams(userInfo = UserInfo("maha", true), forceRevision = Some(0))
+    val requestModelHiveResultTry  = mahaService.generateRequestModel("er", reportingRequestHive, bucketParams)
+    assert(requestModelHiveResultTry.isSuccess)
+
+    val queryPipelinesWithQueryGenBuckets = mahaService.generateQueryPipelines("er", requestModelHiveResultTry.get.model, bucketParams)
+    assert(queryPipelinesWithQueryGenBuckets._1.isSuccess)
+    assert(queryPipelinesWithQueryGenBuckets._1.get.queryChain.drivingQuery.queryGenVersion == Some(Version.v2))
+  }
+
 }

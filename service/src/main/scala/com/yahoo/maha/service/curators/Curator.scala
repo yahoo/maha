@@ -236,7 +236,8 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
         requestModelValidator.validate(mahaRequestContext, requestModelResult)
         if(mahaRequestContext.reportingRequest.forceDimensionDriven) {
           val sourcePipelineTry = mahaService.generateQueryPipelines(mahaRequestContext.registryName
-            , requestModelResultTry.get.model)._1
+            , requestModelResultTry.get.model
+          , mahaRequestContext.bucketParams)._1
 
           if (sourcePipelineTry.isFailure) {
             val exception = sourcePipelineTry.failed.get
@@ -264,6 +265,7 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                   , forceFactDriven = false
                   , paginationStartIndex = 0
                   , rowsPerPage = 1
+                  , curatorJsonConfigMap = Map.empty
                 )
               }
             if (totalRowsCountRequestTry.isFailure) {

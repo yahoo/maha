@@ -75,8 +75,6 @@ import RowCSVWriter._
 
 class RowCSVWriter(pw: PrintWriter, separator: Char, quotechar: Char, escapechar: Char, lineEnd: String) extends AutoCloseable {
 
-  import CSVWriter._
-
   val csvWriter = new CSVWriter(pw, separator, quotechar, escapechar, lineEnd)
 
   def this(writer: Writer) {

@@ -8,6 +8,7 @@ import java.util.UUID
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
@@ -274,7 +275,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           PubCol("price_type", "Pricing Type", In)
         ),
         Set(
-          PublicFactCol("impressions", "Impressions", InBetweenEquality),
+          PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),
           PublicFactCol("max_bid", "Max Bid", Set.empty),
@@ -509,6 +510,105 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     insertRows(insertSqlAdsStats, rowsAdsStats, "SELECT * FROM ad_stats_presto")
   }
 
+  test("successfully execute async query for ad_stats with greater than filter") {
+    val jsonString = s"""{
+                          "cube": "ad_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Ad ID"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "1"},
+                            {"field": "Impressions", "operator": ">", "value": "2014"}
+                          ],
+                          "sortBy": [
+                            {"field": "Ad ID", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty).get.build()
+    val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    val result = queryPipeline.execute(queryExecutorContext)
+
+    result match {
+      case scala.util.Success(queryPipelineResult) =>
+        val inmem = queryPipelineResult.rowList
+        assert(!inmem.isEmpty)
+        inmem.foreach({ row =>
+          row.getValue("Ad ID").toString match {
+            case "1004" | "1005" | "1006" | "1007" =>
+              assert(true)
+            case any =>
+              assert(false)
+          }
+        })
+      case any =>
+        any.failed.get.printStackTrace()
+        throw new UnsupportedOperationException(s"unexpected row list : $any")
+    }
+
+  }
+
+  test("successfully execute async query for ad_stats with less than filter") {
+    val jsonString = s"""{
+                          "cube": "ad_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Ad ID"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "1"},
+                            {"field": "Impressions", "operator": "<", "value": "2014"}
+                          ],
+                          "sortBy": [
+                            {"field": "Ad ID", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty).get.build()
+    val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    val result = queryPipeline.execute(queryExecutorContext)
+
+    result match {
+      case scala.util.Success(queryPipelineResult) =>
+        val inmem = queryPipelineResult.rowList
+        assert(!inmem.isEmpty)
+        inmem.foreach({ row =>
+          row.getValue("Ad ID").toString match {
+            case "1000" | "1001" | "1002" | "1003" =>
+              assert(true)
+            case any =>
+              assert(false)
+          }
+        })
+      case any =>
+        any.failed.get.printStackTrace()
+        throw new UnsupportedOperationException(s"unexpected row list : $any")
+    }
+
+  }
+
+
   test("successfully execute async query for ad_stats") {
     val jsonString = s"""{
                           "cube": "ad_stats",
@@ -548,7 +648,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty, None)._1.get.build()
+    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty, None, BucketParams())._1.get.build()
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
 
     val result = queryPipeline.execute(queryExecutorContext)
@@ -604,7 +704,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty, None)._1.get.build()
+    val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty, None, BucketParams())._1.get.build()
     val sqlQuery =  queryPipeline.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
 
     val result = queryPipeline.execute(queryExecutorContext)

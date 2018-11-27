@@ -106,7 +106,7 @@ case class QueryGenBucketingConfig(internalBucketPercentage:Map[Version,Int] = M
     require(internalSum==100,s"Total internal bucket percentage is not 100% but $internalSum")
 
     val externalSum = externalBucketPercentage.values.sum
-    require(externalBucketPercentage.values.sum==100,s"Total external bucket percentage is not 100% but $externalSum")
+    require(externalBucketPercentage.values.sum == 100,s"Total external bucket percentage is not 100% but $externalSum")
   }
 }
 
@@ -156,6 +156,10 @@ trait BucketingConfig {
 class DefaultBucketingConfig(cubeBucketingConfigMap:scala.collection.immutable.Map[String,CubeBucketingConfig],
                              queryGenBucketingConfigMap:scala.collection.immutable.Map[Engine,QueryGenBucketingConfig]) extends BucketingConfig {
   validate()
+
+  def this() {
+    this(Map.empty, Map.empty)
+  }
 
   private[this] def validate(): Unit = {
 
