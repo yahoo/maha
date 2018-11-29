@@ -7,7 +7,7 @@ package com.yahoo.maha.core
  */
 
 import com.google.common.collect.Lists
-import com.yahoo.maha.core.DruidDerivedFunction.{DATETIME_FORMATTER, DRUID_TIME_FORMAT, JAVASCRIPT}
+import com.yahoo.maha.core.DruidDerivedFunction.{DATETIME_FORMATTER, DECODE_DIM, DRUID_TIME_FORMAT, JAVASCRIPT}
 import com.yahoo.maha.core.DruidPostResultFunction.{START_OF_THE_MONTH, START_OF_THE_WEEK}
 import com.yahoo.maha.core.dimension.{DruidFuncDimCol, DruidPostResultFuncDimCol}
 import com.yahoo.maha.core.request.fieldExtended
@@ -809,6 +809,33 @@ object FilterDruid {
           case formatter@DATETIME_FORMATTER(fieldName, index, length) =>
             val exFn = new SubstringDimExtractionFn(index, length)
             new SelectorDimFilter(formatter.dimColName, druidLiteralMapper.toLiteral(column, value, Grain.getGrainByField(column.name)), exFn)
+          case decoder@DECODE_DIM(fieldName, args @ _*) =>
+            val sourceDimCol = columnsByNameMap(decoder.dimColName)
+            val sourceDimMappedValues = if (sourceDimCol.dataType.hasStaticMapping) {
+              sourceDimCol.dataType.reverseStaticMapping(value).toList
+            } else {
+              Set(value).toList
+            }
+            val colReverseMapping = decoder.map.groupBy(_._2).mapValues(_.keys)
+            val decodeLists = sourceDimMappedValues.map {
+              v => colReverseMapping.contains(v) match {
+                case true =>
+                  val curValueList = if (sourceDimCol.dataType.hasStaticMapping) List(v) else Nil
+                  colReverseMapping(v).toList ++ curValueList
+                case false =>
+                  List(v)
+              }
+            }
+            val mappedValues = decodeLists.flatten.distinct
+            mappedValues.length match {
+              case 1 =>
+                new SelectorDimFilter(decoder.dimColName, druidLiteralMapper.toLiteral(sourceDimCol, mappedValues(0), grainOption), null)
+              case _ =>
+                val selectorList: List[DimFilter] = mappedValues.map {
+                  v => new SelectorDimFilter(decoder.dimColName, druidLiteralMapper.toLiteral(sourceDimCol, v, grainOption), null)
+                }
+                new OrDimFilter(selectorList.asJava)
+            }
           case _ =>
             new SelectorDimFilter(columnAlias, druidLiteralMapper.toLiteral(column, value, grainOption), null)
         }
