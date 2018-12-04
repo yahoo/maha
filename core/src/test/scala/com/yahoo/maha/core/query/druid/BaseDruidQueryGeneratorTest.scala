@@ -31,6 +31,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
     registryBuilder.register(pubfact_start_time(forcedFilters))
     registryBuilder.register(pubfact_minute_grain(forcedFilters))
     registryBuilder.register(pubfact5(forcedFilters))
+    registryBuilder.register(pubfact6(forcedFilters))
   }
 
   private[this] def factBuilder(annotations: Set[FactAnnotation]): FactBuilder = {
@@ -200,6 +201,35 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
     }
   }
 
+  private[this] def factBuilder4(annotations: Set[FactAnnotation]): FactBuilder = {
+    import DruidExpression._
+    import ThetaSketchSetOp._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      Fact.newFact(
+        "fact1", HourlyGrain, DruidEngine, Set(AdvertiserSchema, InternalSchema),
+        Set(
+          DimCol("id", IntType(), annotations = Set(ForeignKey("keyword")))
+          , DimCol("ad_id", IntType(), annotations = Set(ForeignKey("ad")))
+          , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("is_slot_ad", IntType(3))
+          , DruidFuncDimCol("is_slot_ad_string", StrType(), DECODE_DIM("{is_slot_ad}", "0", "Standard", "1", "Multiple", "Standard"))
+          , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", 8 -> "CPV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
+          , DruidFuncDimCol("Derived Pricing Type", IntType(3), DECODE_DIM("{price_type}", "7", "6", "2", "1", "{price_type}"))
+          , DimCol("start_time", DateType("yyyyMMddHH"))
+          , DimCol("stats_date", DateType("yyyyMMdd"), Some("statsDate"))
+          , DruidPostResultFuncDimCol("Month", DateType(), postResultFunction = START_OF_THE_MONTH("{stats_date}"))
+          , DruidPostResultFuncDimCol("Week", DateType(), postResultFunction = START_OF_THE_WEEK("{stats_date}"))
+          , DruidFuncDimCol("Day of Week", DateType(), DAY_OF_WEEK("{stats_date}"))
+          , DruidFuncDimCol("My Date", DateType(), DRUID_TIME_FORMAT("YYYY-MM-dd"))
+          , DruidFuncDimCol("Start Date", DateType("YYYYMMdd"), DATETIME_FORMATTER("{start_time}", 0, 8))
+          , DruidFuncDimCol("Start Hour", DateType("HH"), DATETIME_FORMATTER("{start_time}", 8, 2))
+
+        ),
+        Set(),
+        annotations = annotations
+      )
+    }
+  }
 
   private[this] def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     factBuilder(Set.empty)
@@ -561,6 +591,25 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("spend", "Spend", Set.empty),
           PublicFactCol("Const Der Fact Col A", "Const Der Fact Col A", InBetweenEquality)
         ), Set(EqualityFilter("Test Flag", "0", isForceFilter = true)),  getMaxDaysWindow, getMaxDaysLookBack
+      )
+  }
+
+  private[this] def pubfact6(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    factBuilder4(Set(DruidGroupByStrategyV2))
+      .toPublicFact("k_stats_decode_dim",
+        Set(
+          PubCol("stats_date", "Day", InBetweenEquality),
+          PubCol("id", "Keyword ID", InEquality),
+          PubCol("ad_id", "Ad ID", InEquality),
+          PubCol("advertiser_id", "Advertiser ID", InEquality),
+          PubCol("is_slot_ad_string", "Rendered Type", InEquality),
+          PubCol("price_type", "Pricing Type", In),
+          PubCol("Derived Pricing Type", "Derived Pricing Type", InEquality),
+          PubCol("Week", "Week", InBetweenEquality)
+        ),
+        Set(),
+        Set(),
+        getMaxDaysWindow, getMaxDaysLookBack, renderLocalTimeFilter = true, revision = 1, dimRevision = 2
       )
   }
 
