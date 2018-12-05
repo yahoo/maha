@@ -820,7 +820,7 @@ object FilterDruid {
             val decodeLists = sourceDimMappedValues.map {
               v => colReverseMapping.contains(v) match {
                 case true =>
-                  val curValueList = if (sourceDimCol.dataType.hasStaticMapping) List(v) else Nil
+                  val curValueList = if (sourceDimCol.dataType.hasStaticMapping || sourceDimCol.dataType == dt) List(v) else Nil
                   colReverseMapping(v).toList ++ curValueList
                 case false =>
                   List(v)

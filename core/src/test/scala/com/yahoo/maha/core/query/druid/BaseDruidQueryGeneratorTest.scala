@@ -215,6 +215,8 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , DruidFuncDimCol("is_slot_ad_string", StrType(), DECODE_DIM("{is_slot_ad}", "0", "Standard", "1", "Multiple", "Standard"))
           , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", 8 -> "CPV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
           , DruidFuncDimCol("Derived Pricing Type", IntType(3), DECODE_DIM("{price_type}", "7", "6", "2", "1", "{price_type}"))
+          , DimCol("valid_conversion", IntType())
+          , DruidFuncDimCol("Valid Conversion", IntType(), DECODE_DIM("{valid_conversion}", "", "1", "{valid_conversion}"), alias = Option("valid_conversion"))
           , DimCol("start_time", DateType("yyyyMMddHH"))
           , DimCol("stats_date", DateType("yyyyMMdd"), Some("statsDate"))
           , DruidPostResultFuncDimCol("Month", DateType(), postResultFunction = START_OF_THE_MONTH("{stats_date}"))
@@ -605,7 +607,8 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PubCol("is_slot_ad_string", "Rendered Type", InEquality),
           PubCol("price_type", "Pricing Type", In),
           PubCol("Derived Pricing Type", "Derived Pricing Type", InEquality),
-          PubCol("Week", "Week", InBetweenEquality)
+          PubCol("Week", "Week", InBetweenEquality),
+          PubCol("Valid Conversion", "Valid Conversion", InEquality)
         ),
         Set(),
         Set(),
