@@ -77,7 +77,7 @@ class BucketSelector(registry: Registry, val bucketingConfig: BucketingConfig) e
   }
 
   def selectBucketsForQueryGen(engine: Engine, requestParams: BucketParams): Try[QueryGenBucketSelected] = {
-    info(s"Selecting buckets for engine: $engine with params: $requestParams")
+    info(s"Selecting QueryGen buckets for engine: $engine with params: $requestParams")
     Try {
       var queryGenVersion: Version = Version.DEFAULT
       var dryRunQueryGenVersion: Option[Version] = None

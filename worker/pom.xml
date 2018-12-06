@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.211-SNAPSHOT</version>
+        <version>5.228-SNAPSHOT</version>
     </parent>
 
     <name>maha worker</name>
@@ -27,6 +27,11 @@
         <dependency>
             <groupId>com.yahoo.maha</groupId>
             <artifactId>maha-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.yahoo.maha</groupId>
+            <artifactId>maha-job-service</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

@@ -3,11 +3,12 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator, SyncDruidQueryOptimizer}
+import com.yahoo.maha.core.bucketing.{BucketParams}
+import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, SyncDruidQueryOptimizer}
 import com.yahoo.maha.core.query.hive.HiveQueryGenerator
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.core.{BetweenFilter, DefaultPartitionColumnRenderer, EqualityFilter, RequestModel}
+import com.yahoo.maha.core.{DefaultPartitionColumnRenderer, RequestModel}
 import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockHiveQueryExecutor, MockOracleQueryExecutor}
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
@@ -165,5 +166,60 @@ class QueryPipelineWithFallbackTest extends FunSuite with Matchers with BeforeAn
     assert(!newQuery.execute(new QueryExecutorContext, QueryAttributes.empty).isSuccess, "Empty context should return a failure")
 
 
+  }
+
+  test("Discard engines in disqualify set for fallback query" ) {
+
+    val jsonRequest =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Advertiser Status"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "ASC"}
+                          ],
+                          "includeRowCount" : true,
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonRequest)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
+    altQueryGeneratorRegistry.register(OracleEngine, new OracleQueryGenerator(DefaultPartitionColumnRenderer))
+    altQueryGeneratorRegistry.register(HiveEngine, new HiveQueryGenerator(DefaultPartitionColumnRenderer, Set.empty))
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+
+    var builder = queryPipelineFactoryLocal.builder(requestModel.toOption.get, QueryAttributes.empty, None, BucketParams(), Set.empty)
+    var pipeline = builder._1.toOption.get.build()
+    assert(pipeline.isInstanceOf[QueryPipelineWithFallback])
+    assert(pipeline.fallbackQueryChainOption.isDefined, "Expected fallback query to be present")
+    var fallbackEngine = pipeline.fallbackQueryChainOption.get.drivingQuery.engine
+    assert(OracleEngine.equals(fallbackEngine), s"Expected engine: Oracle, Actual: $fallbackEngine")
+
+    builder  = queryPipelineFactoryLocal.builder(requestModel.toOption.get, QueryAttributes.empty, None, BucketParams(), Set(OracleEngine))
+    pipeline = builder._1.toOption.get.build()
+    assert(pipeline.isInstanceOf[QueryPipelineWithFallback])
+    assert(pipeline.fallbackQueryChainOption.isDefined, "Expected fallback query to be present")
+    fallbackEngine = pipeline.fallbackQueryChainOption.get.drivingQuery.engine
+    assert(HiveEngine.equals(fallbackEngine), s"Expected engine: Hive, Actual: $fallbackEngine")
+
+
+    builder  = queryPipelineFactoryLocal.builder(requestModel.toOption.get, QueryAttributes.empty, None, BucketParams(), Set(OracleEngine, HiveEngine))
+    pipeline = builder._1.toOption.get.build()
+    assert(pipeline.fallbackQueryChainOption.isEmpty, s"No fallback query expected: $pipeline")
   }
 }

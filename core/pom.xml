@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.211-SNAPSHOT</version>
+        <version>5.228-SNAPSHOT</version>
     </parent>
 
     <name>maha core</name>
@@ -217,6 +217,11 @@
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy</artifactId>
             <version>${bytebuddy.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-actor_${scala.major.version}</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

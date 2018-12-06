@@ -22,6 +22,7 @@ object JobType {
       case _=> throw new IllegalArgumentException(s"Failed to find the JobType for given engine $engine")
     }
   }
+
   def fromString(name:String) : JobType = {
     name match  {
       case AsyncOracle.name=> AsyncOracle

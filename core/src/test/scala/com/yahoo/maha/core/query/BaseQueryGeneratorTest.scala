@@ -7,7 +7,7 @@ import java.util.concurrent.Executors
 
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.bucketing.{BucketSelector, BucketingConfig, DefaultBucketingConfig, QueryGenBucketingConfigBuilder}
+import com.yahoo.maha.core.bucketing._
 import com.yahoo.maha.core.registry.{Registry, RegistryBuilder}
 import com.yahoo.maha.core.request._
 import org.joda.time.{DateTime, DateTimeZone}
@@ -71,6 +71,10 @@ trait BaseQueryGeneratorTest {
     queryPipelineFactory.from(requestModel, QueryAttributes.empty)
   }
 
+  protected[this] def generatePipelineV2(requestModel: RequestModel) : Try[QueryPipeline] = {
+    queryPipelineFactory.fromQueryGenVersion(requestModel, QueryAttributes.empty, Version.v2)
+  }
+
   protected[this] def generatePipeline(requestModel: RequestModel, queryAttributes: QueryAttributes) : Try[QueryPipeline] = {
     queryPipelineFactory.from(requestModel, queryAttributes)
   }
@@ -86,7 +90,7 @@ trait BaseQueryGeneratorTest {
         PrestoEngine -> qgenBucketingConfig
       ))
     val bucketSelector = new BucketSelector(registry, bucketingConfig)
-    queryPipelineFactory.fromBucketSelector((requestModel, None), QueryAttributes.empty, bucketSelector)._1
+    queryPipelineFactory.fromBucketSelector((requestModel, None), QueryAttributes.empty, bucketSelector, new BucketParams())._1
   }
 
   protected[this] def getBaseDir : String = {

@@ -13,6 +13,7 @@ import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, BucketingCon
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.registry.{DimensionRegistrationFactory, FactRegistrationFactory, Registry, RegistryBuilder}
 import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.core.request.{ReportingRequest}
 import com.yahoo.maha.log.MahaRequestLogWriter
 import com.yahoo.maha.parrequest2.future.{ParRequest, ParallelServiceExecutor}
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
@@ -26,8 +27,8 @@ import com.yahoo.maha.service.factory._
 import com.yahoo.maha.service.utils.BaseMahaRequestLogBuilder
 import grizzled.slf4j.Logging
 import javax.sql.DataSource
-import org.json4s.JValue
 import org.json4s.JsonAST.JObject
+import org.json4s.{JValue}
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.scalaz.JsonScalaz._
 import scalaz.Validation.FlatMap._
@@ -132,7 +133,7 @@ trait MahaService {
     * @return
     */
   def generateQueryPipelines(registryName: String
-                           , requestModel: RequestModel): (Try[QueryPipeline], Option[Try[QueryPipeline]])
+                           , requestModel: RequestModel, bucketParams: BucketParams): (Try[QueryPipeline], Option[Try[QueryPipeline]])
 
   /**
    * Executes the RequestModel and provide the RequestResult, logs failures with request log builder
@@ -274,16 +275,25 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
   }
 
   def generateQueryPipelines(registryName: String,
-                            requestModel: RequestModel): (Try[QueryPipeline], Option[Try[QueryPipeline]]) = {
+                            requestModel: RequestModel, bucketParams: BucketParams): (Try[QueryPipeline], Option[Try[QueryPipeline]]) = {
 
     val registryConfig = config.registry(registryName)
     val queryPipelineFactory = registryConfig.queryPipelineFactory
     val bucketSelector = registryConfig.bucketSelector
 
-    val queryPipelineTry = queryPipelineFactory.fromBucketSelector(requestModel, QueryAttributes.empty, bucketSelector)
+    val forceQueryGenVersion: Option[Version] = bucketParams.forceQueryGenVersion
+
+    val shouldUseQueryGenSelector = if(forceQueryGenVersion.isDefined && forceQueryGenVersion.get != Version.DEFAULT) {
+      true
+    } else false
+
+    val queryPipelineTry = if(shouldUseQueryGenSelector) {
+      (queryPipelineFactory.fromQueryGenVersion(requestModel, QueryAttributes.empty, forceQueryGenVersion.get), None)
+    } else queryPipelineFactory.fromBucketSelector(requestModel, QueryAttributes.empty, bucketSelector, bucketParams)
 
     queryPipelineTry
   }
+
 
   private def processQueryPipeline(registryConfig: RegistryConfig,
                            queryPipeline: QueryPipeline,
@@ -297,11 +307,11 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
     result
   }
 
-  private def asRequest(registryName: String, requestModel: RequestModel, parRequestLabel: String, mahaRequestLogBuilder: BaseMahaRequestLogBuilder): Either[GeneralError, RequestResult] = {
+  private def asRequest(registryName: String, requestModel: RequestModel, parRequestLabel: String, mahaRequestLogBuilder: BaseMahaRequestLogBuilder, bucketParams: BucketParams = BucketParams()): Either[GeneralError, RequestResult] = {
     validateRegistry(registryName)
     val registryConfig = config.registry(registryName)
 
-    val queryPipelineTry = generateQueryPipelines(registryName, requestModel)._1
+    val queryPipelineTry = generateQueryPipelines(registryName, requestModel, bucketParams)._1
     if(queryPipelineTry.isFailure) {
       val error = queryPipelineTry.failed.get
       val message = s"Failed to compile the query pipeline ${error.getMessage}"
@@ -322,12 +332,12 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
     }
   }
 
-  private def asParRequest(registryName: String, requestModel: RequestModel, parRequestLabel: String, mahaRequestLogBuilder: BaseMahaRequestLogBuilder): (Try[QueryPipeline], ParRequest[RequestResult])= {
+  private def asParRequest(registryName: String, requestModel: RequestModel, parRequestLabel: String, mahaRequestLogBuilder: BaseMahaRequestLogBuilder, bucketParams: BucketParams = BucketParams()): (Try[QueryPipeline], ParRequest[RequestResult])= {
     validateRegistry(registryName)
     val registryConfig = config.registry(registryName)
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor
 
-    val queryPipelineTry = generateQueryPipelines(registryName, requestModel)._1
+    val queryPipelineTry = generateQueryPipelines(registryName, requestModel, bucketParams)._1
     if(queryPipelineTry.isFailure) {
       val error = queryPipelineTry.failed.get
       val message = s"Failed to compile the query pipeline ${error.getMessage}"
@@ -777,7 +787,7 @@ object DynamicMahaServiceConfig {
           implicit val queryGeneratorRegistry = new QueryGeneratorRegistry
           generatorMap.filter(g => registryConfig.generators.contains(g._1)).foreach {
             case (name, generator) =>
-              queryGeneratorRegistry.register(generator.engine, generator)
+              queryGeneratorRegistry.register(generator.engine, generator, generator.version)
           }
           val queryExecutorContext = new QueryExecutorContext
           executorMap.filter(e => registryConfig.executors.contains(e._1)).foreach {
