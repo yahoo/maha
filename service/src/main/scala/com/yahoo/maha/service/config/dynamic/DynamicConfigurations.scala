@@ -3,7 +3,10 @@
 
 package com.yahoo.maha.service.config.dynamic
 
-import com.netflix.config._
+import java.util.function.Consumer
+
+import com.netflix.archaius.DefaultPropertyFactory
+import com.netflix.archaius.api.{Config, Property}
 import com.yahoo.maha.core.bucketing.BucketSelector
 import com.yahoo.maha.service.config.JsonMahaServiceConfig._
 import com.yahoo.maha.service.{DynamicMahaServiceConfig, MahaServiceConfig}
@@ -13,27 +16,24 @@ import scala.collection.mutable
 
 case class DynamicPropertyInfo(propertyKey: String, defaultValue: Object, objects: mutable.Map[String, Object])
 
-class DynamicConfigurations(configurationSource: PolledConfigurationSource, pollIntervalMs: Int) {
-  ConfigurationManager.install(
-    new DynamicConfiguration(
-          configurationSource,
-          new FixedDelayPollingScheduler(0, pollIntervalMs, false)
-    )
-  )
+class DynamicConfigurations(configurationSource: Config) {
+  val dynamicPropertyFactory = DefaultPropertyFactory.from(configurationSource)
 
-  val map = new mutable.HashMap[String, DynamicIntProperty]()
+  val map = new mutable.HashMap[String, Property[Integer]]()
 
   def addProperty(name: String, defaultValue: Int): Unit = {
-    val dynamicProperty = DynamicPropertyFactory
-      .getInstance()
-      .getIntProperty(name, defaultValue)
+    val dynamicProperty = dynamicPropertyFactory.getProperty(name).asInteger(defaultValue)
     map.put(name, dynamicProperty)
   }
 
   def addCallbacks(dynamicServiceConfig: DynamicMahaServiceConfig, registryName: String): Unit = {
     map.values.foreach(dynamicProperty => {
-      dynamicProperty.addCallback(
-        DynamicWrapper.getCallback(dynamicProperty, dynamicServiceConfig, "er"))
+      dynamicProperty.subscribe(
+        new Consumer[Integer]() {
+          override def accept(t: Integer): Unit = {
+            DynamicWrapper.getCallback(dynamicProperty, dynamicServiceConfig, "er").run()
+          }
+        })
     })
   }
 
@@ -48,23 +48,24 @@ class DynamicConfigurations(configurationSource: PolledConfigurationSource, poll
 
 object DynamicWrapper extends Logging {
 
-  def getCallback(dynamicProperty: PropertyWrapper[_ <: Any], dynamicMahaServiceConfig: DynamicMahaServiceConfig, registryName: String): Runnable = {
+  def getCallback(dynamicProperty: Property[_ <: Any], dynamicMahaServiceConfig: DynamicMahaServiceConfig, registryName: String): Runnable = {
     val dynamicRegistryConfig = dynamicMahaServiceConfig.registry.get(registryName).get
     val registryConfig = dynamicMahaServiceConfig.jsonMahaServiceConfig.registryMap(registryName)
     val callbackImpl = new Runnable {
       override def run(): Unit = {
-        val dependentObjects = dynamicMahaServiceConfig.dynamicProperties(dynamicProperty.getName).objects
+        val dependentObjects = dynamicMahaServiceConfig.dynamicProperties(dynamicProperty.getKey).objects
         for ((name, currentObject) <- dependentObjects) {
           info(s"Updating: $name - $currentObject")
           name match {
             case BUCKETING_CONFIG_MAP =>
               val newBucketingConfig = MahaServiceConfig.initBucketingConfig(
                 dynamicMahaServiceConfig.jsonMahaServiceConfig.bucketingConfigMap)(dynamicMahaServiceConfig.context)
-              require(newBucketingConfig.isSuccess, s"Failed to re-initialize bucketing config - $newBucketingConfig")
-              val updatedBucketSelector = new BucketSelector(dynamicRegistryConfig.getRegistry,
-                newBucketingConfig.toOption.get.get(registryConfig.bucketConfigName).get)
-              dynamicRegistryConfig.updateBucketSelector(updatedBucketSelector)
-              info(s"Replaced BucketSelector: ${updatedBucketSelector.bucketingConfig.getConfigForCube("student_performance").get.externalBucketPercentage}")
+              if(newBucketingConfig.isSuccess) {
+                val updatedBucketSelector = new BucketSelector(dynamicRegistryConfig.getRegistry,
+                  newBucketingConfig.toOption.get.get(registryConfig.bucketConfigName).get)
+                dynamicRegistryConfig.updateBucketSelector(updatedBucketSelector)
+                info(s"Replaced BucketSelector: ${updatedBucketSelector.bucketingConfig.getConfigForCube("student_performance").get.externalBucketPercentage}")
+              }
             case _ =>
               throw new UnsupportedOperationException(s"Unknown dynamic object name: $name")
           }

@@ -5,8 +5,9 @@ package com.yahoo.maha.service
 
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.Callable
-
+import com.yahoo.maha.service.request._
 import com.google.common.io.Closer
+import com.netflix.archaius.config.PollingDynamicConfig
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, BucketingConfig}
 import com.yahoo.maha.core.query._
@@ -18,7 +19,7 @@ import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
 import com.yahoo.maha.service.config.JsonMahaServiceConfig._
 import com.yahoo.maha.service.config._
 import com.yahoo.maha.service.config.dynamic.DynamicConfigurationUtils._
-import com.yahoo.maha.service.config.dynamic.DynamicPropertyInfo
+import com.yahoo.maha.service.config.dynamic.{DynamicConfigurations, DynamicPropertyInfo}
 import com.yahoo.maha.service.curators.Curator
 import com.yahoo.maha.service.error._
 import com.yahoo.maha.service.factory._
@@ -719,7 +720,8 @@ object DynamicMahaServiceConfig {
     None
   }
 
-  def fromJson(ba: Array[Byte]): MahaServiceConfig.MahaConfigResult[DynamicMahaServiceConfig] = {
+  def fromJson(ba: Array[Byte], dynamicConfigurations: DynamicConfigurations): MahaServiceConfig.MahaConfigResult[DynamicMahaServiceConfig] = {
+    setDynamicConfigurations(dynamicConfigurations)
     val json = {
       Try(parse(new String(ba, StandardCharsets.UTF_8))) match {
         case t if t.isSuccess => t.get

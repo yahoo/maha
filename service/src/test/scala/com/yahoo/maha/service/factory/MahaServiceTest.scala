@@ -2,17 +2,14 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.factory
 
-import com.yahoo.maha.service
-import com.yahoo.maha.service.request._
 import java.nio.charset.StandardCharsets
-import java.util
 import java.util.UUID
 
-import com.netflix.config._
+import com.netflix.archaius.config.DefaultSettableConfig
+import com.yahoo.maha.service.config.dynamic.DynamicConfigurations
 import com.yahoo.maha.service.{DynamicMahaServiceConfig, MahaServiceConfig}
-import scalaz.{Failure, Success}
 import org.json4s.jackson.JsonMethods.parse
-import org.json4s.scalaz.JsonScalaz.fromJSON
+import scalaz.{Failure, Success}
 
 /**
  * Created by pranavbhole on 06/06/17.
@@ -558,38 +555,37 @@ class MahaServiceTest extends BaseFactoryTest {
   }
 
   test("Find dynamic objects successfully in a json containing dynamic property values") {
+    val dynamicConfig = new DefaultSettableConfig()
+    val dynamicConfigurations = new DynamicConfigurations(dynamicConfig)
+
     val json = parse(dynamicConfigJson)
     val dynamicObjects = DynamicMahaServiceConfig.findDynamicProperties(json, Map("bucketingConfigMap" -> new Object))
     println(dynamicObjects)
     assert(dynamicObjects.size == 2)
-    val result = DynamicMahaServiceConfig.fromJson(dynamicConfigJson.getBytes(StandardCharsets.UTF_8))
+
+    val result = DynamicMahaServiceConfig.fromJson(dynamicConfigJson.getBytes(StandardCharsets.UTF_8), dynamicConfigurations)
     assert(result.isSuccess, s"Failed to create dynamic config: $result")
   }
 
   test("Successfully swap dynamic objects in the registry on dynamic property change") {
+    val dynamicConfig = new DefaultSettableConfig()
+    dynamicConfig.setProperty("student_performance.external.rev0.percent", 10)
+    dynamicConfig.setProperty("student_performance.external.rev1.percent", 90)
+    val dynamicConfigurations = new DynamicConfigurations(dynamicConfig)
+
     val json = parse(dynamicConfigJson)
     //println("JSON: " + json.asInstanceOf[JObject].values)
-    val dynamicServiceConfig = DynamicMahaServiceConfig.fromJson(dynamicConfigJson.getBytes(StandardCharsets.UTF_8))
+    val dynamicServiceConfig = DynamicMahaServiceConfig.fromJson(dynamicConfigJson.getBytes(StandardCharsets.UTF_8), dynamicConfigurations)
     assert(dynamicServiceConfig.isSuccess, s"Failed to create dynamic config: $dynamicServiceConfig")
 
     dynamicConfigurations.addCallbacks(dynamicServiceConfig.toOption.get, "er")
 
-    println("Old value: " + dynamicServiceConfig.toOption.get.registry("er").getBucketSelector.bucketingConfig.getConfigForCube("student_performance").get.externalBucketPercentage)
-    Thread.sleep(5000)
-    println("New value: " + dynamicServiceConfig.toOption.get.registry("er").getBucketSelector.bucketingConfig.getConfigForCube("student_performance").get.externalBucketPercentage)
-  }
-
-  class DBConfigurationSource extends PolledConfigurationSource {
-    @throws[Exception]
-    var i = 0
-    override def poll(initial: Boolean, checkPoint: Any): PollResult = {
-      i += 1
-      val map: util.Map[String, AnyRef] = new util.HashMap()
-      //println("Returning new value: " + i)
-      map.put("student_performance.external.rev0.percent", s"$i")
-      map.put("student_performance.external.rev1.percent", s"${100-i}")
-      PollResult.createFull(map)
-    }
+    val oldPercentage = dynamicServiceConfig.toOption.get.registry("er").getBucketSelector.bucketingConfig.getConfigForCube("student_performance").get.externalBucketPercentage
+    assert(oldPercentage.equals(Map(0 -> 10, 1 -> 90)))
+    dynamicConfig.setProperty("student_performance.external.rev0.percent", 20)
+    dynamicConfig.setProperty("student_performance.external.rev1.percent", 80)
+    val newPercentage = dynamicServiceConfig.toOption.get.registry("er").getBucketSelector.bucketingConfig.getConfigForCube("student_performance").get.externalBucketPercentage
+    assert(newPercentage.equals(Map(0 -> 20, 1 -> 80)))
   }
 
   val dynamicConfigJson = s"""{
