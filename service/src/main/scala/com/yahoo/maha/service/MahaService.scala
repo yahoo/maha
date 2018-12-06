@@ -29,6 +29,8 @@ import grizzled.slf4j.Logging
 import javax.sql.DataSource
 import org.json4s.JsonAST.JObject
 import org.json4s.{JValue}
+import org.json4s.JValue
+import org.json4s.JsonAST.JObject
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.scalaz.JsonScalaz._
 import scalaz.Validation.FlatMap._
