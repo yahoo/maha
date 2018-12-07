@@ -5,15 +5,13 @@ package com.yahoo.maha.service
 
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.Callable
-import com.yahoo.maha.service.request._
+
 import com.google.common.io.Closer
-import com.netflix.archaius.config.PollingDynamicConfig
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, BucketingConfig}
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.registry.{DimensionRegistrationFactory, FactRegistrationFactory, Registry, RegistryBuilder}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.core.request.{ReportingRequest}
 import com.yahoo.maha.log.MahaRequestLogWriter
 import com.yahoo.maha.parrequest2.future.{ParRequest, ParallelServiceExecutor}
 import com.yahoo.maha.parrequest2.{GeneralError, ParCallable}
@@ -24,11 +22,10 @@ import com.yahoo.maha.service.config.dynamic.{DynamicConfigurations, DynamicProp
 import com.yahoo.maha.service.curators.Curator
 import com.yahoo.maha.service.error._
 import com.yahoo.maha.service.factory._
+import com.yahoo.maha.service.request._
 import com.yahoo.maha.service.utils.BaseMahaRequestLogBuilder
 import grizzled.slf4j.Logging
 import javax.sql.DataSource
-import org.json4s.JsonAST.JObject
-import org.json4s.{JValue}
 import org.json4s.JValue
 import org.json4s.JsonAST.JObject
 import org.json4s.jackson.JsonMethods.parse
@@ -44,48 +41,77 @@ import scala.util.Try
 /**
  * Created by hiral on 5/26/17.
  */
-case class DynamicRegistryConfig(private var name: String,
-                            private var registry: Registry,
-                            private var queryPipelineFactory: QueryPipelineFactory,
-                            private var queryExecutorContext: QueryExecutorContext,
-                            private var bucketSelector: BucketSelector,
-                            private var utcTimeProvider: UTCTimeProvider,
-                            private var parallelServiceExecutor: ParallelServiceExecutor) {
+class DynamicRegistryConfig(private var _name: String,
+                            private var _registry: Registry,
+                            private var _queryPipelineFactory: QueryPipelineFactory,
+                            private var _queryExecutorContext: QueryExecutorContext,
+                            private var _bucketSelector: BucketSelector,
+                            private var _utcTimeProvider: UTCTimeProvider,
+                            private var _parallelServiceExecutor: ParallelServiceExecutor)
+  extends RegistryConfig {
 
   def updateRegistry(registry: Registry): Unit = {
-    this.registry = registry
+    this._registry = registry
   }
 
   def updateQueryPipelineFactory(queryPipelineFactory: QueryPipelineFactory): Unit = {
-    this.queryPipelineFactory = queryPipelineFactory
+    this._queryPipelineFactory = queryPipelineFactory
   }
 
   def updateQueryExecutorContext(queryExecutorContext: QueryExecutorContext): Unit = {
-    this.queryExecutorContext = queryExecutorContext
+    this._queryExecutorContext = queryExecutorContext
   }
 
   def updateBucketSelector(bucketSelector: BucketSelector): Unit = {
-    this.bucketSelector = bucketSelector
+    this._bucketSelector = bucketSelector
   }
 
-  def getBucketSelector: BucketSelector = bucketSelector
-
-  def getRegistry: Registry = registry
-
-  def getName: String = name
-
   def updateUTCTimeProvider(utcTimeProvider: UTCTimeProvider): Unit = {
-    this.utcTimeProvider = utcTimeProvider
+    this._utcTimeProvider = utcTimeProvider
   }
 
   def updateParallelServiceExecutor(parallelServiceExecutor: ParallelServiceExecutor): Unit = {
-    this.parallelServiceExecutor = parallelServiceExecutor
+    this._parallelServiceExecutor = parallelServiceExecutor
   }
+
+  override def name = _name
+  override def registry = _registry
+  override def queryPipelineFactory = _queryPipelineFactory
+  override def queryExecutorContext = _queryExecutorContext
+  override def bucketSelector = _bucketSelector
+  override def utcTimeProvider = _utcTimeProvider
+  override def parallelServiceExecutor = _parallelServiceExecutor
+
 }
 
-case class RegistryConfig(name: String, registry: Registry, queryPipelineFactory: QueryPipelineFactory, queryExecutorContext: QueryExecutorContext, bucketSelector: BucketSelector, utcTimeProvider: UTCTimeProvider, parallelServiceExecutor: ParallelServiceExecutor)
+trait RegistryConfig {
+  def name: String
 
-case class MahaServiceConfig(context: MahaServiceConfigContext, registry: Map[String, RegistryConfig], mahaRequestLogWriter: MahaRequestLogWriter, curatorMap: Map[String, Curator])
+  def registry: Registry
+
+  def queryPipelineFactory: QueryPipelineFactory
+
+  def queryExecutorContext: QueryExecutorContext
+
+  def bucketSelector: BucketSelector
+
+  def utcTimeProvider: UTCTimeProvider
+
+  def parallelServiceExecutor: ParallelServiceExecutor
+}
+
+
+trait MahaServiceConfig {
+  def context: MahaServiceConfigContext
+  def registry: Map[String, RegistryConfig]
+  def mahaRequestLogWriter: MahaRequestLogWriter
+  def curatorMap: Map[String, Curator]
+}
+
+case class DefaultRegistryConfig(name: String, registry: Registry, queryPipelineFactory: QueryPipelineFactory, queryExecutorContext: QueryExecutorContext, bucketSelector: BucketSelector, utcTimeProvider: UTCTimeProvider, parallelServiceExecutor: ParallelServiceExecutor) extends RegistryConfig
+
+
+case class DefaultMahaServiceConfig(context: MahaServiceConfigContext, registry: Map[String, RegistryConfig], mahaRequestLogWriter: MahaRequestLogWriter, curatorMap: Map[String, Curator]) extends MahaServiceConfig
 
 case class RequestResult(queryPipelineResult: QueryPipelineResult)
 
@@ -428,11 +454,12 @@ case class DefaultMahaServiceConfigContext(bucketConfigMap: Map[String, Bucketin
                                           , curatorMap: Map[String, Curator] = Map.empty
                                           ) extends MahaServiceConfigContext
 object MahaServiceConfig {
-  type MahaConfigResult[+A] = scalaz.ValidationNel[MahaServiceError, A]
 
   private[this] val closer: Closer = Closer.create()
 
-  def fromJson(ba: Array[Byte]): MahaServiceConfig.MahaConfigResult[MahaServiceConfig] = {
+  type MahaConfigResult[+A] = scalaz.ValidationNel[MahaServiceError, A]
+
+  def fromJson(ba: Array[Byte]): MahaServiceConfig.MahaConfigResult[_<:MahaServiceConfig] = {
     val json = {
       Try(parse(new String(ba, StandardCharsets.UTF_8))) match {
         case t if t.isSuccess => t.get
@@ -468,7 +495,7 @@ object MahaServiceConfig {
       postCuratorContext = postParallelServiceExecutorContext.copy(curatorMap = curatorMap)
       mahaRequestLogWriter <- initKafkaLogWriter(jsonMahaServiceConfig.jsonMahaRequestLogConfig)(postCuratorContext)
     } yield {
-        val resultMap: Map[String, RegistryConfig] = registryMap.map {
+        val resultMap: Map[String, _<:RegistryConfig] = registryMap.map {
           case (regName, registry) => {
             val registryConfig = jsonMahaServiceConfig.registryMap.get(regName.toLowerCase).get
 
@@ -482,7 +509,7 @@ object MahaServiceConfig {
               case (_, executor) =>
                 queryExecutorContext.register(executor)
             }
-            (regName -> RegistryConfig(regName,
+            (regName -> DefaultRegistryConfig(regName,
               registry,
               new DefaultQueryPipelineFactory(),
               queryExecutorContext,
@@ -491,7 +518,7 @@ object MahaServiceConfig {
               parallelServiceExecutorConfig.get(registryConfig.parallelServiceExecutorName).get))
           }
         }
-        MahaServiceConfig(postCuratorContext, resultMap, mahaRequestLogWriter, curatorMap)
+        DefaultMahaServiceConfig(postCuratorContext, resultMap, mahaRequestLogWriter, curatorMap)
       }
     mahaServiceConfig
   }
@@ -718,11 +745,12 @@ object MahaServiceConfig {
 
 
 case class DynamicMahaServiceConfig(dynamicProperties: Map[String, DynamicPropertyInfo],
-                                    context: MahaServiceConfigContext,
-                                    registry: Map[String, DynamicRegistryConfig],
-                                    mahaRequestLogWriter: MahaRequestLogWriter,
-                                    curatorMap: Map[String, Curator],
-                                    jsonMahaServiceConfig: JsonMahaServiceConfig)
+                               context: MahaServiceConfigContext,
+                               registry: Map[String, DynamicRegistryConfig],
+                               mahaRequestLogWriter: MahaRequestLogWriter,
+                               curatorMap: Map[String, Curator],
+                               jsonMahaServiceConfig: JsonMahaServiceConfig) extends MahaServiceConfig
+
 
 object DynamicMahaServiceConfig {
 
@@ -796,7 +824,7 @@ object DynamicMahaServiceConfig {
             case (_, executor) =>
               queryExecutorContext.register(executor)
           }
-          (regName -> DynamicRegistryConfig(regName,
+          (regName -> new DynamicRegistryConfig(regName,
             registry,
             new DefaultQueryPipelineFactory(),
             queryExecutorContext,
@@ -805,7 +833,7 @@ object DynamicMahaServiceConfig {
             parallelServiceExecutorConfig.get(registryConfig.parallelServiceExecutorName).get))
         }
       }
-      DynamicMahaServiceConfig(dynamicProperties, postCuratorContext, resultMap, mahaRequestLogWriter, curatorMap, jsonMahaServiceConfig)
+      new DynamicMahaServiceConfig(dynamicProperties, postCuratorContext, resultMap, mahaRequestLogWriter, curatorMap, jsonMahaServiceConfig)
     }
     dynamicMahaServiceConfig
   }

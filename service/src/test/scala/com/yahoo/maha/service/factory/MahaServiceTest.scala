@@ -580,11 +580,12 @@ class MahaServiceTest extends BaseFactoryTest {
 
     dynamicConfigurations.addCallbacks(dynamicServiceConfig.toOption.get, "er")
 
-    val oldPercentage = dynamicServiceConfig.toOption.get.registry("er").getBucketSelector.bucketingConfig.getConfigForCube("student_performance").get.externalBucketPercentage
+    val oldPercentage = dynamicServiceConfig.toOption.get.registry("er").bucketSelector.bucketingConfig.getConfigForCube("student_performance").get.externalBucketPercentage
     assert(oldPercentage.equals(Map(0 -> 10, 1 -> 90)))
     dynamicConfig.setProperty("student_performance.external.rev0.percent", 20)
     dynamicConfig.setProperty("student_performance.external.rev1.percent", 80)
-    val newPercentage = dynamicServiceConfig.toOption.get.registry("er").getBucketSelector.bucketingConfig.getConfigForCube("student_performance").get.externalBucketPercentage
+    val newPercentage = dynamicServiceConfig.toOption.get.registry("er").bucketSelector.bucketingConfig.getConfigForCube("student_performance").get.externalBucketPercentage
+    Thread.sleep(1000)
     assert(newPercentage.equals(Map(0 -> 20, 1 -> 80)))
   }
 

@@ -61,7 +61,7 @@ object DynamicWrapper extends Logging {
               val newBucketingConfig = MahaServiceConfig.initBucketingConfig(
                 dynamicMahaServiceConfig.jsonMahaServiceConfig.bucketingConfigMap)(dynamicMahaServiceConfig.context)
               if(newBucketingConfig.isSuccess) {
-                val updatedBucketSelector = new BucketSelector(dynamicRegistryConfig.getRegistry,
+                val updatedBucketSelector = new BucketSelector(dynamicRegistryConfig.registry,
                   newBucketingConfig.toOption.get.get(registryConfig.bucketConfigName).get)
                 dynamicRegistryConfig.updateBucketSelector(updatedBucketSelector)
                 info(s"Replaced BucketSelector: ${updatedBucketSelector.bucketingConfig.getConfigForCube("student_performance").get.externalBucketPercentage}")
