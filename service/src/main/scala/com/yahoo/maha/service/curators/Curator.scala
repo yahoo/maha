@@ -277,11 +277,21 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
               val totalRowsRequest = totalRowsCountRequestTry.get
               val parRequestResult: ParRequestResult = mahaService.executeRequest(mahaRequestContext.registryName
                 , totalRowsRequest, mahaRequestContext.bucketParams, mahaRequestLogBuilder)
+
+              require(parRequestResult.queryPipeline.isSuccess, s"totalRows queryPipeline failed with ${parRequestResult.queryPipeline.failed.get.getMessage}")
+              val totalRowsRequestModel = parRequestResult.queryPipeline.get.requestModel
+              require(totalRowsRequestModel.bestCandidates.isEmpty || totalRowsRequestModel.hasMetricFilters
+                , s"Unfiltered request should not generate any fact candidates!  " +
+                  s"\nRequest fields : ${totalRowsRequestModel.reportingRequest.selectFields.foreach(field => field.toString + "\t")} " +
+                  s"\ngenerated Model columns and candidate names : ${totalRowsRequestModel.requestCols.foreach(colInfo => colInfo.toString + "\t")} " +
+                  s"\n: ${totalRowsRequestModel.bestCandidates.foreach(candidate => candidate.requestCols.toString())}")
               val populateRowCount:ParRequest[RequestResult] = parRequestResult.prodRun.map(parRequestLabel, ParFunction.fromScala {
                 requestResult =>
                   val count = requestResult.queryPipelineResult.rowList.getTotalRowCount
                   mahaRequestContext.mutableState.put(RowCountCurator.name, count)
                   mahaRequestLogBuilder.logSuccess()
+
+
                   new Right(requestResult)
               })
 
