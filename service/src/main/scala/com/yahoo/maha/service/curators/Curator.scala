@@ -278,7 +278,6 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
               val parRequestResult: ParRequestResult = mahaService.executeRequest(mahaRequestContext.registryName
                 , totalRowsRequest, mahaRequestContext.bucketParams, mahaRequestLogBuilder)
 
-              require(parRequestResult.queryPipeline.isSuccess, s"totalRows queryPipeline failed with ${parRequestResult.queryPipeline.failed.get.getMessage}")
               val totalRowsRequestModel = parRequestResult.queryPipeline.get.requestModel
               debug(s"Unfiltered request should not generate any fact candidates!  " +
                   s"\nRequest fields : ${totalRowsRequestModel.reportingRequest.selectFields.foreach(field => field.toString + "\t")} " +
