@@ -4,9 +4,12 @@ package com.yahoo.maha.service.factory
 
 import java.nio.charset.StandardCharsets
 import java.util.UUID
+
+import com.netflix.archaius.config.DefaultSettableConfig
+import com.yahoo.maha.service.config.dynamic.DynamicConfigurations
 import com.yahoo.maha.service.{DynamicMahaServiceConfig, MahaServiceConfig}
-import scalaz.{Failure, Success}
 import org.json4s.jackson.JsonMethods.parse
+import scalaz.{Failure, Success}
 
 /**
  * Created by pranavbhole on 06/06/17.
@@ -551,8 +554,42 @@ class MahaServiceTest extends BaseFactoryTest {
     assert(mahaServiceResult.isFailure)
   }
 
-  test("Find dynamic objects successfully in a json containing dyanmic property values") {
-    val jsonString = s"""{
+  test("Find dynamic objects successfully in a json containing dynamic property values") {
+    val dynamicConfig = new DefaultSettableConfig()
+    val dynamicConfigurations = new DynamicConfigurations(dynamicConfig)
+
+    val json = parse(dynamicConfigJson)
+    val dynamicObjects = DynamicMahaServiceConfig.findDynamicProperties(json, Map("bucketingConfigMap" -> new Object))
+    println(dynamicObjects)
+    assert(dynamicObjects.size == 2)
+
+    val result = DynamicMahaServiceConfig.fromJson(dynamicConfigJson.getBytes(StandardCharsets.UTF_8), dynamicConfigurations)
+    assert(result.isSuccess, s"Failed to create dynamic config: $result")
+  }
+
+  test("Successfully swap dynamic objects in the registry on dynamic property change") {
+    val dynamicConfig = new DefaultSettableConfig()
+    dynamicConfig.setProperty("student_performance.external.rev0.percent", 10)
+    dynamicConfig.setProperty("student_performance.external.rev1.percent", 90)
+    val dynamicConfigurations = new DynamicConfigurations(dynamicConfig)
+
+    val json = parse(dynamicConfigJson)
+    //println("JSON: " + json.asInstanceOf[JObject].values)
+    val dynamicServiceConfig = DynamicMahaServiceConfig.fromJson(dynamicConfigJson.getBytes(StandardCharsets.UTF_8), dynamicConfigurations)
+    assert(dynamicServiceConfig.isSuccess, s"Failed to create dynamic config: $dynamicServiceConfig")
+
+    dynamicConfigurations.addCallbacks(dynamicServiceConfig.toOption.get, "er")
+
+    val oldPercentage = dynamicServiceConfig.toOption.get.registry("er").bucketSelector.bucketingConfig.getConfigForCube("student_performance").get.externalBucketPercentage
+    assert(oldPercentage.equals(Map(0 -> 10, 1 -> 90)))
+    dynamicConfig.setProperty("student_performance.external.rev0.percent", 20)
+    dynamicConfig.setProperty("student_performance.external.rev1.percent", 80)
+    val newPercentage = dynamicServiceConfig.toOption.get.registry("er").bucketSelector.bucketingConfig.getConfigForCube("student_performance").get.externalBucketPercentage
+    Thread.sleep(1000)
+    assert(newPercentage.equals(Map(0 -> 20, 1 -> 80)))
+  }
+
+  val dynamicConfigJson = s"""{
 	"registryMap": {
 		"er": {
 			"factRegistrationClass": "com.yahoo.maha.service.example.SampleFactSchemaRegistrationFactory",
@@ -738,9 +775,12 @@ class MahaServiceTest extends BaseFactoryTest {
 							"percent": 100
 						}],
 						"external": [{
-							"revision": 1,
-							"percent": "<%(student_performance.external.rev1.percent, 100)%>"
-						}],
+							"revision": 0,
+							"percent": "<%(student_performance.external.rev0.percent, 50)%>"
+						},{
+              "revision": 1,
+              "percent": "<%(student_performance.external.rev1.percent, 50)%>"
+            }],
 						"dryRun": [{
 							"revision": 1,
 							"percent": 100,
@@ -817,15 +857,4 @@ class MahaServiceTest extends BaseFactoryTest {
 	}
 }""".stripMargin
 
-    println(jsonString)
-    val json = parse(jsonString)
-    val dynamicObjects = DynamicMahaServiceConfig.findDynamicProperties(json, Map("oracleexec" -> new Object, "commonbucket" -> new Object))
-    println(dynamicObjects)
-    assert(dynamicObjects.size == 1)
-    val result = DynamicMahaServiceConfig.fromJson(jsonString.getBytes(StandardCharsets.UTF_8))
-    result.leftMap(f => {
-      println(f.head.message)
-    })
-    assert(result.isSuccess, s"Failed to create dynamic config: $result")
-  }
 }

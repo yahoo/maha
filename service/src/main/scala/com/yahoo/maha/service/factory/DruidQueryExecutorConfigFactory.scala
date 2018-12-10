@@ -2,10 +2,12 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.factory
 
-import com.yahoo.maha.core.request._
+import com.netflix.archaius.config.PollingDynamicConfig
+import com.yahoo.maha.service.request._
 import com.yahoo.maha.executor.druid.DruidQueryExecutorConfig
 import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
 import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
+import com.yahoo.maha.service.config.dynamic.DynamicConfigurations
 import org.json4s.JValue
 import scalaz.syntax.applicative._
 

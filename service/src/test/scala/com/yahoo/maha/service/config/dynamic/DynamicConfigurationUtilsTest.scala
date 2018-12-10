@@ -1,16 +1,17 @@
 // Copyright 2017, Yahoo Holdings Inc.
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
-package com.yahoo.maha.utils
+package com.yahoo.maha.service.config.dynamic
 
-import org.scalatest.{FunSuite, Matchers}
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
+import org.scalatest.{FunSuite, Matchers}
 
 /**
   * Created by panditsurabhi on 24/09/18.
   */
 class DynamicConfigurationUtilsTest extends FunSuite with Matchers {
   implicit val formats = org.json4s.DefaultFormats
+
 
   test("getDynamicFields should return all dynamic fields in the json") {
     val jsonStr = s"""{"key1": "val1", "key2": "<%(dynamic.val2,30000)%>"}"""
@@ -27,8 +28,8 @@ class DynamicConfigurationUtilsTest extends FunSuite with Matchers {
     val json = parse(jsonStr)
     val dynamicFields = DynamicConfigurationUtils.extractDynamicFields(json)
     assert(dynamicFields.size == 1)
-    assert(dynamicFields("key2")._1.equals("dynamic.val2"))
-    assert(dynamicFields("key2")._2.equals("30000"))
+    assert(dynamicFields("dynamic.val2")._1.equals("key2"), dynamicFields)
+    assert(dynamicFields("dynamic.val2")._2.equals("30000"), dynamicFields)
   }
 
 }
