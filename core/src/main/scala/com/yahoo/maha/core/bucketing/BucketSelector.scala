@@ -32,7 +32,7 @@ case class BucketParams(userInfo: UserInfo = UserInfo.empty, dryRunRevision: Opt
   }
 }
 
-class BucketSelector(registry: Registry, bucketingConfig: BucketingConfig) extends Logging {
+class BucketSelector(registry: Registry, val bucketingConfig: BucketingConfig) extends Logging {
   val randomCube = new scala.util.Random
   val randomQgen = new scala.util.Random
 

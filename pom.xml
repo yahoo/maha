@@ -57,7 +57,7 @@
         <enumeratum.version>1.5.13</enumeratum.version>
         <kafka.version>1.1.0</kafka.version>
         <caffeine.version>2.6.2</caffeine.version>
-        <archaius.version>0.7.6</archaius.version>
+        <archaius.version>2.3.13</archaius.version>
         <bytebuddy.version>1.8.12</bytebuddy.version>
         <kryo.version>4.0.2</kryo.version>
         <lz4.version>1.4.1</lz4.version>

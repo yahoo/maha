@@ -8,18 +8,19 @@ import java.util.concurrent.RejectedExecutionHandler
 import com.google.common.io.Closer
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing._
-import com.yahoo.maha.core.query.{ResultSetTransformer, _}
 import com.yahoo.maha.core.query.druid.DruidQueryOptimizer
-import com.yahoo.maha.core.request._
+import com.yahoo.maha.core.query.{ResultSetTransformer, _}
 import com.yahoo.maha.executor.druid.{AuthHeaderProvider, DruidQueryExecutorConfig}
 import com.yahoo.maha.executor.presto.PrestoQueryTemplate
 import com.yahoo.maha.log.MahaRequestLogWriter
 import com.yahoo.maha.parrequest2.CustomRejectPolicy
 import com.yahoo.maha.parrequest2.future.ParallelServiceExecutor
 import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
+import com.yahoo.maha.service.config.dynamic.DynamicConfigurations
 import com.yahoo.maha.service.config.{PassThroughPasswordProvider, PasswordProvider}
 import com.yahoo.maha.service.curators.Curator
 import com.yahoo.maha.service.error.{FailedToConstructFactory, MahaServiceError}
+import com.yahoo.maha.service.request._
 import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
 import javax.sql.DataSource
 import org.json4s.JValue
@@ -189,6 +190,8 @@ object DefaultBucketingConfigFactory {
                         , userWhiteList: List[UserRevisionConfig])
   case class CombinedBucketingConfig(cubeBucketingConfigMapList: List[CubeConfig],
                                      queryGenBucketingConfigList: List[QueryGenConfig])
+
+
   implicit def engineJSON: JSONR[Engine] = new JSONR[Engine] {
     override def read(json: JValue): Result[Engine] = {
       json match {

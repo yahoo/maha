@@ -224,18 +224,28 @@ case class JsonMahaServiceConfig(registryMap: Map[String, JsonRegistryConfig]
 object JsonMahaServiceConfig {
   import org.json4s.scalaz.JsonScalaz._
 
+  val REGISTRY_MAP = "registryMap"
+  val EXECUTOR_MAP = "executorMap"
+  val GENERATOR_MAP = "generatorMap"
+  val BUCKETING_CONFIG_MAP = "bucketingConfigMap"
+  val UTC_TIME_PROVIDER_MAP = "utcTimeProviderMap"
+  val PSE_CONFIG_MAP = "parallelServiceExecutorConfigMap"
+  val DATASOURCE_MAP = "datasourceMap"
+  val MAHA_REQUEST_LOGGING_CONFIG = "mahaRequestLoggingConfig"
+  val CURATOR_MAP = "curatorMap"
+
   implicit def mahaBucketConfigJSONR: JSONR[JsonMahaServiceConfig] = new JSONR[JsonMahaServiceConfig] {
     override def read(json: JValue): Result[JsonMahaServiceConfig] = {
 
-      val registryMap: Result[Map[String, JsonRegistryConfig]] = fieldExtended[Map[String, JsonRegistryConfig]]("registryMap")(json).map(_.map(m=> m._1.toLowerCase -> m._2))
-      val executorMap: Result[Map[String, JsonQueryExecutorConfig]] = fieldExtended[Map[String, JsonQueryExecutorConfig]]("executorMap")(json).map(_.map(m=> m._1.toLowerCase -> m._2))
-      val generatorMap: Result[Map[String, JsonQueryGeneratorConfig]] = fieldExtended[Map[String, JsonQueryGeneratorConfig]]("generatorMap")(json).map(_.map(m=> m._1.toLowerCase -> m._2))
-      val bucketingConfigMap: Result[Map[String, JsonBucketingConfig]] = fieldExtended[Map[String, JsonBucketingConfig]]("bucketingConfigMap")(json).map(_.map(m=> m._1.toLowerCase -> m._2))
-      val utcTimeProviderMap: Result[Map[String, JsonUTCTimeProviderConfig]] = fieldExtended[Map[String, JsonUTCTimeProviderConfig]]("utcTimeProviderMap")(json).map(_.map(m=> m._1.toLowerCase -> m._2))
-      val parallelServiceExecutorConfigMap : Result[Map[String, JsonParallelServiceExecutorConfig]] = fieldExtended[Map[String, JsonParallelServiceExecutorConfig]]("parallelServiceExecutorConfigMap")(json).map(_.map(m=> m._1.toLowerCase -> m._2))
-      val datasourceMapResult: Result[Map[String, JsonDataSourceConfig]] = fieldExtended[Map[String, JsonDataSourceConfig]]("datasourceMap")(json).map(_.map(m=> m._1.toLowerCase -> m._2))
-      val jsonMahaRequestLogConfigResult: Result[JsonMahaRequestLogConfig] = fieldExtended[JsonMahaRequestLogConfig]("mahaRequestLoggingConfig")(json)
-      val curatorMap: Result[Map[String, JsonCuratorConfig]] = fieldExtended[Map[String, JsonCuratorConfig]]("curatorMap")(json).map(_.map(m=> m._1.toLowerCase -> m._2))
+      val registryMap: Result[Map[String, JsonRegistryConfig]] = fieldExtended[Map[String, JsonRegistryConfig]](REGISTRY_MAP)(json).map(_.map(m=> m._1.toLowerCase -> m._2))
+      val executorMap: Result[Map[String, JsonQueryExecutorConfig]] = fieldExtended[Map[String, JsonQueryExecutorConfig]](EXECUTOR_MAP)(json).map(_.map(m=> m._1.toLowerCase -> m._2))
+      val generatorMap: Result[Map[String, JsonQueryGeneratorConfig]] = fieldExtended[Map[String, JsonQueryGeneratorConfig]](GENERATOR_MAP)(json).map(_.map(m=> m._1.toLowerCase -> m._2))
+      val bucketingConfigMap: Result[Map[String, JsonBucketingConfig]] = fieldExtended[Map[String, JsonBucketingConfig]](BUCKETING_CONFIG_MAP)(json).map(_.map(m=> m._1.toLowerCase -> m._2))
+      val utcTimeProviderMap: Result[Map[String, JsonUTCTimeProviderConfig]] = fieldExtended[Map[String, JsonUTCTimeProviderConfig]](UTC_TIME_PROVIDER_MAP)(json).map(_.map(m=> m._1.toLowerCase -> m._2))
+      val parallelServiceExecutorConfigMap : Result[Map[String, JsonParallelServiceExecutorConfig]] = fieldExtended[Map[String, JsonParallelServiceExecutorConfig]](PSE_CONFIG_MAP)(json).map(_.map(m=> m._1.toLowerCase -> m._2))
+      val datasourceMapResult: Result[Map[String, JsonDataSourceConfig]] = fieldExtended[Map[String, JsonDataSourceConfig]](DATASOURCE_MAP)(json).map(_.map(m=> m._1.toLowerCase -> m._2))
+      val jsonMahaRequestLogConfigResult: Result[JsonMahaRequestLogConfig] = fieldExtended[JsonMahaRequestLogConfig](MAHA_REQUEST_LOGGING_CONFIG)(json)
+      val curatorMap: Result[Map[String, JsonCuratorConfig]] = fieldExtended[Map[String, JsonCuratorConfig]](CURATOR_MAP)(json).map(_.map(m=> m._1.toLowerCase -> m._2))
 
       (registryMap |@| executorMap |@| generatorMap |@| bucketingConfigMap |@| utcTimeProviderMap |@| parallelServiceExecutorConfigMap |@| datasourceMapResult |@| jsonMahaRequestLogConfigResult |@| curatorMap) {
         (a, b, c, d, e, f, g, h, i) => JsonMahaServiceConfig(a, b, c, d, e, f, g, h, i)
