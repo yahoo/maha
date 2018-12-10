@@ -3,6 +3,7 @@
 package com.yahoo.maha.service
 
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
+import com.yahoo.maha.core.request.Parameter.Debug
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc.{Seq, _}
 import com.yahoo.maha.parrequest2.future.ParRequest
@@ -1235,6 +1236,13 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     
 
     assert(result.contains(expectedJson))
+
+    //assert on misc variables
+    val tempCurator: RowCountCurator = new RowCountCurator()
+    assert(!tempCurator.isSingleton)
+    assert(!tempCurator.requiresDefaultCurator)
+    assert(tempCurator.level == 1)
+    assert(tempCurator.priority == 1)
 
   }
 
