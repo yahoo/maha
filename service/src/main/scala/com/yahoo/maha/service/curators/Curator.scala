@@ -257,6 +257,7 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                 //remove all fields except primary key
                 //remove all sorts
                 val primaryKeyAliasFields = sourcePipeline.bestDimCandidates.map(dim => Field(dim.publicDim.primaryKeyByAlias, None, None)).toIndexedSeq
+                val primaryFilteredExpressions = sourcePipeline.requestModel.reportingRequest.filterExpressions.filter(filter => primaryKeyAliasFields.contains(Field(filter.field, None, None)))
                 sourcePipeline.requestModel.reportingRequest.copy(
                   selectFields = primaryKeyAliasFields
                   , sortBy = IndexedSeq.empty
@@ -279,12 +280,6 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                 , totalRowsRequest, mahaRequestContext.bucketParams, mahaRequestLogBuilder)
 
               val totalRowsRequestModel = parRequestResult.queryPipeline.get.requestModel
-              if(totalRowsRequest.isDebugEnabled) {
-                info(s"Unfiltered request should not generate any fact candidates!  " +
-                  s" : Request fields : ${totalRowsRequestModel.reportingRequest.selectFields.foreach(field => field.toString + "\t")} " +
-                  s" : generated Model columns and candidate names : ${totalRowsRequestModel.requestCols.foreach(colInfo => colInfo.toString + "\t")} " +
-                  s" : ${totalRowsRequestModel.bestCandidates.foreach(candidate => candidate.requestCols.toString())}")
-              }
 
               val populateRowCount:ParRequest[RequestResult] = parRequestResult.prodRun.map(parRequestLabel, ParFunction.fromScala {
                 requestResult =>
