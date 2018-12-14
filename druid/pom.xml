@@ -10,7 +10,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.230-SNAPSHOT</version>
+        <version>5.231-SNAPSHOT</version>
     </parent>
 
     <name>maha druid executor</name>
