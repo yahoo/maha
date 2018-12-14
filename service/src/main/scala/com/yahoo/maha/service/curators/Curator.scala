@@ -267,6 +267,7 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                   , paginationStartIndex = 0
                   , rowsPerPage = 1
                   , curatorJsonConfigMap = Map.empty
+                  , filterExpressions = primaryFilteredExpressions
                 )
               }
             if (totalRowsCountRequestTry.isFailure) {
