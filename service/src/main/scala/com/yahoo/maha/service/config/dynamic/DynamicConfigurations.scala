@@ -16,18 +16,20 @@ import scala.collection.mutable
 
 case class DynamicPropertyInfo(propertyKey: String, defaultValue: Object, objects: mutable.Map[String, Object])
 
-class DynamicConfigurations(configurationSource: Config) {
+class DynamicConfigurations(configurationSource: Config) extends Logging {
   val dynamicPropertyFactory = DefaultPropertyFactory.from(configurationSource)
 
   val map = new mutable.HashMap[String, Property[Integer]]()
 
   def addProperty(name: String, defaultValue: Int): Unit = {
     val dynamicProperty = dynamicPropertyFactory.getProperty(name).asInteger(defaultValue)
+    info(s"Adding dynamic property: $name defaultValue: $defaultValue")
     map.put(name, dynamicProperty)
   }
 
   def addCallbacks(dynamicServiceConfig: DynamicMahaServiceConfig, registryName: String): Unit = {
     map.values.foreach(dynamicProperty => {
+      info(s"Adding callback for dynamic property: $dynamicProperty")
       dynamicProperty.subscribe(
         new Consumer[Integer]() {
           override def accept(t: Integer): Unit = {
@@ -64,7 +66,7 @@ object DynamicWrapper extends Logging {
                 val updatedBucketSelector = new BucketSelector(dynamicRegistryConfig.registry,
                   newBucketingConfig.toOption.get.get(registryConfig.bucketConfigName).get)
                 dynamicRegistryConfig.updateBucketSelector(updatedBucketSelector)
-                info(s"Replaced BucketSelector: ${updatedBucketSelector.bucketingConfig.getConfigForCube("student_performance").get.externalBucketPercentage}")
+                info(s"Replaced BucketSelector: ${updatedBucketSelector.bucketingConfig}")
               }
             case _ =>
               throw new UnsupportedOperationException(s"Unknown dynamic object name: $name")
