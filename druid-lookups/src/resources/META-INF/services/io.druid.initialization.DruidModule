@@ -1,2 +1,2 @@
-com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.NamespaceExtractionModule
+com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.MahaNamespaceExtractionModule
 com.yahoo.maha.query.aggregation.RoundingDoubleSumDruidModule

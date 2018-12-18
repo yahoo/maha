@@ -63,9 +63,9 @@ public class RocksDBManager {
     }
 
     @Inject
-    public RocksDBManager(@Named("rocksdbProperties") final Properties rocksdbProperties, Configuration config) throws IOException {
-        this.rocksdbLocation = rocksdbProperties.getProperty(ROCKSDB_LOCATION_PROP_NAME, TEMPORARY_PATH);
-        this.blockCacheSize = Long.parseLong(rocksdbProperties.getProperty(ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME, String.valueOf(DEFAULT_BLOCK_CACHE_SIZE)));
+    public RocksDBManager(final MahaNamespaceExtractionConfig mahaNamespaceExtractionConfig, Configuration config) throws IOException {
+        this.rocksdbLocation = mahaNamespaceExtractionConfig.getRocksDBProperties().getProperty(ROCKSDB_LOCATION_PROP_NAME, TEMPORARY_PATH);
+        this.blockCacheSize = Long.parseLong(mahaNamespaceExtractionConfig.getRocksDBProperties().getProperty(ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME, String.valueOf(DEFAULT_BLOCK_CACHE_SIZE)));
         Preconditions.checkArgument(blockCacheSize > 0);
         this.fileSystem = FileSystem.get(config);
     }
