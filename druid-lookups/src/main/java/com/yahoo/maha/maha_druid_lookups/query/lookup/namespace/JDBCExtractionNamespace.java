@@ -144,7 +144,7 @@ public class JDBCExtractionNamespace implements ExtractionNamespace
     public String toString()
     {
         return String.format(
-                "CdwJDBCExtractionNamespace = { connectorConfig = { %s }, table = %s, primaryKeyColumn = %s, columnList = %s, tsColumn = %s, pollPeriod = %s, lookupName = %s}",
+                "JDBCExtractionNamespace = { connectorConfig = { %s }, table = %s, primaryKeyColumn = %s, columnList = %s, tsColumn = %s, pollPeriod = %s, lookupName = %s}",
                 connectorConfig.toString(),
                 table,
                 primaryKeyColumn,

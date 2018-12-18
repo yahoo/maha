@@ -1,10 +1,9 @@
-// Copyright 2017, Yahoo Holdings Inc.
+// Copyright 2018, Yahoo Holdings Inc.
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 
-public interface PasswordProvider {
-
-    default String getPassword(final String passwordKey) {
-        return passwordKey;
-    }
+/**
+ * Created by hiral on 9/6/18.
+ */
+public class DefaultProtobufSchemaFactoryConfig {
 }

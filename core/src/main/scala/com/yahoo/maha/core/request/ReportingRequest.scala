@@ -267,7 +267,7 @@ trait BaseRequest {
     DEFAULT_DAY_FILTER
   }
 
-  // ******** Need to Move this to CDWReportingRequest : Pranav
+  // ******** Need to Move this to ReportingRequest : Pranav
   // Adding this method to be used by schedular and reporting workers
   // need to deprecate Utils class from reporting workers
   def getDayRange(reportingRequest: ReportingRequest): (DateTime, DateTime) = {

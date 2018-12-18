@@ -63,9 +63,9 @@ public class KafkaManager {
 
     @Inject
     public KafkaManager(Provider<MahaExtractionCacheManager> namespaceExtractionCacheManager,
-                        @Named("kafkaProperties") final Properties kafkaProperties,
+                        final MahaNamespaceExtractionConfig mahaNamespaceExtractionConfig,
                         ProtobufSchemaFactory protobufSchemaFactory) {
-        this.kafkaProperties.putAll(kafkaProperties);
+        this.kafkaProperties.putAll(mahaNamespaceExtractionConfig.getKafkaProperties());
         this.namespaceExtractionCacheManager = namespaceExtractionCacheManager;
         this.protobufSchemaFactory = protobufSchemaFactory;
     }

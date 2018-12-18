@@ -22,7 +22,6 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.BasicResponseHandler;
@@ -34,7 +33,6 @@ import org.apache.http.ssl.SSLContexts;
 import javax.net.ssl.SSLContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.util.*;
@@ -58,15 +56,15 @@ public class LookupService {
     private static final Random RANDOM = new Random(0);
     private String serviceScheme = "http";
     private String servicePort = "4080";
-    private final AuthHeaderProvider authHeaderProvider;
+    private final AuthHeaderFactory authHeaderFactory;
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Inject
-    public LookupService(@Named("lookupServiceProperties") final Properties lookupServiceProperties, AuthHeaderProvider authHeaderProvider) {
-        this.lookupServiceProperties.putAll(lookupServiceProperties);
+    public LookupService(final MahaNamespaceExtractionConfig mahaNamespaceExtractionConfig, AuthHeaderFactory authHeaderFactory) {
+        this.lookupServiceProperties.putAll(mahaNamespaceExtractionConfig.getLookupServiceProperties());
         try {
 
-            this.authHeaderProvider = authHeaderProvider;
+            this.authHeaderFactory = authHeaderFactory;
             serviceScheme = lookupServiceProperties.getProperty("service_scheme", "http");
             servicePort = lookupServiceProperties.getProperty("service_port", "4080");
             serviceNodeList = lookupServiceProperties.getProperty("service_nodes").split(",");
@@ -127,7 +125,7 @@ public class LookupService {
     private byte[] callService(LookupData lookupData) throws URISyntaxException, IOException {
 
         HttpGet httpGet = new HttpGet();
-        Map<String, String> authHeaders = authHeaderProvider.getAuthHeaders();
+        Map<String, String> authHeaders = authHeaderFactory.getAuthHeaders();
         if(authHeaders != null) {
             authHeaders.entrySet().stream().forEach(e -> httpGet.addHeader(e.getKey(), e.getValue()));
         }
@@ -157,7 +155,7 @@ public class LookupService {
         Long lastUpdatedTime = -1L;
         try {
             HttpGet httpGet = new HttpGet();
-            Map<String, String> authHeaders = authHeaderProvider.getAuthHeaders();
+            Map<String, String> authHeaders = authHeaderFactory.getAuthHeaders();
             if(authHeaders != null) {
                 authHeaders.entrySet().stream().forEach(e -> httpGet.addHeader(e.getKey(), e.getValue()));
             }
