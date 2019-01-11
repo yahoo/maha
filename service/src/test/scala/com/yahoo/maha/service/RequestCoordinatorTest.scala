@@ -1246,6 +1246,66 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
   }
 
+  test("Test should generate default total row query on Oracle-Only, Dim-only request in OracleQueryGenerator.") {
+
+    val jsonRequest =
+      s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Admitted Year"},
+                            {"field": "Student Name"}
+                          ],
+                          "sortBy": [
+                            {"field": "Student ID", "order": "Desc"},
+                            {"field": "Admitted Year", "order": "Asc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                         "includeRowCount" : true,
+                         "forceDimensionDriven" : true,
+                         "additionalParameters": {"debug": true}
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = ReportingRequest.enableDebug(reportingRequestResult.toOption.get)
+
+    // Revision 1 is druid + oracle case
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(1))
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val requestCoordinatorResult1 = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val requestCoordinatorResult2 = requestCoordinatorResult1.right.get.get()
+
+    /**
+      * Currently generates :
+      * SELECT  *
+      * FROM (SELECT s0.id "Student ID", s0.admitted_year "Admitted Year", s0.name "Student Name", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
+      * FROM
+      * (SELECT  id, admitted_year, name
+      * FROM student
+      * WHERE (id = 213)
+      * ORDER BY 1 DESC , 2 ASC NULLS LAST ) s0
+      *
+      *
+      * )
+      * WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+      *
+      * This is a row count query with preserved ordering.    The goal in this test is to figure out where we can remove ordering in the default query,
+      * as UI-generated dim only queries with 1 row requested do not require ordering & default to oracle-only single engine.
+      */
+  }
+
   test("successful remove of DrillDown curator cross-cube fields when second cube lacks facts from initial request") {
 
     val jsonRequest = s"""{
