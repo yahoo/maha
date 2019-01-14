@@ -1264,6 +1264,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
                             {"field": "Student ID", "operator": "=", "value": "213"}
                           ],
+                         "rowsPerPage": 1,
                          "includeRowCount" : true,
                          "forceDimensionDriven" : true,
                          "additionalParameters": {"debug": true}
@@ -1284,26 +1285,28 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
 
-    val requestCoordinatorResult1 = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
-    val requestCoordinatorResult2 = requestCoordinatorResult1.right.get.get()
+    val requestCoordinatorResult = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val requestCoordinatorResultEither = requestCoordinatorResult.right.get.get()
+    val requestCoordinatorResultErrorMessage = requestCoordinatorResultEither.left.get.message
 
-    /**
-      * Currently generates :
-      * SELECT  *
-      * FROM (SELECT s0.id "Student ID", s0.admitted_year "Admitted Year", s0.name "Student Name", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
-      * FROM
-      * (SELECT  id, admitted_year, name
-      * FROM student
-      * WHERE (id = 213)
-      * ORDER BY 1 DESC , 2 ASC NULLS LAST ) s0
-      *
-      *
-      * )
-      * WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
-      *
-      * This is a row count query with preserved ordering.    The goal in this test is to figure out where we can remove ordering in the default query,
-      * as UI-generated dim only queries with 1 row requested do not require ordering & default to oracle-only single engine.
-      */
+    val failureSQL: String =
+      s"""
+         |SELECT                   *
+         |      FROM (SELECT S0.ID ""Student ID"", S0.ADMITTED_YEAR ""Admitted Year"", S0.NAME ""Student Name"", COUNT(*) OVER([*]) TOTALROWS, ROWNUM AS ROW_NUMBER
+         |            FROM
+         |                (SELECT  ID, ADMITTED_YEAR, NAME
+         |            FROM STUDENT
+         |            WHERE (ID = 213)
+         |             ) S0
+         |
+         |
+ |           )
+         |             WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 1
+       """.stripMargin
+
+    assert(requestCoordinatorResultErrorMessage.contains("Failed to execute the query pipeline"))
+
+
   }
 
   test("successful remove of DrillDown curator cross-cube fields when second cube lacks facts from initial request") {

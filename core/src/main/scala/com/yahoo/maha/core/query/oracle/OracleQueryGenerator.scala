@@ -234,14 +234,18 @@ b. Dim Driven
       val dimSelect = dimSelectSet.mkString(", ")
       val dimWhere = generateWhereClause(dimBundle, subqueryBundles)
 
+      val isTotalRowRequest = isDimOnly && requestModel.isDimDriven && requestModel.maxRows == 1 && requestModel.includeRowCount
+
       val dimOrderBy = {
-        if ((requestModel.isDimDriven || isDimOnly) && orderByIndex.size > 0) {
+        if ((requestModel.isDimDriven || isDimOnly) && orderByIndex.nonEmpty && !isTotalRowRequest) {
           val sql = orderByIndex.mkString(", ")
           s"""ORDER BY $sql"""
         } else {
           ""
         }
       }
+
+
 
       val onCondition: Option[String] = for {
         prevDim <- prevDimOption
