@@ -1870,7 +1870,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                               {"field": "Advertiser Status", "operator": "in", "values": ["ON"]}
                            ],
                            "paginationStartIndex":0,
-                           "rowsPerPage":100,
+                           "rowsPerPage":1,
                            "includeRowCount": true,
                            "forceDimensionDriven": true
                          }"""
@@ -1885,7 +1885,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    val expected = """SELECT *
+    val expected = """SELECT /*+ FIRST_ROWS */ *
                      |      FROM (SELECT co1.id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
                      |            FROM
                      |               ( (SELECT  advertiser_id, campaign_id, id
@@ -1906,7 +1906,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                      |              ON( co1.advertiser_id = ao0.id )
                      |               )
                      |
-                     |           ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
+                     |           ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 1""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }

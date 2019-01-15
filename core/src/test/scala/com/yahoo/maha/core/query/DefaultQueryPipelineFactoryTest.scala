@@ -142,7 +142,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
                           "includeRowCount" : true,
                           "forceDimensionDriven": true,
                           "paginationStartIndex":0,
-                          "rowsPerPage":100
+                          "rowsPerPage":1
                           }"""
   val requestWithMetricSortNoPK = s"""{
                           "cube": "k_stats",
