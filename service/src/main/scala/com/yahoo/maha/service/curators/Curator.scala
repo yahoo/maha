@@ -142,18 +142,20 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
         queryPipeline.factBestCandidate.isEmpty
 
     if(isDimOnlyTotalRowQuery) {
-      val unfilteredResultTry = runAndValidateRequestModel(mahaRequestContext, mahaService, mahaRequestLogBuilder, curatorConfig)
+      val requestWithoutOrdering = mahaRequestContext.reportingRequest.copy(sortBy = IndexedSeq.empty)
+      val unsortedResultTry = runAndValidateRequestModel(mahaRequestContext.copy(reportingRequest = requestWithoutOrdering), mahaService, mahaRequestLogBuilder, curatorConfig)
 
-      if(unfilteredResultTry.isLeft) {
+      if(unsortedResultTry.isLeft) {
         (requestModelResult, parRequestResult)
       }
       else {
-        val unfilteredParRequestResult = mahaService.executeRequestModelResult(mahaRequestContext.registryName
-          , unfilteredResultTry.right.get, mahaRequestLogBuilder)
+        val unsortedParRequestResult = mahaService.executeRequestModelResult(mahaRequestContext.registryName
+          , unsortedResultTry.right.get, mahaRequestLogBuilder)
 
-        if(unfilteredParRequestResult.queryPipeline.isSuccess)
-          (unfilteredResultTry.right.get, unfilteredParRequestResult)
-        else (requestModelResult, parRequestResult)
+        if(unsortedParRequestResult.queryPipeline.isSuccess)
+          (unsortedResultTry.right.get, unsortedParRequestResult)
+        else
+          (requestModelResult, parRequestResult)
       }
     }
     else {
@@ -183,7 +185,7 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
         val parRequestResult: ParRequestResult = mahaService.executeRequestModelResult(mahaRequestContext.registryName
           , requestModelResult, mahaRequestLogBuilder)
 
-        val (unfilteredRequestModelResult, unfilteredParRequestResult) =
+        val (unsortedRequestModelResult, unfilteredParRequestResult) =
           generateUnfilteredResults(mahaRequestContext, mahaService, mahaRequestLogBuilder, curatorConfig, requestModelResult, parRequestResult, parRequestResult.queryPipeline.get)
 
         if (parRequestResult.queryPipeline.isSuccess) {
@@ -232,7 +234,7 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
           , CuratorResult(this
             , curatorConfig
             , Option(unfilteredParRequestResult.copy(prodRun = postProcessorResult))
-            , unfilteredRequestModelResult))
+            , unsortedRequestModelResult))
       }
       catch {
         case e: Exception =>
