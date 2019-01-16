@@ -949,15 +949,7 @@ OuterGroupBy operation has to be applied only in the following cases
         }
         builder
       } else {
-        val isTotalRowQueryWithOneReturnedRow =
-          requestModel.isDimDriven && requestModel.includeRowCount && requestModel.reportingRequest.rowsPerPage == 1 && factBestCandidateOption.isEmpty
-
-        var totalRowRequestModel = requestModel
-
-        if(isTotalRowQueryWithOneReturnedRow)
-          totalRowRequestModel = requestModel.copy(dimSortByMap = Map.empty, factSortByMap = Map.empty, hasDimSortBy = false, hasFactSortBy = false)
-
-        val query = getDimOnlyQuery(bestDimCandidates, totalRowRequestModel, queryGenVersion)
+        val query = getDimOnlyQuery(bestDimCandidates, requestModel, queryGenVersion)
 
         new QueryPipelineBuilder(
           SingleEngineQuery(query)

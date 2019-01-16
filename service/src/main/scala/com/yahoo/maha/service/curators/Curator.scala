@@ -3,6 +3,7 @@
 package com.yahoo.maha.service.curators
 
 import com.yahoo.maha.core.RequestModelResult
+import com.yahoo.maha.core.query.QueryPipeline
 import com.yahoo.maha.core.request.{CuratorJsonConfig, Field}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest, ParallelServiceExecutor}
@@ -57,6 +58,9 @@ trait Curator extends Ordered[Curator] {
   protected def withError(curatorConfig: CuratorConfig, error: GeneralError): Either[CuratorError, ParRequest[CuratorResult]] = {
     new Left(CuratorError(this, curatorConfig, error))
   }
+  protected def withRequestModelResultError(curatorConfig: CuratorConfig, error: GeneralError): Either[CuratorError, RequestModelResult] = {
+    new Left(CuratorError(this, curatorConfig, error))
+  }
   protected def withRequestResultError(curatorConfig: CuratorConfig, error: GeneralError): Either[CuratorError, RequestResult] = {
     new Left(CuratorError(this, curatorConfig, error))
   }
@@ -103,6 +107,60 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
   override val isSingleton: Boolean = false
   override val requiresDefaultCurator: Boolean = false
 
+  private def runAndValidateRequestModel(mahaRequestContext: MahaRequestContext
+                                         , mahaService: MahaService
+                                         , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
+                                         , curatorConfig: CuratorConfig
+                                        , parRequestLabel: String = "processRequestModelDefaultCurator") : Either[CuratorError, RequestModelResult] = {
+    val requestModelResultTry = mahaService.generateRequestModel(mahaRequestContext.registryName
+      , mahaRequestContext.reportingRequest
+      , mahaRequestContext.bucketParams)
+
+    if(requestModelResultTry.isFailure) {
+      val message = requestModelResultTry.failed.get.getMessage
+      mahaRequestLogBuilder.logFailed(message, Some(400))
+      withRequestModelResultError(curatorConfig,
+        GeneralError.from(parRequestLabel
+          , message, new MahaServiceBadRequestException(message, requestModelResultTry.failed.toOption))
+      )
+    } else {
+      new Right(requestModelResultTry.get)
+    }
+  }
+
+  private def generateUnfilteredResults(mahaRequestContext: MahaRequestContext
+                                        , mahaService: MahaService
+                                        , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
+                                        , curatorConfig: CuratorConfig
+                                       , requestModelResult: RequestModelResult
+                                       , parRequestResult: ParRequestResult
+                                       , queryPipeline: QueryPipeline) : (RequestModelResult, ParRequestResult) = {
+    val isDimOnlyTotalRowQuery : Boolean =
+      requestModelResult.model.includeRowCount &&
+        requestModelResult.model.isDimDriven &&
+        requestModelResult.model.maxRows == 1 &&
+        queryPipeline.factBestCandidate.isEmpty
+
+    if(isDimOnlyTotalRowQuery) {
+      val unfilteredResultTry = runAndValidateRequestModel(mahaRequestContext, mahaService, mahaRequestLogBuilder, curatorConfig)
+
+      if(unfilteredResultTry.isLeft) {
+        (requestModelResult, parRequestResult)
+      }
+      else {
+        val unfilteredParRequestResult = mahaService.executeRequestModelResult(mahaRequestContext.registryName
+          , unfilteredResultTry.right.get, mahaRequestLogBuilder)
+
+        if(unfilteredParRequestResult.queryPipeline.isSuccess)
+          (unfilteredResultTry.right.get, unfilteredParRequestResult)
+        else (requestModelResult, parRequestResult)
+      }
+    }
+    else {
+      (requestModelResult, parRequestResult)
+    }
+  }
+
   override def process(resultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]]
                        , mahaRequestContext: MahaRequestContext
                        , mahaService: MahaService
@@ -114,26 +172,25 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
     val parallelServiceExecutor = mahaService.getParallelServiceExecutor(mahaRequestContext)
     val parRequestLabel = "processDefaultCurator"
 
-    val requestModelResultTry = mahaService.generateRequestModel(mahaRequestContext.registryName
-      , mahaRequestContext.reportingRequest
-      , mahaRequestContext.bucketParams)
+    val requestModelResultEither = runAndValidateRequestModel(mahaRequestContext, mahaService, mahaRequestLogBuilder, curatorConfig)
 
-    if(requestModelResultTry.isFailure) {
-      val message = requestModelResultTry.failed.get.getMessage
-      mahaRequestLogBuilder.logFailed(message, Some(400))
-      withError(curatorConfig,
-        GeneralError.from(parRequestLabel
-          , message, new MahaServiceBadRequestException(message, requestModelResultTry.failed.toOption))
-      )
+    if(requestModelResultEither.isLeft) {
+      withError(curatorConfig, requestModelResultEither.left.get)
     } else {
       try {
-        val requestModelResult = requestModelResultTry.get
+        val requestModelResult = requestModelResultEither.right.get
         requestModelValidator.validate(mahaRequestContext, requestModelResult)
         val parRequestResult: ParRequestResult = mahaService.executeRequestModelResult(mahaRequestContext.registryName
           , requestModelResult, mahaRequestLogBuilder)
 
+        val (unfilteredRequestModelResult, unfilteredParRequestResult) =
+          generateUnfilteredResults(mahaRequestContext, mahaService, mahaRequestLogBuilder, curatorConfig, requestModelResult, parRequestResult, parRequestResult.queryPipeline.get)
+
         if (parRequestResult.queryPipeline.isSuccess) {
-          val queryPipeline = parRequestResult.queryPipeline.get
+
+          val queryPipeline : QueryPipeline = unfilteredParRequestResult.queryPipeline.get
+
+
           //detect row count injection
           //for dim driven multi engine, inject row count
           //for non dim driven, inject row count if requested
@@ -151,7 +208,7 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
             curatorInjector.injectCurator(RowCountCurator.name, resultMap, mahaRequestContext, NoConfig)
           }
         }
-        val postProcessorResult = parRequestResult.prodRun.map("postProcess", ParFunction.fromScala {
+        val postProcessorResult = unfilteredParRequestResult.prodRun.map("postProcess", ParFunction.fromScala {
           requestResult =>
             try {
               val result = curatorResultPostProcessor.process(mahaRequestContext, requestResult)
@@ -174,8 +231,8 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
           , parallelServiceExecutor
           , CuratorResult(this
             , curatorConfig
-            , Option(parRequestResult.copy(prodRun = postProcessorResult))
-            , requestModelResult))
+            , Option(unfilteredParRequestResult.copy(prodRun = postProcessorResult))
+            , unfilteredRequestModelResult))
       }
       catch {
         case e: Exception =>
