@@ -128,7 +128,7 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
     }
   }
 
-  private def generateUnfilteredResults(mahaRequestContext: MahaRequestContext
+  private def generateUnsortedResults(mahaRequestContext: MahaRequestContext
                                         , mahaService: MahaService
                                         , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
                                         , curatorConfig: CuratorConfig
@@ -163,6 +163,39 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
     }
   }
 
+  private def tryRunProdParRequest(mahaRequestContext: MahaRequestContext
+                                  , requestResult: RequestResult
+                                  , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder) : Either[GeneralError, RequestResult] = {
+    try {
+      val result = curatorResultPostProcessor.process(mahaRequestContext, requestResult)
+      if (result.isRight) {
+        mahaRequestLogBuilder.logSuccess()
+      } else {
+        val ge = result.left.get
+        mahaRequestLogBuilder.logFailed(ge.throwableOption.map(_.getMessage).getOrElse(ge.message))
+      }
+      result
+    } catch {
+      case e: Exception =>
+        val message = "error in post processor, returning original result"
+        logger.error(message, e)
+        mahaRequestLogBuilder.logFailed(s"$message - ${e.getMessage}")
+        new Right(requestResult)
+    }
+  }
+
+  /**detect row count injection
+    *for dim driven multi engine, inject row count
+    *for non dim driven, inject row count if requested
+    */
+  private def isRowCountCuratorInjectable(mahaRequestContext: MahaRequestContext
+                                   , queryPipeline: QueryPipeline) : Boolean = mahaRequestContext.reportingRequest.includeRowCount &&
+                                     ((mahaRequestContext.reportingRequest.forceDimensionDriven
+                                       && queryPipeline.bestDimCandidates.nonEmpty
+                                       && queryPipeline.bestDimCandidates.head.dim.engine != queryPipeline.queryChain.drivingQuery.engine)
+                                         ||
+                                       (!mahaRequestContext.reportingRequest.forceDimensionDriven))
+
   override def process(resultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]]
                        , mahaRequestContext: MahaRequestContext
                        , mahaService: MahaService
@@ -180,60 +213,33 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
       withError(curatorConfig, requestModelResultEither.left.get)
     } else {
       try {
-        val requestModelResult = requestModelResultEither.right.get
+        val requestModelResult: RequestModelResult = requestModelResultEither.right.get
         requestModelValidator.validate(mahaRequestContext, requestModelResult)
         val parRequestResult: ParRequestResult = mahaService.executeRequestModelResult(mahaRequestContext.registryName
           , requestModelResult, mahaRequestLogBuilder)
 
-        val (unsortedRequestModelResult, unfilteredParRequestResult) =
-          generateUnfilteredResults(mahaRequestContext, mahaService, mahaRequestLogBuilder, curatorConfig, requestModelResult, parRequestResult, parRequestResult.queryPipeline.get)
+        val (unsortedRequestModelResult, unsortedParRequestResult) =
+          generateUnsortedResults(mahaRequestContext, mahaService, mahaRequestLogBuilder, curatorConfig, requestModelResult, parRequestResult, parRequestResult.queryPipeline.get)
 
         if (parRequestResult.queryPipeline.isSuccess) {
 
-          val queryPipeline : QueryPipeline = unfilteredParRequestResult.queryPipeline.get
+          val queryPipeline : QueryPipeline = unsortedParRequestResult.queryPipeline.get
 
-
-          //detect row count injection
-          //for dim driven multi engine, inject row count
-          //for non dim driven, inject row count if requested
-          val injectRowCountCurator =
-          mahaRequestContext.reportingRequest.includeRowCount &&
-            (
-              (mahaRequestContext.reportingRequest.forceDimensionDriven
-                && queryPipeline.bestDimCandidates.nonEmpty
-                && queryPipeline.bestDimCandidates.head.dim.engine != queryPipeline.queryChain.drivingQuery.engine)
-              ||
-              (!mahaRequestContext.reportingRequest.forceDimensionDriven)
-            )
+          val injectRowCountCurator : Boolean = isRowCountCuratorInjectable(mahaRequestContext, queryPipeline)
 
           if (injectRowCountCurator) {
             curatorInjector.injectCurator(RowCountCurator.name, resultMap, mahaRequestContext, NoConfig)
           }
         }
-        val postProcessorResult = unfilteredParRequestResult.prodRun.map("postProcess", ParFunction.fromScala {
+        val postProcessorResult = unsortedParRequestResult.prodRun.map("postProcess", ParFunction.fromScala {
           requestResult =>
-            try {
-              val result = curatorResultPostProcessor.process(mahaRequestContext, requestResult)
-              if (result.isRight) {
-                mahaRequestLogBuilder.logSuccess()
-              } else {
-                val ge = result.left.get
-                mahaRequestLogBuilder.logFailed(ge.throwableOption.map(_.getMessage).getOrElse(ge.message))
-              }
-              result
-            } catch {
-              case e: Exception =>
-                val message = "error in post processor, returning original result"
-                logger.error(message, e)
-                mahaRequestLogBuilder.logFailed(s"$message - ${e.getMessage}")
-                new Right(requestResult)
-            }
+            tryRunProdParRequest(mahaRequestContext, requestResult, mahaRequestLogBuilder)
         })
         withResult(parRequestLabel
           , parallelServiceExecutor
           , CuratorResult(this
             , curatorConfig
-            , Option(unfilteredParRequestResult.copy(prodRun = postProcessorResult))
+            , Option(unsortedParRequestResult.copy(prodRun = postProcessorResult))
             , unsortedRequestModelResult))
       }
       catch {
