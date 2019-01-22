@@ -1246,6 +1246,69 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
   }
 
+  test("Test should generate default total row query on Oracle-Only, Dim-only request in OracleQueryGenerator.") {
+
+    val jsonRequest =
+      s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Admitted Year"},
+                            {"field": "Student Name"}
+                          ],
+                          "sortBy": [
+                            {"field": "Student ID", "order": "Desc"},
+                            {"field": "Admitted Year", "order": "Asc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                         "rowsPerPage": 1,
+                         "includeRowCount" : true,
+                         "forceDimensionDriven" : true,
+                         "additionalParameters": {"debug": true}
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = ReportingRequest.enableDebug(reportingRequestResult.toOption.get)
+
+    // Revision 1 is druid + oracle case
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(1))
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val requestCoordinatorResult = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val requestCoordinatorResultEither = requestCoordinatorResult.right.get.get()
+    val requestCoordinatorResultErrorMessage = requestCoordinatorResultEither.left.get.message
+
+    val failureSQL: String =
+      s"""
+         |SELECT                   *
+         |      FROM (SELECT S0.ID ""Student ID"", S0.ADMITTED_YEAR ""Admitted Year"", S0.NAME ""Student Name"", COUNT(*) OVER([*]) TOTALROWS, ROWNUM AS ROW_NUMBER
+         |            FROM
+         |                (SELECT  ID, ADMITTED_YEAR, NAME
+         |            FROM STUDENT
+         |            WHERE (ID = 213)
+         |             ) S0
+         |
+         |
+ |           )
+         |             WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 1
+       """.stripMargin
+
+    assert(requestCoordinatorResultErrorMessage.contains("Failed to execute the query pipeline"))
+
+
+  }
+
   test("successful remove of DrillDown curator cross-cube fields when second cube lacks facts from initial request") {
 
     val jsonRequest = s"""{

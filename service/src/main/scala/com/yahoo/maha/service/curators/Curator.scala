@@ -127,8 +127,35 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
       )
     } else {
       try {
-        val requestModelResult = requestModelResultTry.get
+        var requestModelResult = requestModelResultTry.get
         requestModelValidator.validate(mahaRequestContext, requestModelResult)
+
+        val isDimOnlyTotalRowQuery: Boolean =
+            requestModelResult.model.includeRowCount &&
+            requestModelResult.model.isDimDriven &&
+            requestModelResult.model.maxRows == 1 &&
+            requestModelResult.model.bestCandidates.isEmpty
+
+        if(isDimOnlyTotalRowQuery){
+          val requestWithoutOrdering = mahaRequestContext.reportingRequest.copy(sortBy = IndexedSeq.empty)
+          val unsortedResultTry = mahaService.generateRequestModel(mahaRequestContext.registryName
+            , requestWithoutOrdering
+            , mahaRequestContext.bucketParams)
+
+          if(unsortedResultTry.isFailure) {
+            val message = unsortedResultTry.failed.get.getMessage
+            mahaRequestLogBuilder.logFailed(message, Some(400))
+            withError(curatorConfig,
+              GeneralError.from(parRequestLabel
+                , message, new MahaServiceBadRequestException(message, unsortedResultTry.failed.toOption))
+            )
+          }
+          else {
+            requestModelResult = unsortedResultTry.get
+          }
+
+        }
+
         val parRequestResult: ParRequestResult = mahaService.executeRequestModelResult(mahaRequestContext.registryName
           , requestModelResult, mahaRequestLogBuilder)
 
