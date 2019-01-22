@@ -134,7 +134,8 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
             requestModelResult.model.includeRowCount &&
             requestModelResult.model.isDimDriven &&
             requestModelResult.model.maxRows == 1 &&
-            requestModelResult.model.bestCandidates.isEmpty
+            requestModelResult.model.bestCandidates.isEmpty &&
+            requestModelResult.model.dimensionsCandidates.nonEmpty
 
         if(isDimOnlyTotalRowQuery){
           val requestWithoutOrdering = mahaRequestContext.reportingRequest.copy(sortBy = IndexedSeq.empty)
