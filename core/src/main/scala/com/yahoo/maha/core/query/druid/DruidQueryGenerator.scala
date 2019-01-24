@@ -267,7 +267,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
   private[this] def generateFactQuery(dims: SortedSet[DimensionBundle], queryContext: FactQueryContext): Query = {
 
     val context: java.util.Map[String, AnyRef] = Maps.newHashMap[String, AnyRef]()
-    val dataSource = queryContext.factBestCandidate.fact.name
+    val fact = queryContext.factBestCandidate.fact
+    val dataSource = fact.underlyingTableName.getOrElse(fact.name)
     val model = queryContext.requestModel
     val requestIdValue = model.additionalParameters.getOrElse(Parameter.RequestId, RequestIdValue(UUID.randomUUID().toString))
     val requestId = requestIdValue.asInstanceOf[RequestIdValue].value
@@ -1053,11 +1054,11 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             case decodeDimFunction@DECODE_DIM(fieldName, args @ _*) =>
               dt match {
                 case IntType(_, _, _, _, _) | StrType(_, _, _) if args.length > 1=>
-                  val map = Map(args(0) -> args(1))
+                  val map = args.grouped(2).filter(_.size == 2).map(seq => (seq.head, seq(1))).toMap
                   val lookup = new MapLookupExtractor(map.asJava, false)
                   val exFn = {
-                    if(args.length > 2) {
-                      new LookupExtractionFn(lookup, false, args(2), false, true)
+                    if(args.length > 2 && args.length % 2  == 1) {
+                      new LookupExtractionFn(lookup, false, args(args.length - 1), false, true)
                     } else {
                       new LookupExtractionFn(lookup, true, null, false, true)
                     }
