@@ -1,11 +1,12 @@
 package com.yahoo.maha.core.query.druid
 
+import com.yahoo.maha.core
 import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, InternalSchema, ResellerSchema}
 import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{POST_RESULT_DECODE, START_OF_THE_MONTH, START_OF_THE_WEEK}
-import com.yahoo.maha.core.FilterOperation.{Equality, In, InBetweenEquality, InEquality, InNotInBetweenEqualityNotEqualsGreaterLesser}
+import com.yahoo.maha.core.FilterOperation.{Equality, In, InBetweenEquality, InEquality, InNotInBetweenEqualityNotEqualsGreaterLesser, EqualityFieldEquality}
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{DimCol, DruidFuncDimCol, DruidPostResultFuncDimCol, PubCol, ConstDimCol}
+import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol, DruidFuncDimCol, DruidPostResultFuncDimCol, PubCol}
 import com.yahoo.maha.core.fact.{PublicFactCol, _}
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
@@ -93,6 +94,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , DruidDerFactCol("Reblog Rate", DecType(), "{Reblogs}" /- "{impressions}" * "100")
           , DruidPostResultDerivedFactCol("impression_share", StrType(), "{impressions}" /- "{sov_impressions}", postResultFunction = POST_RESULT_DECODE("{show_sov_flag}", "0", "N/A"))
           , FactCol("uniqueUserCount", DecType(0, "0.0"))
+          , FactCol("blarghUserCount", DecType(0, "0.0"))
           , FactCol("ageBucket_unique_users", DecType(), DruidFilteredRollup(InFilter("ageBucket", List("18-20")), "uniqueUserCount", DruidThetaSketchRollup))
           , FactCol("woeids_unique_users", DecType(), DruidFilteredRollup(InFilter("woeids", List("4563")), "uniqueUserCount", DruidThetaSketchRollup))
           , FactCol("segments_unique_users", DecType(), DruidFilteredRollup(InFilter("segments", List("1234")), "uniqueUserCount", DruidThetaSketchRollup))
@@ -275,8 +277,8 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PubCol("stats_date", "Day", InBetweenEquality),
           PubCol("engagement_type", "engagement_type", Equality),
           PubCol("id", "Keyword ID", InEquality),
-          PubCol("ad_id", "Ad ID", InEquality),
-          PubCol("ad_group_id", "Ad Group ID", InEquality),
+          PubCol("ad_id", "Ad ID", InEquality ++ EqualityFieldEquality),
+          PubCol("ad_group_id", "Ad Group ID", InEquality ++ EqualityFieldEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),
           PubCol("advertiser_id", "Advertiser ID", InEquality),
           PubCol("stats_source", "Source", Equality, incompatibleColumns = Set("Source Name")),
