@@ -1862,12 +1862,13 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                                "field": "Campaign Name",
                                "alias": null,
                                "value": null
-                             }
+                             }, {"field": "Ad ID"}
                            ],
                            "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
-                              {"field": "Advertiser Status", "operator": "in", "values": ["ON"]}
+                              {"field": "Advertiser Status", "operator": "in", "values": ["ON"]},
+                              {"field": "Ad ID", "operator": "==", "compareTo": "Ad Group ID"}
                            ],
                            "paginationStartIndex":0,
                            "rowsPerPage":100,
@@ -1885,19 +1886,19 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    val expected = """SELECT *
-                     |      FROM (SELECT co1.id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
+    val expected = """SELECT  *
+                     |      FROM (SELECT co1.id "Campaign ID", ado2.ad_group_id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", ado2.id "Ad ID", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
                      |            FROM
-                     |               ( (SELECT  advertiser_id, campaign_id, id
-                     |            FROM ad_group_oracle
-                     |            WHERE (advertiser_id = 12345)
-                     |             ) ago2
+                     |               ( (SELECT  advertiser_id, campaign_id, ad_group_id, id
+                     |            FROM ad_dim_oracle
+                     |            WHERE (id = ad_group_id) AND (advertiser_id = 12345)
+                     |             ) ado2
                      |          INNER JOIN
                      |            (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
                      |            FROM campaign_oracle
                      |            WHERE (advertiser_id = 12345)
                      |             ) co1
-                     |              ON( ago2.advertiser_id = co1.advertiser_id AND ago2.campaign_id = co1.id )
+                     |              ON( ado2.advertiser_id = co1.advertiser_id AND ado2.campaign_id = co1.id )
                      |               INNER JOIN
                      |            (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
                      |            FROM advertiser_oracle
@@ -1906,7 +1907,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                      |              ON( co1.advertiser_id = ao0.id )
                      |               )
                      |
-                     |           ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
+                     |           )
+                     |             WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }

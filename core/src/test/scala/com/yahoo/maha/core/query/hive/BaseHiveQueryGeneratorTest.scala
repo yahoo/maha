@@ -43,6 +43,7 @@ trait BaseHiveQueryGeneratorTest
         Set(
           DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
           , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
+          , DimCol("ad_id", IntType(), annotations = Set(ForeignKey("ad")))
           , DimCol("account_id", IntType(), annotations = Set(ForeignKey("advertiser")))
           , DimCol("keyword_id", IntType())
           , DimCol("keyword", StrType(), annotations = Set(EscapingRequired))
@@ -76,7 +77,8 @@ trait BaseHiveQueryGeneratorTest
       .toPublicFact("s_stats",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
-          PubCol("ad_group_id", "Ad Group ID", InEquality),
+          PubCol("ad_id", "Ad ID", EqualityFieldEquality),
+          PubCol("ad_group_id", "Ad Group ID", InEquality ++ EqualityFieldEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),
           PubCol("account_id", "Advertiser ID", InEquality),
           PubCol("keyword_id", "Keyword ID", InEquality),

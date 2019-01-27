@@ -13,6 +13,7 @@ import com.yahoo.maha.core.dimension.{DruidFuncDimCol, DruidPostResultFuncDimCol
 import com.yahoo.maha.core.request.fieldExtended
 import grizzled.slf4j.Logging
 import io.druid.js.JavaScriptConfig
+import io.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec}
 import io.druid.query.extraction.{SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
 import io.druid.query.filter.JavaScriptDimFilter
 import org.json4s.scalaz.JsonScalaz
@@ -35,6 +36,7 @@ case object OuterFilterOperation extends FilterOperation { override def toString
 case object OrFilterOperation extends FilterOperation { override def toString = "Or" }
 case object GreaterThanFilterOperation extends FilterOperation { override def toString = ">" }
 case object LessThanFilterOperation extends FilterOperation { override def toString = "<" }
+case object FieldEqualityFilterOperation extends FilterOperation { override def toString = "==" }
 case object NoopFilterOperation extends FilterOperation
 
 object FilterOperation {
@@ -42,6 +44,10 @@ object FilterOperation {
   val NotIn : Set[FilterOperation] = Set(NotInFilterOperation)
   val Between : Set[FilterOperation] = Set(BetweenFilterOperation)
   val Equality : Set[FilterOperation] = Set(EqualityFilterOperation)
+  val FieldEquality: Set[FilterOperation] = Set(FieldEqualityFilterOperation)
+  val InFieldEquality: Set[FilterOperation] = Set(InFilterOperation, FieldEqualityFilterOperation)
+  val EqualityFieldEquality: Set[FilterOperation] = Set(EqualityFilterOperation, FieldEqualityFilterOperation)
+  val EqualityFieldEqualityBetween: Set[FilterOperation] = Set(EqualityFilterOperation, FieldEqualityFilterOperation, BetweenFilterOperation)
   val InEquality: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation)
   val InEqualityNotEquals: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation, NotEqualToFilterOperation)
   val InNotInEquality: Set[FilterOperation] = Set(InFilterOperation, NotInFilterOperation, EqualityFilterOperation)
@@ -153,6 +159,15 @@ case class JavaScriptFilter(field: String, function: String
   override def canBeHighCardinalityFilter: Boolean = true
 }
 
+case class FieldEqualityFilter(field: String, compareTo: String
+                                  , override val isForceFilter: Boolean = false
+                                  , override val isOverridable: Boolean = false
+                                 ) extends ForcedFilter {
+  override def operator = FieldEqualityFilterOperation
+  val asValues: String = field + "," + compareTo
+  override def canBeHighCardinalityFilter: Boolean = true
+}
+
 sealed trait ValuesFilter extends ForcedFilter {
   def values: List[String]
   def renameField(newField: String): ValuesFilter
@@ -219,6 +234,17 @@ sealed trait FilterRenderer[T, O] {
              grainOption: Option[Grain]): O
 }
 
+sealed trait FieldFilterRenderer[T, O] {
+  def render(name: String,
+             compareTo: String,
+             filter: T,
+             literalMapper: LiteralMapper,
+             column: Column,
+             otherColumn: Column,
+             engine: Engine,
+             grainOption: Option[Grain]): O
+}
+
 sealed trait BetweenFilterRenderer[O] extends FilterRenderer[BetweenFilter, O]
 
 sealed trait InFilterRenderer[O] extends FilterRenderer[InFilter, O]
@@ -240,6 +266,9 @@ sealed trait IsNullFilterRenderer[O] extends FilterRenderer[IsNullFilter, O]
 sealed trait IsNotNullFilterRenderer[O] extends FilterRenderer[IsNotNullFilter, O]
 
 sealed trait JavaScriptFilterRenderer[O] extends FilterRenderer[JavaScriptFilter, O]
+
+sealed trait FieldEqualityFilterRenderer[O] extends FieldFilterRenderer[FieldEqualityFilter, O]
+
 
 sealed trait SqlResult {
   def filter: String
@@ -395,6 +424,44 @@ object SqlEqualityFilterRenderer extends EqualityFilterRenderer[SqlResult] {
         }
       case _ =>
         throw new IllegalArgumentException(s"Unsupported engine for EqualityFilterRenderer $engine")
+    }
+  }
+}
+
+object SqlFieldEqualityFilterRenderer extends FieldEqualityFilterRenderer[SqlResult] {
+
+  def render(name: String,
+             compareTo: String,
+             filter: FieldEqualityFilter,
+             literalMapper: LiteralMapper,
+             column: Column,
+             otherColumn: Column,
+             engine: Engine,
+             grainOption : Option[Grain]) : SqlResult = {
+    engine match {
+      case OracleEngine =>
+        column.dataType match {
+          case StrType(_, _, _) if column.caseInSensitive =>
+            DefaultResult(s"""lower($name) = lower($compareTo)""")
+          case _ =>
+            DefaultResult(s"""$name = $compareTo""")
+        }
+      case HiveEngine =>
+        column.dataType match {
+          case StrType(_, _, _) if column.caseInSensitive =>
+            DefaultResult(s"""lower($name) = lower($compareTo)""")
+          case _ =>
+            DefaultResult(s"""$name = $compareTo""")
+        }
+      case PrestoEngine =>
+        column.dataType match {
+          case StrType(_, _, _) if column.caseInSensitive =>
+            DefaultResult(s"""lower($name) = lower($compareTo)""")
+          case _ =>
+            DefaultResult(s"""$name = $compareTo""")
+        }
+      case _ =>
+        throw new IllegalArgumentException(s"Unsupported engine for FieldEqualityFilterRenderer $engine")
     }
   }
 }
@@ -587,7 +654,7 @@ object SqlIsNotNullFilterRenderer extends IsNotNullFilterRenderer[SqlResult] {
 }
 
 object FilterDruid {
-  import io.druid.query.filter.{DimFilter, NotDimFilter, OrDimFilter, SearchQueryDimFilter, SelectorDimFilter, BoundDimFilter}
+  import io.druid.query.filter.{DimFilter, NotDimFilter, OrDimFilter, SearchQueryDimFilter, SelectorDimFilter, BoundDimFilter, ColumnComparisonDimFilter}
   import io.druid.query.groupby.having._
   import io.druid.query.search.InsensitiveContainsSearchQuerySpec
   import org.joda.time.DateTime
@@ -772,6 +839,19 @@ object FilterDruid {
       case f @ EqualityFilter(alias, value, _, _) => {
         getDruidFilter(grainOption, column, columnAlias, value, columnsByNameMap)
       }
+      case f @ FieldEqualityFilter(field, compareTo, _, _) => {
+        require(aliasToNameMapFull.contains(field) && aliasToNameMapFull.contains(compareTo), s"A requested field is invalid!  Tried: $field & $compareTo")
+        val firstAlias = aliasToNameMapFull(field)
+        val otherAlias = aliasToNameMapFull(compareTo)
+        val defaultDimSpecs: List[DimensionSpec] = (List(firstAlias, otherAlias)).map(
+          (fieldToCompare: String) => {
+            require(columnsByNameMap.contains(fieldToCompare), s"Queried comparison field $fieldToCompare does not exist!")
+            val col: Column = columnsByNameMap(fieldToCompare)
+            val alias: String = col.alias.getOrElse(fieldToCompare)
+            new DefaultDimensionSpec(alias, alias)
+          })
+        new ColumnComparisonDimFilter(defaultDimSpecs.asJava)
+      }
       case f @ NotEqualToFilter(alias, value, _, _) =>
         val selector = getDruidFilter(grainOption, column, columnAlias, value, columnsByNameMap)
         new NotDimFilter(selector)
@@ -943,8 +1023,13 @@ object FilterSql {
     filter match {
       case PushDownFilter(f) => 
         renderFilter(f, aliasToNameMapFull, columnsByNameMap, engine, literalMapper, expandedExpression)
+      case FieldEqualityFilter(f,g, _, _) =>
+        require(aliasToNameMapFull.contains(g))
+        val otherColumnName = aliasToNameMapFull(g)
+        val otherColumn = columnsByNameMap(otherColumnName)
+        renderFilterWithAlias(filter, column, Option.apply(otherColumn), engine, literalMapper, preComputedAlias = Some(exp), grainOption = grainOption )
       case _ =>
-        renderFilterWithAlias(filter, column, engine, literalMapper, preComputedAlias = Some(exp), grainOption = grainOption )
+        renderFilterWithAlias(filter, column, None, engine, literalMapper, preComputedAlias = Some(exp), grainOption = grainOption )
     }
   }
 
@@ -957,11 +1042,12 @@ object FilterSql {
 
     val outerColName = s""" "${filter.field}"  """
     val column = columnsByNameMap({filter.field})
-    renderFilterWithAlias(filter, column, engine, literalMapper, grainOption = grainOption, preComputedAlias = Some(outerColName))
+    renderFilterWithAlias(filter, column, None, engine, literalMapper, grainOption = grainOption, preComputedAlias = Some(outerColName))
   }
 
   def renderFilterWithAlias(filter: Filter,
                    column: Column,
+                   otherColumnOption: Option[Column] = None,
                    engine: Engine,
                    literalMapper: LiteralMapper,
                    preComputedAlias: Option[String] = None,
@@ -1004,6 +1090,18 @@ object FilterSql {
           f,
           literalMapper,
           column,
+          engine,
+          grainOption
+        )
+      case f@FieldEqualityFilter(alias, compareTo, _, _) =>
+        val finalAlias = preComputedAlias.getOrElse(alias)
+        SqlFieldEqualityFilterRenderer.render(
+          finalAlias,
+          otherColumnOption.get.name,
+          f,
+          literalMapper,
+          column,
+          otherColumnOption.get,
           engine,
           grainOption
         )
@@ -1142,6 +1240,12 @@ object Filter extends Logging {
           :: ("operator" -> toJSON(filter.operator.toString))
           :: ("value" -> toJSON(value))
           :: Nil)
+      case FieldEqualityFilter(field, compareTo, _, _) =>
+        makeObj(
+          ("field" -> toJSON(field))
+            :: ("operator" -> toJSON(filter.operator.toString))
+            :: ("compareTo" -> toJSON(compareTo))
+            :: Nil)
       case GreaterThanFilter(field, value, _, _) =>
         makeObj(
           ("field" -> toJSON(field))
@@ -1268,6 +1372,11 @@ object Filter extends Logging {
               val filter = EqualityFilter.applyJSON(field[String]("field"), stringField("value"), booleanFalse, booleanFalse)(json)
               filter.flatMap {
                 f => nonEmptyString(f.value, f.field, "value").map(_ => f)
+              }
+            case "==" =>
+              val filter = FieldEqualityFilter.applyJSON(field[String]("field"), stringField("compareTo"), booleanFalse, booleanFalse)(json)
+              filter.flatMap {
+                f => nonEmptyString(f.compareTo, f.field, "compareTo").map(_ => f)
               }
             case ">" =>
               val filter = GreaterThanFilter.applyJSON(field[String]("field"), stringField("value"), booleanFalse, booleanFalse)(json)

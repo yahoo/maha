@@ -1145,6 +1145,7 @@ object RequestModel extends Logging {
         case InFilter(_, values, _, _) => validateLength(values, length)
         case NotInFilter(_, values, _, _) => validateLength(values, length)
         case EqualityFilter(_, value, _, _) => validateLength(List(value), length)
+        case FieldEqualityFilter(_, value, _, _) => validateLength(List(value), length)
         case NotEqualToFilter(_, value, _, _) => validateLength(List(value), length)
         case LikeFilter(_, value, _, _) => validateLength(List(value), length)
         case BetweenFilter(_, from, to) => validateLength(List(from, to), length)

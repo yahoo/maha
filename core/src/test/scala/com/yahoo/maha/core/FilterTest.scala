@@ -364,7 +364,7 @@ class FilterTest extends FunSuite with Matchers {
 
   test("failing forced filter") {
     val thrown = intercept[UnsupportedOperationException] {
-      FilterSql.renderFilterWithAlias(null, null, null, null)
+      FilterSql.renderFilterWithAlias(null, null, null, null, null)
     }
     assert(thrown.getMessage.contains("Unhandled filter operation"))
   }
