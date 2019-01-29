@@ -187,9 +187,9 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
         val colRenderFn = (x: Column) =>
           x match {
             case FactCol(_, dt, cc, rollup, _, annotations, _) =>
-              s"""${renderRollupExpression(name, rollup, None)}"""
+              s"""${renderRollupExpression(x.name, rollup, None)}"""
             case OracleDerFactCol(_, _, dt, cc, de, annotations, rollup, _) => //This never gets used, otherwise errors would be thrown before the Generator.
-              s"""${renderRollupExpression(de.render(name, Map.empty), rollup, None)}"""
+              s"""${renderRollupExpression(de.render(x.name, Map.empty), rollup, None)}"""
             case any =>
               throw new UnsupportedOperationException(s"Found non fact column : $any")
           }

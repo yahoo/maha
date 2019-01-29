@@ -349,51 +349,21 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
       unique_filters.sorted map {
         filter =>
           val name = publicFact.aliasToNameColumnMap(filter.field)
-          if (fact.dimColMap.contains(name)) {
-            val sqlResult = FilterSql.renderFilter(
-              filter,
-              aliasToNameMapFull,
-              fact.columnsByNameMap,
-              PrestoEngine,
-              prestoLiteralMapper
-            )
-            whereFilters += sqlResult.filter
-          } else if (fact.factColMap.contains(name)) {
-            val column = fact.columnsByNameMap(name)
-            val alias = queryContext.factBestCandidate.factColMapping(name)
-            val exp = column match {
+          val colRenderFn = (x: Column) =>
+            x match {
               case FactCol(_, dt, cc, rollup, _, annotations, _) =>
-                s"""${renderRollupExpression(name, rollup)}"""
+                s"""${renderRollupExpression(x.name, rollup)}"""
               case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-                s"""${renderRollupExpression(de.render(name, Map.empty), rollup)}"""
+                s"""${renderRollupExpression(de.render(x.name, Map.empty), rollup)}"""
               case any =>
                 throw new UnsupportedOperationException(s"Found non fact column : $any")
             }
-            if(!filter.isInstanceOf[MultiFieldForcedFilter]) {
-              val f = FilterSql.renderFilter(
-                filter,
-                queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
-                fact.columnsByNameMap,
-                PrestoEngine,
-                prestoLiteralMapper,
-                Option(exp)
-              )
-              havingFilters += f.filter
-            }
-            else {
-              val renderedFilter = filter.asInstanceOf[MultiFieldForcedFilter]
-              val otherName = publicFact.aliasToNameColumnMap(renderedFilter.compareTo)
-              val f = FilterSql.renderFilter(
-                filter,
-                queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
-                fact.columnsByNameMap,
-                PrestoEngine,
-                prestoLiteralMapper,
-                Option(exp),
-                Option(exp)
-              )
-              havingFilters += f.filter
-            }
+          val result = QueryGeneratorHelper.handleFilterRender(filter, publicFact, fact, aliasToNameMapFull, queryContext, PrestoEngine, prestoLiteralMapper, colRenderFn)
+
+          if (fact.dimColMap.contains(name)) {
+            whereFilters += result.filter
+          } else if (fact.factColMap.contains(name)) {
+            havingFilters += result.filter
           } else {
             throw new IllegalArgumentException(
               s"Unknown fact column: publicFact=${publicFact.name}, fact=${fact.name} alias=${filter.field}, name=$name")
