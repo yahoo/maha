@@ -208,6 +208,7 @@ object HiveExpression {
 
   abstract class UDFHiveExpression(val udfRegistration: UDFRegistration)(implicit uDFRegistrationFactory: UDFRegistrationFactory) extends BaseHiveExpression {
     override def isUDF: Boolean = true
+    //println(s"UDFS TEST: ${uDFRegistrationFactory.defaultUDFStatements.toString()}")
     require(uDFRegistrationFactory.defaultUDFStatements.contains(udfRegistration), s"UDFHiveExpression ${getClass} is not registered in the UDFRegistrationFactory")
   }
 

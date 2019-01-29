@@ -57,6 +57,7 @@ trait BaseOracleQueryGeneratorTest
           , DimCol("network_type", StrType(100, (Map("TEST_PUBLISHER" -> "Test Publisher", "CONTENT_SYNDICATION" -> "Content Syndication", "EXTERNAL" -> "Yahoo Partners" ,  "INTERNAL" -> "Yahoo Properties"), "NONE")))
           , DimCol("start_time", IntType())
           , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
+          , DimCol("target_page_url", StrType(), annotations = Set(CaseInsensitive))
           , DimCol("stats_date", DateType("YYYY-MM-DD"))
           , DimCol("column_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned")))
           , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
@@ -95,15 +96,16 @@ trait BaseOracleQueryGeneratorTest
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
           PubCol("keyword_id", "Keyword ID", InEquality),
-          PubCol("ad_id", "Ad ID", InEquality ++ EqualityFieldEquality),
-          PubCol("ad_group_id", "Ad Group ID", InEquality ++ EqualityFieldEquality),
+          PubCol("ad_id", "Ad ID", InEquality),
+          PubCol("ad_group_id", "Ad Group ID", InEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),
           PubCol("advertiser_id", "Advertiser ID", InEquality),
           PubCol("network_type", "Network Type", InEquality),
-          PubCol("stats_source", "Source", Equality, incompatibleColumns = Set("Source Name")),
-          PubCol("source_name", "Source Name", InEquality, incompatibleColumns = Set("Source")),
+          PubCol("stats_source", "Source", EqualityFieldEquality, incompatibleColumns = Set("Source Name")),
+          PubCol("source_name", "Source Name", InNotInBetweenEqualityNotEqualsGreaterLesser, incompatibleColumns = Set("Source")),
           PubCol("price_type", "Pricing Type", In),
-          PubCol("landing_page_url", "Destination URL", Set.empty),
+          PubCol("landing_page_url", "Destination URL", FieldEquality),
+          PubCol("target_page_url", "Source URL", FieldEquality),
           PubCol("column_id", "Column ID", Equality),
           PubCol("column2_id", "Column2 ID", Equality),
           PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality),
@@ -114,9 +116,9 @@ trait BaseOracleQueryGeneratorTest
         Set(
           PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
           PublicFactCol("impressions", "Total Impressions", InBetweenEquality),
-          PublicFactCol("clicks", "Clicks", InBetweenEquality),
-          PublicFactCol("spend", "Spend", Set.empty),
-          PublicFactCol("avg_pos", "Average Position", Set.empty),
+          PublicFactCol("clicks", "Clicks", InBetweenEqualityFieldEquality),
+          PublicFactCol("spend", "Spend", FieldEquality),
+          PublicFactCol("avg_pos", "Average Position", FieldEquality),
           PublicFactCol("max_bid", "Max Bid", Set.empty),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("CTR", "CTR", InBetweenEquality)
@@ -269,8 +271,8 @@ trait BaseOracleQueryGeneratorTest
       .toPublicFact("performance_stats",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
-          PubCol("ad_id", "Ad ID", InEquality ++ EqualityFieldEquality),
-          PubCol("ad_group_id", "Ad Group ID", InEquality ++ EqualityFieldEquality),
+          PubCol("ad_id", "Ad ID", InEqualityFieldEquality),
+          PubCol("ad_group_id", "Ad Group ID", InEqualityFieldEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),
           PubCol("advertiser_id", "Advertiser ID", InEquality),
           PubCol("restaurant_id", "Restaurant ID", InEquality),
@@ -280,9 +282,9 @@ trait BaseOracleQueryGeneratorTest
           PubCol("Week", "Week", Equality)
         ),
         Set(
-          PublicFactCol("impressions", "Impressions", InBetweenEquality),
+          PublicFactCol("impressions", "Impressions", InBetweenEqualityFieldEquality),
           PublicFactCol("impressions", "Total Impressions", InBetweenEquality),
-          PublicFactCol("clicks", "Clicks", InBetweenEquality),
+          PublicFactCol("clicks", "Clicks", InBetweenEqualityFieldEquality),
           PublicFactCol("spend", "Spend", Set.empty),
           PublicFactCol("User Count", "User Count", Set.empty),
           PublicFactCol("avg_pos", "Average Position", Set.empty),

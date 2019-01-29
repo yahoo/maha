@@ -78,7 +78,7 @@ trait BaseHiveQueryGeneratorTest
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
           PubCol("ad_id", "Ad ID", EqualityFieldEquality),
-          PubCol("ad_group_id", "Ad Group ID", InEquality ++ EqualityFieldEquality),
+          PubCol("ad_group_id", "Ad Group ID", InEqualityFieldEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),
           PubCol("account_id", "Advertiser ID", InEquality),
           PubCol("keyword_id", "Keyword ID", InEquality),

@@ -30,8 +30,8 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
   }
   override def beforeAll(): Unit = {
     createTables()
-    val insertSql = """INSERT INTO student_grade_sheet (year, section_id, student_id, class_id, total_marks, date, comment, month, top_student_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+    val insertSql = """INSERT INTO student_grade_sheet (year, section_id, student_id, class_id, total_marks, obtained_marks, date, comment, month, top_student_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
 
     val studentInsertSql =
       """INSERT INTO student (id, name, admitted_year, status, department_id)
@@ -46,12 +46,12 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
         VALUES (?, ?, ?, ?, ?, ?)"""
 
     val rows: List[Seq[Any]] = List(
-      Seq(1, 100, 213, 200, 135, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(9)), "some comment 1", today.toString, 213),
-      Seq(1, 100, 213, 198, 120, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 2", today.toString, 213),
-      Seq(1, 500, 213, 197, 190, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 3", today.toString, 213),
-      Seq(1, 100, 213, 200, 125, today.toString, "some comment 1", today.toString, 213),
-      Seq(1, 100, 213, 198, 180, yesterday.toString, "some comment 2", today.toString, 213),
-      Seq(1, 200, 213, 199, 175, today.toString, "some comment 3", today.toString, 213)
+      Seq(1, 100, 213, 200, 135, 135, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(9)), "some comment 1", today.toString, 213),
+      Seq(1, 100, 213, 198, 120, 120, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 2", today.toString, 213),
+      Seq(1, 500, 213, 197, 190, 190, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 3", today.toString, 213),
+      Seq(1, 100, 213, 200, 125, 125, today.toString, "some comment 1", today.toString, 213),
+      Seq(1, 100, 213, 198, 180, 180, yesterday.toString, "some comment 2", today.toString, 213),
+      Seq(1, 200, 213, 199, 175, 175, today.toString, "some comment 3", today.toString, 213)
     )
 
     val studentRows: List[Seq[Any]] = List(
@@ -165,6 +165,157 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val expectedStringList = List(
       "WHERE (student_id >= 0 AND student_id <= 1000) AND (top_student_id = student_id)", "WHERE (id >= 0 AND id <= 1000)")
     for(item <- expectedStringList) assert(requestResultString.contains(item))
+  }
+
+  test("Test successful student award query - query via metrics") {
+    val jsonRequest =
+      s"""
+         |{
+         |  "cube": "student_performance",
+         |  "selectFields": [
+         |    {"field": "Student ID"},
+         |    {"field": "Student Name"},
+         |    {"field": "Marks Obtained"},
+         |    {"field": "Total Marks"},
+         |    {"field": "Top Student ID"},
+         |    {"field": "Professor Name"}
+         |  ],
+         |  "sortBy": [
+         |    {"field": "Top Student ID", "order": "Desc"}
+         |  ],
+         |  "filterExpressions": [
+         |    {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+         |    {"field": "Marks Obtained", "operator": "==", "compareTo": "Total Marks"},
+         |    {"field": "Student ID", "operator": "between", "from": "0", "to": "1000"}
+         |  ]
+         |}
+       """.stripMargin
+
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
+
+    val requestResultString = defaultCuratorRequestResult.queryPipelineResult.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+
+    var defaultCount = 0
+    defaultCuratorRequestResult.queryPipelineResult.rowList.foreach( row => {
+
+      assert(row.toString.contains("355, 355") || row.toString.contains("125, 125"))
+      defaultCount+=1
+    })
+
+    assert(defaultCount == 2)
+    val expectedStringList = List(
+      "HAVING (SUM(obtained_marks) = SUM(total_marks))", s"""ORDER BY "Top Student ID" DESC""")
+    for(item <- expectedStringList) assert(requestResultString.contains(item))
+  }
+
+  test("Test failed student award query - can't compare metric to dimension.") {
+    val jsonRequest =
+      s"""
+         |{
+         |  "cube": "student_performance",
+         |  "selectFields": [
+         |    {"field": "Student ID"},
+         |    {"field": "Student Name"},
+         |    {"field": "Marks Obtained"},
+         |    {"field": "Total Marks"},
+         |    {"field": "Top Student ID"},
+         |    {"field": "Professor Name"}
+         |  ],
+         |  "sortBy": [
+         |    {"field": "Top Student ID", "order": "Desc"}
+         |  ],
+         |  "filterExpressions": [
+         |    {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+         |    {"field": "Marks Obtained", "operator": "==", "compareTo": "Student ID"},
+         |    {"field": "Student ID", "operator": "between", "from": "0", "to": "1000"}
+         |  ]
+         |}
+       """.stripMargin
+
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val thrown = intercept[IllegalArgumentException] {
+      getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+    }
+
+    assert(thrown.getMessage.contains("Metric-Dim Comparison Failed: Can only compare dim-dim or metric-metric"))
+
+  }
+
+  test("Test failed student award query - can't compare dimension to metric.") {
+    val jsonRequest =
+      s"""
+         |{
+         |  "cube": "student_performance",
+         |  "selectFields": [
+         |    {"field": "Student ID"},
+         |    {"field": "Student Name"},
+         |    {"field": "Marks Obtained"},
+         |    {"field": "Total Marks"},
+         |    {"field": "Top Student ID"},
+         |    {"field": "Professor Name"}
+         |  ],
+         |  "sortBy": [
+         |    {"field": "Top Student ID", "order": "Desc"}
+         |  ],
+         |  "filterExpressions": [
+         |    {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+         |    {"field": "Top Student ID", "operator": "==", "compareTo": "Marks Obtained"},
+         |    {"field": "Student ID", "operator": "between", "from": "0", "to": "1000"}
+         |  ]
+         |}
+       """.stripMargin
+
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val thrown = intercept[IllegalArgumentException] {
+      getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+    }
+
+    assert(thrown.getMessage.contains("Dim-Metric Comparison Failed: Can only compare dim-dim or metric-metric"))
+
   }
 
   test("Test successful processing of Default curator") {
@@ -1492,7 +1643,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     println(result)
 
-    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Performance Factor","fieldType":"FACT"}],"maxRows":200,"debug":{}},"rows":[[213,125,"Bryant",200,null]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[198,213,180],[199,213,175],[200,213,125]]}}}}"""
+    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Performance Factor","fieldType":"FACT"}],"maxRows":200,"debug":{}},"rows":[[213,125,"Bryant",200,1.0]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[198,213,180],[199,213,175],[200,213,125]]}}}}"""
 
     assert(result === expectedJson)
   }

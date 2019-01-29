@@ -8,6 +8,7 @@ import grizzled.slf4j.Logging
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * Created by pranavbhole on 22/11/17.
@@ -85,8 +86,19 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
         val unique_filters = removeDuplicateIfForced( filters.toSeq, allFilters.toSeq, queryContext )
         unique_filters.sorted.foreach {
           filter =>
-            val name = publicFact.aliasToNameColumnMap(filter.field)
-            if (fact.dimColMap.contains(name)) {
+            val isMultiField : Boolean = filter.isInstanceOf[MultiFieldForcedFilter]
+            val names: mutable.ArrayBuffer[String] = new ArrayBuffer[String]()
+            names += publicFact.aliasToNameColumnMap(filter.field)
+            if(isMultiField)
+              names += publicFact.aliasToNameColumnMap(filter.asInstanceOf[MultiFieldForcedFilter].compareTo)
+
+            val name1 = names.remove(0)
+            if (fact.dimColMap.contains(name1)) {
+              if(isMultiField){
+                val name2 = names.remove(0)
+                require(fact.dimColMap.contains(name2), "Dim-Metric Comparison Failed: Can only compare dim-dim or metric-metric")
+              }
+
               val f = FilterSql.renderFilter(
                 filter,
                 queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
@@ -95,10 +107,10 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                 literalMapper)
               escaped |= f.escaped
               whereFilters += f.filter
-            } else if (fact.factColMap.contains(name)) {
-              val column = fact.columnsByNameMap(name)
-              val alias = queryContext.factBestCandidate.factColMapping(name)
-              val nameOrAlias = column.alias.getOrElse(name)
+            } else if (fact.factColMap.contains(name1)) {
+              val column = fact.columnsByNameMap(name1)
+              val alias = queryContext.factBestCandidate.factColMapping(name1)
+              val nameOrAlias = column.alias.getOrElse(name1)
               val exp = column match {
                 case FactCol(_, dt, cc, rollup, _, annotations, _) =>
                   s"""${renderRollupExpression(nameOrAlias, rollup)}"""
@@ -107,19 +119,46 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                 case any =>
                   throw new UnsupportedOperationException(s"Found non fact column : $any")
               }
-              val f = FilterSql.renderFilter(
-                filter,
-                queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
-                fact.columnsByNameMap,
-                OracleEngine,
-                literalMapper,
-                Option(exp)
-              )
-              escaped |= f.escaped
-              havingFilters += f.filter
+              if(!isMultiField) {
+                val f = FilterSql.renderFilter(
+                  filter,
+                  queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
+                  fact.columnsByNameMap,
+                  OracleEngine,
+                  literalMapper,
+                  Option(exp)
+                )
+                escaped |= f.escaped
+                havingFilters += f.filter
+              } else {
+                val name2 = names.remove(0)
+                require(fact.factColMap.contains(name2), "Metric-Dim Comparison Failed: Can only compare dim-dim or metric-metric")
+                val column2 = fact.columnsByNameMap(name2)
+                val alias2 = queryContext.factBestCandidate.factColMapping(name2)
+                val nameOrAlias2 = column2.alias.getOrElse(name2)
+                val exp2 = column2 match {
+                  case FactCol(_, dt, cc, rollup, _, annotations, _) =>
+                    s"""${renderRollupExpression(nameOrAlias2, rollup)}"""
+                  case OracleDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
+                    s"""${renderRollupExpression(de.render(nameOrAlias2, Map.empty), rollup)}"""
+                  case any =>
+                    throw new UnsupportedOperationException(s"Found non fact column : $any")
+                }
+                val f = FilterSql.renderFilter(
+                  filter,
+                  queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
+                  fact.columnsByNameMap,
+                  OracleEngine,
+                  literalMapper,
+                  Option(exp),
+                  Option(exp2)
+                )
+                escaped |= f.escaped
+                havingFilters += f.filter
+              }
             } else {
               throw new IllegalArgumentException(
-                s"Unknown fact column: publicFact=${publicFact.name}, fact=${fact.name} alias=${filter.field}, name=$name")
+                s"Unknown fact column: publicFact=${publicFact.name}, fact=${fact.name} alias=${filter.field}, name=$name1")
             }
         }
       }

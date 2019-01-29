@@ -369,15 +369,31 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
               case any =>
                 throw new UnsupportedOperationException(s"Found non fact column : $any")
             }
-            val f = FilterSql.renderFilter(
-              filter,
-              queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
-              fact.columnsByNameMap,
-              PrestoEngine,
-              prestoLiteralMapper,
-              Option(exp)
-            )
-            havingFilters += f.filter
+            if(!filter.isInstanceOf[MultiFieldForcedFilter]) {
+              val f = FilterSql.renderFilter(
+                filter,
+                queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
+                fact.columnsByNameMap,
+                PrestoEngine,
+                prestoLiteralMapper,
+                Option(exp)
+              )
+              havingFilters += f.filter
+            }
+            else {
+              val renderedFilter = filter.asInstanceOf[MultiFieldForcedFilter]
+              val otherName = publicFact.aliasToNameColumnMap(renderedFilter.compareTo)
+              val f = FilterSql.renderFilter(
+                filter,
+                queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
+                fact.columnsByNameMap,
+                PrestoEngine,
+                prestoLiteralMapper,
+                Option(exp),
+                Option(exp)
+              )
+              havingFilters += f.filter
+            }
           } else {
             throw new IllegalArgumentException(
               s"Unknown fact column: publicFact=${publicFact.name}, fact=${fact.name} alias=${filter.field}, name=$name")

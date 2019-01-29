@@ -81,9 +81,9 @@ trait BasePrestoQueryGeneratorTest
       .toPublicFact("s_stats",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
-          PubCol("ad_group_id", "Ad Group ID", InEquality ++ FieldEquality),
+          PubCol("ad_group_id", "Ad Group ID", InEqualityFieldEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),
-          PubCol("account_id", "Advertiser ID", InEquality ++ FieldEquality),
+          PubCol("account_id", "Advertiser ID", InEqualityFieldEquality),
           PubCol("keyword_id", "Keyword ID", InEquality),
           PubCol("keyword", "Keyword", InEquality),
           PubCol("search_term", "Search Term", InEquality),

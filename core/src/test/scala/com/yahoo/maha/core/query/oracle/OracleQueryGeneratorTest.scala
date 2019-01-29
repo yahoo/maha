@@ -1913,6 +1913,261 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
+  test("should compare two strings with first one insensitive") {
+    val jsonString = s"""{
+                           "cube": "k_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Ad Group ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Destination URL",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Source URL",
+                               "alias": null,
+                               "value": null
+                             }, {"field": "Ad ID"}
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Source URL", "operator": "==", "compareTo": "Destination URL"}
+                           ],
+                           "paginationStartIndex":0,
+                           "rowsPerPage":100,
+                           "includeRowCount": true,
+                           "forceDimensionDriven": true
+                         }"""
+
+    val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    val expected = s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+                     |FROM (SELECT ado1.campaign_id "Campaign ID", ado1.ad_group_id "Ad Group ID", f0.landing_page_url "Destination URL", f0.target_page_url "Source URL", ado1.id "Ad ID", Count(*) OVER() TOTALROWS
+                     |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
+                     |                   target_page_url, landing_page_url, ad_group_id, ad_id, campaign_id
+                     |            FROM fact1 FactAlias
+                     |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (lower(target_page_url) = landing_page_url) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+                     |            GROUP BY target_page_url, landing_page_url, ad_group_id, ad_id, campaign_id
+                     |
+                     |           ) f0
+                     |           RIGHT OUTER JOIN
+                     |                (SELECT  ad_group_id, campaign_id, id, advertiser_id
+                     |            FROM ad_dim_oracle
+                     |            WHERE (advertiser_id = 12345)
+                     |             ) ado1
+                     |            ON (f0.ad_id = ado1.id)
+                     |
+                     |)
+                     |   ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("should compare two strings with second one insensitive") {
+    val jsonString = s"""{
+                           "cube": "k_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Ad Group ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Destination URL",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Source URL",
+                               "alias": null,
+                               "value": null
+                             }, {"field": "Ad ID"}
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Destination URL", "operator": "==", "compareTo": "Source URL"}
+                           ],
+                           "paginationStartIndex":0,
+                           "rowsPerPage":100,
+                           "includeRowCount": true,
+                           "forceDimensionDriven": true
+                         }"""
+
+    val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    val expected = s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+                     |FROM (SELECT ado1.campaign_id "Campaign ID", ado1.ad_group_id "Ad Group ID", f0.landing_page_url "Destination URL", f0.target_page_url "Source URL", ado1.id "Ad ID", Count(*) OVER() TOTALROWS
+                     |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
+                     |                   target_page_url, landing_page_url, ad_group_id, ad_id, campaign_id
+                     |            FROM fact1 FactAlias
+                     |            WHERE (advertiser_id = 12345) AND (landing_page_url = lower(target_page_url)) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+                     |            GROUP BY target_page_url, landing_page_url, ad_group_id, ad_id, campaign_id
+                     |
+                     |           ) f0
+                     |           RIGHT OUTER JOIN
+                     |                (SELECT  ad_group_id, campaign_id, id, advertiser_id
+                     |            FROM ad_dim_oracle
+                     |            WHERE (advertiser_id = 12345)
+                     |             ) ado1
+                     |            ON (f0.ad_id = ado1.id)
+                     |
+                     |)
+                     |   ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("should fail to compare two dimensions of different dataTypes.") {
+    val jsonString = s"""{
+                           "cube": "k_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Ad Group ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Destination URL",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Source URL",
+                               "alias": null,
+                               "value": null
+                             },
+                             {"field": "Source"}
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Source", "operator": "==", "compareTo": "Source URL"}
+                           ],
+                           "paginationStartIndex":0,
+                           "rowsPerPage":100,
+                           "includeRowCount": true,
+                           "forceDimensionDriven": true
+                         }"""
+
+    val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+
+    assert(queryPipelineTry.isFailure && queryPipelineTry.failed.get.getMessage.contains("Both dataTypes should be the same, but are"), queryPipelineTry.errorMessage("Fail to get the failed query pipeline"))
+
+  }
+
+  test("should succeed to compare two metrics of same dataTypes.") {
+    val jsonString = s"""{
+                           "cube": "k_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Ad Group ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Destination URL",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Source URL",
+                               "alias": null,
+                               "value": null
+                             },
+                             {"field": "Average Position"},
+                             {"field": "Spend"}
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Average Position", "operator": "==", "compareTo": "Spend"}
+                           ],
+                           "paginationStartIndex":0,
+                           "rowsPerPage":100,
+                           "includeRowCount": true,
+                           "forceDimensionDriven": true
+                         }"""
+
+    val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    val expected = s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+                      |FROM (SELECT ago1.campaign_id "Campaign ID", ago1.id "Ad Group ID", f0.landing_page_url "Destination URL", f0.target_page_url "Source URL", coalesce(ROUND(CASE WHEN ((f0."avg_pos" >= 0.1) AND (f0."avg_pos" <= 500)) THEN f0."avg_pos" ELSE 0.0 END, 10), 0.0) "Average Position", coalesce(ROUND(f0."spend", 10), 0.0) "Spend", Count(*) OVER() TOTALROWS
+                      |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
+                      |                   target_page_url, landing_page_url, ad_group_id, campaign_id, SUM(spend) AS "spend", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS "avg_pos"
+                      |            FROM fact2 FactAlias
+                      |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+                      |            GROUP BY target_page_url, landing_page_url, ad_group_id, campaign_id
+                      |            HAVING ((CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) = SUM(spend))
+                      |           ) f0
+                      |           INNER JOIN
+                      |                (SELECT  campaign_id, id, advertiser_id
+                      |            FROM ad_group_oracle
+                      |            WHERE (advertiser_id = 12345)
+                      |             ) ago1
+                      |            ON (f0.ad_group_id = ago1.id)
+                      |
+ |)
+                      |   ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
+                      |            """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
   test("successfully generate distinct dim only query") {
     val jsonString = s"""{
                            "cube": "performance_stats",

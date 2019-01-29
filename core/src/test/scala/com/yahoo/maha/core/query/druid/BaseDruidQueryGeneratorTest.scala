@@ -4,7 +4,7 @@ import com.yahoo.maha.core
 import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, InternalSchema, ResellerSchema}
 import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{POST_RESULT_DECODE, START_OF_THE_MONTH, START_OF_THE_WEEK}
-import com.yahoo.maha.core.FilterOperation.{Equality, In, InBetweenEquality, InEquality, InNotInBetweenEqualityNotEqualsGreaterLesser, EqualityFieldEquality}
+import com.yahoo.maha.core.FilterOperation.{Equality, In, InBetweenEquality, InEquality, InNotInBetweenEqualityNotEqualsGreaterLesser, InEqualityFieldEquality, InEqualityLike}
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol, DruidFuncDimCol, DruidPostResultFuncDimCol, PubCol}
 import com.yahoo.maha.core.fact.{PublicFactCol, _}
@@ -277,10 +277,10 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PubCol("stats_date", "Day", InBetweenEquality),
           PubCol("engagement_type", "engagement_type", Equality),
           PubCol("id", "Keyword ID", InEquality),
-          PubCol("ad_id", "Ad ID", InEquality ++ EqualityFieldEquality),
-          PubCol("ad_group_id", "Ad Group ID", InEquality ++ EqualityFieldEquality),
+          PubCol("ad_id", "Ad ID", InEqualityFieldEquality),
+          PubCol("ad_group_id", "Ad Group ID", InEqualityFieldEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),
-          PubCol("advertiser_id", "Advertiser ID", InEquality),
+          PubCol("advertiser_id", "Advertiser ID", InEqualityLike),
           PubCol("stats_source", "Source", Equality, incompatibleColumns = Set("Source Name")),
           PubCol("source_name", "Source Name", InEquality, incompatibleColumns = Set("Source")),
           PubCol("price_type", "Pricing Type", In),

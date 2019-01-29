@@ -71,11 +71,11 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             PubCol("month", "Month", InEquality),
             PubCol("year", "Year", Equality),
             PubCol("comment", "Remarks", InEqualityLike),
-            PubCol("top_student_id", "Top Student ID", EqualityFieldEqualityBetween)
+            PubCol("top_student_id", "Top Student ID", FieldEquality)
           ),
           Set(
-            PublicFactCol("total_marks", "Total Marks", InBetweenEquality),
-            PublicFactCol("obtained_marks", "Marks Obtained", InBetweenEquality ++ FieldEquality),
+            PublicFactCol("total_marks", "Total Marks", InBetweenEqualityFieldEquality),
+            PublicFactCol("obtained_marks", "Marks Obtained", InBetweenEqualityFieldEquality),
             PublicFactCol("Performance Factor", "Performance Factor", InBetweenEquality)
           ),
           Set.empty,
@@ -119,7 +119,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             PubCol("month", "Month", InEquality),
             PubCol("year", "Year", Equality),
             PubCol("comment", "Remarks", InEqualityLike),
-            PubCol("top_student_id", "Top Student ID", EqualityFieldEqualityBetween)
+            PubCol("top_student_id", "Top Student ID", FieldEquality)
           ),
           Set(
             PublicFactCol("total_marks", "Total Marks", InBetweenEquality),
@@ -162,7 +162,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             PubCol("date", "Day", Equality),
             PubCol("month", "Month", InEquality),
             PubCol("year", "Year", Equality),
-            PubCol("top_student_id", "Top Student ID", EqualityFieldEqualityBetween)
+            PubCol("top_student_id", "Top Student ID", FieldEquality)
           ),
           Set(
             PublicFactCol("total_marks", "Total Marks", InBetweenEquality),

@@ -348,6 +348,7 @@ class FilterTest extends FunSuite with Matchers {
     val filter9 = PushDownFilter(IsNotNullFilter("field1"))
     val filter10 = OuterFilter(List(IsNotNullFilter("field1")))
     val filter11 = filter2.renameField("new_field_name")
+    val filter12 = FieldEqualityFilter("field1", "field2")
 
     val s: Set[Filter] = Set(filter1, filter2, filter3, filter4, filter5, filter6, filter7, filter8, filter9, filter10)
     assert(s.size === 10)
@@ -356,6 +357,18 @@ class FilterTest extends FunSuite with Matchers {
     ts ++= s
     assert(ts.size === 10)
     assert(filter11.field === "new_field_name")
+    assert(filter1.canBeHighCardinalityFilter
+      && filter2.canBeHighCardinalityFilter
+      && !filter3.canBeHighCardinalityFilter
+      && filter4.canBeHighCardinalityFilter
+      && !filter5.canBeHighCardinalityFilter
+      && !filter6.canBeHighCardinalityFilter
+      && !filter7.canBeHighCardinalityFilter
+      && filter8.canBeHighCardinalityFilter
+      && !filter9.canBeHighCardinalityFilter
+      && !filter10.canBeHighCardinalityFilter
+      && filter11.canBeHighCardinalityFilter
+      && filter12.canBeHighCardinalityFilter, "All known filters and ability to be high cardinality is asserted here.")
   }
 
   test("Attempt to compare incomparable types") {

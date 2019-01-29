@@ -4,10 +4,11 @@ package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
-import com.yahoo.maha.core.fact.FactBestCandidate
+import com.yahoo.maha.core.fact.{Fact, FactBestCandidate, FactCol, PublicFact}
 import com.yahoo.maha.core.query.Version.{v0, v1, v2}
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * Created by jians on 10/20/15.
@@ -258,6 +259,71 @@ object QueryGeneratorHelper {
       renderedDuplicateAlias.get
     } else {
       throw new IllegalArgumentException(s"Could not find inner alias for outer column : $alias")
+    }
+  }
+
+  def handleFilterRender(filter: Filter,
+                         publicFact: PublicFact,
+                         fact: Fact,
+                         aliasToNameMapFull: Map[String, String],
+                         queryContext: CombinedQueryContext,
+                         engine: Engine,
+                         literalMapper: LiteralMapper,
+                         colFn: Column => String): SqlResult = {
+    val fieldNames: mutable.ArrayBuffer[String] = new ArrayBuffer[String]()
+    val isMultiField: Boolean = filter.isInstanceOf[MultiFieldForcedFilter]
+
+    fieldNames += publicFact.aliasToNameColumnMap(filter.field)
+    if(isMultiField)
+      fieldNames += publicFact.aliasToNameColumnMap(filter.asInstanceOf[MultiFieldForcedFilter].compareTo)
+
+    val baseFieldName = fieldNames.remove(0)
+    if (fact.dimColMap.contains(baseFieldName)) {
+      if(isMultiField){
+        val compareToFieldName = fieldNames.remove(0)
+        require(fact.dimColMap.contains(compareToFieldName), "Dim-Metric Comparison Failed: Can only compare dim-dim or metric-metric")
+      }
+
+      FilterSql.renderFilter(
+        filter,
+        aliasToNameMapFull,
+        fact.columnsByNameMap,
+        engine,
+        literalMapper
+      )
+
+    } else if (fact.factColMap.contains(baseFieldName)) {
+      val column = fact.columnsByNameMap(baseFieldName)
+      val exp = colFn(column)
+
+      if(!isMultiField) {
+        FilterSql.renderFilter(
+          filter,
+          queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
+          fact.columnsByNameMap,
+          HiveEngine,
+          literalMapper,
+          Option(exp)
+        )
+      } else {
+        val compareToFieldName = fieldNames.remove(0)
+        require(fact.factColMap.contains(compareToFieldName), "Metric-Dim Comparison Failed: Can only compare dim-dim or metric-metric")
+        val compareToColumn = fact.columnsByNameMap(compareToFieldName)
+        val secondExp = colFn(compareToColumn)
+        FilterSql.renderFilter(
+          filter,
+          queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
+          fact.columnsByNameMap,
+          OracleEngine,
+          literalMapper,
+          Option(exp),
+          Option(secondExp)
+        )
+      }
+
+    } else {
+      throw new IllegalArgumentException(
+        s"Unknown fact column: publicFact=${publicFact.name}, fact=${fact.name} alias=${filter.field}, name=$baseFieldName")
     }
   }
 }

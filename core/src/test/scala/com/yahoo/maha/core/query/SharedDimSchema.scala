@@ -168,11 +168,11 @@ trait SharedDimSchema {
     builder
       .toPublicDimension("ad","ad",
         Set(
-          PubCol("id", "Ad ID", InEquality ++ EqualityFieldEquality)
+          PubCol("id", "Ad ID", InEquality ++ FieldEquality)
           , PubCol("title", "Ad Title", InEqualityLike)
           , PubCol("advertiser_id", "Advertiser ID", InEquality)
           , PubCol("campaign_id", "Campaign ID", InEquality)
-          , PubCol("ad_group_id", "Ad Group ID", InEquality ++ EqualityFieldEquality)
+          , PubCol("ad_group_id", "Ad Group ID", InEquality ++ FieldEquality)
           , PubCol("Ad Status", "Ad Status", InNotInEquality)
           , PubCol("impressions", "Ad Impressions Flag", InEquality)
           , PubCol("user_count", "Ad User Count Flag", InEquality)
