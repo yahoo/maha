@@ -301,7 +301,7 @@ object QueryGeneratorHelper {
           filter,
           queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
           fact.columnsByNameMap,
-          HiveEngine,
+          engine,
           literalMapper,
           Option(exp)
         )
@@ -314,7 +314,7 @@ object QueryGeneratorHelper {
           filter,
           queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
           fact.columnsByNameMap,
-          OracleEngine,
+          engine,
           literalMapper,
           Option(exp),
           Option(secondExp)
