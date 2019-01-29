@@ -230,21 +230,10 @@ case class OrFilter(filters: Iterable[String]) extends CombiningFilter {
 }
 
 sealed trait FilterRenderer[T, O] {
-  def render(name: String,
+  def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: T,
              literalMapper: LiteralMapper,
              column: Column,
-             engine: Engine,
-             grainOption: Option[Grain]): O
-}
-
-sealed trait FieldFilterRenderer[T, O] {
-  def render(name: String,
-             compareTo: String,
-             filter: T,
-             literalMapper: LiteralMapper,
-             column: Column,
-             otherColumn: Column,
              engine: Engine,
              grainOption: Option[Grain]): O
 }
@@ -271,7 +260,7 @@ sealed trait IsNotNullFilterRenderer[O] extends FilterRenderer[IsNotNullFilter, 
 
 sealed trait JavaScriptFilterRenderer[O] extends FilterRenderer[JavaScriptFilter, O]
 
-sealed trait FieldEqualityFilterRenderer[O] extends FieldFilterRenderer[FieldEqualityFilter, O]
+sealed trait FieldEqualityFilterRenderer[O] extends FilterRenderer[FieldEqualityFilter, O]
 
 
 sealed trait SqlResult {
@@ -284,12 +273,13 @@ case class DefaultResult(filter: String, escaped: Boolean = false) extends SqlRe
 case class OrFilterMeta(orFliter: OrFliter, isFactFilters: Boolean)
 
 object SqlBetweenFilterRenderer extends BetweenFilterRenderer[SqlResult] {
-  def render(name: String,
+  def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              betweenFilter: BetweenFilter,
              literalMapper: LiteralMapper,
              column: Column,
              engine: Engine,
              grainOption: Option[Grain]) : SqlResult = {
+    val name = aliasToRenderedSqlMap(betweenFilter.field)._2
     val renderedFrom = literalMapper.toLiteral(column, betweenFilter.from, grainOption)
     val renderedTo = literalMapper.toLiteral(column, betweenFilter.to, grainOption)
     engine match {
@@ -344,12 +334,13 @@ object SqlBetweenFilterRenderer extends BetweenFilterRenderer[SqlResult] {
 }
 
 object SqlInFilterRenderer extends InFilterRenderer[SqlResult] {
-  def render(name: String,
+  def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: InFilter,
              literalMapper: LiteralMapper,
              column: Column,
              engine: Engine,
              grainOption: Option[Grain]) : SqlResult = {
+    val name = aliasToRenderedSqlMap(filter.field)._2
     val renderedValues = filter.values.map(literalMapper.toLiteral(column, _, grainOption))
     engine match {
       case OracleEngine =>
@@ -373,12 +364,13 @@ object SqlInFilterRenderer extends InFilterRenderer[SqlResult] {
 }
 
 object SqlNotInFilterRenderer extends NotInFilterRenderer[SqlResult] {
-  def render(name: String,
+  def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: NotInFilter,
              literalMapper: LiteralMapper,
              column: Column,
              engine: Engine,
              grainOption: Option[Grain]) : SqlResult = {
+    val name = aliasToRenderedSqlMap(filter.field)._2
     val renderedValues = filter.values.map(literalMapper.toLiteral(column, _, grainOption))
     engine match {
       case OracleEngine =>
@@ -397,12 +389,13 @@ object SqlNotInFilterRenderer extends NotInFilterRenderer[SqlResult] {
 }
 
 object SqlEqualityFilterRenderer extends EqualityFilterRenderer[SqlResult] {
-  def render(name: String,
+  def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: EqualityFilter,
              literalMapper: LiteralMapper,
              column: Column,
              engine: Engine,
              grainOption : Option[Grain]) : SqlResult = {
+    val name = aliasToRenderedSqlMap(filter.field)._2
     val renderedValue = literalMapper.toLiteral(column, filter.value, grainOption)
     engine match {
       case OracleEngine =>
@@ -454,17 +447,19 @@ object SqlFieldEqualityFilterRenderer extends FieldEqualityFilterRenderer[SqlRes
     }
   }
 
-  def render(name: String,
-             compareTo: String,
+  def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: FieldEqualityFilter,
              literalMapper: LiteralMapper,
              column: Column,
-             otherColumn: Column,
              engine: Engine,
              grainOption : Option[Grain]) : SqlResult = {
+    val renderedName: String = aliasToRenderedSqlMap(filter.field)._2
+    val renderedCompareTo: String = aliasToRenderedSqlMap(filter.compareTo)._2
+    val compareTo: String = aliasToRenderedSqlMap(filter.compareTo)._1
+    val otherColumn: Column = column.columnContext.getColumnByName(compareTo).get
     engine match {
       case OracleEngine | HiveEngine | PrestoEngine =>
-        checkTypesCreateResultOrThrow(name, compareTo, column, otherColumn)
+        checkTypesCreateResultOrThrow(renderedName, renderedCompareTo, column, otherColumn)
       case _ =>
         throw new IllegalArgumentException(s"Unsupported engine for FieldEqualityFilterRenderer $engine")
     }
@@ -495,23 +490,25 @@ object SqlFieldEqualityFilterRenderer extends FieldEqualityFilterRenderer[SqlRes
   }
 
 object SqlGreaterThanFilterRenderer extends GreaterThanFilterRenderer[SqlResult] {
-  def render(name: String,
+  def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: GreaterThanFilter,
              literalMapper: LiteralMapper,
              column: Column,
              engine: Engine,
              grainOption : Option[Grain]) : SqlResult = {
+    val name: String = aliasToRenderedSqlMap(filter.field)._2
     SqlFilterRenderFactory.renderComparisonFilterWithOperator(name, filter, literalMapper, column, engine, grainOption, ">", Set(OracleEngine, HiveEngine, PrestoEngine))
   }
 }
 
 object SqlLessThanFilterRenderer extends LessThanFilterRenderer[SqlResult] {
-  def render(name: String,
+  def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: LessThanFilter,
              literalMapper: LiteralMapper,
              column: Column,
              engine: Engine,
              grainOption : Option[Grain]) : SqlResult = {
+    val name: String = aliasToRenderedSqlMap(filter.field)._2
     SqlFilterRenderFactory.renderComparisonFilterWithOperator(name, filter, literalMapper, column, engine, grainOption, "<", Set(OracleEngine, HiveEngine, PrestoEngine))
   }
 }
@@ -528,12 +525,13 @@ object SqlLikeFilterRenderer extends LikeFilterRenderer[SqlResult] {
     escapeEscapeChars(value).replaceAllLiterally("""%""","""\%""").replaceAllLiterally("""_""", """\_""")
   }
 
-  def render(name: String,
+  def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: LikeFilter,
              literalMapper: LiteralMapper,
              column: Column,
              engine: Engine,
              grainOption: Option[Grain]) : SqlResult = {
+    val name = aliasToRenderedSqlMap(filter.field)._2
     val escaped = specialCharsR.findFirstIn(filter.value).isDefined
     val escapeValue = {
       if(escaped) {
@@ -573,12 +571,13 @@ object SqlLikeFilterRenderer extends LikeFilterRenderer[SqlResult] {
 }
 
 object SqlNotEqualToFilterRenderer extends NotEqualToFilterRenderer[SqlResult] {
-  def render(name: String,
+  def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: NotEqualToFilter,
              literalMapper: LiteralMapper,
              column: Column,
              engine: Engine,
              grainOption: Option[Grain]) : SqlResult = {
+    val name = aliasToRenderedSqlMap(filter.field)._2
     val renderedValue = literalMapper.toLiteral(column, filter.value, grainOption)
     engine match {
       case OracleEngine =>
@@ -596,13 +595,13 @@ object SqlNotEqualToFilterRenderer extends NotEqualToFilterRenderer[SqlResult] {
   }
 }
 object SqlIsNullFilterRenderer extends IsNullFilterRenderer[SqlResult] {
-  def render(name: String,
+  def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: IsNullFilter,
              literalMapper: LiteralMapper,
              column: Column,
              engine: Engine,
              grainOption: Option[Grain]) : SqlResult = {
-
+    val name = aliasToRenderedSqlMap(filter.field)._2
     engine match {
       case OracleEngine | HiveEngine | PrestoEngine =>
         DefaultResult(s"""$name IS NULL""")
@@ -612,12 +611,13 @@ object SqlIsNullFilterRenderer extends IsNullFilterRenderer[SqlResult] {
   }
 }
 object SqlIsNotNullFilterRenderer extends IsNotNullFilterRenderer[SqlResult] {
-  def render(name: String,
+  def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: IsNotNullFilter,
              literalMapper: LiteralMapper,
              column: Column,
              engine: Engine,
              grainOption: Option[Grain]) : SqlResult = {
+    val name = aliasToRenderedSqlMap(filter.field)._2
     engine match {
       case OracleEngine | HiveEngine | PrestoEngine =>
         DefaultResult(s"""$name IS NOT NULL""")
@@ -715,7 +715,7 @@ object FilterDruid {
         }
       case BetweenFilterOperation =>
         val (dayFrom, dayTo) = {
-          val name = aliasToNameMapFull(model.localTimeDayFilter.field)
+          val name: String = aliasToNameMapFull(model.localTimeDayFilter.field)
           val column = columnsByNameMap(name)
           val columnAlias = column.alias.getOrElse(name)
           val (f, t) = extractFromAndToDate(model.localTimeDayFilter, DailyGrain)
@@ -726,7 +726,7 @@ object FilterDruid {
         if(aliasToNameMapFull.contains(HourlyGrain.HOUR_FILTER_FIELD)) {
           val fromAndToWithHour = model.localTimeHourFilter.map {
             filter =>
-              val name = aliasToNameMapFull(filter.field)
+              val name: String = aliasToNameMapFull(filter.field)
               val column = columnsByNameMap(name)
               val columnAlias = column.alias.getOrElse(name)
               val (f, t) = extractFromAndToDate(filter, HourlyGrain)
@@ -740,7 +740,7 @@ object FilterDruid {
               (dayWithHourFrom, dayWithHourTo) <- fromAndToWithHour
               filter <- model.localTimeMinuteFilter
             } {
-              val name = aliasToNameMapFull(filter.field)
+              val name: String = aliasToNameMapFull(filter.field)
               val column = columnsByNameMap(name)
               val columnAlias = column.alias.getOrElse(name)
               val (f, t) = extractFromAndToDate(filter, MinuteGrain)
@@ -983,6 +983,7 @@ object FilterSql {
                    expandedSecondaryExpression: Option[String] = None,
                    grainOption: Option[Grain] = None): SqlResult = {
 
+    val aliasToRenderedSqlMap: mutable.HashMap[String, (String, String)] = new mutable.HashMap[String, (String, String)]()
     val name = aliasToNameMapFull(filter.field)
     val column = columnsByNameMap(name)
     val nameOrAlias = column.alias.getOrElse(name)
@@ -996,6 +997,8 @@ object FilterSql {
         }
       case Some(e) => e
     }
+
+    aliasToRenderedSqlMap(filter.field) = (name, exp)
     filter match {
       case PushDownFilter(f) => 
         renderFilter(f, aliasToNameMapFull, columnsByNameMap, engine, literalMapper, expandedExpression, None)
@@ -1013,9 +1016,10 @@ object FilterSql {
             }
           case Some(e) => e
         }
-        renderFilterWithAlias(filter, column, Option.apply(otherColumn), engine, literalMapper, preComputedAlias = Some(exp), preComputedOtherAlias = Some(exp2), grainOption = grainOption )
+        aliasToRenderedSqlMap(g) = (otherColumnName, exp2)
+        renderFilterWithAlias(filter, aliasToRenderedSqlMap.toMap, column, engine, literalMapper, grainOption = grainOption )
       case _ =>
-        renderFilterWithAlias(filter, column, None, engine, literalMapper, preComputedAlias = Some(exp), grainOption = grainOption )
+        renderFilterWithAlias(filter, aliasToRenderedSqlMap.toMap, column, engine, literalMapper, grainOption = grainOption )
     }
   }
 
@@ -1026,34 +1030,31 @@ object FilterSql {
                    expandedExpression: Option[String] = None,
                    grainOption: Option[Grain] = None): SqlResult = {
 
+
     val outerColName = s""" "${filter.field}"  """
     val column = columnsByNameMap({filter.field})
-    renderFilterWithAlias(filter, column, None, engine, literalMapper, grainOption = grainOption, preComputedAlias = Some(outerColName))
+    renderFilterWithAlias(filter, Map(filter.field -> (filter.field, outerColName)), column, engine, literalMapper, grainOption = grainOption)
   }
 
   def renderFilterWithAlias(filter: Filter,
+                   aliasToRenderedSqlMap: Map[String, (String, String)],
                    column: Column,
-                   otherColumnOption: Option[Column] = None,
                    engine: Engine,
                    literalMapper: LiteralMapper,
-                   preComputedAlias: Option[String] = None,
-                   preComputedOtherAlias: Option[String] = None,
                    grainOption: Option[Grain] = None): SqlResult = {
 
     filter match {
       case f@BetweenFilter(alias, from, to) =>
-        val finalAlias = preComputedAlias.getOrElse(alias)
         SqlBetweenFilterRenderer.render(
-          finalAlias,
+          aliasToRenderedSqlMap,
           f,
           literalMapper,
           column,
           engine,
           grainOption)
       case f@InFilter(alias, values, _, _) =>
-        val finalAlias = preComputedAlias.getOrElse(alias)
         SqlInFilterRenderer.render(
-          finalAlias,
+          aliasToRenderedSqlMap,
           f,
           literalMapper,
           column,
@@ -1061,9 +1062,8 @@ object FilterSql {
           grainOption
         )
       case f@NotInFilter(alias, values, _, _) =>
-        val finalAlias = preComputedAlias.getOrElse(alias)
         SqlNotInFilterRenderer.render(
-          finalAlias,
+          aliasToRenderedSqlMap,
           f,
           literalMapper,
           column,
@@ -1071,9 +1071,8 @@ object FilterSql {
           grainOption
         )
       case f@EqualityFilter(alias, value, _, _) =>
-        val finalAlias = preComputedAlias.getOrElse(alias)
         SqlEqualityFilterRenderer.render(
-          finalAlias,
+          aliasToRenderedSqlMap,
           f,
           literalMapper,
           column,
@@ -1081,22 +1080,17 @@ object FilterSql {
           grainOption
         )
       case f@FieldEqualityFilter(alias, compareTo, _, _) =>
-        val finalAlias = preComputedAlias.getOrElse(alias)
-        val finalOtherAlias = preComputedOtherAlias.getOrElse(compareTo)
         SqlFieldEqualityFilterRenderer.render(
-          finalAlias,
-          finalOtherAlias,
+          aliasToRenderedSqlMap,
           f,
           literalMapper,
           column,
-          otherColumnOption.get,
           engine,
           grainOption
         )
       case f@GreaterThanFilter(alias, value, _, _) =>
-        val finalAlias = preComputedAlias.getOrElse(alias)
         SqlGreaterThanFilterRenderer.render(
-          finalAlias,
+          aliasToRenderedSqlMap,
           f,
           literalMapper,
           column,
@@ -1104,9 +1098,8 @@ object FilterSql {
           grainOption
         )
       case f@LessThanFilter(alias, value, _, _) =>
-        val finalAlias = preComputedAlias.getOrElse(alias)
         SqlLessThanFilterRenderer.render(
-          finalAlias,
+          aliasToRenderedSqlMap,
           f,
           literalMapper,
           column,
@@ -1114,9 +1107,8 @@ object FilterSql {
           grainOption
         )
       case f@NotEqualToFilter(alias, value, _, _) =>
-        val finalAlias = preComputedAlias.getOrElse(alias)
         SqlNotEqualToFilterRenderer.render(
-          finalAlias,
+          aliasToRenderedSqlMap,
           f,
           literalMapper,
           column,
@@ -1124,9 +1116,8 @@ object FilterSql {
           grainOption
         )
       case f@LikeFilter(alias, value, _, _) =>
-        val finalAlias = preComputedAlias.getOrElse(alias)
         SqlLikeFilterRenderer.render(
-          finalAlias,
+          aliasToRenderedSqlMap,
           f,
           literalMapper,
           column,
@@ -1134,9 +1125,8 @@ object FilterSql {
           grainOption
         )
       case f@IsNullFilter(alias, _, _) =>
-        val finalAlias = preComputedAlias.getOrElse(alias)
         SqlIsNullFilterRenderer.render(
-          finalAlias,
+          aliasToRenderedSqlMap,
           f,
           literalMapper,
           column,
@@ -1144,9 +1134,8 @@ object FilterSql {
           grainOption
         )
       case f@IsNotNullFilter(alias, _, _) =>
-        val finalAlias = preComputedAlias.getOrElse(alias)
         SqlIsNotNullFilterRenderer.render(
-          finalAlias,
+          aliasToRenderedSqlMap,
           f,
           literalMapper,
           column,
