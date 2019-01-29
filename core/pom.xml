@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.226-SNAPSHOT</version>
+        <version>5.232-SNAPSHOT</version>
     </parent>
 
     <name>maha core</name>
@@ -210,7 +210,7 @@
         </dependency>
         <dependency>
             <groupId>com.netflix.archaius</groupId>
-            <artifactId>archaius-core</artifactId>
+            <artifactId>archaius2-core</artifactId>
             <version>${archaius.version}</version>
         </dependency>
         <dependency>

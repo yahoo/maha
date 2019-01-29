@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>5.226-SNAPSHOT</version>
+    <version>5.232-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -30,7 +30,7 @@
         <json4s.version>3.5.3</json4s.version>
         <scalatest.version>3.0.3</scalatest.version>
         <scalaz.version>7.2.22</scalaz.version>
-        <jackson.version>2.9.5</jackson.version>
+        <jackson.version>2.9.8</jackson.version>
         <httpclient.version>4.5.5</httpclient.version>
         <guava.version>24.1.1-jre</guava.version>
         <jodatime.version>2.9.9</jodatime.version>
@@ -57,7 +57,7 @@
         <enumeratum.version>1.5.13</enumeratum.version>
         <kafka.version>1.1.0</kafka.version>
         <caffeine.version>2.6.2</caffeine.version>
-        <archaius.version>0.7.6</archaius.version>
+        <archaius.version>2.3.13</archaius.version>
         <bytebuddy.version>1.8.12</bytebuddy.version>
         <kryo.version>4.0.2</kryo.version>
         <lz4.version>1.4.1</lz4.version>

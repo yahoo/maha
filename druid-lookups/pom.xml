@@ -5,7 +5,7 @@
     <parent>
         <artifactId>maha-parent</artifactId>
         <groupId>com.yahoo.maha</groupId>
-        <version>5.226-SNAPSHOT</version>
+        <version>5.232-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -16,6 +16,7 @@
 
     <properties>
         <druid.version>0.11.0</druid.version>
+        <protobuf.version>3.1.0</protobuf.version>
     </properties>
 
     <dependencies>
@@ -145,7 +146,7 @@
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <version>3.1.0</version>
+            <version>${protobuf.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>

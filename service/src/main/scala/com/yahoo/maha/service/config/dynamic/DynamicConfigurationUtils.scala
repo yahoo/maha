@@ -1,6 +1,6 @@
 // Copyright 2017, Yahoo Holdings Inc.
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
-package com.yahoo.maha.utils
+package com.yahoo.maha.service.config.dynamic
 
 import java.util.regex.Pattern
 
@@ -18,7 +18,6 @@ object DynamicConfigurationUtils extends Logging {
   def extractDynamicFields(json: JValue): Map[String, (String, String)] = {
     val dynamicFieldMap = new mutable.HashMap[String, (String, String)]()
     val dynamicFields = getDynamicFields(json)
-
     dynamicFields.foreach(f => {
       require(f._2.isInstanceOf[JString], s"Cannot extract dynamic property from non-string field: $f")
       implicit val formats = org.json4s.DefaultFormats
@@ -27,13 +26,14 @@ object DynamicConfigurationUtils extends Logging {
       require(matcher.groupCount() == 2, s"Expected name and default value in dynamic property field: $f")
       val propertyKey = matcher.group(1).trim
       val defaultValue = matcher.group(2).trim
-      dynamicFieldMap.put(f._1, (propertyKey, defaultValue))
+      dynamicFieldMap.put(propertyKey, (f._1, defaultValue))
     })
     dynamicFieldMap.toMap
   }
 
   def getDynamicFields(json: JValue): List[JField] = {
-    json.filterField(_._2 match {
+    implicit val formats = org.json4s.DefaultFormats
+     json.filterField(_._2 match {
       case JString(s) => {
         DYNAMIC_CONFIG_PATTERN.matcher(s).find()
       }

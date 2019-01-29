@@ -2,8 +2,9 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.curators
 
+import com.yahoo.maha.core.RequestModel
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
-import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.core.request.{DebugValue, Parameter, ReportingRequest}
 import com.yahoo.maha.jdbc._
 import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
@@ -186,7 +187,7 @@ class RowCountCuratorTest  extends BaseMahaServiceTest with BeforeAndAfterAll {
                         }"""
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
-    val reportingRequest = reportingRequestResult.toOption.get
+    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
 
     val bucketParams = BucketParams(UserInfo("uid", true))
 
@@ -215,7 +216,6 @@ class RowCountCuratorTest  extends BaseMahaServiceTest with BeforeAndAfterAll {
     assert(parReqOption.get.queryPipeline.isSuccess)
     val totalRowQueryPipelineTry = parReqOption.get.queryPipeline
     assert(totalRowQueryPipelineTry.isSuccess)
-
     val totalRowQueryPipeline = totalRowQueryPipelineTry.get
 
     assert(totalRowQueryPipeline.factBestCandidate.isEmpty)

@@ -2,34 +2,17 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.Descriptors;
+import com.google.protobuf.GeneratedMessageV3;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
 
-public class TestProtobufSchemaFactory implements ProtobufSchemaFactory {
+import java.util.Map;
 
-    @Override
-    public Descriptors.Descriptor getProtobufDescriptor(final String messageType) {
-        if ("ad_lookup".equals(messageType)) {
-            return AdProtos.Ad.getDescriptor();
-        }
-        throw new IllegalArgumentException("unknown namespace");
-    }
-
-    @Override
-    public Parser getProtobufParser(final String messageType) {
-        if ("ad_lookup".equals(messageType)) {
-            return AdProtos.Ad.PARSER;
-        }
-        throw new IllegalArgumentException("unknown namespace");
-    }
-
-    @Override
-    public Message.Builder getProtobufMessageBuilder(final String messageType) {
-        if ("ad_lookup".equals(messageType)) {
-            return AdProtos.Ad.newBuilder();
-        }
-        throw new IllegalArgumentException("unknown namespace");
+public class TestProtobufSchemaFactory extends DefaultProtobufSchemaFactory {
+    public TestProtobufSchemaFactory() {
+        super(ImmutableMap.<String, GeneratedMessageV3>of("ad_lookup", AdProtos.Ad.getDefaultInstance()));
     }
 }
 
