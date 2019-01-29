@@ -4,7 +4,7 @@ import com.yahoo.maha.core
 import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, InternalSchema, ResellerSchema}
 import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{POST_RESULT_DECODE, START_OF_THE_MONTH, START_OF_THE_WEEK}
-import com.yahoo.maha.core.FilterOperation.{Equality, In, InBetweenEquality, InEquality, InNotInBetweenEqualityNotEqualsGreaterLesser, InEqualityFieldEquality, InEqualityLike}
+import com.yahoo.maha.core.FilterOperation.{Equality, In, InBetweenEquality, InEquality, InNotInBetweenEqualityNotEqualsGreaterLesser, InEqualityFieldEquality, InEqualityLike, FieldEquality}
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol, DruidFuncDimCol, DruidPostResultFuncDimCol, PubCol}
 import com.yahoo.maha.core.fact.{PublicFactCol, _}
@@ -306,8 +306,8 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("Const Der Fact Col C", "Const Der Fact Col C", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),
           PublicFactCol("derived_avg_pos", "Average Position", Set.empty),
-          PublicFactCol("max_bid", "Max Bid", Set.empty),
-          PublicFactCol("min_bid", "Min Bid", Set.empty),
+          PublicFactCol("max_bid", "Max Bid", FieldEquality),
+          PublicFactCol("min_bid", "Min Bid", FieldEquality),
           PublicFactCol("avg_bid", "Average Bid", Set.empty),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("Reblogs", "Reblogs", InBetweenEquality),

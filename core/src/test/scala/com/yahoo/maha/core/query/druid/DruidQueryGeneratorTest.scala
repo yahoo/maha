@@ -411,6 +411,30 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     result should fullyMatch regex json
   }
 
+  test("Should fail to generate a metric query with Field Comparison Filter") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Average Bid"},
+                            {"field": "Conversion User Count"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Min Bid", "operator": "==", "compareTo": "Max Bid"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", "someUser"))
+    val requestModel = RequestModel.from(request, defaultRegistry)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isFailure && queryPipelineTry.failed.get.getMessage.contains("Column Comparison is not supported on Druid fact fields"), "Column comparison should fail for metrics.")
+  }
+
   test("DruidQueryGenerator: arbitrary static mapping should succeed") {
     val jsonString = s"""{
                           "cube": "k_stats",

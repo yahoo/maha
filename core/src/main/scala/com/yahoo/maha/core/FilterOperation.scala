@@ -965,6 +965,8 @@ object FilterDruid {
         new LessThanHavingSpec(alias, druidLiteralMapper.toNumber(column, value))
       case f @ LikeFilter(_, _, _, _) =>
         throw new UnsupportedOperationException(s"Like filter not supported on Druid fact fields : $f")
+      case f @ FieldEqualityFilter(field, compareTo, _, _) =>
+        throw new UnsupportedOperationException(s"Column Comparison is not supported on Druid fact fields : $f")
       case f =>
         throw new UnsupportedOperationException(s"Unhandled filter operation $f")
     }
