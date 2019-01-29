@@ -814,7 +814,6 @@ object FilterDruid {
         getDruidFilter(grainOption, column, columnAlias, value, columnsByNameMap)
       }
       case f @ FieldEqualityFilter(field, compareTo, _, _) => {
-        require(aliasToNameMapFull.contains(field) && aliasToNameMapFull.contains(compareTo), s"A requested field is invalid!  Tried: $field & $compareTo")
         val firstAlias = aliasToNameMapFull(field)
         val otherAlias = aliasToNameMapFull(compareTo)
         val defaultDimSpecs: List[DimensionSpec] = (List(firstAlias, otherAlias)).map(
@@ -1001,7 +1000,6 @@ object FilterSql {
       case PushDownFilter(f) => 
         renderFilter(f, aliasToNameMapFull, columnsByNameMap, engine, literalMapper, expandedExpression, None)
       case FieldEqualityFilter(f,g, _, _) =>
-        require(aliasToNameMapFull.contains(g))
         val otherColumnName = aliasToNameMapFull(g)
         val otherColumn = columnsByNameMap(otherColumnName)
         val otherNameOrAlias = otherColumn.alias.getOrElse(otherColumnName)
