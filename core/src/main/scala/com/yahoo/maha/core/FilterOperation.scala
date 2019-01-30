@@ -1027,7 +1027,6 @@ object FilterSql {
                    columnsByNameMap: Map[String, Column],
                    engine: Engine,
                    literalMapper: LiteralMapper,
-                   expandedExpression: Option[String] = None,
                    grainOption: Option[Grain] = None): SqlResult = {
 
 
