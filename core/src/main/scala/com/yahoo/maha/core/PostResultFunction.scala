@@ -103,7 +103,7 @@ object DruidPostResultFunction {
   case class START_OF_THE_WEEK(expression: String)
                               (implicit cc: ColumnContext) extends DruidPostResultFunction {
 
-    val yearAndWeekOfTheYearFormat: String = "YYYY-w"
+    val yearAndWeekOfTheYearFormat: String = "xxxx-w"
     private[this] val datetimeFormat = DateTimeFormat.forPattern(yearAndWeekOfTheYearFormat)
 
     val colName = expression.replaceAll("[}{]","")
