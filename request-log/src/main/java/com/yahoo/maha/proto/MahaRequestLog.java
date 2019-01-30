@@ -664,6 +664,20 @@ public final class MahaRequestLog {
      */
     com.google.protobuf.ByteString
         getLabelsBytes(int index);
+
+    /**
+     * <code>optional string requestHash = 58;</code>
+     */
+    boolean hasRequestHash();
+    /**
+     * <code>optional string requestHash = 58;</code>
+     */
+    java.lang.String getRequestHash();
+    /**
+     * <code>optional string requestHash = 58;</code>
+     */
+    com.google.protobuf.ByteString
+        getRequestHashBytes();
   }
   /**
    * Protobuf type {@code com.yahoo.maha.proto.MahaRequestProto}
@@ -1057,6 +1071,12 @@ public final class MahaRequestLog {
                 mutable_bitField1_ |= 0x01000000;
               }
               labels_.add(bs);
+              break;
+            }
+            case 466: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField1_ |= 0x00200000;
+              requestHash_ = bs;
               break;
             }
           }
@@ -4171,6 +4191,48 @@ public final class MahaRequestLog {
       return labels_.getByteString(index);
     }
 
+    public static final int REQUESTHASH_FIELD_NUMBER = 58;
+    private java.lang.Object requestHash_;
+    /**
+     * <code>optional string requestHash = 58;</code>
+     */
+    public boolean hasRequestHash() {
+      return ((bitField1_ & 0x00200000) == 0x00200000);
+    }
+    /**
+     * <code>optional string requestHash = 58;</code>
+     */
+    public java.lang.String getRequestHash() {
+      java.lang.Object ref = requestHash_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          requestHash_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string requestHash = 58;</code>
+     */
+    public com.google.protobuf.ByteString
+        getRequestHashBytes() {
+      java.lang.Object ref = requestHash_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        requestHash_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
     private void initFields() {
       requestId_ = "";
       json_ = com.google.protobuf.ByteString.EMPTY;
@@ -4229,6 +4291,7 @@ public final class MahaRequestLog {
       isTest_ = false;
       testName_ = "";
       labels_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      requestHash_ = "";
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -4421,6 +4484,9 @@ public final class MahaRequestLog {
       }
       for (int i = 0; i < labels_.size(); i++) {
         output.writeBytes(57, labels_.getByteString(i));
+      }
+      if (((bitField1_ & 0x00200000) == 0x00200000)) {
+        output.writeBytes(58, getRequestHashBytes());
       }
       getUnknownFields().writeTo(output);
     }
@@ -4669,6 +4735,10 @@ public final class MahaRequestLog {
         size += dataSize;
         size += 2 * getLabelsList().size();
       }
+      if (((bitField1_ & 0x00200000) == 0x00200000)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(58, getRequestHashBytes());
+      }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
       return size;
@@ -4910,6 +4980,8 @@ public final class MahaRequestLog {
         bitField1_ = (bitField1_ & ~0x00800000);
         labels_ = com.google.protobuf.LazyStringArrayList.EMPTY;
         bitField1_ = (bitField1_ & ~0x01000000);
+        requestHash_ = "";
+        bitField1_ = (bitField1_ & ~0x02000000);
         return this;
       }
 
@@ -5180,6 +5252,10 @@ public final class MahaRequestLog {
           bitField1_ = (bitField1_ & ~0x01000000);
         }
         result.labels_ = labels_;
+        if (((from_bitField1_ & 0x02000000) == 0x02000000)) {
+          to_bitField1_ |= 0x00200000;
+        }
+        result.requestHash_ = requestHash_;
         result.bitField0_ = to_bitField0_;
         result.bitField1_ = to_bitField1_;
         onBuilt();
@@ -5462,6 +5538,11 @@ public final class MahaRequestLog {
             ensureLabelsIsMutable();
             labels_.addAll(other.labels_);
           }
+          onChanged();
+        }
+        if (other.hasRequestHash()) {
+          bitField1_ |= 0x02000000;
+          requestHash_ = other.requestHash_;
           onChanged();
         }
         this.mergeUnknownFields(other.getUnknownFields());
@@ -8669,6 +8750,82 @@ public final class MahaRequestLog {
         return this;
       }
 
+      private java.lang.Object requestHash_ = "";
+      /**
+       * <code>optional string requestHash = 58;</code>
+       */
+      public boolean hasRequestHash() {
+        return ((bitField1_ & 0x02000000) == 0x02000000);
+      }
+      /**
+       * <code>optional string requestHash = 58;</code>
+       */
+      public java.lang.String getRequestHash() {
+        java.lang.Object ref = requestHash_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            requestHash_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string requestHash = 58;</code>
+       */
+      public com.google.protobuf.ByteString
+          getRequestHashBytes() {
+        java.lang.Object ref = requestHash_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          requestHash_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string requestHash = 58;</code>
+       */
+      public Builder setRequestHash(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField1_ |= 0x02000000;
+        requestHash_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string requestHash = 58;</code>
+       */
+      public Builder clearRequestHash() {
+        bitField1_ = (bitField1_ & ~0x02000000);
+        requestHash_ = getDefaultInstance().getRequestHash();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string requestHash = 58;</code>
+       */
+      public Builder setRequestHashBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField1_ |= 0x02000000;
+        requestHash_ = value;
+        onChanged();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:com.yahoo.maha.proto.MahaRequestProto)
     }
 
@@ -8705,7 +8862,7 @@ public final class MahaRequestLog {
   static {
     java.lang.String[] descriptorData = {
       "\n\024MahaRequestLog.proto\022\024com.yahoo.maha.p" +
-      "roto\"\277\020\n\020MahaRequestProto\022\021\n\trequestId\030\001" +
+      "roto\"\324\020\n\020MahaRequestProto\022\021\n\trequestId\030\001" +
       " \002(\t\022\014\n\004json\030\002 \002(\014\022\016\n\006userId\030\003 \001(\t\022\014\n\004cu" +
       "be\030\004 \001(\t\022\016\n\006schema\030\005 \001(\t\022\022\n\nisInternal\030\006" +
       " \001(\010\022G\n\013requestType\030\007 \001(\01622.com.yahoo.ma" +
@@ -8747,18 +8904,18 @@ public final class MahaRequestLog {
       "(\t\022\027\n\017isScanOptimized\0303 \001(\010\022\020\n\010scanRows\030" +
       "4 \001(\003\022\021\n\tgrainRows\0305 \001(\003\022\017\n\007isDebug\0306 \001(" +
       "\010\022\016\n\006isTest\0307 \001(\010\022\020\n\010testName\0308 \001(\t\022\016\n\006l" +
-      "abels\0309 \003(\t\032^\n\020SortByColumnInfo\022\r\n\005alias" +
-      "\030\001 \001(\t\022;\n\005order\030\002 \001(\0162,.com.yahoo.maha.p" +
-      "roto.MahaRequestProto.Order\032e\n\010FactCost\022" +
-      "\014\n\004name\030\001 \001(\t\022=\n\006engine\030\002 \001(\0162-.com.yaho" +
-      "o.maha.proto.MahaRequestProto.Engine\022\014\n\004" +
-      "cost\030\003 \001(\003\"\"\n\013RequestType\022\010\n\004SYNC\020\000\022\t\n\005A" +
-      "SYNC\020\001\"\032\n\005Order\022\007\n\003ASC\020\000\022\010\n\004DESC\020\001\"5\n\006En",
-      "gine\022\n\n\006Oracle\020\000\022\t\n\005Druid\020\001\022\010\n\004Hive\020\002\022\n\n" +
-      "\006Presto\020\003\"G\n\016AsyncJobStatus\022\r\n\tSUBMITTED" +
-      "\020\000\022\013\n\007RUNNING\020\001\022\n\n\006FAILED\020\002\022\r\n\tCOMPLETED" +
-      "\020\003\"\"\n\tQueueType\022\n\n\006PULSAR\020\000\022\t\n\005KAFKA\020\001B\020" +
-      "B\016MahaRequestLog"
+      "abels\0309 \003(\t\022\023\n\013requestHash\030: \001(\t\032^\n\020Sort" +
+      "ByColumnInfo\022\r\n\005alias\030\001 \001(\t\022;\n\005order\030\002 \001" +
+      "(\0162,.com.yahoo.maha.proto.MahaRequestPro" +
+      "to.Order\032e\n\010FactCost\022\014\n\004name\030\001 \001(\t\022=\n\006en" +
+      "gine\030\002 \001(\0162-.com.yahoo.maha.proto.MahaRe" +
+      "questProto.Engine\022\014\n\004cost\030\003 \001(\003\"\"\n\013Reque" +
+      "stType\022\010\n\004SYNC\020\000\022\t\n\005ASYNC\020\001\"\032\n\005Order\022\007\n\003",
+      "ASC\020\000\022\010\n\004DESC\020\001\"5\n\006Engine\022\n\n\006Oracle\020\000\022\t\n" +
+      "\005Druid\020\001\022\010\n\004Hive\020\002\022\n\n\006Presto\020\003\"G\n\016AsyncJ" +
+      "obStatus\022\r\n\tSUBMITTED\020\000\022\013\n\007RUNNING\020\001\022\n\n\006" +
+      "FAILED\020\002\022\r\n\tCOMPLETED\020\003\"\"\n\tQueueType\022\n\n\006" +
+      "PULSAR\020\000\022\t\n\005KAFKA\020\001B\020B\016MahaRequestLog"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -8777,7 +8934,7 @@ public final class MahaRequestLog {
     internal_static_com_yahoo_maha_proto_MahaRequestProto_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_com_yahoo_maha_proto_MahaRequestProto_descriptor,
-        new java.lang.String[] { "RequestId", "Json", "UserId", "Cube", "Schema", "IsInternal", "RequestType", "DrivingQueryEngine", "DrivingTable", "QueryChainType", "FirstSubsequentQueryEngine", "FirstSubsequentQueryTable", "RequestStartTime", "RequestEndTime", "Status", "ErrorMessage", "HasFactFilters", "HasNonFKFactFilters", "HasDimFilters", "HasNonFKDimFilters", "HasFactSortBy", "HasDimSortBy", "IsFactDriven", "ForceDimDriven", "ForceFactDriven", "HasNonDrivingDimSortOrFilter", "HasDimAndFactOperations", "DimCardinalityEstimate", "RequestSortByCols", "DimensionsCandidates", "FactCost", "DrivingQueryEngineLatency", "FirstSubsequentQueryEngineLatency", "ReRunEngineQueryLatency", "ReRunEngine", "JobId", "TimeGrain", "AsyncJobStatus", "IsDryRun", "JobResultURL", "JobName", "QueueWaitingTime", "QueueType", "CubeRevision", "MahaServiceRegistryName", "MahaServiceHostname", "IsGrainOptimized", "IsIndexOptimized", "Curator", "ReRunEngineQueryTable", "IsScanOptimized", "ScanRows", "GrainRows", "IsDebug", "IsTest", "TestName", "Labels", });
+        new java.lang.String[] { "RequestId", "Json", "UserId", "Cube", "Schema", "IsInternal", "RequestType", "DrivingQueryEngine", "DrivingTable", "QueryChainType", "FirstSubsequentQueryEngine", "FirstSubsequentQueryTable", "RequestStartTime", "RequestEndTime", "Status", "ErrorMessage", "HasFactFilters", "HasNonFKFactFilters", "HasDimFilters", "HasNonFKDimFilters", "HasFactSortBy", "HasDimSortBy", "IsFactDriven", "ForceDimDriven", "ForceFactDriven", "HasNonDrivingDimSortOrFilter", "HasDimAndFactOperations", "DimCardinalityEstimate", "RequestSortByCols", "DimensionsCandidates", "FactCost", "DrivingQueryEngineLatency", "FirstSubsequentQueryEngineLatency", "ReRunEngineQueryLatency", "ReRunEngine", "JobId", "TimeGrain", "AsyncJobStatus", "IsDryRun", "JobResultURL", "JobName", "QueueWaitingTime", "QueueType", "CubeRevision", "MahaServiceRegistryName", "MahaServiceHostname", "IsGrainOptimized", "IsIndexOptimized", "Curator", "ReRunEngineQueryTable", "IsScanOptimized", "ScanRows", "GrainRows", "IsDebug", "IsTest", "TestName", "Labels", "RequestHash", });
     internal_static_com_yahoo_maha_proto_MahaRequestProto_SortByColumnInfo_descriptor =
       internal_static_com_yahoo_maha_proto_MahaRequestProto_descriptor.getNestedTypes().get(0);
     internal_static_com_yahoo_maha_proto_MahaRequestProto_SortByColumnInfo_fieldAccessorTable = new
