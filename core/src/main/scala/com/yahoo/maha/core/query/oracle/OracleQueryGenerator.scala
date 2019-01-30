@@ -58,7 +58,7 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
         subqueryBundle.publicDim.columnsByAlias(alias)
     }.map {
       filter =>
-        val f = FilterSql.renderFilter(filter, aliasToNameMapFull, columnsByNameMap, OracleEngine, literalMapper)
+        val f = FilterSql.renderFilter(filter, aliasToNameMapFull, Map.empty, columnsByNameMap, OracleEngine, literalMapper)
         escaped |= f.escaped
         f.filter
     }
@@ -120,7 +120,7 @@ b. Dim Driven
           || dimBundle.isDrivingDimension
           //TODO: add check that not include filter predicate if it is push down only if that field is partition key
           || requestModel.hasNonDrivingDimSortOrFilter && !dimBundle.isDrivingDimension) {
-            val f = FilterSql.renderFilter(filter, aliasToNameMapFull, columnsByNameMap, OracleEngine, literalMapper)
+            val f = FilterSql.renderFilter(filter, aliasToNameMapFull, Map.empty, columnsByNameMap, OracleEngine, literalMapper)
             escaped |= f.escaped
             dimBundleFilters += f.filter
           }
@@ -972,6 +972,7 @@ b. Dim Driven
         filters += FilterSql.renderFilter(
           filter,
           aliasToNameMapFull,
+          Map.empty,
           columnsByNameMap,
           OracleEngine,
           literalMapper).filter
@@ -1080,6 +1081,7 @@ b. Dim Driven
       val dayFilter = FilterSql.renderFilter(
         requestModel.localTimeDayFilter,
         queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
+        Map.empty,
         fact.columnsByNameMap,
         OracleEngine,
         literalMapper).filter

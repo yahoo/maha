@@ -287,6 +287,7 @@ object QueryGeneratorHelper {
       FilterSql.renderFilter(
         filter,
         aliasToNameMapFull,
+        Map.empty,
         fact.columnsByNameMap,
         engine,
         literalMapper
@@ -300,12 +301,13 @@ object QueryGeneratorHelper {
         FilterSql.renderFilter(
           filter,
           queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
+          Map(filter.field -> (baseFieldName, exp)),
           fact.columnsByNameMap,
           engine,
-          literalMapper,
-          Option(exp)
+          literalMapper
         )
       } else {
+        val multiFieldForcedFilter = filter.asInstanceOf[MultiFieldForcedFilter]
         val compareToFieldName = fieldNames.remove(0)
         require(fact.factColMap.contains(compareToFieldName), "Metric-Dim Comparison Failed: Can only compare dim-dim or metric-metric")
         val compareToColumn = fact.columnsByNameMap(compareToFieldName)
@@ -313,11 +315,10 @@ object QueryGeneratorHelper {
         FilterSql.renderFilter(
           filter,
           queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
+          Map(multiFieldForcedFilter.field -> (baseFieldName, exp), multiFieldForcedFilter.compareTo -> (compareToColumn.alias.getOrElse(compareToColumn.name), secondExp)),
           fact.columnsByNameMap,
           engine,
-          literalMapper,
-          Option(exp),
-          Option(secondExp)
+          literalMapper
         )
       }
 

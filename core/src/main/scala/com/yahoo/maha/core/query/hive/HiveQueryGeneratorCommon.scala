@@ -208,6 +208,7 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
     val dayFilter = FilterSql.renderFilter(
       queryContext.requestModel.localTimeDayFilter,
       queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
+      Map.empty,
       fact.columnsByNameMap,
       HiveEngine,
       hiveLiteralMapper).filter
@@ -301,6 +302,7 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
         FilterSql.renderFilter(
           filter,
           aliasToNameMapFull,
+          Map.empty,
           columnsByNameMap,
           HiveEngine,
           hiveLiteralMapper

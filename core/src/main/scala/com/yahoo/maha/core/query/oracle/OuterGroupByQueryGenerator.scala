@@ -102,6 +102,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
               val f = FilterSql.renderFilter(
                 filter,
                 queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
+                Map.empty,
                 fact.columnsByNameMap,
                 OracleEngine,
                 literalMapper)
@@ -123,10 +124,10 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                 val f = FilterSql.renderFilter(
                   filter,
                   queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
+                  Map(alias -> (name1, exp)),
                   fact.columnsByNameMap,
                   OracleEngine,
-                  literalMapper,
-                  Option(exp)
+                  literalMapper
                 )
                 escaped |= f.escaped
                 havingFilters += f.filter
@@ -147,11 +148,10 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                 val f = FilterSql.renderFilter(
                   filter,
                   queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
+                  Map(alias -> (name2, exp), alias2 -> (name2, exp2)),
                   fact.columnsByNameMap,
                   OracleEngine,
-                  literalMapper,
-                  Option(exp),
-                  Option(exp2)
+                  literalMapper
                 )
                 escaped |= f.escaped
                 havingFilters += f.filter
@@ -165,6 +165,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       val dayFilter = FilterSql.renderFilter(
         requestModel.localTimeDayFilter,
         queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
+        Map.empty,
         fact.columnsByNameMap,
         OracleEngine,
         literalMapper).filter

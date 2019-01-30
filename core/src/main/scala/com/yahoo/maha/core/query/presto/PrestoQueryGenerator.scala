@@ -373,6 +373,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
       val dayFilter = FilterSql.renderFilter(
         queryContext.requestModel.localTimeDayFilter,
         queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
+        Map.empty,
         fact.columnsByNameMap,
         PrestoEngine,
         prestoLiteralMapper).filter
@@ -466,6 +467,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
           FilterSql.renderFilter(
             filter,
             aliasToNameMapFull,
+            Map.empty,
             columnsByNameMap,
             PrestoEngine,
             prestoLiteralMapper

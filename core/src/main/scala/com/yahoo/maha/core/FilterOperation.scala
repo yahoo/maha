@@ -818,7 +818,6 @@ object FilterDruid {
         val otherAlias = aliasToNameMapFull(compareTo)
         val defaultDimSpecs: List[DimensionSpec] = (List(firstAlias, otherAlias)).map(
           (fieldToCompare: String) => {
-            require(columnsByNameMap.contains(fieldToCompare), s"Queried comparison field $fieldToCompare does not exist!")
             val col: Column = columnsByNameMap(fieldToCompare)
             val alias: String = col.alias.getOrElse(fieldToCompare)
             new DefaultDimensionSpec(alias, alias)
@@ -976,17 +975,17 @@ object FilterSql {
 
   def renderFilter(filter: Filter,
                    aliasToNameMapFull: Map[String, String],
+                   nameToAliasAndRenderedSqlMap: Map[String, (String, String)],
                    columnsByNameMap: Map[String, Column],
                    engine: Engine,
                    literalMapper: LiteralMapper,
-                   expandedExpression: Option[String] = None,
-                   expandedSecondaryExpression: Option[String] = None,
                    grainOption: Option[Grain] = None): SqlResult = {
 
     val aliasToRenderedSqlMap: mutable.HashMap[String, (String, String)] = new mutable.HashMap[String, (String, String)]()
     val name = aliasToNameMapFull(filter.field)
     val column = columnsByNameMap(name)
     val nameOrAlias = column.alias.getOrElse(name)
+    val expandedExpression = if (nameToAliasAndRenderedSqlMap.contains(filter.field)) Option(nameToAliasAndRenderedSqlMap(filter.field)._2) else None
     val exp = expandedExpression match {
       case None =>
         column match {
@@ -1001,12 +1000,13 @@ object FilterSql {
     aliasToRenderedSqlMap(filter.field) = (name, exp)
     filter match {
       case PushDownFilter(f) => 
-        renderFilter(f, aliasToNameMapFull, columnsByNameMap, engine, literalMapper, expandedExpression, None)
+        renderFilter(f, aliasToNameMapFull, nameToAliasAndRenderedSqlMap, columnsByNameMap, engine, literalMapper, None)
       case FieldEqualityFilter(f,g, _, _) =>
         val otherColumnName = aliasToNameMapFull(g)
         val otherColumn = columnsByNameMap(otherColumnName)
         val otherNameOrAlias = otherColumn.alias.getOrElse(otherColumnName)
-        val exp2 = expandedSecondaryExpression match {
+        val expandedOtherExpression = if (nameToAliasAndRenderedSqlMap.contains(g)) Option(nameToAliasAndRenderedSqlMap(g)._2) else None
+        val exp2 = expandedOtherExpression match {
           case None =>
             column match {
               case column if otherColumn.isInstanceOf[DerivedColumn] =>
