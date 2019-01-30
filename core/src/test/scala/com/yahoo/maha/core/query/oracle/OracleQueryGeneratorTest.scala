@@ -2089,12 +2089,92 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
     val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
-    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("Both fields being compared must be the same Data Type."))
+  }
 
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+  test("should fail to compare metric to dimension.") {
+    val jsonString = s"""{
+                           "cube": "k_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Ad Group ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Destination URL",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Source URL",
+                               "alias": null,
+                               "value": null
+                             },
+                             {"field": "Source"}
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Source URL", "operator": "==", "compareTo": "Clicks"}
+                           ],
+                           "paginationStartIndex":0,
+                           "rowsPerPage":100,
+                           "includeRowCount": true,
+                           "forceDimensionDriven": true
+                         }"""
 
-    assert(queryPipelineTry.isFailure && queryPipelineTry.failed.get.getMessage.contains("Both dataTypes should be the same, but are"), queryPipelineTry.errorMessage("Fail to get the failed query pipeline"))
+    val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("Both fields being compared must be the same Data Type."))
+  }
 
+  test("should fail comparing different data types in dimension table comparison.") {
+    val jsonString = s"""{
+                           "cube": "k_stats",
+                           "selectFields": [
+                             {
+                               "field": "Ad ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Ad Impressions Flag",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Ad Group ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Campaign ID",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Ad Impressions Flag", "operator": "==", "compareTo": "Ad Title"}
+                           ],
+                           "paginationStartIndex":0,
+                           "rowsPerPage":100,
+                           "includeRowCount": true,
+                           "forceDimensionDriven": true
+                         }"""
+
+    val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("Both fields being compared must be the same Data Type."))
   }
 
   test("should succeed to compare two metrics of same dataTypes.") {

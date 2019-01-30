@@ -711,8 +711,18 @@ object RequestModel extends Logging {
               val pubCol = publicFact.columnsByAliasMap(filter.field)
               require(pubCol.filters.contains(filter.operator),
                 s"Unsupported filter operation : cube=${publicFact.name}, col=${filter.field}, operation=${filter.operator}")
-              val (isValidFilter, length) = validateLengthForFilterValue(publicFact, filter)
-              require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
+              filter match {
+                  //For multiFieldForcedFilter, compare both column types & check filter list on compareTo.
+                case multiFieldFilter: MultiFieldForcedFilter =>
+                  val secondCol = publicFact.columnsByAliasMap(multiFieldFilter.compareTo)
+                  require(secondCol.filters.contains(multiFieldFilter.operator),
+                    s"Unsupported filter operation : cube=${publicFact.name}, col=${multiFieldFilter.compareTo}, operation=${multiFieldFilter.operator}")
+                  validateFieldsInMultiFieldForcedFilter(publicFact, multiFieldFilter)
+                //For field, value filters check length of the value.
+                case _ =>
+                  val (isValidFilter, length) = validateLengthForFilterValue(publicFact, filter)
+                  require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
+              }
           }
 
           //if we are dim driven, add primary key of highest level dim
@@ -819,8 +829,18 @@ object RequestModel extends Logging {
                         val pubCol = publicDim.columnsByAliasMap(filter.field)
                         require(pubCol.filters.contains(filter.operator),
                           s"Unsupported filter operation : dimension=${publicDim.name}, col=${filter.field}, operation=${filter.operator}, expected=${pubCol.filters}")
-                        val (isValidFilter, length) = validateLengthForFilterValue(publicDim, filter)
-                        require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
+                        filter match {
+                          //For multiFieldForcedFilter, compare both column types & check filter list on compareTo.
+                          case multiFieldFilter: MultiFieldForcedFilter =>
+                            val secondCol = publicDim.columnsByAliasMap(multiFieldFilter.compareTo)
+                            require(secondCol.filters.contains(multiFieldFilter.operator),
+                              s"Unsupported filter operation : cube=${publicDim.name}, col=${multiFieldFilter.compareTo}, operation=${multiFieldFilter.operator}")
+                            validateFieldsInMultiFieldForcedFilter(publicDim, multiFieldFilter)
+                          //For field, value filters check length of the value.
+                          case _ =>
+                            val (isValidFilter, length) = validateLengthForFilterValue(publicDim, filter)
+                            require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
+                        }
                     }
 
                     val hasNonFKSortBy = allDimSortBy.exists {
@@ -1119,6 +1139,20 @@ object RequestModel extends Logging {
         (1, requestedDaysLookBack)
       case a =>
         throw new IllegalArgumentException(s"Filter operation not supported. Day filter can be between, in, equality filter : $a")
+    }
+  }
+
+  def validateFieldsInMultiFieldForcedFilter(publicTable: PublicTable, filter: MultiFieldForcedFilter): Unit = {
+    publicTable match {
+      case publicDim: PublicDimension =>
+        val firstDataType: DataType = publicDim.nameToDataTypeMap(publicDim.columnsByAliasMap(filter.field).name)
+        val compareToDataType: DataType = publicDim.nameToDataTypeMap(publicDim.columnsByAliasMap(filter.compareTo).name)
+        require(firstDataType.jsonDataType == compareToDataType.jsonDataType, "Both fields being compared must be the same Data Type.")
+      case publicFact: PublicFact =>
+        val firstDataType: DataType = publicFact.dataTypeForAlias(publicFact.columnsByAliasMap(filter.field).alias)
+        val compareToDataType: DataType = publicFact.dataTypeForAlias(publicFact.columnsByAliasMap(filter.compareTo).alias)
+        require(firstDataType.jsonDataType == compareToDataType.jsonDataType, "Both fields being compared must be the same Data Type.")
+      case _ => None
     }
   }
 
