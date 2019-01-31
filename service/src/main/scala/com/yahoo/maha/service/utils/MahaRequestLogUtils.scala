@@ -13,8 +13,11 @@ import com.yahoo.maha.log.MahaRequestLogWriter
 import com.yahoo.maha.proto.MahaRequestLog.MahaRequestProto
 import com.yahoo.maha.service.MahaRequestContext
 import com.yahoo.maha.service.curators.Curator
+import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.lang.StringUtils
 import org.slf4j.LoggerFactory
+
+import scala.util.Try
 
 /**
  * Created by pranavbhole on 11/08/17.
@@ -112,6 +115,7 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     }
     if(mahaRequestContext.rawJson != null) {
       protoBuilder.setJson(ByteString.copyFrom(mahaRequestContext.rawJson))
+      Try(protoBuilder.setRequestHash(DigestUtils.md5Hex(mahaRequestContext.rawJson)))
     }
     if(curator != null) {
       protoBuilder.setCurator(curator)
