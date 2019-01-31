@@ -65,7 +65,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
       builder.toPublicFact("student_performance",
           Set(
             PubCol("class_id", "Class ID", InEquality),
-            PubCol("student_id", "Student ID", InBetweenEquality),
+            PubCol("student_id", "Student ID", InBetweenEqualityFieldEquality),
             PubCol("section_id", "Section ID", InEquality),
             PubCol("date", "Day", Equality),
             PubCol("month", "Month", InEquality),
@@ -113,7 +113,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
         .toPublicFact("student_performance",
           Set(
             PubCol("class_id", "Class ID", InEquality),
-            PubCol("student_id", "Student ID", InEquality),
+            PubCol("student_id", "Student ID", InEqualityFieldEquality),
             PubCol("section_id", "Section ID", InEquality),
             PubCol("date", "Day", Equality),
             PubCol("month", "Month", InEquality),
@@ -157,7 +157,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
         .toPublicFact("student_performance2",
           Set(
             PubCol("class_id", "Class ID", InEquality),
-            PubCol("student_id", "Student ID", InEquality),
+            PubCol("student_id", "Student ID", InEqualityFieldEquality),
             PubCol("section_id", "Section ID", InNotInEquality),
             PubCol("date", "Day", Equality),
             PubCol("month", "Month", InEquality),
