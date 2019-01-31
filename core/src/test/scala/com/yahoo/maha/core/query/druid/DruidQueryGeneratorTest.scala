@@ -392,7 +392,8 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "=", "value": "$fromDate"},
-                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Ad ID", "operator": "==", "compareTo": "Ad Group ID"}
                           ],
                           "paginationStartIndex":20,
                           "rowsPerPage":100
@@ -405,9 +406,33 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
 
-    val json = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"\}\],"aggregations":\[\{"type":"roundingDoubleSum","name":"_sum_avg_bid","fieldName":"avg_bid","scale":10,"enableRoundingDoubleSumAggregatorFactory":true\},\{"type":"count","name":"_count_avg_bid"\},\{"type":"filtered","aggregator":\{"type":"thetaSketch","name":"Conversion User Count","fieldName":"uniqueUserCount","size":16384,"shouldFinalize":true,"isInputThetaSketch":false\},"filter":\{"type":"javascript","dimension":"segments","function":"function\(x\) \{ return x > 0; \}"\},"name":"Conversion User Count"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Average Bid","fn":"/","fields":\[\{"type":"fieldAccess","name":"_sum_avg_bid","fieldName":"_sum_avg_bid"\},\{"type":"fieldAccess","name":"_count_avg_bid","fieldName":"_count_avg_bid"\}\]\}\],"limitSpec":\{"type":"default","columns":\[\],"limit":120\},"context":\{"applyLimitPushDown":"false","userId":"someUser","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\},"descending":false\}"""
+    val json = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"columnComparison","dimensions":\[\{"type":"default","dimension":"ad_id","outputName":"ad_id","outputType":"STRING"\},\{"type":"default","dimension":"ad_group_id","outputName":"ad_group_id","outputType":"STRING"\}\]\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"\}\],"aggregations":\[\{"type":"roundingDoubleSum","name":"_sum_avg_bid","fieldName":"avg_bid","scale":10,"enableRoundingDoubleSumAggregatorFactory":true\},\{"type":"count","name":"_count_avg_bid"\},\{"type":"filtered","aggregator":\{"type":"thetaSketch","name":"Conversion User Count","fieldName":"uniqueUserCount","size":16384,"shouldFinalize":true,"isInputThetaSketch":false\},"filter":\{"type":"javascript","dimension":"segments","function":"function\(x\) \{ return x \> 0; \}"\},"name":"Conversion User Count"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Average Bid","fn":"\/","fields":\[\{"type":"fieldAccess","name":"_sum_avg_bid","fieldName":"_sum_avg_bid"\},\{"type":"fieldAccess","name":"_count_avg_bid","fieldName":"_count_avg_bid"\}\]\}\],"limitSpec":\{"type":"default","columns":\[\],"limit":120\},"context":\{"applyLimitPushDown":"false","userId":"someUser","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\},"descending":false\}"""
 
     result should fullyMatch regex json
+  }
+
+  test("Should fail to generate a metric query with Field Comparison Filter") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Average Bid"},
+                            {"field": "Conversion User Count"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Min Bid", "operator": "==", "compareTo": "Max Bid"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", "someUser"))
+    val requestModel = RequestModel.from(request, defaultRegistry)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isFailure && queryPipelineTry.failed.get.getMessage.contains("Column Comparison is not supported on Druid fact fields"), "Column comparison should fail for metrics.")
   }
 
   test("DruidQueryGenerator: arbitrary static mapping should succeed") {

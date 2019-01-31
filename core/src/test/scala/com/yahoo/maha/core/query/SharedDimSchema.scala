@@ -168,13 +168,13 @@ trait SharedDimSchema {
     builder
       .toPublicDimension("ad","ad",
         Set(
-          PubCol("id", "Ad ID", InEquality)
-          , PubCol("title", "Ad Title", InEqualityLike)
+          PubCol("id", "Ad ID", InEqualityFieldEquality)
+          , PubCol("title", "Ad Title", InEqualityLikeFieldEquality)
           , PubCol("advertiser_id", "Advertiser ID", InEquality)
           , PubCol("campaign_id", "Campaign ID", InEquality)
-          , PubCol("ad_group_id", "Ad Group ID", InEquality)
+          , PubCol("ad_group_id", "Ad Group ID", InEqualityFieldEquality)
           , PubCol("Ad Status", "Ad Status", InNotInEquality)
-          , PubCol("impressions", "Ad Impressions Flag", InEquality)
+          , PubCol("impressions", "Ad Impressions Flag", InEqualityFieldEquality)
           , PubCol("user_count", "Ad User Count Flag", InEquality)
         ), highCardinalityFilters = Set(NotInFilter("Ad Status", List("DELETED")))
       )

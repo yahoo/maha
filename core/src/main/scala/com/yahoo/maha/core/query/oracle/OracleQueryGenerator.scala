@@ -58,7 +58,7 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
         subqueryBundle.publicDim.columnsByAlias(alias)
     }.map {
       filter =>
-        val f = FilterSql.renderFilter(filter, aliasToNameMapFull, columnsByNameMap, OracleEngine, literalMapper)
+        val f = FilterSql.renderFilter(filter, aliasToNameMapFull, Map.empty, columnsByNameMap, OracleEngine, literalMapper)
         escaped |= f.escaped
         f.filter
     }
@@ -120,7 +120,7 @@ b. Dim Driven
           || dimBundle.isDrivingDimension
           //TODO: add check that not include filter predicate if it is push down only if that field is partition key
           || requestModel.hasNonDrivingDimSortOrFilter && !dimBundle.isDrivingDimension) {
-            val f = FilterSql.renderFilter(filter, aliasToNameMapFull, columnsByNameMap, OracleEngine, literalMapper)
+            val f = FilterSql.renderFilter(filter, aliasToNameMapFull, Map.empty, columnsByNameMap, OracleEngine, literalMapper)
             escaped |= f.escaped
             dimBundleFilters += f.filter
           }
@@ -972,6 +972,7 @@ b. Dim Driven
         filters += FilterSql.renderFilter(
           filter,
           aliasToNameMapFull,
+          Map.empty,
           columnsByNameMap,
           OracleEngine,
           literalMapper).filter
@@ -1057,46 +1058,30 @@ b. Dim Driven
         unique_filters.sorted.foreach {
           filter =>
             val name = publicFact.aliasToNameColumnMap(filter.field)
-            if (fact.dimColMap.contains(name)) {
-              val f = FilterSql.renderFilter(
-                filter,
-                queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
-                fact.columnsByNameMap,
-                OracleEngine,
-                literalMapper)
-              escaped |= f.escaped
-              whereFilters += f.filter
-            } else if (fact.factColMap.contains(name)) {
-              val column = fact.columnsByNameMap(name)
-              val alias = queryContext.factBestCandidate.factColMapping(name)
-              val nameOrAlias = column.alias.getOrElse(name)
-              val exp = column match {
+            val colRenderFn = (x: Column) =>
+              x match {
                 case FactCol(_, dt, cc, rollup, _, annotations, _) =>
-                  s"""${renderRollupExpression(nameOrAlias, rollup)}"""
+                  s"""${renderRollupExpression(x.alias.getOrElse(x.name), rollup)}"""
                 case OracleDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-                  s"""${renderRollupExpression(de.render(nameOrAlias, Map.empty), rollup)}"""
+                  s"""${renderRollupExpression(de.render(x.alias.getOrElse(x.name), Map.empty), rollup)}"""
                 case any =>
                   throw new UnsupportedOperationException(s"Found non fact column : $any")
               }
-              val f = FilterSql.renderFilter(
-                filter,
-                queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
-                fact.columnsByNameMap,
-                OracleEngine,
-                literalMapper,
-                Option(exp)
-              )
-              escaped |= f.escaped
-              havingFilters += f.filter
+            val result = QueryGeneratorHelper.handleFilterRender(filter, publicFact, fact, publicFact.aliasToNameColumnMap, queryContext, OracleEngine, literalMapper, colRenderFn)
+
+            if(fact.dimColMap.contains(name)) {
+              escaped |= result.escaped
+              whereFilters += result.filter
             } else {
-              throw new IllegalArgumentException(
-                s"Unknown fact column: publicFact=${publicFact.name}, fact=${fact.name} alias=${filter.field}, name=$name")
+              escaped |= result.escaped
+              havingFilters += result.filter
             }
         }
       }
       val dayFilter = FilterSql.renderFilter(
         requestModel.localTimeDayFilter,
         queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
+        Map.empty,
         fact.columnsByNameMap,
         OracleEngine,
         literalMapper).filter

@@ -19,12 +19,12 @@ class FilterTest extends FunSuite with Matchers {
   val hiveLiteralMapper = new HiveLiteralMapper
   val druidLiteralMapper = new DruidLiteralMapper
 
-  def render[T, O](renderer: FilterRenderer[T, O], filter: T, literalMapper: LiteralMapper, engine: Engine, column: Column) : O = {
-    renderer.render(column.name, filter, literalMapper, column, engine, None)
+  def render[T, O](renderer: FilterRenderer[T, O], filter: T, literalMapper: LiteralMapper, engine: Engine, column: Column, aliasToRenderedSqlMap: Map[String, (String, String)]) : O = {
+    renderer.render(aliasToRenderedSqlMap, filter, literalMapper, column, engine, None)
   }
 
-  def renderWithGrain[T, O](renderer: FilterRenderer[T, O], filter: T, literalMapper: LiteralMapper, engine: Engine, column: Column, grain : Grain) : O = {
-    renderer.render(column.name, filter, literalMapper, column, engine, Some(grain))
+  def renderWithGrain[T, O](renderer: FilterRenderer[T, O], filter: T, literalMapper: LiteralMapper, engine: Engine, column: Column, grain : Grain, aliasToRenderedSqlMap: Map[String, (String, String)]) : O = {
+    renderer.render(aliasToRenderedSqlMap, filter, literalMapper, column, engine, Some(grain))
   }
   
   implicit val columnContext: ColumnContext = new ColumnContext
@@ -46,17 +46,17 @@ class FilterTest extends FunSuite with Matchers {
 
   test("BetweenFilter with a defined grain should modify the output result to include it.") {
     val filter = BetweenFilter("stats_date", "2018-01-01", "2018-01-07")
-    val dailyResult = renderWithGrain(SqlBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, dateCol, DailyGrain).filter
+    val dailyResult = renderWithGrain(SqlBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, dateCol, DailyGrain, Map("stats_date" -> ("stats_date", "stats_date"))).filter
     dailyResult shouldBe "stats_date >= trunc(to_date('2018-01-01', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('2018-01-07', 'YYYY-MM-DD'))"
-    val hourlyResult = renderWithGrain(SqlBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, dateCol, HourlyGrain).filter
+    val hourlyResult = renderWithGrain(SqlBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, dateCol, HourlyGrain, Map("stats_date" -> ("stats_date", "stats_date"))).filter
     hourlyResult shouldBe "stats_date >= to_date('2018-01-01', 'HH24') AND stats_date <= to_date('2018-01-07', 'HH24')"
 
     val intBetweenfilter = BetweenFilter("date_sid", "2018-01-01", "2018-01-02")
-    val intHourlyResult = renderWithGrain(SqlBetweenFilterRenderer, intBetweenfilter, oracleLiteralMapper, OracleEngine, intDateCol, HourlyGrain).filter
+    val intHourlyResult = renderWithGrain(SqlBetweenFilterRenderer, intBetweenfilter, oracleLiteralMapper, OracleEngine, intDateCol, HourlyGrain, Map("date_sid" -> ("date_sid", "date_sid"))).filter
     intHourlyResult shouldBe "date_sid >= to_date('2018-01-01', 'HH24') AND date_sid <= to_date('2018-01-02', 'HH24')"
 
     val strBetweenfilter = BetweenFilter("date_sid2", "2018-01-01", "2018-01-02")
-    val strHourlyResult = renderWithGrain(SqlBetweenFilterRenderer, strBetweenfilter, oracleLiteralMapper, OracleEngine, strDateCol, HourlyGrain).filter
+    val strHourlyResult = renderWithGrain(SqlBetweenFilterRenderer, strBetweenfilter, oracleLiteralMapper, OracleEngine, strDateCol, HourlyGrain, Map("date_sid2" -> ("date_sid2", "date_sid2"))).filter
     strHourlyResult shouldBe "date_sid2 >= to_date('2018-01-01', 'HH24') AND date_sid2 <= to_date('2018-01-02', 'HH24')"
   }
 
@@ -74,106 +74,106 @@ class FilterTest extends FunSuite with Matchers {
 
   test("InFilter should render correct string for Oracle") {
     val filter = InFilter("field1", List("abc", "def", "ghi"))
-    render(SqlInFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col) shouldBe DefaultResult("field1 IN ('abc','def','ghi')")
+    render(SqlInFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col, Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 IN ('abc','def','ghi')")
     val insensitiveFilter = InFilter("insensitive", List("abc", "def", "ghi"))
-    render(SqlInFilterRenderer, filter, oracleLiteralMapper, OracleEngine, insensitiveCol) shouldBe DefaultResult("lower(insensitive) IN (lower('abc'),lower('def'),lower('ghi'))")
+    render(SqlInFilterRenderer, insensitiveFilter, oracleLiteralMapper, OracleEngine, insensitiveCol, Map("insensitive" -> ("insensitive", "insensitive"))) shouldBe DefaultResult("lower(insensitive) IN (lower('abc'),lower('def'),lower('ghi'))")
   }
 
   test("NotInFilter should render correct string for Oracle") {
     val filter = NotInFilter("field1", List("abc", "def", "ghi"))
-    render(SqlNotInFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col) shouldBe DefaultResult("field1 NOT IN ('abc','def','ghi')")
+    render(SqlNotInFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 NOT IN ('abc','def','ghi')")
   }
 
   test("BetweenFilter should render correct string for Oracle") {
     val filter = BetweenFilter("field1", "abc", "def")
-    render(SqlBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col).filter shouldBe "field1 >= 'abc' AND field1 <= 'def'"
+    render(SqlBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col,  Map("field1" -> ("field1", "field1"))).filter shouldBe "field1 >= 'abc' AND field1 <= 'def'"
   }
 
   test("EqualityFilter should render correct string for Oracle") {
     val filter = EqualityFilter("field1", "ghi")
-    render(SqlEqualityFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col) shouldBe DefaultResult("field1 = \'ghi\'")
+    render(SqlEqualityFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 = \'ghi\'")
   }
 
   test("LikeFilter should render correct string for Oracle") {
     val filter = LikeFilter("field1", "ghi")
-    render(SqlLikeFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col) shouldBe DefaultResult("field1 LIKE \'%ghi%\'")
+    render(SqlLikeFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 LIKE \'%ghi%\'")
   }
 
   test("LikeFilter should render correct string for Presto") {
     val filter = LikeFilter("field1", "ghi")
-    render(SqlLikeFilterRenderer, filter, hiveLiteralMapper, PrestoEngine, col) shouldBe DefaultResult("field1 LIKE \'%ghi%\'")
+    render(SqlLikeFilterRenderer, filter, hiveLiteralMapper, PrestoEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 LIKE \'%ghi%\'")
   }
 
   test("NotEqualToFilter should render correct string for Presto") {
     val filter = NotEqualToFilter("field1", "ghi")
-    render(SqlNotEqualToFilterRenderer, filter, hiveLiteralMapper, PrestoEngine, col) shouldBe DefaultResult("field1 <> \'ghi\'")
+    render(SqlNotEqualToFilterRenderer, filter, hiveLiteralMapper, PrestoEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 <> \'ghi\'")
   }
 
   test("NotEqualToFilter should render correct string for Oracle") {
     val filter = NotEqualToFilter("field1", "ghi")
-    render(SqlNotEqualToFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col) shouldBe DefaultResult("field1 <> \'ghi\'")
+    render(SqlNotEqualToFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 <> \'ghi\'")
   }
 
   test("IsNullFilter should render correct string for Oracle") {
     val filter = IsNullFilter("field1")
-    render(SqlIsNullFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col) shouldBe DefaultResult("field1 IS NULL")
+    render(SqlIsNullFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 IS NULL")
   }
 
   test("IsNotNullFilter should render correct string for Oracle") {
     val filter = IsNotNullFilter("field1")
-    render(SqlIsNotNullFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col) shouldBe DefaultResult("field1 IS NOT NULL")
+    render(SqlIsNotNullFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 IS NOT NULL")
   }
 
   test("IsNullFilter should render correct string for Presto") {
     val filter = IsNullFilter("field1")
-    render(SqlIsNullFilterRenderer, filter, hiveLiteralMapper, PrestoEngine, col) shouldBe DefaultResult("field1 IS NULL")
+    render(SqlIsNullFilterRenderer, filter, hiveLiteralMapper, PrestoEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 IS NULL")
   }
 
   test("IsNotNullFilter should render correct string for Presto") {
     val filter = IsNotNullFilter("field1")
-    render(SqlIsNotNullFilterRenderer, filter, hiveLiteralMapper, PrestoEngine, col) shouldBe DefaultResult("field1 IS NOT NULL")
+    render(SqlIsNotNullFilterRenderer, filter, hiveLiteralMapper, PrestoEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 IS NOT NULL")
   }
 
   test("InFilter should render correct string for Hive") {
     val filter = InFilter("field1", List("abc", "def", "ghi"))
-    render(SqlInFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col) shouldBe DefaultResult("field1 IN ('abc','def','ghi')")
+    render(SqlInFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 IN ('abc','def','ghi')")
     val insensitiveFilter = InFilter("insensitive", List("abc", "def", "ghi"))
-    render(SqlInFilterRenderer, filter, oracleLiteralMapper, HiveEngine, insensitiveCol) shouldBe DefaultResult("lower(insensitive) IN (lower('abc'),lower('def'),lower('ghi'))")
+    render(SqlInFilterRenderer, insensitiveFilter, oracleLiteralMapper, HiveEngine, insensitiveCol,  Map("insensitive" -> ("insensitive", "insensitive"))) shouldBe DefaultResult("lower(insensitive) IN (lower('abc'),lower('def'),lower('ghi'))")
   }
 
   test("NotInFilter should render correct string for Hive") {
     val filter = NotInFilter("field1", List("abc", "def", "ghi"))
-    render(SqlNotInFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col) shouldBe DefaultResult("field1 NOT IN ('abc','def','ghi')")
+    render(SqlNotInFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 NOT IN ('abc','def','ghi')")
   }
 
   test("BetweenFilter should render correct string for Hive") {
     val filter = BetweenFilter("field1", "abc", "def")
-    render(SqlBetweenFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col) shouldBe DefaultResult("field1 >= 'abc' AND field1 <= 'def'")
+    render(SqlBetweenFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 >= 'abc' AND field1 <= 'def'")
   }
 
   test("EqualityFilter should render correct string for Hive") {
     val filter = EqualityFilter("field1", "ghi")
-    render(SqlEqualityFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col) shouldBe DefaultResult("field1 = \'ghi\'")
+    render(SqlEqualityFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 = \'ghi\'")
   }
 
   test("LikeFilter should render correct string for Hive") {
     val filter = LikeFilter("field1", "ghi")
-    render(SqlLikeFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col) shouldBe DefaultResult("field1 LIKE \'%ghi%\'")
+    render(SqlLikeFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 LIKE \'%ghi%\'")
   }
 
   test("NotEqualToFilter should render correct string for Hive") {
     val filter = NotEqualToFilter("field1", "ghi")
-    render(SqlNotEqualToFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col) shouldBe DefaultResult("field1 <> \'ghi\'")
+    render(SqlNotEqualToFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 <> \'ghi\'")
   }
 
   test("IsNullFilter should render correct string for Hive") {
     val filter = IsNullFilter("field1")
-    render(SqlIsNullFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col) shouldBe DefaultResult("field1 IS NULL")
+    render(SqlIsNullFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 IS NULL")
   }
 
   test("IsNotNullFilter should render correct string for Hive") {
     val filter = IsNotNullFilter("field1")
-    render(SqlIsNotNullFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col) shouldBe DefaultResult("field1 IS NOT NULL")
+    render(SqlIsNotNullFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 IS NOT NULL")
   }
 
   test("AndFilter should render combined filters with AND") {
@@ -198,7 +198,7 @@ class FilterTest extends FunSuite with Matchers {
   test("BetweenFilter should fail for Druid engine") {
     val filter = BetweenFilter("filed1", "abc", "def")
     val thrown = intercept[IllegalArgumentException] {
-      render(SqlBetweenFilterRenderer, filter, druidLiteralMapper, DruidEngine, col)
+      render(SqlBetweenFilterRenderer, filter, druidLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
     }
     thrown.getMessage should startWith ("Unsupported engine for BetweenFilterRenderer Druid")
   }
@@ -211,7 +211,7 @@ class FilterTest extends FunSuite with Matchers {
   test("InFilter should fail for Druid engine") {
     val filter = InFilter("filed1", List("abc", "ads"))
     val thrown = intercept[IllegalArgumentException] {
-      render(SqlInFilterRenderer, filter, druidLiteralMapper, DruidEngine, col)
+      render(SqlInFilterRenderer, filter, druidLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
     }
     thrown.getMessage should startWith ("Unsupported engine for InFilterRenderer Druid")
   }
@@ -219,7 +219,7 @@ class FilterTest extends FunSuite with Matchers {
   test("NotInFilter should fail for Druid engine") {
     val filter = NotInFilter("filed1", List("abc", "ads"))
     val thrown = intercept[IllegalArgumentException] {
-      render(SqlNotInFilterRenderer, filter, druidLiteralMapper, DruidEngine, col)
+      render(SqlNotInFilterRenderer, filter, druidLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
     }
     thrown.getMessage should startWith ("Unsupported engine for NotInFilterRenderer Druid")
   }
@@ -227,7 +227,7 @@ class FilterTest extends FunSuite with Matchers {
   test("EqualityFilter should fail for Druid engine") {
     val filter = EqualityFilter("filed1", "abc")
     val thrown = intercept[IllegalArgumentException] {
-      render(SqlEqualityFilterRenderer, filter, druidLiteralMapper, DruidEngine, col)
+      render(SqlEqualityFilterRenderer, filter, druidLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
     }
     thrown.getMessage should startWith ("Unsupported engine for EqualityFilterRenderer Druid")
   }
@@ -235,7 +235,7 @@ class FilterTest extends FunSuite with Matchers {
   test("LikeFilter should fail for Druid engine") {
     val filter = LikeFilter("filed1", "ads")
     val thrown = intercept[IllegalArgumentException] {
-      render(SqlLikeFilterRenderer, filter, druidLiteralMapper, DruidEngine, col)
+      render(SqlLikeFilterRenderer, filter, druidLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
     }
     thrown.getMessage should startWith ("Unsupported engine for LikeFilterRenderer Druid")
   }
@@ -244,9 +244,9 @@ class FilterTest extends FunSuite with Matchers {
     val filter = LikeFilter("%sfield__1", "ad%s")
     val intFilter = LikeFilter("%sfield__2", "ads")
     val normalFilter = LikeFilter("field1", "ads")
-    val rendered = render(SqlLikeFilterRenderer, filter, druidLiteralMapper, OracleEngine, escapedCol)
-    val renderedInt = render(SqlLikeFilterRenderer, intFilter, druidLiteralMapper, OracleEngine, escapedIntCol)
-    val renderedNonEscaped = render(SqlLikeFilterRenderer, normalFilter, druidLiteralMapper, OracleEngine, col)
+    val rendered = render(SqlLikeFilterRenderer, filter, druidLiteralMapper, OracleEngine, escapedCol,  Map("%sfield__1" -> ("%sfield__1", "%sfield__1")))
+    val renderedInt = render(SqlLikeFilterRenderer, intFilter, druidLiteralMapper, OracleEngine, escapedIntCol,  Map("%sfield__2" -> ("%sfield__2", "%sfield__2")))
+    val renderedNonEscaped = render(SqlLikeFilterRenderer, normalFilter, druidLiteralMapper, OracleEngine, col,  Map("field1" -> ("field1", "field1")))
     assert(rendered.isInstanceOf[DefaultResult])
     assert(renderedInt.isInstanceOf[DefaultResult])
     assert(renderedNonEscaped.isInstanceOf[DefaultResult])
@@ -255,20 +255,20 @@ class FilterTest extends FunSuite with Matchers {
   test("NotEqualToFilter should fail for Druid engine") {
     val filter = NotEqualToFilter("filed1", "ads")
     val thrown = intercept[IllegalArgumentException] {
-      render(SqlNotEqualToFilterRenderer, filter, druidLiteralMapper, DruidEngine, col)
+      render(SqlNotEqualToFilterRenderer, filter, druidLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
     }
     thrown.getMessage should startWith ("Unsupported engine for NotEqualToFilterRenderer Druid")
   }
 
   test("InFilter Test") {
     val filter = InFilter("filed1", List("one"))
-    render(SqlInFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col)
+    render(SqlInFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col,  Map("filed1" -> ("filed1", "filed1")))
   }
   
   test("IsNullFilter should fail for Druid engine") {
     val filter = IsNullFilter("filed1")
     val thrown = intercept[IllegalArgumentException] {
-      render(SqlIsNullFilterRenderer, filter, druidLiteralMapper, DruidEngine, col)
+      render(SqlIsNullFilterRenderer, filter, druidLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
     }
     thrown.getMessage should startWith ("Unsupported engine for IsNullFilterRenderer Druid")
   }
@@ -276,7 +276,7 @@ class FilterTest extends FunSuite with Matchers {
   test("IsNotNullFilter should fail for Druid engine") {
     val filter = IsNotNullFilter("filed1")
     val thrown = intercept[IllegalArgumentException] {
-      render(SqlIsNotNullFilterRenderer, filter, druidLiteralMapper, DruidEngine, col)
+      render(SqlIsNotNullFilterRenderer, filter, druidLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
     }
     thrown.getMessage should startWith ("Unsupported engine for IsNotNullFilterRenderer Druid")
   }
@@ -348,6 +348,7 @@ class FilterTest extends FunSuite with Matchers {
     val filter9 = PushDownFilter(IsNotNullFilter("field1"))
     val filter10 = OuterFilter(List(IsNotNullFilter("field1")))
     val filter11 = filter2.renameField("new_field_name")
+    val filter12 = FieldEqualityFilter("field1", "field2")
 
     val s: Set[Filter] = Set(filter1, filter2, filter3, filter4, filter5, filter6, filter7, filter8, filter9, filter10)
     assert(s.size === 10)
@@ -356,6 +357,18 @@ class FilterTest extends FunSuite with Matchers {
     ts ++= s
     assert(ts.size === 10)
     assert(filter11.field === "new_field_name")
+    assert(filter1.canBeHighCardinalityFilter
+      && filter2.canBeHighCardinalityFilter
+      && !filter3.canBeHighCardinalityFilter
+      && filter4.canBeHighCardinalityFilter
+      && !filter5.canBeHighCardinalityFilter
+      && !filter6.canBeHighCardinalityFilter
+      && !filter7.canBeHighCardinalityFilter
+      && filter8.canBeHighCardinalityFilter
+      && !filter9.canBeHighCardinalityFilter
+      && !filter10.canBeHighCardinalityFilter
+      && filter11.canBeHighCardinalityFilter
+      && filter12.canBeHighCardinalityFilter, "All known filters and ability to be high cardinality is asserted here.")
   }
 
   test("Attempt to compare incomparable types") {
@@ -364,7 +377,7 @@ class FilterTest extends FunSuite with Matchers {
 
   test("failing forced filter") {
     val thrown = intercept[UnsupportedOperationException] {
-      FilterSql.renderFilterWithAlias(null, null, null, null)
+      FilterSql.renderFilterWithAlias(null, null, null, null, null)
     }
     assert(thrown.getMessage.contains("Unhandled filter operation"))
   }

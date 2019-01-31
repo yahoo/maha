@@ -81,9 +81,9 @@ trait BasePrestoQueryGeneratorTest
       .toPublicFact("s_stats",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
-          PubCol("ad_group_id", "Ad Group ID", InEquality),
+          PubCol("ad_group_id", "Ad Group ID", InEqualityFieldEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),
-          PubCol("account_id", "Advertiser ID", InEquality),
+          PubCol("account_id", "Advertiser ID", InEqualityFieldEquality),
           PubCol("keyword_id", "Keyword ID", InEquality),
           PubCol("keyword", "Keyword", InEquality),
           PubCol("search_term", "Search Term", InEquality),
@@ -101,10 +101,10 @@ trait BasePrestoQueryGeneratorTest
         Set(
           PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
-          PublicFactCol("spend", "Spend", Set.empty),
+          PublicFactCol("spend", "Spend", FieldEquality),
           PublicFactCol("avg_pos", "Average Position", Set.empty),
           PublicFactCol("constantFact", "Constant Fact", Set.empty),
-          PublicFactCol("max_bid", "Max Bid", Set.empty),
+          PublicFactCol("max_bid", "Max Bid", FieldEquality),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality)
         ),

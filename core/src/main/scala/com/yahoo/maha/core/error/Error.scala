@@ -57,4 +57,9 @@ case class InCompatibleColumnError(alias: String, incompatibleColumns: Set[Strin
   override val message = s"Incompatible columns found in request, ${alias} is not compatible with ${incompatibleColumns}"
 }
 
+case class IncomparableColumnError(field: String, compareTo: String) extends Error {
+  override val code = 10009
+  override val message = s"Field found only in Dimension table is not comparable with Fact fields.  Input: ($field, $compareTo)"
+}
+
 
