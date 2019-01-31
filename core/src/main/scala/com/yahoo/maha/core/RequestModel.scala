@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
+import com.yahoo.maha.core
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, CubeBucketSelected}
 import com.yahoo.maha.core.dimension.PublicDimension
 import com.yahoo.maha.core.fact.{BestCandidates, PublicFact, PublicFactCol, PublicFactColumn}
@@ -711,8 +712,19 @@ object RequestModel extends Logging {
               val pubCol = publicFact.columnsByAliasMap(filter.field)
               require(pubCol.filters.contains(filter.operator),
                 s"Unsupported filter operation : cube=${publicFact.name}, col=${filter.field}, operation=${filter.operator}")
-              val (isValidFilter, length) = validateLengthForFilterValue(publicFact, filter)
-              require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
+              filter match {
+                  //For multiFieldForcedFilter, compare both column types & check filter list on compareTo.
+                case multiFieldFilter: MultiFieldForcedFilter =>
+                  require(publicFact.columnsByAliasMap.contains(multiFieldFilter.compareTo), IncomparableColumnError(multiFieldFilter.field, multiFieldFilter.compareTo))
+                  val secondCol = publicFact.columnsByAliasMap(multiFieldFilter.compareTo)
+                  require(secondCol.filters.contains(multiFieldFilter.operator),
+                    s"Unsupported filter operation : cube=${publicFact.name}, col=${multiFieldFilter.compareTo}, operation=${multiFieldFilter.operator}")
+                  validateFieldsInMultiFieldForcedFilter(publicFact, multiFieldFilter)
+                //For field, value filters check length of the value.
+                case _ =>
+                  val (isValidFilter, length) = validateLengthForFilterValue(publicFact, filter)
+                  require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
+              }
           }
 
           //if we are dim driven, add primary key of highest level dim
@@ -819,8 +831,19 @@ object RequestModel extends Logging {
                         val pubCol = publicDim.columnsByAliasMap(filter.field)
                         require(pubCol.filters.contains(filter.operator),
                           s"Unsupported filter operation : dimension=${publicDim.name}, col=${filter.field}, operation=${filter.operator}, expected=${pubCol.filters}")
-                        val (isValidFilter, length) = validateLengthForFilterValue(publicDim, filter)
-                        require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
+                        filter match {
+                          //For multiFieldForcedFilter, compare both column types & check filter list on compareTo.
+                          case multiFieldFilter: MultiFieldForcedFilter =>
+                            require(publicDim.columnsByAliasMap.contains(multiFieldFilter.compareTo), IncomparableColumnError(multiFieldFilter.field, multiFieldFilter.compareTo))
+                            val secondCol = publicDim.columnsByAliasMap(multiFieldFilter.compareTo)
+                            require(secondCol.filters.contains(multiFieldFilter.operator),
+                              s"Unsupported filter operation : cube=${publicDim.name}, col=${multiFieldFilter.compareTo}, operation=${multiFieldFilter.operator}")
+                            validateFieldsInMultiFieldForcedFilter(publicDim, multiFieldFilter)
+                          //For field, value filters check length of the value.
+                          case _ =>
+                            val (isValidFilter, length) = validateLengthForFilterValue(publicDim, filter)
+                            require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
+                        }
                     }
 
                     val hasNonFKSortBy = allDimSortBy.exists {
@@ -1122,6 +1145,20 @@ object RequestModel extends Logging {
     }
   }
 
+  def validateFieldsInMultiFieldForcedFilter(publicTable: PublicTable, filter: MultiFieldForcedFilter): Unit = {
+    publicTable match {
+      case publicDim: PublicDimension =>
+        val firstDataType: DataType = publicDim.nameToDataTypeMap(publicDim.columnsByAliasMap(filter.field).name)
+        val compareToDataType: DataType = publicDim.nameToDataTypeMap(publicDim.columnsByAliasMap(filter.compareTo).name)
+        require(firstDataType.jsonDataType == compareToDataType.jsonDataType, "Both fields being compared must be the same Data Type.")
+      case publicFact: PublicFact =>
+        val firstDataType: DataType = publicFact.dataTypeForAlias(publicFact.columnsByAliasMap(filter.field).alias)
+        val compareToDataType: DataType = publicFact.dataTypeForAlias(publicFact.columnsByAliasMap(filter.compareTo).alias)
+        require(firstDataType.jsonDataType == compareToDataType.jsonDataType, "Both fields being compared must be the same Data Type.")
+      case _ => None
+    }
+  }
+
   def validateLengthForFilterValue(publicTable: PublicTable, filter: Filter): (Boolean, Int) = {
     val dataType = {
       publicTable match {
@@ -1145,6 +1182,7 @@ object RequestModel extends Logging {
         case InFilter(_, values, _, _) => validateLength(values, length)
         case NotInFilter(_, values, _, _) => validateLength(values, length)
         case EqualityFilter(_, value, _, _) => validateLength(List(value), length)
+        case FieldEqualityFilter(_, value, _, _) => validateLength(List(value), length)
         case NotEqualToFilter(_, value, _, _) => validateLength(List(value), length)
         case LikeFilter(_, value, _, _) => validateLength(List(value), length)
         case BetweenFilter(_, from, to) => validateLength(List(from, to), length)

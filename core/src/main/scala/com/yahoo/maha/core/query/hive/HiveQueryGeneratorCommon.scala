@@ -184,35 +184,21 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
     unique_filters.sorted map {
       filter =>
         val name = publicFact.aliasToNameColumnMap(filter.field)
-        if (fact.dimColMap.contains(name)) {
-          val sqlResult = FilterSql.renderFilter(
-            filter,
-            aliasToNameMapFull,
-            fact.columnsByNameMap,
-            HiveEngine,
-            hiveLiteralMapper
-          )
-          whereFilters += sqlResult.filter
-        } else if (fact.factColMap.contains(name)) {
-          val column = fact.columnsByNameMap(name)
-          val alias = queryContext.factBestCandidate.factColMapping(name)
-          val exp = column match {
+        val colRenderFn = (x: Column) =>
+          x match {
             case FactCol(_, dt, cc, rollup, _, annotations, _) =>
-              s"""${renderRollupExpression(name, rollup, None)}"""
-            case OracleDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-              s"""${renderRollupExpression(de.render(name, Map.empty), rollup, None)}"""
+              s"""${renderRollupExpression(x.name, rollup, None)}"""
+            case OracleDerFactCol(_, _, dt, cc, de, annotations, rollup, _) => //This never gets used, otherwise errors would be thrown before the Generator.
+              s"""${renderRollupExpression(de.render(x.name, Map.empty), rollup, None)}"""
             case any =>
               throw new UnsupportedOperationException(s"Found non fact column : $any")
           }
-          val f = FilterSql.renderFilter(
-            filter,
-            queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
-            fact.columnsByNameMap,
-            HiveEngine,
-            hiveLiteralMapper,
-            Option(exp)
-          )
-          havingFilters += f.filter
+        val result = QueryGeneratorHelper.handleFilterRender(filter, publicFact, fact, aliasToNameMapFull, queryContext, HiveEngine, hiveLiteralMapper, colRenderFn)
+
+        if (fact.dimColMap.contains(name)) {
+          whereFilters += result.filter
+        } else if (fact.factColMap.contains(name)) {
+          havingFilters += result.filter
         } else {
           throw new IllegalArgumentException(
             s"Unknown fact column: publicFact=${publicFact.name}, fact=${fact.name} alias=${filter.field}, name=$name")
@@ -222,6 +208,7 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
     val dayFilter = FilterSql.renderFilter(
       queryContext.requestModel.localTimeDayFilter,
       queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
+      Map.empty,
       fact.columnsByNameMap,
       HiveEngine,
       hiveLiteralMapper).filter
@@ -315,6 +302,7 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
         FilterSql.renderFilter(
           filter,
           aliasToNameMapFull,
+          Map.empty,
           columnsByNameMap,
           HiveEngine,
           hiveLiteralMapper

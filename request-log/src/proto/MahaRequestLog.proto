@@ -95,4 +95,5 @@ message MahaRequestProto{
   optional bool isTest = 55;
   optional string testName = 56;
   repeated string labels = 57;
+  optional string requestHash = 58;
 }

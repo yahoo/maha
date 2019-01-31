@@ -90,8 +90,11 @@ class ReportingRequestTest extends FlatSpec {
                               {"field": "Product ID", "operator": "<>", "value": "-3"},
                               {"field": "Match Type", "operator": "isnull"},
                               {"field": "Pricing Type", "operator": "isnotnull"},
-                              {"field": "Day", "operator": "between", "from": "2014-04-01", "to": "2014-04-30"}
-                          ],
+                              {"field": "Day", "operator": "between", "from": "2014-04-01", "to": "2014-04-30"},
+                              {"field": "Turtles", "operator": "==", "compareTo": "Llamas"},
+                              {"field": "Viewers", "operator": ">", "value": "10"},
+                              {"field": "Viewees", "operator": "<", "value": "10"}
+                           ],
                           "sortBy": [
                               {"field": "Advertiser Id", "order": "Asc"},
                               {"field": "Ad Id", "order": "Desc"}

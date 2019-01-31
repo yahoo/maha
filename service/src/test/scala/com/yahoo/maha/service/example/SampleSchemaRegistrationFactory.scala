@@ -46,6 +46,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
             , DimCol("date", DateType())
             , DimCol("month", DateType())
+            , DimCol("top_student_id", IntType())
             ),
           Set(
              FactCol("total_marks", IntType())
@@ -64,16 +65,17 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
       builder.toPublicFact("student_performance",
           Set(
             PubCol("class_id", "Class ID", InEquality),
-            PubCol("student_id", "Student ID", InEquality),
+            PubCol("student_id", "Student ID", InBetweenEqualityFieldEquality),
             PubCol("section_id", "Section ID", InEquality),
             PubCol("date", "Day", Equality),
             PubCol("month", "Month", InEquality),
             PubCol("year", "Year", Equality),
-            PubCol("comment", "Remarks", InEqualityLike)
+            PubCol("comment", "Remarks", InEqualityLike),
+            PubCol("top_student_id", "Top Student ID", FieldEquality)
           ),
           Set(
-            PublicFactCol("total_marks", "Total Marks", InBetweenEquality),
-            PublicFactCol("obtained_marks", "Marks Obtained", InBetweenEquality),
+            PublicFactCol("total_marks", "Total Marks", InBetweenEqualityFieldEquality),
+            PublicFactCol("obtained_marks", "Marks Obtained", InBetweenEqualityFieldEquality),
             PublicFactCol("Performance Factor", "Performance Factor", InBetweenEquality)
           ),
           Set.empty,
@@ -99,6 +101,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
             , DimCol("date", DateType())
             , DimCol("month", DateType())
+            , DimCol("top_student_id", IntType())
           ),
           Set(
             FactCol("total_marks", IntType())
@@ -110,12 +113,13 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
         .toPublicFact("student_performance",
           Set(
             PubCol("class_id", "Class ID", InEquality),
-            PubCol("student_id", "Student ID", InEquality),
+            PubCol("student_id", "Student ID", InEqualityFieldEquality),
             PubCol("section_id", "Section ID", InEquality),
             PubCol("date", "Day", Equality),
             PubCol("month", "Month", InEquality),
             PubCol("year", "Year", Equality),
-            PubCol("comment", "Remarks", InEqualityLike)
+            PubCol("comment", "Remarks", InEqualityLike),
+            PubCol("top_student_id", "Top Student ID", FieldEquality)
           ),
           Set(
             PublicFactCol("total_marks", "Total Marks", InBetweenEquality),
@@ -141,6 +145,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
             , DimCol("date", DateType())
             , DimCol("month", DateType())
+            , DimCol("top_student_id", IntType())
           ),
           Set(
             FactCol("total_marks", IntType())
@@ -152,11 +157,12 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
         .toPublicFact("student_performance2",
           Set(
             PubCol("class_id", "Class ID", InEquality),
-            PubCol("student_id", "Student ID", InEquality),
+            PubCol("student_id", "Student ID", InEqualityFieldEquality),
             PubCol("section_id", "Section ID", InNotInEquality),
             PubCol("date", "Day", Equality),
             PubCol("month", "Month", InEquality),
-            PubCol("year", "Year", Equality)
+            PubCol("year", "Year", Equality),
+            PubCol("top_student_id", "Top Student ID", FieldEquality)
           ),
           Set(
             PublicFactCol("total_marks", "Total Marks", InBetweenEquality),
@@ -189,7 +195,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
           , annotations = Set(OracleHashPartitioning)
         ).toPublicDimension("student","student",
           Set(
-            PubCol("id", "Student ID", Equality)
+            PubCol("id", "Student ID", BetweenEquality)
             , PubCol("name", "Student Name", Equality)
             , PubCol("admitted_year", "Admitted Year", InEquality, hiddenFromJson = true)
             , PubCol("status", "Student Status", InEquality)
@@ -208,6 +214,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
             , DimCol("department_id", IntType())
             , DimCol("start_year", IntType())
             , DimCol("status", StrType())
+            , DimCol("professor", StrType())
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , annotations = Set(OracleHashPartitioning)
@@ -217,6 +224,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
             , PubCol("name", "Class Name", Equality)
             , PubCol("start_year", "Start Year", InEquality, hiddenFromJson = true)
             , PubCol("status", "Class Status", InEquality)
+            , PubCol("professor", "Professor Name", Equality)
           ), highCardinalityFilters = Set(NotInFilter("Class Status", List("DELETED")))
         )
       }
