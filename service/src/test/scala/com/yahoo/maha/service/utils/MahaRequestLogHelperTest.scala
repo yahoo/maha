@@ -79,6 +79,7 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     assert(proto.getUserId == "abc")
     assert(MahaRequestLogHelper.hostname.isDefined)
     assert(MahaRequestLogHelper.logger.isErrorEnabled)
+    assert(proto.getRequestHash == "be92d6566e6030cb42a061f42765875c")
   }
 
   test("Test MahaRequestLogHelper LogFailed with status") {
