@@ -2092,7 +2092,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("Both fields being compared must be the same Data Type."))
   }
 
-  test("should fail to compare metric to dimension.") {
+  test("should fail to compare metric to non-metric.") {
     val jsonString = s"""{
                            "cube": "k_stats",
                            "selectFields": [
@@ -2135,6 +2135,49 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("Both fields being compared must be the same Data Type."))
   }
 
+  test("should fail to compare anything to an invalid field.") {
+    val jsonString = s"""{
+                           "cube": "k_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Ad Group ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Destination URL",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Source URL",
+                               "alias": null,
+                               "value": null
+                             },
+                             {"field": "Source"}
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Ad Impressions Flag", "operator": "==", "compareTo": "Invalid Column"}
+                           ],
+                           "paginationStartIndex":0,
+                           "rowsPerPage":100,
+                           "includeRowCount": true,
+                           "forceDimensionDriven": true
+                         }"""
+
+    val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("10009 Field found only in Dimension table is not comparable with Fact fields"))
+  }
+
   test("should fail comparing different data types in dimension table comparison.") {
     val jsonString = s"""{
                            "cube": "k_stats",
@@ -2175,6 +2218,90 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("Both fields being compared must be the same Data Type."))
+  }
+
+  test("should fail comparing fact to Invalid Column.") {
+    val jsonString = s"""{
+                           "cube": "k_stats",
+                           "selectFields": [
+                             {
+                               "field": "Ad ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Ad Impressions Flag",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Ad Group ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Campaign ID",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Spend", "operator": "==", "compareTo": "Invalid Column"}
+                           ],
+                           "paginationStartIndex":0,
+                           "rowsPerPage":100,
+                           "includeRowCount": true,
+                           "forceDimensionDriven": true
+                         }"""
+
+    val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("10009 Field found only in Dimension table is not comparable with Fact fields"))
+  }
+
+  test("should fail comparing dimension to fact table.") {
+    val jsonString = s"""{
+                           "cube": "k_stats",
+                           "selectFields": [
+                             {
+                               "field": "Ad ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Ad Impressions Flag",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Ad Group ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Campaign ID",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Ad Impressions Flag", "operator": "==", "compareTo": "Spend"}
+                           ],
+                           "paginationStartIndex":0,
+                           "rowsPerPage":100,
+                           "includeRowCount": true,
+                           "forceDimensionDriven": true
+                         }"""
+
+    val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("10009 Field found only in Dimension table is not comparable with Fact fields"))
   }
 
   test("should succeed to compare two metrics of same dataTypes.") {

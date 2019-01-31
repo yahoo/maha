@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
+import com.yahoo.maha.core
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, CubeBucketSelected}
 import com.yahoo.maha.core.dimension.PublicDimension
 import com.yahoo.maha.core.fact.{BestCandidates, PublicFact, PublicFactCol, PublicFactColumn}
@@ -714,6 +715,7 @@ object RequestModel extends Logging {
               filter match {
                   //For multiFieldForcedFilter, compare both column types & check filter list on compareTo.
                 case multiFieldFilter: MultiFieldForcedFilter =>
+                  require(publicFact.columnsByAliasMap.contains(multiFieldFilter.compareTo), IncomparableColumnError(multiFieldFilter.field, multiFieldFilter.compareTo))
                   val secondCol = publicFact.columnsByAliasMap(multiFieldFilter.compareTo)
                   require(secondCol.filters.contains(multiFieldFilter.operator),
                     s"Unsupported filter operation : cube=${publicFact.name}, col=${multiFieldFilter.compareTo}, operation=${multiFieldFilter.operator}")
@@ -832,6 +834,7 @@ object RequestModel extends Logging {
                         filter match {
                           //For multiFieldForcedFilter, compare both column types & check filter list on compareTo.
                           case multiFieldFilter: MultiFieldForcedFilter =>
+                            require(publicDim.columnsByAliasMap.contains(multiFieldFilter.compareTo), IncomparableColumnError(multiFieldFilter.field, multiFieldFilter.compareTo))
                             val secondCol = publicDim.columnsByAliasMap(multiFieldFilter.compareTo)
                             require(secondCol.filters.contains(multiFieldFilter.operator),
                               s"Unsupported filter operation : cube=${publicDim.name}, col=${multiFieldFilter.compareTo}, operation=${multiFieldFilter.operator}")
