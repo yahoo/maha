@@ -279,10 +279,6 @@ object QueryGeneratorHelper {
 
     val baseFieldName = fieldNames.remove(0)
     if (fact.dimColMap.contains(baseFieldName)) {
-      if(isMultiField){
-        val compareToFieldName = fieldNames.remove(0)
-        require(fact.dimColMap.contains(compareToFieldName), "Dim-Metric Comparison Failed: Can only compare dim-dim or metric-metric")
-      }
 
       FilterSql.renderFilter(
         filter,
@@ -309,7 +305,6 @@ object QueryGeneratorHelper {
       } else {
         val multiFieldForcedFilter = filter.asInstanceOf[MultiFieldForcedFilter]
         val compareToFieldName = fieldNames.remove(0)
-        require(fact.factColMap.contains(compareToFieldName), "Metric-Dim Comparison Failed: Can only compare dim-dim or metric-metric")
         val compareToColumn = fact.columnsByNameMap(compareToFieldName)
         val secondExp = colFn(compareToColumn)
         FilterSql.renderFilter(
