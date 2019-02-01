@@ -37,6 +37,7 @@ import io.druid.query.timeseries.TimeseriesResultValue
 import io.druid.query.topn.{InvertedTopNMetricSpec, NumericTopNMetricSpec, TopNQueryBuilder, TopNResultValue}
 import io.druid.query.{Druids, Result}
 import io.druid.segment.column.ValueType
+import javax.annotation.RegEx
 import org.joda.time.{DateTime, Interval}
 
 import scala.collection.mutable.ArrayBuffer
@@ -1071,6 +1072,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             case javascript@JAVASCRIPT(_, function) =>
               val exFn = new JavaScriptExtractionFn(function, false, JavaScriptConfig.getEnabledInstance)
               (new ExtractionDimensionSpec(javascript.dimColName, alias, getDimValueType(column), exFn, null), Option.empty)
+            case regex@REGEX(fieldName, expr, index) =>
+              val exFn = new RegexDimExtractionFn(expr, index, false, null)
+              (new ExtractionDimensionSpec(regex.dimColName, alias, getDimValueType(column), exFn, null), Option.empty)
             case DRUID_TIME_FORMAT(fmt, zone) =>
               val exFn = new TimeFormatExtractionFn(fmt, zone, null, null, false)
               (new ExtractionDimensionSpec(DRUID_TIME_FORMAT.sourceDimColName, outputName, getDimValueType(column), exFn, null), Option.empty)
@@ -1111,6 +1115,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             case decodeDimFunction@DECODE_DIM(fieldName, args @ _*) =>
               renderColumnWithAlias(fact, column, alias)
             case javascript@JAVASCRIPT(fieldName, function) =>
+              renderColumnWithAlias(fact, column, alias)
+            case regex@REGEX(fieldName, expr, index) =>
               renderColumnWithAlias(fact, column, alias)
             case datetimeFormatter@DATETIME_FORMATTER(fieldName, index, length) =>
               renderColumnWithAlias(fact, column, alias)
