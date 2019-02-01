@@ -77,6 +77,10 @@ object DruidDerivedFunction {
 
   case class LOOKUP(lookupNamespace: String, valueColumn: String, dimensionOverrideMap: Map[String, String] = Map.empty) extends DruidDerivedFunction
 
+  case class LOOKUP_WITH_EMPTY_VALUE(lookupNamespace: String, valueColumn: String, dimensionOverrideMap: Map[String, String] = Map.empty) extends DruidDerivedFunction {
+    val emptyColName = "Other"
+  }
+
   case class LOOKUP_WITH_DECODE_ON_OTHER_COLUMN(lookupNamespace: String,
                                                 columnToCheck: String, valueToCheck: String,
                                                 columnIfValueMatched: String,
