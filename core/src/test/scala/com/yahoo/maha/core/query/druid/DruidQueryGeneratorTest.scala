@@ -411,6 +411,70 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     result should fullyMatch regex json
   }
 
+  test("Successfully generate a query with RegEx extractionFn") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Average Bid"},
+                            {"field": "Click Exp ID"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", "someUser"))
+    val requestModel = RequestModel.from(request, defaultRegistry)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+
+//    println(result)
+
+    assert(result.contains("{\"type\":\"extraction\",\"dimension\":\"internal_bucket_id\",\"outputName\":\"Click Exp ID\",\"outputType\":\"STRING\",\"extractionFn\":{\"type\":\"regex\",\"expr\":\"(cl-)(.*?)(,)\",\"index\":2,\"replaceMissingValue\":false}}"), result)
+  }
+
+  test("Successfully generate a query with RegEx Filter") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Average Bid"},
+                            {"field": "Click Exp ID"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Click Exp ID", "operator": "=", "value": "abcd"},
+                            {"field": "Ad ID", "operator": "==", "compareTo": "Ad Group ID"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", "someUser"))
+    val requestModel = RequestModel.from(request, defaultRegistry)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+
+//    println(result)
+
+    assert(result.contains("{\"type\":\"selector\",\"dimension\":\"internal_bucket_id\",\"value\":\"abcd\",\"extractionFn\":{\"type\":\"regex\",\"expr\":\"(cl-)(.*?)(,)\",\"index\":2,\"replaceMissingValue\":false}}"), result)
+  }
+
   test("Should fail to generate a metric query with Field Comparison Filter") {
     val jsonString = s"""{
                           "cube": "k_stats",
