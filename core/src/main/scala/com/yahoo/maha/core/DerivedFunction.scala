@@ -71,7 +71,7 @@ object DruidDerivedFunction {
     val dimColName = fieldName.replaceAll("[}{]","")
   }
 
-  case class REGEX(fieldName: String, expr: String, index: Int) extends DruidDerivedFunction {
+  case class REGEX(fieldName: String, expr: String, index: Int, replaceMissingValue: Boolean, replaceMissingValueWith: String) extends DruidDerivedFunction {
     val dimColName = fieldName.replaceAll("[}{]","")
   }
 

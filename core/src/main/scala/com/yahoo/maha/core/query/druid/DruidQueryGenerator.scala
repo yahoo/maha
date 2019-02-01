@@ -1072,8 +1072,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             case javascript@JAVASCRIPT(_, function) =>
               val exFn = new JavaScriptExtractionFn(function, false, JavaScriptConfig.getEnabledInstance)
               (new ExtractionDimensionSpec(javascript.dimColName, alias, getDimValueType(column), exFn, null), Option.empty)
-            case regex@REGEX(fieldName, expr, index) =>
-              val exFn = new RegexDimExtractionFn(expr, index, false, null)
+            case regex@REGEX(fieldName, expr, index, replaceMissingValue, replaceMissingValueWith) =>
+              val exFn = new RegexDimExtractionFn(expr, index, replaceMissingValue, replaceMissingValueWith)
               (new ExtractionDimensionSpec(regex.dimColName, alias, getDimValueType(column), exFn, null), Option.empty)
             case DRUID_TIME_FORMAT(fmt, zone) =>
               val exFn = new TimeFormatExtractionFn(fmt, zone, null, null, false)
@@ -1116,7 +1116,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               renderColumnWithAlias(fact, column, alias)
             case javascript@JAVASCRIPT(fieldName, function) =>
               renderColumnWithAlias(fact, column, alias)
-            case regex@REGEX(fieldName, expr, index) =>
+            case regex@REGEX(fieldName, expr, index, replaceMissingValue, replaceMissingValueWith) =>
               renderColumnWithAlias(fact, column, alias)
             case datetimeFormatter@DATETIME_FORMATTER(fieldName, index, length) =>
               renderColumnWithAlias(fact, column, alias)

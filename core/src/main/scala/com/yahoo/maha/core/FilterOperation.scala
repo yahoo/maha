@@ -862,8 +862,8 @@ object FilterDruid {
           case formatter@DATETIME_FORMATTER(fieldName, index, length) =>
             val exFn = new SubstringDimExtractionFn(index, length)
             new SelectorDimFilter(formatter.dimColName, druidLiteralMapper.toLiteral(column, value, Grain.getGrainByField(column.name)), exFn)
-          case regex@REGEX(fieldName, expr, index) =>
-            val exFn = new RegexDimExtractionFn(expr, index, false, null)
+          case regex@REGEX(fieldName, expr, index, replaceMissingValue, replaceMissingValueWith) =>
+            val exFn = new RegexDimExtractionFn(expr, index, replaceMissingValue, replaceMissingValueWith)
             new SelectorDimFilter(regex.dimColName, druidLiteralMapper.toLiteral(column, value, Grain.getGrainByField(column.name)), exFn)
           case decoder@DECODE_DIM(fieldName, args @ _*) =>
             val sourceDimCol = columnsByNameMap(decoder.dimColName)
