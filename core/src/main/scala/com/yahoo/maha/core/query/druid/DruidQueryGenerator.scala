@@ -1128,7 +1128,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null), Option.empty)
 
             case lookupFunc@LOOKUP_WITH_EMPTY_VALUE_OVERRIDE(lookupNamespace, valueColumn, overrideValue, dimensionOverrideMap) =>
-              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, lookupFunc.emptyColName, false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, overrideValue, false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null), Option.empty)
 
