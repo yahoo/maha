@@ -18,12 +18,12 @@ class PostResultFunctionTest extends FunSuite with Matchers {
       val alias: Map[String, Int] = Map("A" -> 1, "B" -> 2)
 
       val arrayBuffer = new ArrayBuffer[Any]()
-      arrayBuffer += "2017-22"
-      arrayBuffer += "2017-23"
+      arrayBuffer += "2018-52"
+      arrayBuffer += "2019-01"
       val newRow = new Row(alias, arrayBuffer)
       val rowData = PostResultRowData(newRow , columnAlias = "A")
       col.resultApply(rowData)
-      rowData.r.getValue("A") should equal("2017-06-05")
+      rowData.r.getValue("A") should equal("2018-12-31")
     }
   }
 

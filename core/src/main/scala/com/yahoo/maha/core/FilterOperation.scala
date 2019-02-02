@@ -903,7 +903,7 @@ object FilterDruid {
 
             val yearAndWeekFormattedValue = sotw.toFormattedString(value)
 
-            val exFn = new TimeDimExtractionFn(sourceDimColFormat, sotw.yearAndWeekOfTheYearFormat)
+            val exFn = new TimeDimExtractionFn(sourceDimColFormat, sotw.yearandWeekOfTheYearFormatForDruid)
             new SelectorDimFilter(sourceDimCol.alias.getOrElse(sourceDimCol.name), yearAndWeekFormattedValue, exFn)
           }
           case sotm@START_OF_THE_MONTH(exp) => {

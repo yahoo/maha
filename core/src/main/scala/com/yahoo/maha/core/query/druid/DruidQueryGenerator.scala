@@ -502,6 +502,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                 case DruidFuncDimCol(_, _, _, df, _, _, _) =>
                   df match {
                     case LOOKUP(_, _, _) => true
+                    case LOOKUP_WITH_EMPTY_VALUE_OVERRIDE(_, _, _, _) => true
                     case LOOKUP_WITH_DECODE(_, _, _, args @ _*) => true
                     case LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE(_, _, _, _, _, args @ _*) => true
                     case LOOKUP_WITH_DECODE_ON_OTHER_COLUMN( _, _, _, _, _, _) => true
@@ -1087,7 +1088,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         case DruidPostResultFuncDimCol(outputName, _, _, pdf, _, _, _) =>
           pdf match {
             case startOfTheWeek@START_OF_THE_WEEK(_) =>
-              getTimeDimExtractionSpec(fact, outputName, startOfTheWeek.colName, startOfTheWeek.yearAndWeekOfTheYearFormat)
+              getTimeDimExtractionSpec(fact, outputName, startOfTheWeek.colName, startOfTheWeek.yearandWeekOfTheYearFormatForDruid)
 
             case startOfTheMonth@START_OF_THE_MONTH(_) =>
               getTimeDimExtractionSpec(fact, outputName, startOfTheMonth.colName, startOfTheMonth.startOfTheMonthFormat)
@@ -1123,6 +1124,11 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
             case lookupFunc@LOOKUP(lookupNamespace, valueColumn, dimensionOverrideMap) =>
               val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
+              val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
+              (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null), Option.empty)
+
+            case lookupFunc@LOOKUP_WITH_EMPTY_VALUE_OVERRIDE(lookupNamespace, valueColumn, overrideValue, dimensionOverrideMap) =>
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, overrideValue, false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null), Option.empty)
 
