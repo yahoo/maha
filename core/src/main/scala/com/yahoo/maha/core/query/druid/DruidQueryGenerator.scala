@@ -1088,7 +1088,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         case DruidPostResultFuncDimCol(outputName, _, _, pdf, _, _, _) =>
           pdf match {
             case startOfTheWeek@START_OF_THE_WEEK(_) =>
-              getTimeDimExtractionSpec(fact, outputName, startOfTheWeek.colName, startOfTheWeek.yearAndWeekOfTheYearFormat)
+              getTimeDimExtractionSpec(fact, outputName, startOfTheWeek.colName, startOfTheWeek.yearandWeekOfTheYearFormatForDruid)
 
             case startOfTheMonth@START_OF_THE_MONTH(_) =>
               getTimeDimExtractionSpec(fact, outputName, startOfTheMonth.colName, startOfTheMonth.startOfTheMonthFormat)

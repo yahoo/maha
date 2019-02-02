@@ -104,6 +104,9 @@ object DruidPostResultFunction {
                               (implicit cc: ColumnContext) extends DruidPostResultFunction {
 
     val yearAndWeekOfTheYearFormat: String = "xxxx-w"
+    val yearandWeekOfTheYearFormatForDruid: String = "YYYY-w"
+
+
     private[this] val datetimeFormat = DateTimeFormat.forPattern(yearAndWeekOfTheYearFormat)
 
     val colName = expression.replaceAll("[}{]","")
