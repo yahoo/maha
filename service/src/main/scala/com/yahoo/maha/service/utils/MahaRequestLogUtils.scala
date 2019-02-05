@@ -83,15 +83,6 @@ object MahaRequestLogHelper {
       logger.error(s"Failed to get hostname ${e.getMessage}", e)
       None
   }
-
-   def computeHash(mahaRequestContext: MahaRequestContext): Option[String] = {
-    if(mahaRequestContext.rawJson!=null) {
-      Some(DigestUtils.md5Hex(mahaRequestContext.rawJson))
-    } else {
-      logger.error(s"Failed to compute the requestHash ${mahaRequestContext}")
-      None
-    }
-  }
 }
 case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequestLogWriter: MahaRequestLogWriter, curator: String = "none") extends MahaRequestLogBuilder {
 
