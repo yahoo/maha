@@ -83,6 +83,15 @@ object MahaRequestLogHelper {
       logger.error(s"Failed to get hostname ${e.getMessage}", e)
       None
   }
+
+   def computeHash(mahaRequestContext: MahaRequestContext): Option[String] = {
+    if(mahaRequestContext.rawJson!=null) {
+      Some(DigestUtils.md5Hex(mahaRequestContext.rawJson))
+    } else {
+      logger.error(s"Failed to compute the requestHash ${mahaRequestContext}")
+      None
+    }
+  }
 }
 case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequestLogWriter: MahaRequestLogWriter, curator: String = "none") extends MahaRequestLogBuilder {
 
@@ -115,7 +124,10 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     }
     if(mahaRequestContext.rawJson != null) {
       protoBuilder.setJson(ByteString.copyFrom(mahaRequestContext.rawJson))
-      Try(protoBuilder.setRequestHash(DigestUtils.md5Hex(mahaRequestContext.rawJson)))
+      val requestHashOption= MahaRequestLogHelper.computeHash(mahaRequestContext)
+      if(requestHashOption.isDefined) {
+        protoBuilder.setRequestHash(requestHashOption.get)
+      }
     }
     if(curator != null) {
       protoBuilder.setCurator(curator)
