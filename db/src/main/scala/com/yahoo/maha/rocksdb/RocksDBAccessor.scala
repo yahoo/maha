@@ -63,6 +63,21 @@ class RocksDBAccessor[K, V](builder: RocksDBAccessorBuilder[K, V]) extends Loggi
     false
   }
 
+  def remove(key: K): Boolean = {
+    if(key != null)  {
+      try {
+        if(get(key).isDefined) {
+          db.singleDelete(keySerDe.serialize(key))
+          return true
+        }
+      } catch {
+        case e:Exception=>
+          error(s"Failed to delete key $key from RocksDB", e)
+      }
+    }
+    false
+  }
+
 /*
 Compact Range function discards the deleted or expired entries in the database,
 it also push push the level to down as it clears the entries,
