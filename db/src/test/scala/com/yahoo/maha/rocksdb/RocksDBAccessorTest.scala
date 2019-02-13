@@ -86,4 +86,20 @@ class RocksDBAccessorTest extends FunSuite with Matchers with BeforeAndAfterAll 
     assertEquals(None, builder.get(key))
   }
 
+  test("test delete key") {
+    val testKey = "test-key"
+    val testVal = "test-val"
+
+    assertTrue(rocksDBAccessor.remove(null) == false)
+
+    assertTrue(rocksDBAccessor.put(testKey, testVal))
+    assertTrue(rocksDBAccessor.get(testKey).isDefined)
+    assertEquals(testVal, rocksDBAccessor.get(testKey).get)
+
+    assertTrue(rocksDBAccessor.remove(testKey))
+    assertTrue(rocksDBAccessor.get(testKey).isDefined == false)
+    assertTrue(rocksDBAccessor.remove("unknown") == false)
+    assertTrue(rocksDBAccessor.remove(testKey) == false)
+  }
+
 }

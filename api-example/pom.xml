@@ -11,7 +11,7 @@
     <parent>
         <artifactId>maha-parent</artifactId>
         <groupId>com.yahoo.maha</groupId>
-        <version>5.234-SNAPSHOT</version>
+        <version>5.240-SNAPSHOT</version>
     </parent>
 
     <name>maha api-example</name>

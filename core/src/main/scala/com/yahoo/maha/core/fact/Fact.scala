@@ -1728,11 +1728,13 @@ case class PublicFactTable private[fact](name: String
     facts
       .values
       .map(f => (f.dimCols.filter(_.annotations.exists(_.isInstanceOf[ForeignKey])).map(col => col.name), f))
+      .par
       .flatMap(tpl => utils.power(tpl._1, tpl._1.size).map(s => (s.to[SortedSet], tpl._2)))
+      .toIndexedSeq
       .groupBy(_._1)
       .mapValues(_.map(tpl => tpl._2)
       .to[SortedSet])
-  
+
   private[this] val dimColsByName = dimCols.map(_.name)
 
   def getCandidatesFor(schema: Schema, requestType: RequestType, requestAliases: Set[String], requestJoinAliases: Set[String], filterAliasAndOperation: Map[String, FilterOperation], requestedDaysWindow:Int, requestedDaysLookBack:Int, localTimeDayFilter:Filter) : Option[BestCandidates] = {

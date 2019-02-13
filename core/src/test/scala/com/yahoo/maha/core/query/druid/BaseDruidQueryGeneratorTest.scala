@@ -68,6 +68,8 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , DimCol("ageBucket", StrType())
           , DimCol("woeids", StrType())
           , DruidFuncDimCol("segments", StrType(), JAVASCRIPT("{segments}", "function(x) { return x > 0; }"))
+          , DimCol("internal_bucket_id", StrType())
+          , DruidFuncDimCol("click_exp_id", StrType(), REGEX("{internal_bucket_id}", "(cl-)(.*?)(,)", 2, replaceMissingValue = true, "-3"))
 
         ),
         Set(
@@ -295,7 +297,9 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PubCol("Start Hour", "Start Hour", InEquality),
           PubCol("ageBucket", "Age Bucket", InEquality),
           PubCol("woeids", "Woe ID", InEquality),
-          PubCol("segments", "Segments", InEquality)
+          PubCol("segments", "Segments", InEquality),
+          PubCol("internal_bucket_id", "Internal Bucket ID", InEquality),
+          PubCol("click_exp_id", "Click Exp ID", InEquality)
           //PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality)
         ),
         Set(

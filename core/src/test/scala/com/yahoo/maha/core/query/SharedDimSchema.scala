@@ -3,7 +3,7 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core.CoreSchema._
-import com.yahoo.maha.core.DruidDerivedFunction.{LOOKUP, LOOKUP_WITH_DECODE, LOOKUP_WITH_DECODE_ON_OTHER_COLUMN, LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE}
+import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
@@ -266,6 +266,7 @@ trait SharedDimSchema {
             , OraclePartDimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
             , DimCol("device_id", IntType(3, (Map(1 -> "Desktop", 2 -> "Tablet", 3 -> "SmartPhone", -1 -> "UNKNOWN"), "UNKNOWN")))
             , DimCol("campaign_name", StrType(), annotations = Set(EscapingRequired, CaseInsensitive))
+            , DimCol("campaign_total", StrType())
             , DimCol("status", StrType())
             , OracleDerDimCol("Campaign Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
           )
@@ -318,6 +319,7 @@ trait SharedDimSchema {
             DimCol("id", IntType(), annotations = Set(PrimaryKey))
             , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
             , DruidFuncDimCol("campaign_name", StrType(), LOOKUP("campaign_lookup", "name"))
+            , DruidFuncDimCol("campaign_total", StrType(), LOOKUP_WITH_EMPTY_VALUE_OVERRIDE("campaign_lookup", "total", "Other"))
           )
           , Option(Map(AsyncRequest -> 14, SyncRequest -> 14))
         )
@@ -332,6 +334,7 @@ trait SharedDimSchema {
           , PubCol("campaign_name", "Campaign Name", InEqualityLike)
           , PubCol("Campaign Status", "Campaign Status", InNotInEquality)
           , PubCol("device_id", "Campaign Device ID", InEquality)
+          , PubCol("campaign_total", "Campaign Total", InEquality)
         ), highCardinalityFilters = Set(NotInFilter("Campaign Status", List("DELETED")))
       )
   }

@@ -7,14 +7,14 @@ package com.yahoo.maha.core
  */
 
 import com.google.common.collect.Lists
-import com.yahoo.maha.core.DruidDerivedFunction.{DATETIME_FORMATTER, DECODE_DIM, DRUID_TIME_FORMAT, JAVASCRIPT}
+import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{START_OF_THE_MONTH, START_OF_THE_WEEK}
 import com.yahoo.maha.core.dimension.{DruidFuncDimCol, DruidPostResultFuncDimCol}
 import com.yahoo.maha.core.request.fieldExtended
 import grizzled.slf4j.Logging
 import io.druid.js.JavaScriptConfig
 import io.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec}
-import io.druid.query.extraction.{SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
+import io.druid.query.extraction.{RegexDimExtractionFn, SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
 import io.druid.query.filter.JavaScriptDimFilter
 import org.json4s.scalaz.JsonScalaz
 
@@ -862,6 +862,9 @@ object FilterDruid {
           case formatter@DATETIME_FORMATTER(fieldName, index, length) =>
             val exFn = new SubstringDimExtractionFn(index, length)
             new SelectorDimFilter(formatter.dimColName, druidLiteralMapper.toLiteral(column, value, Grain.getGrainByField(column.name)), exFn)
+          case regex@REGEX(fieldName, expr, index, replaceMissingValue, replaceMissingValueWith) =>
+            val exFn = new RegexDimExtractionFn(expr, index, replaceMissingValue, replaceMissingValueWith)
+            new SelectorDimFilter(regex.dimColName, druidLiteralMapper.toLiteral(column, value, Grain.getGrainByField(column.name)), exFn)
           case decoder@DECODE_DIM(fieldName, args @ _*) =>
             val sourceDimCol = columnsByNameMap(decoder.dimColName)
             val sourceDimMappedValues = if (sourceDimCol.dataType.hasStaticMapping) {
@@ -900,7 +903,7 @@ object FilterDruid {
 
             val yearAndWeekFormattedValue = sotw.toFormattedString(value)
 
-            val exFn = new TimeDimExtractionFn(sourceDimColFormat, sotw.yearAndWeekOfTheYearFormat)
+            val exFn = new TimeDimExtractionFn(sourceDimColFormat, sotw.yearandWeekOfTheYearFormatForDruid)
             new SelectorDimFilter(sourceDimCol.alias.getOrElse(sourceDimCol.name), yearAndWeekFormattedValue, exFn)
           }
           case sotm@START_OF_THE_MONTH(exp) => {

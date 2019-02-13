@@ -37,6 +37,7 @@ import io.druid.query.timeseries.TimeseriesResultValue
 import io.druid.query.topn.{InvertedTopNMetricSpec, NumericTopNMetricSpec, TopNQueryBuilder, TopNResultValue}
 import io.druid.query.{Druids, Result}
 import io.druid.segment.column.ValueType
+import javax.annotation.RegEx
 import org.joda.time.{DateTime, Interval}
 
 import scala.collection.mutable.ArrayBuffer
@@ -501,6 +502,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                 case DruidFuncDimCol(_, _, _, df, _, _, _) =>
                   df match {
                     case LOOKUP(_, _, _) => true
+                    case LOOKUP_WITH_EMPTY_VALUE_OVERRIDE(_, _, _, _) => true
                     case LOOKUP_WITH_DECODE(_, _, _, args @ _*) => true
                     case LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE(_, _, _, _, _, args @ _*) => true
                     case LOOKUP_WITH_DECODE_ON_OTHER_COLUMN( _, _, _, _, _, _) => true
@@ -1071,6 +1073,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             case javascript@JAVASCRIPT(_, function) =>
               val exFn = new JavaScriptExtractionFn(function, false, JavaScriptConfig.getEnabledInstance)
               (new ExtractionDimensionSpec(javascript.dimColName, alias, getDimValueType(column), exFn, null), Option.empty)
+            case regex@REGEX(fieldName, expr, index, replaceMissingValue, replaceMissingValueWith) =>
+              val exFn = new RegexDimExtractionFn(expr, index, replaceMissingValue, replaceMissingValueWith)
+              (new ExtractionDimensionSpec(regex.dimColName, alias, getDimValueType(column), exFn, null), Option.empty)
             case DRUID_TIME_FORMAT(fmt, zone) =>
               val exFn = new TimeFormatExtractionFn(fmt, zone, null, null, false)
               (new ExtractionDimensionSpec(DRUID_TIME_FORMAT.sourceDimColName, outputName, getDimValueType(column), exFn, null), Option.empty)
@@ -1083,7 +1088,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         case DruidPostResultFuncDimCol(outputName, _, _, pdf, _, _, _) =>
           pdf match {
             case startOfTheWeek@START_OF_THE_WEEK(_) =>
-              getTimeDimExtractionSpec(fact, outputName, startOfTheWeek.colName, startOfTheWeek.yearAndWeekOfTheYearFormat)
+              getTimeDimExtractionSpec(fact, outputName, startOfTheWeek.colName, startOfTheWeek.yearandWeekOfTheYearFormatForDruid)
 
             case startOfTheMonth@START_OF_THE_MONTH(_) =>
               getTimeDimExtractionSpec(fact, outputName, startOfTheMonth.colName, startOfTheMonth.startOfTheMonthFormat)
@@ -1112,11 +1117,18 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               renderColumnWithAlias(fact, column, alias)
             case javascript@JAVASCRIPT(fieldName, function) =>
               renderColumnWithAlias(fact, column, alias)
+            case regex@REGEX(fieldName, expr, index, replaceMissingValue, replaceMissingValueWith) =>
+              renderColumnWithAlias(fact, column, alias)
             case datetimeFormatter@DATETIME_FORMATTER(fieldName, index, length) =>
               renderColumnWithAlias(fact, column, alias)
 
             case lookupFunc@LOOKUP(lookupNamespace, valueColumn, dimensionOverrideMap) =>
               val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
+              val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
+              (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null), Option.empty)
+
+            case lookupFunc@LOOKUP_WITH_EMPTY_VALUE_OVERRIDE(lookupNamespace, valueColumn, overrideValue, dimensionOverrideMap) =>
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, null, lookupNamespace, false, overrideValue, false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null), Option.empty)
 

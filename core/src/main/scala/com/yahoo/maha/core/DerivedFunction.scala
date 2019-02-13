@@ -71,7 +71,13 @@ object DruidDerivedFunction {
     val dimColName = fieldName.replaceAll("[}{]","")
   }
 
+  case class REGEX(fieldName: String, expr: String, index: Int, replaceMissingValue: Boolean, replaceMissingValueWith: String) extends DruidDerivedFunction {
+    val dimColName = fieldName.replaceAll("[}{]","")
+  }
+
   case class LOOKUP(lookupNamespace: String, valueColumn: String, dimensionOverrideMap: Map[String, String] = Map.empty) extends DruidDerivedFunction
+
+  case class LOOKUP_WITH_EMPTY_VALUE_OVERRIDE(lookupNamespace: String, valueColumn: String, overrideValue: String, dimensionOverrideMap: Map[String, String] = Map.empty) extends DruidDerivedFunction
 
   case class LOOKUP_WITH_DECODE_ON_OTHER_COLUMN(lookupNamespace: String,
                                                 columnToCheck: String, valueToCheck: String,
