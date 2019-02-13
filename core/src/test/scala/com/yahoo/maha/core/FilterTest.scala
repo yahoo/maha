@@ -187,12 +187,12 @@ class FilterTest extends FunSuite with Matchers {
 
   test("OrFilter should render combined filters with OR") {
     val orFilter = OrFilter(List(
-    "field1 IN (\'abc\', \'def\', \'ghi\')",
-      "field2 BETWEEN \'abc\' AND \'def\'",
-      "field3 =  \'ghi\'"
-    ))
+      InFilter("field1", List("abc", "def", "ghi"))
+      , BetweenFilter("field2", "def", "ghi")
+      , EqualityFilter("field3", "ghi"))
+    )
     orFilter.toString shouldBe "(field1 IN ('abc', 'def', 'ghi')) OR (field2 BETWEEN 'abc' AND 'def') OR (field3 =  'ghi')"
-    orFilter.isEmpty shouldBe false
+    orFilter.filters.isEmpty shouldBe false
   }
 
   test("BetweenFilter should fail for Druid engine") {

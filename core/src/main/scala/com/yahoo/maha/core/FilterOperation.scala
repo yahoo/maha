@@ -117,7 +117,7 @@ case class OuterFilter(filters: List[Filter]) extends Filter {
   val asValues: String = filters.map(_.asValues).mkString(",")
 }
 
-case class OrFliter(filters: List[Filter]) extends Filter {
+case class OrFilter(filters: List[Filter]) extends Filter {
   override def operator: FilterOperation = OrFilterOperation
   override def field: String = "or"
   val asValues: String = filters.map(_.asValues).mkString(",")
@@ -225,10 +225,10 @@ case class AndFilter(filters: Iterable[String]) extends CombiningFilter {
   def isEmpty : Boolean = filters.isEmpty
   override def toString: String = filters.mkString("(",") AND (",")")
 }
-case class OrFilter(filters: Iterable[String]) extends CombiningFilter {
+/*case class OrFilter(filters: Iterable[String]) extends CombiningFilter {
   def isEmpty : Boolean = filters.isEmpty
   override def toString: String = filters.mkString("(",") OR (",")")
-}
+}*/
 
 sealed trait FilterRenderer[T, O] {
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
@@ -271,7 +271,7 @@ sealed trait SqlResult {
 
 case class DefaultResult(filter: String, escaped: Boolean = false) extends SqlResult
 
-case class OrFilterMeta(orFliter: OrFliter, isFactFilters: Boolean)
+case class OrFilterMeta(orFilter: OrFilter, isFactFilters: Boolean)
 
 object SqlBetweenFilterRenderer extends BetweenFilterRenderer[SqlResult] {
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
@@ -1145,6 +1145,15 @@ object FilterSql {
           engine,
           grainOption
         )
+      case f@OrFilter(filters) => {
+        val sqlResults: mutable.ListBuffer[SqlResult] = mutable.ListBuffer.empty[SqlResult]
+        for(filterItem <- filters) {
+          val filterColumn = column.columnContext.getColumnByName(aliasToRenderedSqlMap(filterItem.field)._1).get
+          sqlResults.append(renderFilterWithAlias(filterItem, aliasToRenderedSqlMap, filterColumn, engine, literalMapper, grainOption))
+        }
+        val newSqlResultString: String = sqlResults.map(_.filter).mkString(" OR ")
+        DefaultResult(newSqlResultString)
+      }
       case f =>
         throw new UnsupportedOperationException(s"Unhandled filter operation $f")
     }
@@ -1260,6 +1269,17 @@ object Filter extends Logging {
           ("field" -> toJSON(field))
             :: ("operator" -> toJSON(filter.operator.toString))
             :: Nil)
+      case OrFilter(filters) =>
+        makeObj(
+          ("filters" -> {
+            val values: mutable.ListBuffer[String] = mutable.ListBuffer.empty[String]
+            for(filter <- filters) {
+              val written: JValue = filterJSONW.write(filter)
+              values.append(written.toString())
+            }
+            toJSON(values.toList)
+          })
+            :: Nil)
       case PushDownFilter(wrappedFilter) =>
         write(wrappedFilter)
       case unsupported =>
@@ -1296,10 +1316,10 @@ object Filter extends Logging {
     }
   }
 
-  def orFilter(orFliter: OrFliter) : JsonScalaz.Result[Boolean] = {
+  def orFilter(orFilter: OrFilter) : JsonScalaz.Result[Boolean] = {
     import _root_.scalaz.syntax.validation._
-    if(orFliter.filters.isEmpty) {
-      Fail.apply(orFliter.field, s"filter cannot have empty list")
+    if(orFilter.filters.isEmpty) {
+      Fail.apply(orFilter.field, s"filter cannot have empty list")
     } else {
       true.successNel
     }
@@ -1318,7 +1338,7 @@ object Filter extends Logging {
                      outerFilter(f).map( _ => f)
                 }
             case "or" =>
-              val fil = OrFliter.applyJSON(fieldExtended[List[Filter]]("filterExpressions"))(json)
+              val fil = OrFilter.applyJSON(fieldExtended[List[Filter]]("filterExpressions"))(json)
               fil.flatMap {
                 f =>
                   orFilter(f).map( _ => f)
