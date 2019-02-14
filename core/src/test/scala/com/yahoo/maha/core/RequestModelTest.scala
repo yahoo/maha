@@ -4954,12 +4954,12 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(res.get.orFilterMeta.head.orFilter.filters.size == 2)
     assert(res.get.orFilterMeta.head.orFilter.operator == orOp)
     assert(res.get.orFilterMeta.head.orFilter.field == "or")
-    assert(res.get.orFilterMeta.head.orFilter.filters(0).operator == EqualityFilterOperation)
-    assert(res.get.orFilterMeta.head.orFilter.filters(0).field == "Clicks")
-    assert(res.get.orFilterMeta.head.orFilter.filters(0).asValues == "1")
-    assert(res.get.orFilterMeta.head.orFilter.filters(1).operator == EqualityFilterOperation)
-    assert(res.get.orFilterMeta.head.orFilter.filters(1).field == "Impressions")
-    assert(res.get.orFilterMeta.head.orFilter.filters(1).asValues == "1")
+    assert(res.get.orFilterMeta.head.orFilter.filters.toList(0).operator == EqualityFilterOperation)
+    assert(res.get.orFilterMeta.head.orFilter.filters.toList(0).field == "Clicks")
+    assert(res.get.orFilterMeta.head.orFilter.filters.toList(0).asValues == "1")
+    assert(res.get.orFilterMeta.head.orFilter.filters.toList(1).operator == EqualityFilterOperation)
+    assert(res.get.orFilterMeta.head.orFilter.filters.toList(1).field == "Impressions")
+    assert(res.get.orFilterMeta.head.orFilter.filters.toList(1).asValues == "1")
   }
 
   test("create model should succeed when using or filters with dim filters combination") {
@@ -4996,12 +4996,12 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(res.get.orFilterMeta.head.orFilter.filters.size == 2)
     assert(res.get.orFilterMeta.head.orFilter.operator == OrFilterOperation)
     assert(res.get.orFilterMeta.head.orFilter.field == "or")
-    assert(res.get.orFilterMeta.head.orFilter.filters(0).operator == EqualityFilterOperation)
-    assert(res.get.orFilterMeta.head.orFilter.filters(0).field == "Campaign ID")
-    assert(res.get.orFilterMeta.head.orFilter.filters(0).asValues == "1")
-    assert(res.get.orFilterMeta.head.orFilter.filters(1).operator == EqualityFilterOperation)
-    assert(res.get.orFilterMeta.head.orFilter.filters(1).field == "Advertiser Status")
-    assert(res.get.orFilterMeta.head.orFilter.filters(1).asValues == "ON")
+    assert(res.get.orFilterMeta.head.orFilter.filters.toList(0).operator == EqualityFilterOperation)
+    assert(res.get.orFilterMeta.head.orFilter.filters.toList(0).field == "Campaign ID")
+    assert(res.get.orFilterMeta.head.orFilter.filters.toList(0).asValues == "1")
+    assert(res.get.orFilterMeta.head.orFilter.filters.toList(1).operator == EqualityFilterOperation)
+    assert(res.get.orFilterMeta.head.orFilter.filters.toList(1).field == "Advertiser Status")
+    assert(res.get.orFilterMeta.head.orFilter.filters.toList(1).asValues == "ON")
   }
 
   test("""create model errors with incorrect filters""") {

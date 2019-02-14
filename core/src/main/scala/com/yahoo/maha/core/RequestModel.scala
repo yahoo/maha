@@ -490,7 +490,7 @@ object RequestModel extends Logging {
               allOuterFilters ++= outerFilters
             } else if (filter.isInstanceOf[OrFilter]) {
               val orFilter = filter.asInstanceOf[OrFilter]
-              val orFilterMap : Map[Boolean, List[Filter]] = orFilter.filters.groupBy(f => publicFact.columnsByAliasMap.contains(f.field) && publicFact.columnsByAliasMap(f.field).isInstanceOf[PublicFactCol])
+              val orFilterMap : Map[Boolean, Iterable[Filter]] = orFilter.filters.groupBy(f => publicFact.columnsByAliasMap.contains(f.field) && publicFact.columnsByAliasMap(f.field).isInstanceOf[PublicFactCol])
               require(orFilterMap.size == 1, s"Or filter cannot have combination of fact and dim filters, factFilters=${orFilterMap.get(true)} dimFilters=${orFilterMap.get(false)}")
               allOrFilterMeta += OrFilterMeta(orFilter, orFilterMap.head._1)
             }

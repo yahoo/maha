@@ -177,12 +177,15 @@ class FilterTest extends FunSuite with Matchers {
   }
 
   test("AndFilter should render combined filters with AND") {
-    val andFilter = AndFilter(List(
-      "field1 IN (\'abc\', \'def\', \'ghi\')",
-      "field2 BETWEEN \'abc\' AND \'def\'",
-      "field3 =  \'ghi\'"
+    val andFilter = AndFilter(
+      List(
+        InFilter("field1", List("abc", "def", "ghi"))
+        , BetweenFilter("field2", "def", "ghi")
+        , EqualityFilter("field3", "ghi")
     ))
-    andFilter.toString shouldBe "(field1 IN ('abc', 'def', 'ghi')) AND (field2 BETWEEN 'abc' AND 'def') AND (field3 =  'ghi')"
+    andFilter.isEmpty shouldBe false
+    andFilter.field shouldEqual "and"
+    andFilter.toString shouldBe "AndFilter(List(InFilter(field1,List(abc, def, ghi),false,false), BetweenFilter(field2,def,ghi), EqualityFilter(field3,ghi,false,false)))"
   }
 
   test("OrFilter should render combined filters with OR") {
@@ -191,8 +194,53 @@ class FilterTest extends FunSuite with Matchers {
       , BetweenFilter("field2", "def", "ghi")
       , EqualityFilter("field3", "ghi"))
     )
-    orFilter.toString shouldBe "(field1 IN ('abc', 'def', 'ghi')) OR (field2 BETWEEN 'abc' AND 'def') OR (field3 =  'ghi')"
+    orFilter.toString shouldBe "OrFilter(List(InFilter(field1,List(abc, def, ghi),false,false), BetweenFilter(field2,def,ghi), EqualityFilter(field3,ghi,false,false)))"
+    orFilter.isEmpty shouldBe false
+    orFilter.field shouldEqual "or"
     orFilter.filters.isEmpty shouldBe false
+  }
+
+  test("PreRenderedAndFilter should render combined filters with AND") {
+    val andFilter = PreRenderedAndFilter(
+      List(
+        "field1 IN ('abc', 'def', 'ghi')"
+        , "field2 BETWEEN 'abc' AND 'def'"
+        , "field3 =  'ghi'"
+      ))
+    andFilter.isEmpty shouldBe false
+    andFilter.toString shouldBe "(field1 IN ('abc', 'def', 'ghi')) AND (field2 BETWEEN 'abc' AND 'def') AND (field3 =  'ghi')"
+  }
+
+  test("PreRenderedOrFilter should render combined filters with OR") {
+    val orFilter = PreRenderedOrFilter(
+      List(
+        "field1 IN ('abc', 'def', 'ghi')"
+        , "field2 BETWEEN 'abc' AND 'def'"
+        , "field3 =  'ghi'"
+      ))
+    orFilter.isEmpty shouldBe false
+    orFilter.toString shouldBe "(field1 IN ('abc', 'def', 'ghi')) OR (field2 BETWEEN 'abc' AND 'def') OR (field3 =  'ghi')"
+  }
+
+  test("OrFilter should be able to successfully render with an alias.") {
+    val orFilter : Filter = OrFilter(List(
+      InFilter("field1", List("abc", "def", "ghi"))
+      , BetweenFilter("field2", "def", "ghi")
+      , EqualityFilter("field3", "ghi"))
+    )
+    val orCol : Column = col
+    val aliasToRenderedSqlMap: Map[String, (String, String)] = Map(
+      "field1" -> (col.alias.getOrElse("field1"), "field1")
+      , "field2" -> ("stats_date", "field2")
+      , "field3" -> ("date_sid", "field3"))
+    val engine : Engine = OracleEngine
+    val mapper : LiteralMapper = oracleLiteralMapper
+    val grainOption : Option[Grain] = Some(DailyGrain)
+    val retVal = FilterSql.renderFilterWithAlias(orFilter, aliasToRenderedSqlMap, orCol, engine, mapper, grainOption)
+    println("Return value is: " + retVal)
+    val expectedRenderedString : String = "(field1 IN ('abc','def','ghi')) OR (field2 >= trunc(to_date('def', 'YYYY-MM-DD')) AND field2 <= trunc(to_date('ghi', 'YYYY-MM-DD'))) OR (field3 = to_date('ghi', 'YYYY-MM-DD'))"
+    retVal shouldEqual DefaultResult(expectedRenderedString, false)
+
   }
 
   test("BetweenFilter should fail for Druid engine") {

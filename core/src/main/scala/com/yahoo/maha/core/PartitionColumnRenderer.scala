@@ -30,7 +30,7 @@ object DefaultPartitionColumnRenderer extends PartitionColumnRenderer {
                  dimBundle: DimensionBundle,
                 literalMapper: LiteralMapper,
                 engine: Engine) : String = {
-    val partitionFilterRendered = new mutable.LinkedHashSet[String]
+    val partitionFilterRendered : mutable.LinkedHashSet[String] = new mutable.LinkedHashSet[String]
     dimBundle.dim.partitionColumns.foreach {
       column=>
         val name = column.name
@@ -51,7 +51,7 @@ object DefaultPartitionColumnRenderer extends PartitionColumnRenderer {
         }
         partitionFilterRendered.add(DefaultResult(s"""$name = $renderedValue """).filter)
     }
-    AndFilter(partitionFilterRendered.toSet).toString
+    PreRenderedAndFilter(partitionFilterRendered.toSet).toString
   }
 
   def renderFact(queryContext: FactualQueryContext,

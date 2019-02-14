@@ -16,11 +16,12 @@ import io.druid.js.JavaScriptConfig
 import io.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec}
 import io.druid.query.extraction.{RegexDimExtractionFn, SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
 import io.druid.query.filter.JavaScriptDimFilter
-import org.json4s.scalaz.JsonScalaz
+import scalaz.{ValidationNel, \/}
 
 import scala.collection.{Iterable, mutable}
 import scalaz.syntax.applicative._
 import org.json4s._
+import org.json4s.scalaz.JsonScalaz
 import org.json4s.scalaz.JsonScalaz._
 
 sealed trait FilterOperation
@@ -117,11 +118,11 @@ case class OuterFilter(filters: List[Filter]) extends Filter {
   val asValues: String = filters.map(_.asValues).mkString(",")
 }
 
-case class OrFilter(filters: List[Filter]) extends Filter {
+/*case class OrFilter(filters: List[Filter]) extends Filter {
   override def operator: FilterOperation = OrFilterOperation
   override def field: String = "or"
-  val asValues: String = filters.map(_.asValues).mkString(",")
-}
+  val asValues: String = filters.map(_.asValues).mkString("(",") OR (",")")
+}*/
 
 case class BetweenFilter(field: String, from: String, to: String) extends Filter {
   override def operator = BetweenFilterOperation
@@ -221,14 +222,38 @@ case class IsNotNullFilter(field: String
 sealed trait CombiningFilter {
   def isEmpty : Boolean
 }
-case class AndFilter(filters: Iterable[String]) extends CombiningFilter {
+/*case class AndFilter(filters: Iterable[Filter]) extends CombiningFilter {
   def isEmpty : Boolean = filters.isEmpty
   override def toString: String = filters.mkString("(",") AND (",")")
 }
-/*case class OrFilter(filters: Iterable[String]) extends CombiningFilter {
+case class OrFilter(filters: Iterable[Filter]) extends CombiningFilter {
   def isEmpty : Boolean = filters.isEmpty
   override def toString: String = filters.mkString("(",") OR (",")")
 }*/
+
+case class OrFilter(filters: List[Filter]) extends ForcedFilter with CombiningFilter {
+  override def operator: FilterOperation = OrFilterOperation
+  override def field: String = "or"
+  override def isEmpty : Boolean = filters.isEmpty
+  val asValues: String = filters.map(_.asValues).mkString("(",") OR (",")")
+}
+
+case class AndFilter(filters: Iterable[Filter]) extends ForcedFilter with CombiningFilter {
+  override def operator: FilterOperation = OrFilterOperation
+  override def field: String = "and"
+  override def isEmpty : Boolean = filters.isEmpty
+  val asValues: String = filters.map(_.asValues).mkString("(",") OR (",")")
+}
+
+case class PreRenderedAndFilter(filters: Iterable[String]) extends CombiningFilter {
+  def isEmpty : Boolean = filters.isEmpty
+  override def toString: String = filters.mkString("(",") AND (",")")
+}
+
+case class PreRenderedOrFilter(filters: Iterable[String]) extends CombiningFilter {
+  def isEmpty : Boolean = filters.isEmpty
+  override def toString: String = filters.mkString("(",") OR (",")")
+}
 
 sealed trait FilterRenderer[T, O] {
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
@@ -1151,7 +1176,7 @@ object FilterSql {
           val filterColumn = column.columnContext.getColumnByName(aliasToRenderedSqlMap(filterItem.field)._1).get
           sqlResults.append(renderFilterWithAlias(filterItem, aliasToRenderedSqlMap, filterColumn, engine, literalMapper, grainOption))
         }
-        val newSqlResultString: String = sqlResults.map(_.filter).mkString(" OR ")
+        val newSqlResultString: String = sqlResults.map(_.filter).mkString("(",") OR (",")")
         DefaultResult(newSqlResultString)
       }
       case f =>
@@ -1325,19 +1350,27 @@ object Filter extends Logging {
     }
   }
 
+  implicit class JValueOps(value: JValue) {
+    def validate[A: JSONR]: ValidationNel[Error, A] = implicitly[JSONR[A]].read(value)
+    def read[A: JSONR]: Error \/ A = implicitly[JSONR[A]].read(value).disjunction.leftMap(_.head)
+  }
+
 
   implicit def filterJSONR: JSONR[Filter] = new JSONR[Filter] {
     override def read(json: JValue): JsonScalaz.Result[Filter] = {
       val operatorResult = field[String]("operator")(json)
+      import _root_.scalaz.Success
+
       operatorResult.flatMap { operator =>
           operator.toLowerCase match {
             case "outer" =>
-                val fil = OuterFilter.applyJSON(fieldExtended[List[Filter]]("outerFilters"))(json)
-                fil.flatMap {
-                  f =>
-                     outerFilter(f).map( _ => f)
-                }
+              val fil = OuterFilter.applyJSON(fieldExtended[List[Filter]]("outerFilters"))(json)
+              fil.flatMap {
+                f =>
+                  outerFilter(f).map( _ => f)
+              }
             case "or" =>
+              null
               val fil = OrFilter.applyJSON(fieldExtended[List[Filter]]("filterExpressions"))(json)
               fil.flatMap {
                 f =>
