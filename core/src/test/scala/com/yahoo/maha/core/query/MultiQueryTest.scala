@@ -17,7 +17,7 @@ class MultiQueryTest extends FunSuite with Matchers with BaseQueryGeneratorTest 
     val qc = new MultiQuery(List(dimQuery, dimQuery))
     val irlFn = (q : Query) => new DimDrivenPartialRowList("Advertiser ID", q)
     val result = qc.execute(queryExecutorContext, irlFn, QueryAttributes.empty, new EngineQueryStats)
-    result._1.foreach {
+    result.rowList.foreach {
       r =>
         model.requestCols.map(_.alias).foreach {
           col => assert(r.getValue(col) === s"$col-value")

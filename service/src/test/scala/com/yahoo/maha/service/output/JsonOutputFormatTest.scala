@@ -118,7 +118,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
     rowList.addRow(row)
 
-    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty)
+    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty, Map.empty)
     val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
     val parRequestResult = ParRequestResult(Try(queryPipeline), requestResult, None)
     val requestModelResult = RequestModelResult(query.queryContext.requestModel, None)
@@ -154,7 +154,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     row.addValue("Total Marks", 99)
     rowList.addRow(row)
 
-    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty)
+    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty, Map.empty)
     val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
     val parRequestResult = ParRequestResult(Try(queryPipeline), requestResult, None)
     val requestModelResult = RequestModelResult(query.queryContext.requestModel, None)
@@ -195,7 +195,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     row.addValue("Total Marks", 99)
     rowList.addRow(row)
 
-    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty)
+    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty, Map.empty)
     val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
     val parRequestResult = ParRequestResult(Try(queryPipeline), requestResult, None)
     val requestModelResult = RequestModelResult(query.queryContext.requestModel, None)
@@ -236,7 +236,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     row.addValue(QueryRowList.ROW_COUNT_ALIAS, 101)
     rowList.addRow(row)
 
-    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty)
+    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty, Map.empty)
     val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
     val parRequestResult = ParRequestResult(Try(queryPipeline), requestResult, None)
     val requestModelResult = RequestModelResult(query.queryContext.requestModel, None)
@@ -273,7 +273,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     row.addValue("Total Marks", 99)
     rowList.addRow(row)
 
-    val queryPipelineResult = QueryPipelineResult(fd_queryPipeline, fd_queryChain, rowList, QueryAttributes.empty)
+    val queryPipelineResult = QueryPipelineResult(fd_queryPipeline, fd_queryChain, rowList, QueryAttributes.empty, Map.empty)
     val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
     val parRequestResult = ParRequestResult(Try(fd_queryPipeline), requestResult, None)
     val requestModelResult = RequestModelResult(fd_query.queryContext.requestModel, None)

@@ -5,6 +5,7 @@ package com.yahoo.maha.core.query
 import com.yahoo.maha.core._
 import com.yahoo.maha.parrequest2.future.ParFunction
 import com.yahoo.maha.report.{RowCSVWriter, RowCSVWriterProvider}
+import org.json4s.JValue
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable
@@ -82,7 +83,7 @@ sealed trait RowListLifeCycle {
 }
 
 trait RowList extends RowListLifeCycle {
-  val columns: IndexedSeq[ColumnInfo]
+  def columns: IndexedSeq[ColumnInfo]
   def addRow(r: Row, er: Option[Row] = None) : Unit
   def isEmpty : Boolean
   def foreach(fn: Row => Unit) : Unit
