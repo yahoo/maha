@@ -4,8 +4,12 @@ package com.yahoo.maha.core
 
 import com.yahoo.maha.core.dimension.DimCol
 import com.yahoo.maha.core.fact.ForceFilter
+import javax.swing.JList
 import org.joda.time.DateTime
+import org.json4s.JsonAST
+import org.json4s.JsonAST.{JArray, JObject, JString, JValue}
 import org.scalatest.{FunSuite, Matchers}
+import scalaz.Success
 
 import scala.collection.immutable.TreeSet
 
@@ -237,9 +241,92 @@ class FilterTest extends FunSuite with Matchers {
     val mapper : LiteralMapper = oracleLiteralMapper
     val grainOption : Option[Grain] = Some(DailyGrain)
     val retVal = FilterSql.renderFilterWithAlias(orFilter, aliasToRenderedSqlMap, orCol, engine, mapper, grainOption)
-    println("Return value is: " + retVal)
     val expectedRenderedString : String = "(field1 IN ('abc','def','ghi')) OR (field2 >= trunc(to_date('def', 'YYYY-MM-DD')) AND field2 <= trunc(to_date('ghi', 'YYYY-MM-DD'))) OR (field3 = to_date('ghi', 'YYYY-MM-DD'))"
     retVal shouldEqual DefaultResult(expectedRenderedString, false)
+
+    val renderedFilter = Filter.filterJSONW.write(orFilter)
+    val  expectedRenderedJson : JObject =
+      new JObject(
+        List[(String, JValue)]
+          (("operator", JString("Or"))
+            , ("filterExpressions", JArray(
+            List[JObject](
+              new JObject(
+                List[(String, JValue)](
+                  ("field", JString("field1"))
+                  , ("operator", JString("In"))
+                  , ("values", JArray(List[JValue](JString("abc"), JString("def"), JString("ghi"))))))
+              , new JObject(
+                List[(String, JValue)](
+                  ("field", JString("field2"))
+                  , ("operator", JString("Between"))
+                  , ("from", JString("def"))
+                  , ("to", JString("ghi"))
+                )
+              )
+              , new JObject(
+                List[(String, JValue)](
+                  ("field", JString("field3"))
+                  , ("operator", JString("="))
+                  , ("value", JString("ghi"))
+                )
+              ))))))
+
+    renderedFilter shouldEqual expectedRenderedJson
+
+  }
+
+  test("AndFilter should be able to successfully render with an alias.") {
+    val andFilter : Filter = AndFilter(List(
+      InFilter("field1", List("abc", "def", "ghi"))
+      , BetweenFilter("field2", "def", "ghi")
+      , EqualityFilter("field3", "ghi"))
+    )
+    val andCol : Column = col
+    val aliasToRenderedSqlMap: Map[String, (String, String)] = Map(
+      "field1" -> (col.alias.getOrElse("field1"), "field1")
+      , "field2" -> ("stats_date", "field2")
+      , "field3" -> ("date_sid", "field3"))
+    val engine : Engine = OracleEngine
+    val mapper : LiteralMapper = oracleLiteralMapper
+    val grainOption : Option[Grain] = Some(DailyGrain)
+    val retVal = FilterSql.renderFilterWithAlias(andFilter, aliasToRenderedSqlMap, andCol, engine, mapper, grainOption)
+    val expectedRenderedString : String = "(field1 IN ('abc','def','ghi')) AND (field2 >= trunc(to_date('def', 'YYYY-MM-DD')) AND field2 <= trunc(to_date('ghi', 'YYYY-MM-DD'))) AND (field3 = to_date('ghi', 'YYYY-MM-DD'))"
+    retVal shouldEqual DefaultResult(expectedRenderedString, false)
+
+    val renderedFilter = Filter.filterJSONW.write(andFilter)
+    val  expectedRenderedJson : JObject =
+      new JObject(
+        List[(String, JValue)]
+          (("operator", JString("And"))
+            , ("filterExpressions", JArray(
+            List[JObject](
+              new JObject(
+            List[(String, JValue)](
+              ("field", JString("field1"))
+            , ("operator", JString("In"))
+            , ("values", JArray(List[JValue](JString("abc"), JString("def"), JString("ghi"))))))
+            , new JObject(
+                List[(String, JValue)](
+                  ("field", JString("field2"))
+                  , ("operator", JString("Between"))
+                  , ("from", JString("def"))
+                  , ("to", JString("ghi"))
+                )
+              )
+            , new JObject(
+                List[(String, JValue)](
+                  ("field", JString("field3"))
+                  , ("operator", JString("="))
+                  , ("value", JString("ghi"))
+                )
+              ))))))
+
+    renderedFilter shouldEqual expectedRenderedJson
+
+    val readJsonFilter = Filter.filterJSONR.read(renderedFilter)
+
+    readJsonFilter.isSuccess shouldBe true
 
   }
 

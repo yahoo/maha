@@ -35,6 +35,7 @@ case object IsNullFilterOperation extends FilterOperation { override def toStrin
 case object IsNotNullFilterOperation extends FilterOperation { override def toString = "IsNotNull" }
 case object OuterFilterOperation extends FilterOperation { override def toString = "Outer" }
 case object OrFilterOperation extends FilterOperation { override def toString = "Or" }
+case object AndFilterOperation extends FilterOperation { override def toString = "And" }
 case object GreaterThanFilterOperation extends FilterOperation { override def toString = ">" }
 case object LessThanFilterOperation extends FilterOperation { override def toString = "<" }
 case object FieldEqualityFilterOperation extends FilterOperation { override def toString = "==" }
@@ -117,12 +118,6 @@ case class OuterFilter(filters: List[Filter]) extends Filter {
   override def field: String = "outer"
   val asValues: String = filters.map(_.asValues).mkString(",")
 }
-
-/*case class OrFilter(filters: List[Filter]) extends Filter {
-  override def operator: FilterOperation = OrFilterOperation
-  override def field: String = "or"
-  val asValues: String = filters.map(_.asValues).mkString("(",") OR (",")")
-}*/
 
 case class BetweenFilter(field: String, from: String, to: String) extends Filter {
   override def operator = BetweenFilterOperation
@@ -222,14 +217,6 @@ case class IsNotNullFilter(field: String
 sealed trait CombiningFilter {
   def isEmpty : Boolean
 }
-/*case class AndFilter(filters: Iterable[Filter]) extends CombiningFilter {
-  def isEmpty : Boolean = filters.isEmpty
-  override def toString: String = filters.mkString("(",") AND (",")")
-}
-case class OrFilter(filters: Iterable[Filter]) extends CombiningFilter {
-  def isEmpty : Boolean = filters.isEmpty
-  override def toString: String = filters.mkString("(",") OR (",")")
-}*/
 
 case class OrFilter(filters: List[Filter]) extends ForcedFilter with CombiningFilter {
   override def operator: FilterOperation = OrFilterOperation
@@ -238,11 +225,11 @@ case class OrFilter(filters: List[Filter]) extends ForcedFilter with CombiningFi
   val asValues: String = filters.map(_.asValues).mkString("(",") OR (",")")
 }
 
-case class AndFilter(filters: Iterable[Filter]) extends ForcedFilter with CombiningFilter {
-  override def operator: FilterOperation = OrFilterOperation
+case class AndFilter(filters: List[Filter]) extends ForcedFilter with CombiningFilter {
+  override def operator: FilterOperation = AndFilterOperation
   override def field: String = "and"
   override def isEmpty : Boolean = filters.isEmpty
-  val asValues: String = filters.map(_.asValues).mkString("(",") OR (",")")
+  val asValues: String = filters.map(_.asValues).mkString("(",") AND (",")")
 }
 
 case class PreRenderedAndFilter(filters: Iterable[String]) extends CombiningFilter {
@@ -1179,6 +1166,15 @@ object FilterSql {
         val newSqlResultString: String = sqlResults.map(_.filter).mkString("(",") OR (",")")
         DefaultResult(newSqlResultString)
       }
+      case f@AndFilter(filters) => {
+        val sqlResults: mutable.ListBuffer[SqlResult] = mutable.ListBuffer.empty[SqlResult]
+        for(filterItem <- filters) {
+          val filterColumn = column.columnContext.getColumnByName(aliasToRenderedSqlMap(filterItem.field)._1).get
+          sqlResults.append(renderFilterWithAlias(filterItem, aliasToRenderedSqlMap, filterColumn, engine, literalMapper, grainOption))
+        }
+        val newSqlResultString: String = sqlResults.map(_.filter).mkString("(",") AND (",")")
+        DefaultResult(newSqlResultString)
+      }
       case f =>
         throw new UnsupportedOperationException(s"Unhandled filter operation $f")
     }
@@ -1296,11 +1292,24 @@ object Filter extends Logging {
             :: Nil)
       case OrFilter(filters) =>
         makeObj(
-          ("filters" -> {
-            val values: mutable.ListBuffer[String] = mutable.ListBuffer.empty[String]
+          ("operator" -> toJSON(filter.operator.toString))
+           :: ("filterExpressions" -> {
+            val values: mutable.ListBuffer[JValue] = mutable.ListBuffer.empty[JValue]
             for(filter <- filters) {
               val written: JValue = filterJSONW.write(filter)
-              values.append(written.toString())
+              values.append(written)
+            }
+            toJSON(values.toList)
+          })
+            :: Nil)
+      case AndFilter(filters) =>
+        makeObj(
+          ("operator" -> toJSON(filter.operator.toString))
+           :: ("filterExpressions" -> {
+            val values: mutable.ListBuffer[JValue] = mutable.ListBuffer.empty[JValue]
+            for(filter <- filters) {
+              val written: JValue = filterJSONW.write(filter)
+              values.append(written)
             }
             toJSON(values.toList)
           })
@@ -1350,6 +1359,15 @@ object Filter extends Logging {
     }
   }
 
+  def andFilter(andFilter: AndFilter) : JsonScalaz.Result[Boolean] = {
+    import _root_.scalaz.syntax.validation._
+    if(andFilter.filters.isEmpty) {
+      Fail.apply(andFilter.field, s"filter cannot have empty list")
+    } else {
+      true.successNel
+    }
+  }
+
   implicit class JValueOps(value: JValue) {
     def validate[A: JSONR]: ValidationNel[Error, A] = implicitly[JSONR[A]].read(value)
     def read[A: JSONR]: Error \/ A = implicitly[JSONR[A]].read(value).disjunction.leftMap(_.head)
@@ -1375,6 +1393,13 @@ object Filter extends Logging {
               fil.flatMap {
                 f =>
                   orFilter(f).map( _ => f)
+              }
+            case "and" =>
+              null
+              val fil = AndFilter.applyJSON(fieldExtended[List[Filter]]("filterExpressions"))(json)
+              fil.flatMap {
+                f =>
+                  andFilter(f).map( _ => f)
               }
             case "between" =>
               val filter = BetweenFilter.applyJSON(field[String]("field"), stringField("from"), stringField("to"))(json)
