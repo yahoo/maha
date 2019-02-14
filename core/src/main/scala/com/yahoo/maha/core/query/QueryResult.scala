@@ -17,9 +17,9 @@ case class QueryResult[T <: RowList](rowList: T
   def requireSuccess(errMessage: String): Unit = {
     if(isFailure) {
       if(exception.isDefined) {
-        throw new IllegalArgumentException(s"$errMessage : ${exception.get.getMessage}", exception.get)
+        throw new RuntimeException(s"$errMessage : ${exception.get.getMessage}", exception.get)
       } else {
-        throw new IllegalArgumentException(errMessage)
+        throw new RuntimeException(errMessage)
       }
     }
   }
