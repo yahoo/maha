@@ -5,7 +5,6 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import com.google.inject.name.Named;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
@@ -14,7 +13,7 @@ import com.metamx.common.lifecycle.LifecycleStart;
 import com.metamx.common.lifecycle.LifecycleStop;
 import com.metamx.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaExtractionCacheManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import io.druid.guice.ManageLifecycle;
@@ -92,7 +91,7 @@ public class KafkaManager {
         }
     }
 
-    public void applyChangesSinceBeginning(final InMemoryDBExtractionNamespace extractionNamespace,
+    public void applyChangesSinceBeginning(final RocksDBExtractionNamespace extractionNamespace,
                                            final String groupId, final RocksDB rocksDB, final ConcurrentMap<Integer, Long> kafkaPartitionOffset) {
 
         final String topic = extractionNamespace.getKafkaTopic();
@@ -173,7 +172,7 @@ public class KafkaManager {
         log.info("Applied all the changes since the beginning [%s]", topic);
     }
 
-    public void addListener(final InMemoryDBExtractionNamespace kafkaNamespace, final String groupId,
+    public void addListener(final RocksDBExtractionNamespace kafkaNamespace, final String groupId,
                             final ConcurrentMap<Integer, Long> kafkaPartitionOffset, final boolean seekOffsetToPreviousSnapshot) {
 
         final String topic = kafkaNamespace.getKafkaTopic();

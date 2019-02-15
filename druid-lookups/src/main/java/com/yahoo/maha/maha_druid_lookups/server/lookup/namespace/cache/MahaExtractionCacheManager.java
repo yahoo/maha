@@ -12,17 +12,16 @@ import com.metamx.common.lifecycle.Lifecycle;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.metamx.emitter.service.ServiceMetricEvent;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.InMemoryDBLookupExtractor;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.RocksDBLookupExtractor;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.JDBCLookupExtractor;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.KafkaManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
-import io.druid.query.extraction.MapLookupExtractor;
 import io.druid.query.lookup.LookupExtractor;
 
 import javax.annotation.concurrent.GuardedBy;
@@ -414,8 +413,8 @@ public abstract class MahaExtractionCacheManager<U>
     private LookupExtractor getLookupExtractor(final ExtractionNamespace extractionNamespace, Map<String, U> map) {
         if(extractionNamespace instanceof JDBCExtractionNamespace) {
             return new JDBCLookupExtractor((JDBCExtractionNamespace)extractionNamespace, map, lookupService);
-        } else if(extractionNamespace instanceof InMemoryDBExtractionNamespace) {
-            return new InMemoryDBLookupExtractor((InMemoryDBExtractionNamespace) extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory, serviceEmitter);
+        } else if(extractionNamespace instanceof RocksDBExtractionNamespace) {
+            return new RocksDBLookupExtractor((RocksDBExtractionNamespace) extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory, serviceEmitter);
         } else {
 //            return new MapLookupExtractor(map, false);
             return null;

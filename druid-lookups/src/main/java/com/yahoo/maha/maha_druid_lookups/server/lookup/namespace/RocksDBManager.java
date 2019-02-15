@@ -7,13 +7,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
 import com.google.inject.Inject;
-import com.google.inject.name.Named;
 import com.metamx.common.lifecycle.LifecycleStart;
 import com.metamx.common.lifecycle.LifecycleStop;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.metamx.emitter.service.ServiceMetricEvent;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import io.druid.guice.ManageLifecycle;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -70,7 +69,7 @@ public class RocksDBManager {
         this.fileSystem = FileSystem.get(config);
     }
 
-    public String createDB(final InMemoryDBExtractionNamespace extractionNamespace,
+    public String createDB(final RocksDBExtractionNamespace extractionNamespace,
                            final String lastVersion) throws RocksDBException, IOException {
 
         String loadTime = LocalDateTime.now().minus(1, ChronoUnit.DAYS)
@@ -150,7 +149,7 @@ public class RocksDBManager {
         return startNewInstance(extractionNamespace, loadTime, hdfsPath, localZippedFileNameWithPath, localPath);
     }
 
-    private String useSnapshotInstance(final InMemoryDBExtractionNamespace extractionNamespace,
+    private String useSnapshotInstance(final RocksDBExtractionNamespace extractionNamespace,
                                        final String loadTime,
                                        final String localPath,
                                        final File snapShotFile) throws IOException, RocksDBException {
@@ -169,7 +168,7 @@ public class RocksDBManager {
         return loadTime;
     }
 
-    private String startNewInstance(final InMemoryDBExtractionNamespace extractionNamespace,
+    private String startNewInstance(final RocksDBExtractionNamespace extractionNamespace,
                                     final String loadTime,
                                     final String hdfsPath,
                                     final String localZippedFileNameWithPath,
@@ -309,7 +308,7 @@ public class RocksDBManager {
     }
 
     private void lookupAuditing(final String localZippedFileNameWithPath,
-                                final InMemoryDBExtractionNamespace extractionNamespace, final String loadTime,
+                                final RocksDBExtractionNamespace extractionNamespace, final String loadTime,
                                 long sleepTime, int retryCount) {
 
         final String successMarkerPath = String.format("%s/load_time=%s/_SUCCESS",
@@ -365,7 +364,7 @@ public class RocksDBManager {
         }
     }
 
-    private void uploadFileForAuditing(InMemoryDBExtractionNamespace extractionNamespace,
+    private void uploadFileForAuditing(RocksDBExtractionNamespace extractionNamespace,
                                        String loadTime, String successMarkerPath, String localFileNameWithPath)
             throws IOException {
 

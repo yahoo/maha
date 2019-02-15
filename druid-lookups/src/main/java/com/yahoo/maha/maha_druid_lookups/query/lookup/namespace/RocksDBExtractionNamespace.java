@@ -13,8 +13,8 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import java.util.Objects;
 
-@JsonTypeName("mahainmemorydb")
-public class InMemoryDBExtractionNamespace implements ExtractionNamespace {
+@JsonTypeName("maharocksdb")
+public class RocksDBExtractionNamespace implements ExtractionNamespace {
 
     @JsonProperty
     private final String rocksDbInstanceHDFSPath;
@@ -40,7 +40,7 @@ public class InMemoryDBExtractionNamespace implements ExtractionNamespace {
     private Long lastUpdatedTime = -1L;
 
     @JsonCreator
-    public InMemoryDBExtractionNamespace(@NotNull @JsonProperty(value = "namespace", required = true)
+    public RocksDBExtractionNamespace(@NotNull @JsonProperty(value = "namespace", required = true)
                                                  String namespace,
                                          @NotNull @JsonProperty(value = "rocksDbInstanceHDFSPath", required = true)
                                          final String rocksDbInstanceHDFSPath,
@@ -128,7 +128,7 @@ public class InMemoryDBExtractionNamespace implements ExtractionNamespace {
     @Override
     public String toString() {
         return String.format(
-                "InMemoryDBExtractionNamespace = { namespace = %s, rocksDbInstanceHDFSPath = { %s }, pollPeriod = %s, kafkaTopic = %s, missingLookupConfig = %s }",
+                "RocksDBExtractionNamespace = { namespace = %s, rocksDbInstanceHDFSPath = { %s }, pollPeriod = %s, kafkaTopic = %s, missingLookupConfig = %s }",
                 namespace,
                 rocksDbInstanceHDFSPath,
                 pollPeriod,
@@ -141,7 +141,7 @@ public class InMemoryDBExtractionNamespace implements ExtractionNamespace {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        InMemoryDBExtractionNamespace that = (InMemoryDBExtractionNamespace) o;
+        RocksDBExtractionNamespace that = (RocksDBExtractionNamespace) o;
         return cacheEnabled == that.cacheEnabled &&
                 lookupAuditingEnabled == that.lookupAuditingEnabled &&
                 Objects.equals(rocksDbInstanceHDFSPath, that.rocksDbInstanceHDFSPath) &&

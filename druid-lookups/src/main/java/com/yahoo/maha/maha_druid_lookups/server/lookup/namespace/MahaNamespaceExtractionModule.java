@@ -13,7 +13,7 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.MahaLookupExtractorFactory
 import com.yahoo.maha.maha_druid_lookups.query.lookup.MahaRegisteredLookupExtractionFn;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaExtractionCacheManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.OnHeapMahaExtractionCacheManager;
@@ -84,8 +84,8 @@ public class MahaNamespaceExtractionModule implements DruidModule
                 .to(JDBCExtractionNamespaceCacheFactory.class)
                 .in(LazySingleton.class);
         getNamespaceFactoryMapBinder(binder)
-                .addBinding(InMemoryDBExtractionNamespace.class)
-                .to(InMemoryDBExtractionNamespaceCacheFactory.class)
+                .addBinding(RocksDBExtractionNamespace.class)
+                .to(RocksDBExtractionNamespaceCacheFactory.class)
                 .in(LazySingleton.class);
 
         LifecycleModule.register(binder, RocksDBManager.class);

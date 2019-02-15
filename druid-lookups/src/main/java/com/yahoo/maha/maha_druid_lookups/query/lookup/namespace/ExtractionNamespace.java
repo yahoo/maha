@@ -8,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes(value = {
         @JsonSubTypes.Type(name = "mahajdbc", value = JDBCExtractionNamespace.class),
-        @JsonSubTypes.Type(name = "mahainmemorydb", value = InMemoryDBExtractionNamespace.class)
+        @JsonSubTypes.Type(name = "maharocksdb", value = RocksDBExtractionNamespace.class)
 })
 public interface ExtractionNamespace {
 

@@ -19,7 +19,7 @@ import com.google.protobuf.Parser;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.metamx.emitter.service.ServiceMetricEvent;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.KafkaManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.MonitoringConstants;
@@ -39,12 +39,12 @@ import java.util.concurrent.TimeUnit;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-public class InMemoryDBLookupExtractor<U> extends LookupExtractor
+public class RocksDBLookupExtractor<U> extends LookupExtractor
 {
-    private static final Logger LOG = new Logger(InMemoryDBLookupExtractor.class);
+    private static final Logger LOG = new Logger(RocksDBLookupExtractor.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, U> map;
-    private final InMemoryDBExtractionNamespace extractionNamespace;
+    private final RocksDBExtractionNamespace extractionNamespace;
     private RocksDBManager rocksDBManager;
     private LookupService lookupService;
     private ProtobufSchemaFactory protobufSchemaFactory;
@@ -53,7 +53,7 @@ public class InMemoryDBLookupExtractor<U> extends LookupExtractor
     private Cache<String, byte[]> missingLookupCache;
     private final byte[] extractionNamespaceAsByteArray;
 
-    public InMemoryDBLookupExtractor(InMemoryDBExtractionNamespace extractionNamespace, Map<String, U> map,
+    public RocksDBLookupExtractor(RocksDBExtractionNamespace extractionNamespace, Map<String, U> map,
                                      LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
                                      ProtobufSchemaFactory protobufSchemaFactory, ServiceEmitter serviceEmitter) {
         this.extractionNamespace = extractionNamespace;
@@ -203,7 +203,7 @@ public class InMemoryDBLookupExtractor<U> extends LookupExtractor
             return false;
         }
 
-        InMemoryDBLookupExtractor that = (InMemoryDBLookupExtractor) o;
+        RocksDBLookupExtractor that = (RocksDBLookupExtractor) o;
 
         return map.equals(that.map);
     }

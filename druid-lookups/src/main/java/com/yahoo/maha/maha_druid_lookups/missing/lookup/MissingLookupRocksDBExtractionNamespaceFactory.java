@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.metamx.common.logger.Logger;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.PasswordProvider;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -19,10 +19,10 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
 
-public class MissingLookupInMemoryDBExtractionNamespaceFactory implements
+public class MissingLookupRocksDBExtractionNamespaceFactory implements
         MissingLookupExtractionNamespaceFactory {
 
-    private static final Logger LOGGER = new Logger(MissingLookupInMemoryDBExtractionNamespaceFactory.class);
+    private static final Logger LOGGER = new Logger(MissingLookupRocksDBExtractionNamespaceFactory.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private DBI dbi = null;
     private KafkaProducer<String, byte[]> kafkaProducer = null;
@@ -34,7 +34,7 @@ public class MissingLookupInMemoryDBExtractionNamespaceFactory implements
                         Properties kafkaProperties,
                         String producerKafkaTopic) throws IOException {
 
-        InMemoryDBExtractionNamespace extractionNamespace = OBJECT_MAPPER.readValue(extractionNamespaceByteArray, InMemoryDBExtractionNamespace.class);
+        RocksDBExtractionNamespace extractionNamespace = OBJECT_MAPPER.readValue(extractionNamespaceByteArray, RocksDBExtractionNamespace.class);
         dbi = ensureDBI(passwordProvider, extractionNamespace);
         kafkaProducer = ensureKafkaProducer(kafkaProperties);
         dbi.withHandle( handle -> {
@@ -66,7 +66,7 @@ public class MissingLookupInMemoryDBExtractionNamespaceFactory implements
         });
     }
 
-    synchronized DBI ensureDBI(PasswordProvider passwordProvider, InMemoryDBExtractionNamespace namespace) {
+    synchronized DBI ensureDBI(PasswordProvider passwordProvider, RocksDBExtractionNamespace namespace) {
         if (dbi == null) {
             dbi = new DBI(
                     namespace.getMissingLookupConfig().getConnectorConfig().getConnectURI(),
