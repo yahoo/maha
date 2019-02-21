@@ -3,17 +3,17 @@
 package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
 import com.metamx.common.logger.Logger;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.MongoExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 import java.util.Map;
 
-public class JDBCLookupExtractor<U extends List<String>> extends OnlineDatastoreLookupExtractor<U> {
+public class MongoLookupExtractor<U extends List<String>> extends OnlineDatastoreLookupExtractor {
     private static final Logger LOG = new Logger(MethodHandles.lookup().lookupClass());
 
-    public JDBCLookupExtractor(JDBCExtractionNamespace extractionNamespace, Map<String, U> map, LookupService lookupService) {
+    public MongoLookupExtractor(MongoExtractionNamespace extractionNamespace, Map<String, U> map, LookupService lookupService) {
         super(extractionNamespace, map, lookupService);
     }
 
@@ -21,4 +21,5 @@ public class JDBCLookupExtractor<U extends List<String>> extends OnlineDatastore
     protected Logger LOGGER() {
         return LOG;
     }
+
 }

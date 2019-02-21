@@ -12,12 +12,10 @@ import com.metamx.common.lifecycle.Lifecycle;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.metamx.emitter.service.ServiceMetricEvent;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.MongoLookupExtractor;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.RocksDBLookupExtractor;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.JDBCLookupExtractor;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.KafkaManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
@@ -36,16 +34,13 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  *
  */
-public abstract class MahaExtractionCacheManager<U>
-{
-    protected static class NamespaceImplData
-    {
+public abstract class MahaNamespaceExtractionCacheManager<U> {
+    protected static class NamespaceImplData {
         public NamespaceImplData(
                 final ListenableFuture<?> future,
                 final ExtractionNamespace namespace,
                 final String name
-        )
-        {
+        ) {
             this.future = future;
             this.namespace = namespace;
             this.name = name;
@@ -60,13 +55,13 @@ public abstract class MahaExtractionCacheManager<U>
         volatile String latestVersion = null;
     }
 
-    private static final Logger log = new Logger(MahaExtractionCacheManager.class);
+    private static final Logger log = new Logger(MahaNamespaceExtractionCacheManager.class);
     private final ListeningScheduledExecutorService listeningScheduledExecutorService;
     protected final ConcurrentMap<String, NamespaceImplData> implData = new ConcurrentHashMap<>();
     protected final ConcurrentMap<String, LookupExtractor> lookupExtractorMap = new ConcurrentHashMap<>();
     protected final AtomicLong tasksStarted = new AtomicLong(0);
     protected final ServiceEmitter serviceEmitter;
-    private final Map<Class<? extends ExtractionNamespace>, ExtractionNamespaceCacheFactory<?,?>> namespaceFunctionFactoryMap;
+    private final Map<Class<? extends ExtractionNamespace>, ExtractionNamespaceCacheFactory<?, ?>> namespaceFunctionFactoryMap;
     @Inject
     LookupService lookupService;
     @Inject
@@ -76,12 +71,11 @@ public abstract class MahaExtractionCacheManager<U>
     @Inject
     ProtobufSchemaFactory protobufSchemaFactory;
 
-    public MahaExtractionCacheManager(
+    public MahaNamespaceExtractionCacheManager(
             Lifecycle lifecycle,
             final ServiceEmitter serviceEmitter,
-            final Map<Class<? extends ExtractionNamespace>, ExtractionNamespaceCacheFactory<?,?>> namespaceFunctionFactoryMap
-    )
-    {
+            final Map<Class<? extends ExtractionNamespace>, ExtractionNamespaceCacheFactory<?, ?>> namespaceFunctionFactoryMap
+    ) {
         this.listeningScheduledExecutorService = MoreExecutors.listeningDecorator(
                 Executors.newScheduledThreadPool(
                         15,
@@ -96,13 +90,11 @@ public abstract class MahaExtractionCacheManager<U>
         this.serviceEmitter = serviceEmitter;
         this.namespaceFunctionFactoryMap = namespaceFunctionFactoryMap;
         listeningScheduledExecutorService.scheduleAtFixedRate(
-                new Runnable()
-                {
+                new Runnable() {
                     long priorTasksStarted = 0L;
 
                     @Override
-                    public void run()
-                    {
+                    public void run() {
                         try {
                             final long tasks = tasksStarted.get();
                             serviceEmitter.emit(
@@ -111,8 +103,7 @@ public abstract class MahaExtractionCacheManager<U>
                             );
                             priorTasksStarted = tasks;
                             monitor(serviceEmitter);
-                        }
-                        catch (Exception e) {
+                        } catch (Exception e) {
                             log.error(e, "Error emitting namespace stats");
                             if (Thread.currentThread().isInterrupted()) {
                                 throw Throwables.propagate(e);
@@ -130,19 +121,16 @@ public abstract class MahaExtractionCacheManager<U>
      *
      * @param serviceEmitter The emitter to emit to
      */
-    protected void monitor(ServiceEmitter serviceEmitter)
-    {
+    protected void monitor(ServiceEmitter serviceEmitter) {
         // Noop by default
     }
 
-    protected boolean waitForServiceToEnd(long time, TimeUnit unit) throws InterruptedException
-    {
+    protected boolean waitForServiceToEnd(long time, TimeUnit unit) throws InterruptedException {
         return listeningScheduledExecutorService.awaitTermination(time, unit);
     }
 
 
-    protected void updateNamespace(final String id, final String cacheId, final String newVersion)
-    {
+    protected void updateNamespace(final String id, final String cacheId, final String newVersion) {
         final NamespaceImplData namespaceDatum = implData.get(id);
         if (namespaceDatum == null) {
             // was removed
@@ -160,8 +148,7 @@ public abstract class MahaExtractionCacheManager<U>
                 //swapAndClearCache(id, cacheId);
                 namespaceDatum.latestVersion = newVersion;
             }
-        }
-        finally {
+        } finally {
             namespaceDatum.firstRun.countDown();
         }
     }
@@ -169,8 +156,7 @@ public abstract class MahaExtractionCacheManager<U>
     // return value means actually delete or not
     public boolean checkedDelete(
             String namespaceName
-    )
-    {
+    ) {
         final NamespaceImplData implDatum = implData.get(namespaceName);
         if (implDatum == null) {
             // Delete but we don't have it?
@@ -184,8 +170,7 @@ public abstract class MahaExtractionCacheManager<U>
     public boolean scheduleOrUpdate(
             final String id,
             ExtractionNamespace namespace
-    )
-    {
+    ) {
         final NamespaceImplData implDatum = implData.get(id);
         if (implDatum == null) {
             // New, probably
@@ -220,8 +205,7 @@ public abstract class MahaExtractionCacheManager<U>
             final String id,
             ExtractionNamespace namespace,
             long waitForFirstRun
-    )
-    {
+    ) {
         if (scheduleOrUpdate(id, namespace)) {
             log.debug("Scheduled new namespace [%s]: %s", id, namespace);
         } else {
@@ -237,30 +221,25 @@ public abstract class MahaExtractionCacheManager<U>
         boolean success = false;
         try {
             success = namespaceImplData.firstRun.await(waitForFirstRun, TimeUnit.MILLISECONDS);
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.error(e, "NamespaceLookupExtractorFactory[%s] - interrupted during start", id);
         }
         return success;
     }
 
     @GuardedBy("implDatum.changeLock")
-    private void cancelFuture(final NamespaceImplData implDatum)
-    {
+    private void cancelFuture(final NamespaceImplData implDatum) {
         final CountDownLatch latch = new CountDownLatch(1);
         final ListenableFuture<?> future = implDatum.future;
         Futures.addCallback(
-                future, new FutureCallback<Object>()
-                {
+                future, new FutureCallback<Object>() {
                     @Override
-                    public void onSuccess(Object result)
-                    {
+                    public void onSuccess(Object result) {
                         latch.countDown();
                     }
 
                     @Override
-                    public void onFailure(Throwable t)
-                    {
+                    public void onFailure(Throwable t) {
                         // Expect CancellationException
                         latch.countDown();
                         if (!(t instanceof CancellationException)) {
@@ -272,8 +251,7 @@ public abstract class MahaExtractionCacheManager<U>
         future.cancel(true);
         try {
             latch.await();
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw Throwables.propagate(e);
         }
@@ -281,8 +259,7 @@ public abstract class MahaExtractionCacheManager<U>
 
     // Not thread safe
     @GuardedBy("implDatum.changeLock")
-    private boolean removeNamespaceLocalMetadata(final NamespaceImplData implDatum)
-    {
+    private boolean removeNamespaceLocalMetadata(final NamespaceImplData implDatum) {
         if (implDatum == null) {
             return false;
         }
@@ -298,9 +275,8 @@ public abstract class MahaExtractionCacheManager<U>
     }
 
     // Optimistic scheduling of updates to a namespace.
-    public <T extends ExtractionNamespace> ListenableFuture<?> schedule(final String id, final T namespace)
-    {
-        final ExtractionNamespaceCacheFactory<T,U> factory = (ExtractionNamespaceCacheFactory<T,U>)
+    public <T extends ExtractionNamespace> ListenableFuture<?> schedule(final String id, final T namespace) {
+        final ExtractionNamespaceCacheFactory<T, U> factory = (ExtractionNamespaceCacheFactory<T, U>)
                 namespaceFunctionFactoryMap.get(namespace.getClass());
         if (factory == null) {
             throw new ISE("Cannot find factory for namespace [%s]", namespace);
@@ -313,10 +289,9 @@ public abstract class MahaExtractionCacheManager<U>
     protected synchronized <T extends ExtractionNamespace> ListenableFuture<?> schedule(
             final String id,
             final T namespace,
-            final ExtractionNamespaceCacheFactory<T,U> factory,
+            final ExtractionNamespaceCacheFactory<T, U> factory,
             final String cacheId
-    )
-    {
+    ) {
         log.info("Trying to update namespace [%s]", id);
         final NamespaceImplData implDatum = implData.get(id);
         if (implDatum != null) {
@@ -332,11 +307,9 @@ public abstract class MahaExtractionCacheManager<U>
         // Must be set before leader election occurs or else runnable will fail
         final AtomicReference<NamespaceImplData> implDataAtomicReference = new AtomicReference<>(null);
 
-        final Runnable command = new Runnable()
-        {
+        final Runnable command = new Runnable() {
             @Override
-            public void run()
-            {
+            public void run() {
                 try {
                     startLatch.await(); // wait for "election" to leadership or cancellation
                     if (!Thread.currentThread().isInterrupted()) {
@@ -358,16 +331,14 @@ public abstract class MahaExtractionCacheManager<U>
                             log.debug("Version `%s` already exists, skipping updating cache", preVersion);
                         }
                     }
-                }
-                catch (Throwable t) {
+                } catch (Throwable t) {
                     try {
                         if (t instanceof InterruptedException) {
                             log.info(t, "Namespace [%s] cancelled", id);
                         } else {
                             log.error(t, "Failed update namespace [%s]", namespace);
                         }
-                    }
-                    catch (Exception e) {
+                    } catch (Exception e) {
                         t.addSuppressed(e);
                     }
                     if (Thread.currentThread().isInterrupted() || (t instanceof Error)) {
@@ -404,17 +375,18 @@ public abstract class MahaExtractionCacheManager<U>
                 log.debug("I own namespace [%s]", id);
                 return future;
             }
-        }
-        finally {
+        } finally {
             startLatch.countDown();
         }
     }
 
     private LookupExtractor getLookupExtractor(final ExtractionNamespace extractionNamespace, Map<String, U> map) {
-        if(extractionNamespace instanceof JDBCExtractionNamespace) {
-            return new JDBCLookupExtractor((JDBCExtractionNamespace)extractionNamespace, map, lookupService);
-        } else if(extractionNamespace instanceof RocksDBExtractionNamespace) {
+        if (extractionNamespace instanceof JDBCExtractionNamespace) {
+            return new JDBCLookupExtractor((JDBCExtractionNamespace) extractionNamespace, map, lookupService);
+        } else if (extractionNamespace instanceof RocksDBExtractionNamespace) {
             return new RocksDBLookupExtractor((RocksDBExtractionNamespace) extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory, serviceEmitter);
+        } else if (extractionNamespace instanceof MongoExtractionNamespace) {
+            return new MongoLookupExtractor((MongoExtractionNamespace) extractionNamespace, map, lookupService);
         } else {
 //            return new MapLookupExtractor(map, false);
             return null;
@@ -430,7 +402,6 @@ public abstract class MahaExtractionCacheManager<U>
      *
      * @param namespaceKey The namespace to swap the cache into
      * @param cacheKey     The cacheKey that contains the data of interest
-     *
      * @return true if old data was cleared. False if no old data was found
      */
     protected abstract boolean swapAndClearCache(String namespaceKey, String cacheKey);
@@ -439,7 +410,6 @@ public abstract class MahaExtractionCacheManager<U>
      * Return a ConcurrentMap with the specified ID (either namespace's name or a cache key ID)
      *
      * @param namespaceOrCacheKey Either a namespace or cache key should be acceptable here.
-     *
      * @return A ConcurrentMap<String, String> that is backed by the impl which implements this method.
      */
     public abstract ConcurrentMap<String, U> getCacheMap(String namespaceOrCacheKey);
@@ -448,13 +418,10 @@ public abstract class MahaExtractionCacheManager<U>
      * Clears out resources used by the namespace such as threads. Implementations may override this and call super.delete(...) if they have resources of their own which need cleared.
      *
      * @param ns The namespace to be deleted
-     *
      * @return True if a deletion occurred, false if no deletion occurred.
-     *
      * @throws ISE if there is an error cancelling the namespace's future task
      */
-    public boolean delete(final String ns)
-    {
+    public boolean delete(final String ns) {
         final NamespaceImplData implDatum = implData.get(ns);
         if (implDatum == null) {
             log.debug("Found no running cache for [%s]", ns);
@@ -471,8 +438,7 @@ public abstract class MahaExtractionCacheManager<U>
         }
     }
 
-    public String getVersion(String namespace)
-    {
+    public String getVersion(String namespace) {
         if (namespace == null) {
             return null;
         }
@@ -483,8 +449,7 @@ public abstract class MahaExtractionCacheManager<U>
         return implDatum.latestVersion;
     }
 
-    public Collection<String> getKnownIDs()
-    {
+    public Collection<String> getKnownIDs() {
         return implData.keySet();
     }
 

@@ -13,7 +13,7 @@ import com.metamx.common.ISE;
 import com.metamx.common.StringUtils;
 import com.metamx.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaExtractionCacheManager;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaNamespaceExtractionCacheManager;
 import io.druid.query.lookup.LookupExtractor;
 import io.druid.query.lookup.LookupExtractorFactory;
 import io.druid.query.lookup.LookupIntrospectHandler;
@@ -39,7 +39,7 @@ public class MahaLookupExtractorFactory implements LookupExtractorFactory
 
     private volatile boolean started = false;
     private final ReadWriteLock startStopSync = new ReentrantReadWriteLock();
-    private final MahaExtractionCacheManager manager;
+    private final MahaNamespaceExtractionCacheManager manager;
     private final LookupIntrospectHandler lookupIntrospectHandler;
     private final ExtractionNamespace extractionNamespace;
     private final long firstCacheTimeout;
@@ -52,7 +52,7 @@ public class MahaLookupExtractorFactory implements LookupExtractorFactory
             @JsonProperty("extractionNamespace") ExtractionNamespace extractionNamespace,
             @JsonProperty("firstCacheTimeout") long firstCacheTimeout,
             @JsonProperty("injective") boolean injective,
-            @JacksonInject final MahaExtractionCacheManager manager
+            @JacksonInject final MahaNamespaceExtractionCacheManager manager
     )
     {
         this.extractionNamespace = Preconditions.checkNotNull(
@@ -70,7 +70,7 @@ public class MahaLookupExtractorFactory implements LookupExtractorFactory
     @VisibleForTesting
     public MahaLookupExtractorFactory(
             ExtractionNamespace extractionNamespace,
-            MahaExtractionCacheManager manager
+            MahaNamespaceExtractionCacheManager manager
     )
     {
         this(extractionNamespace, 60000, false, manager);

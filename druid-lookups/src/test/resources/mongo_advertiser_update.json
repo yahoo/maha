@@ -1,0 +1,29 @@
+[
+  {
+    "_id": {
+      "$oid": "5ad10906fc7b6ecac8d41080"
+    },
+    "name": "advertiser3",
+    "currency": "USD",
+    "status": "ON",
+    "updated_at": 1543652001
+  },
+  {
+    "_id": {
+      "$oid": "5ad10906fc7b6ecac8d41081"
+    },
+    "name": "advertiser1",
+    "currency": "INR",
+    "status": "OFF",
+    "updated_at": 1543652001
+  },
+  {
+    "_id": {
+      "$oid": "5ad10906fc7b6ecac8d41082"
+    },
+    "name": "advertiser2",
+    "currency": "CAD",
+    "status": "OFF",
+    "updated_at": 1533651008
+  }
+]

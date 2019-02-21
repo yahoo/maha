@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.druid.metadata.MetadataStorageConnectorConfig;
 import org.joda.time.Period;
@@ -16,10 +17,10 @@ import javax.validation.constraints.NotNull;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Objects;
 
 @JsonTypeName("mahajdbc")
-public class JDBCExtractionNamespace implements ExtractionNamespace
-{
+public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespace {
     @JsonProperty
     private final MetadataStorageConnectorConfig connectorConfig;
     @JsonProperty
@@ -29,7 +30,7 @@ public class JDBCExtractionNamespace implements ExtractionNamespace
     @JsonProperty
     private final Period pollPeriod;
     @JsonProperty
-    private final ArrayList<String> columnList;
+    private final ImmutableList<String> columnList;
     @JsonProperty
     private final String primaryKeyColumn;
     @JsonProperty
@@ -39,32 +40,23 @@ public class JDBCExtractionNamespace implements ExtractionNamespace
 
     private boolean firstTimeCaching = true;
     private Timestamp previousLastUpdateTimestamp;
-    private final Map<String, Integer> columnIndexMap;
+    private final ImmutableMap<String, Integer> columnIndexMap;
 
     @JsonCreator
     public JDBCExtractionNamespace(
-            @NotNull @JsonProperty(value = "connectorConfig", required = true)
-            final MetadataStorageConnectorConfig connectorConfig,
-            @NotNull @JsonProperty(value = "table", required = true)
-            final String table,
-            @NotNull @JsonProperty(value = "columnList", required = true)
-                    final ArrayList<String> columnList,
-            @NotNull @JsonProperty(value = "primaryKeyColumn", required = true)
-                    final String primaryKeyColumn,
-            @Nullable @JsonProperty(value = "tsColumn", required = false)
-            final String tsColumn,
-            @Min(0) @Nullable @JsonProperty(value = "pollPeriod", required = false)
-            final Period pollPeriod,
-            @JsonProperty(value = "cacheEnabled", required = false)
-            final boolean cacheEnabled,
-            @NotNull @JsonProperty(value = "lookupName", required = true)
-            final String lookupName
-    )
-    {
+            @NotNull @JsonProperty(value = "connectorConfig", required = true) final MetadataStorageConnectorConfig connectorConfig,
+            @NotNull @JsonProperty(value = "table", required = true) final String table,
+            @NotNull @JsonProperty(value = "columnList", required = true) final ArrayList<String> columnList,
+            @NotNull @JsonProperty(value = "primaryKeyColumn", required = true) final String primaryKeyColumn,
+            @Nullable @JsonProperty(value = "tsColumn", required = false) final String tsColumn,
+            @Min(0) @Nullable @JsonProperty(value = "pollPeriod", required = false) final Period pollPeriod,
+            @JsonProperty(value = "cacheEnabled", required = false) final boolean cacheEnabled,
+            @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName
+    ) {
         this.connectorConfig = Preconditions.checkNotNull(connectorConfig, "connectorConfig");
         Preconditions.checkNotNull(connectorConfig.getConnectURI(), "connectorConfig.connectURI");
         this.table = Preconditions.checkNotNull(table, "table");
-        this.columnList = Preconditions.checkNotNull(columnList, "columnList");
+        this.columnList = ImmutableList.copyOf(Preconditions.checkNotNull(columnList, "columnList"));
         this.primaryKeyColumn = Preconditions.checkNotNull(primaryKeyColumn, "primaryKeyColumn");
         this.tsColumn = tsColumn;
         this.pollPeriod = pollPeriod == null ? new Period(0L) : pollPeriod;
@@ -72,7 +64,7 @@ public class JDBCExtractionNamespace implements ExtractionNamespace
         this.lookupName = lookupName;
         int index = 0;
         ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
-        for(String col : columnList) {
+        for (String col : columnList) {
             builder.put(col, index);
             index += 1;
         }
@@ -80,23 +72,25 @@ public class JDBCExtractionNamespace implements ExtractionNamespace
     }
 
     public int getColumnIndex(String valueColumn) {
-        if(columnIndexMap != null && valueColumn != null && columnIndexMap.containsKey(valueColumn)) {
+        if (columnIndexMap != null && valueColumn != null && columnIndexMap.containsKey(valueColumn)) {
             return columnIndexMap.get(valueColumn);
         }
         return -1;
     }
 
-    public MetadataStorageConnectorConfig getConnectorConfig()
-    {
+    public ImmutableMap<String, Integer> getColumnIndexMap() {
+        return columnIndexMap;
+    }
+
+    public MetadataStorageConnectorConfig getConnectorConfig() {
         return connectorConfig;
     }
 
-    public String getTable()
-    {
+    public String getTable() {
         return table;
     }
 
-    public ArrayList<String> getColumnList() {
+    public ImmutableList<String> getColumnList() {
         return columnList;
     }
 
@@ -104,8 +98,7 @@ public class JDBCExtractionNamespace implements ExtractionNamespace
         return primaryKeyColumn;
     }
 
-    public String getTsColumn()
-    {
+    public String getTsColumn() {
         return tsColumn;
     }
 
@@ -114,8 +107,7 @@ public class JDBCExtractionNamespace implements ExtractionNamespace
     }
 
     @Override
-    public long getPollMs()
-    {
+    public long getPollMs() {
         return pollPeriod.toStandardDuration().getMillis();
     }
 
@@ -141,62 +133,39 @@ public class JDBCExtractionNamespace implements ExtractionNamespace
     }
 
     @Override
-    public String toString()
-    {
-        return String.format(
-                "JDBCExtractionNamespace = { connectorConfig = { %s }, table = %s, primaryKeyColumn = %s, columnList = %s, tsColumn = %s, pollPeriod = %s, lookupName = %s}",
-                connectorConfig.toString(),
-                table,
-                primaryKeyColumn,
-                columnList,
-                tsColumn,
-                pollPeriod,
-                lookupName
-        );
+    public String toString() {
+        return "JDBCExtractionNamespace{" +
+                "connectorConfig=" + connectorConfig +
+                ", table='" + table + '\'' +
+                ", tsColumn='" + tsColumn + '\'' +
+                ", pollPeriod=" + pollPeriod +
+                ", columnList=" + columnList +
+                ", primaryKeyColumn='" + primaryKeyColumn + '\'' +
+                ", cacheEnabled=" + cacheEnabled +
+                ", lookupName='" + lookupName + '\'' +
+                ", firstTimeCaching=" + firstTimeCaching +
+                ", previousLastUpdateTimestamp=" + previousLastUpdateTimestamp +
+                '}';
     }
 
     @Override
-    public boolean equals(Object o)
-    {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         JDBCExtractionNamespace that = (JDBCExtractionNamespace) o;
-
-        if (!columnList.equals(that.columnList)) {
-            return false;
-        }
-        if (!table.equals(that.table)) {
-            return false;
-        }
-        if (!primaryKeyColumn.equals(that.primaryKeyColumn)) {
-            return false;
-        }
-        if (tsColumn != null ? !tsColumn.equals(that.tsColumn) : that.tsColumn != null) {
-            return false;
-        }
-        if(!lookupName.equals(that.lookupName)) {
-            return false;
-        }
-        return pollPeriod.equals(that.pollPeriod);
-
+        return isCacheEnabled() == that.isCacheEnabled() &&
+                Objects.equals(getConnectorConfig(), that.getConnectorConfig()) &&
+                Objects.equals(getTable(), that.getTable()) &&
+                Objects.equals(getTsColumn(), that.getTsColumn()) &&
+                Objects.equals(pollPeriod, that.pollPeriod) &&
+                Objects.equals(getColumnList(), that.getColumnList()) &&
+                Objects.equals(getPrimaryKeyColumn(), that.getPrimaryKeyColumn()) &&
+                Objects.equals(getLookupName(), that.getLookupName());
     }
 
     @Override
-    public int hashCode()
-    {
-        int result = connectorConfig.hashCode();
-        result = 31 * result + table.hashCode();
-        result = 31 * result + primaryKeyColumn.hashCode();
-        result = 31 * result + columnList.hashCode();
-        result = 31 * result + (tsColumn != null ? tsColumn.hashCode() : 0);
-        result = 31 * result + lookupName.hashCode();
-        result = 31 * result + pollPeriod.hashCode();
-        return result;
+    public int hashCode() {
+        return Objects.hash(getConnectorConfig(), getTable(), getTsColumn(), pollPeriod, getColumnList(), getPrimaryKeyColumn(), isCacheEnabled(), getLookupName());
     }
 }
 

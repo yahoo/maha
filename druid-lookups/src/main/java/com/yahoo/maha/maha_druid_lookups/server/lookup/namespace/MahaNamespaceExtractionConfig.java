@@ -2,23 +2,26 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.Properties;
-import org.codehaus.jackson.annotate.JsonProperty;
+import javax.annotation.Nullable;
+import javax.validation.constraints.NotNull;
 
 public class MahaNamespaceExtractionConfig {
-  @JsonProperty("kafka")
+  @Nullable @JsonProperty(value = "kafka")
   private Properties kafkaProperties;
 
-  @JsonProperty("service")
+  @Nullable @JsonProperty(value = "service")
   private Properties lookupServiceProperties;
 
-  @JsonProperty("rocksdb")
+  @Nullable @JsonProperty(value = "rocksdb")
   private Properties rocksDBProperties;
 
-  @JsonProperty("schemaFactory")
+  @NotNull @JsonProperty(value = "schemaFactory")
   private String protobufSchemaFactoryClass;
 
-  @JsonProperty("authHeaderFactory")
+  @NotNull @JsonProperty(value = "authHeaderFactory")
   private String authHeaderFactoryClass;
 
   public Properties getKafkaProperties() {

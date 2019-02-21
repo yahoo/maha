@@ -14,7 +14,7 @@ import com.metamx.common.lifecycle.LifecycleStop;
 import com.metamx.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaExtractionCacheManager;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaNamespaceExtractionCacheManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import io.druid.guice.ManageLifecycle;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -54,14 +54,14 @@ public class KafkaManager {
             .setPriority(Thread.MIN_PRIORITY)
             .build());
 
-    private final Provider<MahaExtractionCacheManager> namespaceExtractionCacheManager;
+    private final Provider<MahaNamespaceExtractionCacheManager> namespaceExtractionCacheManager;
 
     private final ProtobufSchemaFactory protobufSchemaFactory;
 
     private KafkaProducer<String, byte[]> kafkaProducer;
 
     @Inject
-    public KafkaManager(Provider<MahaExtractionCacheManager> namespaceExtractionCacheManager,
+    public KafkaManager(Provider<MahaNamespaceExtractionCacheManager> namespaceExtractionCacheManager,
                         final MahaNamespaceExtractionConfig mahaNamespaceExtractionConfig,
                         ProtobufSchemaFactory protobufSchemaFactory) {
         this.kafkaProperties.putAll(mahaNamespaceExtractionConfig.getKafkaProperties());

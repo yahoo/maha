@@ -63,6 +63,7 @@
         <lz4.version>1.4.1</lz4.version>
         <curator.version>4.0.1</curator.version>
         <akka.version>2.5.4</akka.version>
+        <mongo-java-driver.version>3.3.0</mongo-java-driver.version>
     </properties>
 
 

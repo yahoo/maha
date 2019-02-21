@@ -15,8 +15,8 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamesp
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaExtractionCacheManager;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.OnHeapMahaExtractionCacheManager;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaNamespaceExtractionCacheManager;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.OnHeapMahaNamespaceExtractionCacheManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import io.druid.guice.Jerseys;
 import io.druid.guice.JsonConfigProvider;
@@ -32,7 +32,8 @@ import java.util.List;
  */
 public class MahaNamespaceExtractionModule implements DruidModule
 {
-    public static final String TYPE_PREFIX = "druid.lookup.namespace.cache.type";
+    public static final String PREFIX = "druid.lookup.maha.namespace";
+    public static final String TYPE_PREFIX = "druid.lookup.maha.namespace.cache.type";
 
     @Override
     public List<? extends Module> getJacksonModules()
@@ -62,16 +63,16 @@ public class MahaNamespaceExtractionModule implements DruidModule
     @Override
     public void configure(Binder binder)
     {
-        JsonConfigProvider.bind(binder, "druid.lookup.maha.namespace", MahaNamespaceExtractionConfig.class);
+        JsonConfigProvider.bind(binder, PREFIX, MahaNamespaceExtractionConfig.class);
 
         PolyBind
-                .createChoiceWithDefault(binder, TYPE_PREFIX, Key.get(MahaExtractionCacheManager.class), "onHeap")
+                .createChoiceWithDefault(binder, TYPE_PREFIX, Key.get(MahaNamespaceExtractionCacheManager.class), "onHeap")
                 .in(LazySingleton.class);
 
         PolyBind
-                .optionBinder(binder, Key.get(MahaExtractionCacheManager.class))
+                .optionBinder(binder, Key.get(MahaNamespaceExtractionCacheManager.class))
                 .addBinding("onHeap")
-                .to(OnHeapMahaExtractionCacheManager.class)
+                .to(OnHeapMahaNamespaceExtractionCacheManager.class)
                 .in(LazySingleton.class);
 
 

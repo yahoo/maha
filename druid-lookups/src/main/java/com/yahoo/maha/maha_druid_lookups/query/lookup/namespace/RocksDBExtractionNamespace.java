@@ -41,25 +41,17 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
 
     @JsonCreator
     public RocksDBExtractionNamespace(@NotNull @JsonProperty(value = "namespace", required = true)
-                                                 String namespace,
-                                         @NotNull @JsonProperty(value = "rocksDbInstanceHDFSPath", required = true)
-                                         final String rocksDbInstanceHDFSPath,
-                                         @NotNull @JsonProperty(value = "lookupAuditingHDFSPath", required = true)
-                                         final String lookupAuditingHDFSPath,
-                                         @Min(0) @JsonProperty(value = "pollPeriod", required = true)
-                                                 Period pollPeriod,
-                                         @NotNull @JsonProperty(value = "kafkaTopic", required = false)
-                                         final String kafkaTopic,
-                                         @JsonProperty(value = "cacheEnabled", required = false)
-                                         final boolean cacheEnabled,
-                                         @JsonProperty(value = "lookupAuditingEnabled", required = false)
-                                         final boolean lookupAuditingEnabled,
-                                         @NotNull @JsonProperty(value = "lookupName", required = true)
-                                         final String lookupName,
-                                         @Nullable @JsonProperty(value = "tsColumn", required = false)
-                                         final String tsColumn,
-                                         @NotNull @JsonProperty(value = "missingLookupConfig", required = false)
-                                             final MissingLookupConfig missingLookupConfig) {
+                                              String namespace,
+                                      @NotNull @JsonProperty(value = "rocksDbInstanceHDFSPath", required = true) final String rocksDbInstanceHDFSPath,
+                                      @NotNull @JsonProperty(value = "lookupAuditingHDFSPath", required = true) final String lookupAuditingHDFSPath,
+                                      @Min(0) @JsonProperty(value = "pollPeriod", required = true)
+                                              Period pollPeriod,
+                                      @NotNull @JsonProperty(value = "kafkaTopic", required = false) final String kafkaTopic,
+                                      @JsonProperty(value = "cacheEnabled", required = false) final boolean cacheEnabled,
+                                      @JsonProperty(value = "lookupAuditingEnabled", required = false) final boolean lookupAuditingEnabled,
+                                      @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName,
+                                      @Nullable @JsonProperty(value = "tsColumn", required = false) final String tsColumn,
+                                      @NotNull @JsonProperty(value = "missingLookupConfig", required = false) final MissingLookupConfig missingLookupConfig) {
         this.rocksDbInstanceHDFSPath = Preconditions.checkNotNull(rocksDbInstanceHDFSPath, "rocksDbInstanceHDFSPath");
         this.lookupAuditingHDFSPath = Preconditions.checkNotNull(lookupAuditingHDFSPath, "lookupAuditingHDFSPath");
         this.namespace = Preconditions.checkNotNull(namespace, "namespace");
@@ -120,21 +112,25 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         this.lastUpdatedTime = lastUpdatedTime;
     }
 
-    public String getTsColumn()
-    {
+    public String getTsColumn() {
         return tsColumn;
     }
 
     @Override
     public String toString() {
-        return String.format(
-                "RocksDBExtractionNamespace = { namespace = %s, rocksDbInstanceHDFSPath = { %s }, pollPeriod = %s, kafkaTopic = %s, missingLookupConfig = %s }",
-                namespace,
-                rocksDbInstanceHDFSPath,
-                pollPeriod,
-                kafkaTopic,
-                missingLookupConfig
-        );
+        return "RocksDBExtractionNamespace{" +
+                "rocksDbInstanceHDFSPath='" + rocksDbInstanceHDFSPath + '\'' +
+                ", lookupAuditingHDFSPath='" + lookupAuditingHDFSPath + '\'' +
+                ", namespace='" + namespace + '\'' +
+                ", pollPeriod=" + pollPeriod +
+                ", kafkaTopic='" + kafkaTopic + '\'' +
+                ", cacheEnabled=" + cacheEnabled +
+                ", lookupAuditingEnabled=" + lookupAuditingEnabled +
+                ", lookupName='" + lookupName + '\'' +
+                ", tsColumn='" + tsColumn + '\'' +
+                ", missingLookupConfig=" + missingLookupConfig +
+                ", lastUpdatedTime=" + lastUpdatedTime +
+                '}';
     }
 
     @Override
@@ -151,8 +147,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 Objects.equals(kafkaTopic, that.kafkaTopic) &&
                 Objects.equals(lookupName, that.lookupName) &&
                 Objects.equals(tsColumn, that.tsColumn) &&
-                Objects.equals(missingLookupConfig, that.missingLookupConfig) &&
-                Objects.equals(lastUpdatedTime, that.lastUpdatedTime);
+                Objects.equals(missingLookupConfig, that.missingLookupConfig);
     }
 
     @Override
@@ -167,7 +162,6 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 lookupAuditingEnabled,
                 lookupName,
                 tsColumn,
-                missingLookupConfig,
-                lastUpdatedTime);
+                missingLookupConfig);
     }
 }

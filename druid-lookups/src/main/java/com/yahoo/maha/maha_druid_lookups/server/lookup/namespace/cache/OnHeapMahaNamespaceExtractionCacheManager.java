@@ -21,14 +21,14 @@ import java.util.concurrent.locks.Lock;
 /**
  *
  */
-public class OnHeapMahaExtractionCacheManager<U> extends MahaExtractionCacheManager
+public class OnHeapMahaNamespaceExtractionCacheManager<U> extends MahaNamespaceExtractionCacheManager
 {
-    private static final Logger LOG = new Logger(OnHeapMahaExtractionCacheManager.class);
+    private static final Logger LOG = new Logger(OnHeapMahaNamespaceExtractionCacheManager.class);
     private final ConcurrentMap<String, ConcurrentMap<String, U>> mapMap = new ConcurrentHashMap<>();
     private final Striped<Lock> nsLocks = Striped.lock(32);
 
     @Inject
-    public OnHeapMahaExtractionCacheManager(
+    public OnHeapMahaNamespaceExtractionCacheManager(
             final Lifecycle lifecycle,
             final ServiceEmitter emitter,
             final Map<Class<? extends ExtractionNamespace>, ExtractionNamespaceCacheFactory<?,?>> namespaceFunctionFactoryMap
