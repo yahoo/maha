@@ -1596,7 +1596,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     }.run()
 
     assert(result.isFailure, result)
-    assert(result.failed.get.getMessage === "requirement failed: query execution failed with message : ", result)
+    assert(result.failed.get.getMessage === "query execution failed", result)
   }
 
   test("successfully generate fallback query on async request with force engine and execute it when no joins required") {

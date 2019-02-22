@@ -12,6 +12,7 @@ import com.yahoo.maha.core.{ColumnInfo, DimColumnInfo, Engine, FactColumnInfo}
 import com.yahoo.maha.service.RequestCoordinatorResult
 import com.yahoo.maha.service.curators.{Curator, DefaultCurator, RowCountCurator}
 import com.yahoo.maha.service.datasource.{IngestionTimeUpdater, NoopIngestionTimeUpdater}
+import org.json4s.JValue
 import org.slf4j.{Logger, LoggerFactory}
 
 /**
@@ -70,6 +71,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
         , tableName
         , dimCols
         , true
+        , qpr.pagination
       )
       writeDataRows(jsonGenerator, qpr.rowList, rowCountOption, curatorResult.requestModelReference.model.reportingRequest)
     }
@@ -99,6 +101,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
         , tableName
         , dimCols
         , false
+        , qpr.pagination
       )
       writeDataRows(jsonGenerator, qpr.rowList, None, curatorResult.requestModelReference.model.reportingRequest)
       jsonGenerator.writeEndObject() //}
@@ -128,6 +131,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
                           , tableName: String
                           , dimCols: Set[String]
                           , isDefault: Boolean
+                          , pagination: Map[Engine, JValue]
                          ) {
     jsonGenerator.writeFieldName("header") // "header":
     jsonGenerator.writeStartObject() // {
@@ -190,6 +194,17 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
             jsonGenerator.writeString(label)
         }
         jsonGenerator.writeEndArray()
+      }
+      jsonGenerator.writeEndObject()
+    }
+    if(pagination.nonEmpty) {
+      jsonGenerator.writeFieldName("pagination")
+      jsonGenerator.writeStartObject()
+      pagination.foreach {
+        case (engine, jvalue) =>
+          import org.json4s.jackson.JsonMethods._
+          jsonGenerator.writeFieldName(engine.toString)
+          jsonGenerator.writeRawValue(compact(render(jvalue)))
       }
       jsonGenerator.writeEndObject()
     }

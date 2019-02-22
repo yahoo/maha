@@ -7,12 +7,13 @@ import java.util.Date
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.{CompleteRowList, QueryAttributes, QueryPipelineResult, QueryRowList}
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.core.{Engine, OracleEngine, RequestModelResult}
+import com.yahoo.maha.core.{DruidEngine, Engine, OracleEngine, RequestModelResult}
 import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{BaseMahaServiceTest, CuratorInjector, MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
+import org.json4s.JsonAST.{JInt, JObject, JString}
 import org.scalatest.BeforeAndAfterAll
 
 import scala.util.Try
@@ -118,7 +119,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
     rowList.addRow(row)
 
-    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty)
+    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty, Map.empty)
     val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
     val parRequestResult = ParRequestResult(Try(queryPipeline), requestResult, None)
     val requestModelResult = RequestModelResult(query.queryContext.requestModel, None)
@@ -154,7 +155,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     row.addValue("Total Marks", 99)
     rowList.addRow(row)
 
-    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty)
+    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty, Map.empty)
     val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
     val parRequestResult = ParRequestResult(Try(queryPipeline), requestResult, None)
     val requestModelResult = RequestModelResult(query.queryContext.requestModel, None)
@@ -195,7 +196,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     row.addValue("Total Marks", 99)
     rowList.addRow(row)
 
-    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty)
+    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty, Map.empty)
     val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
     val parRequestResult = ParRequestResult(Try(queryPipeline), requestResult, None)
     val requestModelResult = RequestModelResult(query.queryContext.requestModel, None)
@@ -236,7 +237,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     row.addValue(QueryRowList.ROW_COUNT_ALIAS, 101)
     rowList.addRow(row)
 
-    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty)
+    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty, Map.empty)
     val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
     val parRequestResult = ParRequestResult(Try(queryPipeline), requestResult, None)
     val requestModelResult = RequestModelResult(query.queryContext.requestModel, None)
@@ -273,7 +274,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     row.addValue("Total Marks", 99)
     rowList.addRow(row)
 
-    val queryPipelineResult = QueryPipelineResult(fd_queryPipeline, fd_queryChain, rowList, QueryAttributes.empty)
+    val queryPipelineResult = QueryPipelineResult(fd_queryPipeline, fd_queryChain, rowList, QueryAttributes.empty, Map(DruidEngine -> JObject("pagingIdentifiers" -> JObject("wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9" -> JInt(4)))))
     val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
     val parRequestResult = ParRequestResult(Try(fd_queryPipeline), requestResult, None)
     val requestModelResult = RequestModelResult(fd_query.queryContext.requestModel, None)
@@ -296,6 +297,6 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
     stringStream.close()
-    assert(result === """{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200,"debug":{"testName":"test1","labels":["lb1","lb2","lb3"]}},"rows":[[123,234,345,99,"Test Result",1]],"curators":{}}""")
+    assert(result === """{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200,"debug":{"testName":"test1","labels":["lb1","lb2","lb3"]},"pagination":{"Druid":{"pagingIdentifiers":{"wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9":4}}}},"rows":[[123,234,345,99,"Test Result",1]],"curators":{}}""")
   }
 }
