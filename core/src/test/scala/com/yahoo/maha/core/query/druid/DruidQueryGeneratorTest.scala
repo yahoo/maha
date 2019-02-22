@@ -2292,4 +2292,173 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     result should fullyMatch regex json
   }
 
+  test("Druid query should be generated successfully with select query type") {
+    val jsonString = s"""{
+                          "queryType": "select",
+                          "cube": "k_stats_select",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":5
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val json= """\{"queryType":"select","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"descending":false,"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"\},\{"type":"extraction","dimension":"__time","outputName":"Day","outputType":"STRING","extractionFn":\{"type":"timeFormat","format":"YYYY-MM-dd HH","timeZone":"UTC","granularity":\{"type":"none"\},"asMillis":false\}\}\],"metrics":\["impressions"\],"virtualColumns":\[\],"pagingSpec":\{"pagingIdentifiers":\{\},"threshold":5,"fromNext":true\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"timeout":5000,"queryId":".*"\}\}"""
+    result should fullyMatch regex json
+  }
+
+  test("Druid query should be generated successfully with select query type with pagination") {
+    val jsonString = s"""{
+                          "queryType": "select",
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "paginationStartIndex":5,
+                          "rowsPerPage":5,
+                          "pagination": {
+                            "druid": {
+                              "pagingIdentifiers" : {
+                                "wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9" : 5
+                              }
+                            }
+                          }
+
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val json= """\{"queryType":"select","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"descending":false,"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\}\]\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"\}\],"metrics":\["impressions"\],"virtualColumns":\[],"pagingSpec":\{"pagingIdentifiers":\{"wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9":5\},"threshold":5,"fromNext":true\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"timeout":5000,"queryId":".*"\}\}"""
+    result should fullyMatch regex json
+  }
+
+  test("Druid query should fail to generate with select query type when sort by requested") {
+    val jsonString = s"""{
+                          "queryType": "select",
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":5
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("query pipeline should fail"))
+    assert(queryPipelineTry.failed.toOption.get.getMessage.contains("druid select query type does not support sort by functionality!"))
+  }
+
+  test("Druid query should fail to generate with select query type when derived fact requested") {
+    val jsonString = s"""{
+                          "queryType": "select",
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Derived Pricing Type"},
+                            {"field": "CTR"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":5
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("query pipeline should fail"))
+    assert(queryPipelineTry.failed.toOption.get.getMessage.contains("druid select query does not support derived columns : CTR"))
+  }
+
+  test("Druid query should fail to generate with select query type when filter on derived fact requested") {
+    val jsonString = s"""{
+                          "queryType": "select",
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Derived Pricing Type"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "CTR", "operator": "=", "value": "1.25"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":5
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("query pipeline should fail"))
+    assert(queryPipelineTry.failed.toOption.get.getMessage.contains("druid select query type does not support filter on derived columns: CTR"))
+  }
+
+  test("Druid query should fail to generate with select query type when using druid for dimension joins") {
+    val jsonString = s"""{
+                          "queryType": "select",
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Campaign ID"},
+                            {"field": "Campaign Name"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":5
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, AdvertiserSchema)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry, revision = Option.apply(1))
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+
+    assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("query pipeline should fail"))
+    assert(queryPipelineTry.failed.toOption.get.getMessage.contains("requirement failed: druid select query type does not support druid lookups!"))
+  }
 }

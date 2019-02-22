@@ -10,6 +10,7 @@ import com.yahoo.maha.core.fact.{FactBestCandidate, FactView, ViewBaseTable}
 import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
 import com.yahoo.maha.report.RowCSVWriterProvider
 import grizzled.slf4j.Logging
+import org.json4s.JValue
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ArrayBuffer
@@ -19,14 +20,14 @@ import scala.util.{Failure, Try}
 /**
   * Created by jians on 10/22/15.
   */
-case class QueryPipelineResult(queryPipeline:QueryPipeline, queryChain: QueryChain, rowList: RowList, queryAttributes: QueryAttributes)
+case class QueryPipelineResult(queryPipeline: QueryPipeline, queryChain: QueryChain, rowList: RowList, queryAttributes: QueryAttributes, pagination: Map[Engine, JValue])
 
 trait QueryPipeline {
   def queryChain: QueryChain
 
   def fallbackQueryChainOption: Option[QueryChain]
 
-  def requestModel : RequestModel
+  def requestModel: RequestModel
 
   def factBestCandidate: Option[FactBestCandidate]
 
@@ -46,9 +47,14 @@ object QueryPipeline extends Logging {
   val dimDrivenPartialRowList: Query => RowList = (q) => new DimDrivenPartialRowList(q.queryContext.indexAliasOption.get, q)
   val dimDrivenFactOrderedPartialRowList: Query => RowList = (q) => new DimDrivenFactOrderedPartialRowList(q.queryContext.indexAliasOption.get, q)
   val factDrivenPartialRowList: Query => RowList = (q) => new FactDrivenPartialRowList(q.queryContext.indexAliasOption.get, q)
-  def unionViewPartialRowList(queryList: List[Query]) : Query => RowList = {
+
+  def unionViewPartialRowList(queryList: List[Query]): Query => RowList = {
     require(queryList.forall(q => q.queryContext.isInstanceOf[FactualQueryContext] && q.queryContext.asInstanceOf[FactualQueryContext].factBestCandidate.fact.isInstanceOf[ViewBaseTable])
-      , s"UnionViewPartialRowList only supports fact query context with fact views : ${queryList.map{_.queryContext.getClass.getSimpleName}}")
+      , s"UnionViewPartialRowList only supports fact query context with fact views : ${
+        queryList.map {
+          _.queryContext.getClass.getSimpleName
+        }
+      }")
     val constAliasToValueMapList: List[Map[String, String]] = queryList.map {
       q =>
         val bestFact = q.queryContext.asInstanceOf[FactualQueryContext].factBestCandidate
@@ -56,9 +62,9 @@ object QueryPipeline extends Logging {
         val constantColNameToValueMap = {
           val tempMap = new mutable.HashMap[String, String]()
           bestFact.fact.asInstanceOf[ViewBaseTable].constantColNameToValueMap.foreach {
-            entry=>
+            entry =>
               if (bestFact.publicFact.nameToAliasColumnMap.contains(entry._1)) {
-                tempMap ++= bestFact.publicFact.nameToAliasColumnMap(entry._1).map(alias=> alias-> entry._2).toMap
+                tempMap ++= bestFact.publicFact.nameToAliasColumnMap(entry._1).map(alias => alias -> entry._2).toMap
               }
           }
           tempMap.toMap
@@ -66,7 +72,7 @@ object QueryPipeline extends Logging {
         constantColNameToValueMap
     }
 
-    val result : Query => RowList = (q) => {
+    val result: Query => RowList = (q) => {
       // we already checked for existance of bestCandidate
       val requestModel = q.queryContext.requestModel
       q.queryContext match {
@@ -111,25 +117,25 @@ case class QueryPipelineWithFallback(queryChain: QueryChain
     val stats = new EngineQueryStats
     Try {
       val result = queryChain.execute(executorContext, rowListFn, QueryAttributes.empty, stats)
-      QueryPipelineResult(this, queryChain, result._1, result._2)
+      QueryPipelineResult(this, queryChain, result.rowList, result.queryAttributes, result.pagination)
     }.recover {
       case throwable =>
         QueryPipelineWithFallback.logger.error("Primary query chain failed, recovering with fall back", throwable)
         val result = fallbackQueryChain.execute(executorContext, fallbackRowListFn, QueryAttributes.empty, stats)
-        QueryPipelineResult(this, fallbackQueryChain, result._1, result._2)
+        QueryPipelineResult(this, fallbackQueryChain, result.rowList, result.queryAttributes, result.pagination)
     }
   }
 
   def execute(executorContext: QueryExecutorContext, queryAttributes: QueryAttributes): Try[QueryPipelineResult] = {
     val stats = new EngineQueryStats
-    Try{
+    Try {
       val result = queryChain.execute(executorContext, rowListFn, queryAttributes, stats)
-      QueryPipelineResult(this, queryChain, result._1, result._2)
+      QueryPipelineResult(this, queryChain, result.rowList, result.queryAttributes, result.pagination)
     }.recover {
       case throwable =>
         QueryPipelineWithFallback.logger.error("Primary query chain failed, recovering with fall back", throwable)
         val result = fallbackQueryChain.execute(executorContext, fallbackRowListFn, queryAttributes, stats)
-        QueryPipelineResult(this, fallbackQueryChain, result._1, result._2)
+        QueryPipelineResult(this, fallbackQueryChain, result.rowList, result.queryAttributes, result.pagination)
     }
   }
 
@@ -151,7 +157,7 @@ case class DefaultQueryPipeline(queryChain: QueryChain
     val stats = new EngineQueryStats
     Try {
       val result = queryChain.execute(executorContext, rowListFn, queryAttributes, stats)
-      QueryPipelineResult(this, queryChain, result._1, result._2)
+      QueryPipelineResult(this, queryChain, result.rowList, result.queryAttributes, result.pagination)
     }
   }
 
@@ -161,6 +167,7 @@ case class DefaultQueryPipeline(queryChain: QueryChain
 object QueryPipelineBuilder {
   val logger = LoggerFactory.getLogger(classOf[QueryPipelineBuilder])
 }
+
 class QueryPipelineBuilder(queryChain: QueryChain
                            , factBestCandidate: Option[FactBestCandidate]
                            , bestDimCandidates: SortedSet[DimensionBundle]
@@ -168,12 +175,13 @@ class QueryPipelineBuilder(queryChain: QueryChain
                           ) {
 
   import QueryPipelineBuilder._
+
   private[this] var rowListFn: Query => RowList = QueryPipeline.completeRowList
   private[this] var fallbackRowListFn: Option[Query => RowList] = None
   private[this] var fallbackQueryChain: Option[QueryChain] = None
 
   def requestDebug(msg: => String): Unit = {
-    if(debugEnabled) {
+    if (debugEnabled) {
       logger.info(msg)
     }
   }
@@ -222,22 +230,24 @@ class EngineQueryStats {
 
 case class EngineQueryStat(engine: Engine, startTime: Long, endTime: Long, tableName: String)
 
+case class QueryChainExecutionResult(rowList: RowList, queryAttributes: QueryAttributes, pagination: Map[Engine, JValue])
+
 sealed trait QueryChain {
   def drivingQuery: Query
 
-  def execute(executorContext: QueryExecutorContext, rowListFn: Query => RowList, queryAttributes: QueryAttributes, engineQueryStats: EngineQueryStats): (RowList, QueryAttributes)
+  def execute(executorContext: QueryExecutorContext, rowListFn: Query => RowList, queryAttributes: QueryAttributes, engineQueryStats: EngineQueryStats): QueryChainExecutionResult
 
   def subsequentQueryList: IndexedSeq[Query]
 }
 
 object QueryChain {
-  val logger : Logger = LoggerFactory.getLogger(classOf[QueryChain])
+  val logger: Logger = LoggerFactory.getLogger(classOf[QueryChain])
 }
 
 case class SingleEngineQuery(drivingQuery: Query) extends QueryChain {
   val subsequentQueryList: IndexedSeq[Query] = IndexedSeq.empty
 
-  def execute(executorContext: QueryExecutorContext, rowListFn: Query => RowList, queryAttributes: QueryAttributes, engineQueryStats: EngineQueryStats): (RowList, QueryAttributes) = {
+  def execute(executorContext: QueryExecutorContext, rowListFn: Query => RowList, queryAttributes: QueryAttributes, engineQueryStats: EngineQueryStats): QueryChainExecutionResult = {
     val executor = executorContext.getExecutor(drivingQuery.engine)
     val drivingQueryStartTime = System.currentTimeMillis()
     val rowList = rowListFn(drivingQuery)
@@ -248,8 +258,11 @@ case class SingleEngineQuery(drivingQuery: Query) extends QueryChain {
       val drivingQueryEndTime = System.currentTimeMillis()
       val queryStats = EngineQueryStat(drivingQuery.engine, drivingQueryStartTime, drivingQueryEndTime, drivingQuery.tableName)
       engineQueryStats.addStat(queryStats)
-      require(!result.isFailure, s"query execution failed with message : ${result.message}")
-      (result.rowList, result.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+      result.requireSuccess("query execution failed")
+      QueryChainExecutionResult(result.rowList
+        , result.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build
+        , result.pagination.fold(Map.empty[Engine, JValue])(json => Map(drivingQuery.engine -> json))
+      )
     }
   }
 }
@@ -268,7 +281,7 @@ case class MultiEngineQuery(drivingQuery: Query,
 
   def subsequentQueryList: IndexedSeq[Query] = subQueryList.toIndexedSeq
 
-  def execute(executorContext: QueryExecutorContext, rowListFn: Query => RowList, queryAttributes: QueryAttributes, engineQueryStats: EngineQueryStats): (RowList, QueryAttributes) = {
+  def execute(executorContext: QueryExecutorContext, rowListFn: Query => RowList, queryAttributes: QueryAttributes, engineQueryStats: EngineQueryStats): QueryChainExecutionResult = {
     val executorsMap = engines.map { engine =>
       val executor = executorContext.getExecutor(engine)
       require(executor.isDefined, s"Executor not found for engine=$engine")
@@ -283,7 +296,7 @@ case class MultiEngineQuery(drivingQuery: Query,
       val drivingResult = executorsMap(drivingQuery.engine).execute(drivingQuery, rowList.asInstanceOf[IndexedRowList], queryAttributes)
       val drivingQueryEndTime = System.currentTimeMillis()
       engineQueryStats.addStat(EngineQueryStat(drivingQuery.engine, drivingQueryStartTime, drivingQueryEndTime, drivingQuery.tableName))
-      if (drivingResult.rowList.keys.isEmpty) drivingResult else subsequentQueries.foldLeft(drivingResult) {
+      if (drivingResult.isFailure || drivingResult.rowList.keys.isEmpty) drivingResult else subsequentQueries.foldLeft(drivingResult) {
         (previousResult, subsequentQuery) =>
           val query = subsequentQuery(previousResult.rowList, previousResult.queryAttributes)
           query match {
@@ -301,7 +314,7 @@ case class MultiEngineQuery(drivingQuery: Query,
     }
 
     // result._1.isEmpty returns of the updatedRows.isEmpty
-    if (result.rowList.isUpdatedRowListEmpty && fallbackQueryOption.isDefined) {
+    if ((result.isFailure || result.rowList.isUpdatedRowListEmpty) && fallbackQueryOption.isDefined) {
       QueryChain.logger.info("No data from driving query, running fall back query")
       val (query, rowList) = fallbackQueryOption.get
       subQueryList += query
@@ -310,12 +323,18 @@ case class MultiEngineQuery(drivingQuery: Query,
         val newResult = executorsMap(query.engine).execute(query, rowList, result.queryAttributes)
         val queryEndTime = System.currentTimeMillis()
         engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime, query.tableName))
-        require(!newResult.isFailure, s"fallback query execution failed with message : ${newResult.message}")
-        (newResult.rowList, newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+        newResult.requireSuccess("fallback query execution failed")
+        QueryChainExecutionResult(newResult.rowList
+          , newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build
+          , newResult.pagination.fold(Map.empty[Engine, JValue])(json => Map(query.engine -> json))
+        )
       }
     } else {
-      require(!result.isFailure, s"query execution failed with message : ${result.message}")
-      (result.rowList, result.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+      result.requireSuccess("query execution failed")
+      QueryChainExecutionResult(result.rowList
+        , result.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build
+        , result.pagination.fold(Map.empty[Engine, JValue])(json => Map(drivingQuery.engine -> json))
+      )
     }
   }
 }
@@ -326,12 +345,12 @@ case class MultiEngineQuery(drivingQuery: Query,
  */
 case class MultiQuery(unionQueryList: List[Query], fallbackQueryOption: Option[(Query, RowList)] = None) extends QueryChain {
   // Driving query is not actually driving the result here
-  val drivingQuery  = unionQueryList.head
+  val drivingQuery: Query = unionQueryList.head
   val subsequentQueryList: IndexedSeq[Query] = unionQueryList.drop(1).toIndexedSeq
 
-  def execute(executorContext: QueryExecutorContext, rowListFn: Query => RowList, queryAttributes: QueryAttributes, engineQueryStats: EngineQueryStats): (RowList, QueryAttributes) = {
+  def execute(executorContext: QueryExecutorContext, rowListFn: Query => RowList, queryAttributes: QueryAttributes, engineQueryStats: EngineQueryStats): QueryChainExecutionResult = {
     unionQueryList.foreach {
-      q=>
+      q =>
         val executorOption = executorContext.getExecutor(q.engine)
         require(executorOption.isDefined, s"Executor not found for engine=${q.engine}, query=$q")
     }
@@ -342,32 +361,36 @@ case class MultiQuery(unionQueryList: List[Query], fallbackQueryOption: Option[(
     val rowList = rowListFn(firstQuery)
 
     val result = rowList.withLifeCycle {
-      val firstResult = executor.execute(firstQuery, rowList, queryAttributes)  //it is just first seed to MultiQuery
+      val firstResult = executor.execute(firstQuery, rowList, queryAttributes) //it is just first seed to MultiQuery
       val drivingQueryEndTime = System.currentTimeMillis()
       engineQueryStats.addStat(EngineQueryStat(firstQuery.engine, drivingQueryStartTime, drivingQueryEndTime, firstQuery.tableName))
 
-      unionQueryList.filter(q=> q!=firstQuery).foldLeft(firstResult) {
-        (previousResult, subsequentQuery) =>
-          val query = subsequentQuery
-          query match {
-            case NoopQuery =>
-              previousResult
-            case _ =>
-              val subsequentQueryStartTime = System.currentTimeMillis()
+      if (firstResult.isFailure) firstResult else {
+        unionQueryList.filter(q => q != firstQuery).foldLeft(firstResult) {
+          (previousResult, subsequentQuery) =>
+            val query = subsequentQuery
+            query match {
+              case NoopQuery =>
+                previousResult
+              case _ =>
+                if (previousResult.isFailure) previousResult else {
+                  val subsequentQueryStartTime = System.currentTimeMillis()
 
-              val result = {
-                //Step to trigger the use of the next ConstAliasToValueMap out of the list created at init
-                previousResult.rowList.nextStage()
-                executor.execute(query, previousResult.rowList, previousResult.queryAttributes)
-              }
-              val subsequentQueryEndTime = System.currentTimeMillis()
-              engineQueryStats.addStat(EngineQueryStat(query.engine, subsequentQueryStartTime, subsequentQueryEndTime, query.tableName))
-              result
-          }
+                  val result = {
+                    //Step to trigger the use of the next ConstAliasToValueMap out of the list created at init
+                    previousResult.rowList.nextStage()
+                    executor.execute(query, previousResult.rowList, previousResult.queryAttributes)
+                  }
+                  val subsequentQueryEndTime = System.currentTimeMillis()
+                  engineQueryStats.addStat(EngineQueryStat(query.engine, subsequentQueryStartTime, subsequentQueryEndTime, query.tableName))
+                  result
+                }
+            }
+        }
       }
     }
 
-    if (result.rowList.isEmpty && fallbackQueryOption.isDefined) {
+    if ((result.isFailure || result.rowList.isEmpty) && fallbackQueryOption.isDefined) {
       QueryChain.logger.info("No data from driving query, running fall back query for MultiQuery")
       val (query, rowList) = fallbackQueryOption.get
       rowList.withLifeCycle {
@@ -377,12 +400,18 @@ case class MultiQuery(unionQueryList: List[Query], fallbackQueryOption: Option[(
         val newResult = executor.execute(query, rowList, result.queryAttributes)
         val queryEndTime = System.currentTimeMillis()
         engineQueryStats.addStat(EngineQueryStat(query.engine, queryStartTime, queryEndTime, query.tableName))
-        require(!newResult.isFailure, s"fallback query execution failed with message : ${newResult.message}")
-        (newResult.rowList, newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+        newResult.requireSuccess("fallback query execution failed")
+        QueryChainExecutionResult(newResult.rowList
+          , newResult.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build
+          , newResult.pagination.fold(Map.empty[Engine, JValue])(json => Map(query.engine -> json))
+        )
       }
     } else {
-      require(!result.isFailure, s"query execution failed with message : ${result.message}")
-      (result.rowList, result.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build)
+      result.requireSuccess("query execution failed")
+      QueryChainExecutionResult(result.rowList
+        , result.queryAttributes.toBuilder.addAttribute(QueryAttributes.QueryStats, QueryStatsAttribute(engineQueryStats)).build
+        , result.pagination.fold(Map.empty[Engine, JValue])(json => Map(drivingQuery.engine -> json))
+      )
     }
   }
 }
@@ -394,7 +423,7 @@ trait QueryPipelineFactory {
 
   def from(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]]
 
-  def fromBucketSelector(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector,  bucketParams: BucketParams): Tuple3[Try[QueryPipeline], Option[Try[QueryPipeline]], Option[Try[QueryPipeline]]]
+  def fromBucketSelector(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector, bucketParams: BucketParams): Tuple3[Try[QueryPipeline], Option[Try[QueryPipeline]], Option[Try[QueryPipeline]]]
 
   def fromBucketSelector(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketSelector: BucketSelector, bucketParams: BucketParams): Tuple2[Try[QueryPipeline], Option[Try[QueryPipeline]]]
 
@@ -404,7 +433,7 @@ trait QueryPipelineFactory {
 
   def builder(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes): Tuple2[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]]]
 
-  def builder(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector,  bucketParams: BucketParams): Tuple3[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]], Option[Try[QueryPipelineBuilder]]]
+  def builder(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector, bucketParams: BucketParams): Tuple3[Try[QueryPipelineBuilder], Option[Try[QueryPipelineBuilder]], Option[Try[QueryPipelineBuilder]]]
 
   protected def findBestFactCandidate(requestModel: RequestModel, forceDisqualifySet: Set[Engine] = Set.empty, dimEngines: Set[Engine]): FactBestCandidate
 
@@ -415,6 +444,7 @@ trait QueryPipelineFactory {
 object DefaultQueryPipelineFactory extends Logging {
 
   val druidMultiQueryEngineList: Seq[Engine] = List(OracleEngine)
+
   private[this] def aLessThanBByLevelAndCostAndCardinality(a: (String, Engine, Long, Int, Int), b: (String, Engine, Long, Int, Int)): Boolean = {
     if (a._2 == b._2) {
       if (a._4 == b._4) {
@@ -423,7 +453,7 @@ object DefaultQueryPipelineFactory extends Logging {
         a._4 < b._4
       }
     } else {
-      if(a._5 == b._5) {
+      if (a._5 == b._5) {
         a._3 < b._3
       } else {
         a._5 < b._5
@@ -454,7 +484,7 @@ object DefaultQueryPipelineFactory extends Logging {
               if ((requestModel.hasLowCardinalityDimFilters && (requestModel.forceDimDriven || !dimEngines(DruidEngine)) && requestModel.hasDimAndFactOperations)
                 || (!requestModel.forceDimDriven && requestModel.isFactDriven && !hasIndexInOutput && !dimEngines.contains(DruidEngine)) //this does not apply if druid is the only dim candidate
               ) {
-                if(requestModel.isDebugEnabled) {
+                if (requestModel.isDebugEnabled) {
                   info(s"hasLowCardinalityDimFilters=${requestModel.hasLowCardinalityDimFilters} forceDimDriven=${requestModel.forceDimDriven} hasDimAndFactOperations=${requestModel.hasDimAndFactOperations}")
                   info(s"isFactDriven=${requestModel.isFactDriven} hasIndexInOutput=$hasIndexInOutput dimEngines=$dimEngines dimCandidates=${requestModel.dimensionsCandidates.map(_.dim.name)}")
                 }
@@ -473,7 +503,7 @@ object DefaultQueryPipelineFactory extends Logging {
               // (ii) request does not have any dim filter/field
               // (iii) explicitly enabled through asyncDruidEnabled and asyncDruidLookupEnabled
               if (dimEngines.contains(DruidEngine) || !(requestModel.hasDimFilters || requestModel.requestCols.filter(c => c.isInstanceOf[DimColumnInfo]).size > 0)) {
-                if(requestModel.isDebugEnabled) {
+                if (requestModel.isDebugEnabled) {
                   info(s"isFactDriven=${requestModel.isFactDriven} forceDisqualifySet=$forceDisqualifySet dimEngines=$dimEngines")
                   info(s"hasDimFilters=${requestModel.hasDimFilters} requestCols=${requestModel.requestCols.filter(c => c.isInstanceOf[DimColumnInfo])}")
                 }
@@ -494,7 +524,7 @@ object DefaultQueryPipelineFactory extends Logging {
             val level = fact.level
             val dimCardinality: Long = requestModel.dimCardinalityEstimate.getOrElse(fact.defaultCardinality)
             val dimCardinalityPreference = requestModel.bestCandidates.get.publicFact.dimCardinalityEnginePreference(dimCardinality).get(requestModel.requestType).flatMap(_.get(engine)).getOrElse(Int.MaxValue)
-            if(requestModel.isDebugEnabled) {
+            if (requestModel.isDebugEnabled) {
               info(s"fn=$fn engine=$engine cost=${rowcost.costEstimate} level=$level cardinalityPreference=$dimCardinalityPreference")
             }
             (fn, engine, rowcost.costEstimate, level, dimCardinalityPreference)
@@ -505,24 +535,24 @@ object DefaultQueryPipelineFactory extends Logging {
     }
   }
 
-  def findBestDimCandidates(factEngine: Engine, schema: Schema, dimMapping: Map[String, SortedSet[DimensionBundle]], druidMultiQueryEngineList:Seq[Engine]) : SortedSet[DimensionBundle] = {
+  def findBestDimCandidates(factEngine: Engine, schema: Schema, dimMapping: Map[String, SortedSet[DimensionBundle]], druidMultiQueryEngineList: Seq[Engine]): SortedSet[DimensionBundle] = {
     val bestDimensionCandidates = new mutable.TreeSet[DimensionBundle]
     //we special case druid for multi engine support
-    if(factEngine == DruidEngine) {
+    if (factEngine == DruidEngine) {
       val iter = dimMapping.iterator
-      while(iter.hasNext) {
+      while (iter.hasNext) {
         val (name, bundles) = iter.next()
         //find druid first
         var dc = bundles.filter(_.dim.engine == DruidEngine)
         //find supported druid multi engine next
-        if(dc.isEmpty) {
+        if (dc.isEmpty) {
           druidMultiQueryEngineList.exists {
             engine =>
               dc = bundles.filter(_.dim.engine == engine)
               dc.nonEmpty
           }
         }
-        if(dc.isEmpty) {
+        if (dc.isEmpty) {
           //if no candidate found, we return empty set
           warn(s"No concrete dimension found for factEngine=$factEngine, schema=$schema, dim=$name")
           return SortedSet.empty
@@ -531,10 +561,10 @@ object DefaultQueryPipelineFactory extends Logging {
       }
     } else {
       val iter = dimMapping.iterator
-      while(iter.hasNext) {
+      while (iter.hasNext) {
         val (name, bundles) = iter.next()
         var dc = bundles.filter(_.dim.engine == factEngine)
-        if(dc.isEmpty) {
+        if (dc.isEmpty) {
           //if no candidate found, we return empty set
           warn(s"No concrete dimension found for factEngine=$factEngine, schema=$schema, dim=$name")
           return SortedSet.empty
@@ -548,12 +578,12 @@ object DefaultQueryPipelineFactory extends Logging {
   def findDimCandidatesMapping(requestModel: RequestModel): Map[String, SortedSet[DimensionBundle]] = {
     val dimCandidates = requestModel.dimensionsCandidates
     val schema = requestModel.schema
-    val engineSet: Set[Engine] = Set(DruidEngine, OracleEngine, HiveEngine, PrestoEngine)
+    val engineSet: IndexedSeq[Engine] = Engine.engines
 
     val publicDimToConcreteDimMap: Map[(String, Engine), Dimension] = {
       val dimMap = new mutable.HashMap[(String, Engine), Dimension]
       dimCandidates.foreach {
-        case dc =>
+        dc =>
           val allDimColumns = dc.fields ++ dc.filters.map(_.field)
           engineSet.map { engine =>
             val dimOption = dc.dim.forColumns(engine, schema, allDimColumns)
@@ -564,7 +594,7 @@ object DefaultQueryPipelineFactory extends Logging {
                 val maxDaysLookBack = dim.maxDaysLookBack.map(_.getOrElse(requestModel.requestType, 0)).getOrElse(Int.MaxValue)
                 requestModel.requestedDaysLookBack <= maxDaysLookBack
               }
-              if(withinMaxDaysLookBackOption) {
+              if (withinMaxDaysLookBackOption) {
                 dimMap += ((dc.dim.name, engine) -> dimOption.get)
               }
             }
@@ -573,7 +603,7 @@ object DefaultQueryPipelineFactory extends Logging {
       dimMap.toMap
     }
 
-    val publicDimToConcreteDimMapWhichCanSupportAllDim  = new mutable.HashMap[(String, Engine), Dimension]()
+    val publicDimToConcreteDimMapWhichCanSupportAllDim = new mutable.HashMap[(String, Engine), Dimension]()
     publicDimToConcreteDimMap
       .groupBy(key => key._1._2)
       .filter(row => row._2.size == publicDimToConcreteDimMap.keySet.map(_._1).size)
@@ -582,10 +612,10 @@ object DefaultQueryPipelineFactory extends Logging {
 
     val bestDimCandidatesMapping = new mutable.HashMap[String, SortedSet[DimensionBundle]]()
     dimCandidates.foreach {
-      case dc =>
+      dc =>
         bestDimCandidatesMapping += (dc.dim.name -> SortedSet[DimensionBundle]())
         engineSet.foreach {
-          case engine =>
+          engine =>
             if (publicDimToConcreteDimMapWhichCanSupportAllDim.contains(dc.dim.name, engine)) {
               var upper_dim_engine = engine
               var lower_dim_engine = engine
@@ -711,15 +741,15 @@ OuterGroupBy operation has to be applied only in the following cases
       requestModel.dimensionRelations.hasUnrelatedDimensions &&
         !bestDimCandidates.forall(_.hasPKRequested)
     }
-    val isHighestDimPkIDRequested = if(bestDimCandidates.nonEmpty) {
+    val isHighestDimPkIDRequested = if (bestDimCandidates.nonEmpty) {
       bestDimCandidates.takeRight(1).head.hasPKRequested
     } else false
 
-    val isRequestedHigherDimLevelKey:Boolean =  { // check dim level of requested FK which is not one of the dim candidates
-      if(bestDimCandidates.nonEmpty && requestModel.requestedFkAliasToPublicDimensionMap.nonEmpty) {
-        val fkMaxDimLevel = requestModel.requestedFkAliasToPublicDimensionMap.map(e=> e._2.dimLevel.level).max
-        val dimCandidateMaxDimLevel = bestDimCandidates.map(e=> e.dim.dimLevel.level).max
-        if(fkMaxDimLevel >= dimCandidateMaxDimLevel) {
+    val isRequestedHigherDimLevelKey: Boolean = { // check dim level of requested FK which is not one of the dim candidates
+      if (bestDimCandidates.nonEmpty && requestModel.requestedFkAliasToPublicDimensionMap.nonEmpty) {
+        val fkMaxDimLevel = requestModel.requestedFkAliasToPublicDimensionMap.map(e => e._2.dimLevel.level).max
+        val dimCandidateMaxDimLevel = bestDimCandidates.map(e => e.dim.dimLevel.level).max
+        if (fkMaxDimLevel >= dimCandidateMaxDimLevel) {
           true
         } else false
       } else false
@@ -728,7 +758,7 @@ OuterGroupBy operation has to be applied only in the following cases
     val allSubQueryCandidates = bestDimCandidates.forall(_.isSubQueryCandidate)
 
     val hasOuterGroupBy = (//nonKeyRequestedDimCols.isEmpty
-      ((!isRequestedHigherDimLevelKey && !isHighestDimPkIDRequested )
+      ((!isRequestedHigherDimLevelKey && !isHighestDimPkIDRequested)
         || unrelatedDimensionsRequested
         )
         && bestDimCandidates.nonEmpty
@@ -750,10 +780,10 @@ OuterGroupBy operation has to be applied only in the following cases
     require(bestFactCandidate.fact.isInstanceOf[ViewTable], s"Unable to get view query list from fact ${bestFactCandidate.fact.name}")
     val viewTable = bestFactCandidate.fact.asInstanceOf[ViewTable]
     viewTable.view.facts.map {
-      fact=>
+      fact =>
         val factContext = QueryContext
           .newQueryContext(FactOnlyQuery, requestModel)
-          .addFactBestCandidate(bestFactCandidate.copy(fact= fact))
+          .addFactBestCandidate(bestFactCandidate.copy(fact = fact))
           .setQueryAttributes(queryAttributes)
           .build()
 
@@ -780,7 +810,7 @@ OuterGroupBy operation has to be applied only in the following cases
     DefaultQueryPipelineFactory.findBestDimCandidates(factEngine, requestModel.schema, dimMapping, druidMultiQueryEngineList)
   }
 
-  protected def findDimCandidatesMapping(requestModel: RequestModel) : Map[String, SortedSet[DimensionBundle]] = {
+  protected def findDimCandidatesMapping(requestModel: RequestModel): Map[String, SortedSet[DimensionBundle]] = {
     DefaultQueryPipelineFactory.findDimCandidatesMapping(requestModel)
   }
 
@@ -790,7 +820,7 @@ OuterGroupBy operation has to be applied only in the following cases
     val queryPipelineTryDefault = builder(requestModels._1, queryAttributes, None, bucketParams)._1
     var queryPipelineTryDryRun: Option[Try[QueryPipelineBuilder]] = None
     if (requestModels._2.isDefined) {
-      queryPipelineTryDryRun =  Option(builder(requestModels._2.get, queryAttributes, None, bucketParams)._1)
+      queryPipelineTryDryRun = Option(builder(requestModels._2.get, queryAttributes, None, bucketParams)._1)
     }
     (queryPipelineTryDefault, queryPipelineTryDryRun)
   }
@@ -799,7 +829,7 @@ OuterGroupBy operation has to be applied only in the following cases
     val queryPipelineTryDefault = builder(requestModels._1, queryAttributes, Option(bucketSelector), bucketParams)
     var queryPipelineTryDryRun: Option[Try[QueryPipelineBuilder]] = None
     if (requestModels._2.isDefined) {
-      queryPipelineTryDryRun =  Option(builder(requestModels._2.get, queryAttributes, None, bucketParams)._1)
+      queryPipelineTryDryRun = Option(builder(requestModels._2.get, queryAttributes, None, bucketParams)._1)
     }
     (queryPipelineTryDefault._1, queryPipelineTryDefault._2, queryPipelineTryDryRun)
   }
@@ -1154,7 +1184,9 @@ OuterGroupBy operation has to be applied only in the following cases
       val queryPipelineBuilderDryRun = dryRunQgenVersion.map(dryRunVersion => getBuilder(factBestCandidateOption, bestDimCandidates, dryRunVersion))
 
       (queryPipelineBuilder, queryPipelineBuilderDryRun)
-    }.fold(ex => {(new Failure(ex), None)}, result => result)
+    }.fold(ex => {
+      (new Failure(ex), None)
+    }, result => result)
   }
 
   def from(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketParams: BucketParams = new BucketParams()): Try[QueryPipeline] = {
@@ -1175,7 +1207,7 @@ OuterGroupBy operation has to be applied only in the following cases
     }
   }
 
-  def fromBucketSelector(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector,  bucketParams: BucketParams): Tuple3[Try[QueryPipeline], Option[Try[QueryPipeline]], Option[Try[QueryPipeline]]] = {
+  def fromBucketSelector(requestModels: Tuple2[RequestModel, Option[RequestModel]], queryAttributes: QueryAttributes, bucketSelector: BucketSelector, bucketParams: BucketParams): Tuple3[Try[QueryPipeline], Option[Try[QueryPipeline]], Option[Try[QueryPipeline]]] = {
     val queryPipelineBuilderTries = builder(requestModels, queryAttributes, bucketSelector, bucketParams)
     val queryPipeline: Try[QueryPipeline] = queryPipelineBuilderTries._1.map(_.build())
     val queryPipelineDryRunQgen: Option[Try[QueryPipeline]] = {

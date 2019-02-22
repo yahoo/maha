@@ -663,6 +663,7 @@ class ReportingRequestTest extends FlatSpec {
                           }"""
 
     val request: ReportingRequest = getReportingRequest(jsonString, AdvertiserSchema)
+    assert(request.queryType === GroupByQuery)
     assert(request.dayFilter.operator === InFilterOperation)
     assert(request.dayFilter.asInstanceOf[InFilter].values === List("2014-04-01", "2014-04-30"))
   }
@@ -1542,4 +1543,65 @@ class ReportingRequestTest extends FlatSpec {
     assert(outerFilters.head.asInstanceOf[OuterFilter].filters.head.operator === IsNullFilterOperation)
   }
 
+  "ReportingRequest with groupby query type" should "succeed" in {
+    val jsonString = """{
+                          "queryType": "groupby",
+                          "cube": "performance_stats",
+                          "selectFields": [
+                              {"field": "Ad ID"},
+                              {"field": "Day"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "in", "values": ["2014-04-01", "2014-04-30"]}
+                          ],
+                          "sortBy": [
+                              {"field": "Advertiser Id", "order": "Asc"},
+                              {"field": "Ad Id", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequest(jsonString, AdvertiserSchema)
+    assert(request.queryType === GroupByQuery)
+  }
+
+  "ReportingRequest with select query type" should "succeed" in {
+    val jsonString = """{
+                          "queryType": "select",
+                          "cube": "performance_stats",
+                          "selectFields": [
+                              {"field": "Ad ID"},
+                              {"field": "Day"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "in", "values": ["2014-04-01", "2014-04-30"]}
+                          ],
+                          "sortBy": [
+                              {"field": "Advertiser Id", "order": "Asc"},
+                              {"field": "Ad Id", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":5,
+                          "pagination" : {
+                              "druid": {
+                                  "pagingIdentifiers" : {
+                                      "wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9" : 5
+                                  }
+                              }
+                          }
+                        }"""
+
+    val request: ReportingRequest = getReportingRequest(jsonString, AdvertiserSchema)
+    assert(request.queryType === SelectQuery)
+    assert(request.pagination.config.contains(DruidEngine))
+    val paginationJValue = request.pagination.config(DruidEngine)
+    val identifiers = paginationJValue.findField{ case (n, v) => n == "pagingIdentifiers" }
+    assert(identifiers.isDefined)
+    val segmentOffset = identifiers.get._2.findField{ case (n, v) => n == "wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9"}
+    assert(segmentOffset.isDefined)
+    assert(segmentOffset.get._2.extract[Int] === 5)
+  }
 }

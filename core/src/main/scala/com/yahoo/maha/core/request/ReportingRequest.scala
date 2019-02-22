@@ -11,7 +11,7 @@ import org.json4s.jackson.JsonMethods._
 import org.json4s.scalaz.JsonScalaz
 
 import _root_.scalaz._
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.mutable.ArrayBuffer
 import org.json4s._
 import org.json4s.scalaz.JsonScalaz._
 
@@ -28,6 +28,16 @@ case object DimBias extends Bias
 sealed trait RequestType
 case object SyncRequest extends RequestType
 case object AsyncRequest extends RequestType
+
+sealed trait QueryType {
+  def stringValue: String
+}
+case object GroupByQuery extends QueryType {
+  val stringValue: String = "groupby"
+}
+case object SelectQuery extends QueryType {
+  val stringValue: String = "select"
+}
 
 case class RequestContext(requestId: String, userId: String)
 
@@ -48,7 +58,10 @@ case class ReportingRequest(cube: String
                             , paginationStartIndex: Int = 0
                             , rowsPerPage: Int = -1
                             , additionalParameters: Map[Parameter, ParameterValue[_]]
-                            , curatorJsonConfigMap: Map[String, CuratorJsonConfig]) {
+                            , curatorJsonConfigMap: Map[String, CuratorJsonConfig]
+                            , queryType: QueryType
+                            , pagination: PaginationConfig
+                           ) {
   def isDebugEnabled : Boolean = {
     additionalParameters.contains(Parameter.Debug) && additionalParameters(Parameter.Debug).asInstanceOf[DebugValue].value
   }
@@ -90,6 +103,9 @@ trait BaseRequest {
   val NOOP_NUM_DAYS : JsonScalaz.Result[Int] = 1.successNel
   val DEFAULT_DISPLAY_NAME : JsonScalaz.Result[Option[String]] = None.successNel
   val DEFAULT_CURATOR_JSON_CONFIG_MAP: JsonScalaz.Result[Map[String, CuratorJsonConfig]] = Map("default" -> CuratorJsonConfig(parse("""{}"""))).successNel
+  val DEFAULT_PAGINATION_CONFIG: JsonScalaz.Result[PaginationConfig] = PaginationConfig(Map.empty).successNel
+  val GROUPBY_QUERY: JsonScalaz.Result[QueryType] = GroupByQuery.successNel
+  val SEARCH_QUERY: JsonScalaz.Result[QueryType] = SelectQuery.successNel
 
   protected[this] val factBiasOption : Option[Bias] = Option(FactBias)
 
@@ -323,6 +339,21 @@ object ReportingRequest extends BaseRequest {
       }
     }
 
+    val queryTypeResult: JsonScalaz.Result[QueryType] = {
+      val qtResult = fieldExtended[Option[String]]("queryType")(json)
+      qtResult.flatMap {
+        optionalQueryType =>
+          optionalQueryType.fold(GROUPBY_QUERY) {
+            case GroupByQuery.stringValue =>
+              GROUPBY_QUERY
+            case SelectQuery.stringValue =>
+              SEARCH_QUERY
+            case any =>
+              UncategorizedError("queryType", s"unknown query type : $any", List.empty).asInstanceOf[JsonScalaz.Error].failureNel[QueryType]
+          }
+      }
+    }
+
     val cubeResult: JsonScalaz.Result[String] = fieldExtended[String]("cube")(json)
     val schemaResult: JsonScalaz.Result[Schema] = schemaOption.fold[JsonScalaz.Result[Schema]]{
       val jsonResult = fieldExtended[String]("schema")(json)
@@ -379,7 +410,19 @@ object ReportingRequest extends BaseRequest {
         }
         .fold(DEFAULT_CURATOR_JSON_CONFIG_MAP)(r => r)
 
+
+    val paginationResult: Result[PaginationConfig] =
+      json
+        .findField(_._1 == "pagination")
+        .map {
+          _ =>
+            val result = fieldExtended[PaginationConfig]("pagination")(json)
+            result
+        }
+        .fold(DEFAULT_PAGINATION_CONFIG)(r => r)
+
     for {
+      queryType <- queryTypeResult
       cube <- cubeResult
       displayName <- displayNameResult
       schema <- schemaResult
@@ -399,6 +442,7 @@ object ReportingRequest extends BaseRequest {
       additionalParameters <- additonalParamtersResult
       bothForceDimAndFactCannotBeTrue <- checkBothForceDimensionAndFactCase(forceDimensionDriven = forceDimensionDriven, forceFactDriven = forceFactDriven)
       curatorJsonConfigMap <- curatorJsonConfigMap
+      pagination <- paginationResult
     } yield {
       ReportingRequest(
         cube=cube
@@ -419,6 +463,8 @@ object ReportingRequest extends BaseRequest {
         , rowsPerPage = mr
         , additionalParameters = additionalParameters
         , curatorJsonConfigMap = curatorJsonConfigMap
+        , queryType = queryType
+        , pagination = pagination
       )
     }
   }
@@ -441,7 +487,8 @@ object ReportingRequest extends BaseRequest {
       }
     }
     val json = makeObj(
-      ("cube" -> toJSON(request.cube))
+      ("queryType" -> toJSON(request.queryType.stringValue))
+      :: ("cube" -> toJSON(request.cube))
       :: ("reportDisplayName" -> toJSON(request.reportDisplayName))
       :: ("schema" -> toJSON(request.schema.entryName))
       :: ("requestType" -> toJSON(request.requestType.toString))
