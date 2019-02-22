@@ -88,7 +88,8 @@ class PrestoQueryExecutor(jdbcConnection: JdbcConnection,
           result match {
             case Failure(e) =>
               Try(lifecycleListener.failed(query, acquiredQueryAttributes, e))
-              throw e
+              error(s"Failed query : ${query.asString}")
+              QueryResult(rl, acquiredQueryAttributes, QueryResultStatus.FAILURE, Option(e))
             case _ =>
               if (debugEnabled) {
                 info(s"Successfully retrieved results from Presto: $rowCount")

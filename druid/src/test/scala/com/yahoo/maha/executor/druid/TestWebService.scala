@@ -385,22 +385,42 @@ trait TestWebService {
                      |  ]""".stripMargin
       Ok(groupby)
 
-    case POST -> Root / ("faultygroupby")=>
-
-      val groupby="""{
-                    |    "timestamp" : "2012-01-01T00:00:12.000Z",
-                    |    "event" : {
-                    |    "Pricing Type" : 13,
-                    |     "Keyword ID": 14,
-                    |     "Average Bid": 15,
-                    |     "Max Bid": 16,
-                    |     "Impressions":17.00,
-                    |     "Min Bid":18,
-                    |     "Keyword Value": 19,
-                    |     "Average Position":20,
-                    |     "Day":"20160101"
-                    |    }
-                    |  }""".stripMargin
+    case POST -> Root /"groupbyunsupported1"=>
+      val groupby ="""[
+                     |  {
+                     |    "timestamp" : "2012-01-01T00:00:00.000Z",
+                     |    "unsupported" : "field",
+                     |    "event" : {
+                     |      "Pricing Type" : 11,
+                     |      "Keyword ID": "10",
+                     |      "Average Bid": 9,
+                     |     "Max Bid": 163,
+                     |     "Impressions":175,
+                     |     "Conversions":15.0,
+                     |     "Min Bid":184,
+                     |     "Keyword Value": 419,
+                     |     "Average Position":205,
+                     |     "Day":"20120101",
+                     |     "Advertiser Status": "ON",
+                     |     "show_sov_flag": "0",
+                     |     "Impression Share": 0.4567
+                     |    }
+                     |  }
+                     |  ]""".stripMargin
+      Ok(groupby)
+    case POST -> Root /"groupbyunsupported2"=>
+      val groupby ="""[
+                     |  {
+                     |    "timestamp" : "2012-01-01T00:00:00.000Z",
+                     |    "event" : "unsupported"
+                     |  }
+                     |  ]""".stripMargin
+      Ok(groupby)
+    case POST -> Root /"groupbyunsupported3"=>
+      val groupby ="""["unsupported"]""".stripMargin
+      Ok(groupby)
+    case POST -> Root /"groupbyunsupported4"=>
+      val groupby ="""{}""".stripMargin
       Ok(groupby)
 
     case POST -> Root / ("timeseries") =>
@@ -409,15 +429,15 @@ trait TestWebService {
         """[
           |  {
           |    "timestamp": "2012-01-01T00:00:00.000Z",
-          |    "result": { "Impressions": 15,"Day": "20160111" }
+          |    "result": { "Impressions": 15 }
           |  },
           |  {
           |   "timestamp": "2012-01-02T00:00:00.000Z",
-          |   "result": { "Impressions": 16 ,"Day": "20160112"}
+          |   "result": { "Impressions": 16 }
           |  },
           |  {
           |    "timestamp": "2012-01-03T00:00:00.000Z",
-          |    "result": { "Impressions": 17,"Day":"20160113" }
+          |    "result": { "Impressions": 17 }
           |  }
           |]""".stripMargin
       Ok(timeSeries)
@@ -428,38 +448,46 @@ trait TestWebService {
         """[
           |  {
           |    "timestamp": "2012-01-01T00:00:00.000Z",
-          |    "result": { "Impressions": 15,"Day": "20160111", "Intentions": 55 }
+          |    "result": { "Impressions": 15, "Intentions": 55 }
           |  },
           |  {
           |   "timestamp": "2012-01-02T00:00:00.000Z",
-          |   "result": { "Impressions": 16 ,"Day": "20160112"}
+          |   "result": { "Impressions": 16 }
           |  },
           |  {
           |    "timestamp": "2012-01-03T00:00:00.000Z",
-          |    "result": { "Impressions": 17,"Day":"20160113" }
+          |    "result": { "Impressions": 17 }
           |  }
           |]""".stripMargin
       Ok(timeSeries)
 
-    case POST -> Root/("faultytimeseries") =>
-
+    case POST -> Root/"timeseriesunsupported1" =>
       val timeSeries =
         """[
           |  {
           |    "timestamp": "2012-01-01T00:00:00.000Z",
-          |    "re": { "Impressions": 15,"Day": "20160111" }
-          |  },
-          |  {
-          |   "timestamp": "2012-01-02T00:00:00.000Z",
-          |   "res": { "Impressions": 16 ,"Day": "20160112"}
-          |  },
-          |  {
-          |    "timestamp": "2012-01-03T00:00:00.000Z",
-          |    "re": { "Impressions": 17,"Day":"20160113" }
+          |    "result": { "Impressions": 15 },
+          |    "unsupported":"field"
           |  }
           |]""".stripMargin
       Ok(timeSeries)
-
+    case POST -> Root/"timeseriesunsupported2" =>
+      val timeSeries =
+        """[
+          |  {
+          |    "timestamp": "2012-01-01T00:00:00.000Z",
+          |    "result": "unsupported"
+          |  }
+          |]""".stripMargin
+      Ok(timeSeries)
+    case POST -> Root/"timeseriesunsupported3" =>
+      val timeSeries =
+        """["unsupported"]""".stripMargin
+      Ok(timeSeries)
+    case POST -> Root/"timeseriesunsupported4" =>
+      val timeSeries =
+        """{}""".stripMargin
+      Ok(timeSeries)
 
     case POST -> Root /("topn") =>
       val topN = """[{
@@ -554,6 +582,40 @@ trait TestWebService {
                    |    "Keyword Value":30
                    |	}]
                    |}]""".stripMargin
+      Ok(topN)
+
+    case POST -> Root /"topnunsupported1"=>
+      val topN = """[{
+                   |	"timestamp": "2013-08-31T00:00:00.000Z",
+                   |	"result": [{
+                   |		"Keyword ID": 14,
+                   |    "Keyword Value":1,
+                   |		"Impressions": 10669
+                   |	},{
+                   |		"Keyword ID": 13,
+                   |		"Impressions": 106,
+                   |    "Keyword Value":30
+                   |	}],
+                   | "unsupported": "field"
+                   |}]""".stripMargin
+      Ok(topN)
+    case POST -> Root /"topnunsupported2"=>
+      val topN = """[{
+                   |	"timestamp": "2013-08-31T00:00:00.000Z",
+                   |	"result": ["unsupported"]
+                   |}]""".stripMargin
+      Ok(topN)
+    case POST -> Root /"topnunsupported3"=>
+      val topN = """[{
+                   |	"timestamp": "2013-08-31T00:00:00.000Z",
+                   |	"result": "unsupported"
+                   |}]""".stripMargin
+      Ok(topN)
+    case POST -> Root /"topnunsupported4"=>
+      val topN = """["unsupported"]""".stripMargin
+      Ok(topN)
+    case POST -> Root /"topnunsupported5"=>
+      val topN = """{}""".stripMargin
       Ok(topN)
 
     case GET -> Root /("topn") =>
@@ -1043,6 +1105,144 @@ trait TestWebService {
       }
     case POST -> Root / "fail" =>
       InternalServerError("always fail!")
+
+    case POST -> Root /"select" =>
+      val select = """ [{
+                   | 	"timestamp": "2013-01-01T00:00:00.000Z",
+                   | 	"result": {
+                   | 		"pagingIdentifiers": {
+                   | 			"wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9": 4
+                   | 		},
+                   |    "dimensons": ["Keyword ID", "Day"],
+                   |    "metrics": ["impressions"],
+                   | 		"events": [{
+                   | 			"segmentId": "wikipedia_editstream_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9",
+                   | 			"offset": 0,
+                   | 			"event": {
+                   | 				"timestamp": "2013-01-01T00:00:00.000Z",
+                   | 				"Keyword ID": "id1",
+                   |        "Day": "2013-01-01 00",
+                   | 				"impressions": "1"
+                   | 			}
+                   | 		}, {
+                   | 			"segmentId": "wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9",
+                   | 			"offset": 1,
+                   | 			"event": {
+                   | 				"timestamp": "2013-01-01T00:00:00.000Z",
+                   | 				"Keyword ID": "id2",
+                   |        "Day": "2013-01-01 00",
+                   | 				"impressions": "2"
+                   | 			}
+                   | 		}, {
+                   | 			"segmentId": "wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9",
+                   | 			"offset": 2,
+                   | 			"event": {
+                   | 				"timestamp": "2013-01-01T00:00:00.000Z",
+                   | 				"Keyword ID": "id3",
+                   |        "Day": "2013-01-01 00",
+                   | 				"impressions": "3"
+                   | 			}
+                   | 		}, {
+                   | 			"segmentId": "wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9",
+                   | 			"offset": 3,
+                   | 			"event": {
+                   | 				"timestamp": "2013-01-01T00:00:00.000Z",
+                   | 				"Keyword ID": "id4",
+                   |        "Day": "2013-01-01 00",
+                   | 				"impressions": "4"
+                   | 			}
+                   | 		}, {
+                   | 			"segmentId": "wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9",
+                   | 			"offset": 4,
+                   | 			"event": {
+                   | 				"timestamp": "2013-01-01T00:00:00.000Z",
+                   | 				"Keyword ID": "id5",
+                   |        "Day": "2013-01-01 00",
+                   | 				"impressions": "5"
+                   | 			}
+                   | 		}]
+                   | 	}
+                   | }]""".stripMargin
+      Ok(select)
+    case POST -> Root /"selectunsupported1" =>
+      val select = """ [{
+                     | 	"timestamp": "2013-01-01T00:00:00.000Z",
+                     |  "unsupported": "field",
+                     | 	"result": {
+                     | 		"pagingIdentifiers": {
+                     | 			"wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9": 4
+                     | 		},
+                     |    "dimensons": ["Keyword ID", "Day"],
+                     |    "metrics": ["impressions"],
+                     | 		"events": [{
+                     | 			"segmentId": "wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9",
+                     | 			"offset": 4,
+                     | 			"event": {
+                     | 				"timestamp": "2013-01-01T00:00:00.000Z",
+                     | 				"Keyword ID": "id5",
+                     |        "Day": "2013-01-01 00",
+                     | 				"impressions": "5"
+                     | 			}
+                     | 		}]
+                     | 	}
+                     | }]""".stripMargin
+      Ok(select)
+    case POST -> Root /"selectunsupported2" =>
+      val select = """ [{
+                     | 	"timestamp": "2013-01-01T00:00:00.000Z",
+                     | 	"result": {
+                     | 		"pagingIdentifiers": {
+                     | 			"wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9": 4
+                     | 		},
+                     |    "dimensons": ["Keyword ID", "Day"],
+                     |    "metrics": ["impressions"],
+                     | 		"events": [{
+                     | 			"segmentId": "wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9",
+                     | 			"offset": 4,
+                     | 			"event": "unsupported"
+                     | 		}]
+                     | 	}
+                     | }]""".stripMargin
+      Ok(select)
+    case POST -> Root /"selectunsupported3" =>
+      val select = """ [{
+                     | 	"timestamp": "2013-01-01T00:00:00.000Z",
+                     | 	"result": {
+                     | 		"pagingIdentifiers": {
+                     | 			"wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9": 4
+                     | 		},
+                     |    "dimensons": ["Keyword ID", "Day"],
+                     |    "metrics": ["impressions"],
+                     | 		"events": ["unsupported"]
+                     | 	}
+                     | }]""".stripMargin
+      Ok(select)
+    case POST -> Root /"selectunsupported4" =>
+      val select = """ [{
+                     | 	"timestamp": "2013-01-01T00:00:00.000Z",
+                     | 	"result": {
+                     | 		"pagingIdentifiers": {
+                     | 			"wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9": 4
+                     | 		},
+                     |    "dimensons": ["Keyword ID", "Day"],
+                     |    "metrics": ["impressions"],
+                     | 		"events": "unsupported"
+                     | 	}
+                     | }]""".stripMargin
+      Ok(select)
+    case POST -> Root /"selectunsupported5" =>
+      val select = """ [{
+                     | 	"timestamp": "2013-01-01T00:00:00.000Z",
+                     | 	"result": "unsupported"
+                     | }]""".stripMargin
+      Ok(select)
+
+    case POST -> Root /"selectunsupported6" =>
+      val select = """ ["unsupported"]""".stripMargin
+      Ok(select)
+    case POST -> Root /"selectunsupported7" =>
+      val select = """{}""".stripMargin
+      Ok(select)
   }
 
 }

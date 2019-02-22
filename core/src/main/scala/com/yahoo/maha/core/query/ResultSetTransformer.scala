@@ -32,9 +32,27 @@ object ResultSetTransformer {
   val DEFAULT_TRANSFORMS = List(new DateTransformer, new NumberTransformer)
 }
 
-case class DateTransformer() extends ResultSetTransformer {
+object DateTransformer {
+  private[this] val dateTimeFormatters = new TrieMap[String, DateTimeFormatter]()
 
-  val dateTimeFormatters = new TrieMap[String, DateTimeFormatter]()
+  def getDateTimeFormatter(fmt: String) : DateTimeFormatter = {
+    if (dateTimeFormatters.contains(fmt)) {
+      dateTimeFormatters(fmt)
+    } else {
+      dateTimeFormatters.synchronized {
+        if (!dateTimeFormatters.contains(fmt)) {
+          val newFormatter = DateTimeFormat.forPattern(fmt).withZoneUTC()
+          dateTimeFormatters += fmt -> newFormatter
+          newFormatter
+        } else {
+          dateTimeFormatters(fmt)
+        }
+      }
+    }
+  }
+}
+
+case class DateTransformer() extends ResultSetTransformer {
 
   override def transform(grain: Grain, resultAlias: String, column: Column, inputValue: Any): Any = {
 
@@ -45,19 +63,7 @@ case class DateTransformer() extends ResultSetTransformer {
     val formattedDate: String = column.dataType match {
       case DateType(fmtOption) if fmtOption.isDefined =>
         val fmt = fmtOption.get
-        val formatter = if (dateTimeFormatters.contains(fmt)) {
-          dateTimeFormatters(fmt)
-        } else {
-          dateTimeFormatters.synchronized {
-            if (!dateTimeFormatters.contains(fmt)) {
-              val newFormatter = DateTimeFormat.forPattern(fmt)
-              dateTimeFormatters += fmt -> newFormatter
-              newFormatter
-            } else {
-              dateTimeFormatters(fmt)
-            }
-          }
-        }
+        val formatter = DateTransformer.getDateTimeFormatter(fmt)
         Grain.getGrainByField(resultAlias).fold(sourceFormatDate){
           grain => grain.toFormattedString(formatter.parseDateTime(sourceFormatDate))
         }

@@ -22,15 +22,11 @@ case object PrestoEngine extends Engine {
 }
 
 object Engine {
-  def from(s: String): Option[Engine] = {
-    s.toLowerCase match {
-      case "hive" => Option(HiveEngine)
-      case "oracle" => Option(OracleEngine)
-      case "druid" => Option(DruidEngine)
-      case "presto" => Option(PrestoEngine)
-      case _ => None
-    }
-  }
+  //keep list in one place and derive from here so we only need to update in one place
+  val engines: IndexedSeq[Engine] = IndexedSeq(DruidEngine, OracleEngine, PrestoEngine, HiveEngine)
+  require(engines.size == engines.toSet.size, "Engines list must be unique!")
+  val enginesMap: Map[String, Engine] = engines.map(e => e.toString.toLowerCase -> e).toMap
+  def from(s: String): Option[Engine] = enginesMap.get(s.toLowerCase)
 }
 
 sealed trait EngineRequirement {

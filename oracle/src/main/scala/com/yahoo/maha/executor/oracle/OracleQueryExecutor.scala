@@ -110,7 +110,7 @@ class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
             case Failure(e) =>
               Try(lifecycleListener.failed(query, acquiredQueryAttributes, e))
               error(s"Failed query : ${query.asString}")
-              throw e
+              QueryResult(rl, acquiredQueryAttributes, QueryResultStatus.FAILURE, Option(e))
             case _ =>
               QueryResult(rl, lifecycleListener.completed(query, acquiredQueryAttributes), QueryResultStatus.SUCCESS)
           }
@@ -164,7 +164,7 @@ class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
             case Failure(e) =>
               Try(lifecycleListener.failed(query, acquiredQueryAttributes, e))
               error(s"Failed query : ${query.asString}")
-              throw e
+              QueryResult(rl, acquiredQueryAttributes, QueryResultStatus.FAILURE, Option(e))
             case _ =>
               QueryResult(rl, lifecycleListener.completed(query, acquiredQueryAttributes), QueryResultStatus.SUCCESS)
           }
