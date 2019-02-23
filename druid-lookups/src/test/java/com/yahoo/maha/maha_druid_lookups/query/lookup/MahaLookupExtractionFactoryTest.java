@@ -1,7 +1,6 @@
 package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.introspect.AnnotationIntrospectorPair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.CharStreams;
 import com.google.inject.*;
@@ -10,13 +9,10 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.MongoExtractionN
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.MahaNamespaceExtractionModule;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaNamespaceExtractionCacheManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.OnHeapMahaNamespaceExtractionCacheManager;
-import io.druid.guice.GuiceAnnotationIntrospector;
-import io.druid.guice.GuiceInjectableValues;
 import io.druid.guice.GuiceInjectors;
 import io.druid.guice.JsonConfigProvider;
 import io.druid.guice.annotations.Self;
 import io.druid.initialization.Initialization;
-import io.druid.jackson.DefaultObjectMapper;
 import io.druid.query.extraction.ExtractionFn;
 import io.druid.query.lookup.LookupExtractor;
 import io.druid.query.lookup.LookupExtractorFactory;
@@ -27,16 +23,16 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.testng.Assert.*;
-
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
+
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.testng.Assert.*;
 
 public class MahaLookupExtractionFactoryTest extends TestMongoServer {
 
