@@ -1248,7 +1248,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               decodeConfig.setValueToCheck(valueToCheck)
               decodeConfig.setColumnIfValueMatched(columnIfValueMatched)
               decodeConfig.setColumnIfValueNotMatched(columnIfValueNotMatched)
-              val regExFn = new MahaRegisteredLookupExtractionFn(null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, null, decodeConfig, dimensionOverrideMap.asJava, useQueryLevelCache)
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, columnToCheck, decodeConfig, dimensionOverrideMap.asJava, useQueryLevelCache)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null), Option.empty)
 
