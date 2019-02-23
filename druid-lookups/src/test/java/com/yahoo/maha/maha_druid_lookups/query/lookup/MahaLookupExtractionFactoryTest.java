@@ -60,7 +60,7 @@ public class MahaLookupExtractionFactoryTest extends TestMongoServer {
         final Properties properties = injector.getInstance(Properties.class);
         properties.put(MahaNamespaceExtractionModule.TYPE_PREFIX, "onHeap");
         properties.put(String.format("%s.authHeaderFactory", MahaNamespaceExtractionModule.PREFIX), "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.NoopAuthHeaderFactory");
-        properties.put(String.format("%s.schemaFactory", MahaNamespaceExtractionModule.PREFIX), "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory");
+        properties.put(String.format("%s.schemaFactory", MahaNamespaceExtractionModule.PREFIX), "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopProtobufSchemaFactory");
         properties.put(String.format("%s.lookupService.service_scheme", MahaNamespaceExtractionModule.PREFIX), "http");
         properties.put(String.format("%s.lookupService.service_port", MahaNamespaceExtractionModule.PREFIX), "4080");
         properties.put(String.format("%s.lookupService.service_nodes", MahaNamespaceExtractionModule.PREFIX), "hist1,hist2,hist3");
