@@ -12,6 +12,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.result.UpdateResult;
+import com.yahoo.maha.maha_druid_lookups.TestMongoServer;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.MongoExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.MongoStorageConnectorConfig;
@@ -36,7 +37,7 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class MongoExtractionNamespaceCacheFactoryTest {
+public class MongoExtractionNamespaceCacheFactoryTest extends TestMongoServer {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     MongoExtractionNamespaceCacheFactory obj = new MongoExtractionNamespaceCacheFactory();
@@ -47,18 +48,13 @@ public class MongoExtractionNamespaceCacheFactoryTest {
     @Mock
     LookupService lookupService;
 
-    MongoServer mongoServer;
-
     MongoStorageConnectorConfig mongoStorageConnectorConfig;
-
-    MongoClient mongoClient;
 
     private static final String DEFAULT_COLLECTION = "advertiser";
 
     @BeforeClass
     public void setup() throws Exception {
-        mongoServer = new MongoServer(new MemoryBackend());
-        InetSocketAddress serverAddress = mongoServer.bind();
+        InetSocketAddress serverAddress = setupMongoServer(objectMapper);
         String jsonConfig = String.format("{\n" +
                 "\t\"hosts\": \"%s:%s\",\n" +
                 "\t\"dbName\": \"mydb\",\n" +
@@ -69,55 +65,16 @@ public class MongoExtractionNamespaceCacheFactoryTest {
                 "\t}\n" +
                 "}", serverAddress.getHostString(), serverAddress.getPort());
         mongoStorageConnectorConfig = objectMapper.readValue(jsonConfig, MongoStorageConnectorConfig.class);
-        mongoClient = mongoStorageConnectorConfig.getMongoClient();
-        createTestData();
-    }
-
-    private void createTestData() throws Exception {
-        MongoClient localMongoClient = mongoStorageConnectorConfig.getMongoClient();
-        MongoDatabase database = localMongoClient.getDatabase(mongoStorageConnectorConfig.getDbName());
-        database.createCollection(DEFAULT_COLLECTION);
-        MongoCollection<Document> collection = database.getCollection(DEFAULT_COLLECTION);
-        JsonNode node = objectMapper.readValue(
-                ClassLoader.getSystemClassLoader().getResourceAsStream("mongo_advertiser.json"), JsonNode.class);
-        for (int i = 0; i < node.size(); i++) {
-            JsonNode elem = node.get(i);
-            String json = objectMapper.writeValueAsString(elem);
-            Document d = Document.parse(json);
-            collection.insertOne(d);
-        }
-        for (Document d : collection.find()) {
-            System.out.println(d.toJson());
-        }
-        localMongoClient.close();
+        createTestData("mongo_advertiser.json", DEFAULT_COLLECTION, objectMapper, mongoStorageConnectorConfig);
     }
 
     private void updateTestData(String jsonResource) throws Exception {
-        MongoClient localMongoClient = mongoStorageConnectorConfig.getMongoClient();
-        MongoDatabase database = localMongoClient.getDatabase(mongoStorageConnectorConfig.getDbName());
-        MongoCollection<Document> collection = database.getCollection(DEFAULT_COLLECTION);
-        JsonNode node = objectMapper.readValue(
-                ClassLoader.getSystemClassLoader().getResourceAsStream(jsonResource), JsonNode.class);
-        for (int i = 0; i < node.size(); i++) {
-            JsonNode elem = node.get(i);
-            String id = elem.get("_id").get("$oid").asText();
-            String json = objectMapper.writeValueAsString(elem);
-            Document d = Document.parse(json);
-            UpdateResult result = collection.replaceOne(new BasicDBObject("_id", new ObjectId(id)), d);
-            if (result.getMatchedCount() <= 0) {
-                collection.insertOne(d);
-            }
-        }
-        for (Document d : collection.find()) {
-            System.out.println(d.toJson());
-        }
-        localMongoClient.close();
+        super.updateTestData(jsonResource, DEFAULT_COLLECTION, objectMapper, mongoStorageConnectorConfig);
     }
 
     @AfterClass
-    public void cleanup() throws Exception {
-        mongoClient.close();
-        mongoServer.shutdownNow();
+    public void cleanup() {
+        cleanupMongoServer();
     }
 
     @BeforeTest

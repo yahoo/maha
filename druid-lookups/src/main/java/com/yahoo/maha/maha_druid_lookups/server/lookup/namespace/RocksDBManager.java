@@ -39,8 +39,8 @@ public class RocksDBManager {
     private static final ConcurrentMap<String, RocksDBSnapshot> rocksDBSnapshotMap = new ConcurrentHashMap<>();
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEMPORARY_PATH = StandardSystemProperty.JAVA_IO_TMPDIR.value();
-    private static final String ROCKSDB_LOCATION_PROP_NAME = "rocksdb.location";
-    private static final String ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME = "rocksdb.block_cache_size";
+    private static final String ROCKSDB_LOCATION_PROP_NAME = "localStorageDirectory";
+    private static final String ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME = "blockCacheSize";
     private static final String SNAPSHOT_FILE_NAME = "/rocksDBSnapshot";
     private static final int UPLOAD_LOOKUP_AUDIT_MAX_RETRY = 3;
     private static final Random RANDOM = new Random();
@@ -48,7 +48,7 @@ public class RocksDBManager {
     private static final String STATS_KEY = "rocksdb.stats";
     private static final long DEFAULT_BLOCK_CACHE_SIZE = (long)2 * 1024 * 1024 * 1024;
 
-    private String rocksdbLocation;
+    private String localStorageDirectory;
     private long blockCacheSize;
     private FileSystem fileSystem;
 
@@ -63,7 +63,7 @@ public class RocksDBManager {
 
     @Inject
     public RocksDBManager(final MahaNamespaceExtractionConfig mahaNamespaceExtractionConfig, Configuration config) throws IOException {
-        this.rocksdbLocation = mahaNamespaceExtractionConfig.getRocksDBProperties().getProperty(ROCKSDB_LOCATION_PROP_NAME, TEMPORARY_PATH);
+        this.localStorageDirectory = mahaNamespaceExtractionConfig.getRocksDBProperties().getProperty(ROCKSDB_LOCATION_PROP_NAME, TEMPORARY_PATH);
         this.blockCacheSize = Long.parseLong(mahaNamespaceExtractionConfig.getRocksDBProperties().getProperty(ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME, String.valueOf(DEFAULT_BLOCK_CACHE_SIZE)));
         Preconditions.checkArgument(blockCacheSize > 0);
         this.fileSystem = FileSystem.get(config);
@@ -125,13 +125,13 @@ public class RocksDBManager {
             }
         }
 
-        final File file = new File(String.format("%s/%s", rocksdbLocation, extractionNamespace.getNamespace()));
+        final File file = new File(String.format("%s/%s", localStorageDirectory, extractionNamespace.getNamespace()));
         if(!file.exists()) {
             FileUtils.forceMkdir(file);
         }
 
         final String localZippedFileNameWithPath = String.format("%s/%s/rocksdb_%s.zip",
-                rocksdbLocation, extractionNamespace.getNamespace(), loadTime);
+                localStorageDirectory, extractionNamespace.getNamespace(), loadTime);
         LOG.info(String.format("localZippedFileNameWithPath [%s]", localZippedFileNameWithPath));
 
         final String localPath = FilenameUtils.removeExtension(localZippedFileNameWithPath);
@@ -245,7 +245,7 @@ public class RocksDBManager {
     @LifecycleStart
     public void start() throws IOException {
         RocksDB.loadLibrary();
-        FileUtils.forceMkdir(new File(rocksdbLocation));
+        FileUtils.forceMkdir(new File(localStorageDirectory));
     }
 
     private void cleanup(String path) throws IOException {
@@ -325,19 +325,19 @@ public class RocksDBManager {
 
                 if (dirToZip.exists() && !isSuccessMarkerPresent(successMarkerPath)) {
 
-                    final File file = new File(String.format("%s/%s/%s", rocksdbLocation, "lookup_auditing", extractionNamespace.getNamespace()));
+                    final File file = new File(String.format("%s/%s/%s", localStorageDirectory, "lookup_auditing", extractionNamespace.getNamespace()));
                     if (!file.exists()) {
                         FileUtils.forceMkdir(file);
                     }
 
                     final String localFileNameWithPath = String.format("%s/%s/%s/rocksdb.zip",
-                            rocksdbLocation, "lookup_auditing", extractionNamespace.getNamespace());
+                            localStorageDirectory, "lookup_auditing", extractionNamespace.getNamespace());
                     LOG.info(String.format("localFileNameWithPath [%s]", localFileNameWithPath));
 
                     ZipUtil.pack(dirToZip, new File(localFileNameWithPath));
                     uploadFileForAuditing(extractionNamespace, loadTime,
                             successMarkerPath, localFileNameWithPath);
-                    cleanup(String.format("%s/%s/%s", rocksdbLocation, "lookup_auditing", extractionNamespace.getNamespace()));
+                    cleanup(String.format("%s/%s/%s", localStorageDirectory, "lookup_auditing", extractionNamespace.getNamespace()));
 
                     LOG.info("Uploaded lookup for auditing");
                     serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPLOAD_LOOKUP_FOR_AUDITING_SUCCESS, 1));
@@ -346,7 +346,7 @@ public class RocksDBManager {
             } catch (Exception e) {
                 LOG.error(e, "Caught exception while uploading lookups to HDFS for auditing");
                 try {
-                    cleanup(String.format("%s/%s/%s", rocksdbLocation, "lookup_auditing", extractionNamespace.getNamespace()));
+                    cleanup(String.format("%s/%s/%s", localStorageDirectory, "lookup_auditing", extractionNamespace.getNamespace()));
                     if (!isSuccessMarkerPresent(successMarkerPath)) {
                         fileSystem.delete(new Path(String.format("%s/load_time=%s/rocksdb.zip",
                                 extractionNamespace.getLookupAuditingHDFSPath(), loadTime)), false);
@@ -381,7 +381,7 @@ public class RocksDBManager {
 
         fileSystem.copyFromLocalFile(new Path(localFileNameWithPath), new Path(hdfsLookupAuditingPath));
         final String localSuccessPath = String.format("%s/%s/%s/_SUCCESS",
-                rocksdbLocation, "lookup_auditing", extractionNamespace.getNamespace());
+                localStorageDirectory, "lookup_auditing", extractionNamespace.getNamespace());
         File successFile = new File(localSuccessPath);
         if (!successFile.exists()) {
             new FileOutputStream(successFile).close();

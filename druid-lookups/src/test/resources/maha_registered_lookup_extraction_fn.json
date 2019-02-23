@@ -1,0 +1,7 @@
+{
+  "type" : "mahaRegisteredLookup",
+  "lookup" : "advertiser_lookup",
+  "replaceMissingValueWith": "Unknown",
+  "injective": true,
+  "valueColumn": "name"
+}

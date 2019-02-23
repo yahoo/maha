@@ -17,10 +17,12 @@ import io.druid.query.extraction.ExtractionFn;
 import io.druid.query.lookup.LookupReferencesManager;
 
 import javax.annotation.Nullable;
+import javax.validation.constraints.NotNull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Strings;
@@ -32,7 +34,6 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
     private volatile MahaLookupExtractionFn delegate = null;
     private final Object delegateLock = new Object();
     private final LookupReferencesManager manager;
-    private final ObjectMapper objectMapper;
     private final String lookup;
     private final boolean retainMissingValue;
     private final String replaceMissingValueWith;
@@ -48,20 +49,19 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
     @JsonCreator
     public MahaRegisteredLookupExtractionFn(
             @JacksonInject LookupReferencesManager manager,
-            @JacksonInject ObjectMapper objectMapper,
             @JsonProperty("lookup") String lookup,
             @JsonProperty("retainMissingValue") final boolean retainMissingValue,
             @Nullable @JsonProperty("replaceMissingValueWith") final String replaceMissingValueWith,
             @JsonProperty("injective") final boolean injective,
             @JsonProperty("optimize") Boolean optimize,
-            @Nullable @JsonProperty("valueColumn") String valueColumn,
+            @NotNull @JsonProperty("valueColumn") String valueColumn,
             @Nullable @JsonProperty("decode") DecodeConfig decodeConfig,
             @Nullable @JsonProperty("dimensionOverrideMap") Map<String, String> dimensionOverrideMap,
             @Nullable @JsonProperty("useQueryLevelCache") Boolean useQueryLevelCache
     ) {
         Preconditions.checkArgument(lookup != null, "`lookup` required");
+        Preconditions.checkArgument(valueColumn != null, "`valueColumn` required");
         this.manager = manager;
-        this.objectMapper = objectMapper;
         this.replaceMissingValueWith = replaceMissingValueWith;
         this.retainMissingValue = retainMissingValue;
         this.injective = injective;
@@ -151,7 +151,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
 
     @Override
     public String apply(Object value) {
-        return ensureDelegate().apply(value);
+        return apply(Objects.toString(value, null));
     }
 
     @Override

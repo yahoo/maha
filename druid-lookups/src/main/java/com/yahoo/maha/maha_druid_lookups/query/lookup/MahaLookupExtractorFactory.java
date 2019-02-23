@@ -49,9 +49,9 @@ public class MahaLookupExtractorFactory implements LookupExtractorFactory
 
     @JsonCreator
     public MahaLookupExtractorFactory(
-            @JsonProperty("extractionNamespace") ExtractionNamespace extractionNamespace,
-            @JsonProperty("firstCacheTimeout") long firstCacheTimeout,
-            @JsonProperty("injective") boolean injective,
+            @JsonProperty(value = "extractionNamespace") ExtractionNamespace extractionNamespace,
+            @JsonProperty(value = "firstCacheTimeout") long firstCacheTimeout, //amount of time to wait for lookup to load
+            @JsonProperty(value = "injective") boolean injective, //true if there is one to one mapping from key to value columns
             @JacksonInject final MahaNamespaceExtractionCacheManager manager
     )
     {

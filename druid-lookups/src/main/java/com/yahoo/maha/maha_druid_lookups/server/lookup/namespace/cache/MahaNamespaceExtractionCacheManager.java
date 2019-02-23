@@ -81,7 +81,7 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
                         15,
                         new ThreadFactoryBuilder()
                                 .setDaemon(true)
-                                .setNameFormat("NamespaceExtractionCacheManager-%d")
+                                .setNameFormat("MahaNamespaceExtractionCacheManager-%d")
                                 .setPriority(Thread.MIN_PRIORITY)
                                 .build()
                 )
@@ -214,7 +214,7 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
 
         final NamespaceImplData namespaceImplData = implData.get(id);
         if (namespaceImplData == null) {
-            log.warn("NamespaceLookupExtractorFactory[%s] - deleted during start", id);
+            log.warn("MahaNamespaceLookupExtractorFactory[%s] - deleted during start", id);
             return false;
         }
 
@@ -222,7 +222,7 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
         try {
             success = namespaceImplData.firstRun.await(waitForFirstRun, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-            log.error(e, "NamespaceLookupExtractorFactory[%s] - interrupted during start", id);
+            log.error(e, "MahaNamespaceLookupExtractorFactory[%s] - interrupted during start", id);
         }
         return success;
     }
@@ -461,4 +461,7 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
         return implData.containsKey(id) ? Optional.of(implData.get(id).namespace) : Optional.empty();
     }
 
+    public void shutdown() {
+        listeningScheduledExecutorService.shutdown();
+    }
 }

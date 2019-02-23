@@ -10,12 +10,12 @@ import javax.validation.constraints.NotNull;
 
 public class MahaNamespaceExtractionConfig {
   @Nullable @JsonProperty(value = "kafka")
-  private Properties kafkaProperties;
+  private Properties kafkaProperties = new Properties();
 
-  @Nullable @JsonProperty(value = "service")
+  @NotNull @JsonProperty(value = "lookupService")
   private Properties lookupServiceProperties;
 
-  @Nullable @JsonProperty(value = "rocksdb")
+  @NotNull @JsonProperty(value = "rocksdb")
   private Properties rocksDBProperties;
 
   @NotNull @JsonProperty(value = "schemaFactory")
