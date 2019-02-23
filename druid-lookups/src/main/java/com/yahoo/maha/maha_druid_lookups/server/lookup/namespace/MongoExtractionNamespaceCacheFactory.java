@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
+import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
@@ -26,7 +27,6 @@ import java.util.concurrent.ConcurrentMap;
 import org.bson.Document;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
-import org.testng.collections.Lists;
 
 /**
  *
