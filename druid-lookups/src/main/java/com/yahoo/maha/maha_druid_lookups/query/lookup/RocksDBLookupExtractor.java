@@ -25,7 +25,6 @@ import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.MonitoringConstants;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
-import io.druid.query.lookup.LookupExtractor;
 import org.rocksdb.RocksDB;
 
 import javax.annotation.Nullable;
@@ -113,7 +112,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                                 extractionNamespace.getMissingLookupConfig().getMissingLookupKafkaTopic(),
                                 key);
                         missingLookupCache.put(key, extractionNamespaceAsByteArray);
-                        serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_PUBLISH_MISSING_LOOKUP_SUCESS, 1));
+                        serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_PUBLISH_MISSING_LOOKUP_SUCCESS, 1));
                     }
                     return null;
                 }

@@ -58,7 +58,7 @@ public class RocksDBExtractionNamespaceCacheFactory
             public String call() {
                 try {
                     String loadTime = rocksDBManager.createDB(extractionNamespace, lastVersion);
-                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_OPEN_SUCESS, 1));
+                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_OPEN_SUCCESS, 1));
                     return loadTime;
                 } catch(Exception e) {
                     LOG.error(e, "Caught exception while RocksDB creation, lastVersion: [%s]", lastVersion);
@@ -99,7 +99,7 @@ public class RocksDBExtractionNamespaceCacheFactory
                     if(newLastUpdated > extractionNamespace.getLastUpdatedTime()) {
                         extractionNamespace.setLastUpdatedTime(newLastUpdated);
                     }
-                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_SUCESS, 1));
+                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_SUCCESS, 1));
                 }
             } catch (Exception e) {
                 LOG.error(e, "Caught exception while updating cache");

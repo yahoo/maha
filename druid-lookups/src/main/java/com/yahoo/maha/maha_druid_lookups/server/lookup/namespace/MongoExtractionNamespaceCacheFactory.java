@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
+import com.metamx.emitter.service.ServiceMetricEvent;
 import com.mongodb.MongoClient;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
@@ -37,12 +38,7 @@ public class MongoExtractionNamespaceCacheFactory
             DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
     private static final int[] BACKOFF_MILLIS = new int[]{100, 200, 400, 800, 1600, 3200, 6400, 12800};
     private static final Logger LOG = new Logger(MongoExtractionNamespaceCacheFactory.class);
-    private static final String COMMA_SEPARATOR = ",";
     private static final String ID_FIELD = "_id";
-    //private static final String FIRST_TIME_CACHING_WHERE_CLAUSE = " WHERE LAST_UPDATED <= :lastUpdatedTimeStamp";
-    //private static final String SUBSEQUENT_CACHING_WHERE_CLAUSE = " WHERE LAST_UPDATED > :lastUpdatedTimeStamp";
-    //private static final int FETCH_SIZE = 10000;
-    //private final ConcurrentMap<String, DBI> dbiCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, MongoClient> mongoClientCache = new ConcurrentHashMap<>();
     @Inject
     LookupService lookupService;
@@ -69,6 +65,7 @@ public class MongoExtractionNamespaceCacheFactory
         return new Callable<String>() {
             @Override
             public String call() {
+                long startMillis = System.currentTimeMillis();
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Updating [%s]", id);
                 }
@@ -105,7 +102,10 @@ public class MongoExtractionNamespaceCacheFactory
 
                         break;
                     } catch (Exception e) {
-                        LOG.error(e, "Failed to create mongo client, numAttempt=%s hosts=%s database=%s"
+                        emitter.emit(ServiceMetricEvent.builder()
+                                .setDimension(MonitoringConstants.MAHA_LOOKUP_NAME, extractionNamespace.getLookupName())
+                                .build(MonitoringConstants.MAHA_LOOKUP_MONGO_DATABASE_OR_COLLECTION_FAILURE, 1));
+                        LOG.error(e, "Failed to get database or collection, numAttempt=%s hosts=%s database=%s"
                                 , numAttempts
                                 , extractionNamespace.getConnectorConfig().getHosts()
                                 , extractionNamespace.getConnectorConfig().getDbName()
@@ -145,6 +145,9 @@ public class MongoExtractionNamespaceCacheFactory
                                 maxTime = docTime;
                             }
                         } catch (Exception e) {
+                            emitter.emit(ServiceMetricEvent.builder()
+                                    .setDimension(MonitoringConstants.MAHA_LOOKUP_NAME, extractionNamespace.getLookupName())
+                                    .build(MonitoringConstants.MAHA_LOOKUP_MONGO_DOCUMENT_PROCESS_FAILURE, 1));
                             LOG.error(e, "collectionName=%s tsColumn=%s failed to process document document=%s"
                                     , extractionNamespace.getCollectionName()
                                     , extractionNamespace.getTsColumn()
@@ -153,6 +156,9 @@ public class MongoExtractionNamespaceCacheFactory
                         }
 
                     } catch (Exception e) {
+                        emitter.emit(ServiceMetricEvent.builder()
+                                .setDimension(MonitoringConstants.MAHA_LOOKUP_NAME, extractionNamespace.getLookupName())
+                                .build(MonitoringConstants.MAHA_LOOKUP_MONGO_DOCUMENT_PROCESS_FAILURE, 1));
                         LOG.error(e, "collectionName=%s tsColumn=%s failed to process document document=%s"
                                 , extractionNamespace.getCollectionName()
                                 , extractionNamespace.getTsColumn()
@@ -177,6 +183,9 @@ public class MongoExtractionNamespaceCacheFactory
 
                 }
 
+                emitter.emit(ServiceMetricEvent.builder()
+                        .setDimension(MonitoringConstants.MAHA_LOOKUP_NAME, extractionNamespace.getLookupName())
+                        .build(MonitoringConstants.MAHA_LOOKUP_MONGO_PROCESSING_TIME, System.currentTimeMillis() - startMillis));
                 LOG.info("Finished loading %d values for extractionNamespace[%s]", cache.size(), id);
                 return String.format("%d", extractionNamespace.getPreviousLastUpdateTime());
             }
@@ -208,6 +217,9 @@ public class MongoExtractionNamespaceCacheFactory
                     }
                     break;
                 } catch (Exception e) {
+                    emitter.emit(ServiceMetricEvent.builder()
+                            .setDimension(MonitoringConstants.MAHA_LOOKUP_NAME, namespace.getLookupName())
+                            .build(MonitoringConstants.MAHA_LOOKUP_MONGO_CLIENT_FAILURE, 1));
                     LOG.error(e, "Failed to create mongo client, numAttempt=%s hosts=%s database=%s"
                             , numAttempts
                             , namespace.getConnectorConfig().getHosts()

@@ -106,7 +106,7 @@ public class MahaNamespacesCacheResource
                             .getCacheSize(extractionNamespace.get(),
                                     mahaNamespaceExtractionCacheManager.getCacheMap(namespace)).getBytes();
                 }
-                serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_SUCESS, 1));
+                serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_SUCCESS, 1));
                 return Response.ok().entity(response).build();
             }
         } catch (Exception ex) {
