@@ -262,6 +262,22 @@ object QueryGeneratorHelper {
     }
   }
 
+  def getFieldMapByColumn(name: String
+                          , column: Column
+                         , fact: Fact
+                         , publicFact: PublicFact
+                         , colFn: Column => String): Map[String, (String, String)] = {
+    val nameOrAlias: String = column.alias.getOrElse(column.name)
+    if(fact.dimColMap.contains(nameOrAlias))
+      Map.empty
+    else if (fact.factColMap.contains(nameOrAlias)) {
+      Map(name -> (nameOrAlias, colFn(column)))
+    } else {
+      throw new IllegalArgumentException(
+        s"Unknown fact column: publicFact=${publicFact.name}, fact=${fact.name} alias=${column.alias}, name=$nameOrAlias")
+    }
+  }
+
   def handleFilterRender(filter: Filter,
                          publicFact: PublicFact,
                          fact: Fact,
@@ -273,54 +289,24 @@ object QueryGeneratorHelper {
     val fieldNames: mutable.ArrayBuffer[String] = new ArrayBuffer[String]()
     val isMultiField: Boolean = filter.isInstanceOf[MultiFieldForcedFilter]
 
-    fieldNames += publicFact.aliasToNameColumnMap(filter.field)
+    fieldNames += filter.field
     if(isMultiField)
-      fieldNames += publicFact.aliasToNameColumnMap(filter.asInstanceOf[MultiFieldForcedFilter].compareTo)
+      fieldNames += filter.asInstanceOf[MultiFieldForcedFilter].compareTo
 
-    val baseFieldName = fieldNames.remove(0)
-    if (fact.dimColMap.contains(baseFieldName)) {
+    var fMap = new mutable.HashMap[String, (String, String)]()
 
-      FilterSql.renderFilter(
-        filter,
-        aliasToNameMapFull,
-        Map.empty,
-        fact.columnsByNameMap,
-        engine,
-        literalMapper
-      )
-
-    } else if (fact.factColMap.contains(baseFieldName)) {
-      val column = fact.columnsByNameMap(baseFieldName)
-      val exp = colFn(column)
-
-      if(!isMultiField) {
-        FilterSql.renderFilter(
-          filter,
-          queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
-          Map(filter.field -> (baseFieldName, exp)),
-          fact.columnsByNameMap,
-          engine,
-          literalMapper
-        )
-      } else {
-        val multiFieldForcedFilter = filter.asInstanceOf[MultiFieldForcedFilter]
-        val compareToFieldName = fieldNames.remove(0)
-        val compareToColumn = fact.columnsByNameMap(compareToFieldName)
-        val secondExp = colFn(compareToColumn)
-        FilterSql.renderFilter(
-          filter,
-          queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
-          Map(multiFieldForcedFilter.field -> (baseFieldName, exp), multiFieldForcedFilter.compareTo -> (compareToColumn.alias.getOrElse(compareToColumn.name), secondExp)),
-          fact.columnsByNameMap,
-          engine,
-          literalMapper
-        )
-      }
-
-    } else {
-      throw new IllegalArgumentException(
-        s"Unknown fact column: publicFact=${publicFact.name}, fact=${fact.name} alias=${filter.field}, name=$baseFieldName")
+    for (fieldName <- fieldNames) {
+      fMap ++= getFieldMapByColumn(fieldName, fact.columnsByNameMap(publicFact.aliasToNameColumnMap(fieldName)), fact, publicFact, colFn)
     }
+
+    FilterSql.renderFilter(
+      filter,
+      aliasToNameMapFull,
+      fMap.toMap,
+      fact.columnsByNameMap,
+      engine,
+      literalMapper
+    )
   }
 }
 
