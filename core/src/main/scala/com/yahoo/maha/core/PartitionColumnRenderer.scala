@@ -51,7 +51,7 @@ object DefaultPartitionColumnRenderer extends PartitionColumnRenderer {
         }
         partitionFilterRendered.add(DefaultResult(s"""$name = $renderedValue """).filter)
     }
-    PreRenderedAndFilter(partitionFilterRendered.toSet).toString
+    RenderedAndFilter(partitionFilterRendered.toSet).toString
   }
 
   def renderFact(queryContext: FactualQueryContext,

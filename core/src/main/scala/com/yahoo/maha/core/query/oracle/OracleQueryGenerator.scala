@@ -64,7 +64,7 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
     }
 
     val subqueryFilters = generateInSubqueryFilters(subqueryBundle)
-    val dimWhere = WhereClause(PreRenderedAndFilter(subqueryFilters ++ primaryBundleFiltersToInclude))
+    val dimWhere = WhereClause(RenderedAndFilter(subqueryFilters ++ primaryBundleFiltersToInclude))
     (s"""$primaryTableFkCol IN (SELECT $dimSelect FROM ${subqueryBundle.dim.name} $dimWhere)""", escaped)
   }
 
@@ -126,7 +126,7 @@ b. Dim Driven
           }
       }
 
-      WhereClause(PreRenderedAndFilter(dimBundleFilters))
+      WhereClause(RenderedAndFilter(dimBundleFilters))
     }
 
     def generateRenderedDimension(dimBundle: DimensionBundle,
@@ -1092,12 +1092,12 @@ b. Dim Driven
           val partitionFilterOption = partitionColumnRenderer.renderFact(queryContext, literalMapper, OracleEngine)
           if(partitionFilterOption.isDefined) {
             partitionFilters += partitionFilterOption.get
-            PreRenderedAndFilter(partitionFilters ++ whereFilters)
+            RenderedAndFilter(partitionFilters ++ whereFilters)
           } else {
-            PreRenderedAndFilter(whereFilters + dayFilter)
+            RenderedAndFilter(whereFilters + dayFilter)
           }
         } else {
-          PreRenderedAndFilter(whereFilters + dayFilter)
+          RenderedAndFilter(whereFilters + dayFilter)
         }
       }
 
@@ -1105,7 +1105,7 @@ b. Dim Driven
       queryBuilder.setWhereClause(whereClauseExpression)
 
       if (havingFilters.nonEmpty) {
-        val havingAndFilters = PreRenderedAndFilter(havingFilters.toSet)
+        val havingAndFilters = RenderedAndFilter(havingFilters.toSet)
         val havingClauseExpression = s"""HAVING ${havingAndFilters.toString}"""
         queryBuilder.setHavingClause(havingClauseExpression)
       }

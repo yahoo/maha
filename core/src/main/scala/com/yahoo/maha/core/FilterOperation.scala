@@ -232,12 +232,12 @@ case class AndFilter(filters: List[Filter]) extends ForcedFilter with CombiningF
   val asValues: String = filters.map(_.asValues).mkString("(",") AND (",")")
 }
 
-case class PreRenderedAndFilter(filters: Iterable[String]) extends CombiningFilter {
+case class RenderedAndFilter(filters: Iterable[String]) extends CombiningFilter {
   def isEmpty : Boolean = filters.isEmpty
   override def toString: String = filters.mkString("(",") AND (",")")
 }
 
-case class PreRenderedOrFilter(filters: Iterable[String]) extends CombiningFilter {
+case class RenderedOrFilter(filters: Iterable[String]) extends CombiningFilter {
   def isEmpty : Boolean = filters.isEmpty
   override def toString: String = filters.mkString("(",") OR (",")")
 }
@@ -1367,12 +1367,6 @@ object Filter extends Logging {
       true.successNel
     }
   }
-
-  implicit class JValueOps(value: JValue) {
-    def validate[A: JSONR]: ValidationNel[Error, A] = implicitly[JSONR[A]].read(value)
-    def read[A: JSONR]: Error \/ A = implicitly[JSONR[A]].read(value).disjunction.leftMap(_.head)
-  }
-
 
   implicit def filterJSONR: JSONR[Filter] = new JSONR[Filter] {
     override def read(json: JValue): JsonScalaz.Result[Filter] = {

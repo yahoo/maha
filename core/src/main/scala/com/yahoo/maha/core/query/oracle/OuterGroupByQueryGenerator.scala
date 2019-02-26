@@ -24,7 +24,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
         outerFilters += f.filter
     }
 
-    WhereClause(PreRenderedAndFilter(outerFilters))
+    WhereClause(RenderedAndFilter(outerFilters))
   }
 
   /*
@@ -176,12 +176,12 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
           val partitionFilterOption = partitionColumnRenderer.renderFact(queryContext, literalMapper, OracleEngine)
           if(partitionFilterOption.isDefined) {
             partitionFilters += partitionFilterOption.get
-            PreRenderedAndFilter(partitionFilters ++ whereFilters)
+            RenderedAndFilter(partitionFilters ++ whereFilters)
           } else {
-            PreRenderedAndFilter(whereFilters + dayFilter)
+            RenderedAndFilter(whereFilters + dayFilter)
           }
         } else {
-          PreRenderedAndFilter(whereFilters + dayFilter)
+          RenderedAndFilter(whereFilters + dayFilter)
         }
       }
 
@@ -189,7 +189,7 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       queryBuilder.setWhereClause(whereClauseExpression)
 
       if (havingFilters.nonEmpty) {
-        val havingAndFilters = PreRenderedAndFilter(havingFilters.toIndexedSeq)
+        val havingAndFilters = RenderedAndFilter(havingFilters.toIndexedSeq)
         val havingClauseExpression = s"""HAVING ${havingAndFilters.toString}"""
         queryBuilder.setHavingClause(havingClauseExpression)
       }

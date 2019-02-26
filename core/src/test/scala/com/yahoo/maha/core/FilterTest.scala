@@ -205,7 +205,7 @@ class FilterTest extends FunSuite with Matchers {
   }
 
   test("PreRenderedAndFilter should render combined filters with AND") {
-    val andFilter = PreRenderedAndFilter(
+    val andFilter = RenderedAndFilter(
       List(
         "field1 IN ('abc', 'def', 'ghi')"
         , "field2 BETWEEN 'abc' AND 'def'"
@@ -216,7 +216,7 @@ class FilterTest extends FunSuite with Matchers {
   }
 
   test("PreRenderedOrFilter should render combined filters with OR") {
-    val orFilter = PreRenderedOrFilter(
+    val orFilter = RenderedOrFilter(
       List(
         "field1 IN ('abc', 'def', 'ghi')"
         , "field2 BETWEEN 'abc' AND 'def'"
