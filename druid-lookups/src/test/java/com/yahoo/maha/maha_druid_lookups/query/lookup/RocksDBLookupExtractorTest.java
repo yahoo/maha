@@ -8,8 +8,7 @@ import com.google.common.io.Files;
 import com.google.protobuf.Message;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.metamx.emitter.service.ServiceEventBuilder;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.MissingLookupConfig;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.KafkaManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
@@ -25,7 +24,6 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -34,7 +32,7 @@ import java.util.Map;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 
-public class InMemoryDBLookupExtractorTest {
+public class RocksDBLookupExtractorTest {
     private static final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Test
@@ -43,12 +41,12 @@ public class InMemoryDBLookupExtractorTest {
         RocksDBManager rocksDBManager = mock(RocksDBManager.class);
         KafkaManager kafkaManager = mock(KafkaManager.class);
         ServiceEmitter serviceEmitter = mock(ServiceEmitter.class);
-        InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
+        RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                 "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
         );
         Map<String, String> map = new HashMap<>();
-        InMemoryDBLookupExtractor InMemoryDBLookupExtractor = new InMemoryDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, new TestProtobufSchemaFactory(), serviceEmitter);
-        String lookupValue = InMemoryDBLookupExtractor.apply("");
+        RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, new TestProtobufSchemaFactory(), serviceEmitter);
+        String lookupValue = RocksDBLookupExtractor.apply("");
         Assert.assertNull(lookupValue);
     }
 
@@ -58,12 +56,12 @@ public class InMemoryDBLookupExtractorTest {
         RocksDBManager rocksDBManager = mock(RocksDBManager.class);
         KafkaManager kafkaManager = mock(KafkaManager.class);
         ServiceEmitter serviceEmitter = mock(ServiceEmitter.class);
-        InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
+        RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                 "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
         );
         Map<String, String> map = new HashMap<>();
-        InMemoryDBLookupExtractor InMemoryDBLookupExtractor = new InMemoryDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
-        String lookupValue = InMemoryDBLookupExtractor.apply(null);
+        RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
+        String lookupValue = RocksDBLookupExtractor.apply(null);
         Assert.assertNull(lookupValue);
     }
 
@@ -78,18 +76,18 @@ public class InMemoryDBLookupExtractorTest {
         when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
         MissingLookupConfig missingLookupConfig = new MissingLookupConfig(new MetadataStorageConnectorConfig(), "", "", "some_missing_topic");
-        InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
+        RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                 "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", missingLookupConfig
         );
         Map<String, String> map = new HashMap<>();
-        InMemoryDBLookupExtractor InMemoryDBLookupExtractor = new InMemoryDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
+        RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
         MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
         mahaLookupQueryElement1.setDimension("abc");
         mahaLookupQueryElement1.setValueColumn("status");
-        String lookupValue = InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
+        String lookupValue = RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
         verify(kafkaManager, times(1)).handleMissingLookup(any(byte[].class), anyString(), anyString());
         Assert.assertNull(lookupValue);
-        InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
+        RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
         verify(kafkaManager, times(1)).handleMissingLookup(any(byte[].class), anyString(), anyString());
         verify(serviceEmitter, times(1)).emit(any(ServiceEventBuilder.class));
     }
@@ -104,15 +102,15 @@ public class InMemoryDBLookupExtractorTest {
         ServiceEmitter serviceEmitter = mock(ServiceEmitter.class);
         when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
-        InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
+        RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                 "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
         );
         Map<String, String> map = new HashMap<>();
-        InMemoryDBLookupExtractor InMemoryDBLookupExtractor = new InMemoryDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
+        RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
         MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
         mahaLookupQueryElement1.setDimension("abc");
         mahaLookupQueryElement1.setValueColumn("status");
-        String lookupValue = InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
+        String lookupValue = RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
         verify(kafkaManager, times(0)).handleMissingLookup(any(byte[].class), anyString(), anyString());
         Assert.assertNull(lookupValue);
         verify(serviceEmitter, times(0)).emit(any(ServiceEventBuilder.class));
@@ -145,21 +143,21 @@ public class InMemoryDBLookupExtractorTest {
 
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
-            InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
+            RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
             );
             Map<String, String> map = new HashMap<>();
-            InMemoryDBLookupExtractor InMemoryDBLookupExtractor = new InMemoryDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
+            RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
             MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
             mahaLookupQueryElement1.setDimension("32309719080");
             mahaLookupQueryElement1.setValueColumn("status");
-            String lookupValue = InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
+            String lookupValue = RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
             Assert.assertEquals(lookupValue, "ON");
 
             MahaLookupQueryElement mahaLookupQueryElement2 = new MahaLookupQueryElement();
             mahaLookupQueryElement2.setDimension("32309719080");
             mahaLookupQueryElement2.setValueColumn("title");
-            lookupValue = InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement2));
+            lookupValue = RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement2));
             Assert.assertEquals(lookupValue, "some title");
         } finally {
             if(db != null) {
@@ -199,15 +197,15 @@ public class InMemoryDBLookupExtractorTest {
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
             MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
-            InMemoryDBExtractionNamespace extractionNamespace =
-                new InMemoryDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null);
+            RocksDBExtractionNamespace extractionNamespace =
+                new RocksDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null);
             Map<String, List<String>> map = new HashMap<>();
             map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
-            InMemoryDBLookupExtractor InMemoryDBLookupExtractor = new InMemoryDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
+            RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
             MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
             mahaLookupQueryElement1.setDimension("12345");
             mahaLookupQueryElement1.setValueColumn("booking_country");
-            String lookupValue = InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
+            String lookupValue = RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
             Assert.assertNull(lookupValue);
         } finally {
             if(db != null) {
@@ -227,12 +225,12 @@ public class InMemoryDBLookupExtractorTest {
         KafkaManager kafkaManager = mock(KafkaManager.class);
         ServiceEmitter serviceEmitter = mock(ServiceEmitter.class);
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = objectMapper.readValue("{ \"createTables\": false,\"connectURI\": \"jdbc:oracle:thin:@cbrptprod_bf1\",\"user\": \"na_reporting_ws\",\"password\":\"na_reporting_ws.db.prod.pwd\"}", MetadataStorageConnectorConfig.class);
-        InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
+        RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                 "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic")
         );
         byte[] b = objectMapper.writeValueAsBytes(extractionNamespace);
         Map<String, String> map = new HashMap<>();
-        InMemoryDBLookupExtractor InMemoryDBLookupExtractor = new InMemoryDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
+        RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
         Map<String, String> dimensionOverrideMap = new HashMap<>();
         dimensionOverrideMap.put("12345", "something-12345");
         dimensionOverrideMap.put("6789", "something-6789");
@@ -242,14 +240,14 @@ public class InMemoryDBLookupExtractorTest {
         mahaLookupQueryElement1.setDimension("12345");
         mahaLookupQueryElement1.setValueColumn("name");
         mahaLookupQueryElement1.setDimensionOverrideMap(dimensionOverrideMap);
-        String lookupValue = InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
+        String lookupValue = RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
         Assert.assertEquals(lookupValue, "something-12345");
 
         MahaLookupQueryElement mahaLookupQueryElement2 = new MahaLookupQueryElement();
         mahaLookupQueryElement2.setDimension("");
         mahaLookupQueryElement2.setValueColumn("name");
         mahaLookupQueryElement2.setDimensionOverrideMap(dimensionOverrideMap);
-        lookupValue = InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement2));
+        lookupValue = RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement2));
         Assert.assertEquals(lookupValue, "Unknown");
     }
 
@@ -281,11 +279,11 @@ public class InMemoryDBLookupExtractorTest {
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
             MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
-            InMemoryDBExtractionNamespace extractionNamespace =
-                new InMemoryDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"));
+            RocksDBExtractionNamespace extractionNamespace =
+                new RocksDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"));
             Map<String, List<String>> map = new HashMap<>();
             map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
-            InMemoryDBLookupExtractor InMemoryDBLookupExtractor = new InMemoryDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
+            RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
 
             Map<String, String> dimensionOverrideMap = new HashMap<>();
             dimensionOverrideMap.put("123", "something-123");
@@ -302,7 +300,7 @@ public class InMemoryDBLookupExtractorTest {
             decodeConfig1.setColumnIfValueMatched("last_updated");
             decodeConfig1.setColumnIfValueNotMatched("status");
             mahaLookupQueryElement1.setDecodeConfig(decodeConfig1);
-            String lookupValue = InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
+            String lookupValue = RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
             Assert.assertEquals(lookupValue, "1470733203505");
 
             MahaLookupQueryElement mahaLookupQueryElement2 = new MahaLookupQueryElement();
@@ -315,7 +313,7 @@ public class InMemoryDBLookupExtractorTest {
             decodeConfig2.setColumnIfValueMatched("last_updated");
             decodeConfig2.setColumnIfValueNotMatched("status");
             mahaLookupQueryElement2.setDecodeConfig(decodeConfig2);
-            lookupValue = InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement2));
+            lookupValue = RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement2));
             Assert.assertEquals(lookupValue, "ON");
         } finally {
             if(db != null) {
@@ -356,11 +354,11 @@ public class InMemoryDBLookupExtractorTest {
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
             MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
-            InMemoryDBExtractionNamespace extractionNamespace =
-                new InMemoryDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"));
+            RocksDBExtractionNamespace extractionNamespace =
+                new RocksDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"));
             Map<String, List<String>> map = new HashMap<>();
             map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
-            InMemoryDBLookupExtractor InMemoryDBLookupExtractor = new InMemoryDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, new TestProtobufSchemaFactory(), serviceEmitter);
+            RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, new TestProtobufSchemaFactory(), serviceEmitter);
 
             Map<String, String> dimensionOverrideMap = new HashMap<>();
             dimensionOverrideMap.put("123", "something-123");
@@ -377,7 +375,7 @@ public class InMemoryDBLookupExtractorTest {
             decodeConfig3.setColumnIfValueMatched("fake_column");
             decodeConfig3.setColumnIfValueNotMatched("status");
             mahaLookupQueryElement3.setDecodeConfig(decodeConfig3);
-            String lookupValue = InMemoryDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement3));
+            String lookupValue = RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement3));
             Assert.assertEquals(lookupValue, null);
         } finally {
             if(db != null) {

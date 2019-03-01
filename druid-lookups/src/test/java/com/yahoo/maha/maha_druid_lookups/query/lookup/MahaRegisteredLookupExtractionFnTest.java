@@ -32,7 +32,7 @@ public class MahaRegisteredLookupExtractionFnTest {
 
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
         JDBCExtractionNamespace extractionNamespace =
-                new JDBCExtractionNamespace(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
+                new JDBCExtractionNamespace(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
                         "id", "", new Period(), true, "advertiser_lookup");
 
         Map<String, List<String>> map = new HashMap<>();
@@ -47,10 +47,10 @@ public class MahaRegisteredLookupExtractionFnTest {
         LookupReferencesManager lrm = mock(LookupReferencesManager.class);
         when(lrm.get(anyString())).thenReturn(lefc);
 
-        MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, objectMapper, "advertiser_lookup", false, "", false, false, "status", null, null, true));
-        fn.apply("123");
-        Assert.assertEquals(fn.cache.getIfPresent("123"), "{\"dimension\":\"123\",\"valueColumn\":\"status\",\"decodeConfig\":null,\"dimensionOverrideMap\":null}");
-        verify(fn, times(1)).getSerializedLookupQueryElement(anyString());
+        MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, "advertiser_lookup", false, "", false, false, "status", null, null, true));
+        Assert.assertNull(fn.cache);
+        Assert.assertEquals(fn.apply("123"), "ON");
+        Assert.assertEquals(fn.cache.getIfPresent("123"), "ON");
     }
 
     @Test
@@ -58,7 +58,7 @@ public class MahaRegisteredLookupExtractionFnTest {
 
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
         JDBCExtractionNamespace extractionNamespace =
-                new JDBCExtractionNamespace(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
+                new JDBCExtractionNamespace(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
                         "id", "", new Period(), true, "advertiser_lookup");
 
         Map<String, List<String>> map = new HashMap<>();
@@ -73,13 +73,12 @@ public class MahaRegisteredLookupExtractionFnTest {
         LookupReferencesManager lrm = mock(LookupReferencesManager.class);
         when(lrm.get(anyString())).thenReturn(lefc);
 
-        MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, objectMapper, "advertiser_lookup", false, "", false, false, "status", null, null, true));
+        MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, "advertiser_lookup", false, "", false, false, "status", null, null, true));
 
-        fn.ensureCache().put("123", "{\"dimension\":\"123\",\"valueColumn\":\"status\",\"decodeConfig\":null,\"dimensionOverrideMap\":null}");
+        fn.ensureCache().put("123", "hola");
 
-        fn.apply("123");
-        Assert.assertEquals(fn.cache.getIfPresent("123"), "{\"dimension\":\"123\",\"valueColumn\":\"status\",\"decodeConfig\":null,\"dimensionOverrideMap\":null}");
-        verify(fn, times(0)).getSerializedLookupQueryElement(anyString());
+        Assert.assertEquals(fn.apply("123"), "hola");
+        Assert.assertEquals(fn.cache.getIfPresent("123"), "hola");
     }
 
     @Test
@@ -87,7 +86,7 @@ public class MahaRegisteredLookupExtractionFnTest {
 
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
         JDBCExtractionNamespace extractionNamespace =
-                new JDBCExtractionNamespace(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
+                new JDBCExtractionNamespace(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
                         "id", "", new Period(), true, "advertiser_lookup");
 
         Map<String, List<String>> map = new HashMap<>();
@@ -102,11 +101,11 @@ public class MahaRegisteredLookupExtractionFnTest {
         LookupReferencesManager lrm = mock(LookupReferencesManager.class);
         when(lrm.get(anyString())).thenReturn(lefc);
 
-        MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, objectMapper, "advertiser_lookup", false, "", false, false, "status", null, null, false));
+        MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, "advertiser_lookup", false, "", false, false, "status", null, null, false));
 
-        fn.apply("123");
         Assert.assertNull(fn.cache);
-        verify(fn, times(1)).getSerializedLookupQueryElement(anyString());
+        Assert.assertEquals(fn.apply("123"), "ON");
+        Assert.assertNull(fn.cache);
     }
 
     @Test
@@ -114,7 +113,7 @@ public class MahaRegisteredLookupExtractionFnTest {
 
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
         JDBCExtractionNamespace extractionNamespace =
-                new JDBCExtractionNamespace(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
+                new JDBCExtractionNamespace(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
                         "id", "", new Period(), true, "advertiser_lookup");
 
         Map<String, List<String>> map = new HashMap<>();
@@ -129,7 +128,7 @@ public class MahaRegisteredLookupExtractionFnTest {
         LookupReferencesManager lrm = mock(LookupReferencesManager.class);
         when(lrm.get(anyString())).thenReturn(lefc);
 
-        MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, objectMapper, "advertiser_lookup", false, "", false, false, "status", null, null, true));
+        MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, "advertiser_lookup", false, "", false, false, "status", null, null, true));
 
         Assert.assertNull(fn.apply(null));
     }

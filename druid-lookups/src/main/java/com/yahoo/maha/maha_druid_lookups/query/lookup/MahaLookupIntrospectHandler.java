@@ -4,7 +4,7 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
 import com.google.common.collect.ImmutableMap;
 import com.metamx.common.ISE;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaExtractionCacheManager;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaNamespaceExtractionCacheManager;
 import io.druid.common.utils.ServletResourceUtils;
 import io.druid.query.extraction.MapLookupExtractor;
 import io.druid.query.lookup.LookupIntrospectHandler;
@@ -20,10 +20,10 @@ public class MahaLookupIntrospectHandler implements LookupIntrospectHandler
 {
     private final MahaLookupExtractorFactory factory;
     private final String extractorID;
-    private final MahaExtractionCacheManager manager;
+    private final MahaNamespaceExtractionCacheManager manager;
     public MahaLookupIntrospectHandler(
             MahaLookupExtractorFactory factory,
-            MahaExtractionCacheManager manager,
+            MahaNamespaceExtractionCacheManager manager,
             String extractorID
     ) {
         this.factory = factory;

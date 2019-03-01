@@ -5,7 +5,7 @@
     <parent>
         <artifactId>maha-parent</artifactId>
         <groupId>com.yahoo.maha</groupId>
-        <version>5.242-SNAPSHOT</version>
+        <version>5.243-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -24,7 +24,7 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-client</artifactId>
             <version>2.3.0</version>
-            <scope>compile</scope>
+            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>commons-cli</groupId>
@@ -116,21 +116,25 @@
             <groupId>io.druid</groupId>
             <artifactId>druid-api</artifactId>
             <version>${druid.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.druid</groupId>
             <artifactId>druid-processing</artifactId>
             <version>${druid.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.druid</groupId>
             <artifactId>druid-server</artifactId>
             <version>${druid.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.druid</groupId>
             <artifactId>druid-common</artifactId>
             <version>${druid.version}</version>
+            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>com.google.guava</groupId>
@@ -142,48 +146,30 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>16.0.1</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
             <version>${protobuf.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_2.11</artifactId>
-            <version>0.10.2.0</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>log4j</groupId>
-                    <artifactId>log4j</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.zookeeper</groupId>
-                    <artifactId>zookeeper</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>net.jpountz.lz4</groupId>
-                    <artifactId>lz4</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-clients</artifactId>
-            <version>0.10.2.0</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.googlecode.json-simple</groupId>
             <artifactId>json-simple</artifactId>
             <version>1.1.1</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>0.10.2.0</version>
         </dependency>
         <dependency>
             <groupId>org.rocksdb</groupId>
@@ -196,7 +182,29 @@
             <version>1.9</version>
             <type>jar</type>
         </dependency>
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongo-java-driver</artifactId>
+            <version>${mongo-java-driver.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>${caffeine.version}</version>
+        </dependency>
         <!-- Tests -->
+        <dependency>
+            <groupId>de.bwaldvogel</groupId>
+            <artifactId>mongo-java-server</artifactId>
+            <version>1.5.0</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -232,6 +240,7 @@
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
             <version>6.8.7</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
@@ -239,23 +248,117 @@
             <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-            <version>${jackson.version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.github.ben-manes.caffeine</groupId>
-            <artifactId>caffeine</artifactId>
-            <version>${caffeine.version}</version>
-        </dependency>
     </dependencies>
 
-  <distributionManagement>
-    <repository>
-      <id>bintray-maha-druid-lookups-repo</id>
-      <url>https://api.bintray.com/maven/yahoo/maven/maha-druid-lookups/;publish=1</url>
-    </repository>
-  </distributionManagement>
+    <distributionManagement>
+        <repository>
+            <id>bintray-maha-druid-lookups-repo</id>
+            <url>https://api.bintray.com/maven/yahoo/maven/maha-druid-lookups/;publish=1</url>
+        </repository>
+    </distributionManagement>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven.compiler.plugin.version}</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+                <configuration>
+                    <forkCount>7</forkCount>
+                    <reuseForks>true</reuseForks>
+                    <argLine>-Xmx2048m -Djava.library.path=/home/y/lib64 ${surefireArgLine}</argLine>
+                    <workingDirectory>target/FORK_DIRECTORY_${surefire.forkNumber}</workingDirectory>
+                    <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.scoverage</groupId>
+                <artifactId>scoverage-maven-plugin</artifactId>
+                <version>${scoverage.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <phase>none</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <descriptors>
+                                <descriptor>src/main/assembly/druid-lookups.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.1</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                        <configuration>
+                            <propertyName>surefireArgLine</propertyName>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <!--  implementation is needed only for Maven 2  -->
+                                <rule implementation="org.jacoco.maven.RuleConfiguration">
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <!--  implementation is needed only for Maven 2  -->
+                                        <limit implementation="org.jacoco.report.check.Limit">
+                                            <counter>COMPLEXITY</counter>
+                                            <minimum>0.30</minimum>
+                                        </limit>
+                                        <limit implementation="org.jacoco.report.check.Limit">
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.38</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

@@ -2,11 +2,9 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
-import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
-import com.metamx.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
@@ -16,7 +14,6 @@ import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.tweak.HandleCallback;
 import org.skife.jdbi.v2.util.TimestampMapper;
 
-import java.io.UnsupportedEncodingException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
@@ -29,8 +26,7 @@ import java.util.concurrent.ConcurrentMap;
  *
  */
 public class JDBCExtractionNamespaceCacheFactory
-        implements ExtractionNamespaceCacheFactory<JDBCExtractionNamespace, List<String>>
-{
+        implements ExtractionNamespaceCacheFactory<JDBCExtractionNamespace, List<String>> {
     private static final Logger LOG = new Logger(JDBCExtractionNamespaceCacheFactory.class);
     private static final String COMMA_SEPARATOR = ",";
     private static final String FIRST_TIME_CACHING_WHERE_CLAUSE = " WHERE LAST_UPDATED <= :lastUpdatedTimeStamp";
@@ -48,9 +44,8 @@ public class JDBCExtractionNamespaceCacheFactory
             final JDBCExtractionNamespace extractionNamespace,
             final String lastVersion,
             final Map<String, List<String>> cache
-    )
-    {
-        final long lastCheck = lastVersion == null ? Long.MIN_VALUE/2 : Long.parseLong(lastVersion);
+    ) {
+        final long lastCheck = lastVersion == null ? Long.MIN_VALUE / 2 : Long.parseLong(lastVersion);
         if (!extractionNamespace.isCacheEnabled()) {
             return new Callable<String>() {
                 @Override
@@ -61,30 +56,24 @@ public class JDBCExtractionNamespaceCacheFactory
         }
         final Timestamp lastDBUpdate = lastUpdates(id, extractionNamespace);
         if (lastDBUpdate != null && lastDBUpdate.getTime() <= lastCheck) {
-            return new Callable<String>()
-            {
+            return new Callable<String>() {
                 @Override
-                public String call() throws Exception
-                {
+                public String call() throws Exception {
                     extractionNamespace.setPreviousLastUpdateTimestamp(lastDBUpdate);
                     return lastVersion;
                 }
             };
         }
-        return new Callable<String>()
-        {
+        return new Callable<String>() {
             @Override
-            public String call()
-            {
+            public String call() {
                 final DBI dbi = ensureDBI(id, extractionNamespace);
 
                 LOG.debug("Updating [%s]", id);
                 dbi.withHandle(
-                        new HandleCallback<Void>()
-                        {
+                        new HandleCallback<Void>() {
                             @Override
-                            public Void withHandle(Handle handle) throws Exception
-                            {
+                            public Void withHandle(Handle handle) throws Exception {
                                 String query = String.format("SELECT %s FROM %s",
                                         String.join(COMMA_SEPARATOR, extractionNamespace.getColumnList()),
                                         extractionNamespace.getTable()
@@ -120,8 +109,7 @@ public class JDBCExtractionNamespaceCacheFactory
         };
     }
 
-    private DBI ensureDBI(String id, JDBCExtractionNamespace namespace)
-    {
+    private DBI ensureDBI(String id, JDBCExtractionNamespace namespace) {
         final String key = id;
         DBI dbi = null;
         if (dbiCache.containsKey(key)) {
@@ -139,8 +127,7 @@ public class JDBCExtractionNamespaceCacheFactory
         return dbi;
     }
 
-    private Timestamp lastUpdates(String id, JDBCExtractionNamespace namespace)
-    {
+    private Timestamp lastUpdates(String id, JDBCExtractionNamespace namespace) {
         final DBI dbi = ensureDBI(id, namespace);
         final String table = namespace.getTable();
         final String tsColumn = namespace.getTsColumn();
@@ -148,8 +135,7 @@ public class JDBCExtractionNamespaceCacheFactory
             return null;
         }
         final Timestamp lastUpdatedTimeStamp = dbi.withHandle(
-                new HandleCallback<Timestamp>()
-                {
+                new HandleCallback<Timestamp>() {
 
                     @Override
                     public Timestamp withHandle(Handle handle) throws Exception {
@@ -183,16 +169,16 @@ public class JDBCExtractionNamespaceCacheFactory
             return value;
         }
         List<String> cacheValue = cache.get(key);
-        if(cacheValue == null) {
+        if (cacheValue == null) {
             return new byte[0];
         }
 
-        if(decodeConfigOptional.isPresent()) {
+        if (decodeConfigOptional.isPresent()) {
             return handleDecode(extractionNamespace, cacheValue, decodeConfigOptional.get());
         }
 
         int index = extractionNamespace.getColumnIndex(valueColumn);
-        if(index == -1) {
+        if (index == -1) {
             LOG.error("invalid valueColumn [%s]", valueColumn);
             return new byte[0];
         }
@@ -203,13 +189,13 @@ public class JDBCExtractionNamespaceCacheFactory
     private byte[] handleDecode(JDBCExtractionNamespace extractionNamespace, List<String> cacheValue, DecodeConfig decodeConfig) {
 
         final int columnToCheckIndex = extractionNamespace.getColumnIndex(decodeConfig.getColumnToCheck());
-        if (columnToCheckIndex < 0 || columnToCheckIndex >= cacheValue.size() ) {
+        if (columnToCheckIndex < 0 || columnToCheckIndex >= cacheValue.size()) {
             return new byte[0];
         }
 
         final String valueFromColumnToCheck = cacheValue.get(columnToCheckIndex);
 
-        if(valueFromColumnToCheck != null && valueFromColumnToCheck.equals(decodeConfig.getValueToCheck())) {
+        if (valueFromColumnToCheck != null && valueFromColumnToCheck.equals(decodeConfig.getValueToCheck())) {
             final int columnIfValueMatchedIndex = extractionNamespace.getColumnIndex(decodeConfig.getColumnIfValueMatched());
             if (columnIfValueMatchedIndex < 0) {
                 return new byte[0];

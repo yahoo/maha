@@ -7,7 +7,7 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
 import com.metamx.emitter.service.ServiceEmitter;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.AdProtos;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
 import org.apache.commons.io.FileUtils;
@@ -29,11 +29,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
-public class InMemoryDBExtractionNamespaceCacheFactoryTest {
+public class RocksDBExtractionNamespaceCacheFactoryTest {
 
     @InjectMocks
-    InMemoryDBExtractionNamespaceCacheFactory obj =
-            new InMemoryDBExtractionNamespaceCacheFactory();
+    RocksDBExtractionNamespaceCacheFactory obj =
+            new RocksDBExtractionNamespaceCacheFactory();
 
     @Mock
     RocksDBManager rocksDBManager;
@@ -72,7 +72,7 @@ public class InMemoryDBExtractionNamespaceCacheFactoryTest {
 
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
-            InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
+            RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
             );
 
@@ -133,7 +133,7 @@ public class InMemoryDBExtractionNamespaceCacheFactoryTest {
 
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
-            InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
+            RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
             );
 
@@ -194,7 +194,7 @@ public class InMemoryDBExtractionNamespaceCacheFactoryTest {
 
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
-            InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
+            RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
             );
 
@@ -226,7 +226,7 @@ public class InMemoryDBExtractionNamespaceCacheFactoryTest {
 
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
-            InMemoryDBExtractionNamespace extractionNamespace = new InMemoryDBExtractionNamespace(
+            RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
             );
 
