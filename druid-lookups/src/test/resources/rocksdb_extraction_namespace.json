@@ -1,0 +1,9 @@
+{
+  "type": "maharocksdb",
+  "namespace": "advertiser",
+  "rocksDbInstanceHDFSPath": "/data/druid/lookups/snapshots/advertiser",
+  "lookupAuditingHDFSPath": "/data/druid/lookups/audits/advertiser",
+  "pollPeriod": "PT30S",
+  "cacheEnabled": true,
+  "lookupName": "advertiser_lookup"
+}
