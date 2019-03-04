@@ -73,13 +73,13 @@
         <module>db</module>
         <module>request-log</module>
         <module>job-service</module>
-        <module>worker</module>
         <module>druid-lookups</module>
         <module>core</module>
         <module>druid</module>
         <module>oracle</module>
         <module>presto</module>
         <module>service</module>
+        <module>worker</module>
         <module>api-jersey</module>
         <module>api-example</module>
     </modules>

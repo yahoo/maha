@@ -3,19 +3,14 @@
 
 package com.yahoo.maha.worker
 
-import com.yahoo.maha.job.service.JobStatus.JobStatus
-import com.yahoo.maha.job.service.{Job, JobMetadata, JobType}
 import com.yahoo.maha.service.BaseMahaServiceTest
 import org.joda.time.DateTime
-import org.scalatest.Matchers
-
-import scala.concurrent.Future
-import scala.util.Success
+import org.scalatest.{BeforeAndAfterAll, Matchers}
 
 /*
     Created by pranavbhole on 8/29/18
 */
-trait BaseWorkerTest extends BaseMahaServiceTest with Matchers {
+trait BaseWorkerTest extends BaseMahaServiceTest with Matchers with BeforeAndAfterAll {
   val mahaJobWorkerTable =
     s"""
        | create table maha_worker_job(
@@ -35,8 +30,12 @@ trait BaseWorkerTest extends BaseMahaServiceTest with Matchers {
        | );
      """.stripMargin
   val now = new DateTime()
-  val result = jdbcConnection.get.execute(mahaJobWorkerTable)
-  assert(result.isSuccess, s"Failed to create job table $result")
 
+  override def beforeAll(): Unit = {
+    initJdbcToH2()
+    val result = jdbcConnection.get.execute(mahaJobWorkerTable)
+    assert(result.isSuccess, s"Failed to create job table $result")
+
+  }
 
 }
