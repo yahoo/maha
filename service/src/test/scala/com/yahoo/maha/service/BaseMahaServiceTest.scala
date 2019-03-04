@@ -31,14 +31,12 @@ trait BaseMahaServiceTest extends FunSuite with Logging {
   protected val closer : Closer = Closer.create()
 
   final val REGISTRY = "er"
-  protected[this] val fromDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7))
-  protected[this] val toDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
-  val ddlGenerator : OracleDDLGenerator = new OracleDDLGenerator
-  val h2dbId : String = UUID.randomUUID().toString.replace("-","")
+  lazy protected[this] val fromDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7))
+  lazy protected[this] val toDate : String = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
+  lazy private[this] val ddlGenerator : OracleDDLGenerator = new OracleDDLGenerator
+  lazy private[this] val h2dbId : String = UUID.randomUUID().toString.replace("-","")
 
-  initJdbcToH2()
-
-  protected[this] val druidPort:Int  = {
+  lazy protected[this] val druidPort:Int  = {
     try {
       val socket = new ServerSocket(0)
       val freePort = socket.getLocalPort
@@ -51,14 +49,17 @@ trait BaseMahaServiceTest extends FunSuite with Logging {
     }
   }
 
-  private[this] val replacementTuplesInConfigJson =   List(("H2DBID", h2dbId),
+  lazy private[this] val replacementTuplesInConfigJson =   List(("H2DBID", h2dbId),
     ("http://localhost:druidLocalPort/mock/studentPerf", s"http://localhost:$druidPort/mock/studentPerf"))
-  protected[this] val mahaServiceResult : MahaServiceConfig.MahaConfigResult[MahaServiceConfig] = getConfigFromFileWithReplacements("mahaServiceExampleJson.json", replacementTuplesInConfigJson )
+  lazy protected[this] val mahaServiceResult : MahaServiceConfig.MahaConfigResult[MahaServiceConfig] = {
+    val result = getConfigFromFileWithReplacements("mahaServiceExampleJson.json", replacementTuplesInConfigJson )
+    require(result.isSuccess, result.toString())
+    result
+  }
 
-  require(mahaServiceResult.isSuccess, mahaServiceResult.toString())
 
-  val mahaServiceConfig : MahaServiceConfig = mahaServiceResult.toOption.get
-  val mahaService : MahaService = DefaultMahaService(mahaServiceConfig)
+  lazy val mahaServiceConfig : MahaServiceConfig = mahaServiceResult.toOption.get
+  lazy val mahaService : MahaService = DefaultMahaService(mahaServiceConfig)
 
   //For Kafka Logging init
   MDC.put(MahaConstants.REQUEST_ID, "123Request")
@@ -105,6 +106,8 @@ trait BaseMahaServiceTest extends FunSuite with Logging {
   }
 
   def createTables(): Unit = {
+    initJdbcToH2()
+
     // Create Tables
     erRegistry.factMap.values.foreach {
       publicFact =>
