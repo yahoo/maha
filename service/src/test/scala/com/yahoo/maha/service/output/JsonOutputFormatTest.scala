@@ -8,12 +8,13 @@ import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.{CompleteRowList, QueryAttributes, QueryPipelineResult, QueryRowList}
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{DruidEngine, Engine, OracleEngine, RequestModelResult}
+import com.yahoo.maha.jdbc.List
 import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{BaseMahaServiceTest, CuratorInjector, MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
-import org.json4s.JsonAST.{JInt, JObject, JString}
+import org.json4s.JsonAST.{JInt, JObject}
 import org.scalatest.BeforeAndAfterAll
 
 import scala.util.Try
@@ -23,14 +24,17 @@ import scala.util.Try
   */
 class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
-  createTables()
+  override protected def beforeAll(): Unit = {
+    createTables()
+  }
 
-  override protected def afterAll(): Unit =  {
+  override protected def afterAll(): Unit = {
     super.afterAll()
     server.shutdownNow()
   }
 
-  val jsonRequest = s"""{
+  val jsonRequest =
+    s"""{
                           "cube": "student_performance",
                           "selectFields": [
                             {"field": "Student ID"},
@@ -59,7 +63,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     Map.empty, "rid", "uid")
 
   val mahaRequestLogBuilder = MahaRequestLogHelper(mahaRequestContext, mahaService.mahaRequestLogWriter)
-  val (pse, queryPipeline, query, queryChain)  = {
+  val (pse, queryPipeline, query, queryChain) = {
     val bucketParams = BucketParams(UserInfo("test", false))
 
     val requestModel = mahaService.generateRequestModel(REGISTRY
@@ -71,7 +75,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     (pse, factory.get, queryChain.drivingQuery, queryChain)
   }
 
-  val (fd_pse, fd_queryPipeline, fd_query, fd_queryChain)  = {
+  val (fd_pse, fd_queryPipeline, fd_query, fd_queryChain) = {
 
     val requestModel = mahaService.generateRequestModel(REGISTRY
       , ReportingRequest
@@ -81,7 +85,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
               ReportingRequest.forceDruid(
                 reportingRequest.copy(forceDimensionDriven = false, forceFactDriven = true)
               ), "test1"
-            ), List("lb1","lb2","lb3")
+            ), List("lb1", "lb2", "lb3")
           )
         )
       , BucketParams(UserInfo("test", false), forceRevision = Option(1))).toOption.get
@@ -132,14 +136,25 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
       , mahaRequestContext)
 
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult
-      , Map(OracleEngine-> TestOracleIngestionTimeUpdater(OracleEngine, "testSource")))
+      , Map(OracleEngine -> TestOracleIngestionTimeUpdater(OracleEngine, "testSource")))
 
-    val stringStream =  new StringStream()
+    val stringStream = new StringStream()
 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
     stringStream.close()
-    val expected  = s""""cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,"Test Result",null]],"curators":{}}"""
+    val expected = s""""cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[123,234,345,99,"Test Result",null]],"curators":{}}"""
+    if (!result.contains(expected)) {
+      println(s"mahaRequestContext.mutableState : ${mahaRequestContext.mutableState}")
+      println(s"dimCardinalityEstimate : ${query.queryContext.requestModel.dimCardinalityEstimate}")
+      jdbcConnection.get.queryForObject("select id, name from section") {
+        rs =>
+          while (rs.next()) {
+            println("found unexpected data in section id : " + rs.getArray(0))
+            println("found unexpected data in section data : " + rs.getArray(1))
+          }
+      }
+    }
     assert(result.contains(expected))
     assert(jsonStreamingOutput.ingestionTimeUpdaterMap.get(OracleEngine).get.getIngestionTimeLongAsJava("abc").isDefined)
   }
@@ -166,7 +181,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val curatorResult2 = CuratorResult(testCurator, NoConfig, Option(parRequestResult), requestModelResult)
 
 
-    val curatorResults= IndexedSeq(curatorResult1, curatorResult2)
+    val curatorResults = IndexedSeq(curatorResult1, curatorResult2)
 
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator, testCurator)
       , Map(DefaultCurator.name -> curatorResult1, curatorResult2.curator.name -> curatorResult2)
@@ -177,7 +192,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
       , mahaRequestContext)
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 
-    val stringStream =  new StringStream()
+    val stringStream = new StringStream()
 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
@@ -208,7 +223,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val curatorResult2 = failingCurator.process(Map.empty
       , mahaRequestContext, mahaService, mahaRequestLogBuilder.curatorLogBuilder(failingCurator), NoConfig, curatorInjector)
 
-    val curatorResults= IndexedSeq(curatorResult1, curatorResult2)
+    val curatorResults = IndexedSeq(curatorResult1, curatorResult2)
 
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator, failingCurator)
       , Map(DefaultCurator.name -> curatorResult1)
@@ -217,7 +232,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
       , mahaRequestContext)
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 
-    val stringStream =  new StringStream()
+    val stringStream = new StringStream()
 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
@@ -246,7 +261,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogBuilder, Set(FailingCurator.name))
 
-    val curatorResults= IndexedSeq(curatorResult1)
+    val curatorResults = IndexedSeq(curatorResult1)
 
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator)
       , Map(DefaultCurator.name -> curatorResult1)
@@ -255,7 +270,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
       , mahaRequestContext)
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 
-    val stringStream =  new StringStream()
+    val stringStream = new StringStream()
 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
@@ -283,7 +298,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogBuilder, Set(FailingCurator.name))
 
-    val curatorResults= IndexedSeq(curatorResult1)
+    val curatorResults = IndexedSeq(curatorResult1)
 
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator)
       , Map(DefaultCurator.name -> curatorResult1)
@@ -292,7 +307,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
       , mahaRequestContext)
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 
-    val stringStream =  new StringStream()
+    val stringStream = new StringStream()
 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
