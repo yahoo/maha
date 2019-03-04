@@ -4,8 +4,12 @@ package com.yahoo.maha.core
 
 import com.yahoo.maha.core.dimension.DimCol
 import com.yahoo.maha.core.fact.ForceFilter
+import javax.swing.JList
 import org.joda.time.DateTime
+import org.json4s.JsonAST
+import org.json4s.JsonAST.{JArray, JObject, JString, JValue}
 import org.scalatest.{FunSuite, Matchers}
+import scalaz.Success
 
 import scala.collection.immutable.TreeSet
 
@@ -177,22 +181,153 @@ class FilterTest extends FunSuite with Matchers {
   }
 
   test("AndFilter should render combined filters with AND") {
-    val andFilter = AndFilter(List(
-      "field1 IN (\'abc\', \'def\', \'ghi\')",
-      "field2 BETWEEN \'abc\' AND \'def\'",
-      "field3 =  \'ghi\'"
+    val andFilter = AndFilter(
+      List(
+        InFilter("field1", List("abc", "def", "ghi"))
+        , BetweenFilter("field2", "def", "ghi")
+        , EqualityFilter("field3", "ghi")
     ))
-    andFilter.toString shouldBe "(field1 IN ('abc', 'def', 'ghi')) AND (field2 BETWEEN 'abc' AND 'def') AND (field3 =  'ghi')"
+    andFilter.isEmpty shouldBe false
+    andFilter.field shouldEqual "and"
+    andFilter.toString shouldBe "AndFilter(List(InFilter(field1,List(abc, def, ghi),false,false), BetweenFilter(field2,def,ghi), EqualityFilter(field3,ghi,false,false)))"
   }
 
   test("OrFilter should render combined filters with OR") {
     val orFilter = OrFilter(List(
-    "field1 IN (\'abc\', \'def\', \'ghi\')",
-      "field2 BETWEEN \'abc\' AND \'def\'",
-      "field3 =  \'ghi\'"
-    ))
-    orFilter.toString shouldBe "(field1 IN ('abc', 'def', 'ghi')) OR (field2 BETWEEN 'abc' AND 'def') OR (field3 =  'ghi')"
+      InFilter("field1", List("abc", "def", "ghi"))
+      , BetweenFilter("field2", "def", "ghi")
+      , EqualityFilter("field3", "ghi"))
+    )
+    orFilter.toString shouldBe "OrFilter(List(InFilter(field1,List(abc, def, ghi),false,false), BetweenFilter(field2,def,ghi), EqualityFilter(field3,ghi,false,false)))"
     orFilter.isEmpty shouldBe false
+    orFilter.field shouldEqual "or"
+    orFilter.filters.isEmpty shouldBe false
+  }
+
+  test("PreRenderedAndFilter should render combined filters with AND") {
+    val andFilter = RenderedAndFilter(
+      List(
+        "field1 IN ('abc', 'def', 'ghi')"
+        , "field2 BETWEEN 'abc' AND 'def'"
+        , "field3 =  'ghi'"
+      ))
+    andFilter.isEmpty shouldBe false
+    andFilter.toString shouldBe "(field1 IN ('abc', 'def', 'ghi')) AND (field2 BETWEEN 'abc' AND 'def') AND (field3 =  'ghi')"
+  }
+
+  test("PreRenderedOrFilter should render combined filters with OR") {
+    val orFilter = RenderedOrFilter(
+      List(
+        "field1 IN ('abc', 'def', 'ghi')"
+        , "field2 BETWEEN 'abc' AND 'def'"
+        , "field3 =  'ghi'"
+      ))
+    orFilter.isEmpty shouldBe false
+    orFilter.toString shouldBe "(field1 IN ('abc', 'def', 'ghi')) OR (field2 BETWEEN 'abc' AND 'def') OR (field3 =  'ghi')"
+  }
+
+  test("OrFilter should be able to successfully render with an alias.") {
+    val orFilter : Filter = OrFilter(List(
+      InFilter("field1", List("abc", "def", "ghi"))
+      , BetweenFilter("field2", "def", "ghi")
+      , EqualityFilter("field3", "ghi"))
+    )
+    val orCol : Column = col
+    val aliasToRenderedSqlMap: Map[String, (String, String)] = Map(
+      "field1" -> (col.alias.getOrElse("field1"), "field1")
+      , "field2" -> ("stats_date", "field2")
+      , "field3" -> ("date_sid", "field3"))
+    val engine : Engine = OracleEngine
+    val mapper : LiteralMapper = oracleLiteralMapper
+    val grainOption : Option[Grain] = Some(DailyGrain)
+    val retVal = FilterSql.renderFilterWithAlias(orFilter, aliasToRenderedSqlMap, orCol, engine, mapper, grainOption)
+    val expectedRenderedString : String = "(field1 IN ('abc','def','ghi')) OR (field2 >= trunc(to_date('def', 'YYYY-MM-DD')) AND field2 <= trunc(to_date('ghi', 'YYYY-MM-DD'))) OR (field3 = to_date('ghi', 'YYYY-MM-DD'))"
+    retVal shouldEqual DefaultResult(expectedRenderedString, false)
+
+    val renderedFilter = Filter.filterJSONW.write(orFilter)
+    val  expectedRenderedJson : JObject =
+      new JObject(
+        List[(String, JValue)]
+          (("operator", JString("Or"))
+            , ("filterExpressions", JArray(
+            List[JObject](
+              new JObject(
+                List[(String, JValue)](
+                  ("field", JString("field1"))
+                  , ("operator", JString("In"))
+                  , ("values", JArray(List[JValue](JString("abc"), JString("def"), JString("ghi"))))))
+              , new JObject(
+                List[(String, JValue)](
+                  ("field", JString("field2"))
+                  , ("operator", JString("Between"))
+                  , ("from", JString("def"))
+                  , ("to", JString("ghi"))
+                )
+              )
+              , new JObject(
+                List[(String, JValue)](
+                  ("field", JString("field3"))
+                  , ("operator", JString("="))
+                  , ("value", JString("ghi"))
+                )
+              ))))))
+
+    renderedFilter shouldEqual expectedRenderedJson
+
+  }
+
+  test("AndFilter should be able to successfully render with an alias.") {
+    val andFilter : Filter = AndFilter(List(
+      InFilter("field1", List("abc", "def", "ghi"))
+      , BetweenFilter("field2", "def", "ghi")
+      , EqualityFilter("field3", "ghi"))
+    )
+    val andCol : Column = col
+    val aliasToRenderedSqlMap: Map[String, (String, String)] = Map(
+      "field1" -> (col.alias.getOrElse("field1"), "field1")
+      , "field2" -> ("stats_date", "field2")
+      , "field3" -> ("date_sid", "field3"))
+    val engine : Engine = OracleEngine
+    val mapper : LiteralMapper = oracleLiteralMapper
+    val grainOption : Option[Grain] = Some(DailyGrain)
+    val retVal = FilterSql.renderFilterWithAlias(andFilter, aliasToRenderedSqlMap, andCol, engine, mapper, grainOption)
+    val expectedRenderedString : String = "(field1 IN ('abc','def','ghi')) AND (field2 >= trunc(to_date('def', 'YYYY-MM-DD')) AND field2 <= trunc(to_date('ghi', 'YYYY-MM-DD'))) AND (field3 = to_date('ghi', 'YYYY-MM-DD'))"
+    retVal shouldEqual DefaultResult(expectedRenderedString, false)
+
+    val renderedFilter = Filter.filterJSONW.write(andFilter)
+    val  expectedRenderedJson : JObject =
+      new JObject(
+        List[(String, JValue)]
+          (("operator", JString("And"))
+            , ("filterExpressions", JArray(
+            List[JObject](
+              new JObject(
+            List[(String, JValue)](
+              ("field", JString("field1"))
+            , ("operator", JString("In"))
+            , ("values", JArray(List[JValue](JString("abc"), JString("def"), JString("ghi"))))))
+            , new JObject(
+                List[(String, JValue)](
+                  ("field", JString("field2"))
+                  , ("operator", JString("Between"))
+                  , ("from", JString("def"))
+                  , ("to", JString("ghi"))
+                )
+              )
+            , new JObject(
+                List[(String, JValue)](
+                  ("field", JString("field3"))
+                  , ("operator", JString("="))
+                  , ("value", JString("ghi"))
+                )
+              ))))))
+
+    renderedFilter shouldEqual expectedRenderedJson
+
+    val readJsonFilter = Filter.filterJSONR.read(renderedFilter)
+
+    readJsonFilter.isSuccess shouldBe true
+
   }
 
   test("BetweenFilter should fail for Druid engine") {

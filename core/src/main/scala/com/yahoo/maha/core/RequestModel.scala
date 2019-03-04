@@ -488,9 +488,9 @@ object RequestModel extends Logging {
               val outerFilters = filter.asInstanceOf[OuterFilter].filters.to[mutable.TreeSet]
               outerFilters.foreach( of => require(allRequestedAliases.contains(of.field) == true, s"OuterFilter ${of.field} is not in selected column list"))
               allOuterFilters ++= outerFilters
-            } else if (filter.isInstanceOf[OrFliter]) {
-              val orFilter = filter.asInstanceOf[OrFliter]
-              val orFilterMap : Map[Boolean, List[Filter]] = orFilter.filters.groupBy(f => publicFact.columnsByAliasMap.contains(f.field) && publicFact.columnsByAliasMap(f.field).isInstanceOf[PublicFactCol])
+            } else if (filter.isInstanceOf[OrFilter]) {
+              val orFilter = filter.asInstanceOf[OrFilter]
+              val orFilterMap : Map[Boolean, Iterable[Filter]] = orFilter.filters.groupBy(f => publicFact.columnsByAliasMap.contains(f.field) && publicFact.columnsByAliasMap(f.field).isInstanceOf[PublicFactCol])
               require(orFilterMap.size == 1, s"Or filter cannot have combination of fact and dim filters, factFilters=${orFilterMap.get(true)} dimFilters=${orFilterMap.get(false)}")
               allOrFilterMeta += OrFilterMeta(orFilter, orFilterMap.head._1)
             }
@@ -1186,7 +1186,7 @@ object RequestModel extends Logging {
         case NotEqualToFilter(_, value, _, _) => validateLength(List(value), length)
         case LikeFilter(_, value, _, _) => validateLength(List(value), length)
         case BetweenFilter(_, from, to) => validateLength(List(from, to), length)
-        case IsNullFilter(_, _, _) | IsNotNullFilter(_, _, _) | PushDownFilter(_) | OuterFilter(_) | OrFliter(_) => (true, MAX_ALLOWED_STR_LEN)
+        case IsNullFilter(_, _, _) | IsNotNullFilter(_, _, _) | PushDownFilter(_) | OuterFilter(_) | OrFilter(_) => (true, MAX_ALLOWED_STR_LEN)
         case _ => throw new Exception(s"Unhandled FilterOperation $filter.")
       }
       case _ => (true, MAX_ALLOWED_STR_LEN)
