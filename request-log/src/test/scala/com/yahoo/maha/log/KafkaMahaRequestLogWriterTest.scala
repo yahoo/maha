@@ -215,7 +215,9 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
       "999999",
       "1000"
     )
+
     val writer : KafkaMahaRequestLogWriter = new KafkaMahaRequestLogWriter(jsonKafkaRequestLoggingConfig, false)
+
 
     val result = writer.writeMahaRequestProto(builtProto)
 
@@ -223,6 +225,26 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
       result.get()
     }
     assert(thrown.getMessage.contains("check config"))
+  }
+
+  test("Multi Colo Request Log Writer Test") {
+
+    val jsonKafkaRequestLoggingConfig = new KafkaRequestLoggingConfig(
+      kafkaBroker,
+      kafkaBroker,
+      "test",
+      "org.apache.kafka.common.serialization.ByteArraySerializer",
+      "1",
+      "true",
+      "1",
+      TOPIC,
+      "999999",
+      "1000"
+    )
+
+    val writer : KafkaMahaRequestLogWriter = new KafkaMahaRequestLogWriter(jsonKafkaRequestLoggingConfig, false)
+    val multiColoMahaRequestLogWriter = new MultiColoMahaRequestLogWriter(List(writer, writer))
+    multiColoMahaRequestLogWriter.write(reqLogBuilder.build())
   }
 
   private def getFreePort(): Int = {
