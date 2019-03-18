@@ -62,6 +62,7 @@ class MahaRequestLogWriterFactoryTest extends BaseFactoryTest {
 
     val jsonString =
       """
+        |{
         |   "multiColoConfigList" : [
         |   {
         |      "kafkaBrokerList" : "",
@@ -88,6 +89,7 @@ class MahaRequestLogWriterFactoryTest extends BaseFactoryTest {
         |      "maxBlockMs" : ""
         |    }
         |   ]
+        |}
       """.stripMargin
 
     val factoryResult = getFactory[MahaRequestLogWriterFactory]("com.yahoo.maha.service.factory.MultiColoMahaRequestLogWriterFactory", closer)
@@ -97,9 +99,7 @@ class MahaRequestLogWriterFactoryTest extends BaseFactoryTest {
     val generatorResult = factory.fromJson(json, false)
     assert(generatorResult.isSuccess, generatorResult)
     assert(generatorResult.toList.head.isInstanceOf[MultiColoMahaRequestLogWriter])
-    val kafkaFactory = new KafkaMahaRequestLogWriterFactory
-    assert(kafkaFactory.supportedProperties == List.empty)
-
+    assert(generatorResult.toList.size == 2)
   }
 
 }

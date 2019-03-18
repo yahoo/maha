@@ -38,7 +38,6 @@ class MultiColoMahaRequestLogWriterFactory extends MahaRequestLogWriterFactory {
 
   override def fromJson(config: JValue, isLoggingEnabled: Boolean): MahaConfigResult[MahaRequestLogWriter] = {
 
-//    val kafkaRequestLoggingConfigResult: Result[JsonKafkaRequestLoggingConfig] = JsonKafkaRequestLoggingConfig.parse.read(config)
     val multiColoConfigListResult: MahaServiceConfig.MahaConfigResult[List[JsonKafkaRequestLoggingConfig]] = fieldExtended[List[JsonKafkaRequestLoggingConfig]]("multiColoConfigList")(config)
     for {
       multiColoConfigList <- multiColoConfigListResult

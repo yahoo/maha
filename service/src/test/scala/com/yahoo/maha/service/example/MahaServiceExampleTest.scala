@@ -5,6 +5,7 @@ package com.yahoo.maha.service.example
 import com.yahoo.maha.core.bucketing._
 import com.yahoo.maha.core.query.{QueryRowList, Version}
 import com.yahoo.maha.core.request._
+import com.yahoo.maha.log.MultiColoMahaRequestLogWriter
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParFunction
 import com.yahoo.maha.service._
@@ -208,6 +209,8 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
     val parRequestResult = mahaService.executeRequest(REGISTRY, ReportingRequest.forceHive(reportingRequest),bucketParams, mahaRequestLogHelper)
     val result = parRequestResult.prodRun.get(1000)
     assert(result.isRight)
+
+    assert(mahaServiceConfig.mahaRequestLogWriter.isInstanceOf[MultiColoMahaRequestLogWriter])
 
   }
 
