@@ -2,13 +2,13 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query
 
-import java.io.{File, FileNotFoundException}
+import java.io.{File, FileNotFoundException, OutputStream}
 import java.nio.file.{Files, StandardOpenOption}
 
 import com.yahoo.maha.core.{IntType, RequestModel, StrType}
 import com.yahoo.maha.core.query.oracle.BaseOracleQueryGeneratorTest
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.report.FileRowCSVWriterProvider
+import com.yahoo.maha.report.{FileRowCSVWriterProvider, JsonRowList}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -257,6 +257,15 @@ class CSVRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTest {
       Row(Map.empty, ArrayBuffer.empty).getValue("GoingToFail")
     }
     assert(thrown.getMessage.contains("Failed to find value in aliasMap"))
+  }
+
+  test("Json Generator") {
+    val jsonGenerator = JsonRowList.jsonGenerator(new OutputStream() {
+      override def write(b: Int): Unit = {
+
+      }
+    })
+    assert(jsonGenerator != null)
   }
 
   test("print pretty and other minor verifications") {

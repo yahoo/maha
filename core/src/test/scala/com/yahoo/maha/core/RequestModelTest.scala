@@ -5488,6 +5488,8 @@ class RequestModelTest extends FunSuite with Matchers {
     val model = res.toOption.get
     assert(model.factFilters.exists(_.field === "Impressions") === true)
     assert(model.factFilters.find(_.field === "Impressions").get.asInstanceOf[LessThanFilter].value === "1608")
+    val filter = model.factFilters.find(_.field === "Impressions").get.asInstanceOf[LessThanFilter]
+    assert(filter.canBeHighCardinalityFilter == true)
   }
 }
 
