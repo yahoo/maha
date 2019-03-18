@@ -18,7 +18,7 @@ import org.scalatest.BeforeAndAfterAll
 /**
  * Created by pranavbhole on 09/06/17.
  */
-class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with BeforeAndAfterAll{
+class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with BeforeAndAfterAll {
 
   override protected def afterAll(): Unit =  {
     super.afterAll()
@@ -211,7 +211,6 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
     assert(result.isRight)
 
     assert(mahaServiceConfig.mahaRequestLogWriter.isInstanceOf[MultiColoMahaRequestLogWriter])
-
   }
 
   test("Test RequestModel Failure using mahaService") {

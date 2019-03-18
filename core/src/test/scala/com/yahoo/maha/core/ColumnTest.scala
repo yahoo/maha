@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
-import com.yahoo.maha.core.fact.{ConstFactCol, HiveDerFactCol, NoopRollup}
+import com.yahoo.maha.core.fact.{ConstFactCol, DruidConstDerFactCol, HiveDerFactCol, NoopRollup}
 import org.scalatest.{FunSuite, Matchers}
 import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol}
 
@@ -54,4 +54,14 @@ class ColumnTest extends FunSuite with Matchers {
     }
   }
 
+  test("DruidConstDerFactCol test") {
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      DimCol("dimCol", IntType())
+     val col =  DruidConstDerFactCol("druidConst",None,  DecType(), "val", cc, "{dimCol}" * 100, Set(EscapingRequired, CaseInsensitive), NoopRollup, Set.empty)
+      ColumnContext.withColumnContext {
+        implicit cc:ColumnContext=>
+          col.copyWith(cc, Map.empty, true)
+      }
+    }
+  }
 }

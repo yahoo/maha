@@ -126,6 +126,8 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
       mahaRequestLogWriter.validate(MahaRequestLog.MahaRequestProto.newBuilder().build())
     }
     assert(thrown.getMessage.contains("Message missing required fields: requestId, json"))
+    mahaRequestLogWriter.validate(MahaRequestLog.MahaRequestProto.newBuilder().setRequestId("test")
+      .setJson(ByteString.copyFrom("[]".getBytes)).build())
   }
 
   test("RequestLogWriter Test") {
@@ -245,6 +247,11 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
     val writer : KafkaMahaRequestLogWriter = new KafkaMahaRequestLogWriter(jsonKafkaRequestLoggingConfig, false)
     val multiColoMahaRequestLogWriter = new MultiColoMahaRequestLogWriter(List(writer, writer))
     multiColoMahaRequestLogWriter.write(reqLogBuilder.build())
+    multiColoMahaRequestLogWriter.validate(reqLogBuilder.build())
+
+    intercept[IllegalArgumentException] {
+      new MultiColoMahaRequestLogWriter(null)
+    }
   }
 
   private def getFreePort(): Int = {

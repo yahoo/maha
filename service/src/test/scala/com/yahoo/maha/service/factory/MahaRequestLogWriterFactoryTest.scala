@@ -99,7 +99,8 @@ class MahaRequestLogWriterFactoryTest extends BaseFactoryTest {
     val generatorResult = factory.fromJson(json, false)
     assert(generatorResult.isSuccess, generatorResult)
     assert(generatorResult.toList.head.isInstanceOf[MultiColoMahaRequestLogWriter])
-    assert(generatorResult.toList.size == 2)
+    val multiColoMahaRequestLogWriter = generatorResult.toList.head.asInstanceOf[MultiColoMahaRequestLogWriter]
+    assert(multiColoMahaRequestLogWriter.list.size == 2)
   }
 
 }
