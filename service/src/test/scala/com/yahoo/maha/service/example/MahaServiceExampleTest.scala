@@ -5,6 +5,7 @@ package com.yahoo.maha.service.example
 import com.yahoo.maha.core.bucketing._
 import com.yahoo.maha.core.query.{QueryRowList, Version}
 import com.yahoo.maha.core.request._
+import com.yahoo.maha.log.MultiColoMahaRequestLogWriter
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.ParFunction
 import com.yahoo.maha.service._
@@ -17,7 +18,7 @@ import org.scalatest.BeforeAndAfterAll
 /**
  * Created by pranavbhole on 09/06/17.
  */
-class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with BeforeAndAfterAll{
+class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with BeforeAndAfterAll {
 
   override protected def afterAll(): Unit =  {
     super.afterAll()
@@ -209,6 +210,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
     val result = parRequestResult.prodRun.get(1000)
     assert(result.isRight)
 
+    assert(mahaServiceConfig.mahaRequestLogWriter.isInstanceOf[MultiColoMahaRequestLogWriter])
   }
 
   test("Test RequestModel Failure using mahaService") {

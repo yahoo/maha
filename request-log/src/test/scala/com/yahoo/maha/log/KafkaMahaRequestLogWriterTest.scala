@@ -126,6 +126,8 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
       mahaRequestLogWriter.validate(MahaRequestLog.MahaRequestProto.newBuilder().build())
     }
     assert(thrown.getMessage.contains("Message missing required fields: requestId, json"))
+    mahaRequestLogWriter.validate(MahaRequestLog.MahaRequestProto.newBuilder().setRequestId("test")
+      .setJson(ByteString.copyFrom("[]".getBytes)).build())
   }
 
   test("RequestLogWriter Test") {
@@ -215,7 +217,9 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
       "999999",
       "1000"
     )
+
     val writer : KafkaMahaRequestLogWriter = new KafkaMahaRequestLogWriter(jsonKafkaRequestLoggingConfig, false)
+
 
     val result = writer.writeMahaRequestProto(builtProto)
 
@@ -223,6 +227,31 @@ class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAn
       result.get()
     }
     assert(thrown.getMessage.contains("check config"))
+  }
+
+  test("Multi Colo Request Log Writer Test") {
+
+    val jsonKafkaRequestLoggingConfig = new KafkaRequestLoggingConfig(
+      kafkaBroker,
+      kafkaBroker,
+      "test",
+      "org.apache.kafka.common.serialization.ByteArraySerializer",
+      "1",
+      "true",
+      "1",
+      TOPIC,
+      "999999",
+      "1000"
+    )
+
+    val writer : KafkaMahaRequestLogWriter = new KafkaMahaRequestLogWriter(jsonKafkaRequestLoggingConfig, false)
+    val multiColoMahaRequestLogWriter = new MultiColoMahaRequestLogWriter(List(writer, writer))
+    multiColoMahaRequestLogWriter.write(reqLogBuilder.build())
+    multiColoMahaRequestLogWriter.validate(reqLogBuilder.build())
+
+    intercept[IllegalArgumentException] {
+      new MultiColoMahaRequestLogWriter(null)
+    }
   }
 
   private def getFreePort(): Int = {
