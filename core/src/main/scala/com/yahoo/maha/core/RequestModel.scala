@@ -1176,6 +1176,208 @@ object RequestModel extends Logging {
         (false, expectedLength)
     }
 
+    /*
+   *  FilterOperation Helper functions:
+   *  Designed to normalize interaction with FilterOps so that
+   *  all filter types can expose the same behavior
+   *  specific to RequestModel interaction.
+   */
+
+    /*
+          val filterMap = new mutable.HashMap[String, Filter]()
+          val pushDownFilterMap = new mutable.HashMap[String, PushDownFilter]()
+          val allFilterAliases = new mutable.TreeSet[String]()
+          val allFactFilters = new mutable.TreeSet[Filter]()
+          val allNonFactFilterAliases = new mutable.TreeSet[String]()
+          val allOuterFilters = mutable.TreeSet[Filter]()
+          val allOrFilterMeta = mutable.Set[OrFilterMeta]()
+     */
+
+    /**
+      * Given a filter of unknown type, classify it and pass it through
+      * necessary requirements, then determine if one or more aliases
+      * should be returned.
+      * @param filter - Filter to check & populate the map based on.
+      * @return - A set of filter Aliases, or an error.
+      */
+    def validateAndReturnFilterData(filter: Filter
+                                    , allRequestedAliases: Set[String]
+                                    , publicFact: PublicFact) : (Map[String, Filter], Map[String, PushDownFilter], Set[String], Set[Filter], Set[String], Set[Filter], Set[OrFilterMeta]) = {
+      val filterResultBag: (Map[String, Filter], Map[String, PushDownFilter], Set[String], Set[Filter], Set[String], Set[Filter], Set[OrFilterMeta]) = filter match {
+        //all filters passed in OuterFilter must be added to the Filter Alias Set.
+        case outerFilter: OuterFilter =>
+          (Map.empty, Map.empty, Set.empty, Set.empty, Set.empty, validateOuterFilterRequirementsAndReturn(outerFilter, allRequestedAliases), Set.empty)
+        //Both filters in the Field Equality filter must be added to the Filter Alias Set.
+        case fieldEqualityFilter: FieldEqualityFilter =>
+          (Map(fieldEqualityFilter.field -> fieldEqualityFilter, fieldEqualityFilter.compareTo -> fieldEqualityFilter), Map.empty, Set(fieldEqualityFilter.field, fieldEqualityFilter.compareTo), Set.empty, Set.empty, Set.empty, Set.empty)
+        //Filters passed through an Or Filter do not get added to the Set.
+        case orFilter: OrFilter =>
+          (Map.empty, Map.empty, Set.empty, Set.empty, Set.empty, Set.empty, validateOrFilterRequirementsAndReturn(orFilter, publicFact))
+        //Between filter gets its field added to the Set.
+        case betweenFilter: BetweenFilter =>
+          (Map(betweenFilter.field -> betweenFilter), Map.empty, Set.empty, Set.empty, Set.empty, Set.empty, Set.empty)
+        //Equality filter gets its field added to the Set.
+        case equalityFilter: EqualityFilter =>
+          (Map(equalityFilter.field -> equalityFilter), Map.empty, Set.empty, Set.empty, Set.empty, Set.empty, Set.empty)
+        //In filter gets its field added to the Set.
+        case inFilter: InFilter =>
+          (Map(inFilter.field -> inFilter), Map.empty, Set.empty, Set.empty, Set.empty, Set.empty, Set.empty)
+        //Not-In filter gets its field added to the Set.
+        case notInFilter: NotInFilter =>
+          (Map(notInFilter.field -> notInFilter), Map.empty, Set.empty, Set.empty, Set.empty, Set.empty, Set.empty)
+        case _ : Any => throw new IllegalArgumentException("Input filter is not a valid filter to check!  Found " + filter.toString)
+      }
+      filterResultBag
+    }
+
+    /**
+      * For returning all filter fields relevant to the current filter type.
+      * Used for pre-validated filters, such as those coming
+      * from the PublicFact (forced filters).
+      * @param filter - Filter to return data from.
+      * @return - Set dependent upon input filter type only.
+      */
+    def returnFieldSetWithoutValidation(filter: Filter): Set[String] = {
+      filter match {
+        case _: OuterFilter => Set.empty
+        case fieldEqualityFilter: FieldEqualityFilter => Set(fieldEqualityFilter.field, fieldEqualityFilter.compareTo)
+        case _: OrFilter => Set.empty
+        case betweenFilter: BetweenFilter => Set(betweenFilter.field)
+        case equalityFilter: EqualityFilter => Set(equalityFilter.field)
+        case inFilter: InFilter => Set(inFilter.field)
+        case notInFilter: NotInFilter => Set(notInFilter.field)
+      }
+    }
+
+    def staticMappedFilterRender(filter: Filter
+                                 , publicFact: PublicFact): Set[(String, Filter)] = {
+      val validFieldSet : Set[String] = returnFieldSetWithoutValidation(filter)
+
+      val newMap : Set[(String, Map[String, Set[String]])] = validFieldSet map {
+        field : String =>
+          (field, publicFact.aliasToReverseStaticMapping(field))
+      }
+
+      val setOfFilterFieldsWithReverseMappedFilters = newMap map {
+        tuple : (String, Map[String, Set[String]]) =>
+          val filterValue = tuple._1
+          val reverseMapping = tuple._2
+          val reverseMappedFilter: Filter = filter match {
+            case BetweenFilter(field, from, to) =>
+              require(reverseMapping.contains(from), s"Unknown filter from value for field=$field, from=$from")
+              require(reverseMapping.contains(to), s"Unknown filter to value for field=$field, to=$to")
+              val fromSet = reverseMapping(from)
+              val toSet = reverseMapping(to)
+              require(fromSet.size == 1 && toSet.size == 1,
+                s"Cannot perform between filter, the column has static mapping which maps to multiple values, from=$from maps to fromSet=$fromSet, to=$to maps to toSet=$toSet"
+              )
+              BetweenFilter(field, fromSet.head, toSet.head)
+            case EqualityFilter(field, value, _, _) =>
+              require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
+              val valueSet = reverseMapping(value)
+              if(valueSet.size > 1) {
+                InFilter(field, valueSet.toList)
+              } else {
+                EqualityFilter(field, valueSet.head)
+              }
+            case InFilter(field, values, _, _) =>
+              val mapped = values.map {
+                value =>
+                  require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
+                  reverseMapping(value)
+              }
+              InFilter(field, mapped.flatten)
+            case NotInFilter(field, values, _, _) =>
+              val mapped = values.map {
+                value =>
+                  require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
+                  reverseMapping(value)
+              }
+              NotInFilter(field, mapped.flatten)
+            case OrFilter(filters) =>
+              val checker = filters map {
+                    //Validate the input filters are mappable, but do not add to the mapped filters.
+                singleFilter =>
+                  staticMappedFilterRender(singleFilter, publicFact)
+              }
+              OrFilter(filters)
+            case f =>
+              throw new IllegalArgumentException(s"Unsupported filter operation on statically mapped field : $f")
+          }
+          (filterValue, reverseMappedFilter)
+      }
+
+      setOfFilterFieldsWithReverseMappedFilters
+    }
+
+    /**
+      * Validate all input fact filters with the given validation function.
+      * Used for its recursive calls,
+      * so that nested filters cannot be missed.
+      * @param allFilters - All filters of interest to validate.
+      */
+    def validateAllFilters(allFilters: Set[Filter]
+                           , publicFact: PublicFact
+                           , publicDimension: PublicDimension
+                           , validationFn: (Filter, PublicFact, PublicDimension) => Unit): Unit = {
+      allFilters foreach {
+        case orFilter: OrFilter =>
+          validateAllFilters(orFilter.filters.toSet, publicFact, publicDimension, validationFn)
+        case filter: Filter => validationFn(filter, publicFact, publicDimension)
+      }
+    }
+
+    def validateAllTabularFilters(allFilters: Set[Filter]
+                           , publicTable: PublicTable): Unit = {
+      allFilters foreach {
+        filter =>
+          val fieldSet = returnFieldSetWithoutValidation(filter)
+          fieldSet foreach {
+            field =>
+              val pubCol = publicTable.columnsByAliasMap(field)
+              require(publicTable.columnsByAliasMap.contains(field) && pubCol.filters.contains(filter.operator),
+                s"Unsupported filter operation : cube=${publicTable.name}, col=$field, operation=${filter.operator}")
+          }
+          filter match {
+            case forcedFilter: MultiFieldForcedFilter =>
+              validateFieldsInMultiFieldForcedFilter(publicTable, forcedFilter)
+            case _ =>
+              val (isValidFilter, length) = validateLengthForFilterValue(publicTable, filter)
+              require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
+          }
+      }
+    }
+
+    /**
+      * Given a filter, check its type against its type requirements.
+      * @param filter - Filter to Validate
+      */
+    def validateOuterFilterRequirementsAndReturn(filter: OuterFilter
+                                                 , allRequestedAliases: Set[String]) : Set[Filter] = {
+      val outerFilters = filter.filters.to[mutable.TreeSet]
+      outerFilters.foreach( of => require(allRequestedAliases.contains(of.field), s"OuterFilter ${of.field} is not in selected column list"))
+      outerFilters.toSet
+    }
+
+    def validateOrFilterRequirementsAndReturn(filter: OrFilter
+                                              , publicTable: PublicTable) : Set[OrFilterMeta] = {
+      val orFilterMap : Map[Boolean, Iterable[Filter]] = filter.filters.groupBy(f => publicTable.columnsByAliasMap.contains(f.field) && publicTable.columnsByAliasMap(f.field).isInstanceOf[PublicFactCol])
+      require(orFilterMap.size == 1, s"Or filter cannot have combination of fact and dim filters, factFilters=${orFilterMap.get(true)} dimFilters=${orFilterMap.get(false)}")
+      Set(OrFilterMeta(filter, orFilterMap.head._1))
+    }
+
+    def validateFieldEqualityFilterRequirementsAndReturn(filter: FieldEqualityFilter
+                                                        , allRequestedAliases: Set[String]
+                                                        , publicTable: PublicTable) : Set[Filter] = {
+      Set(filter)
+    }
+
+    def validateStandardFilterRequirementsAndReturn(filter: Filter
+                                                    , allRequestedAliases: Set[String]
+                                                   , publicTable: PublicTable) : Set[Filter] = {
+      Set(filter)
+    }
+
     dataType match {
       case None => throw new IllegalArgumentException(s"Unable to find expected PublicTable as PublicFact or PublicDimension.")
       case StrType(length, _, _) => filter match {
