@@ -383,7 +383,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         //if there is a single fact sort (and sort not on derived column), and single group by, use Top N
         if (queryContext.requestModel.factSortByMap.size == 1
           && factFilterList.isEmpty
-          && dimensionSpecTupleList.size <= 1
+          && dimensionSpecTupleList.size == 1
           && threshold <= maximumTopNMaxRows
           && queryContext.requestModel.factSortByMap.nonEmpty
           && queryContext.factBestCandidate.publicFact.aliasToNameColumnMap
