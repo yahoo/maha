@@ -279,7 +279,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
           PubCol("engagement_type", "engagement_type", Equality),
-          PubCol("id", "Keyword ID", InEquality),
+          PubCol("id", "Keyword ID", InEqualityFieldEquality),
           PubCol("ad_id", "Ad ID", InEqualityFieldEquality),
           PubCol("ad_group_id", "Ad Group ID", InEqualityFieldEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),

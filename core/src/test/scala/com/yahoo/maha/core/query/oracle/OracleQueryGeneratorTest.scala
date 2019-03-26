@@ -2175,7 +2175,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
     val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
-    assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("10009 Field found only in Dimension table is not comparable with Fact fields"))
+    assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("10005 Failed to find primary key alias for Invalid Column"))
   }
 
   test("should fail comparing different data types in dimension table comparison.") {
@@ -2259,7 +2259,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
     val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
-    assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("10009 Field found only in Dimension table is not comparable with Fact fields"))
+    assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("10005 Failed to find primary key alias for Invalid Column"))
   }
 
   test("should fail comparing dimension to fact table.") {

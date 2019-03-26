@@ -3812,7 +3812,7 @@ class RequestModelTest extends FunSuite with Matchers {
     val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isFailure, "request model should fail")
-    res.failed.get.getMessage should startWith ("requirement failed: Unsupported filter operation : dimension=campaign, col=Campaign Status, operation=Between")
+    res.failed.get.getMessage should startWith ("requirement failed: Unsupported filter operation : cube=campaign, col=Campaign Status, operation=Between")
   }
 
   test("""create model should fail when missing required field""") {

@@ -484,60 +484,11 @@ object RequestModel extends Logging {
 
           // populate all filters into allFilterAliases
           request.filterExpressions.foreach { filter =>
-            if (filter.isInstanceOf[OuterFilter]) {
-              val outerFilters = filter.asInstanceOf[OuterFilter].filters.to[mutable.TreeSet]
-              outerFilters.foreach( of => require(allRequestedAliases.contains(of.field) == true, s"OuterFilter ${of.field} is not in selected column list"))
-              allOuterFilters ++= outerFilters
-            } else if (filter.isInstanceOf[OrFilter]) {
-              val orFilter = filter.asInstanceOf[OrFilter]
-              val orFilterMap : Map[Boolean, Iterable[Filter]] = orFilter.filters.groupBy(f => publicFact.columnsByAliasMap.contains(f.field) && publicFact.columnsByAliasMap(f.field).isInstanceOf[PublicFactCol])
-              require(orFilterMap.size == 1, s"Or filter cannot have combination of fact and dim filters, factFilters=${orFilterMap.get(true)} dimFilters=${orFilterMap.get(false)}")
-              allOrFilterMeta += OrFilterMeta(orFilter, orFilterMap.head._1)
-            }
-            else {
-              allFilterAliases+=filter.field
-              if(publicFact.aliasToReverseStaticMapping.contains(filter.field)) {
-                val reverseMapping = publicFact.aliasToReverseStaticMapping(filter.field)
-                val reverseMappedFilter: Filter = filter match {
-                  case BetweenFilter(field, from, to) =>
-                    require(reverseMapping.contains(from), s"Unknown filter from value for field=$field, from=$from")
-                    require(reverseMapping.contains(to), s"Unknown filter to value for field=$field, to=$to")
-                    val fromSet = reverseMapping(from)
-                    val toSet = reverseMapping(to)
-                    require(fromSet.size == 1 && toSet.size == 1,
-                      s"Cannot perform between filter, the column has static mapping which maps to multiple values, from=$from maps to fromSet=$fromSet, to=$to maps to toSet=$toSet"
-                    )
-                    BetweenFilter(field, fromSet.head, toSet.head)
-                  case EqualityFilter(field, value, _, _) =>
-                    require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
-                    val valueSet = reverseMapping(value)
-                    if(valueSet.size > 1) {
-                      InFilter(field, valueSet.toList)
-                    } else {
-                      EqualityFilter(field, valueSet.head)
-                    }
-                  case InFilter(field, values, _, _) =>
-                    val mapped = values.map {
-                      value =>
-                        require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
-                        reverseMapping(value)
-                    }
-                    InFilter(field, mapped.flatten)
-                  case NotInFilter(field, values, _, _) =>
-                    val mapped = values.map {
-                      value =>
-                        require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
-                        reverseMapping(value)
-                    }
-                    NotInFilter(field, mapped.flatten)
-                  case f =>
-                    throw new IllegalArgumentException(s"Unsupported filter operation on statically mapped field : $f")
-                }
-                filterMap.put(filter.field, reverseMappedFilter)
-              } else {
-                filterMap.put(filter.field, filter)
-              }
-            }
+            val (filterMapSingle, allFilterAliasesSingle, allOuterFiltersSingle, allOrFilterMetaSingle) = validateAndReturnFilterData(filter, allRequestedAliases.toSet, publicFact)
+            filterMap ++= filterMapSingle
+            allFilterAliases ++= allFilterAliasesSingle
+            allOuterFilters ++= allOuterFiltersSingle
+            allOrFilterMeta ++= allOrFilterMetaSingle
           }
 
           //check required filter aliases
@@ -620,6 +571,10 @@ object RequestModel extends Logging {
             //clear fact filters
             allFactFilters.clear()
           }
+
+
+          //validate filter operation on fact filter field
+          validateAllTabularFilters(allFactFilters.toSet, publicFact)
 
           val bestCandidatesOption: Option[BestCandidates] = if(allRequestedFactAliases.nonEmpty || allFactFilters.nonEmpty) {
             for {
@@ -704,27 +659,6 @@ object RequestModel extends Logging {
             val secondaryCheck: Boolean =
               !request.forceDimensionDriven && allDimSortBy.isEmpty && allRequestedDimensionPrimaryKeyAliases.isEmpty && allNonFactFilterAliases.isEmpty
             primaryCheck || secondaryCheck
-          }
-
-          //validate filter operation on fact filter field
-          allFactFilters.foreach {
-            filter =>
-              val pubCol = publicFact.columnsByAliasMap(filter.field)
-              require(pubCol.filters.contains(filter.operator),
-                s"Unsupported filter operation : cube=${publicFact.name}, col=${filter.field}, operation=${filter.operator}")
-              filter match {
-                  //For multiFieldForcedFilter, compare both column types & check filter list on compareTo.
-                case multiFieldFilter: MultiFieldForcedFilter =>
-                  require(publicFact.columnsByAliasMap.contains(multiFieldFilter.compareTo), IncomparableColumnError(multiFieldFilter.field, multiFieldFilter.compareTo))
-                  val secondCol = publicFact.columnsByAliasMap(multiFieldFilter.compareTo)
-                  require(secondCol.filters.contains(multiFieldFilter.operator),
-                    s"Unsupported filter operation : cube=${publicFact.name}, col=${multiFieldFilter.compareTo}, operation=${multiFieldFilter.operator}")
-                  validateFieldsInMultiFieldForcedFilter(publicFact, multiFieldFilter)
-                //For field, value filters check length of the value.
-                case _ =>
-                  val (isValidFilter, length) = validateLengthForFilterValue(publicFact, filter)
-                  require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
-              }
           }
 
           //if we are dim driven, add primary key of highest level dim
@@ -826,25 +760,7 @@ object RequestModel extends Logging {
                     }
 
                     //validate filter operation on dim filters
-                    filters.foreach {
-                      filter =>
-                        val pubCol = publicDim.columnsByAliasMap(filter.field)
-                        require(pubCol.filters.contains(filter.operator),
-                          s"Unsupported filter operation : dimension=${publicDim.name}, col=${filter.field}, operation=${filter.operator}, expected=${pubCol.filters}")
-                        filter match {
-                          //For multiFieldForcedFilter, compare both column types & check filter list on compareTo.
-                          case multiFieldFilter: MultiFieldForcedFilter =>
-                            require(publicDim.columnsByAliasMap.contains(multiFieldFilter.compareTo), IncomparableColumnError(multiFieldFilter.field, multiFieldFilter.compareTo))
-                            val secondCol = publicDim.columnsByAliasMap(multiFieldFilter.compareTo)
-                            require(secondCol.filters.contains(multiFieldFilter.operator),
-                              s"Unsupported filter operation : cube=${publicDim.name}, col=${multiFieldFilter.compareTo}, operation=${multiFieldFilter.operator}")
-                            validateFieldsInMultiFieldForcedFilter(publicDim, multiFieldFilter)
-                          //For field, value filters check length of the value.
-                          case _ =>
-                            val (isValidFilter, length) = validateLengthForFilterValue(publicDim, filter)
-                            require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
-                        }
-                    }
+                    validateAllTabularFilters(filters.toSet, publicDim)
 
                     val hasNonFKSortBy = allDimSortBy.exists {
                       case (sortField, _) =>
@@ -1146,6 +1062,9 @@ object RequestModel extends Logging {
   }
 
   def validateFieldsInMultiFieldForcedFilter(publicTable: PublicTable, filter: MultiFieldForcedFilter): Unit = {
+    require(publicTable.columnsByAliasMap.contains(filter.field) && publicTable.columnsByAliasMap.contains(filter.compareTo)
+      , IncomparableColumnError(filter.field, filter.compareTo)
+    )
     publicTable match {
       case publicDim: PublicDimension =>
         val firstDataType: DataType = publicDim.nameToDataTypeMap(publicDim.columnsByAliasMap(filter.field).name)
@@ -1240,6 +1159,12 @@ object RequestModel extends Logging {
       //Not-In filter gets its field added to the Set.
       case notInFilter: NotInFilter =>
         (staticMappedFilterRender(notInFilter, publicFact), Set(notInFilter.field), Set.empty, Set.empty)
+      case greaterThanFilter: GreaterThanFilter =>
+        (Map(greaterThanFilter.field -> greaterThanFilter), Set(greaterThanFilter.field), Set.empty, Set.empty)
+      case lessThanFilter: LessThanFilter =>
+        (Map(lessThanFilter.field -> lessThanFilter), Set(lessThanFilter.field), Set.empty, Set.empty)
+      case likeFilter: LikeFilter =>
+        (Map(likeFilter.field -> likeFilter), Set(likeFilter.field), Set.empty, Set.empty)
       case _ : Any => throw new IllegalArgumentException("Input filter is not a valid filter to check!  Found " + filter.toString)
     }
     filterResultBag
@@ -1261,6 +1186,13 @@ object RequestModel extends Logging {
       case equalityFilter: EqualityFilter => Set(equalityFilter.field)
       case inFilter: InFilter => Set(inFilter.field)
       case notInFilter: NotInFilter => Set(notInFilter.field)
+      case notEqualToFilter: NotEqualToFilter => Set(notEqualToFilter.field)
+      case greaterThanFilter: GreaterThanFilter => Set(greaterThanFilter.field)
+      case lessThanFilter: LessThanFilter => Set(lessThanFilter.field)
+      case isNotNullFilter: IsNotNullFilter => Set(isNotNullFilter.field)
+      case likeFilter: LikeFilter => Set(likeFilter.field)
+      case pushDownFilter: PushDownFilter => returnFieldSetWithoutValidation(pushDownFilter.f)
+      case t: Filter => throw new IllegalArgumentException(t.field + " with filter " + t.toString)
     }
   }
 
@@ -1389,22 +1321,7 @@ object RequestModel extends Logging {
     (setOfFilterFieldsWithReverseMappedFilters ++ returnedFilterSet).toMap
   }
 
-  /**
-    * Validate all input fact filters with the given validation function.
-    * Used for its recursive calls,
-    * so that nested filters cannot be missed.
-    * @param allFilters - All filters of interest to validate.
-    */
-  def validateAllFilters(allFilters: Set[Filter]
-                         , publicTable: PublicTable
-                         , validationFn: (Filter, PublicTable) => Unit): Unit = {
-    allFilters foreach {
-      case orFilter: OrFilter =>
-        validateAllFilters(orFilter.filters.toSet, publicTable, validationFn)
-      case filter: Filter => validationFn(filter, publicTable)
-    }
-  }
-
+  //validate for publicFact, publicDim contents.
   def validateAllTabularFilters(allFilters: Set[Filter]
                                 , publicTable: PublicTable): Unit = {
     allFilters foreach {
@@ -1412,9 +1329,11 @@ object RequestModel extends Logging {
         val fieldSet = returnFieldSetWithoutValidation(filter)
         fieldSet foreach {
           field =>
-            val pubCol = publicTable.columnsByAliasMap(field)
-            require(publicTable.columnsByAliasMap.contains(field) && pubCol.filters.contains(filter.operator),
-              s"Unsupported filter operation : cube=${publicTable.name}, col=$field, operation=${filter.operator}")
+            if(publicTable.columnsByAliasMap.contains(field)) {
+              val pubCol = publicTable.columnsByAliasMap(field)
+              require(publicTable.columnsByAliasMap.contains(field) && pubCol.filters.contains(filter.operator),
+                s"Unsupported filter operation : cube=${publicTable.name}, col=$field, operation=${filter.operator}")
+            }
         }
         filter match {
           case forcedFilter: MultiFieldForcedFilter =>
@@ -1442,18 +1361,6 @@ object RequestModel extends Logging {
     val orFilterMap : Map[Boolean, Iterable[Filter]] = filter.filters.groupBy(f => publicTable.columnsByAliasMap.contains(f.field) && publicTable.columnsByAliasMap(f.field).isInstanceOf[PublicFactCol])
     require(orFilterMap.size == 1, s"Or filter cannot have combination of fact and dim filters, factFilters=${orFilterMap.get(true)} dimFilters=${orFilterMap.get(false)}")
     Set(OrFilterMeta(filter, orFilterMap.head._1))
-  }
-
-  def validateFieldEqualityFilterRequirementsAndReturn(filter: FieldEqualityFilter
-                                                       , allRequestedAliases: Set[String]
-                                                       , publicTable: PublicTable) : Set[Filter] = {
-    Set(filter)
-  }
-
-  def validateStandardFilterRequirementsAndReturn(filter: Filter
-                                                  , allRequestedAliases: Set[String]
-                                                  , publicTable: PublicTable) : Set[Filter] = {
-    Set(filter)
   }
 }
 

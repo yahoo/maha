@@ -140,7 +140,7 @@ CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
       SELECT CAST(COALESCE(account_id, 0) as VARCHAR) advertiser_id, CAST(COALESCE(impressions, 0) as VARCHAR) mang_impressions
         FROM(SELECT account_id, SUM(impressions) impressions
           FROM s_stats_fact_underlying
-          WHERE (ad_group_id = account_id) AND (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+          WHERE (ad_group_id = account_id) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
     GROUP BY account_id
     HAVING (SUM(impressions) < 1608)
     )

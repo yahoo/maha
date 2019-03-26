@@ -103,7 +103,7 @@ trait SharedDimSchema {
       "keyword","keyword",
       Set(
         PubCol("advertiser_id", "Advertiser ID", InEquality)
-        , PubCol("id", "Keyword ID", InEquality)
+        , PubCol("id", "Keyword ID", InEqualityFieldEquality)
         , PubCol("value", "Keyword Value", InEquality)
         , PubCol("match_type", "Keyword Match Type Full", InEquality)
         , PubCol("match_type", "Keyword Match Type", InEquality)
@@ -114,7 +114,7 @@ trait SharedDimSchema {
         , PubCol("status", "Keyword Status", InNotInEquality)
         , PubCol("landing_url", "Keyword Landing URL", InEquality)
         , PubCol("parent_type", "Parent Type", InEquality)
-        , PubCol("parent_id", "Ad Group ID", InEquality)
+        , PubCol("parent_id", "Ad Group ID", InEqualityFieldEquality)
         , PubCol("device_id", "Device ID", InEquality)
         , PubCol("cpc", "CPC", InEquality)
         , PubCol("Keyword Date Created", "Keyword Date Created", InBetweenEquality)
