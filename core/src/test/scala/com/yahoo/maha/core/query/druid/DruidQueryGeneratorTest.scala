@@ -883,6 +883,37 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(result.contains(json), result)
   }
 
+  test("fact sort with no dim col on a cube with renderLocalTimeFilter=true should produce groupBy query not topN") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Asc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val json = """{"queryType":"groupBy","""
+
+    assert(result.contains(json), result)
+  }
+
   test("fact sort with multiple dim col should produce group by query") {
     val jsonString = s"""{
                           "cube": "k_stats",
