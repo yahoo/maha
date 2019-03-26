@@ -429,6 +429,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         //if there are no dimension cols in requested cols and no sorts, use time series request
         else if (!haveFactDimCols
           && factFilterList.isEmpty
+          && !queryContext.factBestCandidate.publicFact.renderLocalTimeFilter
           //we ignore the grain fields from dimension spec list since timeseries already provides it
           //so we only expect grain fields in the dimension spec list, otherwise it's not timeseries
           && dimensionSpecTupleList.forall{ case (ds, ods) => Grain.grainFields(ds.getOutputName)}
