@@ -1202,10 +1202,7 @@ object RequestModel extends Logging {
 
   /*
         val filterMap = new mutable.HashMap[String, Filter]()
-        val pushDownFilterMap = new mutable.HashMap[String, PushDownFilter]()
         val allFilterAliases = new mutable.TreeSet[String]()
-        val allFactFilters = new mutable.TreeSet[Filter]()
-        val allNonFactFilterAliases = new mutable.TreeSet[String]()
         val allOuterFilters = mutable.TreeSet[Filter]()
         val allOrFilterMeta = mutable.Set[OrFilterMeta]()
    */
@@ -1219,29 +1216,30 @@ object RequestModel extends Logging {
     */
   def validateAndReturnFilterData(filter: Filter
                                   , allRequestedAliases: Set[String]
-                                  , publicFact: PublicFact) : (Map[String, Filter], Map[String, PushDownFilter], Set[String], Set[Filter], Set[String], Set[Filter], Set[OrFilterMeta]) = {
-    val filterResultBag: (Map[String, Filter], Map[String, PushDownFilter], Set[String], Set[Filter], Set[String], Set[Filter], Set[OrFilterMeta]) = filter match {
+                                  , publicFact: PublicFact) : (Map[String, Filter], Set[String], Set[Filter], Set[OrFilterMeta]) = {
+    val filterResultBag: (Map[String, Filter], Set[String], Set[Filter], Set[OrFilterMeta]) = filter match {
       //all filters passed in OuterFilter must be added to the Filter Alias Set.
       case outerFilter: OuterFilter =>
-        (Map.empty, Map.empty, Set.empty, Set.empty, Set.empty, validateOuterFilterRequirementsAndReturn(outerFilter, allRequestedAliases), Set.empty)
+        (staticMappedFilterRender(outerFilter, publicFact), Set.empty, validateOuterFilterRequirementsAndReturn(outerFilter, allRequestedAliases), Set.empty)
       //Both filters in the Field Equality filter must be added to the Filter Alias Set.
       case fieldEqualityFilter: FieldEqualityFilter =>
-        (Map(fieldEqualityFilter.field -> fieldEqualityFilter, fieldEqualityFilter.compareTo -> fieldEqualityFilter), Map.empty, Set(fieldEqualityFilter.field, fieldEqualityFilter.compareTo), Set.empty, Set.empty, Set.empty, Set.empty)
+        (staticMappedFilterRender(fieldEqualityFilter, publicFact)
+          , Set(fieldEqualityFilter.field, fieldEqualityFilter.compareTo), Set.empty, Set.empty)
       //Filters passed through an Or Filter do not get added to the Set.
       case orFilter: OrFilter =>
-        (Map.empty, Map.empty, Set.empty, Set.empty, Set.empty, Set.empty, validateOrFilterRequirementsAndReturn(orFilter, publicFact))
+        (staticMappedFilterRender(orFilter, publicFact), Set.empty, Set.empty, validateOrFilterRequirementsAndReturn(orFilter, publicFact))
       //Between filter gets its field added to the Set.
       case betweenFilter: BetweenFilter =>
-        (Map(betweenFilter.field -> betweenFilter), Map.empty, Set.empty, Set.empty, Set.empty, Set.empty, Set.empty)
+        (staticMappedFilterRender(betweenFilter, publicFact), Set(betweenFilter.field), Set.empty, Set.empty)
       //Equality filter gets its field added to the Set.
       case equalityFilter: EqualityFilter =>
-        (Map(equalityFilter.field -> equalityFilter), Map.empty, Set.empty, Set.empty, Set.empty, Set.empty, Set.empty)
+        (staticMappedFilterRender(equalityFilter, publicFact), Set(equalityFilter.field), Set.empty, Set.empty)
       //In filter gets its field added to the Set.
       case inFilter: InFilter =>
-        (Map(inFilter.field -> inFilter), Map.empty, Set.empty, Set.empty, Set.empty, Set.empty, Set.empty)
+        (staticMappedFilterRender(inFilter, publicFact), Set(inFilter.field), Set.empty, Set.empty)
       //Not-In filter gets its field added to the Set.
       case notInFilter: NotInFilter =>
-        (Map(notInFilter.field -> notInFilter), Map.empty, Set.empty, Set.empty, Set.empty, Set.empty, Set.empty)
+        (staticMappedFilterRender(notInFilter, publicFact), Set(notInFilter.field), Set.empty, Set.empty)
       case _ : Any => throw new IllegalArgumentException("Input filter is not a valid filter to check!  Found " + filter.toString)
     }
     filterResultBag
@@ -1321,8 +1319,8 @@ object RequestModel extends Logging {
   /**
     * As Or Filter does not get an explicit check for static mapping, its internal filters
     * still get checked.
-    * @param filter -
-    * @param publicFact -
+    * @param filter - OrFilter to check
+    * @param publicFact - fact used for reverse mapping.
     * @return
     */
   def renderStaticMappedOrFilter(filter: OrFilter
@@ -1335,28 +1333,35 @@ object RequestModel extends Logging {
     }
   }
 
+  /**
+    * 1. Check if the current filter type gets rendered or only validated.
+    * 2. Pick up all valid fields from the current filter.
+    * 3. Check if each is statically mapped.  If not, yield a tuple for filterMap.
+    * 4. If it is statically mapped, apply static mapping logic.
+    * @param filter - filter to check
+    * @param publicFact - fact used for static mapping.
+    * @return
+    */
   def staticMappedFilterRender(filter: Filter
-                               , publicFact: PublicFact): Set[(String, Filter)] = {
-
-    val validFieldSet : Set[String] = returnFieldSetWithoutValidation(filter)
-
-    val newMap : Set[(String, Map[String, Set[String]])] =
-      validFieldSet
-        .filter(field => publicFact.aliasToReverseStaticMapping.contains(field))
-        .map {
-      field : String =>
-        (field, publicFact.aliasToReverseStaticMapping(field))
-    }
-
+                               , publicFact: PublicFact): Map[String, Filter] = {
     /**
       * For filters with no fields to return, only validate the internal filters.
       */
     filter match {
       case orFilter: OrFilter =>
         renderStaticMappedOrFilter(orFilter, publicFact)
-        return Set.empty
+        return Map.empty
       case _ =>
     }
+
+    val validFieldSet : Set[String] = returnFieldSetWithoutValidation(filter)
+    var (returnedFilterSet, newMap) :
+      (mutable.Set[(String, Filter)], mutable.Set[(String, Map[String, Set[String]])]) = (mutable.Set.empty, mutable.Set.empty)
+      validFieldSet.map {
+        field: String =>
+        if(publicFact.aliasToReverseStaticMapping.contains(field)) newMap ++= Set((field, publicFact.aliasToReverseStaticMapping(field)))
+        else returnedFilterSet ++= Set((field, filter))
+        }
 
     /**
       * For filters with returnable, statically mapped fields, return both the filter
@@ -1381,7 +1386,7 @@ object RequestModel extends Logging {
         (filterValue, reverseMappedFilter)
     }
 
-    setOfFilterFieldsWithReverseMappedFilters
+    (setOfFilterFieldsWithReverseMappedFilters ++ returnedFilterSet).toMap
   }
 
   /**
