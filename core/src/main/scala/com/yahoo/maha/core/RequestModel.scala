@@ -990,10 +990,10 @@ object RequestModel extends Logging {
   }
 
   /**
-    * TODO: Document
-    * @param allFactFilters
-    * @param publicFact
-    * @return
+    * Check if the query has any metric filters.
+    * @param allFactFilters - all filters to check.
+    * @param publicFact - Fact ot check.
+    * @return - True if at least one fact-filter is a PublicFactColumn.
     */
   private def checkIfHasMetricFilters(allFactFilters: Set[Filter]
                              , publicFact: PublicFact): Boolean = {
@@ -1005,10 +1005,11 @@ object RequestModel extends Logging {
   }
 
   /**
-    * TODO: Document
-    * @param allFactFilters
-    * @param bestCandidatesOption
-    * @return
+    * Verify if the dim holds all fact filters.
+    * used for dim, fact-driven query checking.
+    * @param allFactFilters - all filters to check.
+    * @param bestCandidatesOption - current best candidate to check.
+    * @return - false if any filter is outside of the dim.
     */
   private def checkIfBestCandidatesHasAllFactFiltersInDim(allFactFilters: Set[Filter]
                                                  , bestCandidatesOption: Option[BestCandidates]) : Boolean = {
@@ -1017,13 +1018,13 @@ object RequestModel extends Logging {
   }
 
   /**
-    * TODO: Document
-    * @param injectFilters
-    * @param injectDim
-    * @param colAliases
-    * @param publicFact
-    * @param publicDim
-    * @return
+    * Check of the dimension has low cardinality filters.
+    * @param injectFilters - injected Filters
+    * @param injectDim - Injected Dimension
+    * @param colAliases - Known column Aliases.
+    * @param publicFact - Fact to use.
+    * @param publicDim - Primary dim to check.
+    * @return - true if any low cardinality filters exist.
     */
   private def checkIfHasLowCardinalityFilters(injectFilters: SortedSet[Filter]
                                       , injectDim: PublicDimension
@@ -1043,11 +1044,11 @@ object RequestModel extends Logging {
 
   // populate all forced filters from dim
   /**
-    * TODO: Document
-    * @param publicDimension
-    * @param allNonFactFilterAliases
-    * @param filterPostProcess
-    * @return
+    * Populate filterAliases and filterMap from dim.
+    * @param publicDimension - dim to populate from.
+    * @param allNonFactFilterAliases - all known filter aliases.
+    * @param filterPostProcess - map of filters to use.
+    * @return - both allFilterAliases and filterMap.
     */
   private def populateAllForcedFiltersForDim(publicDimension: PublicDimension
                                      , allNonFactFilterAliases: Set[String]
@@ -1073,11 +1074,11 @@ object RequestModel extends Logging {
 
   // populate all forced filters from fact
   /**
-    * TODO: Document
-    * @param publicFact
-    * @param allFilterAliases
-    * @param filterMap
-    * @return
+    * Populate filterAliases and filterMap from forced filters.
+    * @param publicFact - fact to populate from.
+    * @param allFilterAliases - all known filter aliases.
+    * @param filterMap - Map of filters to use.
+    * @return - both allFilterAliases and filterMap.
     */
   private def populateFiltersFromFactForcedFilters(publicFact: PublicFact
                                            , allFilterAliases: Set[String]
@@ -1099,9 +1100,9 @@ object RequestModel extends Logging {
   }
 
   /**
-    * TODO: Document
-    * @param publicTable
-    * @param filter
+    * Validate Fields in FultiField filter safely.
+    * @param publicTable - table to validate against.
+    * @param filter - filter to validate.
     */
   private def validateFieldsInMultiFieldForcedFilter(publicTable: PublicTable
                                              , filter: MultiFieldForcedFilter) : Unit = {
