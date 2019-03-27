@@ -580,7 +580,7 @@ object RequestModel extends Logging {
                 , request.requestType
                 , allRequestedFactAliases.toSet
                 , allRequestedFactJoinAliases.toSet
-                , createAllFactFilterMap(allFactFilters.toSet)
+                , createAllFilterMap(allFactFilters.toSet)
                 , requestedDaysWindow
                 , requestedDaysLookBack
                 , localTimeDayFilter)
@@ -969,11 +969,11 @@ object RequestModel extends Logging {
 
   /**
     * Create a map from filter field(s) to FilterOperation.
-    * @param allFactFilters - filters to convert.
+    * @param allFilters - filters to convert.
     * @return - Map from filter Field to FilterOperation.
     */
-  private def createAllFactFilterMap(allFactFilters: Set[Filter]) : Map[String, FilterOperation] = {
-    allFactFilters.map{
+  def createAllFilterMap(allFilters: Set[Filter]) : Map[String, FilterOperation] = {
+    allFilters.map{
       filter => returnFieldAndOperationMapWithoutValidation(filter) }.flatten.toMap
   }
 
@@ -1179,7 +1179,7 @@ object RequestModel extends Logging {
     * @param filter - Filter to return data from.
     * @return - Set dependent upon input filter type only.
     */
-  private def returnFieldSetWithoutValidation(filter: Filter) : Set[String] = {
+  def returnFieldSetWithoutValidation(filter: Filter) : Set[String] = {
     filter match {
       case _: OuterFilter => Set.empty
       case fieldEqualityFilter: FieldEqualityFilter => Set(fieldEqualityFilter.field, fieldEqualityFilter.compareTo)
@@ -1205,7 +1205,7 @@ object RequestModel extends Logging {
     * @param filter - filter to return.
     * @return - Map of filter fields to FilterOperation.
     */
-  private def returnFieldAndOperationMapWithoutValidation(filter: Filter) : Map[String, FilterOperation] = {
+  def returnFieldAndOperationMapWithoutValidation(filter: Filter) : Map[String, FilterOperation] = {
     filter match {
       case _: OuterFilter => Map.empty
       case fieldEqualityFilter: FieldEqualityFilter => Map(fieldEqualityFilter.field -> fieldEqualityFilter.operator, fieldEqualityFilter.compareTo -> fieldEqualityFilter.operator)
@@ -1231,7 +1231,7 @@ object RequestModel extends Logging {
     * @param allFilters - filters to render.
     * @return - Set of fields associated with the given filters.
     */
-  private def returnFieldSetOnMultipleFiltersWithoutValidation(allFilters: Set[Filter]): Set[String] = {
+  def returnFieldSetOnMultipleFiltersWithoutValidation(allFilters: Set[Filter]): Set[String] = {
     allFilters.map(filter => returnFieldSetWithoutValidation(filter)).flatten
   }
 
