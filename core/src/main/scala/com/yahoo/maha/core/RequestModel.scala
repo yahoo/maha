@@ -580,7 +580,7 @@ object RequestModel extends Logging {
                 , request.requestType
                 , allRequestedFactAliases.toSet
                 , allRequestedFactJoinAliases.toSet
-                , createAllFilterMap(allFactFilters.toSet)
+                , Filter.createAllFilterMap(allFactFilters.toSet)
                 , requestedDaysWindow
                 , requestedDaysLookBack
                 , localTimeDayFilter)
@@ -590,7 +590,7 @@ object RequestModel extends Logging {
           //if there are no fact cols or filters, we don't need best candidate, otherwise we do
           require((allRequestedFactAliases.isEmpty && allFactFilters.isEmpty)
             || (bestCandidatesOption.isDefined && bestCandidatesOption.get.facts.nonEmpty)
-            , s"No fact best candidates found for request, fact cols : $allRequestedAliases, fact filters : ${returnFieldSetOnMultipleFiltersWithoutValidation(allFactFilters.toSet)}")
+            , s"No fact best candidates found for request, fact cols : $allRequestedAliases, fact filters : ${Filter.returnFieldSetOnMultipleFiltersWithoutValidation(allFactFilters.toSet)}")
 
           //val bestCandidates = bestCandidatesOption.get
 
@@ -963,18 +963,8 @@ object RequestModel extends Logging {
     */
   private def checkAllFactFiltersArePKAliases(allFactFilters: Set[Filter]
                                      , registry: Registry) : Boolean = {
-    val allFields: Set[String] = returnFieldSetOnMultipleFiltersWithoutValidation(allFactFilters)
+    val allFields: Set[String] = Filter.returnFieldSetOnMultipleFiltersWithoutValidation(allFactFilters)
     allFields forall(field => registry isPrimaryKeyAlias field)
-  }
-
-  /**
-    * Create a map from filter field(s) to FilterOperation.
-    * @param allFilters - filters to convert.
-    * @return - Map from filter Field to FilterOperation.
-    */
-  def createAllFilterMap(allFilters: Set[Filter]) : Map[String, FilterOperation] = {
-    allFilters.map{
-      filter => returnFieldAndOperationMapWithoutValidation(filter) }.flatten.toMap
   }
 
   /**
@@ -985,7 +975,7 @@ object RequestModel extends Logging {
     */
   private def hasNonFKFactFiltersChecker(allFactFilters: Set[Filter]
                          , filterPostProcess: Set[String]) : Boolean = {
-    val fieldSet: Set[String] = returnFieldSetOnMultipleFiltersWithoutValidation(allFactFilters)
+    val fieldSet: Set[String] = Filter.returnFieldSetOnMultipleFiltersWithoutValidation(allFactFilters)
     fieldSet.filterNot(field => filterPostProcess(field)).nonEmpty
   }
 
@@ -997,7 +987,7 @@ object RequestModel extends Logging {
     */
   private def checkIfHasMetricFilters(allFactFilters: Set[Filter]
                              , publicFact: PublicFact): Boolean = {
-    val fieldSet: Set[String] = returnFieldSetOnMultipleFiltersWithoutValidation(allFactFilters)
+    val fieldSet: Set[String] = Filter.returnFieldSetOnMultipleFiltersWithoutValidation(allFactFilters)
 
     fieldSet.exists { field =>
       publicFact.columnsByAliasMap.contains(field) && publicFact.columnsByAliasMap(field).isInstanceOf[PublicFactColumn]
@@ -1013,7 +1003,7 @@ object RequestModel extends Logging {
     */
   private def checkIfBestCandidatesHasAllFactFiltersInDim(allFactFilters: Set[Filter]
                                                  , bestCandidatesOption: Option[BestCandidates]) : Boolean = {
-    val fieldSet: Set[String] = returnFieldSetOnMultipleFiltersWithoutValidation(allFactFilters)
+    val fieldSet: Set[String] = Filter.returnFieldSetOnMultipleFiltersWithoutValidation(allFactFilters)
     !fieldSet.forall(field => bestCandidatesOption.get.dimColAliases(field))
   }
 
@@ -1033,7 +1023,7 @@ object RequestModel extends Logging {
                                       , publicDim: PublicDimension): Boolean = {
     injectFilters.view.filter(!_.isPushDown).exists {
       filter =>
-        val fields = returnFieldSetWithoutValidation(filter)
+        val fields = Filter.returnFieldSetWithoutValidation(filter)
         fields.exists( field =>
           (colAliases(field) || injectDim.columnsByAlias(field)) &&
             !publicFact.columnsByAlias(field) &&
@@ -1056,7 +1046,7 @@ object RequestModel extends Logging {
     val returnedFilters: mutable.Set[Filter] = mutable.Set.empty
     val hasForcedFilters = publicDimension.forcedFilters.foldLeft(false) {
       (b, filter) =>
-        val fields = returnFieldSetWithoutValidation(filter)
+        val fields = Filter.returnFieldSetWithoutValidation(filter)
         val fieldsResults: Set[Boolean] = fields map {
           field =>
             val result =
@@ -1087,7 +1077,7 @@ object RequestModel extends Logging {
     val returnedFilterMap : mutable.HashMap[String, Filter] = mutable.HashMap(filterMap.toSeq:_*)
     publicFact.forcedFilters.foreach {
       filter =>
-        val fields = returnFieldSetWithoutValidation(filter)
+        val fields = Filter.returnFieldSetWithoutValidation(filter)
         fields.foreach {
           field =>
             if(!returnedFilterAliases(field)) {
@@ -1170,69 +1160,6 @@ object RequestModel extends Logging {
       case _ : Any => throw new IllegalArgumentException("Input filter is not a valid filter to check!  Found " + filter.toString)
     }
     filterResultBag
-  }
-
-  /**
-    * For returning all filter fields relevant to the current filter type.
-    * Used for pre-validated filters, such as those coming
-    * from the PublicFact (forced filters).
-    * @param filter - Filter to return data from.
-    * @return - Set dependent upon input filter type only.
-    */
-  def returnFieldSetWithoutValidation(filter: Filter) : Set[String] = {
-    filter match {
-      case _: OuterFilter => Set.empty
-      case fieldEqualityFilter: FieldEqualityFilter => Set(fieldEqualityFilter.field, fieldEqualityFilter.compareTo)
-      case _: OrFilter => Set.empty
-      case betweenFilter: BetweenFilter => Set(betweenFilter.field)
-      case equalityFilter: EqualityFilter => Set(equalityFilter.field)
-      case inFilter: InFilter => Set(inFilter.field)
-      case notInFilter: NotInFilter => Set(notInFilter.field)
-      case notEqualToFilter: NotEqualToFilter => Set(notEqualToFilter.field)
-      case greaterThanFilter: GreaterThanFilter => Set(greaterThanFilter.field)
-      case lessThanFilter: LessThanFilter => Set(lessThanFilter.field)
-      case isNotNullFilter: IsNotNullFilter => Set(isNotNullFilter.field)
-      case likeFilter: LikeFilter => Set(likeFilter.field)
-      case notEqualToFilter: NotEqualToFilter => Set(notEqualToFilter.field)
-      case isNullFilter: IsNullFilter => Set(isNullFilter.field)
-      case pushDownFilter: PushDownFilter => returnFieldSetWithoutValidation(pushDownFilter.f)
-      case t: Filter => throw new IllegalArgumentException(t.field + " with filter " + t.toString)
-    }
-  }
-
-  /**
-    * Given an input filter, return a map of its field(s) to its filter operation.
-    * @param filter - filter to return.
-    * @return - Map of filter fields to FilterOperation.
-    */
-  def returnFieldAndOperationMapWithoutValidation(filter: Filter) : Map[String, FilterOperation] = {
-    filter match {
-      case _: OuterFilter => Map.empty
-      case fieldEqualityFilter: FieldEqualityFilter => Map(fieldEqualityFilter.field -> fieldEqualityFilter.operator, fieldEqualityFilter.compareTo -> fieldEqualityFilter.operator)
-      case _: OrFilter => Map.empty
-      case betweenFilter: BetweenFilter => Map(betweenFilter.field -> betweenFilter.operator)
-      case equalityFilter: EqualityFilter => Map(equalityFilter.field -> equalityFilter.operator)
-      case inFilter: InFilter => Map(inFilter.field -> inFilter.operator)
-      case notInFilter: NotInFilter => Map(notInFilter.field -> notInFilter.operator)
-      case notEqualToFilter: NotEqualToFilter => Map(notEqualToFilter.field -> notEqualToFilter.operator)
-      case greaterThanFilter: GreaterThanFilter => Map(greaterThanFilter.field -> greaterThanFilter.operator)
-      case lessThanFilter: LessThanFilter => Map(lessThanFilter.field -> lessThanFilter.operator)
-      case isNotNullFilter: IsNotNullFilter => Map(isNotNullFilter.field -> isNotNullFilter.operator)
-      case likeFilter: LikeFilter => Map(likeFilter.field -> likeFilter.operator)
-      case notEqualToFilter: NotEqualToFilter => Map(notEqualToFilter.field -> notEqualToFilter.operator)
-      case isNullFilter: IsNullFilter => Map(isNullFilter.field -> isNullFilter.operator)
-      case pushDownFilter: PushDownFilter => returnFieldAndOperationMapWithoutValidation(pushDownFilter.f)
-      case t: Filter => throw new IllegalArgumentException(t.field + " with filter " + t.toString)
-    }
-  }
-
-  /**
-    * Given a list of filters, return all given fields.
-    * @param allFilters - filters to render.
-    * @return - Set of fields associated with the given filters.
-    */
-  def returnFieldSetOnMultipleFiltersWithoutValidation(allFilters: Set[Filter]): Set[String] = {
-    allFilters.map(filter => returnFieldSetWithoutValidation(filter)).flatten
   }
 
   /**
@@ -1349,7 +1276,7 @@ object RequestModel extends Logging {
       case _ =>
     }
 
-    val validFieldSet : Set[String] = returnFieldSetWithoutValidation(filter)
+    val validFieldSet : Set[String] = Filter.returnFieldSetWithoutValidation(filter)
     var (returnedFilterSet, newMap) :
       (mutable.Set[(String, Filter)], mutable.Set[(String, Map[String, Set[String]])]) = (mutable.Set.empty, mutable.Set.empty)
       validFieldSet.map {
@@ -1394,7 +1321,7 @@ object RequestModel extends Logging {
                                 , publicTable: PublicTable) : Unit = {
     allFilters foreach {
       filter =>
-        val fieldSet = returnFieldSetWithoutValidation(filter)
+        val fieldSet = Filter.returnFieldSetWithoutValidation(filter)
         fieldSet foreach {
           field =>
             if(publicTable.columnsByAliasMap.contains(field)) {
