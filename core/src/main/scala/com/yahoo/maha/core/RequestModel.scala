@@ -474,9 +474,9 @@ object RequestModel extends Logging {
           }
 
           //keep map from alias to filter for final map back to Set[Filter]
-          val filterMap = new mutable.HashMap[String, Filter]()
+          var filterMap = new mutable.HashMap[String, Filter]()
           val pushDownFilterMap = new mutable.HashMap[String, PushDownFilter]()
-          val allFilterAliases = new mutable.TreeSet[String]()
+          var allFilterAliases = new mutable.TreeSet[String]()
           val allFactFilters = new mutable.TreeSet[Filter]()
           val allNonFactFilterAliases = new mutable.TreeSet[String]()
           val allOuterFilters = mutable.TreeSet[Filter]()
@@ -498,12 +498,9 @@ object RequestModel extends Logging {
           }
 
           // populate all forced filters from fact
-          publicFact.forcedFilters.foreach { filter =>
-            if(!allFilterAliases(filter.field)) {
-              allFilterAliases += filter.field
-              filterMap.put(filter.field, filter)
-            }
-          }
+          val (allFilterAliasesResult, filterMapResult) = populateFiltersFromFactForcedFilters(publicFact, allFilterAliases.toSet, filterMap.toMap)
+          allFilterAliases = mutable.TreeSet[String](allFilterAliasesResult.toList:_*)
+          filterMap =  mutable.HashMap[String, Filter](filterMapResult.toSeq:_*)
 
           //list of fk filters
           val filterPostProcess = new mutable.TreeSet[String]
@@ -564,7 +561,7 @@ object RequestModel extends Logging {
           }
 
           //if all fact aliases and fact filters are all pk aliases, then it must be dim only query
-          if(allRequestedFactAliases.forall(a => allRequestedNonFactAliases(a) || registry.isPrimaryKeyAlias(a)) && allFactFilters.forall(f => registry.isPrimaryKeyAlias(f.field))) {
+          if(allRequestedFactAliases.forall(a => allRequestedNonFactAliases(a) || registry.isPrimaryKeyAlias(a)) && checkAllFactFiltersArePKAliases(allFactFilters.toSet, registry)) {
             //clear fact aliases
             allRequestedFactAliases.clear()
             allRequestedFactJoinAliases.clear()
@@ -578,13 +575,22 @@ object RequestModel extends Logging {
 
           val bestCandidatesOption: Option[BestCandidates] = if(allRequestedFactAliases.nonEmpty || allFactFilters.nonEmpty) {
             for {
-              bestCandidates <- publicFact.getCandidatesFor(request.schema, request.requestType, allRequestedFactAliases.toSet, allRequestedFactJoinAliases.toSet, allFactFilters.map(f => f.field -> f.operator).toMap, requestedDaysWindow, requestedDaysLookBack, localTimeDayFilter)
+              bestCandidates <- publicFact.getCandidatesFor(
+                request.schema
+                , request.requestType
+                , allRequestedFactAliases.toSet
+                , allRequestedFactJoinAliases.toSet
+                , createAllFactFilterMap(allFactFilters.toSet)
+                , requestedDaysWindow
+                , requestedDaysLookBack
+                , localTimeDayFilter)
             } yield bestCandidates
           } else None
 
           //if there are no fact cols or filters, we don't need best candidate, otherwise we do
           require((allRequestedFactAliases.isEmpty && allFactFilters.isEmpty)
-            || (bestCandidatesOption.isDefined && bestCandidatesOption.get.facts.nonEmpty) , s"No fact best candidates found for request, fact cols : $allRequestedAliases, fact filters : ${allFactFilters.map(_.field)}")
+            || (bestCandidatesOption.isDefined && bestCandidatesOption.get.facts.nonEmpty)
+            , s"No fact best candidates found for request, fact cols : $allRequestedAliases, fact filters : ${returnFieldSetOnMultipleFiltersWithoutValidation(allFactFilters.toSet)}")
 
           //val bestCandidates = bestCandidatesOption.get
 
@@ -619,12 +625,12 @@ object RequestModel extends Logging {
 
           //set fact flags
           //we don't count fk filters here
-          val hasNonFKFactFilters = allFactFilters.filterNot(f => filterPostProcess(f.field)).nonEmpty
+          val hasNonFKFactFilters = hasNonFKFactFiltersChecker(allFactFilters.toSet, filterPostProcess.toSet)
           val hasFactFilters = allFactFilters.nonEmpty
           val hasMetricFilters = if(bestCandidatesOption.isDefined) {
             val bestCandidates = bestCandidatesOption.get
             val publicFact = bestCandidates.publicFact
-            allFactFilters.exists(f =>  publicFact.columnsByAliasMap.contains(f.field) && publicFact.columnsByAliasMap(f.field).isInstanceOf[PublicFactColumn])
+            checkIfHasMetricFilters(allFactFilters.toSet, publicFact)
           } else false
 
           //we have to post process since the order of the sort by item could impact if conditions
@@ -653,7 +659,7 @@ object RequestModel extends Logging {
             (isAsyncFactDrivenQuery
               || isSyncFactDrivenQuery
               || (!request.forceDimensionDriven &&
-              ((hasFactFilters && !allFactFilters.forall(f => bestCandidatesOption.get.dimColAliases(f.field)))
+              ((hasFactFilters && checkIfBestCandidatesHasAllFactFiltersInDim(allFactFilters.toSet, bestCandidatesOption))
                 || hasFactSortBy)))
 
             val secondaryCheck: Boolean =
@@ -729,14 +735,9 @@ object RequestModel extends Logging {
                   }
 
                   // populate all forced filters from dim
-                  val hasForcedFilters = publicDim.forcedFilters.foldLeft(false) {
-                    (b, filter) =>
-                      val result = if(!allNonFactFilterAliases(filter.field) && !filterPostProcess(filter.field)) {
-                        filters += filter
-                        true
-                      } else false
-                      b || result
-                  }
+                  val (filtersResult, hasForcedFiltersResult) = populateAllForcedFiltersForDim(publicDim, allNonFactFilterAliases.toSet, filterPostProcess.toSet)
+                  val hasForcedFilters = hasForcedFiltersResult
+                  filters ++= filtersResult
 
                   val fields = allRequestedNonFactAliases.filter {
                     fd =>
@@ -825,12 +826,7 @@ object RequestModel extends Logging {
                             val injectFilteredUpper = upperJoinCandidates.filter(pd => pd.dimLevel != injectDim.dimLevel && pd.dimLevel >= aboveLevel)
                             val injectBestUpperCandidate = injectFilteredUpper
                               .filter(pd => pd.foreignKeyByAlias.contains(injectDim.primaryKeyByAlias)).takeRight(1)
-                            val hasLowCardinalityFilter = injectFilters.view.filter(!_.isPushDown).exists {
-                              filter =>
-                                (colAliases(filter.field) || injectDim.columnsByAlias(filter.field)) &&
-                                  !publicFact.columnsByAlias(filter.field) &&
-                                  !(publicDim.containsHighCardinalityFilter(filter) || injectDim.containsHighCardinalityFilter(filter))
-                            }
+                            val hasLowCardinalityFilter = checkIfHasLowCardinalityFilters(injectFilters, injectDim, colAliases, publicFact, publicDim)
                             intermediateCandidates += new DimensionCandidate(
                               injectDim
                               , Set(injectDim.primaryKeyByAlias, publicDim.primaryKeyByAlias)
@@ -856,9 +852,9 @@ object RequestModel extends Logging {
                     }
 
                     val filteredLowerTopList = lowerJoinCandidates.lastOption.fold(List.empty[PublicDimension])(List(_))
-                    val hasLowCardinalityFilter = filters.view.filter(!_.isPushDown).exists {
-                      filter => colAliases(filter.field) && !publicFact.columnsByAlias(filter.field) && !publicDim.containsHighCardinalityFilter(filter)
-                    }
+
+                    val hasLowCardinalityFilter =
+                      checkIfHasLowCardinalityFilters(filters ++ scala.collection.immutable.SortedSet[Filter](), publicDim, colAliases, publicFact, publicDim)
 
                     intermediateCandidates += new DimensionCandidate(
                       publicDim
@@ -1061,24 +1057,11 @@ object RequestModel extends Logging {
     }
   }
 
-  def validateFieldsInMultiFieldForcedFilter(publicTable: PublicTable, filter: MultiFieldForcedFilter): Unit = {
-    require(publicTable.columnsByAliasMap.contains(filter.field) && publicTable.columnsByAliasMap.contains(filter.compareTo)
-      , IncomparableColumnError(filter.field, filter.compareTo)
-    )
-    publicTable match {
-      case publicDim: PublicDimension =>
-        val firstDataType: DataType = publicDim.nameToDataTypeMap(publicDim.columnsByAliasMap(filter.field).name)
-        val compareToDataType: DataType = publicDim.nameToDataTypeMap(publicDim.columnsByAliasMap(filter.compareTo).name)
-        require(firstDataType.jsonDataType == compareToDataType.jsonDataType, "Both fields being compared must be the same Data Type.")
-      case publicFact: PublicFact =>
-        val firstDataType: DataType = publicFact.dataTypeForAlias(publicFact.columnsByAliasMap(filter.field).alias)
-        val compareToDataType: DataType = publicFact.dataTypeForAlias(publicFact.columnsByAliasMap(filter.compareTo).alias)
-        require(firstDataType.jsonDataType == compareToDataType.jsonDataType, "Both fields being compared must be the same Data Type.")
-      case _ => None
-    }
-  }
-
   def validateLengthForFilterValue(publicTable: PublicTable, filter: Filter): (Boolean, Int) = {
+    /*
+    passed in filters are guaranteed to never be multi-field, or multi-filter filters, as this behavior is
+    picked out before this function is called.
+     */
     val dataType = {
       publicTable match {
         case publicDim: PublicDimension => publicDim.nameToDataTypeMap(publicDim.columnsByAliasMap(filter.field).name)
@@ -1119,12 +1102,113 @@ object RequestModel extends Logging {
    *  specific to RequestModel interaction.
    */
 
-  /*
-        val filterMap = new mutable.HashMap[String, Filter]()
-        val allFilterAliases = new mutable.TreeSet[String]()
-        val allOuterFilters = mutable.TreeSet[Filter]()
-        val allOrFilterMeta = mutable.Set[OrFilterMeta]()
-   */
+  def checkAllFactFiltersArePKAliases(allFactFilters: Set[Filter]
+                                     , registry: Registry): Boolean = {
+    val allFields: Set[String] = returnFieldSetOnMultipleFiltersWithoutValidation(allFactFilters)
+    allFields forall(field => registry isPrimaryKeyAlias field)
+  }
+
+  def createAllFactFilterMap(allFactFilters: Set[Filter]): Map[String, FilterOperation] = {
+    allFactFilters.map{
+      filter => returnFieldAndOperationMapWithoutValidation(filter) }.flatten.toMap
+  }
+
+  def hasNonFKFactFiltersChecker(allFactFilters: Set[Filter]
+                         , filterPostProcess: Set[String]): Boolean = {
+    val fieldSet: Set[String] = returnFieldSetOnMultipleFiltersWithoutValidation(allFactFilters)
+    fieldSet.filterNot(field => filterPostProcess(field)).nonEmpty
+  }
+
+  def checkIfHasMetricFilters(allFactFilters: Set[Filter]
+                             , publicFact: PublicFact): Boolean = {
+    val fieldSet: Set[String] = returnFieldSetOnMultipleFiltersWithoutValidation(allFactFilters)
+
+    fieldSet.exists { field =>
+      publicFact.columnsByAliasMap.contains(field) && publicFact.columnsByAliasMap(field).isInstanceOf[PublicFactColumn]
+    }
+  }
+
+  def checkIfBestCandidatesHasAllFactFiltersInDim(allFactFilters: Set[Filter]
+                                                 , bestCandidatesOption: Option[BestCandidates]) : Boolean = {
+    val fieldSet: Set[String] = returnFieldSetOnMultipleFiltersWithoutValidation(allFactFilters)
+    !fieldSet.forall(field => bestCandidatesOption.get.dimColAliases(field))
+  }
+
+  def checkIfHasLowCardinalityFilters(injectFilters: SortedSet[Filter]
+                                      , injectDim: PublicDimension
+                                      , colAliases: Set[String]
+                                      , publicFact: PublicFact
+                                      , publicDim: PublicDimension): Boolean = {
+    injectFilters.view.filter(!_.isPushDown).exists {
+      filter =>
+        val fields = returnFieldSetWithoutValidation(filter)
+        fields.exists( field =>
+          (colAliases(field) || injectDim.columnsByAlias(field)) &&
+            !publicFact.columnsByAlias(field) &&
+            !(publicDim.containsHighCardinalityFilter(filter) || injectDim.containsHighCardinalityFilter(filter)))
+    }
+
+  }
+
+  // populate all forced filters from dim
+  def populateAllForcedFiltersForDim(publicDimension: PublicDimension
+                                     , allNonFactFilterAliases: Set[String]
+                                     , filterPostProcess: Set[String]) : (Set[Filter], Boolean) = {
+    val returnedFilters: mutable.Set[Filter] = mutable.Set.empty
+    val hasForcedFilters = publicDimension.forcedFilters.foldLeft(false) {
+      (b, filter) =>
+        val fields = returnFieldSetWithoutValidation(filter)
+        val fieldsResults: Set[Boolean] = fields map {
+          field =>
+            val result =
+              if(!allNonFactFilterAliases(field) && !filterPostProcess(field)) {
+                returnedFilters += filter
+                true
+              } else false
+            b || result
+        }
+        fieldsResults.contains(true)
+    }
+
+    (returnedFilters.toSet, hasForcedFilters)
+  }
+
+  // populate all forced filters from fact
+  def populateFiltersFromFactForcedFilters(publicFact: PublicFact
+                                           , allFilterAliases: Set[String]
+                                           , filterMap: Map[String, Filter]) : (Set[String], Map[String, Filter]) = {
+    var returnedFilterAliases : mutable.Set[String] =  mutable.Set.empty ++ allFilterAliases
+    val returnedFilterMap : mutable.HashMap[String, Filter] = mutable.HashMap(filterMap.toSeq:_*)
+    publicFact.forcedFilters.foreach {
+      filter =>
+        val fields = returnFieldSetWithoutValidation(filter)
+        fields.foreach {
+          field =>
+            if(!returnedFilterAliases(field)) {
+              returnedFilterAliases += field
+              returnedFilterMap.put(field, filter)
+            }
+        }
+    }
+    (returnedFilterAliases.toSet, returnedFilterMap.toMap)
+  }
+
+  def validateFieldsInMultiFieldForcedFilter(publicTable: PublicTable, filter: MultiFieldForcedFilter): Unit = {
+    require(publicTable.columnsByAliasMap.contains(filter.field) && publicTable.columnsByAliasMap.contains(filter.compareTo)
+      , IncomparableColumnError(filter.field, filter.compareTo)
+    )
+    publicTable match {
+      case publicDim: PublicDimension =>
+        val firstDataType: DataType = publicDim.nameToDataTypeMap(publicDim.columnsByAliasMap(filter.field).name)
+        val compareToDataType: DataType = publicDim.nameToDataTypeMap(publicDim.columnsByAliasMap(filter.compareTo).name)
+        require(firstDataType.jsonDataType == compareToDataType.jsonDataType, "Both fields being compared must be the same Data Type.")
+      case publicFact: PublicFact =>
+        val firstDataType: DataType = publicFact.dataTypeForAlias(publicFact.columnsByAliasMap(filter.field).alias)
+        val compareToDataType: DataType = publicFact.dataTypeForAlias(publicFact.columnsByAliasMap(filter.compareTo).alias)
+        require(firstDataType.jsonDataType == compareToDataType.jsonDataType, "Both fields being compared must be the same Data Type.")
+      case _ => None
+    }
+  }
 
   /**
     * Given a filter of unknown type, classify it and pass it through
@@ -1194,6 +1278,29 @@ object RequestModel extends Logging {
       case pushDownFilter: PushDownFilter => returnFieldSetWithoutValidation(pushDownFilter.f)
       case t: Filter => throw new IllegalArgumentException(t.field + " with filter " + t.toString)
     }
+  }
+
+  def returnFieldAndOperationMapWithoutValidation(filter: Filter): Map[String, FilterOperation] = {
+    filter match {
+      case _: OuterFilter => Map.empty
+      case fieldEqualityFilter: FieldEqualityFilter => Map(fieldEqualityFilter.field -> fieldEqualityFilter.operator, fieldEqualityFilter.compareTo -> fieldEqualityFilter.operator)
+      case _: OrFilter => Map.empty
+      case betweenFilter: BetweenFilter => Map(betweenFilter.field -> betweenFilter.operator)
+      case equalityFilter: EqualityFilter => Map(equalityFilter.field -> equalityFilter.operator)
+      case inFilter: InFilter => Map(inFilter.field -> inFilter.operator)
+      case notInFilter: NotInFilter => Map(notInFilter.field -> notInFilter.operator)
+      case notEqualToFilter: NotEqualToFilter => Map(notEqualToFilter.field -> notEqualToFilter.operator)
+      case greaterThanFilter: GreaterThanFilter => Map(greaterThanFilter.field -> greaterThanFilter.operator)
+      case lessThanFilter: LessThanFilter => Map(lessThanFilter.field -> lessThanFilter.operator)
+      case isNotNullFilter: IsNotNullFilter => Map(isNotNullFilter.field -> isNotNullFilter.operator)
+      case likeFilter: LikeFilter => Map(likeFilter.field -> likeFilter.operator)
+      case pushDownFilter: PushDownFilter => returnFieldAndOperationMapWithoutValidation(pushDownFilter.f)
+      case t: Filter => throw new IllegalArgumentException(t.field + " with filter " + t.toString)
+    }
+  }
+
+  def returnFieldSetOnMultipleFiltersWithoutValidation(allFilters: Set[Filter]): Set[String] = {
+    allFilters.map(filter => returnFieldSetWithoutValidation(filter)).flatten
   }
 
   def renderStaticMappedBetweenFilter(filter: BetweenFilter
@@ -1338,6 +1445,8 @@ object RequestModel extends Logging {
         filter match {
           case forcedFilter: MultiFieldForcedFilter =>
             validateFieldsInMultiFieldForcedFilter(publicTable, forcedFilter)
+          case orFilter: OrFilter =>
+            validateAllTabularFilters(orFilter.filters.toSet, publicTable)
           case _ =>
             val (isValidFilter, length) = validateLengthForFilterValue(publicTable, filter)
             require(isValidFilter, s"Value for ${filter.field} exceeds max length of $length characters.")
@@ -1351,7 +1460,7 @@ object RequestModel extends Logging {
     */
   def validateOuterFilterRequirementsAndReturn(filter: OuterFilter
                                                , allRequestedAliases: Set[String]) : Set[Filter] = {
-    val outerFilters = filter.filters.to[mutable.TreeSet]
+    val outerFilters = filter.filters ++ mutable.TreeSet[Filter]()
     outerFilters.foreach( of => require(allRequestedAliases.contains(of.field), s"OuterFilter ${of.field} is not in selected column list"))
     outerFilters.toSet
   }
