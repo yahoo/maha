@@ -383,7 +383,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         //if there is a single fact sort (and sort not on derived column), and single group by, use Top N
         if (queryContext.requestModel.factSortByMap.size == 1
           && factFilterList.isEmpty
-          && dimensionSpecTupleList.size <= 1
+          && dimensionSpecTupleList.size == 1
           && threshold <= maximumTopNMaxRows
           && queryContext.requestModel.factSortByMap.nonEmpty
           && queryContext.factBestCandidate.publicFact.aliasToNameColumnMap
@@ -429,6 +429,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         //if there are no dimension cols in requested cols and no sorts, use time series request
         else if (!haveFactDimCols
           && factFilterList.isEmpty
+          && !queryContext.factBestCandidate.publicFact.renderLocalTimeFilter
           //we ignore the grain fields from dimension spec list since timeseries already provides it
           //so we only expect grain fields in the dimension spec list, otherwise it's not timeseries
           && dimensionSpecTupleList.forall{ case (ds, ods) => Grain.grainFields(ds.getOutputName)}
