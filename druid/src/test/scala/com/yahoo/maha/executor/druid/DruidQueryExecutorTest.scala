@@ -416,7 +416,9 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
   }
 
 
-  private[this] def withDruidQueryExecutor(url: String, enableFallbackOnUncoveredIntervals: Boolean = false)(fn: DruidQueryExecutor => Unit): Unit ={
+  private[this] def withDruidQueryExecutor(url: String,
+                                           enableFallbackOnUncoveredIntervals: Boolean = false,
+                                           allowPartialIfResultExceedsMaxRowLimit:Boolean = false)(fn: DruidQueryExecutor => Unit): Unit ={
     val executor = new DruidQueryExecutor(new DruidQueryExecutorConfig(50, 500, 5000, 5000, 5000, "config", url, None, 3000, 3000, 3000, 3000,
       true, 500, 3, enableFallbackOnUncoveredIntervals), new NoopExecutionLifecycleListener, ResultSetTransformer.DEFAULT_TRANSFORMS)
     try {
@@ -2185,6 +2187,84 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     withDruidQueryExecutor("http://localhost:6667/mock/adjustmentStatsGroupBy") {
+      druidExecutor =>
+
+        val queryExecContext: QueryExecutorContext = new QueryExecutorContext
+        queryExecContext.register(druidExecutor)
+
+        val result = queryPipelineTry.toOption.get.execute(queryExecContext)
+        assert(result.isSuccess)
+
+        val expectedSet = Set(
+          "Row(Map(Is Adjustment -> 2, Der Fact Col A -> 5, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(184, 2012-01-01, N, 100, 15, 1))"
+          , "Row(Map(Is Adjustment -> 2, Der Fact Col A -> 5, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(199, 2012-01-01, N, 100, 10, 1))"
+          , "Row(Map(Is Adjustment -> 2, Der Fact Col A -> 5, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(184, 2012-01-01, Y, 100, 15, 0))"
+          , "Row(Map(Is Adjustment -> 2, Der Fact Col A -> 5, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(199, 2012-01-01, Y, 100, 10, 0))"
+        )
+        var count = 0
+        result.get.rowList.foreach {
+          row =>
+
+            assert(expectedSet.contains(row.toString))
+            count += 1
+        }
+        assert(expectedSet.size == count)
+    }
+  }
+
+
+  test("Successfully get the result if result rowCount exceeds maxRowLimit, if allowPartialIfResultExceedsMaxRowLimit is set") {
+    val jsonString =
+      s"""{ "cube": "a_stats",
+         |   "selectFields": [
+         |      {
+         |         "field": "Advertiser ID"
+         |      },
+         |      {
+         |         "field": "Day"
+         |      },
+         |      {
+         |         "field": "Is Adjustment"
+         |      },
+         |      {
+         |         "field": "Impressions"
+         |      },
+         |      {
+         |         "field": "Spend"
+         |      },
+         |      {
+         |         "field": "Der Fact Col A"
+         |      }
+         |   ],
+         |   "filterExpressions": [
+         |      {
+         |         "field": "Advertiser ID",
+         |         "operator": "=",
+         |         "value": "1035663"
+         |      },
+         |      {
+         |         "field": "Day",
+         |         "operator": "Between",
+         |         "from": "$fromDate",
+         |         "to": "$toDate"
+         |      }
+         |   ]
+         |}
+      """.stripMargin
+
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSyncWithFactBias(jsonString))
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator(3)) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    withDruidQueryExecutor("http://localhost:6667/mock/adjustmentStatsGroupBy", allowPartialIfResultExceedsMaxRowLimit = true) {
       druidExecutor =>
 
         val queryExecContext: QueryExecutorContext = new QueryExecutorContext
