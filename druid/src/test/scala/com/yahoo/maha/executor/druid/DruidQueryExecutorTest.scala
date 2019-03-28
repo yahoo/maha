@@ -420,7 +420,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                                            enableFallbackOnUncoveredIntervals: Boolean = false,
                                            allowPartialIfResultExceedsMaxRowLimit:Boolean = false)(fn: DruidQueryExecutor => Unit): Unit ={
     val executor = new DruidQueryExecutor(new DruidQueryExecutorConfig(50, 500, 5000, 5000, 5000, "config", url, None, 3000, 3000, 3000, 3000,
-      true, 500, 3, enableFallbackOnUncoveredIntervals), new NoopExecutionLifecycleListener, ResultSetTransformer.DEFAULT_TRANSFORMS)
+      true, 500, 3, enableFallbackOnUncoveredIntervals, allowPartialIfResultExceedsMaxRowLimit = allowPartialIfResultExceedsMaxRowLimit), new NoopExecutionLifecycleListener, ResultSetTransformer.DEFAULT_TRANSFORMS)
     try {
       fn(executor)
     } finally {
@@ -2224,16 +2224,10 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
          |         "field": "Day"
          |      },
          |      {
-         |         "field": "Is Adjustment"
-         |      },
-         |      {
          |         "field": "Impressions"
          |      },
          |      {
          |         "field": "Spend"
-         |      },
-         |      {
-         |         "field": "Der Fact Col A"
          |      }
          |   ],
          |   "filterExpressions": [
@@ -2252,7 +2246,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
          |}
       """.stripMargin
 
-    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSyncWithFactBias(jsonString))
+    val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestAsync(jsonString))
     val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
@@ -2264,7 +2258,11 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
-    withDruidQueryExecutor("http://localhost:6667/mock/adjustmentStatsGroupBy", allowPartialIfResultExceedsMaxRowLimit = true) {
+    val query = queryPipelineTry.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
+
+    assert(query.maxRows == 3)
+
+    withDruidQueryExecutor("http://localhost:6667/mock/maxRowTest", allowPartialIfResultExceedsMaxRowLimit = true) {
       druidExecutor =>
 
         val queryExecContext: QueryExecutorContext = new QueryExecutorContext
@@ -2274,19 +2272,18 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         assert(result.isSuccess)
 
         val expectedSet = Set(
-          "Row(Map(Is Adjustment -> 2, Der Fact Col A -> 5, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(184, 2012-01-01, N, 100, 15, 1))"
-          , "Row(Map(Is Adjustment -> 2, Der Fact Col A -> 5, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(199, 2012-01-01, N, 100, 10, 1))"
-          , "Row(Map(Is Adjustment -> 2, Der Fact Col A -> 5, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(184, 2012-01-01, Y, 100, 15, 0))"
-          , "Row(Map(Is Adjustment -> 2, Der Fact Col A -> 5, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(199, 2012-01-01, Y, 100, 10, 0))"
+          "Row(Map(Advertiser ID -> 0, Day -> 1, Impressions -> 2, Spend -> 3),ArrayBuffer(184, 2012-01-01, 100, 15))" ,
+            "Row(Map(Advertiser ID -> 0, Day -> 1, Impressions -> 2, Spend -> 3),ArrayBuffer(199, 2012-01-01, 100, 10))",
+            "Row(Map(Advertiser ID -> 0, Day -> 1, Impressions -> 2, Spend -> 3),ArrayBuffer(199, 2012-01-01, 100, 10))",
+            "Row(Map(Advertiser ID -> 0, Day -> 1, Impressions -> 2, Spend -> 3),ArrayBuffer(199, 2012-01-01, 100, 10))"
         )
         var count = 0
         result.get.rowList.foreach {
           row =>
-
             assert(expectedSet.contains(row.toString))
             count += 1
         }
-        assert(expectedSet.size == count)
+        assert(count == 4)
     }
   }
 

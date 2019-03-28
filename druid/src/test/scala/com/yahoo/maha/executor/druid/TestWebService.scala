@@ -656,6 +656,48 @@ trait TestWebService {
                      |  ]""".stripMargin
       Ok(groupby)
 
+
+    case POST -> Root /("maxRowTest") =>
+      val maxRowTest ="""[
+                     |  {
+                     |    "timestamp" : "2012-01-01T00:00:00.000Z",
+                     |    "event" : {
+                     |     "Impressions":100,
+                     |     "Spend":15.0,
+                     |     "Advertiser ID":184,
+                     |     "Day":"2012-01-01"
+                     |    }
+                     |  },
+                     |  {
+                     |    "timestamp" : "2012-01-01T00:00:12.000Z",
+                     |    "event" : {
+                     |     "Impressions":100,
+                     |     "Spend":10.0,
+                     |     "Advertiser ID":199,
+                     |     "Day":"2012-01-01"
+                     |    }
+                     |  },
+                     |  {
+                     |    "timestamp" : "2012-01-01T00:00:12.000Z",
+                     |    "event" : {
+                     |     "Impressions":100,
+                     |     "Spend":10.0,
+                     |     "Advertiser ID":199,
+                     |     "Day":"2012-01-01"
+                     |    }
+                     |  },
+                     |  {
+                     |    "timestamp" : "2012-01-01T00:00:12.000Z",
+                     |    "event" : {
+                     |     "Impressions":100,
+                     |     "Spend":10.0,
+                     |     "Advertiser ID":199,
+                     |     "Day":"2012-01-01"
+                     |    }
+                     |  }
+                     |  ]""".stripMargin
+      Ok(maxRowTest)
+
     case POST -> Root /("whiteGloveGroupBy") =>
       val groupby =
         """

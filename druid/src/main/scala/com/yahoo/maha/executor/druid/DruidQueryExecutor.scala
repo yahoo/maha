@@ -349,7 +349,7 @@ object DruidQueryExecutor extends Logging {
     }
     if (query.isInstanceOf[DruidQuery[_]]) {
       val druidQuery = query.asInstanceOf[DruidQuery[_]]
-      if (!druidQuery.isPaginated ||  allowPartialIfResultExceedsMaxRowLimit) {
+      if (!druidQuery.isPaginated &&  !allowPartialIfResultExceedsMaxRowLimit) {
         require(rowsCount < druidQuery.maxRows
           , s"Non paginated query fails rowsCount < maxRows, partial result possible : rowsCount=$rowsCount maxRows=${druidQuery.maxRows}")
       }
