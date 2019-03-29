@@ -51,6 +51,7 @@ case class DruidQueryExecutorConfig(maxConnectionsPerHost: Int
                                     , enableFallbackOnUncoveredIntervals: Boolean = false
                                     , sslContextVersion: String = "TLSv1.2"
                                     , commaSeparatedCipherSuitesList: String = "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_CBC_SHA256,TLS_RSA_WITH_AES_256_CBC_SHA256,TLS_RSA_WITH_AES_128_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA"
+                                    , allowPartialIfResultExceedsMaxRowLimit: Boolean = false
                                    )
 
 object DruidQueryExecutor extends Logging {
@@ -150,7 +151,7 @@ object DruidQueryExecutor extends Logging {
   }
 
   def parseJsonAndPopulateResultSet[T <: QueryRowList](query: Query, response: Response, rowList: T, getRow: List[JField] => Row, getEphemeralRow: List[JField] => Row,
-                                                       transformers: List[ResultSetTransformer]): Option[JValue] = {
+                                                       transformers: List[ResultSetTransformer], allowPartialIfResultExceedsMaxRowLimit:Boolean): Option[JValue] = {
     var pagination: Option[JValue] = None
     val jsonString: String = response.getResponseBody(StandardCharsets.UTF_8.displayName())
 
@@ -348,7 +349,7 @@ object DruidQueryExecutor extends Logging {
     }
     if (query.isInstanceOf[DruidQuery[_]]) {
       val druidQuery = query.asInstanceOf[DruidQuery[_]]
-      if (!druidQuery.isPaginated) {
+      if (!druidQuery.isPaginated &&  !allowPartialIfResultExceedsMaxRowLimit) {
         require(rowsCount < druidQuery.maxRows
           , s"Non paginated query fails rowsCount < maxRows, partial result possible : rowsCount=$rowsCount maxRows=${druidQuery.maxRows}")
       }
@@ -461,7 +462,7 @@ class DruidQueryExecutor(config: DruidQueryExecutorConfig, lifecycleListener: Ex
               else irl.newRow
             }, (fieldList: List[JField]) => {
               irl.newEphemeralRow
-            }, transformers)
+            }, transformers, config.allowPartialIfResultExceedsMaxRowLimit)
 
 
           }
@@ -489,7 +490,7 @@ class DruidQueryExecutor(config: DruidQueryExecutorConfig, lifecycleListener: Ex
               qrl.newRow
             }, (fieldList: List[JField]) => {
               qrl.newEphemeralRow
-            }, transformers)
+            }, transformers, config.allowPartialIfResultExceedsMaxRowLimit)
 
           }
           result match {

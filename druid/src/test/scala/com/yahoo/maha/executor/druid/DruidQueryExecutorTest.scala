@@ -416,9 +416,11 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
   }
 
 
-  private[this] def withDruidQueryExecutor(url: String, enableFallbackOnUncoveredIntervals: Boolean = false)(fn: DruidQueryExecutor => Unit): Unit ={
+  private[this] def withDruidQueryExecutor(url: String,
+                                           enableFallbackOnUncoveredIntervals: Boolean = false,
+                                           allowPartialIfResultExceedsMaxRowLimit:Boolean = false)(fn: DruidQueryExecutor => Unit): Unit ={
     val executor = new DruidQueryExecutor(new DruidQueryExecutorConfig(50, 500, 5000, 5000, 5000, "config", url, None, 3000, 3000, 3000, 3000,
-      true, 500, 3, enableFallbackOnUncoveredIntervals), new NoopExecutionLifecycleListener, ResultSetTransformer.DEFAULT_TRANSFORMS)
+      true, 500, 3, enableFallbackOnUncoveredIntervals, allowPartialIfResultExceedsMaxRowLimit = allowPartialIfResultExceedsMaxRowLimit), new NoopExecutionLifecycleListener, ResultSetTransformer.DEFAULT_TRANSFORMS)
     try {
       fn(executor)
     } finally {
@@ -2207,6 +2209,81 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
             count += 1
         }
         assert(expectedSet.size == count)
+    }
+  }
+
+
+  test("Successfully get the result if result rowCount exceeds maxRowLimit, if allowPartialIfResultExceedsMaxRowLimit is set") {
+    val jsonString =
+      s"""{ "cube": "a_stats",
+         |   "selectFields": [
+         |      {
+         |         "field": "Advertiser ID"
+         |      },
+         |      {
+         |         "field": "Day"
+         |      },
+         |      {
+         |         "field": "Impressions"
+         |      },
+         |      {
+         |         "field": "Spend"
+         |      }
+         |   ],
+         |   "filterExpressions": [
+         |      {
+         |         "field": "Advertiser ID",
+         |         "operator": "=",
+         |         "value": "1035663"
+         |      },
+         |      {
+         |         "field": "Day",
+         |         "operator": "Between",
+         |         "from": "$fromDate",
+         |         "to": "$toDate"
+         |      }
+         |   ]
+         |}
+      """.stripMargin
+
+    val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestAsync(jsonString))
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator(3)) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val query = queryPipelineTry.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
+
+    assert(query.maxRows == 3)
+
+    withDruidQueryExecutor("http://localhost:6667/mock/maxRowTest", allowPartialIfResultExceedsMaxRowLimit = true) {
+      druidExecutor =>
+
+        val queryExecContext: QueryExecutorContext = new QueryExecutorContext
+        queryExecContext.register(druidExecutor)
+
+        val result = queryPipelineTry.toOption.get.execute(queryExecContext)
+        assert(result.isSuccess)
+
+        val expectedSet = Set(
+          "Row(Map(Advertiser ID -> 0, Day -> 1, Impressions -> 2, Spend -> 3),ArrayBuffer(184, 2012-01-01, 100, 15))" ,
+            "Row(Map(Advertiser ID -> 0, Day -> 1, Impressions -> 2, Spend -> 3),ArrayBuffer(199, 2012-01-01, 100, 10))",
+            "Row(Map(Advertiser ID -> 0, Day -> 1, Impressions -> 2, Spend -> 3),ArrayBuffer(199, 2012-01-01, 100, 10))",
+            "Row(Map(Advertiser ID -> 0, Day -> 1, Impressions -> 2, Spend -> 3),ArrayBuffer(199, 2012-01-01, 100, 10))"
+        )
+        var count = 0
+        result.get.rowList.foreach {
+          row =>
+            assert(expectedSet.contains(row.toString))
+            count += 1
+        }
+        assert(count == 4)
     }
   }
 
