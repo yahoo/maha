@@ -474,10 +474,10 @@ object RequestModel extends Logging {
           }
 
           //keep map from alias to filter for final map back to Set[Filter]
-          var filterMap = new mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter]()
-          var pushDownFilterMap = new mutable.HashMap[String, mutable.Set[PushDownFilter]] with mutable.MultiMap[String, PushDownFilter]()
-          var allFilterAliases = new mutable.TreeSet[String]()
-          var allFactFilters = new mutable.TreeSet[Filter]()
+          val filterMap = new mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter]()
+          val pushDownFilterMap = new mutable.HashMap[String, mutable.Set[PushDownFilter]] with mutable.MultiMap[String, PushDownFilter]()
+          val allFilterAliases = new mutable.TreeSet[String]()
+          val allFactFilters = new mutable.TreeSet[Filter]()
           val allNonFactFilterAliases = new mutable.TreeSet[String]()
           val allOuterFilters = mutable.TreeSet[Filter]()
           val allOrFilterMeta = mutable.Set[OrFilterMeta]()
@@ -485,7 +485,7 @@ object RequestModel extends Logging {
           // populate all filters into allFilterAliases
           request.filterExpressions.foreach { filter =>
             val (filterMapSingle, allFilterAliasesSingle, allOuterFiltersSingle, allOrFilterMetaSingle) = validateAndReturnFilterData(filter, allRequestedAliases.toSet, publicFact)
-            filterMap = mergeMultiMaps(filterMap, filterMapSingle)
+            for{(key, valueSet) <- filterMapSingle; value <- valueSet } filterMap.addBinding(key, value)
             allFilterAliases ++= allFilterAliasesSingle
             allOuterFilters ++= allOuterFiltersSingle
             allOrFilterMeta ++= allOrFilterMetaSingle
@@ -510,8 +510,8 @@ object RequestModel extends Logging {
 
           // populate all forced filters from fact
           val (allFilterAliasesResult, filterMapResult) = populateFiltersFromFactForcedFilters(publicFact, allFilterAliases.toSet, filterMap)
-          allFilterAliases = mutable.TreeSet[String](allFilterAliasesResult.toList:_*)
-          filterMap =  filterMapResult
+          allFilterAliases ++= mutable.TreeSet[String](allFilterAliasesResult.toList:_*)
+          filterMap ++= filterMapResult
 
           //list of fk filters
           val filterPostProcess = new mutable.TreeSet[String]
@@ -522,7 +522,7 @@ object RequestModel extends Logging {
                 //we want to process these after all non foreign keys have been processed
                 filterPostProcess += filter
               }
-              allFactFilters = (allFactFilters.toList ++ filterMap(filter).toList).to[mutable.TreeSet]
+              allFactFilters  ++= filterMap(filter).to[mutable.TreeSet]
             } else {
               allNonFactFilterAliases += filter
             }
@@ -1088,7 +1088,7 @@ object RequestModel extends Logging {
                                            , allFilterAliases: Set[String]
                                            , filterMap: mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter])
   : (Set[String], mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter]) = {
-    var returnedFilterAliases : mutable.Set[String] =  mutable.Set.empty ++ allFilterAliases
+    val returnedFilterAliases : mutable.Set[String] =  mutable.Set.empty ++ allFilterAliases
     val returnedFilterMap : mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter] = filterMap
     publicFact.forcedFilters.foreach {
       filter =>
@@ -1295,7 +1295,7 @@ object RequestModel extends Logging {
     }
 
     val validFieldSet : Set[String] = Filter.returnFieldSetWithoutValidation(filter)
-    var (returnedFilterSet, newMap) :
+    val (returnedFilterSet, newMap) :
       (mutable.Set[(String, Filter)], mutable.Set[(String, Map[String, Set[String]])]) = (mutable.Set.empty, mutable.Set.empty)
     val unusedVal: Unit = validFieldSet.map {
       field: String =>
@@ -1616,21 +1616,20 @@ object RequestModelFactory extends Logging {
         } yield {
           val dryRunModel: Option[Try[RequestModel]] = if (buckets.dryRunRevision.isDefined) {
             Option(Try {
-              var updatedRequest = request
-              if (buckets.dryRunEngine.isDefined) {
+              val updatedRequest = if (buckets.dryRunEngine.isDefined) {
                 buckets.dryRunEngine.get match {
                   case DruidEngine =>
-                    updatedRequest = ReportingRequest.forceDruid(request)
+                    ReportingRequest.forceDruid(request)
                   case OracleEngine =>
-                    updatedRequest = ReportingRequest.forceOracle(request)
+                    ReportingRequest.forceOracle(request)
                   case HiveEngine =>
-                    updatedRequest = ReportingRequest.forceHive(request)
+                    ReportingRequest.forceHive(request)
                   case PrestoEngine =>
-                    updatedRequest = ReportingRequest.forcePresto(request)
+                    ReportingRequest.forcePresto(request)
                   case a =>
                     throw new IllegalArgumentException(s"Unknown engine: $a")
                 }
-              }
+              } else request
               RequestModel.from(updatedRequest, registry, utcTimeProvider, buckets.dryRunRevision)
             }.flatten)
           } else None
