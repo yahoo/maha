@@ -6,6 +6,7 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact.{Fact, FactBestCandidate, FactCol, PublicFact}
 import com.yahoo.maha.core.query.Version.{v0, v1, v2}
+import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -182,6 +183,7 @@ trait QueryGenerator[T <: EngineRequirement] {
 }
 
 trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
+  private val logger = LoggerFactory.getLogger(classOf[BaseQueryGenerator[T]])
 
   def removeDuplicateIfForced(localFilters: Seq[Filter], forcedFilters: Seq[ForcedFilter], inputContext: FactualQueryContext): Array[Filter] = {
     val queryContext = inputContext
@@ -193,6 +195,9 @@ trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
         val name = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap(filter.field)
         val column = fact.columnsByNameMap(name)
         val real_name = column.alias.getOrElse(name)
+        if(returnedFilters.contains(real_name))
+          logger.info(s"Replacing the existing filter $real_name with new filter string ${filter.toString}")
+
         returnedFilters(real_name) = filter
     }
     forcedFilters.foreach {
