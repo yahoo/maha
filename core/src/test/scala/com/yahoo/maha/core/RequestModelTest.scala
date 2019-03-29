@@ -2089,7 +2089,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.dimensionsCandidates.exists(_.dim.name == "advertiser") === true)
     assert(model.dimSortByMap.contains("Advertiser ID") === true)
     assert(model.dimSortByMap("Advertiser ID") === ASC)
-    assert(model.factFilters.size === 1)
+    assert(model.factFilters.size === 2)
     assert(model.factFilters.map(_.field).contains("Advertiser ID"))
 
     assert(model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields.exists(_ === "Advertiser ID") === true,
@@ -2141,7 +2141,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.dimensionsCandidates.exists(_.dim.name == "advertiser") === true)
     assert(model.dimSortByMap.contains("Advertiser ID") === true)
     assert(model.dimSortByMap("Advertiser ID") === ASC)
-    assert(model.factFilters.size === 1)
+    assert(model.factFilters.size === 2)
     assert(model.factFilters.map(_.field).contains("Advertiser ID"))
 
     assert(model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields.exists(_ === "Advertiser ID") === true,
@@ -2189,7 +2189,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.isDimDriven === false)
     assert(model.hasFactFilters)
     assert(!model.hasMetricFilters)
-    assert(model.factFilters.size === 1)
+    assert(model.factFilters.size === 2)
     assert(model.factFilters.map(_.field).contains("Advertiser ID"))
     assert(model.dimColumnAliases.contains("Advertiser Status") === true)
     assert(model.dimensionsCandidates.size === 1, s"dimensionsCandidates = ${model.dimensionsCandidates}")
@@ -2289,7 +2289,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.dimensionsCandidates.size === 1, s"dimensionsCandidates = ${model.dimensionsCandidates}")
     assert(model.dimSortByMap.contains("Advertiser ID") === true)
     assert(model.dimSortByMap("Advertiser ID") === ASC)
-    assert(model.factFilters.size === 1)
+    assert(model.factFilters.size === 2)
     assert(model.factFilters.map(_.field).contains("Advertiser ID"))
 
     assert(model.dimensionsCandidates.find(_.dim.name == "advertiser").get.fields.exists(_ === "Advertiser ID") === true,
@@ -2333,7 +2333,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.isDimDriven === false)
     assert(model.hasFactFilters)
     assert(!model.hasMetricFilters)
-    assert(model.factFilters.size === 1)
+    assert(model.factFilters.size === 2)
     assert(model.factFilters.map(_.field).contains("Advertiser ID"))
     assert(model.dimColumnAliases.isEmpty === true)
     assert(model.dimensionsCandidates.size === 0, s"dimensionsCandidates = ${model.dimensionsCandidates}")
@@ -2381,7 +2381,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.dimensionsCandidates.size === 1, s"dimensionsCandidates = ${model.dimensionsCandidates}")
     assert(model.dimSortByMap.contains("Advertiser ID") === true)
     assert(model.dimSortByMap("Advertiser ID") === ASC)
-    assert(model.factFilters.size === 1)
+    assert(model.factFilters.size === 2)
     assert(model.factFilters.map(_.field).contains("Advertiser ID"))
 
     assert(model.dimensionsCandidates.find(_.dim.name == "campaign").get.fields.exists(_ === "Advertiser ID") === true,
@@ -2428,7 +2428,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.dimensionsCandidates.size === 1, s"dimensionsCandidates = ${model.dimensionsCandidates}")
     assert(model.dimSortByMap.contains("Advertiser ID") === true)
     assert(model.dimSortByMap("Advertiser ID") === ASC)
-    assert(model.factFilters.size === 1)
+    assert(model.factFilters.size === 2)
     assert(model.factFilters.map(_.field).contains("Advertiser ID"))
 
     assert(model.dimensionsCandidates.find(_.dim.name == "campaign").get.fields.exists(_ === "Advertiser ID") === true,
@@ -2475,7 +2475,7 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.isDimDriven === false)
     assert(model.hasFactFilters)
     assert(!model.hasMetricFilters)
-    assert(model.factFilters.size === 1)
+    assert(model.factFilters.size === 2)
     assert(model.factFilters.map(_.field).contains("Advertiser ID"))
     assert(model.dimColumnAliases.isEmpty === true)
     assert(model.dimensionsCandidates.size === 0, s"dimensionsCandidates = ${model.dimensionsCandidates}")

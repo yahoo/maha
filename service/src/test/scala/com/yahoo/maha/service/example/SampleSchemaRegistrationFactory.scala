@@ -195,10 +195,10 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
           , annotations = Set(OracleHashPartitioning)
         ).toPublicDimension("student","student",
           Set(
-            PubCol("id", "Student ID", BetweenEquality)
-            , PubCol("name", "Student Name", Equality)
+            PubCol("id", "Student ID", InBetweenEqualityFieldEquality)
+            , PubCol("name", "Student Name", EqualityFieldEquality)
             , PubCol("admitted_year", "Admitted Year", InEquality, hiddenFromJson = true)
-            , PubCol("status", "Student Status", InEquality)
+            , PubCol("status", "Student Status", InEqualityFieldEquality)
           ), highCardinalityFilters = Set(NotInFilter("Student Status", List("DELETED")))
         )
       }

@@ -469,15 +469,15 @@ object RequestModel extends Logging {
 
           publicFact.incompatibleColumns.foreach {
             case (alias, incompatibleColumns) =>
-              require(!(allRequestedFactAliases.contains(alias)  && !incompatibleColumns.intersect(allRequestedAliases).isEmpty),
+              require(!(allRequestedFactAliases.contains(alias)  && incompatibleColumns.intersect(allRequestedAliases).nonEmpty),
                 InCompatibleColumnError(alias, incompatibleColumns))
           }
 
           //keep map from alias to filter for final map back to Set[Filter]
-          var filterMap = new mutable.HashMap[String, Filter]()
-          var pushDownFilterMap = new mutable.HashMap[String, PushDownFilter]()
+          var filterMap = new mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter]()
+          var pushDownFilterMap = new mutable.HashMap[String, mutable.Set[PushDownFilter]] with mutable.MultiMap[String, PushDownFilter]()
           var allFilterAliases = new mutable.TreeSet[String]()
-          val allFactFilters = new mutable.TreeSet[Filter]()
+          var allFactFilters = new mutable.TreeSet[Filter]()
           val allNonFactFilterAliases = new mutable.TreeSet[String]()
           val allOuterFilters = mutable.TreeSet[Filter]()
           val allOrFilterMeta = mutable.Set[OrFilterMeta]()
@@ -485,10 +485,21 @@ object RequestModel extends Logging {
           // populate all filters into allFilterAliases
           request.filterExpressions.foreach { filter =>
             val (filterMapSingle, allFilterAliasesSingle, allOuterFiltersSingle, allOrFilterMetaSingle) = validateAndReturnFilterData(filter, allRequestedAliases.toSet, publicFact)
-            filterMap ++= filterMapSingle
+            filterMap = mergeMultiMaps(filterMap, filterMapSingle)
             allFilterAliases ++= allFilterAliasesSingle
             allOuterFilters ++= allOuterFiltersSingle
             allOrFilterMeta ++= allOrFilterMetaSingle
+          }
+
+          def mergeMultiMaps(a: mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter]
+                            , b: mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter]) :
+           mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter] = {
+            for((key, values) <- b) {
+              for(value <- values) {
+                a.addBinding(key, value)
+              }
+            }
+            a
           }
 
           //check required filter aliases
@@ -498,9 +509,9 @@ object RequestModel extends Logging {
           }
 
           // populate all forced filters from fact
-          val (allFilterAliasesResult, filterMapResult) = populateFiltersFromFactForcedFilters(publicFact, allFilterAliases.toSet, filterMap.toMap)
+          val (allFilterAliasesResult, filterMapResult) = populateFiltersFromFactForcedFilters(publicFact, allFilterAliases.toSet, filterMap)
           allFilterAliases = mutable.TreeSet[String](allFilterAliasesResult.toList:_*)
-          filterMap =  mutable.HashMap[String, Filter](filterMapResult.toSeq:_*)
+          filterMap =  filterMapResult
 
           //list of fk filters
           val filterPostProcess = new mutable.TreeSet[String]
@@ -511,7 +522,7 @@ object RequestModel extends Logging {
                 //we want to process these after all non foreign keys have been processed
                 filterPostProcess += filter
               }
-              allFactFilters += filterMap(filter)
+              allFactFilters = (allFactFilters.toList ++ filterMap(filter).toList).to[mutable.TreeSet]
             } else {
               allNonFactFilterAliases += filter
             }
@@ -702,7 +713,7 @@ object RequestModel extends Logging {
           val finalAllRequestedDimensionPrimaryKeyAliases = allRequestedDimensionPrimaryKeyAliases.toSet
 
           val (dimensionCandidates: SortedSet[DimensionCandidate]
-          , pushDownFilterMapResult: mutable.HashMap[String, PushDownFilter]
+          , pushDownFilterMapResult: mutable.HashMap[String, mutable.Set[PushDownFilter]] with mutable.MultiMap[String, PushDownFilter]
           , allRequestedDimAliases: mutable.TreeSet[String])  =
             buildDimensionCandidateSet(registry
               , publicFact
@@ -808,6 +819,7 @@ object RequestModel extends Logging {
             }
             DimensionRelations(relations)
           }
+
 
           new RequestModel(request.cube, bestCandidatesOption, allFactFilters.to[SortedSet], dimensionCandidates,
             finalAllRequestedCols, finalAllSortByCols, allRequestedNonFactAliases.toSet,
@@ -920,6 +932,8 @@ object RequestModel extends Logging {
     passed in filters are guaranteed to never be multi-field, or multi-filter filters, as this behavior is
     picked out before this function is called.
      */
+    val fieldsToCheck = Filter.returnFieldSetWithoutValidation(filter)
+    for(field <- fieldsToCheck) require(publicTable.columnsByAliasMap.contains(field), "Dim-Metric Comparison Failed: Can only compare dim-dim or metric-metric")
     val dataType = {
       publicTable match {
         case publicDim: PublicDimension => publicDim.nameToDataTypeMap(publicDim.columnsByAliasMap(filter.field).name)
@@ -1072,9 +1086,10 @@ object RequestModel extends Logging {
     */
   private def populateFiltersFromFactForcedFilters(publicFact: PublicFact
                                            , allFilterAliases: Set[String]
-                                           , filterMap: Map[String, Filter]) : (Set[String], Map[String, Filter]) = {
+                                           , filterMap: mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter])
+  : (Set[String], mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter]) = {
     var returnedFilterAliases : mutable.Set[String] =  mutable.Set.empty ++ allFilterAliases
-    val returnedFilterMap : mutable.HashMap[String, Filter] = mutable.HashMap(filterMap.toSeq:_*)
+    val returnedFilterMap : mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter] = filterMap
     publicFact.forcedFilters.foreach {
       filter =>
         val fields = Filter.returnFieldSetWithoutValidation(filter)
@@ -1082,11 +1097,11 @@ object RequestModel extends Logging {
           field =>
             if(!returnedFilterAliases(field)) {
               returnedFilterAliases += field
-              returnedFilterMap.put(field, filter)
+              returnedFilterMap.addBinding(field, filter)
             }
         }
     }
-    (returnedFilterAliases.toSet, returnedFilterMap.toMap)
+    (returnedFilterAliases.toSet, returnedFilterMap)
   }
 
   /**
@@ -1123,15 +1138,15 @@ object RequestModel extends Logging {
     */
   private def validateAndReturnFilterData(filter: Filter
                                   , allRequestedAliases: Set[String]
-                                  , publicFact: PublicFact) : (Map[String, Filter], Set[String], Set[Filter], Set[OrFilterMeta]) = {
-    val filterResultBag: (Map[String, Filter], Set[String], Set[Filter], Set[OrFilterMeta]) = filter match {
+                                  , publicFact: PublicFact)
+  : (mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter], Set[String], Set[Filter], Set[OrFilterMeta]) = {
+    val filterResultBag: (mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter], Set[String], Set[Filter], Set[OrFilterMeta]) = filter match {
       //all filters passed in OuterFilter must be added to the Filter Alias Set.
       case outerFilter: OuterFilter =>
         (staticMappedFilterRender(outerFilter, publicFact), Set.empty, validateOuterFilterRequirementsAndReturn(outerFilter, allRequestedAliases), Set.empty)
       //Both filters in the Field Equality filter must be added to the Filter Alias Set.
       case fieldEqualityFilter: FieldEqualityFilter =>
-        (staticMappedFilterRender(fieldEqualityFilter, publicFact)
-          , Set(fieldEqualityFilter.field, fieldEqualityFilter.compareTo), Set.empty, Set.empty)
+        (staticMappedFilterRender(fieldEqualityFilter, publicFact), Set(fieldEqualityFilter.field, fieldEqualityFilter.compareTo), Set.empty, Set.empty)
       //Filters passed through an Or Filter do not get added to the Set.
       case orFilter: OrFilter =>
         (staticMappedFilterRender(orFilter, publicFact), Set.empty, Set.empty, validateOrFilterRequirementsAndReturn(orFilter, publicFact))
@@ -1255,6 +1270,9 @@ object RequestModel extends Logging {
     }
   }
 
+  def list2multimap[A, B](list: List[(A, B)]) =
+    list.foldLeft(new mutable.HashMap[A, mutable.Set[B]] with mutable.MultiMap[A, B]){ (acc, pair) => acc.addBinding(pair._1, pair._2)}
+
   /**
     * 1. Check if the current filter type gets rendered or only validated.
     * 2. Pick up all valid fields from the current filter.
@@ -1265,31 +1283,32 @@ object RequestModel extends Logging {
     * @return - map of statically mapped filters.
     */
   private def staticMappedFilterRender(filter: Filter
-                               , publicFact: PublicFact) : Map[String, Filter] = {
+                               , publicFact: PublicFact) : mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter] = {
     /**
       * For filters with no fields to return, only validate the internal filters.
       */
     filter match {
       case orFilter: OrFilter =>
         renderStaticMappedOrFilter(orFilter, publicFact)
-        return Map.empty
+        return new mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter]()
       case _ =>
     }
 
     val validFieldSet : Set[String] = Filter.returnFieldSetWithoutValidation(filter)
     var (returnedFilterSet, newMap) :
       (mutable.Set[(String, Filter)], mutable.Set[(String, Map[String, Set[String]])]) = (mutable.Set.empty, mutable.Set.empty)
-      validFieldSet.map {
-        field: String =>
-        if(publicFact.aliasToReverseStaticMapping.contains(field)) newMap ++= Set((field, publicFact.aliasToReverseStaticMapping(field)))
+    val unusedVal: Unit = validFieldSet.map {
+      field: String =>
+        if(publicFact.aliasToReverseStaticMapping.contains(field))
+          newMap ++= Set((field, publicFact.aliasToReverseStaticMapping(field)))
         else returnedFilterSet ++= Set((field, filter))
-        }
+    }
 
     /**
       * For filters with returnable, statically mapped fields, return both the filter
       * and its filterValue.
       */
-    val setOfFilterFieldsWithReverseMappedFilters = newMap map {
+    val setOfFilterFieldsWithReverseMappedFilters : mutable.Set[(String, Filter)] = newMap map {
       tuple : (String, Map[String, Set[String]]) =>
         val filterValue = tuple._1
         val reverseMapping = tuple._2
@@ -1308,7 +1327,7 @@ object RequestModel extends Logging {
         (filterValue, reverseMappedFilter)
     }
 
-    (setOfFilterFieldsWithReverseMappedFilters ++ returnedFilterSet).toMap
+    list2multimap((setOfFilterFieldsWithReverseMappedFilters ++ returnedFilterSet).toList)
   }
 
   //validate for publicFact, publicDim contents.
@@ -1388,14 +1407,15 @@ object RequestModel extends Logging {
                                 , publicFact: PublicFact
                                 , finalAllRequestedDimensionPrimaryKeyAliases: Set[String]
                                 , allNonFactFilterAliases: mutable.TreeSet[String]
-                                , filterMap: mutable.HashMap[String, Filter]
+                                , filterMap: mutable.HashMap[String, mutable.Set[Filter]]
                                 , allRequestedNonFactAliases: mutable.TreeSet[String]
                                 , allRequestedFactAliases: mutable.TreeSet[String]
                                 , filterPostProcess: mutable.TreeSet[String]
                                 , allDimSortBy: mutable.HashMap[String, Order]
                                 , isFactDriven: Boolean
-                                , pushDownFilterMap: mutable.HashMap[String, PushDownFilter]
-                                , allProjectedAliases: Set[String]) : (SortedSet[DimensionCandidate], mutable.HashMap[String, PushDownFilter], mutable.TreeSet[String]) = {
+                                , pushDownFilterMap: mutable.HashMap[String, mutable.Set[PushDownFilter]] with mutable.MultiMap[String, PushDownFilter]
+                                , allProjectedAliases: Set[String])
+  : (SortedSet[DimensionCandidate], mutable.HashMap[String, mutable.Set[PushDownFilter]] with mutable.MultiMap[String, PushDownFilter], mutable.TreeSet[String]) = {
     val finalAllRequestedDimsMap = finalAllRequestedDimensionPrimaryKeyAliases
       .map(pk => pk -> registry.getDimensionByPrimaryKeyAlias(pk, Option.apply(publicFact.dimRevision)).get).toMap
     val allRequestedDimAliases = new mutable.TreeSet[String]()
@@ -1421,7 +1441,7 @@ object RequestModel extends Logging {
             val hasNonFKFilters =  allNonFactFilterAliases.foldLeft(false) {
               (b, filter) =>
                 val result = if (colAliases.contains(filter) || filter == publicDim.primaryKeyByAlias) {
-                  filters += filterMap(filter)
+                  filters ++= filterMap(filter)
                   true
                 } else false
                 b || result
@@ -1444,11 +1464,14 @@ object RequestModel extends Logging {
                 filter =>
                   if (colAliases(filter) || publicDim.primaryKeyByAlias == filter) {
                     if(pushDownFilterMap.contains(filter)) {
-                      filters += pushDownFilterMap(filter)
+                      filters ++= pushDownFilterMap(filter)
                     } else {
-                      val pushDownFilter = PushDownFilter(filterMap(filter))
-                      pushDownFilterMap.put(filter, pushDownFilter)
-                      filters += pushDownFilter
+                      filterMap(filter).map {
+                        pdFilter =>
+                        val pushDownFilter = PushDownFilter(pdFilter)
+                        pushDownFilterMap.addBinding(filter, pushDownFilter)
+                        filters += pushDownFilter
+                      }
                     }
                   }
               }
@@ -1514,8 +1537,13 @@ object RequestModel extends Logging {
                   findDimensionPath.foreach {
                     injectDim =>
                       val injectFilters : SortedSet[Filter] = pushDownFilterMap.collect {
-                        case (alias, filter) if injectDim.columnsByAlias.contains(alias) => filter.asInstanceOf[Filter]
-                      }.to[SortedSet]
+                        case (alias, filterSet) =>
+                          filterSet.map {
+                            filter =>
+                              if (injectDim.columnsByAlias.contains(alias)) filter.asInstanceOf[Filter]
+                              else null
+                          }.toSet
+                      }.flatten.to[SortedSet]
                       val injectFilteredUpper = upperJoinCandidates.filter(pd => pd.dimLevel != injectDim.dimLevel && pd.dimLevel >= aboveLevel)
                       val injectBestUpperCandidate = injectFilteredUpper
                         .filter(pd => pd.foreignKeyByAlias.contains(injectDim.primaryKeyByAlias)).takeRight(1)

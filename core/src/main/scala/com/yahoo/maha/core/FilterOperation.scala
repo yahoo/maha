@@ -1211,7 +1211,7 @@ object Filter extends Logging {
     Ordering.fromLessThan {
       (a, b) =>
         if(a.isPushDown == b.isPushDown) {
-          Ordering.String.lt(a.field, b.field)
+          Ordering.String.lt(a.field + a.toString, b.field + b.toString)
         } else {
           a.isPushDown > b.isPushDown
         }
@@ -1481,7 +1481,7 @@ object Filter extends Logging {
   def returnFieldSetWithoutValidation(filter: Filter) : Set[String] = {
     filter match {
       case _: OuterFilter => Set.empty
-      case fieldEqualityFilter: FieldEqualityFilter => Set(fieldEqualityFilter.field, fieldEqualityFilter.compareTo)
+      case fieldEqualityFilter: MultiFieldForcedFilter => Set(fieldEqualityFilter.field, fieldEqualityFilter.compareTo)
       case _: OrFilter => Set.empty
       case betweenFilter: BetweenFilter => Set(betweenFilter.field)
       case equalityFilter: EqualityFilter => Set(equalityFilter.field)

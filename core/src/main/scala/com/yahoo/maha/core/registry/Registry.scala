@@ -324,9 +324,9 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
   }
   
   def getFactRowsCostEstimate(dimensionsCandidates: SortedSet[DimensionCandidate], factCandidate: FactCandidate, reportingRequest: ReportingRequest,
-                              entitySet: Set[PublicDimension], filters: mutable.Map[String, Filter], isDebug: Boolean): FactRowsCostEstimate = {
+                              entitySet: Set[PublicDimension], filters: scala.collection.mutable.HashMap[String, mutable.Set[Filter]] with scala.collection.mutable.MultiMap[String, Filter], isDebug: Boolean): FactRowsCostEstimate = {
     val factDimList = getDimList(factCandidate)
-    val schemaRequiredEnityAndFilter = entitySet.map(pd => (pd.grainKey, filters(pd.primaryKeyByAlias)))
+    val schemaRequiredEnityAndFilter : Set[(String, mutable.Set[Filter])] = entitySet.map(pd => (pd.grainKey, filters(pd.primaryKeyByAlias)))
 
     val rowsEstimate = factEstimator.getRowsEstimate(schemaRequiredEnityAndFilter
       , dimensionsCandidates
@@ -344,7 +344,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
   
   def getDimCardinalityEstimate(dimensionsCandidates: SortedSet[DimensionCandidate], 
                                 reportingRequest: ReportingRequest,entitySet: Set[PublicDimension],
-                                filters: mutable.Map[String, Filter],isDebug:Boolean): Option[Long] = {
+                                filters: mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter],isDebug:Boolean): Option[Long] = {
     val schemaRequiredEntity = entitySet.map(_.grainKey)
     val highestLevelDim = dimensionsCandidates.lastOption
     val grainKey =  schemaRequiredEntity.headOption.map(s => s"$s-").getOrElse("") + highestLevelDim.map(_.dim.grainKey).getOrElse("")

@@ -105,7 +105,7 @@ CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
-  test("generating presto query with less than filter") {
+  test("generating presto query with less than filter, and that duplicate filters stay.") {
     val jsonString =
       s"""{
                           "cube": "s_stats",
@@ -117,7 +117,8 @@ CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
                               {"field": "Impressions", "operator": "<", "value": "1608"},
-                              {"field": "Ad Group ID", "operator": "==", "compareTo": "Advertiser ID"}
+                              {"field": "Ad Group ID", "operator": "==", "compareTo": "Advertiser ID"},
+                              {"field": "Advertiser ID", "operator": "in", "values": ["54321"]}
                           ]
                           }"""
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
@@ -140,7 +141,7 @@ CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
       SELECT CAST(COALESCE(account_id, 0) as VARCHAR) advertiser_id, CAST(COALESCE(impressions, 0) as VARCHAR) mang_impressions
         FROM(SELECT account_id, SUM(impressions) impressions
           FROM s_stats_fact_underlying
-          WHERE (ad_group_id = account_id) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+          WHERE (ad_group_id = account_id) AND (account_id = 12345) AND (account_id IN (54321)) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
     GROUP BY account_id
     HAVING (SUM(impressions) < 1608)
     )

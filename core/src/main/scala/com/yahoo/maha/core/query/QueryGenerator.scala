@@ -186,14 +186,15 @@ trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
   def removeDuplicateIfForced(localFilters: Seq[Filter], forcedFilters: Seq[ForcedFilter], inputContext: FactualQueryContext): Array[Filter] = {
     val queryContext = inputContext
 
+    val localNonForcedFilters = localFilters.toSet -- forcedFilters.toSet
     val fact = queryContext.factBestCandidate.fact
-    val returnedFilters = new mutable.LinkedHashMap[String, Filter]
-    localFilters.foreach {
+    val returnedFilters = new mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter]
+    localNonForcedFilters.foreach {
       filter =>
         val name = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap(filter.field)
         val column = fact.columnsByNameMap(name)
         val real_name = column.alias.getOrElse(name)
-        returnedFilters(real_name) = filter
+        returnedFilters.addBinding(real_name, filter)
     }
     forcedFilters.foreach {
       filter =>
@@ -201,10 +202,10 @@ trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
         val column = fact.columnsByNameMap(name)
         val real_name = column.alias.getOrElse(name)
         if (!filter.isOverridable || !returnedFilters.contains(real_name)) {
-          returnedFilters(real_name) = filter
+          returnedFilters(real_name) = mutable.Set(filter)
         }
     }
-    returnedFilters.values.toArray
+    returnedFilters.values.flatten.toArray
   }
 }
 
