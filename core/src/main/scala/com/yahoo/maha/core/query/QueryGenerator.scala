@@ -198,7 +198,7 @@ trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
         if(returnedFilters.contains(real_name))
           logger.debug(s"Replacing the existing filter $real_name with new filter string ${filter.toString}")
 
-          returnedFilters(real_name) = filter
+        returnedFilters(real_name) = filter
     }
     forcedFilters.foreach {
       filter =>
