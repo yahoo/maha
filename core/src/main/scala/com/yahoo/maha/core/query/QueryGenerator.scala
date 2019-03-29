@@ -196,7 +196,7 @@ trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
         val column = fact.columnsByNameMap(name)
         val real_name = column.alias.getOrElse(name)
         if(returnedFilters.contains(real_name))
-          logger.debug(s"Replacing the existing filter $real_name with new filter string ${filter.toString}")
+          logger.info(s"Replacing the existing filter $real_name with new filter string ${filter.toString}")
 
         returnedFilters(real_name) = filter
     }
