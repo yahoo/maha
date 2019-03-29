@@ -183,7 +183,7 @@ trait QueryGenerator[T <: EngineRequirement] {
 }
 
 trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
-  val logger = LoggerFactory.getLogger(classOf[BaseQueryGenerator[T]])
+  private val logger = LoggerFactory.getLogger(classOf[BaseQueryGenerator[T]])
 
   def removeDuplicateIfForced(localFilters: Seq[Filter], forcedFilters: Seq[ForcedFilter], inputContext: FactualQueryContext): Array[Filter] = {
     val queryContext = inputContext
