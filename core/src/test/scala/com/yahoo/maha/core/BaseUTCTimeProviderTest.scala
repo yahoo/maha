@@ -3,7 +3,7 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.jdbc._
-import org.joda.time.{DateTime, DateTimeZone, Instant}
+import org.joda.time.{DateTime, DateTimeZone, Duration, Instant}
 import org.junit.Assert._
 import org.scalatest.FunSuite
 
@@ -130,7 +130,7 @@ class BaseUTCTimeProviderTest extends FunSuite {
     val localMinuteFilter = new BetweenFilter("Minute", "00", "20")
 
     val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), Some(localMinuteFilter), timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[BetweenFilter], Option[BetweenFilter]]]
-    val (from, to) = if (isDST(timezone.get)) ("15", "19") else ("14", "18")
+    val (from, to) = if (!isNotDST(timezone.get)) ("15", "19") else ("14", "18")
 
     assertEquals("2016-03-06", utcDayFilter.from)
     assertEquals("2016-03-09", utcDayFilter.to)
@@ -341,7 +341,7 @@ class BaseUTCTimeProviderTest extends FunSuite {
 
   test("Case: Timezone: AU, Day - between, Hour - in") {
     val timezone = Option("Australia/Melbourne")
-    val curOffsetHours = if (isDST(timezone.get)) 10 else 11
+    val curOffsetHours = if (!isNotDST(timezone.get)) 10 else 11
     val localDayFilter = new BetweenFilter("Day", "2016-03-07", "2016-03-10")
     val localHourFilter = new InFilter("Hour", List("02", "06", "09"))
     val (utcDayFilter,utcHourFilter, utcMinuteFilter) = baseUTCTimeProvider.getUTCDayHourMinuteFilter(localDayFilter, Some(localHourFilter), None, timezone, true).asInstanceOf[Tuple3[BetweenFilter, Option[InFilter], Option[BetweenFilter]]]
@@ -486,10 +486,11 @@ class BaseUTCTimeProviderTest extends FunSuite {
     Math.abs(Math.ceil(DateTimeZone.forID(timezone).getOffset(null) / (1000 * 60 * 60d)).toInt) // offset in hours to be added to local time to get UTC
   }
 
-  private def isDST(area: String): Boolean = {
-      val zone = DateTimeZone.forID(area)
-     val isDST = !zone.isStandardOffset(zone.getOffset(Instant.now()))
-     isDST
+  private def isNotDST(area: String): Boolean = {
+    val zone = DateTimeZone.forID(area)
+    val nowDT = new DateTime(zone)
+    val isNowDST = !zone.isStandardOffset(nowDT.getMillis)
+    isNowDST
   }
 
 }
