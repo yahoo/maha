@@ -115,7 +115,9 @@ case class MahaRequestLogHelper(mahaRequestContext: MahaRequestContext, mahaRequ
     }
     if(mahaRequestContext.rawJson != null) {
       protoBuilder.setJson(ByteString.copyFrom(mahaRequestContext.rawJson))
-      Try(protoBuilder.setRequestHash(DigestUtils.md5Hex(mahaRequestContext.rawJson)))
+      if(mahaRequestContext.requestHashOption.isDefined) {
+        protoBuilder.setRequestHash(mahaRequestContext.requestHashOption.get)
+      }
     }
     if(curator != null) {
       protoBuilder.setCurator(curator)

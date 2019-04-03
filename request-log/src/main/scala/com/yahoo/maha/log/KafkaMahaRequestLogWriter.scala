@@ -94,8 +94,8 @@ class KafkaMahaRequestLogWriter(kafkaRequestLoggingConfig: KafkaRequestLoggingCo
   }
 
   def validate(reqLogBuilder: MahaRequestProto): Unit = {
-    if(!reqLogBuilder.hasJson || !reqLogBuilder.hasRequestId) {
-      warn(s"Message is missing the required fields requestId, json = $reqLogBuilder")
+    if(!reqLogBuilder.hasJson || !reqLogBuilder.hasRequestId || !reqLogBuilder.hasRequestEndTime) {
+      warn(s"Message is missing the required fields requestId, json, endtime = $reqLogBuilder")
     }
   }
 

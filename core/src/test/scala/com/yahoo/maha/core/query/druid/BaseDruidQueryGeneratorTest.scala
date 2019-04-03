@@ -34,6 +34,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
     registryBuilder.register(pubfact5(forcedFilters))
     registryBuilder.register(pubfact6(forcedFilters))
     registryBuilder.register(pubfact7(forcedFilters))
+    registryBuilder.register(pubfact8(forcedFilters))
   }
 
   private[this] def factBuilder(annotations: Set[FactAnnotation]): FactBuilder = {
@@ -55,7 +56,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , DruidFuncDimCol("Derived Pricing Type", IntType(3), DECODE_DIM("{price_type}", "7", "6"))
           , DimCol("start_time", DateType("yyyyMMddHH"))
           , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
-          , DimCol("Landing URL Translation", StrType(100, (Map("Valid"->"Something"), "Empty")), alias = Option("landing_page_url"))
+          , DimCol("Landing URL Translation", StrType(100, (Map("Valid" -> "Something"), "Empty")), alias = Option("landing_page_url"))
           , DimCol("stats_date", DateType("yyyyMMdd"), Some("statsDate"))
           , DimCol("engagement_type", StrType(3))
           , DruidPostResultFuncDimCol("Month", DateType(), postResultFunction = START_OF_THE_MONTH("{stats_date}"))
@@ -69,7 +70,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , DimCol("woeids", StrType())
           , DruidFuncDimCol("segments", StrType(), JAVASCRIPT("{segments}", "function(x) { return x > 0; }"))
           , DimCol("internal_bucket_id", StrType())
-          , DruidFuncDimCol("click_exp_id", StrType(), REGEX("{internal_bucket_id}", "(cl-)(.*?)(,)", 2))
+          , DruidFuncDimCol("click_exp_id", StrType(), REGEX("{internal_bucket_id}", "(cl-)(.*?)(,)", 2, replaceMissingValue = true, "-3"))
 
         ),
         Set(
@@ -81,9 +82,9 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , FactCol("min_bid", DecType(0, "0.0"), MinRollup)
           , FactCol("avg_bid", DecType(0, "0.0"), AverageRollup)
           , FactCol("avg_pos_times_impressions", DecType(0, "0.0"), MaxRollup)
-          , FactCol("engagement_count", IntType(0,0))
-          , ConstFactCol("const_a", IntType(0,0), "0")
-          , ConstFactCol("const_b", IntType(0,0), "0")
+          , FactCol("engagement_count", IntType(0, 0))
+          , ConstFactCol("const_a", IntType(0, 0), "0")
+          , ConstFactCol("const_b", IntType(0, 0), "0")
           , DruidConstDerFactCol("Const Der Fact Col C", DecType(), "{const_a}" / "{const_b}", "0")
           , DruidDerFactCol("Average CPC", DecType(), "{spend}" / "{clicks}")
           , DruidDerFactCol("CTR", DecType(), "{clicks}" /- "{impressions}")
@@ -143,7 +144,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , FactCol("min_bid", DecType(0, "0.0"), MinRollup)
           , FactCol("avg_bid", DecType(0, "0.0"), AverageRollup)
           , FactCol("avg_pos_times_impressions", DecType(0, "0.0"), MaxRollup)
-          , FactCol("engagement_count", IntType(0,0))
+          , FactCol("engagement_count", IntType(0, 0))
           , DruidDerFactCol("Average CPC", DecType(), "{spend}" / "{clicks}")
           , DruidDerFactCol("CTR", DecType(), "{clicks}" /- "{impressions}")
           , DruidDerFactCol("derived_avg_pos", DecType(3, "0.0", "0.1", "500"), "{avg_pos_times_impressions}" /- "{impressions}")
@@ -193,7 +194,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , FactCol("min_bid", DecType(0, "0.0"), MinRollup)
           , FactCol("avg_bid", DecType(0, "0.0"), AverageRollup)
           , FactCol("avg_pos_times_impressions", DecType(0, "0.0"), MaxRollup)
-          , FactCol("engagement_count", IntType(0,0))
+          , FactCol("engagement_count", IntType(0, 0))
           , DruidDerFactCol("Average CPC", DecType(), "{spend}" / "{clicks}")
           , DruidDerFactCol("CTR", DecType(), "{clicks}" /- "{impressions}")
           , DruidDerFactCol("derived_avg_pos", DecType(3, "0.0", "0.1", "500"), "{avg_pos_times_impressions}" /- "{impressions}")
@@ -465,7 +466,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
   }
 
   private[this] def pubfact_start_time(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
-    factBuilder2(Set(DruidGroupByStrategyV1,DruidGroupByIsSingleThreaded(false)))
+    factBuilder2(Set(DruidGroupByStrategyV1, DruidGroupByIsSingleThreaded(false)))
       .toPublicFact("k_stats_start_time",
         Set(
           PubCol("Day", "Day", InBetweenEquality),
@@ -547,7 +548,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
 
   private[this] def pubfact5(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
 
-    val tableOne  = {
+    val tableOne = {
       ColumnContext.withColumnContext {
         import DruidExpression._
         implicit dc: ColumnContext =>
@@ -572,7 +573,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
       }
     }
 
-    val tableTwo  = {
+    val tableTwo = {
       ColumnContext.withColumnContext {
         import DruidExpression._
         implicit dc: ColumnContext =>
@@ -633,7 +634,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),
           PublicFactCol("Const Der Fact Col A", "Const Der Fact Col A", InBetweenEquality)
-        ), Set(EqualityFilter("Test Flag", "0", isForceFilter = true)),  getMaxDaysWindow, getMaxDaysLookBack
+        ), Set(EqualityFilter("Test Flag", "0", isForceFilter = true)), getMaxDaysWindow, getMaxDaysLookBack
       )
   }
 
@@ -678,7 +679,45 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
       )
   }
 
-  protected[this] def getDruidQueryGenerator : DruidQueryGenerator = {
+  private[this] def pubfact8(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      Fact.newFact(
+        "fact8", HourlyGrain, DruidEngine, Set(AdvertiserSchema),
+        Set(
+          DimCol("id", IntType(), annotations = Set(ForeignKey("keyword")))
+          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+          , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", 8 -> "CPV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
+          , DruidFuncDimCol("Derived Pricing Type", IntType(3), DECODE_DIM("{price_type}", "7", "6", "2", "1", "{price_type}"))
+          , DruidFuncDimCol("My Date", DateType(), DRUID_TIME_FORMAT("YYYY-MM-dd HH"))
+
+        ),
+        Set(
+          FactCol("impressions", IntType(3, 1))
+          , FactCol("clicks", IntType(3, 0, 1, 800))
+        ),
+        annotations = Set(DruidGroupByStrategyV2),
+        underlyingTableName = Some("fact1")
+      )
+    }.toPublicFact("k_stats_select",
+      Set(
+        PubCol("My Date", "Day", InBetweenEquality),
+        PubCol("id", "Keyword ID", InEquality),
+        PubCol("campaign_id", "Campaign ID", InEquality),
+        PubCol("advertiser_id", "Advertiser ID", InEquality),
+        PubCol("price_type", "Pricing Type", In),
+        PubCol("Derived Pricing Type", "Derived Pricing Type", InEquality),
+      ),
+      Set(
+        PublicFactCol("impressions", "Impressions", InBetweenEquality)
+        , PublicFactCol("clicks", "Clicks", InBetweenEquality)
+      ),
+      Set(),
+      getMaxDaysWindow, getMaxDaysLookBack, renderLocalTimeFilter = false, dimRevision = 2
+    )
+  }
+
+  protected[this] def getDruidQueryGenerator: DruidQueryGenerator = {
     new DruidQueryGenerator(new SyncDruidQueryOptimizer(timeout = 5000), 40000)
   }
 }

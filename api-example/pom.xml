@@ -11,7 +11,7 @@
     <parent>
         <artifactId>maha-parent</artifactId>
         <groupId>com.yahoo.maha</groupId>
-        <version>5.236-SNAPSHOT</version>
+        <version>5.249-SNAPSHOT</version>
     </parent>
 
     <name>maha api-example</name>
@@ -20,7 +20,7 @@
 
     <properties>
         <jersey.version>2.27</jersey.version>
-        <jetty.version>9.4.11.v20180605</jetty.version>
+        <jetty.version>9.4.15.v20190215</jetty.version>
     </properties>
 
     <dependencies>

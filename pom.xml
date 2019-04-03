@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>5.236-SNAPSHOT</version>
+    <version>5.249-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -63,6 +63,7 @@
         <lz4.version>1.4.1</lz4.version>
         <curator.version>4.0.1</curator.version>
         <akka.version>2.5.4</akka.version>
+        <mongo-java-driver.version>3.3.0</mongo-java-driver.version>
     </properties>
 
 
@@ -72,13 +73,13 @@
         <module>db</module>
         <module>request-log</module>
         <module>job-service</module>
-        <module>worker</module>
         <module>druid-lookups</module>
         <module>core</module>
         <module>druid</module>
         <module>oracle</module>
         <module>presto</module>
         <module>service</module>
+        <module>worker</module>
         <module>api-jersey</module>
         <module>api-example</module>
     </modules>

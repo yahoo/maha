@@ -11,7 +11,7 @@ import com.metamx.emitter.service.ServiceEmitter;
 import com.metamx.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaExtractionCacheManager;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaNamespaceExtractionCacheManager;
 import io.druid.server.security.Access;
 import io.druid.server.security.AuthConfig;
 
@@ -33,13 +33,13 @@ public class MahaNamespacesCacheResource
 {
     private static final Logger log = new Logger(MahaNamespacesCacheResource.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
-    private final MahaExtractionCacheManager mahaExtractionCacheManager;
+    private final MahaNamespaceExtractionCacheManager mahaNamespaceExtractionCacheManager;
     private final ServiceEmitter serviceEmitter;
 
     @Inject
-    public MahaNamespacesCacheResource(final MahaExtractionCacheManager mahaExtractionCacheManager,
+    public MahaNamespacesCacheResource(final MahaNamespaceExtractionCacheManager mahaNamespaceExtractionCacheManager,
                                        final ServiceEmitter serviceEmitter){
-        this.mahaExtractionCacheManager = mahaExtractionCacheManager;
+        this.mahaNamespaceExtractionCacheManager = mahaNamespaceExtractionCacheManager;
         this.serviceEmitter = serviceEmitter;
     }
 
@@ -48,10 +48,10 @@ public class MahaNamespacesCacheResource
     public Response getNamespaces(@Context final HttpServletRequest request){
         try{
             request.setAttribute(AuthConfig.DRUID_AUTHORIZATION_CHECKED, Access.OK.isAllowed());
-            Collection<String> namespaces = mahaExtractionCacheManager.getKnownIDs();
+            Collection<String> namespaces = mahaNamespaceExtractionCacheManager.getKnownIDs();
             Map<String, Integer> response = new HashMap<String, Integer>();
             for(String namespace: namespaces) {
-                response.put(namespace, mahaExtractionCacheManager.getCacheMap(namespace).size());
+                response.put(namespace, mahaNamespaceExtractionCacheManager.getCacheMap(namespace).size());
             }
             return Response.ok().entity(response).build();
         }catch (Exception ex){
@@ -72,7 +72,7 @@ public class MahaNamespacesCacheResource
         try {
             request.setAttribute(AuthConfig.DRUID_AUTHORIZATION_CHECKED, Access.OK.isAllowed());
             byte[] response;
-            Optional<ExtractionNamespace> extractionNamespace = mahaExtractionCacheManager.getExtractionNamespace(namespace);
+            Optional<ExtractionNamespace> extractionNamespace = mahaNamespaceExtractionCacheManager.getExtractionNamespace(namespace);
             if(!extractionNamespace.isPresent()) {
 
                 return Response.ok().entity(new byte[0]).build();
@@ -92,21 +92,21 @@ public class MahaNamespacesCacheResource
                         decodeConfigOptional = Optional.of(decodeConfig);
                     }
 
-                    response = mahaExtractionCacheManager
+                    response = mahaNamespaceExtractionCacheManager
                             .getExtractionNamespaceFunctionFactory(Class.forName(extractionNamespaceClass))
                             .getCacheValue(extractionNamespace.get(),
-                                    mahaExtractionCacheManager.getCacheMap(namespace), key, valueColumn, decodeConfigOptional);
+                                    mahaNamespaceExtractionCacheManager.getCacheMap(namespace), key, valueColumn, decodeConfigOptional);
                     if (debug && response != null) {
                         log.info("Cache value is : [%s]", new String(response));
                     }
                 } else {
                     log.warn("Key is not passed hence returning the size of the cache");
-                    response = mahaExtractionCacheManager
+                    response = mahaNamespaceExtractionCacheManager
                             .getExtractionNamespaceFunctionFactory(Class.forName(extractionNamespaceClass))
                             .getCacheSize(extractionNamespace.get(),
-                                    mahaExtractionCacheManager.getCacheMap(namespace)).getBytes();
+                                    mahaNamespaceExtractionCacheManager.getCacheMap(namespace)).getBytes();
                 }
-                serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_SUCESS, 1));
+                serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_SUCCESS, 1));
                 return Response.ok().entity(response).build();
             }
         } catch (Exception ex) {
@@ -125,10 +125,10 @@ public class MahaNamespacesCacheResource
             request.setAttribute(AuthConfig.DRUID_AUTHORIZATION_CHECKED, Access.OK.isAllowed());
             log.info("Fetching lastUpdatedTime namespace [%s]", namespace);
 
-            Optional<ExtractionNamespace> extractionNamespace = mahaExtractionCacheManager.getExtractionNamespace(namespace);
+            Optional<ExtractionNamespace> extractionNamespace = mahaNamespaceExtractionCacheManager.getExtractionNamespace(namespace);
             Long lastUpdatedTime = -1L;
             if(extractionNamespace.isPresent()) {
-                lastUpdatedTime = mahaExtractionCacheManager
+                lastUpdatedTime = mahaNamespaceExtractionCacheManager
                         .getExtractionNamespaceFunctionFactory(Class.forName(extractionNamespaceClass))
                         .getLastUpdatedTime(extractionNamespace.get());
             }

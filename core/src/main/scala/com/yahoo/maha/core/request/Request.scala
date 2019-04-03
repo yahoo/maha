@@ -37,6 +37,27 @@ object CuratorJsonConfig {
   }
 }
 
+case class PaginationConfig(config: Map[Engine, JValue])
+object PaginationConfig {
+  import org.json4s.scalaz.JsonScalaz._
+  import syntax.validation._
+
+  implicit def parse: JSONR[PaginationConfig] = new JSONR[PaginationConfig] {
+    override def read(json: JValue): Result[PaginationConfig] = {
+      if (json.isInstanceOf[JObject]) {
+        val parsed: Map[Engine, JValue] = Engine.enginesMap.map {
+          case (engineString, engine) => engine -> fieldExtended[JValue](engineString)(json)
+        }.collect {
+          case (engine, jvalueOrError) if jvalueOrError.isSuccess => engine -> jvalueOrError.toOption.get
+        }
+        PaginationConfig(parsed).successNel
+      } else {
+        UnexpectedJSONError(json, classOf[JObject]).asInstanceOf[JsonScalaz.Error].failureNel
+      }
+    }
+  }
+}
+
 sealed trait Order
 case object ASC extends Order { override def toString = "ASC" }
 case object DESC extends Order { override def toString = "DESC" }

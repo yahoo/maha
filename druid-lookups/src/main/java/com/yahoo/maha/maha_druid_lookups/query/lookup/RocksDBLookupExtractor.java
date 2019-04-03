@@ -19,13 +19,12 @@ import com.google.protobuf.Parser;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.metamx.emitter.service.ServiceMetricEvent;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.KafkaManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.MonitoringConstants;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
-import io.druid.query.lookup.LookupExtractor;
 import org.rocksdb.RocksDB;
 
 import javax.annotation.Nullable;
@@ -39,12 +38,11 @@ import java.util.concurrent.TimeUnit;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-public class InMemoryDBLookupExtractor<U> extends LookupExtractor
-{
-    private static final Logger LOG = new Logger(InMemoryDBLookupExtractor.class);
+public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
+    private static final Logger LOG = new Logger(RocksDBLookupExtractor.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, U> map;
-    private final InMemoryDBExtractionNamespace extractionNamespace;
+    private final RocksDBExtractionNamespace extractionNamespace;
     private RocksDBManager rocksDBManager;
     private LookupService lookupService;
     private ProtobufSchemaFactory protobufSchemaFactory;
@@ -53,9 +51,9 @@ public class InMemoryDBLookupExtractor<U> extends LookupExtractor
     private Cache<String, byte[]> missingLookupCache;
     private final byte[] extractionNamespaceAsByteArray;
 
-    public InMemoryDBLookupExtractor(InMemoryDBExtractionNamespace extractionNamespace, Map<String, U> map,
-                                     LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
-                                     ProtobufSchemaFactory protobufSchemaFactory, ServiceEmitter serviceEmitter) {
+    public RocksDBLookupExtractor(RocksDBExtractionNamespace extractionNamespace, Map<String, U> map,
+                                  LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
+                                  ProtobufSchemaFactory protobufSchemaFactory, ServiceEmitter serviceEmitter) {
         this.extractionNamespace = extractionNamespace;
         this.map = Preconditions.checkNotNull(map, "map");
         this.rocksDBManager = rocksDBManager;
@@ -76,35 +74,26 @@ public class InMemoryDBLookupExtractor<U> extends LookupExtractor
 
     }
 
-    public Map<String, U> getMap()
-    {
+    public Map<String, U> getMap() {
         return ImmutableMap.copyOf(map);
     }
 
     @Nullable
-    @Override
-    public String apply(@NotNull String val)
-    {
+    public String apply(@NotNull String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap) {
         try {
 
-            if("".equals(Strings.nullToEmpty(val))) {
+            if (key == null) {
                 return null;
             }
 
-            MahaLookupQueryElement mahaLookupQueryElement = objectMapper.readValue(val, MahaLookupQueryElement.class);
-            String dimension = Strings.nullToEmpty(mahaLookupQueryElement.getDimension());
-            String valueColumn = mahaLookupQueryElement.getValueColumn();
-            DecodeConfig decodeConfig = mahaLookupQueryElement.getDecodeConfig();
-            Map<String, String> dimensionOverrideMap = mahaLookupQueryElement.getDimensionOverrideMap();
-
-            if(dimensionOverrideMap != null && dimensionOverrideMap.containsKey(dimension)) {
-                return Strings.emptyToNull(dimensionOverrideMap.get(dimension));
+            if (dimensionOverrideMap != null && dimensionOverrideMap.containsKey(key)) {
+                return Strings.emptyToNull(dimensionOverrideMap.get(key));
             }
 
             if (!extractionNamespace.isCacheEnabled()) {
                 Optional<DecodeConfig> decodeConfigOptional = (decodeConfig == null) ? Optional.empty() : Optional.of(decodeConfig);
                 byte[] cacheByteValue = lookupService.lookup(new LookupService.LookupData(extractionNamespace,
-                        dimension, valueColumn, decodeConfigOptional));
+                        key, valueColumn, decodeConfigOptional));
                 return (cacheByteValue == null || cacheByteValue.length == 0) ? null : new String(cacheByteValue, UTF_8);
             } else {
                 final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
@@ -112,18 +101,18 @@ public class InMemoryDBLookupExtractor<U> extends LookupExtractor
                     LOG.error("RocksDB instance is null");
                     return null;
                 }
-                byte[] cacheByteValue = db.get(dimension.getBytes());
+                byte[] cacheByteValue = db.get(key.getBytes());
                 if (cacheByteValue == null || cacheByteValue.length == 0) {
                     // No need to call handleMissingLookup if missing dimension is already present in missingLookupCache
-                    if(extractionNamespace.getMissingLookupConfig() != null
+                    if (extractionNamespace.getMissingLookupConfig() != null
                             && !Strings.isNullOrEmpty(extractionNamespace.getMissingLookupConfig().getMissingLookupKafkaTopic())
-                            && missingLookupCache.getIfPresent(dimension) == null) {
+                            && missingLookupCache.getIfPresent(key) == null) {
 
                         kafkaManager.handleMissingLookup(extractionNamespaceAsByteArray,
                                 extractionNamespace.getMissingLookupConfig().getMissingLookupKafkaTopic(),
-                                dimension);
-                        missingLookupCache.put(dimension, extractionNamespaceAsByteArray);
-                        serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_PUBLISH_MISSING_LOOKUP_SUCESS, 1));
+                                key);
+                        missingLookupCache.put(key, extractionNamespaceAsByteArray);
+                        serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_PUBLISH_MISSING_LOOKUP_SUCCESS, 1));
                     }
                     return null;
                 }
@@ -153,20 +142,17 @@ public class InMemoryDBLookupExtractor<U> extends LookupExtractor
                 Descriptors.FieldDescriptor columnIfValueNotMatched = descriptor.findFieldByName(decodeConfig.getColumnIfValueNotMatched());
                 return Strings.emptyToNull(message.getField(columnIfValueNotMatched).toString());
             }
-        }
-        else {
+        } else {
             Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn);
             return Strings.emptyToNull(message.getField(field).toString());
         }
     }
 
     @Override
-    public List<String> unapply(final String value)
-    {
-        return Lists.newArrayList(Maps.filterKeys(map, new Predicate<String>()
-        {
-            @Override public boolean apply(@Nullable String key)
-            {
+    public List<String> unapply(final String value) {
+        return Lists.newArrayList(Maps.filterKeys(map, new Predicate<String>() {
+            @Override
+            public boolean apply(@Nullable String key) {
                 return map.get(key).equals(Strings.nullToEmpty(value));
             }
         }).keySet());
@@ -174,28 +160,20 @@ public class InMemoryDBLookupExtractor<U> extends LookupExtractor
     }
 
     @Override
-    public byte[] getCacheKey()
-    {
+    public byte[] getCacheKey() {
         try {
             final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            for (Map.Entry<String, U> entry : map.entrySet()) {
-                final String key = entry.getKey();
-                if (!Strings.isNullOrEmpty(key)) {
-                    outputStream.write(key.getBytes());
-                }
-                outputStream.write((byte)0xFF);
-            }
+            outputStream.write(extractionNamespace.toString().getBytes());
+            outputStream.write((byte) 0xFF);
             return outputStream.toByteArray();
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             // If ByteArrayOutputStream.write has problems, that is a very bad thing
             throw Throwables.propagate(ex);
         }
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -203,14 +181,13 @@ public class InMemoryDBLookupExtractor<U> extends LookupExtractor
             return false;
         }
 
-        InMemoryDBLookupExtractor that = (InMemoryDBLookupExtractor) o;
+        RocksDBLookupExtractor that = (RocksDBLookupExtractor) o;
 
         return map.equals(that.map);
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return map.hashCode();
     }
 

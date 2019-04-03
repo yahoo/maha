@@ -218,14 +218,14 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
         val partitionFilterOption = partitionColumnRenderer.renderFact(queryContext, hiveLiteralMapper, HiveEngine)
         if(partitionFilterOption.isDefined) {
           whereFilters += partitionFilterOption.get
-          AndFilter(whereFilters).toString
+          RenderedAndFilter(whereFilters).toString
         } else {
           whereFilters += dayFilter
-          AndFilter(whereFilters).toString
+          RenderedAndFilter(whereFilters).toString
         }
       } else {
         whereFilters += dayFilter
-        AndFilter(whereFilters).toString
+        RenderedAndFilter(whereFilters).toString
       }
     }
 
@@ -239,7 +239,7 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
 
     val groupBy = queryBuilder.getGroupByClause
     val havingClause = if (havingFilters.nonEmpty) {
-      val havingAndFilters = AndFilter(havingFilters.toSet)
+      val havingAndFilters = RenderedAndFilter(havingFilters.toSet)
       s"""HAVING ${havingAndFilters.toString}"""
     } else ""
 
@@ -312,7 +312,7 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
     val partitionFilters = partitionColumnRenderer.renderDim(requestModel, dimBundle, hiveLiteralMapper, HiveEngine)
     val renderedFactFk = renderColumn(fkCol, "")
 
-    val dimWhere = s"""WHERE ${AndFilter(wheres + partitionFilters).toString}"""
+    val dimWhere = s"""WHERE ${RenderedAndFilter(wheres + partitionFilters).toString}"""
 
     val joinType = if (requestModel.anyDimHasNonFKNonForceFilter) {
       "JOIN"

@@ -11,7 +11,7 @@ import com.metamx.emitter.service.ServiceEmitter;
 import com.metamx.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.InMemoryDBExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -23,10 +23,10 @@ import java.util.concurrent.Callable;
 /**
  *
  */
-public class InMemoryDBExtractionNamespaceCacheFactory
-        implements ExtractionNamespaceCacheFactory<InMemoryDBExtractionNamespace, String>
+public class RocksDBExtractionNamespaceCacheFactory
+        implements ExtractionNamespaceCacheFactory<RocksDBExtractionNamespace, String>
 {
-    private static final Logger LOG = new Logger(InMemoryDBExtractionNamespaceCacheFactory.class);
+    private static final Logger LOG = new Logger(RocksDBExtractionNamespaceCacheFactory.class);
     private static final String ZERO = "0";
     @Inject
     LookupService lookupService;
@@ -40,7 +40,7 @@ public class InMemoryDBExtractionNamespaceCacheFactory
     @Override
     public Callable<String> getCachePopulator(
             final String id,
-            final InMemoryDBExtractionNamespace extractionNamespace,
+            final RocksDBExtractionNamespace extractionNamespace,
             final String lastVersion,
             final Map<String, String> cache
     )
@@ -58,7 +58,7 @@ public class InMemoryDBExtractionNamespaceCacheFactory
             public String call() {
                 try {
                     String loadTime = rocksDBManager.createDB(extractionNamespace, lastVersion);
-                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_OPEN_SUCESS, 1));
+                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_OPEN_SUCCESS, 1));
                     return loadTime;
                 } catch(Exception e) {
                     LOG.error(e, "Caught exception while RocksDB creation, lastVersion: [%s]", lastVersion);
@@ -70,7 +70,7 @@ public class InMemoryDBExtractionNamespaceCacheFactory
     }
 
     @Override
-    public void updateCache(final InMemoryDBExtractionNamespace extractionNamespace,
+    public void updateCache(final RocksDBExtractionNamespace extractionNamespace,
                             final Map<String, String> cache, final String key, final byte[] value) {
         if (extractionNamespace.isCacheEnabled()) {
             try {
@@ -99,7 +99,7 @@ public class InMemoryDBExtractionNamespaceCacheFactory
                     if(newLastUpdated > extractionNamespace.getLastUpdatedTime()) {
                         extractionNamespace.setLastUpdatedTime(newLastUpdated);
                     }
-                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_SUCESS, 1));
+                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_SUCCESS, 1));
                 }
             } catch (Exception e) {
                 LOG.error(e, "Caught exception while updating cache");
@@ -109,7 +109,7 @@ public class InMemoryDBExtractionNamespaceCacheFactory
     }
 
     @Override
-    public byte[] getCacheValue(final InMemoryDBExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key, String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
+    public byte[] getCacheValue(final RocksDBExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key, String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
 
         try {
             if (!extractionNamespace.isCacheEnabled()) {
@@ -136,7 +136,7 @@ public class InMemoryDBExtractionNamespaceCacheFactory
     }
 
     @Override
-    public String getCacheSize(final InMemoryDBExtractionNamespace extractionNamespace, final Map<String, String> cache) {
+    public String getCacheSize(final RocksDBExtractionNamespace extractionNamespace, final Map<String, String> cache) {
         if (!extractionNamespace.isCacheEnabled()) {
             return String.valueOf(lookupService.getSize());
         }
@@ -153,7 +153,7 @@ public class InMemoryDBExtractionNamespaceCacheFactory
     }
 
     @Override
-    public Long getLastUpdatedTime(final InMemoryDBExtractionNamespace extractionNamespace) {
+    public Long getLastUpdatedTime(final RocksDBExtractionNamespace extractionNamespace) {
         if (!extractionNamespace.isCacheEnabled()) {
             return lookupService.getLastUpdatedTime(new LookupService.LookupData(extractionNamespace));
         }

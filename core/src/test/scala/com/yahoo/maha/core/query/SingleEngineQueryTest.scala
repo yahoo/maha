@@ -17,13 +17,13 @@ class SingleEngineQueryTest extends FunSuite with Matchers with BaseQueryGenerat
     val query = getQuery(OracleEngine, getDimQueryContext(OracleEngine, getRequestModel(dimOnlyQueryJson), None), DimOnlyQuery)
     val qc = new SingleEngineQuery(query)
     val result = qc.execute(queryExecutorContext, (q) => new CompleteRowList(q), QueryAttributes.empty, new EngineQueryStats)
-    result._1.foreach {
+    result.rowList.foreach {
       r =>
         query.queryContext.requestModel.requestCols.filter(_.isInstanceOf[DimColumnInfo]).map(_.asInstanceOf[DimColumnInfo].alias).foreach {
           col => assert(r.getValue(col) === s"$col-value")
         }
     }
-    val queryAttribute = result._2.getAttribute(QueryAttributes.QueryStats)
+    val queryAttribute = result.queryAttributes.getAttribute(QueryAttributes.QueryStats)
     assert(queryAttribute.isInstanceOf[QueryStatsAttribute] && queryAttribute.asInstanceOf[QueryStatsAttribute].stats.getStats.nonEmpty)
   }
 
@@ -31,13 +31,13 @@ class SingleEngineQueryTest extends FunSuite with Matchers with BaseQueryGenerat
     val query = getQuery(OracleEngine, getFactQueryContext(OracleEngine, getRequestModel(factOnlyQueryJson), None, QueryAttributes.empty), FactOnlyQuery)
     val qc = new SingleEngineQuery(query)
     val result = qc.execute(queryExecutorContext, (q) => new CompleteRowList(q), QueryAttributes.empty, new EngineQueryStats)
-    result._1.foreach {
+    result.rowList.foreach {
       r =>
         query.queryContext.requestModel.requestCols.filter(_.isInstanceOf[FactColumnInfo]).map(_.asInstanceOf[FactColumnInfo].alias).foreach {
           col => assert(r.getValue(col) === s"$col-value")
         }
     }
-    val queryAttribute = result._2.getAttribute(QueryAttributes.QueryStats)
+    val queryAttribute = result.queryAttributes.getAttribute(QueryAttributes.QueryStats)
     assert(queryAttribute.isInstanceOf[QueryStatsAttribute] && queryAttribute.asInstanceOf[QueryStatsAttribute].stats.getStats.nonEmpty)
   }
 
@@ -45,13 +45,13 @@ class SingleEngineQueryTest extends FunSuite with Matchers with BaseQueryGenerat
     val query = getQuery(OracleEngine, getCombinedQueryContext(OracleEngine, getRequestModel(combinedQueryJson), None, QueryAttributes.empty), DimFactQuery)
     val qc = new SingleEngineQuery(query)
     val result = qc.execute(queryExecutorContext, (q) => new CompleteRowList(q), QueryAttributes.empty, new EngineQueryStats)
-    result._1.foreach {
+    result.rowList.foreach {
       r =>
         query.queryContext.requestModel.requestCols.filterNot(_.isInstanceOf[ConstantColumnInfo]).map(_.alias).foreach {
           col => assert(r.getValue(col) === s"$col-value")
         }
     }
-    val queryAttribute = result._2.getAttribute(QueryAttributes.QueryStats)
+    val queryAttribute = result.queryAttributes.getAttribute(QueryAttributes.QueryStats)
     assert(queryAttribute.isInstanceOf[QueryStatsAttribute] && queryAttribute.asInstanceOf[QueryStatsAttribute].stats.getStats.nonEmpty)
   }
 

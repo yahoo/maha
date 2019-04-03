@@ -14,9 +14,9 @@ import io.druid.query.lookup.LookupExtractor;
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Map;
 
-public class MahaLookupExtractionFn extends FunctionalExtraction
-{
+public class MahaLookupExtractionFn extends FunctionalExtraction {
     private final LookupExtractor lookup;
     private final boolean optimize;
     // Thes are retained for auto generated hashCode and Equals
@@ -24,23 +24,27 @@ public class MahaLookupExtractionFn extends FunctionalExtraction
     private final String replaceMissingValueWith;
     private final boolean injective;
 
-    @JsonCreator
     public MahaLookupExtractionFn(
-            @JsonProperty("lookup") final LookupExtractor lookup,
-            @JsonProperty("retainMissingValue") final boolean retainMissingValue,
-            @Nullable @JsonProperty("replaceMissingValueWith") final String replaceMissingValueWith,
-            @JsonProperty("injective") final boolean injective,
-            @JsonProperty("optimize") Boolean optimize
-    )
-    {
+            final LookupExtractor lookup
+            , final boolean retainMissingValue
+            , final String replaceMissingValueWith
+            , final boolean injective
+            , Boolean optimize
+            , String valueColumn
+            , DecodeConfig decodeConfig
+            , Map<String, String> dimensionOverrideMap
+    ) {
         super(
-                new Function<String, String>()
-                {
+                new Function<String, String>() {
                     @Nullable
                     @Override
-                    public String apply(String input)
-                    {
-                        return lookup.apply(Strings.nullToEmpty(input));
+                    public String apply(String input) {
+                        if (lookup instanceof MahaLookupExtractor) {
+                            MahaLookupExtractor mahaLookupExtractor = (MahaLookupExtractor) lookup;
+                            return mahaLookupExtractor.apply(Strings.nullToEmpty(input), valueColumn, decodeConfig, dimensionOverrideMap);
+                        } else {
+                            return lookup.apply(Strings.nullToEmpty(input));
+                        }
                     }
                 },
                 retainMissingValue,
@@ -56,35 +60,35 @@ public class MahaLookupExtractionFn extends FunctionalExtraction
 
 
     @JsonProperty
-    public LookupExtractor getLookup()
-    {
+    public LookupExtractor getLookup() {
         return lookup;
     }
 
     @Override
     @JsonProperty
-    public boolean isRetainMissingValue() {return super.isRetainMissingValue();}
+    public boolean isRetainMissingValue() {
+        return super.isRetainMissingValue();
+    }
 
     @Override
     @JsonProperty
-    public String getReplaceMissingValueWith() {return super.getReplaceMissingValueWith();}
+    public String getReplaceMissingValueWith() {
+        return super.getReplaceMissingValueWith();
+    }
 
     @Override
     @JsonProperty
-    public boolean isInjective()
-    {
+    public boolean isInjective() {
         return super.isInjective();
     }
 
     @JsonProperty("optimize")
-    public boolean isOptimize()
-    {
+    public boolean isOptimize() {
         return optimize;
     }
 
     @Override
-    public byte[] getCacheKey()
-    {
+    public byte[] getCacheKey() {
         try {
             final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             outputStream.write(ExtractionCacheHelper.CACHE_TYPE_ID_LOOKUP);
@@ -97,16 +101,14 @@ public class MahaLookupExtractionFn extends FunctionalExtraction
             outputStream.write(isRetainMissingValue() ? 1 : 0);
             outputStream.write(isOptimize() ? 1 : 0);
             return outputStream.toByteArray();
-        }
-        catch (IOException ex) {
+        } catch (IOException ex) {
             // If ByteArrayOutputStream.write has problems, that is a very bad thing
             throw Throwables.propagate(ex);
         }
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -135,8 +137,7 @@ public class MahaLookupExtractionFn extends FunctionalExtraction
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         int result = getLookup() != null ? getLookup().hashCode() : 0;
         result = 31 * result + (isOptimize() ? 1 : 0);
         result = 31 * result + (isRetainMissingValue() ? 1 : 0);

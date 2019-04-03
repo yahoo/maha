@@ -11,26 +11,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.metamx.common.logger.Logger;
 import io.druid.query.extraction.ExtractionFn;
 import io.druid.query.lookup.LookupReferencesManager;
 
 import javax.annotation.Nullable;
+import javax.validation.constraints.NotNull;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Strings;
 
 @JsonTypeName("mahaRegisteredLookup")
-public class MahaRegisteredLookupExtractionFn implements ExtractionFn
-{
+public class MahaRegisteredLookupExtractionFn implements ExtractionFn {
     private static final Logger LOG = new Logger(MahaRegisteredLookupExtractionFn.class);
     // Protected for moving to not-null by `delegateLock`
     private volatile MahaLookupExtractionFn delegate = null;
     private final Object delegateLock = new Object();
     private final LookupReferencesManager manager;
-    private final ObjectMapper objectMapper;
     private final String lookup;
     private final boolean retainMissingValue;
     private final String replaceMissingValueWith;
@@ -46,21 +49,19 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     @JsonCreator
     public MahaRegisteredLookupExtractionFn(
             @JacksonInject LookupReferencesManager manager,
-            @JacksonInject ObjectMapper objectMapper,
             @JsonProperty("lookup") String lookup,
             @JsonProperty("retainMissingValue") final boolean retainMissingValue,
             @Nullable @JsonProperty("replaceMissingValueWith") final String replaceMissingValueWith,
             @JsonProperty("injective") final boolean injective,
             @JsonProperty("optimize") Boolean optimize,
-            @Nullable @JsonProperty("valueColumn") String valueColumn,
+            @NotNull @JsonProperty("valueColumn") String valueColumn,
             @Nullable @JsonProperty("decode") DecodeConfig decodeConfig,
             @Nullable @JsonProperty("dimensionOverrideMap") Map<String, String> dimensionOverrideMap,
             @Nullable @JsonProperty("useQueryLevelCache") Boolean useQueryLevelCache
-    )
-    {
+    ) {
         Preconditions.checkArgument(lookup != null, "`lookup` required");
+        Preconditions.checkArgument(valueColumn != null, "`valueColumn` required");
         this.manager = manager;
-        this.objectMapper = objectMapper;
         this.replaceMissingValueWith = replaceMissingValueWith;
         this.retainMissingValue = retainMissingValue;
         this.injective = injective;
@@ -73,127 +74,141 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     }
 
     @JsonProperty("lookup")
-    public String getLookup()
-    {
+    public String getLookup() {
         return lookup;
     }
 
     @JsonProperty("retainMissingValue")
-    public boolean isRetainMissingValue()
-    {
+    public boolean isRetainMissingValue() {
         return retainMissingValue;
     }
 
     @JsonProperty("replaceMissingValueWith")
-    public String getReplaceMissingValueWith()
-    {
+    public String getReplaceMissingValueWith() {
         return replaceMissingValueWith;
     }
 
     @JsonProperty("injective")
-    public boolean isInjective()
-    {
+    public boolean isInjective() {
         return injective;
     }
 
     @JsonProperty("optimize")
-    public boolean isOptimize()
-    {
+    public boolean isOptimize() {
         return optimize;
     }
 
     @JsonProperty("valueColumn")
-    public String getValueColumn()
-    {
+    public String getValueColumn() {
         return valueColumn;
     }
 
     @JsonProperty("decode")
-    public DecodeConfig getDecodeConfig()
-    {
+    public DecodeConfig getDecodeConfig() {
         return decodeConfig;
     }
 
     @JsonProperty("dimensionOverrideMap")
-    public Map<String, String> getDimensionOverrideMap()
-    {
+    public Map<String, String> getDimensionOverrideMap() {
         return dimensionOverrideMap;
     }
 
     @JsonProperty("useQueryLevelCache")
-    public boolean isUseQueryLevelCache()
-    {
+    public boolean isUseQueryLevelCache() {
         return useQueryLevelCache;
     }
 
     @Override
-    public byte[] getCacheKey()
-    {
-        final byte[] keyPrefix = getClass().getCanonicalName().getBytes();
-        final byte[] lookupName = getLookup().getBytes();
-        final byte[] delegateKey = ensureDelegate().getCacheKey();
-        return ByteBuffer
-                .allocate(keyPrefix.length + 1 + lookupName.length + 1 + delegateKey.length)
-                .put(keyPrefix).put((byte) 0xFF)
-                .put(lookupName).put((byte) 0xFF)
-                .put(delegateKey)
-                .array();
-    }
-
-    @Override
-    public String apply(Object value)
-    {
-        return ensureDelegate().apply(value);
-    }
-
-    @Override
-    public String apply(String value)
-    {
-        if("".equals(Strings.nullToEmpty(value)))
-            return null;
-        String serializedElement = isUseQueryLevelCache() ?
-                ensureCache().get(value, key -> getSerializedLookupQueryElement(value)) :
-                getSerializedLookupQueryElement(value);
-        return ensureDelegate().apply(serializedElement);
-    }
-
-    String getSerializedLookupQueryElement(String value) {
-        String serializedElement = "";
+    public byte[] getCacheKey() {
         try {
-            MahaLookupQueryElement mahaLookupQueryElement = new MahaLookupQueryElement();
-            mahaLookupQueryElement.setDimension(value);
-            mahaLookupQueryElement.setValueColumn(valueColumn);
-            mahaLookupQueryElement.setDecodeConfig(decodeConfig);
-            mahaLookupQueryElement.setDimensionOverrideMap(dimensionOverrideMap);
-            serializedElement = objectMapper.writeValueAsString(mahaLookupQueryElement);
-        } catch (JsonProcessingException e) {
-            LOG.error(e, e.getMessage());
+            final byte[] keyPrefix = getClass().getCanonicalName().getBytes();
+            final byte[] lookupBytes = getLookup().getBytes();
+            final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            outputStream.write(keyPrefix);
+            outputStream.write(0xFF);
+            outputStream.write(lookupBytes);
+            if (getValueColumn() != null) {
+                outputStream.write(getValueColumn().getBytes());
+            }
+            outputStream.write(0xFF);
+            if (getDecodeConfig() != null) {
+                outputStream.write(getDecodeConfig().getCacheKey());
+            }
+            outputStream.write(0xFF);
+            if (getDimensionOverrideMap() != null) {
+                outputStream.write(getDimensionOverrideMap().hashCode());
+            }
+            outputStream.write(0xFF);
+            outputStream.write(isUseQueryLevelCache() ? 1 : 0);
+            outputStream.write(0xFF);
+            outputStream.write(ensureDelegate().getCacheKey());
+            return outputStream.toByteArray();
+        } catch (IOException ex) {
+            // If ByteArrayOutputStream.write has problems, that is a very bad thing
+            throw Throwables.propagate(ex);
         }
-        return serializedElement;
     }
 
     @Override
-    public String apply(long value)
-    {
+    public String apply(Object value) {
+        return apply(Objects.toString(value, null));
+    }
+
+    @Override
+    public String apply(String value) {
+        if ("".equals(Strings.nullToEmpty(value)))
+            return null;
+        if (isUseQueryLevelCache()) {
+            Cache<String, String> cache = ensureCache();
+            String cachedResult = cache.getIfPresent(value);
+            if (cachedResult != null) {
+                return cachedResult;
+            } else {
+                String result = ensureDelegate().apply(value);
+                if (result != null) {
+                    cache.put(value, result);
+                }
+                return result;
+            }
+        } else {
+            return ensureDelegate().apply(value);
+        }
+    }
+
+//    String getSerializedLookupQueryElement(String value) {
+//        String serializedElement = "";
+//        try {
+//            MahaLookupQueryElement mahaLookupQueryElement = new MahaLookupQueryElement();
+//            mahaLookupQueryElement.setDimension(value);
+//            mahaLookupQueryElement.setValueColumn(valueColumn);
+//            mahaLookupQueryElement.setDecodeConfig(decodeConfig);
+//            mahaLookupQueryElement.setDimensionOverrideMap(dimensionOverrideMap);
+//            serializedElement = objectMapper.writeValueAsString(mahaLookupQueryElement);
+//        } catch (JsonProcessingException e) {
+//            LOG.error(e, e.getMessage());
+//        }
+//        return serializedElement;
+//    }
+
+    @Override
+    public String apply(long value) {
         return ensureDelegate().apply(value);
     }
 
     @Override
-    public boolean preservesOrdering()
-    {
+    public boolean preservesOrdering() {
         return ensureDelegate().preservesOrdering();
     }
 
     @Override
-    public ExtractionType getExtractionType()
-    {
+    public ExtractionType getExtractionType() {
         return ensureDelegate().getExtractionType();
     }
 
     Cache<String, String> ensureCache() {
-        if(null == cache) {
+        if (null == cache) {
             synchronized (cacheLock) {
-                if(null == cache) {
+                if (null == cache) {
                     this.cache = Caffeine
                             .newBuilder()
                             .maximumSize(10_000)
@@ -205,18 +220,22 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
         return cache;
     }
 
-    private MahaLookupExtractionFn ensureDelegate()
-    {
+    private MahaLookupExtractionFn ensureDelegate() {
         if (null == delegate) {
             // http://www.javamex.com/tutorials/double_checked_locking.shtml
             synchronized (delegateLock) {
                 if (null == delegate) {
                     delegate = new MahaLookupExtractionFn(
-                            Preconditions.checkNotNull(manager.get(getLookup()), "Lookup [%s] not found", getLookup()).getLookupExtractorFactory().get(),
-                            isRetainMissingValue(),
-                            getReplaceMissingValueWith(),
-                            isInjective(),
-                            isOptimize()
+                            Preconditions.checkNotNull(manager.get(getLookup())
+                                    , "Lookup [%s] not found", getLookup()
+                            ).getLookupExtractorFactory().get()
+                            , isRetainMissingValue()
+                            , getReplaceMissingValueWith()
+                            , isInjective()
+                            , isOptimize()
+                            , valueColumn
+                            , decodeConfig
+                            , dimensionOverrideMap
                     );
                 }
             }
@@ -225,8 +244,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -249,7 +267,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
             return false;
         }
 
-        if(isUseQueryLevelCache() != that.isUseQueryLevelCache()) {
+        if (isUseQueryLevelCache() != that.isUseQueryLevelCache()) {
             return false;
         }
 
@@ -259,8 +277,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         int result = getLookup().hashCode();
         result = 31 * result + (isRetainMissingValue() ? 1 : 0);
         result = 31 * result + (getReplaceMissingValueWith() != null ? getReplaceMissingValueWith().hashCode() : 0);
@@ -271,8 +288,7 @@ public class MahaRegisteredLookupExtractionFn implements ExtractionFn
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return "MahaRegisteredLookupExtractionFn{" +
                 "delegate=" + delegate +
                 ", lookup='" + lookup + '\'' +

@@ -1,0 +1,34 @@
+{
+  "version": "v1",
+  "lookupExtractorFactory": {
+    "type": "cachedNamespace",
+    "firstCacheTimeout": 30000,
+    "injective": true,
+    "extractionNamespace" : {
+      "type": "mahamongo",
+      "connectorConfig": {
+        "hosts": "%s:%s",
+        "dbName": "advertiser",
+        "clientOptions": {
+          "socketTimeout": 30000
+        }
+      },
+      "collectionName": "advertiser",
+      "tsColumn": "updated_at",
+      "tsColumnEpochInteger": true,
+      "pollPeriod": "PT30S",
+      "cacheEnabled": true,
+      "lookupName": "advertiser_lookup",
+      "documentProcessor": {
+        "type": "flatmultivalue",
+        "columnList": [
+          "name",
+          "currency",
+          "status"
+        ],
+        "primaryKeyColumn": "_id"
+      },
+      "mongoClientRetryCount": 3
+    }
+  }
+}

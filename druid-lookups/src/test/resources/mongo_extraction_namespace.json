@@ -1,0 +1,31 @@
+{
+  "type": "mahamongo",
+  "connectorConfig": {
+    "hosts": "localhost:51240",
+    "dbName": "advertiser",
+    "user": "test-user",
+    "password": {
+      "type": "default",
+      "password": "mypassword"
+    },
+    "clientOptions": {
+      "socketTimeout": 30000
+    }
+  },
+  "collectionName": "advertiser",
+  "tsColumn": "updated_at",
+  "tsColumnEpochInteger": true,
+  "pollPeriod": "PT30S",
+  "cacheEnabled": true,
+  "lookupName": "advertiser_lookup",
+  "documentProcessor": {
+    "type": "flatmultivalue",
+    "columnList": [
+      "name",
+      "currency",
+      "status"
+    ],
+    "primaryKeyColumn": "_id"
+  },
+  "mongoClientRetryCount": 3
+}

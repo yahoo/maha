@@ -20,13 +20,13 @@ class MultiEngineQueryTest extends FunSuite with Matchers with BaseQueryGenerato
     val qc = new MultiEngineQuery(dimQuery, Set(OracleEngine, DruidEngine), IndexedSeq(factQuery))
     val irlFn = (q : Query) => new DimDrivenPartialRowList("Advertiser ID", q)
     val result = qc.execute(queryExecutorContext, irlFn, QueryAttributes.empty, new EngineQueryStats)
-    result._1.foreach {
+    result.rowList.foreach {
       r =>
         model.requestCols.map(_.alias).foreach {
           col => assert(r.getValue(col) === s"$col-value")
         }
     }
-    val queryAttribute = result._2.getAttribute(QueryAttributes.QueryStats)
+    val queryAttribute = result.queryAttributes.getAttribute(QueryAttributes.QueryStats)
     assert(queryAttribute.isInstanceOf[QueryStatsAttribute] && queryAttribute.asInstanceOf[QueryStatsAttribute].stats.getStats.size > 1)
   }
 }

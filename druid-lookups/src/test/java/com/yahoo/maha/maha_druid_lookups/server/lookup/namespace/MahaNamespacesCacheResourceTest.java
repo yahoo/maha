@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.OnHeapMahaExtractionCacheManager;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.OnHeapMahaNamespaceExtractionCacheManager;
 import io.druid.metadata.MetadataStorageConnectorConfig;
 import org.joda.time.Period;
 import org.testng.Assert;
@@ -33,7 +33,7 @@ public class MahaNamespacesCacheResourceTest {
 
     @Test
     public void testGetCacheValue() throws Exception {
-        OnHeapMahaExtractionCacheManager cacheManager = mock(OnHeapMahaExtractionCacheManager.class);
+        OnHeapMahaNamespaceExtractionCacheManager cacheManager = mock(OnHeapMahaNamespaceExtractionCacheManager.class);
         ServiceEmitter serviceEmitter = mock(ServiceEmitter.class);
         HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
         MahaNamespacesCacheResource resource = new MahaNamespacesCacheResource(cacheManager, serviceEmitter);
@@ -65,7 +65,7 @@ public class MahaNamespacesCacheResourceTest {
 
     @Test
     public void testGetCacheValueWhenDecodeConfigPresent() throws Exception {
-        OnHeapMahaExtractionCacheManager cacheManager = mock(OnHeapMahaExtractionCacheManager.class);
+        OnHeapMahaNamespaceExtractionCacheManager cacheManager = mock(OnHeapMahaNamespaceExtractionCacheManager.class);
         ServiceEmitter serviceEmitter = mock(ServiceEmitter.class);
         HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
         MahaNamespacesCacheResource resource = new MahaNamespacesCacheResource(cacheManager, serviceEmitter);
