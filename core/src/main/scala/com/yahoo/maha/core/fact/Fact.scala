@@ -1279,6 +1279,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                 , maxDaysLookBack: Option[Map[RequestType, Int]] = None
                 , availableOnwardsDate : Option[String] = None
                 , underlyingTableName: Option[String] = None
+                , schemas: Set[Schema] = Set.empty
                ) : FactBuilder = {
     require(tableMap.nonEmpty, "no table to roll up from")
     require(tableMap.contains(from), s"from table not valid $from")
@@ -1353,7 +1354,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
           , fromTable.level - 1
           , newGrain
           , fromTable.engine
-          , fromTable.schemas
+          , if (schemas.isEmpty) fromTable.schemas else schemas
           , rolledUpDims
           , factCols
           , Option(fromTable)
