@@ -79,7 +79,6 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       val allFilters = publicFact.forcedFilters //++ filters  need to append regular filters or pass in
       val whereFilters = new mutable.LinkedHashSet[String]
       val havingFilters = new mutable.LinkedHashSet[String]
-      var escaped = false
       val hasPartitioningScheme = fact.annotations.contains(OracleQueryGenerator.ANY_PARTITIONING_SCHEME)
 
       if (requestModel.isFactDriven || requestModel.dimensionsCandidates.isEmpty || requestModel.hasNonFKFactFilters || requestModel.hasFactSortBy || fact.forceFilters.nonEmpty) {
@@ -106,7 +105,6 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                 fact.columnsByNameMap,
                 OracleEngine,
                 literalMapper)
-              escaped |= f.escaped
               whereFilters += f.filter
             } else if (fact.factColMap.contains(name1)) {
               val column = fact.columnsByNameMap(name1)
@@ -129,7 +127,6 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                   OracleEngine,
                   literalMapper
                 )
-                escaped |= f.escaped
                 havingFilters += f.filter
               } else {
                 val name2 = names.remove(0)
@@ -153,7 +150,6 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                   OracleEngine,
                   literalMapper
                 )
-                escaped |= f.escaped
                 havingFilters += f.filter
               }
             } else {

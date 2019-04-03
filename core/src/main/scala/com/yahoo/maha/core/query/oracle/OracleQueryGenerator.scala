@@ -45,9 +45,8 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
     }
   }
 
-  def generateSubqueryFilter(primaryTableFkCol: String, primaryTableFilters: SortedSet[Filter], subqueryBundle: DimensionBundle) : (String, Boolean) = {
+  def generateSubqueryFilter(primaryTableFkCol: String, primaryTableFilters: SortedSet[Filter], subqueryBundle: DimensionBundle) : String = {
 
-    var escaped = false
     val aliasToNameMapFull = subqueryBundle.publicDim.aliasToNameMapFull
     val columnsByNameMap = subqueryBundle.dim.columnsByNameMap
 
@@ -59,13 +58,12 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
     }.map {
       filter =>
         val f = FilterSql.renderFilter(filter, aliasToNameMapFull, Map.empty, columnsByNameMap, OracleEngine, literalMapper)
-        escaped |= f.escaped
         f.filter
     }
 
     val subqueryFilters = generateInSubqueryFilters(subqueryBundle)
     val dimWhere = WhereClause(RenderedAndFilter(subqueryFilters ++ primaryBundleFiltersToInclude))
-    (s"""$primaryTableFkCol IN (SELECT $dimSelect FROM ${subqueryBundle.dim.name} $dimWhere)""", escaped)
+    s"""$primaryTableFkCol IN (SELECT $dimSelect FROM ${subqueryBundle.dim.name} $dimWhere)"""
   }
 
   private[this] def generateDimensionSql(dims: SortedSet[DimensionBundle]
@@ -95,7 +93,6 @@ b. Dim Driven
     def generateWhereClause(dimBundle: DimensionBundle, subqueryBundles: Set[DimensionBundle]): WhereClause = {
 
       val dimBundleFilters = new mutable.LinkedHashSet[String]
-      var escaped = false
       val primaryDimLevel = dimBundle.dim.dimLevel
 
       //add subquery filters
@@ -106,8 +103,7 @@ b. Dim Driven
           require(dimBundle.publicDim.columnsByAlias(subqueryBundle.publicDim.primaryKeyByAlias),
             s"subquery dim primary key not found in primary dimension, dim=${dimBundle.publicDim.name}, subquery dim=${subqueryBundle.publicDim.name}")
 
-          val (sql, wasEscaped) = generateSubqueryFilter(dimBundle.dim.publicDimToForeignKeyMap(subqueryBundle.publicDim.name), dimBundle.filters, subqueryBundle)
-          escaped |= wasEscaped
+          val sql = generateSubqueryFilter(dimBundle.dim.publicDimToForeignKeyMap(subqueryBundle.publicDim.name), dimBundle.filters, subqueryBundle)
           dimBundleFilters += sql
       }
       val aliasToNameMapFull = dimBundle.publicDim.aliasToNameMapFull
@@ -121,7 +117,6 @@ b. Dim Driven
           //TODO: add check that not include filter predicate if it is push down only if that field is partition key
           || requestModel.hasNonDrivingDimSortOrFilter && !dimBundle.isDrivingDimension) {
             val f = FilterSql.renderFilter(filter, aliasToNameMapFull, Map.empty, columnsByNameMap, OracleEngine, literalMapper)
-            escaped |= f.escaped
             dimBundleFilters += f.filter
           }
       }
@@ -1032,7 +1027,6 @@ b. Dim Driven
       val allFilters = publicFact.forcedFilters //++ filters  need to append regular filters or pass in
       val whereFilters = new mutable.LinkedHashSet[String]
       val havingFilters = new mutable.LinkedHashSet[String]
-      var escaped = false
       val hasPartitioningScheme = fact.annotations.contains(OracleQueryGenerator.ANY_PARTITIONING_SCHEME)
 
       //add subquery
@@ -1047,8 +1041,7 @@ b. Dim Driven
                 None
               }
             }
-            val (sql, wasEscaped) = generateSubqueryFilter(factFkColAlias.getOrElse(factFKCol), filters, subqueryBundle)
-            escaped |= wasEscaped
+            val sql = generateSubqueryFilter(factFkColAlias.getOrElse(factFKCol), filters, subqueryBundle)
             whereFilters += sql
         }
       }
@@ -1070,10 +1063,8 @@ b. Dim Driven
             val result = QueryGeneratorHelper.handleFilterRender(filter, publicFact, fact, publicFact.aliasToNameColumnMap, queryContext, OracleEngine, literalMapper, colRenderFn)
 
             if(fact.dimColMap.contains(name)) {
-              escaped |= result.escaped
               whereFilters += result.filter
             } else {
-              escaped |= result.escaped
               havingFilters += result.filter
             }
         }
