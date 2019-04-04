@@ -26,27 +26,3 @@ object Schema {
     schemaMap.get(name.toLowerCase)
   }
 }
-
-sealed abstract class CoreSchema (override val entryName: String) extends EnumEntry with Snakecase with Uppercase with Schema
-
-object CoreSchema extends Enum[CoreSchema] {
-  val values = findValues
-  var registered = false
-
-  case object AdvertiserSchema extends CoreSchema("advertiser")
-  case object AdvertiserLowLatencySchema extends CoreSchema("advertiser_ll")
-  case object ResellerSchema extends CoreSchema("reseller")
-  case object InternalSchema extends CoreSchema("internal")
-  case object PublisherSchema extends CoreSchema("publisher")
-  case object PublisherLowLatencySchema extends CoreSchema("publisher_ll")
-  case object NoSchema extends CoreSchema("no_schema")
-
-  def register() : Unit = {
-    values.synchronized {
-      if(!registered) {
-        values.foreach(Schema.register)
-        registered = true
-      }
-    }
-  }
-}
