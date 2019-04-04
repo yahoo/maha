@@ -21,8 +21,11 @@ import scalaz.{ValidationNel, \/}
 import scala.collection.{Iterable, mutable}
 import scalaz.syntax.applicative._
 import org.json4s._
+import org.json4s.jackson.Serialization
+import org.json4s.scalap.Success
 import org.json4s.scalaz.JsonScalaz
 import org.json4s.scalaz.JsonScalaz._
+import org.json4s.jackson.JsonMethods._
 
 sealed trait FilterOperation
 case object InFilterOperation extends FilterOperation { override def toString = "In" }
@@ -113,7 +116,7 @@ case class PushDownFilter(f: Filter) extends Filter {
   def asValues : String = f.toString
 }
 
-case class OuterFilter(filters: List[Filter]) extends Filter {
+case class OuterFilter(filters: Set[Filter]) extends Filter {
   override def operator: FilterOperation = OuterFilterOperation
   override def field: String = "outer"
   val asValues: String = filters.map(_.asValues).mkString(",")
@@ -218,14 +221,14 @@ sealed trait CombiningFilter {
   def isEmpty : Boolean
 }
 
-case class OrFilter(filters: List[Filter]) extends ForcedFilter with CombiningFilter {
+case class OrFilter(filters: Set[Filter]) extends ForcedFilter with CombiningFilter {
   override def operator: FilterOperation = OrFilterOperation
   override def field: String = "or"
   override def isEmpty : Boolean = filters.isEmpty
   val asValues: String = filters.map(_.asValues).mkString("(",") OR (",")")
 }
 
-case class AndFilter(filters: List[Filter]) extends ForcedFilter with CombiningFilter {
+case class AndFilter(filters: Set[Filter]) extends ForcedFilter with CombiningFilter {
   override def operator: FilterOperation = AndFilterOperation
   override def field: String = "and"
   override def isEmpty : Boolean = filters.isEmpty
@@ -1223,7 +1226,14 @@ object Filter extends Logging {
       case OuterFilter(filters) =>
         makeObj(
            ("operator" -> toJSON(filter.operator.toString))
-            :: ("outerFilters" -> toJSON(filters))
+            :: ("outerFilters" -> {
+             val values: mutable.ListBuffer[JValue] = mutable.ListBuffer.empty[JValue]
+             for(filter <- filters) {
+               val written: JValue = filterJSONW.write(filter)
+               values.append(written)
+             }
+             toJSON(values.toList)
+           })
             :: Nil)
       case BetweenFilter(field, from, to) =>
         makeObj(
@@ -1368,6 +1378,21 @@ object Filter extends Logging {
     }
   }
 
+  implicit def filterSetJSONR: JSONR[Set[Filter]] = new JSONR[Set[Filter]] {
+    override def read(json: JValue): JsonScalaz.Result[Set[Filter]] = {
+      import _root_.scalaz.syntax.validation._
+      implicit val formats = DefaultFormats
+
+      val readValues = Serialization.read[List[JValue]](compact(render(json)))
+      val readAndVerifyFilters: Set[JsonScalaz.Result[Filter]] = readValues.map(value=>filterJSONR.read(value)).toSet
+      val returnSetCondition: JsonScalaz.Result[Boolean] =
+        if (readAndVerifyFilters.forall(result=>result.isSuccess)) true.successNel else Fail.apply(readAndVerifyFilters.toString(),  s"Filter set is not correct.")
+
+      returnSetCondition.map(_ => readAndVerifyFilters.map(result => result.getOrElse(null)))
+    }
+  }
+
+
   implicit def filterJSONR: JSONR[Filter] = new JSONR[Filter] {
     override def read(json: JValue): JsonScalaz.Result[Filter] = {
       val operatorResult = field[String]("operator")(json)
@@ -1376,21 +1401,21 @@ object Filter extends Logging {
       operatorResult.flatMap { operator =>
           operator.toLowerCase match {
             case "outer" =>
-              val fil = OuterFilter.applyJSON(fieldExtended[List[Filter]]("outerFilters"))(json)
+              val fil = OuterFilter.applyJSON(fieldExtended[Set[Filter]]("outerFilters"))(json)
               fil.flatMap {
                 f =>
                   outerFilter(f).map( _ => f)
               }
             case "or" =>
-              null
-              val fil = OrFilter.applyJSON(fieldExtended[List[Filter]]("filterExpressions"))(json)
+              //null
+              val fil = OrFilter.applyJSON(fieldExtended[Set[Filter]]("filterExpressions"))(json)
               fil.flatMap {
                 f =>
                   orFilter(f).map( _ => f)
               }
             case "and" =>
-              null
-              val fil = AndFilter.applyJSON(fieldExtended[List[Filter]]("filterExpressions"))(json)
+              //null
+              val fil = AndFilter.applyJSON(fieldExtended[Set[Filter]]("filterExpressions"))(json)
               fil.flatMap {
                 f =>
                   andFilter(f).map( _ => f)
