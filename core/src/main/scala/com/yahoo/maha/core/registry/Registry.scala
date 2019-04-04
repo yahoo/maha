@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.registry
 
+import com.yahoo.maha.core.CoreSchema.NoSchema
 import com.yahoo.maha.core.dimension.PublicDimension
 import com.yahoo.maha.core.fact.{Fact, FactCandidate, PublicFact}
 import com.yahoo.maha.core.request.{ReportingRequest, RequestType}
@@ -567,7 +568,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     )
 
     val schemasJson: JObject = {
-      val jsonMap = schemaToFactMap map {
+      val jsonMap = schemaToFactMap.filter(e => e._1 != NoSchema) map {
         case (schema, publicFacts) => (schema.toString, toJSON(publicFacts.map(_.name).toList))
       }
       makeObj(jsonMap)
@@ -604,7 +605,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     )
 
     val schemasJson: JObject = {
-      val jsonMap = schemaToFactMap map {
+      val jsonMap = schemaToFactMap.filter(e => e._1 != NoSchema) map {
         case (schema, publicFacts) => (schema.toString, toJSON(publicFacts.map(_.name).toList))
       }
       makeObj(jsonMap)
