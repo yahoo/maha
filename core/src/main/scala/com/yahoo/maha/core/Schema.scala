@@ -2,8 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
-import enumeratum.{Enum, EnumEntry}
-import enumeratum.EnumEntry.{Snakecase, Uppercase}
+import scala.collection.concurrent.TrieMap
 
 /**
  * Created by hiral on 3/28/16.
