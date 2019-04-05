@@ -185,23 +185,23 @@ class FilterTest extends FunSuite with Matchers {
 
   test("AndFilter should render combined filters with AND") {
     val andFilter = AndFilter(
-      SortedSet(
+      List(
         InFilter("field1", List("abc", "def", "ghi"))
         , BetweenFilter("field2", "def", "ghi")
         , EqualityFilter("field3", "ghi")
     ))
     andFilter.isEmpty shouldBe false
     andFilter.field shouldEqual "and"
-    andFilter.toString shouldBe "AndFilter(TreeSet(InFilter(field1,List(abc, def, ghi),false,false), BetweenFilter(field2,def,ghi), EqualityFilter(field3,ghi,false,false)))"
+    andFilter.toString shouldBe "AndFilter(List(InFilter(field1,List(abc, def, ghi),false,false), BetweenFilter(field2,def,ghi), EqualityFilter(field3,ghi,false,false)))"
   }
 
   test("OrFilter should render combined filters with OR") {
-    val orFilter = OrFilter(SortedSet(
+    val orFilter = OrFilter(List(
       InFilter("field1", List("abc", "def", "ghi"))
       , BetweenFilter("field2", "def", "ghi")
       , EqualityFilter("field3", "ghi"))
     )
-    orFilter.toString shouldBe "OrFilter(TreeSet(InFilter(field1,List(abc, def, ghi),false,false), BetweenFilter(field2,def,ghi), EqualityFilter(field3,ghi,false,false)))"
+    orFilter.toString shouldBe "OrFilter(List(InFilter(field1,List(abc, def, ghi),false,false), BetweenFilter(field2,def,ghi), EqualityFilter(field3,ghi,false,false)))"
     orFilter.isEmpty shouldBe false
     orFilter.field shouldEqual "or"
     orFilter.filters.isEmpty shouldBe false
@@ -230,7 +230,7 @@ class FilterTest extends FunSuite with Matchers {
   }
 
   test("OrFilter should be able to successfully render with an alias.") {
-    val orFilter : Filter = OrFilter(SortedSet(
+    val orFilter : Filter = OrFilter(List(
       InFilter("field1", List("abc", "def", "ghi"))
       , BetweenFilter("field2", "def", "ghi")
       , EqualityFilter("field3", "ghi"))
@@ -280,7 +280,7 @@ class FilterTest extends FunSuite with Matchers {
   }
 
   test("AndFilter should be able to successfully render with an alias.") {
-    val andFilter : Filter = AndFilter(SortedSet(
+    val andFilter : Filter = AndFilter(List(
       InFilter("field1", List("abc", "def", "ghi"))
       , BetweenFilter("field2", "def", "ghi")
       , EqualityFilter("field3", "ghi"))
@@ -342,8 +342,8 @@ class FilterTest extends FunSuite with Matchers {
   }
 
   test("OuterFilter should render combined filters with AND") {
-    val outerFilter = OuterFilter(SortedSet(EqualityFilter("Field One", "abc"), IsNullFilter("Field Two")))
-    outerFilter.toString shouldBe "OuterFilter(TreeSet(EqualityFilter(Field One,abc,false,false), IsNullFilter(Field Two,false,false)))"
+    val outerFilter = OuterFilter(List(EqualityFilter("Field One", "abc"), IsNullFilter("Field Two")))
+    outerFilter.toString shouldBe "OuterFilter(List(EqualityFilter(Field One,abc,false,false), IsNullFilter(Field Two,false,false)))"
   }
 
   test("InFilter should fail for Druid engine") {
@@ -484,7 +484,7 @@ class FilterTest extends FunSuite with Matchers {
     val filter7 = LikeFilter("field1", "a")
     val filter8 = NotEqualToFilter("field1", "a")
     val filter9 = PushDownFilter(IsNotNullFilter("field1"))
-    val filter10 = OuterFilter(SortedSet(IsNotNullFilter("field1")))
+    val filter10 = OuterFilter(List(IsNotNullFilter("field1")))
     val filter11 = filter2.renameField("new_field_name")
     val filter12 = FieldEqualityFilter("field1", "field2")
 
