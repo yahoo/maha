@@ -6,7 +6,6 @@ package com.yahoo.maha.core
  * Created by hiral on 10/2/15.
  */
 
-import java.util
 
 import com.google.common.collect.Lists
 import com.yahoo.maha.core.DruidDerivedFunction._
@@ -18,13 +17,11 @@ import io.druid.js.JavaScriptConfig
 import io.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec}
 import io.druid.query.extraction.{RegexDimExtractionFn, SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
 import io.druid.query.filter.JavaScriptDimFilter
-import scalaz.{ValidationNel, \/}
 
-import scala.collection.{Iterable, SortedSet, mutable}
+import scala.collection.{Iterable, mutable}
 import scalaz.syntax.applicative._
 import org.json4s._
 import org.json4s.jackson.Serialization
-import org.json4s.scalap.Success
 import org.json4s.scalaz.JsonScalaz
 import org.json4s.scalaz.JsonScalaz._
 import org.json4s.jackson.JsonMethods._
@@ -1409,14 +1406,12 @@ object Filter extends Logging {
                   outerFilter(f).map( _ => f)
               }
             case "or" =>
-              //null
               val fil = OrFilter.applyJSON(fieldExtended[List[Filter]]("filterExpressions"))(json)
               fil.flatMap {
                 f =>
                   orFilter(f).map( _ => f)
               }
             case "and" =>
-              //null
               val fil = AndFilter.applyJSON(fieldExtended[List[Filter]]("filterExpressions"))(json)
               fil.flatMap {
                 f =>

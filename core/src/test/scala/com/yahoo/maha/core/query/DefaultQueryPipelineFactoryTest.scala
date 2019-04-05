@@ -12,7 +12,6 @@ import com.yahoo.maha.core.{BetweenFilter, DefaultPartitionColumnRenderer, Equal
 import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockHiveQueryExecutor, MockOracleQueryExecutor}
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
-import scala.collection.SortedSet
 import scala.util.Try
 
 /**

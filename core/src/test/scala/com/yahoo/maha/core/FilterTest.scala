@@ -13,7 +13,6 @@ import org.json4s.JsonAST.{JArray, JObject, JString, JValue}
 import org.scalatest.{FunSuite, Matchers}
 import scalaz.Success
 
-import scala.collection.SortedSet
 import scala.collection.immutable.TreeSet
 
 /**
