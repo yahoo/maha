@@ -6,6 +6,8 @@ package com.yahoo.maha.core
  * Created by hiral on 10/2/15.
  */
 
+import java.util
+
 import com.google.common.collect.Lists
 import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{START_OF_THE_MONTH, START_OF_THE_WEEK}
@@ -18,7 +20,7 @@ import io.druid.query.extraction.{RegexDimExtractionFn, SubstringDimExtractionFn
 import io.druid.query.filter.JavaScriptDimFilter
 import scalaz.{ValidationNel, \/}
 
-import scala.collection.{Iterable, mutable}
+import scala.collection.{Iterable, SortedSet, mutable}
 import scalaz.syntax.applicative._
 import org.json4s._
 import org.json4s.jackson.Serialization
@@ -116,7 +118,7 @@ case class PushDownFilter(f: Filter) extends Filter {
   def asValues : String = f.toString
 }
 
-case class OuterFilter(filters: Set[Filter]) extends Filter {
+case class OuterFilter(filters: SortedSet[Filter]) extends Filter {
   override def operator: FilterOperation = OuterFilterOperation
   override def field: String = "outer"
   val asValues: String = filters.map(_.asValues).mkString(",")
@@ -221,14 +223,14 @@ sealed trait CombiningFilter {
   def isEmpty : Boolean
 }
 
-case class OrFilter(filters: Set[Filter]) extends ForcedFilter with CombiningFilter {
+case class OrFilter(filters: SortedSet[Filter]) extends ForcedFilter with CombiningFilter {
   override def operator: FilterOperation = OrFilterOperation
   override def field: String = "or"
   override def isEmpty : Boolean = filters.isEmpty
   val asValues: String = filters.map(_.asValues).mkString("(",") OR (",")")
 }
 
-case class AndFilter(filters: Set[Filter]) extends ForcedFilter with CombiningFilter {
+case class AndFilter(filters: SortedSet[Filter]) extends ForcedFilter with CombiningFilter {
   override def operator: FilterOperation = AndFilterOperation
   override def field: String = "and"
   override def isEmpty : Boolean = filters.isEmpty
@@ -1378,8 +1380,8 @@ object Filter extends Logging {
     }
   }
 
-  implicit def filterSetJSONR: JSONR[Set[Filter]] = new JSONR[Set[Filter]] {
-    override def read(json: JValue): JsonScalaz.Result[Set[Filter]] = {
+  implicit def filterSetJSONR: JSONR[SortedSet[Filter]] = new JSONR[SortedSet[Filter]] {
+    override def read(json: JValue): JsonScalaz.Result[SortedSet[Filter]] = {
       import _root_.scalaz.syntax.validation._
       implicit val formats = DefaultFormats
 
@@ -1388,7 +1390,7 @@ object Filter extends Logging {
       val returnSetCondition: JsonScalaz.Result[Boolean] =
         if (readAndVerifyFilters.forall(result=>result.isSuccess)) true.successNel else Fail.apply(readAndVerifyFilters.toString(),  s"Filter set is not correct.")
 
-      returnSetCondition.map(_ => readAndVerifyFilters.map(result => result.getOrElse(null)))
+      returnSetCondition.map(_ => SortedSet[Filter]() ++ readAndVerifyFilters.map(result => result.getOrElse(null)))
     }
   }
 
@@ -1401,21 +1403,21 @@ object Filter extends Logging {
       operatorResult.flatMap { operator =>
           operator.toLowerCase match {
             case "outer" =>
-              val fil = OuterFilter.applyJSON(fieldExtended[Set[Filter]]("outerFilters"))(json)
+              val fil = OuterFilter.applyJSON(fieldExtended[SortedSet[Filter]]("outerFilters"))(json)
               fil.flatMap {
                 f =>
                   outerFilter(f).map( _ => f)
               }
             case "or" =>
               //null
-              val fil = OrFilter.applyJSON(fieldExtended[Set[Filter]]("filterExpressions"))(json)
+              val fil = OrFilter.applyJSON(fieldExtended[SortedSet[Filter]]("filterExpressions"))(json)
               fil.flatMap {
                 f =>
                   orFilter(f).map( _ => f)
               }
             case "and" =>
               //null
-              val fil = AndFilter.applyJSON(fieldExtended[Set[Filter]]("filterExpressions"))(json)
+              val fil = AndFilter.applyJSON(fieldExtended[SortedSet[Filter]]("filterExpressions"))(json)
               fil.flatMap {
                 f =>
                   andFilter(f).map( _ => f)

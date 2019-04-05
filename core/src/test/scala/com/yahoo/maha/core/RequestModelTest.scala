@@ -4916,7 +4916,7 @@ class RequestModelTest extends FunSuite with Matchers {
     val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isFailure)
-    res.failed.get.getMessage should startWith ("requirement failed: Or filter cannot have combination of fact and dim filters, factFilters=Some(List(EqualityFilter(Impressions,1,false,false))) dimFilters=Some(List(EqualityFilter(Campaign ID,1,false,false)))")
+    res.failed.get.getMessage should startWith ("requirement failed: Or filter cannot have combination of fact and dim filters, factFilters=Some(TreeSet(EqualityFilter(Impressions,1,false,false))) dimFilters=Some(TreeSet(EqualityFilter(Campaign ID,1,false,false)))")
   }
 
   test("create model should succeed when using or filters with fact filters combination") {
@@ -4997,11 +4997,11 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(res.get.orFilterMeta.head.orFilter.operator == OrFilterOperation)
     assert(res.get.orFilterMeta.head.orFilter.field == "or")
     assert(res.get.orFilterMeta.head.orFilter.filters.toList(0).operator == EqualityFilterOperation)
-    assert(res.get.orFilterMeta.head.orFilter.filters.toList(0).field == "Campaign ID")
-    assert(res.get.orFilterMeta.head.orFilter.filters.toList(0).asValues == "1")
+    assert(res.get.orFilterMeta.head.orFilter.filters.toList(0).field == "Advertiser Status")
+    assert(res.get.orFilterMeta.head.orFilter.filters.toList(0).asValues == "ON")
     assert(res.get.orFilterMeta.head.orFilter.filters.toList(1).operator == EqualityFilterOperation)
-    assert(res.get.orFilterMeta.head.orFilter.filters.toList(1).field == "Advertiser Status")
-    assert(res.get.orFilterMeta.head.orFilter.filters.toList(1).asValues == "ON")
+    assert(res.get.orFilterMeta.head.orFilter.filters.toList(1).field == "Campaign ID")
+    assert(res.get.orFilterMeta.head.orFilter.filters.toList(1).asValues == "1")
   }
 
   test("""create model errors with incorrect filters""") {

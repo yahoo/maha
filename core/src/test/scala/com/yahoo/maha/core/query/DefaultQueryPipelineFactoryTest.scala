@@ -12,6 +12,7 @@ import com.yahoo.maha.core.{BetweenFilter, DefaultPartitionColumnRenderer, Equal
 import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockHiveQueryExecutor, MockOracleQueryExecutor}
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
+import scala.collection.SortedSet
 import scala.util.Try
 
 /**
@@ -1320,7 +1321,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
   test("query with OR filter should fail if engine is oracle") {
     val request: ReportingRequest = {
       val request = ReportingRequest.forceOracle(getReportingRequestSync(requestWithIdSort))
-      request.copy(filterExpressions = request.filterExpressions ++ IndexedSeq(OrFilter(Set(InFilter("Impressions", List("1"))))))
+      request.copy(filterExpressions = request.filterExpressions ++ IndexedSeq(OrFilter(SortedSet(InFilter("Impressions", List("1"))))))
     }
     val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
@@ -1333,7 +1334,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
   test("query with OR filter should fail if engine is Hive") {
     val request: ReportingRequest = {
       val request = ReportingRequest.forceHive(getReportingRequestAsync(requestWithIdSort))
-      request.copy(filterExpressions = request.filterExpressions ++ IndexedSeq(OrFilter(Set(InFilter("Impressions", List("1"))))))
+      request.copy(filterExpressions = request.filterExpressions ++ IndexedSeq(OrFilter(SortedSet(InFilter("Impressions", List("1"))))))
     }
     val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
