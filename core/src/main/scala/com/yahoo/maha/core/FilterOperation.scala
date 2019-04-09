@@ -1225,13 +1225,7 @@ object Filter extends Logging {
       case OuterFilter(filters) =>
         makeObj(
            ("operator" -> toJSON(filter.operator.toString))
-            :: ("outerFilters" -> {
-             val values: mutable.ListBuffer[JValue] = mutable.ListBuffer.empty[JValue]
-             for(filter <- filters) {
-               val written: JValue = filterJSONW.write(filter)
-               values.append(written)
-             }
-             toJSON(values.toList)
+            :: ("outerFilters" -> { toJSON(filters)
            })
             :: Nil)
       case BetweenFilter(field, from, to) =>
@@ -1302,26 +1296,12 @@ object Filter extends Logging {
       case OrFilter(filters) =>
         makeObj(
           ("operator" -> toJSON(filter.operator.toString))
-           :: ("filterExpressions" -> {
-            val values: mutable.ListBuffer[JValue] = mutable.ListBuffer.empty[JValue]
-            for(filter <- filters) {
-              val written: JValue = filterJSONW.write(filter)
-              values.append(written)
-            }
-            toJSON(values.toList)
-          })
+           :: ("filterExpressions" -> { toJSON(filters) })
             :: Nil)
       case AndFilter(filters) =>
         makeObj(
           ("operator" -> toJSON(filter.operator.toString))
-           :: ("filterExpressions" -> {
-            val values: mutable.ListBuffer[JValue] = mutable.ListBuffer.empty[JValue]
-            for(filter <- filters) {
-              val written: JValue = filterJSONW.write(filter)
-              values.append(written)
-            }
-            toJSON(values.toList)
-          })
+           :: ("filterExpressions" -> { toJSON(filters) })
             :: Nil)
       case PushDownFilter(wrappedFilter) =>
         write(wrappedFilter)

@@ -1415,11 +1415,11 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     queryContext.requestModel.orFilterMeta.foreach {
       orFilterMeta =>
         if (orFilterMeta.isFactFilters) {
-          havingFilters += FilterDruid.renderOrFactFilters(orFilterMeta.orFilter.filters.toList,
+          havingFilters += FilterDruid.renderOrFactFilters(orFilterMeta.orFilter.filters,
             queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
             fact.columnsByNameMap)
         } else {
-          whereFilters += FilterDruid.renderOrDimFilters(orFilterMeta.orFilter.filters.toList,
+          whereFilters += FilterDruid.renderOrDimFilters(orFilterMeta.orFilter.filters,
             queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
             fact.columnsByNameMap, Option(fact.grain))
         }
