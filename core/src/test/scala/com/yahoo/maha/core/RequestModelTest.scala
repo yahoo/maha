@@ -136,7 +136,7 @@ class RequestModelTest extends FunSuite with Matchers {
           PubCol("advertiser_id", "Advertiser ID", InEquality),
           PubCol("product_ad_id", "Product Ad ID", InEquality),
           PubCol("stats_source", "Source", Equality),
-          PubCol("price_type", "Pricing Type", InBetweenEquality),
+          PubCol("price_type", "Pricing Type", InNotInBetweenEqualityNotEqualsGreaterLesser),
           PubCol("landing_page_url", "Destination URL", Set.empty),
           PubCol("network_type", "Network Type", InEqualityIsNotNullNotIn, restrictedSchemas = Set(AdvertiserSchema)),
           PubCol("ad_format_id", "Ad Format Name", Set.empty, restrictedSchemas = Set(ResellerSchema)),
@@ -263,7 +263,7 @@ class RequestModelTest extends FunSuite with Matchers {
           PubCol("device_id", "Device ID", InNotInEqualityNotEquals),
           PubCol("product_ad_id", "Product Ad ID", InEquality),
           PubCol("stats_source", "Source", Equality),
-          PubCol("price_type", "Pricing Type", In),
+          PubCol("price_type", "Pricing Type", InEqualityNotEquals),
           PubCol("landing_page_url", "Destination URL", Set.empty),
           PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality)
         ),
@@ -5490,6 +5490,95 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(model.factFilters.find(_.field === "Impressions").get.asInstanceOf[LessThanFilter].value === "1608")
     val filter = model.factFilters.find(_.field === "Impressions").get.asInstanceOf[LessThanFilter]
     assert(filter.canBeHighCardinalityFilter == true)
+  }
+
+  test("Assert Not Equals on Statically mapped filter.") {
+    val jsonString = s"""{
+                        "cube": "publicFact5",
+                        "selectFields": [
+                            {"field": "Impressions"},
+                            {"field": "Device ID"}
+                        ],
+                        "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Pricing Type", "operator": "<>", "value": "CPC"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "1337"}
+                        ],
+                        "sortBy": [
+                        ],
+                        "paginationStartIndex":20,
+                        "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess,res)
+    val model = res.toOption.get
+    assert(model.factFilters.exists(_.field === "Pricing Type") === true)
+    assert(model.factFilters.find(_.field === "Pricing Type").get.asInstanceOf[NotEqualToFilter].value === "1")
+    val filter = model.factFilters.find(_.field === "Pricing Type").get.asInstanceOf[NotEqualToFilter]
+    assert(filter.canBeHighCardinalityFilter == true)
+  }
+
+  test("Assert failure for Not Equals on Statically mapped invalid-valued filter.") {
+    val jsonString = s"""{
+                        "cube": "publicFact5",
+                        "selectFields": [
+                            {"field": "Impressions"},
+                            {"field": "Device ID"}
+                        ],
+                        "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Pricing Type", "operator": "<>", "value": "1"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "1337"}
+                        ],
+                        "sortBy": [
+                        ],
+                        "paginationStartIndex":20,
+                        "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = getDefaultRegistry()
+    val res = RequestModel.from(request, registry)
+    assert(res.isFailure,res)
+    assert(res.failed.get.getMessage.contains("Unknown filter value for field=Pricing Type, value=1"))
+  }
+
+  test("""Assert dual static mapping on NotEqualToFilter""") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Campaign Status"},
+                              {"field": "Impressions"},
+                              {"field": "Advertiser Status"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Pricing Type", "operator": "<>", "value": "CPF"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "Asc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess, res.errorMessage("Failed to build request model"))
+    val model = res.toOption.get
+    assert(model.factFilters.size === 2)
+    assert(model.factFilters.exists(_.field === "Advertiser ID") === true)
+    assert(model.factFilters.exists(_.field === "Pricing Type") === true)
+    assert(model.factFilters.find(_.field === "Pricing Type").get.asInstanceOf[NotInFilter].values === List("10", "-20"))
+
+    assert(model.publicDimToJoinTypeMap("advertiser") == LeftOuterJoin, "Should LeftOuterJoin as request fact driven")
+    assert(model.publicDimToJoinTypeMap("campaign") == LeftOuterJoin, "Should LeftOuterJoin as request fact driven")
   }
 }
 

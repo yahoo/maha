@@ -530,6 +530,14 @@ object RequestModel extends Logging {
                         reverseMapping(value)
                     }
                     NotInFilter(field, mapped.flatten)
+                  case NotEqualToFilter(field, value, _, _) =>
+                    require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
+                    val valueSet = reverseMapping(value)
+                    if(valueSet.size > 1) {
+                      NotInFilter(field, valueSet.toList)
+                    } else {
+                      NotEqualToFilter(field, valueSet.head)
+                    }
                   case f =>
                     throw new IllegalArgumentException(s"Unsupported filter operation on statically mapped field : $f")
                 }
