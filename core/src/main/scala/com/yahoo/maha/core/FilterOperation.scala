@@ -1207,12 +1207,12 @@ object Filter extends Logging {
     }
   }
 
-  //
+  //Source for ordering on Set insertion.
   implicit def orderingByAlias[A <: Filter]: Ordering[A] = {
     Ordering.fromLessThan {
       (a, b) =>
         if(a.isPushDown == b.isPushDown) {
-          Ordering.String.lt(a.field, b.field)
+          Ordering.String.lt(a.field + a.toString, b.field + b.toString)
         } else {
           a.isPushDown > b.isPushDown
         }
