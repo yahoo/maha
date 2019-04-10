@@ -6,11 +6,11 @@ import com.yahoo.maha.core.fact.CostMultiplier
 import com.yahoo.maha.core.request.ReportingRequest
 import grizzled.slf4j.Logging
 
-import scala.collection.{SortedSet, mutable}
+import scala.collection.SortedSet
 
 /**
- * Created by jians on 10/23/15.
- */
+  * Created by jians on 10/23/15.
+  */
 
 case class DimCostMetrics(averageCardinality7Day: Int, cardinality1Day: Int)
 case class RowsEstimate(rows: Long, isGrainOptimized: Boolean, scanRows:Long, isScanOptimized: Boolean)
@@ -30,16 +30,16 @@ trait FactCostEstimator extends Logging {
     s"$schemaRequiredEntity-$entity"
   }
   def allPrefix(entity: String): String = s"*-$entity"
-  def getSchemaBasedGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.HashMap[String, mutable.Set[Filter]] with scala.collection.mutable.MultiMap[String, Filter], defaultRowCount: Long): Option[Long]
-  def getAllBasedGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.HashMap[String, mutable.Set[Filter]] with scala.collection.mutable.MultiMap[String, Filter]): Option[Long]
-  def getDefaultRows(defaultRowCount: Long, request:ReportingRequest, filters: scala.collection.mutable.HashMap[String, mutable.Set[Filter]] with scala.collection.mutable.MultiMap[String, Filter]) = {
+  def getSchemaBasedGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter], defaultRowCount: Long): Option[Long]
+  def getAllBasedGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter]): Option[Long]
+  def getDefaultRows(defaultRowCount: Long, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter]) = {
     defaultRowCount * (request.numDays + 1)
   }
-  def getRowsEstimate(schemaRequiredEntitySet:Set[(String, mutable.Set[Filter])]
+  def getRowsEstimate(schemaRequiredEntitySet:Set[(String, Filter)]
                       , dimensionsCandidates: SortedSet[DimensionCandidate]
                       , factDimList: List[String]
                       , request: ReportingRequest
-                      , filters: scala.collection.mutable.HashMap[String, mutable.Set[Filter]] with scala.collection.mutable.MultiMap[String, Filter]
+                      , filters: scala.collection.mutable.Map[String, Filter]
                       , defaultRowCount:Long): RowsEstimate = {
     val schemaBasedGrainKeys = schemaRequiredEntitySet.map {
       case (requiredEntity, filter) =>
@@ -85,24 +85,24 @@ trait FactCostEstimator extends Logging {
 }
 
 trait DimCostEstimator {
-  def getCardinalityEstimate(grainKey: String, request: ReportingRequest,filters: scala.collection.mutable.HashMap[String, mutable.Set[Filter]] with scala.collection.mutable.MultiMap[String, Filter]): Option[Long]
+  def getCardinalityEstimate(grainKey: String, request: ReportingRequest,filters: scala.collection.mutable.Map[String, Filter]): Option[Long]
 }
 
 class DefaultDimEstimator extends DimCostEstimator {
-  def getCardinalityEstimate(grainKey: String, request: ReportingRequest,filters: scala.collection.mutable.HashMap[String, mutable.Set[Filter]] with scala.collection.mutable.MultiMap[String, Filter]): Option[Long] = None
+  def getCardinalityEstimate(grainKey: String, request: ReportingRequest,filters: scala.collection.mutable.Map[String, Filter]): Option[Long] = None
 }
 
 class DefaultFactEstimator(grainKeySet: Set[String] = Set.empty
                            , defaultRowCount: Long = 100
                           ) extends FactCostEstimator {
   def isGrainKey(grainKey: String): Boolean = grainKeySet(grainKey)
-  def getGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.HashMap[String, mutable.Set[Filter]] with scala.collection.mutable.MultiMap[String, Filter], defaultRowCount: Long): Option[Long] = {
+  def getGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter], defaultRowCount: Long): Option[Long] = {
     Option((defaultRowCount * (request.numDays + 1)).longValue())
   }
-  def getSchemaBasedGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.HashMap[String, mutable.Set[Filter]] with scala.collection.mutable.MultiMap[String, Filter], defaultRowCount: Long): Option[Long] = {
+  def getSchemaBasedGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter], defaultRowCount: Long): Option[Long] = {
     getGrainRows(grainKey, request, filters, defaultRowCount)
   }
-  def getAllBasedGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.HashMap[String, mutable.Set[Filter]] with scala.collection.mutable.MultiMap[String, Filter]): Option[Long] = {
+  def getAllBasedGrainRows(grainKey: String, request:ReportingRequest, filters: scala.collection.mutable.Map[String, Filter]): Option[Long] = {
     getGrainRows(grainKey, request, filters, defaultRowCount)
   }
 }

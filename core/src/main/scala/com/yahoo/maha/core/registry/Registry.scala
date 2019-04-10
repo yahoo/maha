@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.registry
 
+import com.yahoo.maha.core.NoopSchema.NoopSchema
 import com.yahoo.maha.core.dimension.PublicDimension
 import com.yahoo.maha.core.fact.{Fact, FactCandidate, PublicFact}
 import com.yahoo.maha.core.request.{ReportingRequest, RequestType}
@@ -14,8 +15,8 @@ import org.json4s.scalaz.JsonScalaz._
 import scala.collection.{SortedSet, mutable}
 
 /**
- * Created by jians on 10/14/15.
- */
+  * Created by jians on 10/14/15.
+  */
 
 class RegistryBuilder{
 
@@ -136,23 +137,23 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     case(_, i) => i.minBy(_._2)
   }
 
-    validate()
-  
+  validate()
+
   //this must come after validate
   private[this] val cubeSchemaRequiredFilterAlias : Map[(String, Schema, String), Set[String]] = {
-    val listOfFactNameSchemaWithPubDimensions = 
+    val listOfFactNameSchemaWithPubDimensions =
       factMap
         .values
         .flatMap {
-        f => 
-          f.factSchemaMap.flatMap {
-            case (factName, schemaSet) =>
-              val factNameSchemaList = schemaSet.map(s => (factName, s, f.name, f.revision))
-              factNameSchemaList.map(factAndSchemaTuple => factAndSchemaTuple -> f.foreignKeySources.map(fks => getDimension(fks, Option.apply(f.revision)).get))
-          }
-      }
+          f =>
+            f.factSchemaMap.flatMap {
+              case (factName, schemaSet) =>
+                val factNameSchemaList = schemaSet.map(s => (factName, s, f.name, f.revision))
+                factNameSchemaList.map(factAndSchemaTuple => factAndSchemaTuple -> f.foreignKeySources.map(fks => getDimension(fks, Option.apply(f.revision)).get))
+            }
+        }
     val mapOfFactNameSchemaWithPubDimensions = listOfFactNameSchemaWithPubDimensions.toMap
-    require(listOfFactNameSchemaWithPubDimensions.size == mapOfFactNameSchemaWithPubDimensions.size, 
+    require(listOfFactNameSchemaWithPubDimensions.size == mapOfFactNameSchemaWithPubDimensions.size,
       "Size mismatch where non expected after flattening and converting to map")
     mapOfFactNameSchemaWithPubDimensions.map {
       case ((factName, schema, publicFactName, _), publicDimSet) =>
@@ -163,7 +164,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
   private[this] val dimensionPathMap : Map[(String, String), SortedSet[PublicDimension]] = {
     val dimPathMap = new collection.mutable.HashMap[(String, String), SortedSet[PublicDimension]]
     val dimsSortedByLevelAsc = dimMap.values.to[SortedSet]
-    
+
     val dimToForeignKeyMapAll = dimMap.values.map {
       dim =>
         dim.name -> dim.foreignKeySources.map {
@@ -174,7 +175,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
         }.to[SortedSet]
     }
     val dimToForeignKeyMap = dimToForeignKeyMapAll.filter(_._2.nonEmpty).toMap
-    
+
     def processRelations(dim: PublicDimension, relations: SortedSet[PublicDimension], subRelation: PublicDimension, pathToSubRelation: SortedSet[PublicDimension]) : Unit = {
       dimToForeignKeyMap.get(subRelation.name).foreach {
         _.filterNot(d => relations.apply(d)).foreach {
@@ -187,9 +188,9 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
         }
       }
     }
-    
+
     dimsSortedByLevelAsc.foreach {
-      dim => 
+      dim =>
         if(dimToForeignKeyMap.contains(dim.name)) {
           val relations = dimToForeignKeyMap(dim.name)
           relations.foreach {
@@ -198,7 +199,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
           }
         }
     }
-    
+
     dimPathMap.toMap
   }
 
@@ -304,11 +305,11 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
       None
     }
   }
-  
+
   def isPrimaryKeyAlias(alias: String) : Boolean = {
     keySet(alias)
   }
-  
+
   def getSchemaRequiredFilterAliasesForFact(factName: String, schema: Schema, publicFactName: String) : Set[String] = {
     cubeSchemaRequiredFilterAlias.getOrElse((factName, schema, publicFactName), Set.empty)
   }
@@ -322,11 +323,11 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
       false
     }
   }
-  
+
   def getFactRowsCostEstimate(dimensionsCandidates: SortedSet[DimensionCandidate], factCandidate: FactCandidate, reportingRequest: ReportingRequest,
-                              entitySet: Set[PublicDimension], filters: scala.collection.mutable.HashMap[String, mutable.Set[Filter]] with scala.collection.mutable.MultiMap[String, Filter], isDebug: Boolean): FactRowsCostEstimate = {
+                              entitySet: Set[PublicDimension], filters: mutable.Map[String, Filter], isDebug: Boolean): FactRowsCostEstimate = {
     val factDimList = getDimList(factCandidate)
-    val schemaRequiredEnityAndFilter : Set[(String, mutable.Set[Filter])] = entitySet.map(pd => (pd.grainKey, filters(pd.primaryKeyByAlias)))
+    val schemaRequiredEnityAndFilter = entitySet.map(pd => (pd.grainKey, filters(pd.primaryKeyByAlias)))
 
     val rowsEstimate = factEstimator.getRowsEstimate(schemaRequiredEnityAndFilter
       , dimensionsCandidates
@@ -341,10 +342,10 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     }
     FactRowsCostEstimate(rowsEstimate = rowsEstimate, costEstimate = costEstimate, isIndexOptimized = isIndexOptimized)
   }
-  
-  def getDimCardinalityEstimate(dimensionsCandidates: SortedSet[DimensionCandidate], 
+
+  def getDimCardinalityEstimate(dimensionsCandidates: SortedSet[DimensionCandidate],
                                 reportingRequest: ReportingRequest,entitySet: Set[PublicDimension],
-                                filters: mutable.HashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter],isDebug:Boolean): Option[Long] = {
+                                filters: mutable.Map[String, Filter],isDebug:Boolean): Option[Long] = {
     val schemaRequiredEntity = entitySet.map(_.grainKey)
     val highestLevelDim = dimensionsCandidates.lastOption
     val grainKey =  schemaRequiredEntity.headOption.map(s => s"$s-").getOrElse("") + highestLevelDim.map(_.dim.grainKey).getOrElse("")
@@ -422,9 +423,9 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
 
       val schemaColAliasMap = foreignSources
         .flatMap(dim => dim.schemas.map(s => (s, dim.schemaRequiredAlias(s).map(_.alias)))
-        .collect {
-          case (s, Some(alias)) => (s.toString, toJSON(alias))
-        }).toMap
+          .collect {
+            case (s, Some(alias)) => (s.toString, toJSON(alias))
+          }).toMap
 
       val maxDaysLookBack = JArray(toMaxDaysList(publicFact.maxDaysLookBack))
       val maxDaysWindow = JArray(toMaxDaysList(publicFact.maxDaysWindow))
@@ -465,7 +466,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
 
 
       // flatten dim cols without PK
-     val flattenDimCols = new scala.collection.mutable.ListBuffer[JObject]
+      val flattenDimCols = new scala.collection.mutable.ListBuffer[JObject]
       publicFact.foreignKeyAliases.toList.foreach {
         fk =>
           val dimension = getDimensionByPrimaryKeyAlias(fk, Some(publicFact.dimRevision))
@@ -479,16 +480,16 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
                 toJSON(filterList)
               }
               flattenDimCols += makeObj(
-                 ("field" -> toJSON(dimCol._2.alias))
-                   :: ("type" -> toJSON("Dimension"))
-                   :: ("dataType" -> dimension.get.nameToDataTypeMap(dimCol._2.name).asJson)
-                   :: ("dimensionName" -> toJSON(dimension.get.name))
-                   :: ("filterable" -> toJSON(dimCol._2.filters.nonEmpty))
-                   :: ("filterOperations" -> filterOperations)
-                   :: ("required" -> toJSON(dimCol._2.required))
-                   :: ("filteringRequired" -> toJSON(dimCol._2.filteringRequired))
-                   :: Nil
-               )
+                ("field" -> toJSON(dimCol._2.alias))
+                  :: ("type" -> toJSON("Dimension"))
+                  :: ("dataType" -> dimension.get.nameToDataTypeMap(dimCol._2.name).asJson)
+                  :: ("dimensionName" -> toJSON(dimension.get.name))
+                  :: ("filterable" -> toJSON(dimCol._2.filters.nonEmpty))
+                  :: ("filterOperations" -> filterOperations)
+                  :: ("required" -> toJSON(dimCol._2.required))
+                  :: ("filteringRequired" -> toJSON(dimCol._2.filteringRequired))
+                  :: Nil
+              )
           }
       }
 
@@ -567,17 +568,17 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     )
 
     val schemasJson: JObject = {
-      val jsonMap = schemaToFactMap map {
+      val jsonMap = schemaToFactMap.filter(e => e._1 != NoopSchema) map {
         case (schema, publicFacts) => (schema.toString, toJSON(publicFacts.map(_.name).toList))
       }
       makeObj(jsonMap)
-    } 
-    
+    }
+
     val finalJson = makeObj(
       ("dimensions" -> dimensionsJsonArray)
-      :: ("schemas" -> schemasJson)
-      :: ("cubes" -> cubesJsonArray)
-      :: Nil
+        :: ("schemas" -> schemasJson)
+        :: ("cubes" -> cubesJsonArray)
+        :: Nil
     )
     (compact(render(finalJson)), cubeJsonByName.mapValues(j => compact(render(j))))
   }
@@ -604,7 +605,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     )
 
     val schemasJson: JObject = {
-      val jsonMap = schemaToFactMap map {
+      val jsonMap = schemaToFactMap.filter(e => e._1 != NoopSchema) map {
         case (schema, publicFacts) => (schema.toString, toJSON(publicFacts.map(_.name).toList))
       }
       makeObj(jsonMap)

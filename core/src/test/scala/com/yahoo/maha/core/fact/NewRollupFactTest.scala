@@ -258,6 +258,22 @@ class NewRollupFactTest extends BaseFactTest {
     }
     assert(thrown.getMessage.contains("dim column fake_dim does not exist"), "Inexistent dim should throw an error.")
   }
+
+  test("newRollUp should override schema if provided") {
+    val fact = fact1
+    fact.newRollUp("fact2", "fact1", Set("ad_group_id"), availableOnwardsDate = Some(s"$toDate"), schemas = Set(InternalSchema))
+    val bcOption = publicFact(fact).getCandidatesFor(InternalSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
+    require(bcOption.isDefined, "Failed to get candidates!")
+    assert(bcOption.get.facts.values.exists( f => f.fact.name == "fact2") === true)
+  }
+
+  test("newRollUp should inherit schema if not provided") {
+    val fact = fact1
+    fact.newRollUp("fact2", "fact1", Set("ad_group_id"), availableOnwardsDate = Some(s"$toDate"))
+    val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
+    require(bcOption.isDefined, "Failed to get candidates!")
+    assert(bcOption.get.facts.values.exists( f => f.fact.name == "fact2") === true)
+  }
 }
 
 

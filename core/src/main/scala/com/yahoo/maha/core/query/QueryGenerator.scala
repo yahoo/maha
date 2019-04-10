@@ -6,6 +6,7 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact.{Fact, FactBestCandidate, FactCol, PublicFact}
 import com.yahoo.maha.core.query.Version.{v0, v1, v2}
+import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -182,19 +183,23 @@ trait QueryGenerator[T <: EngineRequirement] {
 }
 
 trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
+  private val logger = LoggerFactory.getLogger(classOf[BaseQueryGenerator[T]])
 
   def removeDuplicateIfForced(localFilters: Seq[Filter], forcedFilters: Seq[ForcedFilter], inputContext: FactualQueryContext): Array[Filter] = {
     val queryContext = inputContext
 
     val localNonForcedFilters = localFilters.toSet -- forcedFilters.toSet
     val fact = queryContext.factBestCandidate.fact
-    val returnedFilters = new mutable.LinkedHashMap[String, mutable.Set[Filter]] with mutable.MultiMap[String, Filter]
+    val returnedFilters = new mutable.LinkedHashMap[String, Filter]
     localNonForcedFilters.foreach {
       filter =>
         val name = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap(filter.field)
         val column = fact.columnsByNameMap(name)
         val real_name = column.alias.getOrElse(name)
-        returnedFilters.addBinding(real_name, filter)
+        if(returnedFilters.contains(real_name))
+          logger.info(s"Replacing the existing filter $real_name with new filter string ${filter.toString}")
+
+        returnedFilters(real_name) = filter
     }
     forcedFilters.foreach {
       filter =>
@@ -202,10 +207,10 @@ trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
         val column = fact.columnsByNameMap(name)
         val real_name = column.alias.getOrElse(name)
         if (!filter.isOverridable || !returnedFilters.contains(real_name)) {
-          returnedFilters(real_name) = mutable.Set(filter)
+          returnedFilters(real_name) = filter
         }
     }
-    returnedFilters.values.flatten.toArray
+    returnedFilters.values.toArray
   }
 }
 

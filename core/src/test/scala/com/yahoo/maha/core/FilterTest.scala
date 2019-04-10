@@ -4,6 +4,8 @@ package com.yahoo.maha.core
 
 import com.yahoo.maha.core.dimension.DimCol
 import com.yahoo.maha.core.fact.ForceFilter
+import io.druid.query.filter.{NotDimFilter, SearchQueryDimFilter}
+import io.druid.query.search.InsensitiveContainsSearchQuerySpec
 import javax.swing.JList
 import org.joda.time.DateTime
 import org.json4s.JsonAST
@@ -676,5 +678,16 @@ class FilterTest extends FunSuite with Matchers {
     }
 
     assert(thrown.getMessage.contains("The filter map for the input filter is undefined. "))
+  }
+
+  test("Should generate proper Spec for FilterDruid") {
+    val druidLikeFilter = LikeFilter("field", "value")
+    val druidLikeFilterResult = FilterDruid.renderFilterDim(druidLikeFilter, Map("field" -> "field"), Map("field" -> DimCol("field", StrType())), Option(DailyGrain))
+    assert(druidLikeFilterResult.isInstanceOf[SearchQueryDimFilter], "Should generate a proper Druid LikeFilter")
+    assert(druidLikeFilterResult.asInstanceOf[SearchQueryDimFilter].getQuery.isInstanceOf[InsensitiveContainsSearchQuerySpec])
+
+    val druidNotEqualToFilter = NotEqualToFilter("not", "value")
+    val druidNotEqualToFilterResult = FilterDruid.renderFilterDim(druidNotEqualToFilter, Map("not" -> "not"), Map("not" -> DimCol("not", StrType())), Option(DailyGrain))
+    assert(druidNotEqualToFilterResult.isInstanceOf[NotDimFilter], "Should generate a proper Druid NotDimFilter.")
   }
 }
