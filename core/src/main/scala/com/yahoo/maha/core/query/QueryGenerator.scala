@@ -191,7 +191,7 @@ trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
     val localNonForcedFilters = localFilters.toSet -- forcedFilters.toSet
     val fact = queryContext.factBestCandidate.fact
     val returnedFilters = new mutable.LinkedHashMap[String, Filter]
-    localNonForcedFilters.foreach {
+    localFilters.foreach {
       filter =>
         val name = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap(filter.field)
         val column = fact.columnsByNameMap(name)
