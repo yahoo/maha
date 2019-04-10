@@ -1206,12 +1206,13 @@ object Filter extends Logging {
       override def compare(x: Filter, y: Filter): Int = Filter.compare(x,y)
     }
   }
-  
+
+  //
   implicit def orderingByAlias[A <: Filter]: Ordering[A] = {
     Ordering.fromLessThan {
       (a, b) =>
         if(a.isPushDown == b.isPushDown) {
-          Ordering.String.lt(a.field + a.toString, b.field + b.toString)
+          Ordering.String.lt(a.field, b.field)
         } else {
           a.isPushDown > b.isPushDown
         }

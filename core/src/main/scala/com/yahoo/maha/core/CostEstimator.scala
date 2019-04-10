@@ -9,8 +9,8 @@ import grizzled.slf4j.Logging
 import scala.collection.SortedSet
 
 /**
-  * Created by jians on 10/23/15.
-  */
+ * Created by jians on 10/23/15.
+ */
 
 case class DimCostMetrics(averageCardinality7Day: Int, cardinality1Day: Int)
 case class RowsEstimate(rows: Long, isGrainOptimized: Boolean, scanRows:Long, isScanOptimized: Boolean)

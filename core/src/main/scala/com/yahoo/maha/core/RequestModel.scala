@@ -1112,7 +1112,7 @@ object RequestModel extends Logging {
             requestedFkAliasToPublicDimensionMap = allRequestedFkAliasToPublicDimMap,
             orFilterMeta = allOrFilterMeta.toSet,
             dimensionRelations = dimensionRelations
-          )
+           )
       }
     }
   }
