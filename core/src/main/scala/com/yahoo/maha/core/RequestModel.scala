@@ -591,7 +591,7 @@ object RequestModel extends Logging {
                 , request.requestType
                 , allRequestedFactAliases.toSet
                 , allRequestedFactJoinAliases.toSet
-                , Filter.createAllFilterMap(allFactFilters.toSet)
+                , Filter.returnFieldAndOperationMapOnMultipleFiltersWithoutValidation(allFactFilters.toSet)
                 , requestedDaysWindow
                 , requestedDaysLookBack
                 , localTimeDayFilter)

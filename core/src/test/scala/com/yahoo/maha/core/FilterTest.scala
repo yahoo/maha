@@ -535,4 +535,146 @@ class FilterTest extends FunSuite with Matchers {
     }
     assert(pdThrown.getMessage.contains("Between filter not supported on Druid dimension fields :"))
   }
+
+  test("Should return the expected filter sets") {
+    val equalityFilter = EqualityFilter("field1", "a")
+    val outerFilter = OuterFilter(List(EqualityFilter("field2", "a")))
+    val orFilter = OrFilter(List(EqualityFilter("field3", "a")))
+    val andFilter = AndFilter(List(EqualityFilter("field17", "a")))
+    val betweenFilter = BetweenFilter("field4", "1", "3")
+    val inFilter = InFilter("field5", List("a", "b", "c"))
+    val notInFilter = NotInFilter("field6", List("a", "b", "c"))
+    val notEqualToFilter = NotEqualToFilter("field7", "1")
+    val greaterThanFilter = GreaterThanFilter("field8", "1")
+    val lessThanFilter = LessThanFilter("field9", "1")
+    val isNotNullFilter = IsNotNullFilter("field10")
+    val likeFilter = LikeFilter("field11", "a")
+    val isNullFilter = IsNullFilter("field12")
+    val pushDownFilter = PushDownFilter(EqualityFilter("field13", "a"))
+    val fieldEqualityFilter = FieldEqualityFilter("field15", "field16")
+    val jsFilter = JavaScriptFilter("field14", "this filter will fail.") //This rendering fn is not defined, so being used as fallthrough to test failure in field set rendering.
+
+    val returnedFields: Set[String] = Filter.returnFieldSetOnMultipleFiltersWithoutValidation(
+      Set(equalityFilter
+        , outerFilter
+        , orFilter
+        , andFilter
+        , betweenFilter
+        , inFilter
+        , notInFilter
+        , notEqualToFilter
+        , greaterThanFilter
+        , lessThanFilter
+        , isNotNullFilter
+        , likeFilter
+        , isNullFilter
+        , pushDownFilter
+        , fieldEqualityFilter)
+    )
+
+    val expectedReturnedFields : Set[String] =
+      Set("field1"
+        //, "field2"      OuterFilter returns no fields.
+        //, "field3"      OrFilter returns no fields.
+        , "field4"
+        , "field5"
+        , "field6"
+        , "field7"
+        , "field8"
+        , "field9"
+        , "field10"
+        , "field11"
+        , "field12"
+        , "field13"
+        , "field15"
+        , "field16"
+        //, "field17"     AndFilter returns no fields.
+      )
+
+    assert(returnedFields == expectedReturnedFields, "Should return all expected fields!")
+
+    val thrown = intercept[IllegalArgumentException] {
+      Filter.returnFieldSetWithoutValidation(jsFilter)
+    }
+
+    assert(thrown.getMessage.contains("The field set for the input filter is undefined. "))
+
+  }
+
+  test("Should compare two filters & return t/f correctly.") {
+    val eqFilter1 = EqualityFilter("field1", "1")
+    val eqFilter2 = EqualityFilter("field2", "2")
+    val inEqFilter = NotEqualToFilter("field1", "1")
+    val fieldEqFilter = FieldEqualityFilter("field2", "field3")
+    val orFilter = OrFilter(List(eqFilter1, eqFilter2))
+
+    assert(Filter.compareForcedFilters(eqFilter1, eqFilter1), "Both filters are the same!")
+    assert(!Filter.compareForcedFilters(eqFilter1, eqFilter2), "Unique fields implies unique forced filters.")
+    assert(Filter.compareForcedFilters(inEqFilter, eqFilter1), "Only the fields need to be equivalent in forced filter comparison.")
+    assert(Filter.compareForcedFilters(fieldEqFilter, eqFilter2), "At least one field has already been mentioned!")
+    assert(!Filter.compareForcedFilters(fieldEqFilter, eqFilter1), "There is no field overlap!")
+    assert(!Filter.compareForcedFilters(fieldEqFilter, orFilter), "OrFilter is never equivalent to anything.")
+    assert(!Filter.compareForcedFilters(orFilter, fieldEqFilter), "OrFilter is never equivalent to anything.")
+  }
+
+  test("Should map the correct field to operation.") {
+    val equalityFilter = EqualityFilter("field1", "a")
+    val outerFilter = OuterFilter(List(EqualityFilter("field2", "a")))
+    val orFilter = OrFilter(List(EqualityFilter("field3", "a")))
+    val andFilter = AndFilter(List(EqualityFilter("field17", "a")))
+    val betweenFilter = BetweenFilter("field4", "1", "3")
+    val inFilter = InFilter("field5", List("a", "b", "c"))
+    val notInFilter = NotInFilter("field6", List("a", "b", "c"))
+    val notEqualToFilter = NotEqualToFilter("field7", "1")
+    val greaterThanFilter = GreaterThanFilter("field8", "1")
+    val lessThanFilter = LessThanFilter("field9", "1")
+    val isNotNullFilter = IsNotNullFilter("field10")
+    val likeFilter = LikeFilter("field11", "a")
+    val isNullFilter = IsNullFilter("field12")
+    val pushDownFilter = PushDownFilter(EqualityFilter("field13", "a"))
+    val fieldEqualityFilter = FieldEqualityFilter("field15", "field16")
+    val jsFilter = JavaScriptFilter("field14", "this filter will fail.") //This rendering fn is not defined, so being used as fallthrough to test failure in field set rendering.
+
+    val returnedMap: Map[String, FilterOperation] = Filter.returnFieldAndOperationMapOnMultipleFiltersWithoutValidation(
+      Set(equalityFilter
+        , outerFilter
+        , orFilter
+        , andFilter
+        , betweenFilter
+        , inFilter
+        , notInFilter
+        , notEqualToFilter
+        , greaterThanFilter
+        , lessThanFilter
+        , isNotNullFilter
+        , likeFilter
+        , isNullFilter
+        , pushDownFilter
+        , fieldEqualityFilter)
+    )
+
+    val expectedReturnedMap: Map[String, FilterOperation] = Map(
+      "field1" -> EqualityFilterOperation,
+      "field4" -> BetweenFilterOperation,
+      "field5" -> InFilterOperation,
+      "field6" -> NotInFilterOperation,
+      "field7" -> NotEqualToFilterOperation,
+      "field8" -> GreaterThanFilterOperation,
+      "field9" -> LessThanFilterOperation,
+      "field10" -> IsNotNullFilterOperation,
+      "field11" -> LikeFilterOperation,
+      "field12" -> IsNullFilterOperation,
+      "field13" -> EqualityFilterOperation,
+      "field15" -> FieldEqualityFilterOperation,
+      "field16" -> FieldEqualityFilterOperation
+    )
+
+    assert(returnedMap == expectedReturnedMap)
+
+    val thrown = intercept[IllegalArgumentException] {
+      Filter.returnFieldAndOperationMapWithoutValidation(jsFilter)
+    }
+
+    assert(thrown.getMessage.contains("The filter map for the input filter is undefined. "))
+  }
 }

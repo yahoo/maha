@@ -1462,16 +1462,6 @@ object Filter extends Logging {
   }
 
   /**
-    * Create a map from filter field(s) to FilterOperation.
-    * @param allFilters - filters to convert.
-    * @return - Map from filter Field to FilterOperation.
-    */
-  def createAllFilterMap(allFilters: Set[Filter]) : Map[String, FilterOperation] = {
-    allFilters.map{
-      filter => returnFieldAndOperationMapWithoutValidation(filter) }.flatten.toMap
-  }
-
-  /**
     * For returning all filter fields relevant to the current filter type.
     * Used for pre-validated filters, such as those coming
     * from the PublicFact (forced filters).
@@ -1483,6 +1473,7 @@ object Filter extends Logging {
       case _: OuterFilter => Set.empty
       case fieldEqualityFilter: MultiFieldForcedFilter => Set(fieldEqualityFilter.field, fieldEqualityFilter.compareTo)
       case _: OrFilter => Set.empty
+      case _: AndFilter => Set.empty
       case betweenFilter: BetweenFilter => Set(betweenFilter.field)
       case equalityFilter: EqualityFilter => Set(equalityFilter.field)
       case inFilter: InFilter => Set(inFilter.field)
@@ -1495,8 +1486,17 @@ object Filter extends Logging {
       case notEqualToFilter: NotEqualToFilter => Set(notEqualToFilter.field)
       case isNullFilter: IsNullFilter => Set(isNullFilter.field)
       case pushDownFilter: PushDownFilter => returnFieldSetWithoutValidation(pushDownFilter.f)
-      case t: Filter => throw new IllegalArgumentException(t.field + " with filter " + t.toString)
+      case t: Filter => throw new IllegalArgumentException("The field set for the input filter is undefined. " + t.field + " with filter " + t.toString)
     }
+  }
+
+  /**
+    * Given a list of filters, return all given fields.
+    * @param allFilters - filters to render.
+    * @return - Set of fields associated with the given filters.
+    */
+  def returnFieldSetOnMultipleFiltersWithoutValidation(allFilters: Set[Filter]): Set[String] = {
+    allFilters.flatMap(filter => returnFieldSetWithoutValidation(filter))
   }
 
   /**
@@ -1509,6 +1509,7 @@ object Filter extends Logging {
       case _: OuterFilter => Map.empty
       case fieldEqualityFilter: FieldEqualityFilter => Map(fieldEqualityFilter.field -> fieldEqualityFilter.operator, fieldEqualityFilter.compareTo -> fieldEqualityFilter.operator)
       case _: OrFilter => Map.empty
+      case _: AndFilter => Map.empty
       case betweenFilter: BetweenFilter => Map(betweenFilter.field -> betweenFilter.operator)
       case equalityFilter: EqualityFilter => Map(equalityFilter.field -> equalityFilter.operator)
       case inFilter: InFilter => Map(inFilter.field -> inFilter.operator)
@@ -1518,20 +1519,34 @@ object Filter extends Logging {
       case lessThanFilter: LessThanFilter => Map(lessThanFilter.field -> lessThanFilter.operator)
       case isNotNullFilter: IsNotNullFilter => Map(isNotNullFilter.field -> isNotNullFilter.operator)
       case likeFilter: LikeFilter => Map(likeFilter.field -> likeFilter.operator)
-      case notEqualToFilter: NotEqualToFilter => Map(notEqualToFilter.field -> notEqualToFilter.operator)
       case isNullFilter: IsNullFilter => Map(isNullFilter.field -> isNullFilter.operator)
       case pushDownFilter: PushDownFilter => returnFieldAndOperationMapWithoutValidation(pushDownFilter.f)
-      case t: Filter => throw new IllegalArgumentException(t.field + " with filter " + t.toString)
+      case t: Filter => throw new IllegalArgumentException("The filter map for the input filter is undefined. " + t.field + " with filter " + t.toString)
     }
   }
 
   /**
-    * Given a list of filters, return all given fields.
-    * @param allFilters - filters to render.
-    * @return - Set of fields associated with the given filters.
+    * Create a map from filter field(s) to FilterOperation.
+    * @param allFilters - filters to convert.
+    * @return - Map from filter Field to FilterOperation.
     */
-  def returnFieldSetOnMultipleFiltersWithoutValidation(allFilters: Set[Filter]): Set[String] = {
-    allFilters.map(filter => returnFieldSetWithoutValidation(filter)).flatten
+  def returnFieldAndOperationMapOnMultipleFiltersWithoutValidation(allFilters: Set[Filter]) : Map[String, FilterOperation] = {
+    allFilters.flatMap{
+      filter => returnFieldAndOperationMapWithoutValidation(filter) }.toMap
+  }
+
+  /**
+    * Compare two forced filters on their field values to ensure
+    * non-overridable forced filters are kept.
+    * @param filter1 - first filter to check
+    * @param filter2 - second filter to check
+    * @return - A comparison of fields.
+    */
+  def compareForcedFilters(filter1: ForcedFilter
+                             , filter2: ForcedFilter): Boolean = {
+    val firstFieldSet = returnFieldSetWithoutValidation(filter1)
+    val secondFieldSet = returnFieldSetWithoutValidation(filter2)
+    !(firstFieldSet.isEmpty || firstFieldSet.forall(field => !secondFieldSet.contains(field)))
   }
 }
 
