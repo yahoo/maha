@@ -1500,6 +1500,32 @@ object Filter extends Logging {
     allFilters.flatMap(filter => returnFieldSetWithoutValidation(filter))
   }
 
+  def returnFullFieldSetForPkAliases(filter: Filter) : Set[String] = {
+    filter match {
+      case _: OuterFilter => Set.empty
+      case orFilter: OrFilter => orFilter.filters.flatMap{ innerFilter: Filter => returnFullFieldSetForPkAliases(innerFilter) }.toSet
+      case andFilter: AndFilter => andFilter.filters.flatMap{ innerFilter: Filter => returnFullFieldSetForPkAliases(innerFilter) }.toSet
+      case fieldEqualityFilter: MultiFieldForcedFilter => Set(fieldEqualityFilter.field, fieldEqualityFilter.compareTo)
+      case betweenFilter: BetweenFilter => Set(betweenFilter.field)
+      case equalityFilter: EqualityFilter => Set(equalityFilter.field)
+      case inFilter: InFilter => Set(inFilter.field)
+      case notInFilter: NotInFilter => Set(notInFilter.field)
+      case notEqualToFilter: NotEqualToFilter => Set(notEqualToFilter.field)
+      case greaterThanFilter: GreaterThanFilter => Set(greaterThanFilter.field)
+      case lessThanFilter: LessThanFilter => Set(lessThanFilter.field)
+      case isNotNullFilter: IsNotNullFilter => Set(isNotNullFilter.field)
+      case likeFilter: LikeFilter => Set(likeFilter.field)
+      case notEqualToFilter: NotEqualToFilter => Set(notEqualToFilter.field)
+      case isNullFilter: IsNullFilter => Set(isNullFilter.field)
+      case pushDownFilter: PushDownFilter => returnFullFieldSetForPkAliases(pushDownFilter.f)
+      case t: Filter => throw new IllegalArgumentException("The field alias set for the input filter is undefined. " + t.field + " with filter " + t.toString)
+    }
+  }
+
+  def returnFillFieldSetOnMultipleFiltersForPkAliases(allFilters: Set[Filter]): Set[String] = {
+    allFilters.flatMap(filter => returnFullFieldSetForPkAliases(filter))
+  }
+
   /**
     * Given an input filter, return a map of its field(s) to its filter operation.
     * @param filter - filter to return.

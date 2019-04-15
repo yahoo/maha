@@ -690,4 +690,69 @@ class FilterTest extends FunSuite with Matchers {
     val druidNotEqualToFilterResult = FilterDruid.renderFilterDim(druidNotEqualToFilter, Map("not" -> "not"), Map("not" -> DimCol("not", StrType())), Option(DailyGrain))
     assert(druidNotEqualToFilterResult.isInstanceOf[NotDimFilter], "Should generate a proper Druid NotDimFilter.")
   }
+
+  test("Should return the expected filter sets with Pk fields") {
+    val equalityFilter = EqualityFilter("field1", "a")
+    val outerFilter = OuterFilter(List(EqualityFilter("field2", "a")))
+    val orFilter = OrFilter(List(EqualityFilter("field3", "a")))
+    val andFilter = AndFilter(List(EqualityFilter("field17", "a")))
+    val betweenFilter = BetweenFilter("field4", "1", "3")
+    val inFilter = InFilter("field5", List("a", "b", "c"))
+    val notInFilter = NotInFilter("field6", List("a", "b", "c"))
+    val notEqualToFilter = NotEqualToFilter("field7", "1")
+    val greaterThanFilter = GreaterThanFilter("field8", "1")
+    val lessThanFilter = LessThanFilter("field9", "1")
+    val isNotNullFilter = IsNotNullFilter("field10")
+    val likeFilter = LikeFilter("field11", "a")
+    val isNullFilter = IsNullFilter("field12")
+    val pushDownFilter = PushDownFilter(EqualityFilter("field13", "a"))
+    val fieldEqualityFilter = FieldEqualityFilter("field15", "field16")
+    val jsFilter = JavaScriptFilter("field14", "this filter will fail.") //This rendering fn is not defined, so being used as fallthrough to test failure in field set rendering.
+
+    val returnedFields: Set[String] = Filter.returnFillFieldSetOnMultipleFiltersForPkAliases(
+      Set(equalityFilter
+        , outerFilter
+        , orFilter
+        , andFilter
+        , betweenFilter
+        , inFilter
+        , notInFilter
+        , notEqualToFilter
+        , greaterThanFilter
+        , lessThanFilter
+        , isNotNullFilter
+        , likeFilter
+        , isNullFilter
+        , pushDownFilter
+        , fieldEqualityFilter)
+    )
+
+    val expectedReturnedFields : Set[String] =
+      Set("field1"
+        //, "field2"      //OuterFilter returns no fields.
+        , "field3"        //OrFilter returns its fields.
+        , "field4"
+        , "field5"
+        , "field6"
+        , "field7"
+        , "field8"
+        , "field9"
+        , "field10"
+        , "field11"
+        , "field12"
+        , "field13"
+        , "field15"
+        , "field16"
+        , "field17"       //AndFilter returns its fields.
+      )
+
+    assert(returnedFields == expectedReturnedFields, "Should return all expected fields!")
+
+    val thrown = intercept[IllegalArgumentException] {
+      Filter.returnFullFieldSetForPkAliases(jsFilter)
+    }
+
+    assert(thrown.getMessage.contains("The field alias set for the input filter is undefined. "))
+
+  }
 }
