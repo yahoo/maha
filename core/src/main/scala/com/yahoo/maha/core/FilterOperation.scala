@@ -6,6 +6,7 @@ package com.yahoo.maha.core
  * Created by hiral on 10/2/15.
  */
 
+
 import com.google.common.collect.Lists
 import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{START_OF_THE_MONTH, START_OF_THE_WEEK}
@@ -16,13 +17,14 @@ import io.druid.js.JavaScriptConfig
 import io.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec}
 import io.druid.query.extraction.{RegexDimExtractionFn, SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
 import io.druid.query.filter.JavaScriptDimFilter
-import scalaz.{ValidationNel, \/}
 
 import scala.collection.{Iterable, mutable}
 import scalaz.syntax.applicative._
 import org.json4s._
+import org.json4s.jackson.Serialization
 import org.json4s.scalaz.JsonScalaz
 import org.json4s.scalaz.JsonScalaz._
+import org.json4s.jackson.JsonMethods._
 
 sealed trait FilterOperation
 case object InFilterOperation extends FilterOperation { override def toString = "In" }
@@ -1223,7 +1225,8 @@ object Filter extends Logging {
       case OuterFilter(filters) =>
         makeObj(
            ("operator" -> toJSON(filter.operator.toString))
-            :: ("outerFilters" -> toJSON(filters))
+            :: ("outerFilters" -> { toJSON(filters)
+           })
             :: Nil)
       case BetweenFilter(field, from, to) =>
         makeObj(
@@ -1293,26 +1296,12 @@ object Filter extends Logging {
       case OrFilter(filters) =>
         makeObj(
           ("operator" -> toJSON(filter.operator.toString))
-           :: ("filterExpressions" -> {
-            val values: mutable.ListBuffer[JValue] = mutable.ListBuffer.empty[JValue]
-            for(filter <- filters) {
-              val written: JValue = filterJSONW.write(filter)
-              values.append(written)
-            }
-            toJSON(values.toList)
-          })
+           :: ("filterExpressions" -> { toJSON(filters) })
             :: Nil)
       case AndFilter(filters) =>
         makeObj(
           ("operator" -> toJSON(filter.operator.toString))
-           :: ("filterExpressions" -> {
-            val values: mutable.ListBuffer[JValue] = mutable.ListBuffer.empty[JValue]
-            for(filter <- filters) {
-              val written: JValue = filterJSONW.write(filter)
-              values.append(written)
-            }
-            toJSON(values.toList)
-          })
+           :: ("filterExpressions" -> { toJSON(filters) })
             :: Nil)
       case PushDownFilter(wrappedFilter) =>
         write(wrappedFilter)
@@ -1368,6 +1357,21 @@ object Filter extends Logging {
     }
   }
 
+  implicit def filterSetJSONR: JSONR[List[Filter]] = new JSONR[List[Filter]] {
+    override def read(json: JValue): JsonScalaz.Result[List[Filter]] = {
+      import _root_.scalaz.syntax.validation._
+      implicit val formats = DefaultFormats
+
+      val readValues = Serialization.read[List[JValue]](compact(render(json)))
+      val readAndVerifyFilters: Set[JsonScalaz.Result[Filter]] = readValues.map(value=>filterJSONR.read(value)).toSet
+      val returnSetCondition: JsonScalaz.Result[Boolean] =
+        if (readAndVerifyFilters.forall(result=>result.isSuccess)) true.successNel else Fail.apply(readAndVerifyFilters.toString(),  s"Filter set is not correct.")
+
+      returnSetCondition.map(_ => readAndVerifyFilters.map(result => result.getOrElse(null)).toList)
+    }
+  }
+
+
   implicit def filterJSONR: JSONR[Filter] = new JSONR[Filter] {
     override def read(json: JValue): JsonScalaz.Result[Filter] = {
       val operatorResult = field[String]("operator")(json)
@@ -1382,14 +1386,12 @@ object Filter extends Logging {
                   outerFilter(f).map( _ => f)
               }
             case "or" =>
-              null
               val fil = OrFilter.applyJSON(fieldExtended[List[Filter]]("filterExpressions"))(json)
               fil.flatMap {
                 f =>
                   orFilter(f).map( _ => f)
               }
             case "and" =>
-              null
               val fil = AndFilter.applyJSON(fieldExtended[List[Filter]]("filterExpressions"))(json)
               fil.flatMap {
                 f =>
