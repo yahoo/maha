@@ -469,7 +469,7 @@ object RequestModel extends Logging {
 
           publicFact.incompatibleColumns.foreach {
             case (alias, incompatibleColumns) =>
-              require(!(allRequestedFactAliases.contains(alias)  && !incompatibleColumns.intersect(allRequestedAliases).isEmpty),
+              require(!(allRequestedFactAliases.contains(alias)  && incompatibleColumns.intersect(allRequestedAliases).nonEmpty),
                 InCompatibleColumnError(alias, incompatibleColumns))
           }
 
@@ -703,11 +703,11 @@ object RequestModel extends Logging {
           val hasFactSortBy = allFactSortBy.nonEmpty
           val isFactDriven: Boolean = {
             val primaryCheck: Boolean =
-            (isAsyncFactDrivenQuery
-              || isSyncFactDrivenQuery
-              || (!request.forceDimensionDriven &&
-              ((hasFactFilters && !allFactFilters.forall(f => bestCandidatesOption.get.dimColAliases(f.field)))
-                || hasFactSortBy)))
+              (isAsyncFactDrivenQuery
+                || isSyncFactDrivenQuery
+                || (!request.forceDimensionDriven &&
+                ((hasFactFilters && !allFactFilters.forall(f => bestCandidatesOption.get.dimColAliases(f.field)))
+                  || hasFactSortBy)))
 
             val secondaryCheck: Boolean =
               !request.forceDimensionDriven && allDimSortBy.isEmpty && allRequestedDimensionPrimaryKeyAliases.isEmpty && allNonFactFilterAliases.isEmpty
@@ -721,7 +721,7 @@ object RequestModel extends Logging {
               require(pubCol.filters.contains(filter.operator),
                 s"Unsupported filter operation : cube=${publicFact.name}, col=${filter.field}, operation=${filter.operator}")
               filter match {
-                  //For multiFieldForcedFilter, compare both column types & check filter list on compareTo.
+                //For multiFieldForcedFilter, compare both column types & check filter list on compareTo.
                 case multiFieldFilter: MultiFieldForcedFilter =>
                   require(publicFact.columnsByAliasMap.contains(multiFieldFilter.compareTo), IncomparableColumnError(multiFieldFilter.field, multiFieldFilter.compareTo))
                   val secondCol = publicFact.columnsByAliasMap(multiFieldFilter.compareTo)
@@ -1056,7 +1056,7 @@ object RequestModel extends Logging {
                 val related = (a.dim.foreignKeySources.contains(b.dim.name)
                   || b.dim.foreignKeySources.contains(a.dim.name)
                   || (nonDirectRelations.nonEmpty && allIndirectRelationsInRequest)
-                )
+                  )
                 relations += ((a.dim.name, b.dim.name) -> related)
                 j+=1
               }
@@ -1112,7 +1112,7 @@ object RequestModel extends Logging {
             requestedFkAliasToPublicDimensionMap = allRequestedFkAliasToPublicDimMap,
             orFilterMeta = allOrFilterMeta.toSet,
             dimensionRelations = dimensionRelations
-            )
+           )
       }
     }
   }
@@ -1200,6 +1200,7 @@ object RequestModel extends Logging {
       case _ => (true, MAX_ALLOWED_STR_LEN)
     }
   }
+
 }
 
 case class RequestModelResult(model: RequestModel, dryRunModelTry: Option[Try[RequestModel]])
@@ -1215,21 +1216,20 @@ object RequestModelFactory extends Logging {
         } yield {
           val dryRunModel: Option[Try[RequestModel]] = if (buckets.dryRunRevision.isDefined) {
             Option(Try {
-              var updatedRequest = request
-              if (buckets.dryRunEngine.isDefined) {
+              val updatedRequest = if (buckets.dryRunEngine.isDefined) {
                 buckets.dryRunEngine.get match {
                   case DruidEngine =>
-                    updatedRequest = ReportingRequest.forceDruid(request)
+                    ReportingRequest.forceDruid(request)
                   case OracleEngine =>
-                    updatedRequest = ReportingRequest.forceOracle(request)
+                    ReportingRequest.forceOracle(request)
                   case HiveEngine =>
-                    updatedRequest = ReportingRequest.forceHive(request)
+                    ReportingRequest.forceHive(request)
                   case PrestoEngine =>
-                    updatedRequest = ReportingRequest.forcePresto(request)
+                    ReportingRequest.forcePresto(request)
                   case a =>
                     throw new IllegalArgumentException(s"Unknown engine: $a")
                 }
-              }
+              } else request
               RequestModel.from(updatedRequest, registry, utcTimeProvider, buckets.dryRunRevision)
             }.flatten)
           } else None
