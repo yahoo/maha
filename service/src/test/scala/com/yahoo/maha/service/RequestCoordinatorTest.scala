@@ -55,7 +55,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     )
 
     val studentRows: List[Seq[Any]] = List(
-      Seq(213, "Bryant", 2017, "ACTIVE", 54321)
+      Seq(213, "ACTIVE", 2017, "ACTIVE", 54321)
     )
 
     val classRows: List[Seq[Any]] = List(
@@ -128,7 +128,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
          |  ],
          |  "filterExpressions": [
          |    {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
-         |    {"field": "Top Student ID", "operator": "==", "compareTo": "Student ID"},
+         |    {"field": "Student Name", "operator": "==", "compareTo": "Student Status"},
          |    {"field": "Student ID", "operator": "between", "from": "0", "to": "1000"}
          |  ]
          |}
@@ -161,9 +161,9 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       defaultCount+=1
     })
 
-    assert(defaultCount == 2)
+    assert(defaultCount == 1)
     val expectedStringList = List(
-      "WHERE (student_id >= 0 AND student_id <= 1000) AND (top_student_id = student_id)", "WHERE (id >= 0 AND id <= 1000)")
+      "WHERE (student_id >= 0 AND student_id <= 1000)", "WHERE (id >= 0 AND id <= 1000) AND (name = status)")
     for(item <- expectedStringList) assert(requestResultString.contains(item))
   }
 
@@ -1410,7 +1410,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val rowcountCuratorRequestResult: CuratorError = requestCoordinatorResult.failureResults(RowCountCurator.name)
 
     val defaultExpectedSet = Set(
-      "Row(Map(Section ID -> 2, Student Name -> 4, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 200, 100, 99, Bryant))"
+      "Row(Map(Section ID -> 2, Student Name -> 4, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 200, 100, 99, ACTIVE))"
     )
 
     var defaultCount = 0
@@ -1440,7 +1440,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
 
-    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[213,200,100,99,"Bryant",1]],"curators":{}}"""
+    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[213,200,100,99,"ACTIVE",1]],"curators":{}}"""
     
 
     assert(result.contains(expectedJson))
@@ -1643,7 +1643,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     println(result)
 
-    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Performance Factor","fieldType":"FACT"}],"maxRows":200,"debug":{}},"rows":[[213,125,"Bryant",200,1.0]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[198,213,180],[199,213,175],[200,213,125]]}}}}"""
+    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Performance Factor","fieldType":"FACT"}],"maxRows":200,"debug":{}},"rows":[[213,125,"ACTIVE",200,1.0]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[198,213,180],[199,213,175],[200,213,125]]}}}}"""
 
     assert(result === expectedJson)
   }

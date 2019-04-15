@@ -1208,7 +1208,8 @@ object Filter extends Logging {
       override def compare(x: Filter, y: Filter): Int = Filter.compare(x,y)
     }
   }
-  
+
+  //Source for ordering on Set insertion.
   implicit def orderingByAlias[A <: Filter]: Ordering[A] = {
     Ordering.fromLessThan {
       (a, b) =>
@@ -1461,6 +1462,120 @@ object Filter extends Logging {
           }
       }
     }
+  }
+
+  /**
+    * For returning all filter fields relevant to the current filter type.
+    * Used for pre-validated filters, such as those coming
+    * from the PublicFact (forced filters).
+    * @param filter - Filter to return data from.
+    * @return - Set dependent upon input filter type only.
+    */
+  def returnFieldSetWithoutValidation(filter: Filter) : Set[String] = {
+    filter match {
+      case _: OuterFilter => Set.empty
+      case fieldEqualityFilter: MultiFieldForcedFilter => Set(fieldEqualityFilter.field, fieldEqualityFilter.compareTo)
+      case _: OrFilter => Set.empty
+      case _: AndFilter => Set.empty
+      case betweenFilter: BetweenFilter => Set(betweenFilter.field)
+      case equalityFilter: EqualityFilter => Set(equalityFilter.field)
+      case inFilter: InFilter => Set(inFilter.field)
+      case notInFilter: NotInFilter => Set(notInFilter.field)
+      case notEqualToFilter: NotEqualToFilter => Set(notEqualToFilter.field)
+      case greaterThanFilter: GreaterThanFilter => Set(greaterThanFilter.field)
+      case lessThanFilter: LessThanFilter => Set(lessThanFilter.field)
+      case isNotNullFilter: IsNotNullFilter => Set(isNotNullFilter.field)
+      case likeFilter: LikeFilter => Set(likeFilter.field)
+      case notEqualToFilter: NotEqualToFilter => Set(notEqualToFilter.field)
+      case isNullFilter: IsNullFilter => Set(isNullFilter.field)
+      case pushDownFilter: PushDownFilter => returnFieldSetWithoutValidation(pushDownFilter.f)
+      case t: Filter => throw new IllegalArgumentException("The field set for the input filter is undefined. " + t.field + " with filter " + t.toString)
+    }
+  }
+
+  /**
+    * Given a list of filters, return all given fields.
+    * @param allFilters - filters to render.
+    * @return - Set of fields associated with the given filters.
+    */
+  def returnFieldSetOnMultipleFiltersWithoutValidation(allFilters: Set[Filter]): Set[String] = {
+    allFilters.flatMap(filter => returnFieldSetWithoutValidation(filter))
+  }
+
+  def returnFullFieldSetForPkAliases(filter: Filter) : Set[String] = {
+    filter match {
+      case _: OuterFilter => Set.empty
+      case orFilter: OrFilter => orFilter.filters.flatMap{ innerFilter: Filter => returnFullFieldSetForPkAliases(innerFilter) }.toSet
+      case andFilter: AndFilter => andFilter.filters.flatMap{ innerFilter: Filter => returnFullFieldSetForPkAliases(innerFilter) }.toSet
+      case fieldEqualityFilter: MultiFieldForcedFilter => Set(fieldEqualityFilter.field, fieldEqualityFilter.compareTo)
+      case betweenFilter: BetweenFilter => Set(betweenFilter.field)
+      case equalityFilter: EqualityFilter => Set(equalityFilter.field)
+      case inFilter: InFilter => Set(inFilter.field)
+      case notInFilter: NotInFilter => Set(notInFilter.field)
+      case notEqualToFilter: NotEqualToFilter => Set(notEqualToFilter.field)
+      case greaterThanFilter: GreaterThanFilter => Set(greaterThanFilter.field)
+      case lessThanFilter: LessThanFilter => Set(lessThanFilter.field)
+      case isNotNullFilter: IsNotNullFilter => Set(isNotNullFilter.field)
+      case likeFilter: LikeFilter => Set(likeFilter.field)
+      case notEqualToFilter: NotEqualToFilter => Set(notEqualToFilter.field)
+      case isNullFilter: IsNullFilter => Set(isNullFilter.field)
+      case pushDownFilter: PushDownFilter => returnFullFieldSetForPkAliases(pushDownFilter.f)
+      case t: Filter => throw new IllegalArgumentException("The field alias set for the input filter is undefined. " + t.field + " with filter " + t.toString)
+    }
+  }
+
+  def returnFillFieldSetOnMultipleFiltersForPkAliases(allFilters: Set[Filter]): Set[String] = {
+    allFilters.flatMap(filter => returnFullFieldSetForPkAliases(filter))
+  }
+
+  /**
+    * Given an input filter, return a map of its field(s) to its filter operation.
+    * @param filter - filter to return.
+    * @return - Map of filter fields to FilterOperation.
+    */
+  def returnFieldAndOperationMapWithoutValidation(filter: Filter) : Map[String, FilterOperation] = {
+    filter match {
+      case _: OuterFilter => Map.empty
+      case fieldEqualityFilter: FieldEqualityFilter => Map(fieldEqualityFilter.field -> fieldEqualityFilter.operator, fieldEqualityFilter.compareTo -> fieldEqualityFilter.operator)
+      case _: OrFilter => Map.empty
+      case _: AndFilter => Map.empty
+      case betweenFilter: BetweenFilter => Map(betweenFilter.field -> betweenFilter.operator)
+      case equalityFilter: EqualityFilter => Map(equalityFilter.field -> equalityFilter.operator)
+      case inFilter: InFilter => Map(inFilter.field -> inFilter.operator)
+      case notInFilter: NotInFilter => Map(notInFilter.field -> notInFilter.operator)
+      case notEqualToFilter: NotEqualToFilter => Map(notEqualToFilter.field -> notEqualToFilter.operator)
+      case greaterThanFilter: GreaterThanFilter => Map(greaterThanFilter.field -> greaterThanFilter.operator)
+      case lessThanFilter: LessThanFilter => Map(lessThanFilter.field -> lessThanFilter.operator)
+      case isNotNullFilter: IsNotNullFilter => Map(isNotNullFilter.field -> isNotNullFilter.operator)
+      case likeFilter: LikeFilter => Map(likeFilter.field -> likeFilter.operator)
+      case isNullFilter: IsNullFilter => Map(isNullFilter.field -> isNullFilter.operator)
+      case pushDownFilter: PushDownFilter => returnFieldAndOperationMapWithoutValidation(pushDownFilter.f)
+      case t: Filter => throw new IllegalArgumentException("The filter map for the input filter is undefined. " + t.field + " with filter " + t.toString)
+    }
+  }
+
+  /**
+    * Create a map from filter field(s) to FilterOperation.
+    * @param allFilters - filters to convert.
+    * @return - Map from filter Field to FilterOperation.
+    */
+  def returnFieldAndOperationMapOnMultipleFiltersWithoutValidation(allFilters: Set[Filter]) : Map[String, FilterOperation] = {
+    allFilters.flatMap{
+      filter => returnFieldAndOperationMapWithoutValidation(filter) }.toMap
+  }
+
+  /**
+    * Compare two forced filters on their field values to ensure
+    * non-overridable forced filters are kept.
+    * @param filter1 - first filter to check
+    * @param filter2 - second filter to check
+    * @return - A comparison of fields.
+    */
+  def compareForcedFilters(filter1: ForcedFilter
+                             , filter2: ForcedFilter): Boolean = {
+    val firstFieldSet = returnFieldSetWithoutValidation(filter1)
+    val secondFieldSet = returnFieldSetWithoutValidation(filter2)
+    firstFieldSet.exists(field => secondFieldSet.contains(field))
   }
 }
 
