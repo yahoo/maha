@@ -1573,7 +1573,7 @@ object Filter extends Logging {
                              , filter2: ForcedFilter): Boolean = {
     val firstFieldSet = returnFieldSetWithoutValidation(filter1)
     val secondFieldSet = returnFieldSetWithoutValidation(filter2)
-    !(firstFieldSet.isEmpty || firstFieldSet.forall(field => !secondFieldSet.contains(field)))
+    firstFieldSet.exists(field => secondFieldSet.contains(field))
   }
 }
 

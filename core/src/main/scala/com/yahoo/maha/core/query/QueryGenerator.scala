@@ -188,7 +188,6 @@ trait BaseQueryGenerator[T <: EngineRequirement] extends QueryGenerator[T] {
   def removeDuplicateIfForced(localFilters: Seq[Filter], forcedFilters: Seq[ForcedFilter], inputContext: FactualQueryContext): Array[Filter] = {
     val queryContext = inputContext
 
-    val localNonForcedFilters = localFilters.toSet -- forcedFilters.toSet
     val fact = queryContext.factBestCandidate.fact
     val returnedFilters = new mutable.LinkedHashMap[String, Filter]
     localFilters.foreach {

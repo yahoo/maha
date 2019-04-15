@@ -267,7 +267,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
     }
 
-    assert(thrown.getMessage.contains("Dim-Metric Comparison Failed: Can only compare dim-dim or metric-metric"))
+    assert(thrown.getMessage.contains("Metric-Dim Comparison Failed: Can only compare dim-dim or metric-metric"))
 
   }
 
