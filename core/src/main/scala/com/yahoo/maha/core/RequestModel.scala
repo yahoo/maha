@@ -158,7 +158,6 @@ case class RequestModel(cube: String
                         , requestedFkAliasToPublicDimensionMap: Map[String, PublicDimension]
                         , orFilterMeta: Set[OrFilterMeta]
                         , dimensionRelations: DimensionRelations
-                        , useNewFeature: Boolean = false
   ) {
 
   val requestColsSet: Set[String] = requestCols.map(_.alias).toSet
@@ -299,7 +298,6 @@ case class RequestModel(cube: String
        isRequestingDistict=$isRequestingDistict
        publicDimToJoinTypeMap=$publicDimToJoinTypeMap
        dimensionsCandidates=${dimensionsCandidates.map(_.debugString)}
-       useNewFeature=$useNewFeature
      """
   }
 }
@@ -498,108 +496,14 @@ object RequestModel extends Logging {
 
               for(filter <- orFilter.filters) {
                 allFilterAliases += filter.field
-                if (publicFact.aliasToReverseStaticMapping.contains(filter.field)) {
-                  val reverseMapping = publicFact.aliasToReverseStaticMapping(filter.field)
-                  val reverseMappedFilter: Filter = filter match {
-                    case BetweenFilter(field, from, to) =>
-                      require(reverseMapping.contains(from), s"Unknown filter from value for field=$field, from=$from")
-                      require(reverseMapping.contains(to), s"Unknown filter to value for field=$field, to=$to")
-                      val fromSet = reverseMapping(from)
-                      val toSet = reverseMapping(to)
-                      require(fromSet.size == 1 && toSet.size == 1,
-                        s"Cannot perform between filter, the column has static mapping which maps to multiple values, from=$from maps to fromSet=$fromSet, to=$to maps to toSet=$toSet"
-                      )
-                      BetweenFilter(field, fromSet.head, toSet.head)
-                    case EqualityFilter(field, value, _, _) =>
-                      require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
-                      val valueSet = reverseMapping(value)
-                      if (valueSet.size > 1) {
-                        InFilter(field, valueSet.toList)
-                      } else {
-                        EqualityFilter(field, valueSet.head)
-                      }
-                    case InFilter(field, values, _, _) =>
-                      val mapped = values.map {
-                        value =>
-                          require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
-                          reverseMapping(value)
-                      }
-                      InFilter(field, mapped.flatten)
-                    case NotInFilter(field, values, _, _) =>
-                      val mapped = values.map {
-                        value =>
-                          require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
-                          reverseMapping(value)
-                      }
-                      NotInFilter(field, mapped.flatten)
-                    case NotEqualToFilter(field, value, _, _) =>
-                      require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
-                      val valueSet = reverseMapping(value)
-                      if (valueSet.size > 1) {
-                        NotInFilter(field, valueSet.toList)
-                      } else {
-                        NotEqualToFilter(field, valueSet.head)
-                      }
-                    case f =>
-                      throw new IllegalArgumentException(s"Unsupported filter operation on statically mapped field : $f")
-                  }
-                  filterMap.put(filter.field, reverseMappedFilter)
-                } else {
-                  filterMap.put(filter.field, filter)
-                }
+                val attemptedReverseMappedFilter = tryCreateReverseMappedFilter(filter, publicFact)
+                filterMap.put(filter.field, attemptedReverseMappedFilter)
               }
             }
             else {
               allFilterAliases+=filter.field
-              if(publicFact.aliasToReverseStaticMapping.contains(filter.field)) {
-                val reverseMapping = publicFact.aliasToReverseStaticMapping(filter.field)
-                val reverseMappedFilter: Filter = filter match {
-                  case BetweenFilter(field, from, to) =>
-                    require(reverseMapping.contains(from), s"Unknown filter from value for field=$field, from=$from")
-                    require(reverseMapping.contains(to), s"Unknown filter to value for field=$field, to=$to")
-                    val fromSet = reverseMapping(from)
-                    val toSet = reverseMapping(to)
-                    require(fromSet.size == 1 && toSet.size == 1,
-                      s"Cannot perform between filter, the column has static mapping which maps to multiple values, from=$from maps to fromSet=$fromSet, to=$to maps to toSet=$toSet"
-                    )
-                    BetweenFilter(field, fromSet.head, toSet.head)
-                  case EqualityFilter(field, value, _, _) =>
-                    require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
-                    val valueSet = reverseMapping(value)
-                    if(valueSet.size > 1) {
-                      InFilter(field, valueSet.toList)
-                    } else {
-                      EqualityFilter(field, valueSet.head)
-                    }
-                  case InFilter(field, values, _, _) =>
-                    val mapped = values.map {
-                      value =>
-                        require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
-                        reverseMapping(value)
-                    }
-                    InFilter(field, mapped.flatten)
-                  case NotInFilter(field, values, _, _) =>
-                    val mapped = values.map {
-                      value =>
-                        require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
-                        reverseMapping(value)
-                    }
-                    NotInFilter(field, mapped.flatten)
-                  case NotEqualToFilter(field, value, _, _) =>
-                    require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
-                    val valueSet = reverseMapping(value)
-                    if(valueSet.size > 1) {
-                      NotInFilter(field, valueSet.toList)
-                    } else {
-                      NotEqualToFilter(field, valueSet.head)
-                    }
-                  case f =>
-                    throw new IllegalArgumentException(s"Unsupported filter operation on statically mapped field : $f")
-                }
-                filterMap.put(filter.field, reverseMappedFilter)
-              } else {
-                filterMap.put(filter.field, filter)
-              }
+              val attemptedReverseMappedFilter = tryCreateReverseMappedFilter(filter, publicFact)
+              filterMap.put(filter.field, attemptedReverseMappedFilter)
             }
           }
 
@@ -1254,6 +1158,56 @@ object RequestModel extends Logging {
       }
       case _ => (true, MAX_ALLOWED_STR_LEN)
     }
+  }
+
+  def tryCreateReverseMappedFilter(filter: Filter
+                                   , publicFact: PublicFact): Filter = {
+    if (publicFact.aliasToReverseStaticMapping.contains(filter.field)) {
+      val reverseMapping = publicFact.aliasToReverseStaticMapping(filter.field)
+      filter match {
+        case BetweenFilter(field, from, to) =>
+          require(reverseMapping.contains(from), s"Unknown filter from value for field=$field, from=$from")
+          require(reverseMapping.contains(to), s"Unknown filter to value for field=$field, to=$to")
+          val fromSet = reverseMapping(from)
+          val toSet = reverseMapping(to)
+          require(fromSet.size == 1 && toSet.size == 1,
+            s"Cannot perform between filter, the column has static mapping which maps to multiple values, from=$from maps to fromSet=$fromSet, to=$to maps to toSet=$toSet"
+          )
+          BetweenFilter(field, fromSet.head, toSet.head)
+        case EqualityFilter(field, value, _, _) =>
+          require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
+          val valueSet = reverseMapping(value)
+          if (valueSet.size > 1) {
+            InFilter(field, valueSet.toList)
+          } else {
+            EqualityFilter(field, valueSet.head)
+          }
+        case InFilter(field, values, _, _) =>
+          val mapped = values.map {
+            value =>
+              require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
+              reverseMapping(value)
+          }
+          InFilter(field, mapped.flatten)
+        case NotInFilter(field, values, _, _) =>
+          val mapped = values.map {
+            value =>
+              require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
+              reverseMapping(value)
+          }
+          NotInFilter(field, mapped.flatten)
+        case NotEqualToFilter(field, value, _, _) =>
+          require(reverseMapping.contains(value), s"Unknown filter value for field=$field, value=$value")
+          val valueSet = reverseMapping(value)
+          if (valueSet.size > 1) {
+            NotInFilter(field, valueSet.toList)
+          } else {
+            NotEqualToFilter(field, valueSet.head)
+          }
+        case f =>
+          throw new IllegalArgumentException(s"Unsupported filter operation on statically mapped field : $f")
+      }
+    } else filter
   }
 
 }
