@@ -1419,9 +1419,11 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
             fact.columnsByNameMap)
         } else {
+          val cols = dims.flatMap(f => f.dim.columnsByNameMap).toMap
+          val aliases = dims.flatMap(f => f.publicDim.aliasToNameMapFull)
           whereFilters += FilterDruid.renderOrDimFilters(orFilterMeta.orFilter.filters,
-            queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
-            fact.columnsByNameMap, Option(fact.grain))
+            aliases.toMap,
+            cols, Option(fact.grain))
         }
     }
 

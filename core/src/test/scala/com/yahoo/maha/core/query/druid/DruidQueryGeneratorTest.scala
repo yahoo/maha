@@ -1944,7 +1944,8 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "filterExpressions": [
                             {"field": "Day", "operator": "=", "value": "$fromDate"},
                             {"field": "Advertiser ID", "operator": "=", "value": "12345"},
-                            {"operator": "or", "filterExpressions": [{"field": "Source", "operator": "in", "values": ["1","2"]}, {"field": "Keyword ID", "operator": "=", "value": "2"}]}
+                            {"field": "Advertiser Status", "operator": "=", "value": "Enabled"},
+                            {"operator": "or", "filterExpressions": [{"field": "Campaign Name", "operator": "=", "value": "Nike"},{"field": "Campaign Total", "operator": "=", "value": "Nike"}, {"field": "Advertiser Name", "operator": "=", "value": "2"}]}
                           ],
                           "sortBy": [
                             {"field": "Impressions", "order": "Desc"}
@@ -1960,7 +1961,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     
-    val filterjson = s""""filter":{"type":"and","fields":[{"type":"selector","dimension":"statsDate","value":"${fromDate.replace("-","")}"},{"type":"selector","dimension":"advertiser_id","value":"12345"},{"type":"or","fields":[{"type":"or","fields":[{"type":"selector","dimension":"stats_source","value":"1"},{"type":"selector","dimension":"stats_source","value":"2"}]},{"type":"selector","dimension":"id","value":"2"}]}]}"""
+    val filterjson = s""""filter":{"type":"and","fields":[{"type":"selector","dimension":"statsDate","value":"${fromDate.replace("-","")}"},{"type":"selector","dimension":"advertiser_id","value":"12345"},{"type":"or","fields":[{"type":"selector","dimension":"campaign_name","value":"Nike"},{"type":"selector","dimension":"campaign_total","value":"Nike"},{"type":"selector","dimension":"name","value":"2"}]}]}"""
 
     assert(result.contains(filterjson), result)
   }
