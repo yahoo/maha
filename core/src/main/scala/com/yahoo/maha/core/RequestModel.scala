@@ -1027,7 +1027,6 @@ object RequestModel extends Logging {
           }
 
           val allFactWithoutOr = allFactFilters.filterNot(filter => allOrFilters.contains(filter))
-
           new RequestModel(request.cube, bestCandidatesOption, allFactWithoutOr.to[SortedSet], dimensionCandidates,
             finalAllRequestedCols, finalAllSortByCols, allRequestedNonFactAliases.toSet,
             registry.getDimCardinalityEstimate(dimensionCandidates, request, entityPublicDimSet.toSet, filterMap,isDebugEnabled),
