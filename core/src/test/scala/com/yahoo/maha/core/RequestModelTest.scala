@@ -4887,7 +4887,7 @@ class RequestModelTest extends FunSuite with Matchers {
     }
   }
 
-  //No longer valid, we now allow both & split on the backend.
+  //No longer valid, we now allow both & split on the backend.  New test is located in DruidQueryGeneratorTest.
   /*test("create model should fail when using or filters with fact and dim filter combination") {
     val jsonString = s"""{
                           "cube": "publicFact",
