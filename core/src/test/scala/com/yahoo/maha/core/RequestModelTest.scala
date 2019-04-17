@@ -146,7 +146,7 @@ class RequestModelTest extends FunSuite with Matchers {
         ),
         Set(
           PublicFactCol("impressions", "Impressions", InBetweenEquality),
-          PublicFactCol("clicks", "Clicks", In),
+          PublicFactCol("clicks", "Clicks", InEquality),
           PublicFactCol("spend", "Spend", InBetweenEquality, restrictedSchemas = Set(ResellerSchema))
         ),
         forcedFilters,

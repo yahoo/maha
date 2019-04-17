@@ -477,6 +477,7 @@ object RequestModel extends Logging {
           val filterMap = new mutable.HashMap[String, Filter]()
           val pushDownFilterMap = new mutable.HashMap[String, PushDownFilter]()
           val allFilterAliases = new mutable.TreeSet[String]()
+          val allOrFilters = new mutable.TreeSet[Filter]()
           val allFactFilters = new mutable.TreeSet[Filter]()
           val allNonFactFilterAliases = new mutable.TreeSet[String]()
           val allOuterFilters = mutable.TreeSet[Filter]()
@@ -496,6 +497,7 @@ object RequestModel extends Logging {
 
               for(filter <- orFilter.filters) {
                 allFilterAliases += filter.field
+                allOrFilters += filter
                 val attemptedReverseMappedFilter = tryCreateReverseMappedFilter(filter, publicFact)
                 filterMap.put(filter.field, attemptedReverseMappedFilter)
               }
@@ -1024,7 +1026,9 @@ object RequestModel extends Logging {
             DimensionRelations(relations)
           }
 
-          new RequestModel(request.cube, bestCandidatesOption, allFactFilters.to[SortedSet], dimensionCandidates,
+          val allFactWithoutOr = allFactFilters.filterNot(filter => allOrFilters.contains(filter))
+
+          new RequestModel(request.cube, bestCandidatesOption, allFactWithoutOr.to[SortedSet], dimensionCandidates,
             finalAllRequestedCols, finalAllSortByCols, allRequestedNonFactAliases.toSet,
             registry.getDimCardinalityEstimate(dimensionCandidates, request, entityPublicDimSet.toSet, filterMap,isDebugEnabled),
             bestCandidatesOption.map(
