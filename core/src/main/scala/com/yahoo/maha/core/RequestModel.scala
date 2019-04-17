@@ -3,6 +3,7 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.core
+import com.yahoo.maha.core.MetaType.MetaType
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, CubeBucketSelected}
 import com.yahoo.maha.core.dimension.PublicDimension
 import com.yahoo.maha.core.fact.{BestCandidates, PublicFact, PublicFactCol, PublicFactColumn}
@@ -491,9 +492,22 @@ object RequestModel extends Logging {
               allOuterFilters ++= outerFilters
             } else if (filter.isInstanceOf[OrFilter]) {
               val orFilter = filter.asInstanceOf[OrFilter]
-              val orFilterMap : Map[Boolean, Iterable[Filter]] = orFilter.filters.groupBy(f => publicFact.columnsByAliasMap.contains(f.field) && publicFact.columnsByAliasMap(f.field).isInstanceOf[PublicFactCol])
-              require(orFilterMap.size == 1, s"Or filter cannot have combination of fact and dim filters, factFilters=${orFilterMap.get(true)} dimFilters=${orFilterMap.get(false)}")
-              allOrFilterMeta += OrFilterMeta(orFilter, orFilterMap.head._1)
+              val orFilterFieldSet : Set[(Boolean, Iterable[Filter])] = orFilter.filters.groupBy(f => publicFact.columnsByAliasMap.contains(f.field) && publicFact.columnsByAliasMap(f.field).isInstanceOf[PublicFactCol]).toSet
+              val temp: mutable.HashMap[MetaType.Value, mutable.SortedSet[Filter]] = mutable.HashMap[MetaType.Value, mutable.SortedSet[Filter]]()
+                orFilter.filters.foreach{
+                filter =>
+                  val containsField = publicFact.columnsByAliasMap.contains(filter.field)
+                  if (!containsField) if (temp.contains(MetaType.DimType)) temp(MetaType.DimType) += filter else temp.put(MetaType.DimType, mutable.SortedSet(filter))
+                  else {
+                    val isPubFactCol = publicFact.columnsByAliasMap(filter.field).isInstanceOf[PublicFactCol]
+                    if(!isPubFactCol) if(temp.contains(MetaType.FactType)) temp(MetaType.FactType) += filter else temp.put(MetaType.FactType, mutable.SortedSet(filter))
+                    else if(temp.contains(MetaType.MetricType)) temp(MetaType.MetricType) += filter else temp.put(MetaType.MetricType, mutable.SortedSet(filter))
+                  }
+              }
+
+              allOrFilterMeta ++= temp.map(typeAndFilters => OrFilterMeta(OrFilter(typeAndFilters._2.toList), typeAndFilters._1))
+              //require(orFilterMap.size == 1, s"Or filter cannot have combination of fact and dim filters, factFilters=${orFilterMap.get(true)} dimFilters=${orFilterMap.get(false)}")
+              //allOrFilterMeta ++= brokenOrFilters.map(meta => OrFilterMeta(meta._2, meta._1))
 
               for(filter <- orFilter.filters) {
                 allFilterAliases += filter.field

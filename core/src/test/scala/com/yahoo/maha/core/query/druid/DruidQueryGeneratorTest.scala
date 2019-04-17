@@ -1944,8 +1944,13 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "filterExpressions": [
                             {"field": "Day", "operator": "=", "value": "$fromDate"},
                             {"field": "Advertiser ID", "operator": "=", "value": "12345"},
-                            {"field": "Advertiser Status", "operator": "=", "value": "Enabled"},
-                            {"operator": "or", "filterExpressions": [{"field": "Campaign Name", "operator": "=", "value": "Nike"},{"field": "Campaign Total", "operator": "=", "value": "Nike"}, {"field": "Advertiser Name", "operator": "=", "value": "2"}]}
+                            {"field": "Timezone", "operator": "=", "value": "Enabled"},
+                            {"operator": "or", "filterExpressions": [
+                              {"field": "Campaign Name", "operator": "=", "value": "Nike"},
+                              {"field": "Campaign Total", "operator": "=", "value": "Nike"},
+                              {"field": "Advertiser Name", "operator": "=", "value": "2"},
+                              {"field": "Ad ID", "operator": "=", "value": "12345"},
+                              {"field": "Source", "operator": "=", "value": "1"}]}
                           ],
                           "sortBy": [
                             {"field": "Impressions", "order": "Desc"}
@@ -1961,8 +1966,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     
-    val filterjson = s""""filter":{"type":"and","fields":[{"type":"selector","dimension":"statsDate","value":"${fromDate.replace("-","")}"},{"type":"selector","dimension":"advertiser_id","value":"12345"},{"type":"or","fields":[{"type":"selector","dimension":"campaign_name","value":"Nike"},{"type":"selector","dimension":"campaign_total","value":"Nike"},{"type":"selector","dimension":"name","value":"2"}]}]}"""
-
+    val filterjson = s"""{"type":"or","fields":[{"type":"selector","dimension":"Advertiser Name","value":"2"},{"type":"selector","dimension":"Campaign Name","value":"Nike"},{"type":"selector","dimension":"Campaign Total","value":"Nike"}]}"""
     assert(result.contains(filterjson), result)
   }
 

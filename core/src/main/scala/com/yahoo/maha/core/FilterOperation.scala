@@ -10,6 +10,7 @@ package com.yahoo.maha.core
 import com.google.common.collect.Lists
 import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{START_OF_THE_MONTH, START_OF_THE_WEEK}
+import com.yahoo.maha.core.MetaType.MetaType
 import com.yahoo.maha.core.dimension.{DruidFuncDimCol, DruidPostResultFuncDimCol}
 import com.yahoo.maha.core.request.fieldExtended
 import grizzled.slf4j.Logging
@@ -285,7 +286,12 @@ sealed trait SqlResult {
 
 case class DefaultResult(filter: String, escaped: Boolean = false) extends SqlResult
 
-case class OrFilterMeta(orFilter: OrFilter, isFactFilters: Boolean)
+case class OrFilterMeta(orFilter: OrFilter, filterType: MetaType)
+
+object MetaType extends Enumeration {
+  type MetaType = Value
+  val MetricType, FactType, DimType = Value
+}
 
 object SqlBetweenFilterRenderer extends BetweenFilterRenderer[SqlResult] {
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
