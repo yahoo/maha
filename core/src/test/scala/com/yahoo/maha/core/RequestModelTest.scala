@@ -4993,16 +4993,18 @@ class RequestModelTest extends FunSuite with Matchers {
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess)
     assert(!res.get.orFilterMeta.isEmpty)
-    assert(res.get.orFilterMeta.head.filterType == MetaType.FactType)
-    assert(res.get.orFilterMeta.head.orFilter.filters.size == 2)
-    assert(res.get.orFilterMeta.head.orFilter.operator == OrFilterOperation)
-    assert(res.get.orFilterMeta.head.orFilter.field == "or")
-    assert(res.get.orFilterMeta.head.orFilter.filters.toList(0).operator == EqualityFilterOperation)
-    assert(res.get.orFilterMeta.head.orFilter.filters.toList(0).field == "Campaign ID")
-    assert(res.get.orFilterMeta.head.orFilter.filters.toList(0).asValues == "1")
-    assert(res.get.orFilterMeta.head.orFilter.filters.toList(1).operator == EqualityFilterOperation)
-    assert(res.get.orFilterMeta.head.orFilter.filters.toList(1).field == "Advertiser Status")
-    assert(res.get.orFilterMeta.head.orFilter.filters.toList(1).asValues == "ON")
+    assert(res.get.orFilterMeta.size == 2)
+    val metaList = res.get.orFilterMeta.toList
+    assert(metaList.head.filterType == MetaType.FactType)
+    assert(metaList.head.orFilter.filters.size == 1)
+    assert(metaList.head.orFilter.operator == OrFilterOperation)
+    assert(metaList.head.orFilter.field == "or")
+    assert(metaList.head.orFilter.filters.toList(0).operator == EqualityFilterOperation)
+    assert(metaList.head.orFilter.filters.toList(0).field == "Campaign ID")
+    assert(metaList.head.orFilter.filters.toList(0).asValues == "1")
+    assert(metaList.last.orFilter.filters.toList(0).operator == EqualityFilterOperation)
+    assert(metaList.last.orFilter.filters.toList(0).field == "Advertiser Status")
+    assert(metaList.last.orFilter.filters.toList(0).asValues == "ON")
   }
 
   test("""create model errors with incorrect filters""") {
