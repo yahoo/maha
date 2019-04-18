@@ -302,6 +302,18 @@ class DerivedExpressionTest extends FunSuite with Matchers {
     }
   }
 
+  test("REGEX_EXTRACT test") {
+    import HiveExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      DimCol("stats_date", DateType())
+      val col1 = HiveDerDimCol("Click Exp ID", StrType(), REGEX_EXTRACT("internal_bucket_id", "(cl-)(.*?)(,|$)", 2, replaceMissingValue = true, "-3"))
+      col1.derivedExpression.render(col1.name) should equal("CASE WHEN LENGTH(regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$)', 2)) > 0 THEN regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$)', 2) ELSE '-3' END")
+      val col2 = HiveDerDimCol("Default Exp ID", StrType(), REGEX_EXTRACT("internal_bucket_id", "(df-)(.*?)(,|$)", 2, replaceMissingValue = false, ""))
+      col2.derivedExpression.render(col2.name) should equal("regexp_extract(internal_bucket_id, '(df-)(.*?)(,|$)', 2)")
+    }
+  }
+
   test("GET_INTERVAL_DATE NEGATIVE test") {
     //expect string OracleExp and string fmt
     import OracleExpression._
@@ -556,5 +568,17 @@ class DerivedExpressionTest extends FunSuite with Matchers {
     assert(roundVal.hasRollupExpression)
     assert(roundVal.hasNumericOperation)
     assert(roundVal.asString.contains("col_name"))
+  }
+
+  test("Presto REGEX_EXTRACT test") {
+    import PrestoExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      DimCol("stats_date", DateType())
+      val col1 = PrestoDerDimCol("Click Exp ID", StrType(), REGEX_EXTRACT("internal_bucket_id", "(cl-)(.*?)(,|$)", 2, replaceMissingValue = true, "-3"))
+      col1.derivedExpression.render(col1.name) should equal("CASE WHEN LENGTH(regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$)', 2)) > 0 THEN regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$)', 2) ELSE '-3' END")
+      val col2 = PrestoDerDimCol("Default Exp ID", StrType(), REGEX_EXTRACT("internal_bucket_id", "(df-)(.*?)(,|$)", 2, replaceMissingValue = false, ""))
+      col2.derivedExpression.render(col2.name) should equal("regexp_extract(internal_bucket_id, '(df-)(.*?)(,|$)', 2)")
+    }
   }
 }
