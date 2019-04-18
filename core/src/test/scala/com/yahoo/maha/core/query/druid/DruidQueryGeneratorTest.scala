@@ -1929,7 +1929,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     result should fullyMatch regex json
   }
 
-  test("Or filter expression with dimension filters") {
+  test("Or filter expression with dimension AND fact filters should render properly") {
     val jsonString = s"""{
                           "cube": "k_stats",
                           "selectFields": [
@@ -1967,7 +1967,8 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     
     val filterjson = s"""{"type":"or","fields":[{"type":"selector","dimension":"Advertiser Name","value":"2"},{"type":"selector","dimension":"Campaign Name","value":"Nike"},{"type":"selector","dimension":"Campaign Total","value":"Nike"}]}"""
-    assert(result.contains(filterjson), result)
+    val filterFactJson = s"""{"type":"or","fields":[{"type":"selector","dimension":"ad_id","value":"12345"},{"type":"selector","dimension":"stats_source","value":"1"}]}"""
+    assert(result.contains(filterjson) && result.contains(filterFactJson), result)
   }
 
   test("Or filter expression with fact filters") {
