@@ -60,6 +60,8 @@ trait BaseHiveQueryGeneratorTest
           , DimCol("column_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned")))
           , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
           , HiveDerDimCol("Ad Group Start Date Full", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "YYYY-MM-dd HH:mm:ss"))
+          , DimCol("internal_bucket_id", StrType())
+          , HiveDerDimCol("click_exp_id", StrType(), REGEX_EXTRACT("internal_bucket_id", "(cl-)(.*?)(,|$)", 2, replaceMissingValue = true, "-3"))
 
         ),
         Set(
@@ -93,7 +95,9 @@ trait BaseHiveQueryGeneratorTest
           PubCol("column2_id", "Column2 ID", Equality),
           PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality),
           PubCol("network_type", "Network ID", InEquality),
-          PubCol("device_id", "Device ID", InEquality)
+          PubCol("device_id", "Device ID", InEquality),
+          PubCol("internal_bucket_id", "Internal Bucket ID", InEquality),
+          PubCol("click_exp_id", "Click Exp ID", InEquality)
         ),
         Set(
           PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
