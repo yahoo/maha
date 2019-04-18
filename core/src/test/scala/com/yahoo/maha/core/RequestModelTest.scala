@@ -146,7 +146,7 @@ class RequestModelTest extends FunSuite with Matchers {
         ),
         Set(
           PublicFactCol("impressions", "Impressions", InBetweenEquality),
-          PublicFactCol("clicks", "Clicks", In),
+          PublicFactCol("clicks", "Clicks", InEquality),
           PublicFactCol("spend", "Spend", InBetweenEquality, restrictedSchemas = Set(ResellerSchema))
         ),
         forcedFilters,
@@ -4887,7 +4887,8 @@ class RequestModelTest extends FunSuite with Matchers {
     }
   }
 
-  test("create model should fail when using or filters with fact and dim filter combination") {
+  //No longer valid, we now allow both & split on the backend.  New test is located in DruidQueryGeneratorTest.
+  /*test("create model should fail when using or filters with fact and dim filter combination") {
     val jsonString = s"""{
                           "cube": "publicFact",
                           "selectFields": [
@@ -4917,7 +4918,7 @@ class RequestModelTest extends FunSuite with Matchers {
     val res = RequestModel.from(request, registry)
     assert(res.isFailure)
     res.failed.get.getMessage should startWith ("requirement failed: Or filter cannot have combination of fact and dim filters, factFilters=Some(List(EqualityFilter(Impressions,1,false,false))) dimFilters=Some(List(EqualityFilter(Campaign ID,1,false,false)))")
-  }
+  }*/
 
   test("create model should succeed when using or filters with fact filters combination") {
     val jsonString = s"""{
@@ -4950,7 +4951,7 @@ class RequestModelTest extends FunSuite with Matchers {
     val orOp = OrFilterOperation
     assert(res.isSuccess)
     assert(!res.get.orFilterMeta.isEmpty)
-    assert(res.get.orFilterMeta.head.isFactFilters == true)
+    assert(res.get.orFilterMeta.head.filterType == MetaType.MetricType)
     assert(res.get.orFilterMeta.head.orFilter.filters.size == 2)
     assert(res.get.orFilterMeta.head.orFilter.operator == orOp)
     assert(res.get.orFilterMeta.head.orFilter.field == "or")
@@ -4992,16 +4993,18 @@ class RequestModelTest extends FunSuite with Matchers {
     val res = RequestModel.from(request, registry)
     assert(res.isSuccess)
     assert(!res.get.orFilterMeta.isEmpty)
-    assert(res.get.orFilterMeta.head.isFactFilters == false)
-    assert(res.get.orFilterMeta.head.orFilter.filters.size == 2)
-    assert(res.get.orFilterMeta.head.orFilter.operator == OrFilterOperation)
-    assert(res.get.orFilterMeta.head.orFilter.field == "or")
-    assert(res.get.orFilterMeta.head.orFilter.filters.toList(0).operator == EqualityFilterOperation)
-    assert(res.get.orFilterMeta.head.orFilter.filters.toList(0).field == "Campaign ID")
-    assert(res.get.orFilterMeta.head.orFilter.filters.toList(0).asValues == "1")
-    assert(res.get.orFilterMeta.head.orFilter.filters.toList(1).operator == EqualityFilterOperation)
-    assert(res.get.orFilterMeta.head.orFilter.filters.toList(1).field == "Advertiser Status")
-    assert(res.get.orFilterMeta.head.orFilter.filters.toList(1).asValues == "ON")
+    assert(res.get.orFilterMeta.size == 2)
+    val metaList = res.get.orFilterMeta.toList
+    assert(metaList.head.filterType == MetaType.FactType)
+    assert(metaList.head.orFilter.filters.size == 1)
+    assert(metaList.head.orFilter.operator == OrFilterOperation)
+    assert(metaList.head.orFilter.field == "or")
+    assert(metaList.head.orFilter.filters.toList(0).operator == EqualityFilterOperation)
+    assert(metaList.head.orFilter.filters.toList(0).field == "Campaign ID")
+    assert(metaList.head.orFilter.filters.toList(0).asValues == "1")
+    assert(metaList.last.orFilter.filters.toList(0).operator == EqualityFilterOperation)
+    assert(metaList.last.orFilter.filters.toList(0).field == "Advertiser Status")
+    assert(metaList.last.orFilter.filters.toList(0).asValues == "ON")
   }
 
   test("""create model errors with incorrect filters""") {
