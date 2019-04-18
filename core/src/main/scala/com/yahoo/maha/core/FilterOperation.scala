@@ -286,8 +286,20 @@ sealed trait SqlResult {
 
 case class DefaultResult(filter: String, escaped: Boolean = false) extends SqlResult
 
+/**
+  * Categorizes an OrFilter by the type of its contained filtered Columns.
+  * OrFilter can only directly compare columns of the same type.
+  * @param orFilter   - Current OrFilter to categorize.
+  * @param filterType - Category of the stored Filters for the current OrFilter.
+  */
 case class OrFilterMeta(orFilter: OrFilter, filterType: MetaType)
 
+/**
+  * All types of Filter Meta available:
+  * MetricType  - Column is found in a PublicFact and represents a value that gets aggregated.
+  * FactType    - Column is found in a PublicFact and are considered Dimensions but are not part of a joined in Dimension table.
+  * DimType     - Column is found in a Dimension table joined in to the primary Fact.
+  */
 object MetaType extends Enumeration {
   type MetaType = Value
   val MetricType, FactType, DimType = Value

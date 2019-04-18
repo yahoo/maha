@@ -491,6 +491,11 @@ object RequestModel extends Logging {
               outerFilters.foreach( of => require(allRequestedAliases.contains(of.field) == true, s"OuterFilter ${of.field} is not in selected column list"))
               allOuterFilters ++= outerFilters
             } else if (filter.isInstanceOf[OrFilter]) {
+              /**
+                * Split the current Filters into a series of OrFilters,
+                * categorized by Column type which then get rendered separately.
+                */
+
               val orFilter = filter.asInstanceOf[OrFilter]
               val mapForOrFilterSplitting: mutable.HashMap[MetaType.Value, mutable.SortedSet[Filter]] = mutable.HashMap[MetaType.Value, mutable.SortedSet[Filter]]()
                 orFilter.filters.foreach{
@@ -1176,6 +1181,12 @@ object RequestModel extends Logging {
     }
   }
 
+  /**
+    * Attempt to Statically Map the current filter, if applicable.
+    * @param filter     - Filter to check against Statically Mapped Columns
+    * @param publicFact - Source of Statically Mapped Column checking.
+    * @return           - Reverse Statically Mapped filter.
+    */
   def tryCreateReverseMappedFilter(filter: Filter
                                    , publicFact: PublicFact): Filter = {
     if (publicFact.aliasToReverseStaticMapping.contains(filter.field)) {
