@@ -749,6 +749,56 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
 
   }
 
+  test("generating hive query with dim col aggregate function") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Keyword ID"},
+                              {"field": "Impressions"},
+                              {"field": "Keyword Count"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(",",NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(keyword_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_keyword_count AS STRING), ''))
+         |FROM(
+         |SELECT COALESCE(account_id, 0L) advertiser_id, COALESCE(keyword_id, 0L) keyword_id, COALESCE(impressions, 0L) mang_impressions, COALESCE(mang_keyword_count, 0L) mang_keyword_count
+         |FROM(SELECT account_id, keyword_id, (COUNT(keyword_id)) mang_keyword_count, SUM(impressions) impressions
+         |FROM s_stats_fact
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id, keyword_id
+         |
+         |       )
+         |ssf0
+         |)
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+
+  }
+
+
   /*
   // Outer Group By
   test("Successfully generated Outer Group By Query with dim non id field and fact field") {

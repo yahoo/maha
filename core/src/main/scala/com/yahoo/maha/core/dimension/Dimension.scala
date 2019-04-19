@@ -35,7 +35,13 @@ abstract class BaseDimCol extends DimensionColumn {
 
 abstract class BaseConstDimCol extends BaseDimCol with ConstDimensionColumn
 
-abstract class BaseDerivedDimCol extends BaseDimCol with DerivedDimensionColumn
+abstract class BaseDerivedDimCol extends BaseDimCol with DerivedDimensionColumn {
+  def isAggregateColumn: Boolean = false
+}
+
+abstract class BaseDerivedAggregateDimCol extends BaseDerivedDimCol {
+  override def isAggregateColumn: Boolean = true
+}
 
 abstract class BaseFunctionDimCol extends BaseDimCol with DerivedFunctionColumn {
   def validate()
@@ -126,7 +132,7 @@ object HiveDimCol {
             filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) : HiveDimCol = {
     HiveDimCol(name, dataType, cc, alias, annotations, filterOperationOverrides)
   }
-  
+
 }
 
 case class HiveDerDimCol(name: String,
@@ -156,6 +162,37 @@ object HiveDerDimCol {
             annotations: Set[ColumnAnnotation] = Set.empty,
             filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) : HiveDerDimCol = {
     HiveDerDimCol(name, dataType, cc, derivedExpression, alias, annotations, filterOperationOverrides)
+  }
+}
+
+case class HiveDerDimAggregateCol(name: String,
+                         dataType: DataType,
+                         columnContext: ColumnContext,
+                         derivedExpression: HiveDerivedExpression,
+                         alias: Option[String],
+                         annotations: Set[ColumnAnnotation],
+                         filterOperationOverrides: Set[FilterOperation]) extends BaseDerivedAggregateDimCol with WithHiveEngine {
+
+  require(derivedExpression != null,
+    s"Derived expression should be defined for a derived column $name")
+  require(derivedExpression.expression.hasRollupExpression, s"HiveDerDimAggregateCol should have rollup expression  $name - $derivedExpression")
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : DimensionColumn = {
+    if(resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name), derivedExpression = derivedExpression.copyWith(columnContext))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias), derivedExpression = derivedExpression.copyWith(columnContext))
+    }
+  }
+}
+
+object HiveDerDimAggregateCol {
+  def apply(name: String,
+            dataType: DataType,
+            derivedExpression: HiveDerivedExpression,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            filterOperationOverrides: Set[FilterOperation] = Set.empty) (implicit cc: ColumnContext): HiveDerDimAggregateCol =  {
+    HiveDerDimAggregateCol(name, dataType, cc, derivedExpression, alias, annotations, filterOperationOverrides)
   }
 }
 
