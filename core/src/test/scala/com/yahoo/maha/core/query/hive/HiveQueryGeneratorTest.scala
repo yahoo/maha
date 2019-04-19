@@ -547,6 +547,48 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
+  test("verify regex_extract query") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Click Exp ID"},
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, "query should not fail")
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(",",NVL(click_exp_id, ''), NVL(advertiser_id, ''), NVL(mang_impressions, ''))
+         |FROM(
+         |SELECT COALESCE(click_exp_id, "NA") click_exp_id, CAST(COALESCE(account_id, 0L) as STRING) advertiser_id, CAST(COALESCE(impressions, 0L) as STRING) mang_impressions
+         |FROM(SELECT account_id, CASE WHEN LENGTH(regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$$)', 2)) > 0 THEN regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$$)', 2) ELSE '-3' END click_exp_id, SUM(impressions) impressions
+         |FROM s_stats_fact
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id, CASE WHEN LENGTH(regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$$)', 2)) > 0 THEN regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$$)', 2) ELSE '-3' END
+         |
+ |       )
+         |ssf0
+         |)
+      """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
   test("Verify metric FieldEquality generates a valid query.") {
     val jsonString =
       s"""{
