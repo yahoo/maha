@@ -210,7 +210,7 @@ trait BaseQueryContextTest {
       )
   }
 
-  override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
+  override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder, conditionalForcedFilter: Option[ConditionalForcedFilter]): Unit = {
     val builder = ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       import HiveExpression._
       Fact.newFact(

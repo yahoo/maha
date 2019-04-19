@@ -12,6 +12,7 @@ import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{START_OF_THE_MONTH, START_OF_THE_WEEK}
 import com.yahoo.maha.core.MetaType.MetaType
 import com.yahoo.maha.core.dimension.{DruidFuncDimCol, DruidPostResultFuncDimCol}
+import com.yahoo.maha.core.fact.PublicFactCol
 import com.yahoo.maha.core.request.fieldExtended
 import grizzled.slf4j.Logging
 import io.druid.js.JavaScriptConfig
@@ -177,6 +178,9 @@ sealed trait ValuesFilter extends ForcedFilter {
   def renameField(newField: String): ValuesFilter
   val asValues: String = values.mkString(",")
 }
+
+case class ConditionalForcedFilter (conditionalFields : Set[String], forcedFilter: Set[ForcedFilter])
+
 case class InFilter(field: String, values: List[String]
                     , override val isForceFilter: Boolean = false
                     , override val isOverridable: Boolean = false) extends ValuesFilter {

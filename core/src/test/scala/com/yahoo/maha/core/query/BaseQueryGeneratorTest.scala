@@ -38,12 +38,12 @@ trait BaseQueryGeneratorTest {
   protected[this] implicit val executionContext: ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(10))
   protected[this] val queryPipelineFactory = new DefaultQueryPipelineFactory()
   
-  protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder : RegistryBuilder) : Unit
+  protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder : RegistryBuilder, conditionalForcedFilter: Option[ConditionalForcedFilter]) : Unit
   protected[this] def registerDims(registryBuilder : RegistryBuilder) : Unit
 
-  protected[this] def getDefaultRegistry(forcedFilters: Set[ForcedFilter] = Set.empty): Registry = {
+  protected[this] def getDefaultRegistry(forcedFilters: Set[ForcedFilter] = Set.empty, conditionalForcedFilter: Option[ConditionalForcedFilter] = None): Registry = {
     val registryBuilder = new RegistryBuilder
-    registerFacts(forcedFilters, registryBuilder)
+    registerFacts(forcedFilters, registryBuilder, conditionalForcedFilter)
     registerDims(registryBuilder)
     registryBuilder.build()
   }

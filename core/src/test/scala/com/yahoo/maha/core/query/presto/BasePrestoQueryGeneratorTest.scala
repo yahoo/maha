@@ -24,14 +24,14 @@ trait BasePrestoQueryGeneratorTest
     PrestoQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestPrestoUDFRegistrationFactory())
   }
 
-  override protected[this] def getDefaultRegistry(forcedFilters: Set[ForcedFilter] = Set.empty): Registry = {
+  override protected[this] def getDefaultRegistry(forcedFilters: Set[ForcedFilter] = Set.empty, conditionalForcedFilter: Option[ConditionalForcedFilter] = None): Registry = {
     val registryBuilder = new RegistryBuilder
-    registerFacts(forcedFilters, registryBuilder)
+    registerFacts(forcedFilters, registryBuilder, conditionalForcedFilter)
     registerDims(registryBuilder)
     registryBuilder.build()
   }
 
-  override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
+  override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder, conditionalForcedFilter: Option[ConditionalForcedFilter]): Unit = {
     registryBuilder.register(s_stats_fact(forcedFilters))
     registryBuilder.register(aga_stats_fact(forcedFilters))
     registryBuilder.register(ce_stats(forcedFilters))

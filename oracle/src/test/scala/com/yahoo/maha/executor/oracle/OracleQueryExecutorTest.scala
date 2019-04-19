@@ -55,7 +55,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     oracleQueryExecutor.foreach(queryExecutorContext.remove(_))
   }
 
-  override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
+  override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder, conditionalForcedFilter: Option[ConditionalForcedFilter]): Unit = {
     registryBuilder.register(pubfact(forcedFilters))
     registryBuilder.register(pubfactInvalid(forcedFilters))
     registryBuilder.register(druidpubfact(forcedFilters))

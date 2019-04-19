@@ -23,7 +23,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
     DruidQueryGenerator.register(queryGeneratorRegistry, queryOptimizer = new SyncDruidQueryOptimizer(timeout = 5000))
   }
 
-  override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
+  override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder, conditionalForcedFilter: Option[ConditionalForcedFilter]): Unit = {
     registryBuilder.register(pubfact(forcedFilters))
     registryBuilder.register(pubfact_v1(forcedFilters))
     registryBuilder.register(pubfact2(forcedFilters))

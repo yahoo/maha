@@ -1458,6 +1458,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , forcedFilters: Set[ForcedFilter]
                    , maxDaysWindow: Map[(RequestType, Grain), Int]
                    , maxDaysLookBack: Map[(RequestType, Grain), Int]
+                   , conditionalForcedFilter: Option[ConditionalForcedFilter] = None
                    , enableUTCTimeConversion: Boolean = true
                    , renderLocalTimeFilter: Boolean = true
                    , revision: Int = 0
@@ -1469,6 +1470,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , factCols
       , tableMap
       , forcedFilters
+      , conditionalForcedFilter
       , maxDaysWindow
       , maxDaysLookBack
       , dimCardinalityLookup
@@ -1608,6 +1610,7 @@ case class PublicFactTable private[fact](name: String
                                          , factCols: Set[PublicFactColumn]
                                          , facts: Map[String, Fact]
                                          , forcedFilters: Set[ForcedFilter]
+                                         , conditionalForcedFilter: Option[ConditionalForcedFilter]
                                          , maxDaysWindow: Map[(RequestType, Grain), Int]
                                          , maxDaysLookBack: Map[(RequestType, Grain), Int]
                                          , dimCardinalityLookup: Option[LongRangeLookup[Map[RequestType, Map[Engine, Int]]]]
@@ -1956,4 +1959,5 @@ case class PublicFactTable private[fact](name: String
     }
   }
 
+  override def conditionalForcedFilters: Option[ConditionalForcedFilter] = conditionalForcedFilter
 }

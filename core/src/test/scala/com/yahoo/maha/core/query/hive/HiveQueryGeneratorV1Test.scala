@@ -4,12 +4,17 @@ package com.yahoo.maha.core.query.hive
 
 import java.nio.charset.StandardCharsets
 
+import com.yahoo.maha.core
 import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
-import com.yahoo.maha.core._
+import com.yahoo.maha.core.{fact, _}
+import com.yahoo.maha.core.fact.PublicFactCol
 import com.yahoo.maha.core.query.{QueryGeneratorRegistry, _}
+import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.request.ReportingRequest
+import org.json4s.scalaz.JsonScalaz
 import org.mockito.Mockito._
 import org.mockito.Matchers._
+import scalaz.NonEmptyList
 
 import scala.util.Try
 
@@ -1480,11 +1485,72 @@ GROUP BY a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id) outergroupby
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
+  test("Successfully generated conditional Filters override") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             { "field": "Advertiser ID" },
+                             { "field": "Campaign ID" },
+                             { "field": "Campaign Name" },
+                             { "field": "Day" },
+                             { "field": "Pricing Type" },
+                             { "field": "Impressions" },
+                             { "field": "Clicks" },
+                             { "field": "CTR" },
+                             { "field": "Impression Share" },
+                             { "field": "Conversion Assists" },
+                             { "field": "Spend" }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+    val conditionalForcedFilterFields : Set[String] = Set("Conversion Assists")
+    val conditionalFilters : Set[ForcedFilter] = Set(InFilter("Flag", List("1","2"), isForceFilter = true))
+    val conditionalForcedFilters : ConditionalForcedFilter = ConditionalForcedFilter(conditionalForcedFilterFields, conditionalFilters)
+    val forcedFilters: Set[ForcedFilter] = Set(EqualityFilter("Flag", "1", isForceFilter = true, isOverridable = true))
+    val result = generateHiveQueryWithConditionalFilter(jsonString, forcedFilters, conditionalForcedFilters)
+    val expected = s"""
+                      |SELECT CONCAT_WS(",",NVL(advertiser_id, ''), NVL(campaign_id, ''), NVL(mang_campaign_name, ''), NVL(mang_day, ''), NVL(mang_pricing_type, ''), NVL(mang_impressions, ''), NVL(mang_clicks, ''), NVL(mang_ctr, ''), NVL(mang_impression_share, ''), NVL(mang_conversion_assists, ''), NVL(mang_spend, ''))
+                      |FROM(
+                      |SELECT CAST(COALESCE(advertiser_id, 0L) as STRING) advertiser_id, CAST(COALESCE(af0.campaign_id, 0L) as STRING) campaign_id, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, getFormattedDate(stats_date) mang_day, CAST(COALESCE(price_type, 0L) as STRING) mang_pricing_type, CAST(COALESCE(impressions, 0L) as STRING) mang_impressions, CAST(COALESCE(mang_clicks, 0L) as STRING) mang_clicks, CAST(ROUND(COALESCE(CTR, 0L), 10) as STRING) mang_ctr, CAST(COALESCE(mang_impression_share, 0L) as STRING) mang_impression_share, CAST(COALESCE((coalesce(conditional_metric, 0)), 0L) as STRING) mang_conversion_assists, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
+                      |FROM(SELECT stats_date, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, advertiser_id, campaign_id, SUM(impressions) impressions, SUM(spend) spend, SUM(clicks) mang_clicks, (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) CTR, SUM(conditional_metric) conditional_metric, (ROUND((decodeUDF(MAX(show_flag), 1, ROUND(CASE WHEN SUM(s_impressions) = 0 THEN 0.0 ELSE SUM(impressions) / (SUM(s_impressions)) END, 4), NULL)), 5)) mang_impression_share
+                      |FROM ad_fact1
+                      |WHERE (advertiser_id = 12345) AND (coalesce(show_flag, 1) IN (1,2)) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+                      |GROUP BY stats_date, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, advertiser_id, campaign_id
+                      |
+                      |       )
+                      |af0
+                      |LEFT OUTER JOIN (
+                      |SELECT campaign_name AS mang_campaign_name, id c1_id
+                      |FROM campaing_hive
+                      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+                      |)
+                      |c1
+                      |ON
+                      |af0.campaign_id = c1.c1_id
+                      |       )
+                      """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
 
   def generateHiveQuery(requestJson: String): String = {
     val requestRaw = ReportingRequest.deserializeAsync(requestJson.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = defaultRegistry
-    val request = ReportingRequest.forceHive(requestRaw.toOption.get)
+    val registry = getDefaultRegistry()
+    generateHiveQuery(registry, requestRaw.toOption.get)
+  }
+
+  def generateHiveQueryWithConditionalFilter(requestJson: String, forcedFilters: Set[ForcedFilter], conditionalForcedFilters: ConditionalForcedFilter): String = {
+    val requestRaw = ReportingRequest.deserializeAsync(requestJson.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = getDefaultRegistry(forcedFilters, Some(conditionalForcedFilters))
+    generateHiveQuery(registry, requestRaw.toOption.get)
+  }
+
+  def generateHiveQuery(registry: Registry, requestRaw : ReportingRequest ): String = {
+    val request = ReportingRequest.forceHive(requestRaw)
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 

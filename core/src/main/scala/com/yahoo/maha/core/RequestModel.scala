@@ -533,8 +533,21 @@ object RequestModel extends Logging {
               require(filterMap.contains(alias), s"Missing required filter: cube=${publicFact.name}, field=$alias")
           }
 
+          val computedForceFilters : Set[ForcedFilter] =  {
+            publicFact.conditionalForcedFilters match {
+              case Some(conditionalForcedFilter) =>
+                if (allRequestedFactAliases.intersect(conditionalForcedFilter.conditionalFields).isEmpty) {
+                  publicFact.forcedFilters
+                } else {
+                  conditionalForcedFilter.forcedFilter
+                }
+              case _ =>
+                publicFact.forcedFilters
+            }
+          }
+
           // populate all forced filters from fact
-          publicFact.forcedFilters.foreach { filter =>
+          computedForceFilters.foreach { filter =>
             if(!allFilterAliases(filter.field)) {
               allFilterAliases += filter.field
               filterMap.put(filter.field, filter)
