@@ -150,7 +150,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
       val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(HiveEngine), queryGeneratorRegistry = queryGeneratorRegistry)
       builder.addFactBestCandidate(fact)
       val result = getHiveQuery(builder.build()).asString
-      assert(result.contains("""SELECT CONCAT_WS(",",NVL(mang_day, ''), NVL(advertiser_id, ''), NVL(campaign_id, ''), NVL(ad_group_id, ''), NVL(mang_source, ''), NVL(mang_pricing_type, ''), NVL(mang_destination_url, ''), NVL(mang_impressions, ''), NVL(mang_clicks, ''))"""))
+      assert(result.contains("""SELECT CONCAT_WS(",",NVL(CAST(mang_day AS STRING), ''), NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(campaign_id AS STRING), ''), NVL(CAST(ad_group_id AS STRING), ''), NVL(CAST(mang_source AS STRING), ''), NVL(CAST(mang_pricing_type AS STRING), ''), NVL(CAST(mang_destination_url AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_clicks AS STRING), ''))"""))
     }
 
     //test with druid
@@ -356,7 +356,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
       builder.addFactBestCandidate(fact)
       val result = getHiveQuery(builder.build()).asString
       
-      assert(result.contains("""SELECT CONCAT_WS(",",NVL(mang_day, ''), NVL(advertiser_id, ''), NVL(mang_ad_group_status, ''), NVL(ag1_id, ''), NVL(mang_source, ''), NVL(mang_pricing_type, ''), NVL(mang_destination_url, ''), NVL(mang_impressions, ''), NVL(mang_clicks, ''))"""))
+      assert(result.contains("""SELECT CONCAT_WS(",",NVL(CAST(mang_day AS STRING), ''), NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_ad_group_status AS STRING), ''), NVL(CAST(ag1_id AS STRING), ''), NVL(CAST(mang_source AS STRING), ''), NVL(CAST(mang_pricing_type AS STRING), ''), NVL(CAST(mang_destination_url AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_clicks AS STRING), ''))"""))
     }
 
     //test with oracle dim only
