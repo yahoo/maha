@@ -23,10 +23,8 @@ class QueryGeneratorRegistryTest extends FunSuite with Matchers {
     val hiveQueryGenerator = mock(classOf[HiveQueryGenerator])
     qgenRegistry.register(HiveEngine, hiveQueryGenerator)
     qgenRegistry.register(HiveEngine, hiveQueryGenerator, Version.v1)
-    qgenRegistry.register(HiveEngine, hiveQueryGenerator, Version.v2)
     assert(qgenRegistry.isEngineRegistered(HiveEngine, Option(Version.v0)) == true)
     assert(qgenRegistry.isEngineRegistered(HiveEngine, Option(Version.v1)) == true)
-    assert(qgenRegistry.isEngineRegistered(HiveEngine, Option(Version.v2)) == true)
   }
 
   test("Failed to register query generator repeatedly for the same engine and version") {

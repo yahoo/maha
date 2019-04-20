@@ -12,8 +12,7 @@
         "oracle",
         "druid",
         "presto",
-        "hive",
-        "hive_v2"
+        "hive"
       ],
       "bucketingConfigName": "erBucket",
       "utcTimeProviderName": "erUTC",
@@ -175,24 +174,6 @@
           }
         ]
       }
-    },
-    "hive_v2": {
-      "factoryClass": "com.yahoo.maha.service.factory.HiveQueryGeneratorFactory",
-      "config": {
-        "partitionColumnRendererClass": "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
-        "partitionColumnRendererConfig": [
-          {
-            "key": "value"
-          }
-        ],
-        "udfRegistrationFactoryName": "com.yahoo.maha.service.factory.DefaultMahaUDFRegistrationFactory",
-        "udfRegistrationFactoryConfig": [
-          {
-            "key": "value"
-          }
-        ],
-        "version" : 2
-      }
     }
   },
   "bucketingConfigMap": {
@@ -247,10 +228,6 @@
             "internal": [
               {
                 "revision": 0,
-                "percent": 0
-              },
-              {
-                "revision": 2,
                 "percent": 100
               }
             ],
@@ -258,26 +235,22 @@
               {
                 "revision": 0,
                 "percent": 100
-              },
-              {
-                "revision": 2,
-                "percent": 0
               }
             ],
             "dryRun": [
               {
-                "revision": 2,
+                "revision": 0,
                 "percent": 50
               }
             ],
             "userWhiteList": [
               {
                 "user": "pranavbhole",
-                "revision": 2
+                "revision": 0
               },
               {
                 "user": "pavanb",
-                "revision": 2
+                "revision": 0
               }
             ]
           }

@@ -5,13 +5,11 @@ package com.yahoo.maha.service.factory
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.query.{QueryGenerator, Version}
 import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, DruidQueryOptimizer}
-import com.yahoo.maha.core.query.hive.{HiveQueryGenerator, HiveQueryGeneratorV1, HiveQueryGenerator}
+import com.yahoo.maha.core.query.hive.{HiveQueryGenerator, HiveQueryGeneratorV1}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.query.presto.PrestoQueryGenerator
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
-import com.yahoo.maha.service.config.JsonDataSourceConfig
-import javax.sql.DataSource
 import org.json4s.JValue
 import scalaz.Validation.FlatMap._
 import scalaz.syntax.applicative._
@@ -138,8 +136,6 @@ class HiveQueryGeneratorFactory extends QueryGeneratorFactory {
     (partitionColumnRenderer |@| udfStatements) {
       (renderer, stmt) => {
         version match {
-          case Version.v2 =>
-            new HiveQueryGenerator(renderer, stmt)
           case Version.v1 =>
             new HiveQueryGeneratorV1(renderer, stmt)
           case _ =>
