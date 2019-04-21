@@ -12,6 +12,8 @@ import scala.collection.{SortedSet, mutable}
 
 /**
  * Created by shengyao on 12/16/15.
+  * Experimental Hive query generator for Hive outer group by feature
+  * Outdated on 04/19/2019, please rebase with current changes if anybody starts working on it
  */
 class HiveQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends HiveQueryGeneratorCommon(partitionColumnRenderer, udfStatements) with Logging {
 
