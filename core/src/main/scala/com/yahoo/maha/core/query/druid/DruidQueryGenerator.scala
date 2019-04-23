@@ -494,7 +494,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             new DefaultLimitSpec(null, threshold)
           }
 
-          builder.setLimitSpec(limitSpec)
+          if(queryContext.requestModel.dimFilters.filter(filter => dims.exists(bundle => bundle.publicDim.containsHighCardinalityFilter(filter))).isEmpty)
+            builder.setLimitSpec(limitSpec)
 
           val ephemeralAliasColumns: Map[String, Column] = ephemeralAliasColumnMap(queryContext)
 

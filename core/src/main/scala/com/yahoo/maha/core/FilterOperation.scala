@@ -196,6 +196,7 @@ case class LikeFilter(field: String, value: String
                       , override val isOverridable: Boolean = false) extends ForcedFilter {
   override def operator = LikeFilterOperation
   val asValues: String = value
+  override def canBeHighCardinalityFilter: Boolean = true
 }
 case class NotEqualToFilter(field: String, value: String
                             , override val isForceFilter: Boolean = false
