@@ -1948,15 +1948,13 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                             {"operator": "or", "filterExpressions": [
                               {"field": "Campaign Name", "operator": "=", "value": "Nike"},
                               {"field": "Campaign Total", "operator": "=", "value": "Nike"},
-                              {"field": "Advertiser Name", "operator": "=", "value": "2"},
+                              {"field": "Advertiser Name", "operator": "like", "value": "2"},
                               {"field": "Ad ID", "operator": "=", "value": "12345"},
                               {"field": "Source", "operator": "=", "value": "1"}]}
                           ],
                           "sortBy": [
                             {"field": "Impressions", "order": "Desc"}
-                          ],
-                          "paginationStartIndex":20,
-                          "rowsPerPage":100
+                          ]
                         }"""
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
@@ -1965,8 +1963,9 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    
-    val filterjson = s"""{"type":"or","fields":[{"type":"selector","dimension":"Advertiser Name","value":"2"},{"type":"selector","dimension":"Campaign Name","value":"Nike"},{"type":"selector","dimension":"Campaign Total","value":"Nike"}]}"""
+
+    println(result)
+    val filterjson = s"""{"type":"or","fields":[{"type":"search","dimension":"Advertiser Name","query":{"type":"insensitive_contains","value":"2","caseSensitive":false}},{"type":"selector","dimension":"Campaign Name","value":"Nike"},{"type":"selector","dimension":"Campaign Total","value":"Nike"}]}"""
     val filterFactJson = s"""{"type":"or","fields":[{"type":"selector","dimension":"ad_id","value":"12345"},{"type":"selector","dimension":"stats_source","value":"1"}]}"""
     assert(result.contains(filterjson) && result.contains(filterFactJson), result)
   }
