@@ -4,6 +4,7 @@ package com.yahoo.maha.core
 
 import com.yahoo.maha.core.dimension.DimCol
 import com.yahoo.maha.core.fact.ForceFilter
+import io.druid.query.extraction.RegexDimExtractionFn
 import io.druid.query.filter.{NotDimFilter, SearchQueryDimFilter}
 import io.druid.query.search.InsensitiveContainsSearchQuerySpec
 import javax.swing.JList
@@ -486,6 +487,7 @@ class FilterTest extends FunSuite with Matchers {
     val filter10 = OuterFilter(List(IsNotNullFilter("field1")))
     val filter11 = filter2.renameField("new_field_name")
     val filter12 = FieldEqualityFilter("field1", "field2")
+    val filter13 = RegexFilter("field1", "regex")
 
     val s: Set[Filter] = Set(filter1, filter2, filter3, filter4, filter5, filter6, filter7, filter8, filter9, filter10)
     assert(s.size === 10)
@@ -505,7 +507,8 @@ class FilterTest extends FunSuite with Matchers {
       && !filter9.canBeHighCardinalityFilter
       && !filter10.canBeHighCardinalityFilter
       && filter11.canBeHighCardinalityFilter
-      && filter12.canBeHighCardinalityFilter, "All known filters and ability to be high cardinality is asserted here.")
+      && filter12.canBeHighCardinalityFilter
+      && filter13.canBeHighCardinalityFilter, "All known filters and ability to be high cardinality is asserted here.")
   }
 
   test("Attempt to compare incomparable types") {
@@ -689,6 +692,13 @@ class FilterTest extends FunSuite with Matchers {
     val druidNotEqualToFilter = NotEqualToFilter("not", "value")
     val druidNotEqualToFilterResult = FilterDruid.renderFilterDim(druidNotEqualToFilter, Map("not" -> "not"), Map("not" -> DimCol("not", StrType())), Option(DailyGrain))
     assert(druidNotEqualToFilterResult.isInstanceOf[NotDimFilter], "Should generate a proper Druid NotDimFilter.")
+  }
+
+  test("Should generate the proper regex DimensionSpec for FilterDruid") {
+    val druidRegexFilter = RegexFilter("field", "regex")
+    val druidRegexFilterResult = FilterDruid.renderFilterDim(druidRegexFilter, Map("field" -> "field"), Map("field" -> DimCol("field", StrType())), Option(DailyGrain))
+    assert(druidRegexFilterResult.isInstanceOf[SearchQueryDimFilter])
+    assert(druidRegexFilterResult.asInstanceOf[SearchQueryDimFilter].getQuery.isInstanceOf[RegexDimExtractionFn])
   }
 
   test("Should return the expected filter sets with Pk fields") {

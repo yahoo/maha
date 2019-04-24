@@ -42,6 +42,7 @@ case object AndFilterOperation extends FilterOperation { override def toString =
 case object GreaterThanFilterOperation extends FilterOperation { override def toString = ">" }
 case object LessThanFilterOperation extends FilterOperation { override def toString = "<" }
 case object FieldEqualityFilterOperation extends FilterOperation { override def toString = "==" }
+case object RegexFilterOperation extends FilterOperation { override def toString = "%%" }
 case object NoopFilterOperation extends FilterOperation
 
 object FilterOperation {
@@ -71,6 +72,7 @@ object FilterOperation {
   val InNotInEqualityLikeNullNotNull: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation, NotInFilterOperation,
                                                    LikeFilterOperation, IsNullFilterOperation, IsNotNullFilterOperation)
   val InNotInBetweenEqualityNotEqualsGreaterLesser: Set[FilterOperation] = Set(InFilterOperation, NotInFilterOperation, BetweenFilterOperation, EqualityFilterOperation, NotEqualToFilterOperation, GreaterThanFilterOperation, LessThanFilterOperation)
+  val Regex: Set[FilterOperation] = Set(RegexFilterOperation)
 }
 
 sealed trait Filter {
@@ -160,6 +162,16 @@ case class JavaScriptFilter(field: String, function: String
                          ) extends ForcedFilter {
   override def operator = NoopFilterOperation
   val asValues: String = function
+  override def canBeHighCardinalityFilter: Boolean = true
+}
+
+case class RegexFilter(field: String, value: String
+                      , override val isForceFilter: Boolean = false
+                      , override val isOverridable: Boolean = false
+                      ) extends ForcedFilter {
+  override def operator = RegexFilterOperation
+  val asValues: String = value
+
   override def canBeHighCardinalityFilter: Boolean = true
 }
 
@@ -867,6 +879,9 @@ object FilterDruid {
       case f @ JavaScriptFilter(alias, func, _, _) => {
         new JavaScriptDimFilter(alias, func, null, JavaScriptConfig.getEnabledInstance)
       }
+      case f @ RegexFilter(alias, value, _, _) =>
+        val spec = new RegexDimExtractionFn(value, 0, false, "")
+        new SelectorDimFilter(alias, value, spec)
       case f =>
         throw new UnsupportedOperationException(s"Unhandled filter operation $f")
     }
