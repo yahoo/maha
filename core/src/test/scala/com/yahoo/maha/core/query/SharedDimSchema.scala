@@ -422,12 +422,12 @@ trait SharedDimSchema {
         Set(
           PubCol("id", "Advertiser ID", InEquality)
           , PubCol("managed_by", "Reseller ID", InEquality)
-          , PubCol("name", "Advertiser Name", Equality)
+          , PubCol("name", "Advertiser Name", InEqualityLike)
           , PubCol("Advertiser Status", "Advertiser Status", InEquality)
           , PubCol("currency", "Advertiser Currency", InEquality)
           , PubCol("booking_country", "Booking Country", InEquality)
           , PubCol("device_id", "Advertiser Device ID", InEquality)
-        ), highCardinalityFilters = Set(NotInFilter("Advertiser Status", List("DELETED")), InFilter("Booking Country", List("US")))
+        ), highCardinalityFilters = Set(NotInFilter("Advertiser Status", List("DELETED")), InFilter("Booking Country", List("US")), LikeFilter("Advertiser Name", "Blue"))
       )
   }
 

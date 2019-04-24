@@ -500,7 +500,7 @@ class FilterTest extends FunSuite with Matchers {
       && filter4.canBeHighCardinalityFilter
       && !filter5.canBeHighCardinalityFilter
       && !filter6.canBeHighCardinalityFilter
-      && !filter7.canBeHighCardinalityFilter
+      && filter7.canBeHighCardinalityFilter
       && filter8.canBeHighCardinalityFilter
       && !filter9.canBeHighCardinalityFilter
       && !filter10.canBeHighCardinalityFilter

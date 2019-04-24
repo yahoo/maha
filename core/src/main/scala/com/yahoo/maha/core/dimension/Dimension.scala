@@ -909,7 +909,7 @@ case class PublicDim (name: String
 
   private[this] val highCardinalityFilterInValuesMap: Map[String, Set[String]] = {
     highCardinalityFilters
-      .filter(f => f.isInstanceOf[InFilter] || f.isInstanceOf[EqualityFilter])
+      .filter(f => f.isInstanceOf[InFilter] || f.isInstanceOf[EqualityFilter] || f.isInstanceOf[LikeFilter])
       .groupBy(_.field)
       .mapValues {
         filterSet =>
@@ -918,6 +918,8 @@ case class PublicDim (name: String
               values.toSet
             case EqualityFilter(_, value, _, _) =>
               Set(value)
+            case LikeFilter(_, _, _, _) =>
+              Set.empty
           }.flatten
       }
   }
@@ -978,6 +980,8 @@ case class PublicDim (name: String
         val highCardinalityValues = highCardinalityFilterInValuesMap(f.field)
         highCardinalityValues(value)
       case PushDownFilter(f) => containsHighCardinalityInclusiveFilter(f)
+      case LikeFilter(_, _, _, _) =>
+        true
       case _ => false
     }
   }
