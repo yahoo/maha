@@ -250,10 +250,16 @@ object HiveExpression {
     def asString : String = s"MIN(${s.asString})"
   }
 
-  case class COUNT(s: HiveExp, isDistinct: Boolean = false) extends BaseHiveExpression {
+  case class COUNT(s: HiveExp) extends BaseHiveExpression {
     val hasRollupExpression = true
     val hasNumericOperation = true
-    def asString : String = if (isDistinct) s"COUNT(distinct ${s.asString})" else s"COUNT(${s.asString})"
+    def asString : String = s"COUNT(${s.asString})"
+  }
+
+  case class COUNT_DISTINCT(s: HiveExp) extends BaseHiveExpression {
+    val hasRollupExpression = true
+    val hasNumericOperation = true
+    def asString : String = s"COUNT(distinct ${s.asString})"
   }
 
   case class DAY_OF_WEEK(s: HiveExp, fmt: String) extends BaseHiveExpression {

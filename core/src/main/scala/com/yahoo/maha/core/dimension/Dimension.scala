@@ -172,9 +172,14 @@ case class HiveDerDimAggregateCol(name: String,
                          alias: Option[String],
                          annotations: Set[ColumnAnnotation],
                          filterOperationOverrides: Set[FilterOperation]) extends BaseDerivedAggregateDimCol with WithHiveEngine {
-
   require(derivedExpression != null,
     s"Derived expression should be defined for a derived column $name")
+  derivedExpression.sourceColumns.foreach {
+    colName =>
+      val colOption = columnContext.getColumnByName(colName)
+      require(colOption.isDefined, s"Failed to find the col $colName registered in the context")
+      require(colOption.get.isInstanceOf[DimensionColumn], s"Column $colName in the derived expression in not dimension column, All columns referred by HiveDerDimAggregateCol has to be dimension columns")
+  }
   require(derivedExpression.expression.hasRollupExpression, s"HiveDerDimAggregateCol should have rollup expression  $name - $derivedExpression")
   def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : DimensionColumn = {
     if(resetAliasIfNotPresent) {

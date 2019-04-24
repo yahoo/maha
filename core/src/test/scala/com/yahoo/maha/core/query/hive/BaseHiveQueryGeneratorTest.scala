@@ -59,7 +59,7 @@ trait BaseHiveQueryGeneratorTest
           , DimCol("column_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned")))
           , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
           , HiveDerDimCol("Ad Group Start Date Full", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "YYYY-MM-dd HH:mm:ss"))
-          , HiveDerDimAggregateCol("Keyword Count",IntType(), COUNT("{keyword_id}", true))
+          , HiveDerDimAggregateCol("Keyword Count",IntType(), COUNT_DISTINCT("{keyword_id}"))
           , HiveDerDimAggregateCol("Keyword Count Scaled", IntType(), COUNT("{keyword_id} * {stats_source} * 10"))
           , DimCol("internal_bucket_id", StrType())
           , HiveDerDimCol("click_exp_id", StrType(), REGEX_EXTRACT("internal_bucket_id", "(cl-)(.*?)(,|$)", 2, replaceMissingValue = true, "-3"))

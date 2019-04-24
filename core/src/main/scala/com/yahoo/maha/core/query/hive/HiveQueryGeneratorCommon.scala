@@ -137,17 +137,16 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
           val nameOrAlias = column.alias.getOrElse(name)
           renderColumnWithAlias(fact, column, alias, Set.empty, false)
           val isAggregatedDimCol = isAggregateDimCol(column)
-          if (isAggregatedDimCol) {
-            // do nothing in the group by
-          } else
-          if (column.isDerivedColumn) {
-            val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
-            queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
-          } else {
-            if(column.dataType.hasStaticMapping) {
-              queryBuilder.addGroupBy(renderStaticMappedDimension(column))
+          if (!isAggregatedDimCol) {
+            if (column.isDerivedColumn) {
+              val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
+              queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
             } else {
-              queryBuilder.addGroupBy(nameOrAlias)
+              if(column.dataType.hasStaticMapping) {
+                queryBuilder.addGroupBy(renderStaticMappedDimension(column))
+              } else {
+                queryBuilder.addGroupBy(nameOrAlias)
+              }
             }
           }
       }
