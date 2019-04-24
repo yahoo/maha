@@ -402,18 +402,18 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       col.derivedExpression.sourceColumns.contains("De 1") should equal(true)
       col.derivedExpression.sourceColumns.contains("De 2") should equal(true)
       col.derivedExpression.render(col.name, columnPrefix = Option("tableAlias."), expandDerivedExpression = false) should equal(
-        """CASE WHEN tableAlias."De 2" = 0 THEN 0.0 ELSE tableAlias."De 1" / tableAlias."De 2" END"""
+        """CASE WHEN tableAlias."De 2" = 0 THEN 0.0 ELSE CAST(tableAlias."De 1" AS DOUBLE) / tableAlias."De 2" END"""
       )
       col.derivedExpression.render(col.name, columnPrefix = Option("tableAlias."), expandDerivedExpression = true) should equal(
-        """CASE WHEN (tableAlias."impressions" * 1000) = 0 THEN 0.0 ELSE (tableAlias."clicks" * 1000) / (tableAlias."impressions" * 1000) END"""
+        """CASE WHEN (tableAlias."impressions" * 1000) = 0 THEN 0.0 ELSE CAST((tableAlias."clicks" * 1000) AS DOUBLE) / (tableAlias."impressions" * 1000) END"""
       )
 
       val renderedColumnAliasMap : scala.collection.Map[String, String] = Map("De 1" -> """mang_de1""", "De 2" -> """mang_de2""")
       col.derivedExpression.render(col.name, renderedColumnAliasMap, expandDerivedExpression = false) should equal(
-        """CASE WHEN mang_de2 = 0 THEN 0.0 ELSE mang_de1 / mang_de2 END"""
+        """CASE WHEN mang_de2 = 0 THEN 0.0 ELSE CAST(mang_de1 AS DOUBLE) / mang_de2 END"""
       )
       col.derivedExpression.render(col.name, renderedColumnAliasMap, expandDerivedExpression = true) should equal(
-        """CASE WHEN (impressions * 1000) = 0 THEN 0.0 ELSE (clicks * 1000) / (impressions * 1000) END"""
+        """CASE WHEN (impressions * 1000) = 0 THEN 0.0 ELSE CAST((clicks * 1000) AS DOUBLE) / (impressions * 1000) END"""
       )
     }
   }

@@ -68,9 +68,9 @@ object PrestoExpression {
 
     def /-(that: PrestoExp) : PrestoExp = {
       val safeExpression = if(that.hasNumericOperation) {
-        s"CASE WHEN ${that.asString} = 0 THEN 0.0 ELSE $asString / (${that.asString}) END"
+        s"CASE WHEN ${that.asString} = 0 THEN 0.0 ELSE CAST($asString AS DOUBLE) / (${that.asString}) END"
       } else {
-        s"CASE WHEN ${that.asString} = 0 THEN 0.0 ELSE $asString / ${that.asString} END"
+        s"CASE WHEN ${that.asString} = 0 THEN 0.0 ELSE CAST($asString AS DOUBLE) / ${that.asString} END"
       }
       COL(safeExpression, hasRollupExpression || that.hasRollupExpression, hasNumericOperation = true)
     }
