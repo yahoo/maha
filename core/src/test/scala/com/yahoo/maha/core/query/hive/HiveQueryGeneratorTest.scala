@@ -799,7 +799,8 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
                               {"field": "Advertiser ID"},
                               {"field": "Keyword ID"},
                               {"field": "Impressions"},
-                              {"field": "Keyword Count"}
+                              {"field": "Keyword Count"},
+                              {"field": "Keyword Count Scaled"}
                           ],
                           "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
@@ -823,10 +824,10 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
 
     val expected =
       s"""
-         |SELECT CONCAT_WS(",",NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(keyword_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_keyword_count AS STRING), ''))
+         |SELECT CONCAT_WS(",",NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(keyword_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_keyword_count AS STRING), ''), NVL(CAST(mang_keyword_count_scaled AS STRING), ''))
          |FROM(
-         |SELECT COALESCE(account_id, 0L) advertiser_id, COALESCE(keyword_id, 0L) keyword_id, COALESCE(impressions, 0L) mang_impressions, COALESCE(mang_keyword_count, 0L) mang_keyword_count
-         |FROM(SELECT account_id, keyword_id, (COUNT(keyword_id)) mang_keyword_count, SUM(impressions) impressions
+         |SELECT COALESCE(account_id, 0L) advertiser_id, COALESCE(keyword_id, 0L) keyword_id, COALESCE(impressions, 0L) mang_impressions, COALESCE(mang_keyword_count, 0L) mang_keyword_count, COALESCE(mang_keyword_count_scaled, 0L) mang_keyword_count_scaled
+         |FROM(SELECT account_id, keyword_id, (COUNT(distinct keyword_id)) mang_keyword_count, (COUNT(keyword_id * stats_source * 10)) mang_keyword_count_scaled, SUM(impressions) impressions
          |FROM s_stats_fact
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
          |GROUP BY account_id, keyword_id

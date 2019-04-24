@@ -2,7 +2,6 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query.hive
 
-import com.sun.tools.javac.code.Type.IntersectionClassType
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
@@ -60,7 +59,8 @@ trait BaseHiveQueryGeneratorTest
           , DimCol("column_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned")))
           , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
           , HiveDerDimCol("Ad Group Start Date Full", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "YYYY-MM-dd HH:mm:ss"))
-          , HiveDerDimAggregateCol("Keyword Count",IntType(), COUNT("{keyword_id}"))
+          , HiveDerDimAggregateCol("Keyword Count",IntType(), COUNT("{keyword_id}", true))
+          , HiveDerDimAggregateCol("Keyword Count Scaled", IntType(), COUNT("{keyword_id} * {stats_source} * 10"))
           , DimCol("internal_bucket_id", StrType())
           , HiveDerDimCol("click_exp_id", StrType(), REGEX_EXTRACT("internal_bucket_id", "(cl-)(.*?)(,|$)", 2, replaceMissingValue = true, "-3"))
         ),
@@ -85,6 +85,7 @@ trait BaseHiveQueryGeneratorTest
           PubCol("account_id", "Advertiser ID", InEquality),
           PubCol("keyword_id", "Keyword ID", InEquality),
           PubCol("Keyword Count", "Keyword Count", Set.empty),
+          PubCol("Keyword Count Scaled", "Keyword Count Scaled", Set.empty),
           PubCol("keyword", "Keyword", InEquality),
           PubCol("search_term", "Search Term", InEquality),
           PubCol("delivered_match_type", "Delivered Match Type", InEquality),
