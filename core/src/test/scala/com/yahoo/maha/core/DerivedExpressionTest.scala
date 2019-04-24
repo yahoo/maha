@@ -302,6 +302,18 @@ class DerivedExpressionTest extends FunSuite with Matchers {
     }
   }
 
+  test("REGEX_EXTRACT test") {
+    import HiveExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      DimCol("stats_date", DateType())
+      val col1 = HiveDerDimCol("Click Exp ID", StrType(), REGEX_EXTRACT("internal_bucket_id", "(cl-)(.*?)(,|$)", 2, replaceMissingValue = true, "-3"))
+      col1.derivedExpression.render(col1.name) should equal("CASE WHEN LENGTH(regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$)', 2)) > 0 THEN regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$)', 2) ELSE '-3' END")
+      val col2 = HiveDerDimCol("Default Exp ID", StrType(), REGEX_EXTRACT("internal_bucket_id", "(df-)(.*?)(,|$)", 2, replaceMissingValue = false, ""))
+      col2.derivedExpression.render(col2.name) should equal("regexp_extract(internal_bucket_id, '(df-)(.*?)(,|$)', 2)")
+    }
+  }
+
   test("GET_INTERVAL_DATE NEGATIVE test") {
     //expect string OracleExp and string fmt
     import OracleExpression._
@@ -390,18 +402,18 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       col.derivedExpression.sourceColumns.contains("De 1") should equal(true)
       col.derivedExpression.sourceColumns.contains("De 2") should equal(true)
       col.derivedExpression.render(col.name, columnPrefix = Option("tableAlias."), expandDerivedExpression = false) should equal(
-        """CASE WHEN tableAlias."De 2" = 0 THEN 0.0 ELSE tableAlias."De 1" / tableAlias."De 2" END"""
+        """CASE WHEN tableAlias."De 2" = 0 THEN 0.0 ELSE CAST(tableAlias."De 1" AS DOUBLE) / tableAlias."De 2" END"""
       )
       col.derivedExpression.render(col.name, columnPrefix = Option("tableAlias."), expandDerivedExpression = true) should equal(
-        """CASE WHEN (tableAlias."impressions" * 1000) = 0 THEN 0.0 ELSE (tableAlias."clicks" * 1000) / (tableAlias."impressions" * 1000) END"""
+        """CASE WHEN (tableAlias."impressions" * 1000) = 0 THEN 0.0 ELSE CAST((tableAlias."clicks" * 1000) AS DOUBLE) / (tableAlias."impressions" * 1000) END"""
       )
 
       val renderedColumnAliasMap : scala.collection.Map[String, String] = Map("De 1" -> """mang_de1""", "De 2" -> """mang_de2""")
       col.derivedExpression.render(col.name, renderedColumnAliasMap, expandDerivedExpression = false) should equal(
-        """CASE WHEN mang_de2 = 0 THEN 0.0 ELSE mang_de1 / mang_de2 END"""
+        """CASE WHEN mang_de2 = 0 THEN 0.0 ELSE CAST(mang_de1 AS DOUBLE) / mang_de2 END"""
       )
       col.derivedExpression.render(col.name, renderedColumnAliasMap, expandDerivedExpression = true) should equal(
-        """CASE WHEN (impressions * 1000) = 0 THEN 0.0 ELSE (clicks * 1000) / (impressions * 1000) END"""
+        """CASE WHEN (impressions * 1000) = 0 THEN 0.0 ELSE CAST((clicks * 1000) AS DOUBLE) / (impressions * 1000) END"""
       )
     }
   }
@@ -556,5 +568,17 @@ class DerivedExpressionTest extends FunSuite with Matchers {
     assert(roundVal.hasRollupExpression)
     assert(roundVal.hasNumericOperation)
     assert(roundVal.asString.contains("col_name"))
+  }
+
+  test("Presto REGEX_EXTRACT test") {
+    import PrestoExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      DimCol("stats_date", DateType())
+      val col1 = PrestoDerDimCol("Click Exp ID", StrType(), REGEX_EXTRACT("internal_bucket_id", "(cl-)(.*?)(,|$)", 2, replaceMissingValue = true, "-3"))
+      col1.derivedExpression.render(col1.name) should equal("CASE WHEN LENGTH(regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$)', 2)) > 0 THEN regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$)', 2) ELSE '-3' END")
+      val col2 = PrestoDerDimCol("Default Exp ID", StrType(), REGEX_EXTRACT("internal_bucket_id", "(df-)(.*?)(,|$)", 2, replaceMissingValue = false, ""))
+      col2.derivedExpression.render(col2.name) should equal("regexp_extract(internal_bucket_id, '(df-)(.*?)(,|$)', 2)")
+    }
   }
 }

@@ -20,7 +20,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
 
   override val engine: Engine = HiveEngine
   override def generate(queryContext: QueryContext): Query = {
-    info(s"Generating Hive query using HiveQueryGenerator v0:, version ${version}")
+    info(s"Generating Hive query using HiveQueryGenerator V0:, version ${version}")
     queryContext match {
       case context : CombinedQueryContext =>
         generateQuery(context)
@@ -276,7 +276,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
       queryContext.requestModel.requestCols.map(_.alias),
       columnAliasToColMap.toMap,
       IndexedSeq.empty,
-      queryGenVersion = Some(Version.v0)
+      queryGenVersion = Some(this.version)
     )
   }
 }

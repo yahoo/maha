@@ -25,7 +25,7 @@ import io.druid.query.aggregation.datasketches.theta.{SketchMergeAggregatorFacto
 import io.druid.query.aggregation.post.{ArithmeticPostAggregator, FieldAccessPostAggregator}
 import io.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec, ExtractionDimensionSpec}
 import io.druid.query.extraction._
-import io.druid.query.filter.{AndDimFilter, DimFilter}
+import io.druid.query.filter.{AndDimFilter, DimFilter, SelectorDimFilter}
 import io.druid.query.groupby.GroupByQuery
 import io.druid.query.groupby.GroupByQuery.Builder
 import io.druid.query.groupby.having.{AndHavingSpec, HavingSpec}
@@ -494,7 +494,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             new DefaultLimitSpec(null, threshold)
           }
 
-          builder.setLimitSpec(limitSpec)
+          if(queryContext.requestModel.dimFilters.filter(filter => dims.exists(bundle => bundle.publicDim.containsHighCardinalityFilter(filter))).isEmpty)
+            builder.setLimitSpec(limitSpec)
 
           val ephemeralAliasColumns: Map[String, Column] = ephemeralAliasColumnMap(queryContext)
 
@@ -674,10 +675,14 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       if (outerQueryDimensionSpecList.nonEmpty)
         outerQueryBuilder.setDimensions(outerQueryDimensionSpecList.asJava)
 
+      val cols = dims.flatMap(f => f.dim.columnsByNameMap).toMap
+      val aliases = dims.flatMap(f => f.publicDim.aliasToNameMapFull)
+
       val outerQueryDimFilterList = new ArrayBuffer[DimFilter](queryContext.factBestCandidate.dimColMapping.size)
       dims.foreach {
         db => {
-          db.filters.filterNot(f => f.field.equals(db.publicDim.primaryKeyByAlias) || db.publicDim.foreignKeyByAlias(f.field)).foreach {
+          val flatOrFilterMeta: Set[Filter] = queryContext.requestModel.orFilterMeta.flatMap(orFilterMeta => orFilterMeta.orFilter.filters)
+          db.filters.filterNot(f => f.field.equals(db.publicDim.primaryKeyByAlias) || db.publicDim.foreignKeyByAlias(f.field) || flatOrFilterMeta.contains(f)).foreach {
             filter =>
               val grainOption = Option(queryContext.factBestCandidate.fact.grain)
               outerQueryDimFilterList += FilterDruid.renderFilterDim(
@@ -688,8 +693,15 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         }
       }
 
-      if (outerQueryDimFilterList.nonEmpty)
+      queryContext.requestModel.orFilterMeta.foreach{
+        meta =>
+          //val dimMeta = meta.orFilter.filters.filter()
+          if(!(meta.filterType == MetaType.FactType)) outerQueryDimFilterList += FilterDruid.renderOrDimFilters(meta.orFilter.filters, aliases.toMap, cols, Option.empty, true)
+      }
+
+      if (outerQueryDimFilterList.nonEmpty) {
         outerQueryBuilder.setDimFilter(new AndDimFilter(outerQueryDimFilterList.asJava))
+      }
 
       if (innerGroupByQueryHavingSpec != null) {
         outerQueryBuilder.setHavingSpec(innerGroupByQueryHavingSpec)
@@ -1414,14 +1426,19 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
     queryContext.requestModel.orFilterMeta.foreach {
       orFilterMeta =>
-        if (orFilterMeta.isFactFilters) {
+        if (orFilterMeta.filterType.equals(MetaType.MetricType)) {
           havingFilters += FilterDruid.renderOrFactFilters(orFilterMeta.orFilter.filters,
             queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
             fact.columnsByNameMap)
-        } else {
+        } else if (orFilterMeta.filterType.equals(MetaType.FactType)){
+          val cols = fact.columnsByNameMap
+          val aliases = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap
+          whereFilters += FilterDruid.renderOrDimFilters(orFilterMeta.orFilter.filters, aliases, cols, Option(fact.grain))
+          /*val cols = dims.flatMap(f => f.dim.columnsByNameMap).toMap
+          val aliases = dims.flatMap(f => f.publicDim.aliasToNameMapFull)
           whereFilters += FilterDruid.renderOrDimFilters(orFilterMeta.orFilter.filters,
-            queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
-            fact.columnsByNameMap, Option(fact.grain))
+            aliases.toMap,
+            cols, Option(fact.grain))*/
         }
     }
 

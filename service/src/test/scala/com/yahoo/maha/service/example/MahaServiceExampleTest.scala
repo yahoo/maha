@@ -314,7 +314,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
 
     val queryPipelinesWithQueryGenBuckets = mahaService.generateQueryPipelines("er", requestModelHiveResultTry.get.model, bucketParams)
     assert(queryPipelinesWithQueryGenBuckets._1.isSuccess)
-    assert(queryPipelinesWithQueryGenBuckets._1.get.queryChain.drivingQuery.queryGenVersion == Some(Version.v2))
+    assert(queryPipelinesWithQueryGenBuckets._1.get.queryChain.drivingQuery.queryGenVersion == Some(Version.v0))
   }
 
 }

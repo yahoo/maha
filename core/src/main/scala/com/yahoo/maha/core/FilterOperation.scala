@@ -10,6 +10,7 @@ package com.yahoo.maha.core
 import com.google.common.collect.Lists
 import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{START_OF_THE_MONTH, START_OF_THE_WEEK}
+import com.yahoo.maha.core.MetaType.MetaType
 import com.yahoo.maha.core.dimension.{DruidFuncDimCol, DruidPostResultFuncDimCol}
 import com.yahoo.maha.core.request.fieldExtended
 import grizzled.slf4j.Logging
@@ -195,6 +196,7 @@ case class LikeFilter(field: String, value: String
                       , override val isOverridable: Boolean = false) extends ForcedFilter {
   override def operator = LikeFilterOperation
   val asValues: String = value
+  override def canBeHighCardinalityFilter: Boolean = true
 }
 case class NotEqualToFilter(field: String, value: String
                             , override val isForceFilter: Boolean = false
@@ -285,7 +287,24 @@ sealed trait SqlResult {
 
 case class DefaultResult(filter: String, escaped: Boolean = false) extends SqlResult
 
-case class OrFilterMeta(orFilter: OrFilter, isFactFilters: Boolean)
+/**
+  * Categorizes an OrFilter by the type of its contained filtered Columns.
+  * OrFilter can only directly compare columns of the same type.
+  * @param orFilter   - Current OrFilter to categorize.
+  * @param filterType - Category of the stored Filters for the current OrFilter.
+  */
+case class OrFilterMeta(orFilter: OrFilter, filterType: MetaType)
+
+/**
+  * All types of Filter Meta available:
+  * MetricType  - Column is found in a PublicFact and represents a value that gets aggregated.
+  * FactType    - Column is found in a PublicFact and are considered Dimensions but are not part of a joined in Dimension table.
+  * DimType     - Column is found in a Dimension table joined in to the primary Fact.
+  */
+object MetaType extends Enumeration {
+  type MetaType = Value
+  val MetricType, FactType, DimType = Value
+}
 
 object SqlBetweenFilterRenderer extends BetweenFilterRenderer[SqlResult] {
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
@@ -1486,7 +1505,6 @@ object Filter extends Logging {
       case lessThanFilter: LessThanFilter => Set(lessThanFilter.field)
       case isNotNullFilter: IsNotNullFilter => Set(isNotNullFilter.field)
       case likeFilter: LikeFilter => Set(likeFilter.field)
-      case notEqualToFilter: NotEqualToFilter => Set(notEqualToFilter.field)
       case isNullFilter: IsNullFilter => Set(isNullFilter.field)
       case pushDownFilter: PushDownFilter => returnFieldSetWithoutValidation(pushDownFilter.f)
       case t: Filter => throw new IllegalArgumentException("The field set for the input filter is undefined. " + t.field + " with filter " + t.toString)
@@ -1517,7 +1535,6 @@ object Filter extends Logging {
       case lessThanFilter: LessThanFilter => Set(lessThanFilter.field)
       case isNotNullFilter: IsNotNullFilter => Set(isNotNullFilter.field)
       case likeFilter: LikeFilter => Set(likeFilter.field)
-      case notEqualToFilter: NotEqualToFilter => Set(notEqualToFilter.field)
       case isNullFilter: IsNullFilter => Set(isNullFilter.field)
       case pushDownFilter: PushDownFilter => returnFullFieldSetForPkAliases(pushDownFilter.f)
       case t: Filter => throw new IllegalArgumentException("The field alias set for the input filter is undefined. " + t.field + " with filter " + t.toString)

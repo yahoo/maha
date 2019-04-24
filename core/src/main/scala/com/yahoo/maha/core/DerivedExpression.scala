@@ -9,6 +9,7 @@ package com.yahoo.maha.core
 import java.util.concurrent.atomic.AtomicLong
 
 import com.google.common.collect.Lists
+import com.yahoo.maha.core.HiveExpression.{BaseHiveExpression, HiveExp}
 import com.yahoo.maha.core.ThetaSketchSetOp.ThetaSketchSetOp
 import io.druid.query.aggregation.PostAggregator
 import io.druid.query.aggregation.datasketches.theta.{SketchEstimatePostAggregator, SketchSetPostAggregator}
@@ -67,9 +68,9 @@ object PrestoExpression {
 
     def /-(that: PrestoExp) : PrestoExp = {
       val safeExpression = if(that.hasNumericOperation) {
-        s"CASE WHEN ${that.asString} = 0 THEN 0.0 ELSE $asString / (${that.asString}) END"
+        s"CASE WHEN ${that.asString} = 0 THEN 0.0 ELSE CAST($asString AS DOUBLE) / (${that.asString}) END"
       } else {
-        s"CASE WHEN ${that.asString} = 0 THEN 0.0 ELSE $asString / ${that.asString} END"
+        s"CASE WHEN ${that.asString} = 0 THEN 0.0 ELSE CAST($asString AS DOUBLE) / ${that.asString} END"
       }
       COL(safeExpression, hasRollupExpression || that.hasRollupExpression, hasNumericOperation = true)
     }
@@ -126,6 +127,16 @@ object PrestoExpression {
     val hasRollupExpression = false
     val hasNumericOperation = s.hasNumericOperation
     def asString: String = s"trim(${s.asString})"
+  }
+
+  case class REGEX_EXTRACT(s: HiveExp, regex: String, index: Int, replaceMissingValue: Boolean, replaceMissingValueWith: String) extends BasePrestoExpression {
+    val hasRollupExpression = s.hasRollupExpression
+    val hasNumericOperation = s.hasNumericOperation
+    def asString: String = if(replaceMissingValue) {
+      s"CASE WHEN LENGTH(regexp_extract(${s.asString}, '$regex', $index)) > 0 THEN regexp_extract(${s.asString}, '$regex', $index) ELSE '$replaceMissingValueWith' END"
+    } else {
+      s"regexp_extract(${s.asString}, '$regex', $index)"
+    }
   }
 
   implicit def from(s: String): PrestoExpression = {
@@ -267,6 +278,16 @@ object HiveExpression {
     val hasRollupExpression = false
     val hasNumericOperation = s.hasNumericOperation
     def asString: String = s"trim(${s.asString})"
+  }
+
+  case class REGEX_EXTRACT(s: HiveExp, regex: String, index: Int, replaceMissingValue: Boolean, replaceMissingValueWith: String) extends BaseHiveExpression {
+    val hasRollupExpression = s.hasRollupExpression
+    val hasNumericOperation = s.hasNumericOperation
+    def asString: String = if(replaceMissingValue) {
+      s"CASE WHEN LENGTH(regexp_extract(${s.asString}, '$regex', $index)) > 0 THEN regexp_extract(${s.asString}, '$regex', $index) ELSE '$replaceMissingValueWith' END"
+    } else {
+      s"regexp_extract(${s.asString}, '$regex', $index)"
+    }
   }
 
   implicit def from(s: String): HiveExpression = {
