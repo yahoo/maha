@@ -1,7 +1,7 @@
 package com.yahoo.maha.core.query.hive
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{DerivedDimensionColumn, DimCol, HiveDerDimCol, HivePartDimCol}
+import com.yahoo.maha.core.dimension.{BaseDerivedAggregateDimCol, _}
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
 
@@ -136,17 +136,26 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
           val name = column.name
           val nameOrAlias = column.alias.getOrElse(name)
           renderColumnWithAlias(fact, column, alias, Set.empty, false)
-          if (column.isDerivedColumn) {
-            val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
-            queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
-          } else {
-            if(column.dataType.hasStaticMapping) {
-              queryBuilder.addGroupBy(renderStaticMappedDimension(column))
+          val isAggregatedDimCol = isAggregateDimCol(column)
+          if (!isAggregatedDimCol) {
+            if (column.isDerivedColumn) {
+              val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
+              queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
             } else {
-              queryBuilder.addGroupBy(nameOrAlias)
+              if(column.dataType.hasStaticMapping) {
+                queryBuilder.addGroupBy(renderStaticMappedDimension(column))
+              } else {
+                queryBuilder.addGroupBy(nameOrAlias)
+              }
             }
           }
       }
+    }
+
+    def isAggregateDimCol(column: Column) : Boolean = {
+      if(column.isInstanceOf[BaseDerivedDimCol]) {
+        column.asInstanceOf[BaseDerivedDimCol].isAggregateColumn
+      } else false
     }
 
     val factCols = queryContext.factBestCandidate.factColMapping.toList.collect {

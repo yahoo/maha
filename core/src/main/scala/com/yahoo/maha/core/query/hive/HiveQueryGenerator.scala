@@ -7,12 +7,12 @@ import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
-
 import scala.collection.{SortedSet, mutable}
 
 /**
  * Created by pranavbhole on 10/16/18.
-  * Latest hive query generator with sorting feature
+  * This is latest Hive Query Generator to be currently used,
+  * which has sorting and dim aggregation feature.
  */
 class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends HiveQueryGeneratorCommon(partitionColumnRenderer, udfStatements) with Logging {
 
@@ -165,6 +165,11 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
               queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
               s"""${renderRollupExpression(name, rollup)} $name"""
           }
+        case HiveDerDimAggregateCol(_, dt, cc, de, _, _, _) =>
+          // this col always has rollup expresion in derived expression as requirement
+          val renderedAlias = renderColumnAlias(alias)
+          queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
+          s"""${renderRollupExpression(de.render(name, Map.empty), NoopRollup)} $renderedAlias"""
         case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
           if queryContext.factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)
             || de.isDimensionDriven =>
