@@ -847,7 +847,7 @@ OuterGroupBy operation has to be applied only in the following cases
 
     def runMultiEngineQuery(factBestCandidateOption: Option[FactBestCandidate], bestDimCandidates: SortedSet[DimensionBundle], queryGenVersion: Version): QueryPipelineBuilder = {
       val indexAlias = bestDimCandidates.last.publicDim.primaryKeyByAlias
-      info("runMultiEngineQuery Fired!")
+      info(s"runMultiEngineQuery Fired for cube: ${requestModel.cube} with flags: Async: ${requestModel.isAsyncRequest} Sync: ${requestModel.isSyncRequest} FactDriven: ${requestModel.isFactDriven} DimDriven: ${requestModel.isDimDriven}")
       //if (!requestModel.hasFactSortBy || (requestModel.forceDimDriven && requestModel.hasDimFilters && requestModel.dimFilters.exists(_.operator == LikeFilterOperation))) {
       if (!requestModel.hasFactSortBy && requestModel.forceDimDriven) {
         //oracle + druid
