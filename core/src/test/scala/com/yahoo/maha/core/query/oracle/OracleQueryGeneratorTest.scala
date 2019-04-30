@@ -10,6 +10,7 @@ import com.yahoo.maha.core.fact.Fact.ViewTable
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.query.druid.DruidQuery
 import com.yahoo.maha.core.request._
+import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockOracleQueryExecutor}
 
 
 /**
@@ -5750,6 +5751,115 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Verify Combined queries lose data in Multivalue Dim contexts (Class Name Collapses)") {
+    val jsonString: String =
+      s"""
+         |{
+         |  "cube": "class_stats",
+         |  "selectFields": [
+         |    { "field": "Class ID" },
+         |    { "field": "Class Name" },
+         |    { "field": "Class Address" },
+         |    { "field": "Students" }
+         |  ],
+         |  "filterExpressions": [
+         |    { "field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate" },
+         |    { "field": "Class ID", "operator": "=", "value": "12345" }
+         |  ]
+         |}
+       """.stripMargin
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val resultPipeline = queryPipelineTry.get
+
+    val result = resultPipeline.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+
+    /**
+      * Create a RowList of 3 rows in Druid & 2 Rows in Oracle, allow Pk to match.
+      * Check output.
+      *
+      * Expectation is that, for each Fact Row returned matching the Dim, both rows will be kept.
+      * Current state is that for Statically Mapped columns in Fact, MultiEngine queries collapse the
+      * row with unique mapped values since they aren't Pk Aliases.
+      */
+
+    val oracleExecutor = new MockOracleQueryExecutor(
+      {
+        rl =>
+          val row1 = rl.newRow
+          row1.addValue("Class ID", 12345L)
+          row1.addValue("Class Address", "8675 309th St.")
+          rl.addRow(row1)
+
+          val row2 = rl.newRow
+          row2.addValue("Class ID", 12345L)
+          row2.addValue("Class Address", "8675 301st Ave.")
+          rl.addRow(row2)
+      }
+    )
+
+    val druidExecutor = new MockDruidQueryExecutor(
+      {
+        rl =>
+          val row1 = rl.newRow
+          row1.addValue("Class ID", 12345L)
+          row1.addValue("Class Name", "Classy")
+          row1.addValue("Students", 55)
+          rl.addRow(row1)
+
+          val row2 = rl.newRow
+          row2.addValue("Class ID", 12345L)
+          row2.addValue("Class Name", "Classier")
+          row2.addValue("Students", 22)
+          rl.addRow(row2)
+
+          val row3 = rl.newRow
+          row3.addValue("Class ID", 12345L)
+          row3.addValue("Class Name", "Classiest")
+          row3.addValue("Students", 11)
+          rl.addRow(row3)
+      }
+    )
+
+    val irlFn = (q : Query) => new DimDrivenPartialRowList("Class ID", q)
+
+    val queryExecutorContext: QueryExecutorContext = new QueryExecutorContext
+    queryExecutorContext.register(oracleExecutor)
+    queryExecutorContext.register(druidExecutor)
+
+    //Non-merged row results
+    val postRowResultTry = resultPipeline.execute(queryExecutorContext)
+    assert(postRowResultTry.isSuccess)
+    val postRowResult = postRowResultTry.get
+
+    //Post-multiEngineQuery Result using Class ID (Pk) as Join key.
+    val queryCastedToMultiEngine = resultPipeline.queryChain.asInstanceOf[MultiEngineQuery]
+    val executedMultiEngineQuery = queryCastedToMultiEngine.execute(queryExecutorContext, irlFn, QueryAttributes.empty, new EngineQueryStats)
+
+    val expectedUnmergedRowList = List(
+      "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, Classy, null, 55))"
+    , "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, Classier, null, 22))"
+    , "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, Classiest, null, 11))"
+    , "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, null, 8675 309th St., null))"
+    , "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, null, 8675 301st Ave., null))")
+
+    val actualMultiEngineRowList = List(
+      "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, Classiest, 8675 301st Ave., 11))"
+    )
+
+    assert(executedMultiEngineQuery.rowList.forall(row => actualMultiEngineRowList.contains(row.toString)))
+    assert(postRowResult.rowList.forall(row => expectedUnmergedRowList.contains(row.toString)))
+
+    println(result)
+
   }
 
 }

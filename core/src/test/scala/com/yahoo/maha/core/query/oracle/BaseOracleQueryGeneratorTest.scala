@@ -11,7 +11,7 @@ import com.yahoo.maha.core.lookup.LongRangeLookup
 import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, SyncDruidQueryOptimizer}
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.registry.RegistryBuilder
-import com.yahoo.maha.core.request.AsyncRequest
+import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 /**
@@ -36,6 +36,7 @@ trait BaseOracleQueryGeneratorTest
     registryBuilder.register(pubfact7(forcedFilters))
     registryBuilder.register(pubfact8(forcedFilters))
     registryBuilder.register(pubfact9(forcedFilters))
+    registryBuilder.register(pubFactCombined(forcedFilters))
 
   }
 
@@ -797,6 +798,38 @@ trait BaseOracleQueryGeneratorTest
         PublicFactCol("spend", "Spend", Set.empty)
       ), Set(NotEqualToFilter("Clicks", "777", true, true), IsNotNullFilter("Impressions", true, true)),  getMaxDaysWindow, getMaxDaysLookBack
     )
+  }
+
+  /**
+    * Fact for MultiEngine multi RowList Dim Join tests
+    */
+  def pubFactCombined(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    val classStats = {
+      ColumnContext.withColumnContext {
+        implicit dc: ColumnContext =>
+          Fact.newFact(
+            name = "f_class_stats", DailyGrain, DruidEngine, Set(AdvertiserSchema),
+            Set(
+              DimCol("class_id", IntType(), annotations = Set(ForeignKey("combined_class")))
+              , DimCol("class_name", IntType(10, (Map(1 -> "Classy", 2 -> "Classier", 3 -> "Classiest"), "Unknown")))
+              , DimCol("date", DateType("YYYY-MM-DD"))
+            ),
+            Set(
+              FactCol("num_students", IntType())
+            )
+          )
+      }
+    }
+
+    classStats.toPublicFact("class_stats"
+    , Set(
+        PubCol("class_id", "Class ID", Equality)
+        , PubCol("class_name", "Class Name", Equality)
+        , PubCol("date", "Day", InBetweenEquality)
+      )
+    , Set(
+        PublicFactCol("num_students", "Students", Equality)
+      ), Set.empty, getMaxDaysWindow, getMaxDaysLookBack)
   }
 
 }

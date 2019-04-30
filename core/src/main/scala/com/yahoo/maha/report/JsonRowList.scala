@@ -115,6 +115,9 @@ trait JsonRowList extends QueryRowList {
   override def foreach(fn: Row => Unit) : Unit = {
     throw new UnsupportedOperationException("foreach not supported on JsonRowList")
   }
+  override def forall(fn: Row => Boolean) : Boolean = {
+    throw new UnsupportedOperationException("forall not supported on JsonRowList")
+  }
   override def map[T](fn: Row => T) : Iterable[T] = {
     throw new UnsupportedOperationException("map not supported on JsonRowList")
   }

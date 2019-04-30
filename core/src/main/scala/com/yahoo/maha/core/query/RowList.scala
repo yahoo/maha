@@ -87,6 +87,7 @@ trait RowList extends RowListLifeCycle {
   def addRow(r: Row, er: Option[Row] = None) : Unit
   def isEmpty : Boolean
   def foreach(fn: Row => Unit) : Unit
+  def forall(fn: Row => Boolean) : Boolean
   def map[T](fn: Row => T) : Iterable[T]
   def javaForeach[U](fn: ParFunction[Row, U]) : Unit = {
     foreach(r => fn.apply(r))
@@ -185,6 +186,10 @@ trait InMemRowList extends QueryRowList {
 
   def foreach(fn: Row => Unit) : Unit = {
     list.foreach(fn)
+  }
+
+  def forall(fn: Row => Boolean) : Boolean = {
+    list.forall(fn)
   }
 
   def map[T](fn: Row => T) : Iterable[T] = {
@@ -446,6 +451,10 @@ case class DimDrivenFactOrderedPartialRowList(indexAlias: String, query: Query) 
     }
   }
 
+  override def forall(fn: Row => Boolean) : Boolean = {
+    list.forall(fn)
+  }
+
   override def map[T](fn: Row => T) : Iterable[T] = {
     if(model.hasNonFKDimFilters) {
       if(updatedRowSet.size == model.maxRows && list.size == model.maxRows) {
@@ -621,6 +630,10 @@ case class NoopRowList(query: Query) extends QueryRowList {
     throw new UnsupportedOperationException("foreach not implemented!")
   }
 
+  override def forall(fn: Row => Boolean) : Boolean = {
+    throw new UnsupportedOperationException("forall not implemented!")
+  }
+
   override def map[T](fn: (Row) => T): Iterable[T] = {
     throw new UnsupportedOperationException("map not implemented!")
   }
@@ -680,6 +693,11 @@ class CSVRowList(val query: Query, csvWriterProvider: RowCSVWriterProvider, writ
   override def foreach(fn: Row => Unit) : Unit = {
     CSVRowList.logger.warn("foreach not supported on CSVRowList")
   }
+
+  override def forall(fn: Row => Boolean) : Boolean = {
+    throw new UnsupportedOperationException("forall not implemented!")
+  }
+
   override def map[T](fn: Row => T) : Iterable[T] = {
     CSVRowList.logger.warn("map not supported on CSVRowList")
     Iterable.empty
@@ -710,6 +728,10 @@ class DerivedRowList(override val columns: IndexedSeq[ColumnInfo]
 
   override def foreach(fn: (Row) => Unit): Unit = {
     list.foreach(fn)
+  }
+
+  override def forall(fn: Row => Boolean) : Boolean = {
+    list.forall(fn)
   }
 
   override def map[T](fn: (Row) => T): Iterable[T] = {
