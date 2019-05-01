@@ -12,13 +12,13 @@ class MultiEngineQueryTest extends FunSuite with Matchers with BaseQueryGenerato
 
   test("successfully run multi engine query") {
     val model = getRequestModel(combinedQueryJson)
-    val dimQuery = getQuery(OracleEngine, getDimQueryContext(OracleEngine, model, Option("Advertiser ID")), DimOnlyQuery)
+    val dimQuery = getQuery(OracleEngine, getDimQueryContext(OracleEngine, model, Option("Advertiser ID"), List.empty), DimOnlyQuery)
     val factQuery = (irl: IndexedRowList, queryAttributes: QueryAttributes) => {
-      val query = getQuery(DruidEngine, getFactQueryContext(DruidEngine, model, Option(irl.indexAlias), QueryAttributes.empty), FactOnlyQuery)
+      val query = getQuery(DruidEngine, getFactQueryContext(DruidEngine, model, Option(irl.rowGrouping.indexAlias), irl.rowGrouping.factGroupByCols, QueryAttributes.empty), FactOnlyQuery)
       query
     }
     val qc = new MultiEngineQuery(dimQuery, Set(OracleEngine, DruidEngine), IndexedSeq(factQuery))
-    val irlFn = (q : Query) => new DimDrivenPartialRowList("Advertiser ID", q)
+    val irlFn = (q : Query) => new DimDrivenPartialRowList(RowGrouping("Advertiser ID", List.empty), q)
     val result = qc.execute(queryExecutorContext, irlFn, QueryAttributes.empty, new EngineQueryStats)
     result.rowList.foreach {
       r =>

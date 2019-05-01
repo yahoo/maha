@@ -44,9 +44,20 @@ object QueryPipeline extends Logging {
   val asyncDisqualifyingSet: Set[Engine] = Set(DruidEngine)
 
   val completeRowList: Query => RowList = (q) => new CompleteRowList(q)
-  val dimDrivenPartialRowList: Query => RowList = (q) => new DimDrivenPartialRowList(q.queryContext.indexAliasOption.get, q)
-  val dimDrivenFactOrderedPartialRowList: Query => RowList = (q) => new DimDrivenFactOrderedPartialRowList(q.queryContext.indexAliasOption.get, q)
-  val factDrivenPartialRowList: Query => RowList = (q) => new FactDrivenPartialRowList(q.queryContext.indexAliasOption.get, q)
+  val dimDrivenPartialRowList: Query => RowList = (q) => {
+    val indexAlias = q.queryContext.indexAliasOption.get
+    val groupByKeys: List[String] = q.queryContext.factGroupByKeys diff List(indexAlias)
+    new DimDrivenPartialRowList(RowGrouping(q.queryContext.indexAliasOption.get, groupByKeys), q)
+  }
+  val dimDrivenFactOrderedPartialRowList: Query => RowList = (q) => {
+    val indexAlias = q.queryContext.indexAliasOption.get
+    val groupByKeys: List[String] = q.queryContext.factGroupByKeys diff List(indexAlias)
+    new DimDrivenFactOrderedPartialRowList(RowGrouping(q.queryContext.indexAliasOption.get, groupByKeys), q)}
+  val factDrivenPartialRowList: Query => RowList = (q) => {
+    val indexAlias = q.queryContext.indexAliasOption.get
+    val groupByKeys: List[String] = q.queryContext.factGroupByKeys diff List(indexAlias)
+    new FactDrivenPartialRowList(RowGrouping(q.queryContext.indexAliasOption.get, groupByKeys), q)
+  }
 
   def unionViewPartialRowList(queryList: List[Query]): Query => RowList = {
     require(queryList.forall(q => q.queryContext.isInstanceOf[FactualQueryContext] && q.queryContext.asInstanceOf[FactualQueryContext].factBestCandidate.fact.isInstanceOf[ViewBaseTable])
@@ -86,7 +97,7 @@ object QueryPipeline extends Logging {
             case any =>
               throw new UnsupportedOperationException(s"Cannot create UnionViewRowList with fact of type : ${any.getClass.getSimpleName}")
           }
-        case DimQueryContext(_, _, _, _) =>
+        case DimQueryContext(_, _, _, _, _) =>
           throw new IllegalArgumentException(s"Requested UnionViewRowList in DimQueryContext")
         case _ =>
           throw new IllegalArgumentException(s"Requested UnionViewRowList in Unhandled/UnknownQueryContext")
@@ -675,12 +686,14 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
   private[this] def getMultiEngineDimQuery(bestDimCandidates: SortedSet[DimensionBundle],
                                            requestModel: RequestModel,
                                            indexAlias: String,
+                                           factGroupByKeys: List[String],
                                            queryAttributes: QueryAttributes,
                                            queryGenVersion: Version): Query = {
     val dimOnlyContextBuilder = QueryContext
       .newQueryContext(DimOnlyQuery, requestModel)
       .addDimTable(bestDimCandidates)
       .addIndexAlias(indexAlias)
+      .addFactGroupByKeys(factGroupByKeys)
       .setQueryAttributes(queryAttributes)
 
     require(queryGeneratorRegistry.isEngineRegistered(bestDimCandidates.head.dim.engine, Option(queryGenVersion))
@@ -688,11 +701,12 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
     queryGeneratorRegistry.getValidGeneratorForVersion(bestDimCandidates.head.dim.engine, queryGenVersion, Option(requestModel)).get.generate(dimOnlyContextBuilder.build())
   }
 
-  private[this] def getFactQuery(bestFactCandidate: FactBestCandidate, requestModel: => RequestModel, indexAlias: String, queryGenVersion: Version): Query = {
+  private[this] def getFactQuery(bestFactCandidate: FactBestCandidate, requestModel: => RequestModel, indexAlias: String, factGroupByKeys: List[String], queryGenVersion: Version): Query = {
     val factOnlyContextBuilder = QueryContext
       .newQueryContext(FactOnlyQuery, requestModel)
       .addFactBestCandidate(bestFactCandidate)
       .addIndexAlias(indexAlias)
+      .addFactGroupByKeys(factGroupByKeys)
     require(queryGeneratorRegistry.isEngineRegistered(bestFactCandidate.fact.engine, Some(queryGenVersion))
       , s"Failed to find query generator for engine : ${bestFactCandidate.fact.engine}")
     queryGeneratorRegistry.getValidGeneratorForVersion(bestFactCandidate.fact.engine, queryGenVersion, Option(requestModel)).get.generate(factOnlyContextBuilder.build())
@@ -847,18 +861,19 @@ OuterGroupBy operation has to be applied only in the following cases
 
     def runMultiEngineQuery(factBestCandidateOption: Option[FactBestCandidate], bestDimCandidates: SortedSet[DimensionBundle], queryGenVersion: Version): QueryPipelineBuilder = {
       val indexAlias = bestDimCandidates.last.publicDim.primaryKeyByAlias
+      val factGroupByKeys = requestModel.bestCandidates.get.dimColMapping.values.toList
       //if (!requestModel.hasFactSortBy || (requestModel.forceDimDriven && requestModel.hasDimFilters && requestModel.dimFilters.exists(_.operator == LikeFilterOperation))) {
       if (!requestModel.hasFactSortBy && requestModel.forceDimDriven) {
         //oracle + druid
         requestDebug("dimQueryThenFactQuery")
-        val dimQuery = getMultiEngineDimQuery(bestDimCandidates, requestModel, indexAlias, queryAttributes, queryGenVersion)
+        val dimQuery = getMultiEngineDimQuery(bestDimCandidates, requestModel, indexAlias, factGroupByKeys, queryAttributes, queryGenVersion)
         val subsequentQuery: (IndexedRowList, QueryAttributes) => Query = {
           case (irl, subqueryAttributes) =>
-            val field = irl.indexAlias
+            val field = irl.rowGrouping.indexAlias
             val values = irl.keys.toList.map(_.toString)
             val filter = InFilter(field, values)
             val injectedFactBestCandidate = factOnlyInjectFilter(factBestCandidateOption.get, filter)
-            val query = getFactQuery(injectedFactBestCandidate, requestModel, indexAlias, queryGenVersion)
+            val query = getFactQuery(injectedFactBestCandidate, requestModel, indexAlias, factGroupByKeys, queryGenVersion)
             irl.addSubQuery(query)
             query
         }
@@ -879,10 +894,10 @@ OuterGroupBy operation has to be applied only in the following cases
         //since druid + oracle doesn't support row count
         requestDebug("factQueryThenDimQuery")
         val noRowCountRequestModel = requestModel.copy(includeRowCount = false)
-        val factQuery = getFactQuery(factBestCandidateOption.get, noRowCountRequestModel, indexAlias, queryGenVersion)
+        val factQuery = getFactQuery(factBestCandidateOption.get, noRowCountRequestModel, indexAlias, factGroupByKeys, queryGenVersion)
         val subsequentQuery: (IndexedRowList, QueryAttributes) => Query = {
           case (irl, subqueryqueryAttributes) =>
-            val field = irl.indexAlias
+            val field = irl.rowGrouping.indexAlias
             val values = irl.keys.toList.map(_.toString)
             val valuesSize = values.size
             if (values.nonEmpty && (valuesSize >= noRowCountRequestModel.maxRows || noRowCountRequestModel.startIndex <= 0)) {
@@ -896,7 +911,7 @@ OuterGroupBy operation has to be applied only in the following cases
                 }
                 queryAttributesBuilder.build
               }
-              getMultiEngineDimQuery(bestDimCandidates, noRowCountRequestModel, indexAlias, injectedAttributes, queryGenVersion)
+              getMultiEngineDimQuery(bestDimCandidates, noRowCountRequestModel, indexAlias, factGroupByKeys, injectedAttributes, queryGenVersion)
             } else {
               QueryChain.logger.info("No data returned from druid, should run fallback query if there is one")
               NoopQuery

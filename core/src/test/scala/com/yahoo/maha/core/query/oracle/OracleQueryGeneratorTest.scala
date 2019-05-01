@@ -5829,7 +5829,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       }
     )
 
-    val irlFn = (q : Query) => new DimDrivenPartialRowList("Class ID", q)
+    val irlFn = (q : Query) => new DimDrivenPartialRowList(RowGrouping("Class ID", List("Class Name")), q)
 
     val queryExecutorContext: QueryExecutorContext = new QueryExecutorContext
     queryExecutorContext.register(oracleExecutor)
@@ -5852,10 +5852,21 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     , "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, null, 8675 301st Ave., null))")
 
     val actualMultiEngineRowList = List(
-      "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, Classiest, 8675 301st Ave., 11))"
+      "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, Classy, 8675 301st Ave., 55))"
+      , "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, Classier, 8675 301st Ave., 22))"
+      , "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, Classiest, 8675 301st Ave., 11))"
     )
 
-    assert(executedMultiEngineQuery.rowList.forall(row => actualMultiEngineRowList.contains(row.toString)))
+    /**
+      * current logic: If grouping already exists in full, overwrite (reason why the second dim grouping is the only one returned)
+      * actual goal: If grouping primary key alias already exists, take all rows under that grouping, index the areas to overwrite Dim information, and do so.
+      */
+
+    assert(executedMultiEngineQuery.rowList.forall(row => {
+      val t = row
+      val u = executedMultiEngineQuery.rowList
+      actualMultiEngineRowList.contains(row.toString)
+    }))
     assert(postRowResult.rowList.forall(row => expectedUnmergedRowList.contains(row.toString)))
 
     println(result)

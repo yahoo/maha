@@ -35,7 +35,7 @@ class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
           val columnIndexMap = new collection.mutable.HashMap[String, Int]
           val aliasColumnMap = query.aliasColumnMap
           var index = -1
-          val indexColumn = aliasColumnMap(irl.indexAlias)
+          val indexColumn = aliasColumnMap(irl.rowGrouping.indexAlias)
 
           if(debugEnabled) {
             info(s"Running query : ${query.asString}")
@@ -49,7 +49,7 @@ class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
                 while (count <= metaData.getColumnCount) {
                   //get alias
                   val alias = metaData.getColumnLabel(count)
-                  if (alias == irl.indexAlias) {
+                  if (alias == irl.rowGrouping.indexAlias) {
                     index = count
                     columnIndexMap += alias -> count
                   } else {
@@ -71,11 +71,11 @@ class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
                 //get existing index row or create new one
                 val rowSet = {
                   val indexValue = columnValueExtractor.getColumnValue(index, indexColumn, resultSet)
-                  val rowSet = irl.getRowByIndex(indexValue)
+                  val rowSet = irl.getRowByIndex(RowGrouping(indexValue.toString, List.empty))
                   //no row, create one
                   if(rowSet.isEmpty) {
                     val r = irl.newRow
-                    r.addValue(irl.indexAlias, indexValue)
+                    r.addValue(irl.rowGrouping.indexAlias, indexValue)
                     irl.updateRow(r)
                     Set(r)
                   } else {

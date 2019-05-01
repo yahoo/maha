@@ -438,7 +438,7 @@ class DruidQueryExecutor(config: DruidQueryExecutorConfig, lifecycleListener: Ex
             checkUncoveredIntervals(query, response, config)
 
             pagination = DruidQueryExecutor.parseJsonAndPopulateResultSet(query, response, irl, (fieldList: List[JField]) => {
-              val indexName = irl.indexAlias
+              val indexName = irl.rowGrouping.indexAlias
               val fieldListMap = fieldList.toMap
               val rowSet = if (performJoin) {
                 if (fieldListMap.contains(indexName)) {

@@ -46,7 +46,7 @@ class DimDrivenFactOrderedPartialRowListTest extends BaseOracleQueryGeneratorTes
   }
 
   test("successfully construct partial row list") {
-    val rowList : DimDrivenPartialRowList = new DimDrivenPartialRowList("Campaign ID", query)
+    val rowList : DimDrivenPartialRowList = new DimDrivenPartialRowList(RowGrouping("Campaign ID", List.empty), query)
     assert(rowList.columnNames === IndexedSeq("Campaign ID", "Impressions", "Campaign Name", "Campaign Status", "CTR", "TOTALROWS"))
     assert(rowList.isEmpty)
 
@@ -79,7 +79,7 @@ class DimDrivenFactOrderedPartialRowListTest extends BaseOracleQueryGeneratorTes
     rowList.foreach(r => assert(r === row))
     rowList.map(r => assert(r === row))
     
-    val lookupExisting =  rowList.getRowByIndex(java.lang.Integer.valueOf(1))
+    val lookupExisting =  rowList.getRowByIndex(RowGrouping(java.lang.Integer.valueOf(1).toString, List.empty))
     assert(lookupExisting.contains(row))
     
     val row2 = rowList.newRow
@@ -95,7 +95,7 @@ class DimDrivenFactOrderedPartialRowListTest extends BaseOracleQueryGeneratorTes
     rowList.updateRow(row3)
 
     //Should have two unique rows
-    val lookupExistingSecondRow =  rowList.getRowByIndex(java.lang.Integer.valueOf(10))
+    val lookupExistingSecondRow =  rowList.getRowByIndex(RowGrouping(java.lang.Integer.valueOf(10).toString, List.empty))
     assert(lookupExistingSecondRow.contains(row3))
 
     assert(row.getValue("Campaign ID") === 1)
@@ -108,7 +108,7 @@ class DimDrivenFactOrderedPartialRowListTest extends BaseOracleQueryGeneratorTes
   }
 
   test("successfully construct DimDrivenFactOrderedPartialRowListTest partial row list") {
-    val rowList : DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList("Campaign ID", query)
+    val rowList : DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList(RowGrouping("Campaign ID", List.empty), query)
     assert(rowList.columnNames === IndexedSeq("Campaign ID", "Impressions", "Campaign Name", "Campaign Status", "CTR", "TOTALROWS"))
     assert(rowList.isEmpty)
 
@@ -141,7 +141,7 @@ class DimDrivenFactOrderedPartialRowListTest extends BaseOracleQueryGeneratorTes
     rowList.foreach(r => assert(r === row))
     rowList.map(r => assert(r === row))
 
-    val lookupExisting =  rowList.getRowByIndex(java.lang.Integer.valueOf(1))
+    val lookupExisting =  rowList.getRowByIndex(RowGrouping(java.lang.Integer.valueOf(1).toString, List.empty))
     assert(lookupExisting.contains(row))
 
     val row2 = rowList.newRow
