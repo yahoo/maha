@@ -5201,7 +5201,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle
-         |            WHERE (advertiser_id = 213) AND (id IN (12,15,18,17,11,20,14,16,19,13))
+         |            WHERE (advertiser_id = 213) AND (id IN (12,19,15,11,13,16,17,14,20,18))
          |             ) ago2
          |          INNER JOIN
          |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
@@ -5296,7 +5296,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle
-         |            WHERE (advertiser_id = 213) AND (id IN (45,39,30,51,48,27,33,54,12,15,42,36,21,18,24,53,41,35,17,50,44,23,38,47,26,11,32,14,20,29,46,52,28,34,55,40,49,43,22,16,37,19,25,31,13))
+         |            WHERE (advertiser_id = 213) AND (id IN (45,34,12,51,19,23,40,15,11,44,33,22,55,26,50,37,13,46,24,35,16,48,21,54,43,32,49,36,39,17,25,14,47,31,53,42,20,27,38,18,30,29,41,52,28))
          |             ) ago2
          |          INNER JOIN
          |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
@@ -5390,7 +5390,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle
-         |            WHERE (advertiser_id = 213) AND (id IN (12,15,21,18,24,17,23,11,14,20,22,16,19,25,13))
+         |            WHERE (advertiser_id = 213) AND (id IN (12,19,23,15,11,22,13,24,16,21,17,25,14,20,18))
          |             ) ago2
          |          INNER JOIN
          |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
@@ -5412,7 +5412,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle
-         |            WHERE (advertiser_id = 213) AND (id NOT IN (12,15,21,18,24,17,23,11,14,20,22,16,19,25,13))
+         |            WHERE (advertiser_id = 213) AND (id NOT IN (12,19,23,15,11,22,13,24,16,21,17,25,14,20,18))
          |             ) ago2
          |          INNER JOIN
          |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id

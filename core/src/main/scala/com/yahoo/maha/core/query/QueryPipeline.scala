@@ -46,16 +46,16 @@ object QueryPipeline extends Logging {
   val completeRowList: Query => RowList = (q) => new CompleteRowList(q)
   val dimDrivenPartialRowList: Query => RowList = (q) => {
     val indexAlias = q.queryContext.indexAliasOption.get
-    val groupByKeys: List[String] = q.queryContext.factGroupByKeys diff List(indexAlias)
-    new DimDrivenPartialRowList(RowGrouping(q.queryContext.indexAliasOption.get, groupByKeys), q)
+    val groupByKeys: List[String] = q.queryContext.factGroupByKeys
+    new DimDrivenPartialRowList(RowGrouping(q.queryContext.indexAliasOption.get, List.empty), q)
   }
   val dimDrivenFactOrderedPartialRowList: Query => RowList = (q) => {
     val indexAlias = q.queryContext.indexAliasOption.get
-    val groupByKeys: List[String] = q.queryContext.factGroupByKeys diff List(indexAlias)
-    new DimDrivenFactOrderedPartialRowList(RowGrouping(q.queryContext.indexAliasOption.get, groupByKeys), q)}
+    val groupByKeys: List[String] = q.queryContext.factGroupByKeys
+    new DimDrivenFactOrderedPartialRowList(RowGrouping(q.queryContext.indexAliasOption.get, List.empty), q)}
   val factDrivenPartialRowList: Query => RowList = (q) => {
     val indexAlias = q.queryContext.indexAliasOption.get
-    val groupByKeys: List[String] = q.queryContext.factGroupByKeys diff List(indexAlias)
+    val groupByKeys: List[String] = q.queryContext.factGroupByKeys
     new FactDrivenPartialRowList(RowGrouping(q.queryContext.indexAliasOption.get, groupByKeys), q)
   }
 
@@ -861,7 +861,7 @@ OuterGroupBy operation has to be applied only in the following cases
 
     def runMultiEngineQuery(factBestCandidateOption: Option[FactBestCandidate], bestDimCandidates: SortedSet[DimensionBundle], queryGenVersion: Version): QueryPipelineBuilder = {
       val indexAlias = bestDimCandidates.last.publicDim.primaryKeyByAlias
-      val factGroupByKeys = requestModel.bestCandidates.get.dimColMapping.values.toList
+      val factGroupByKeys = requestModel.bestCandidates.get.dimColMapping.values.toList// diff requestModel.dimensionsCandidates.flatMap(candidate => candidate.dim.columnsByAlias).toList
       //if (!requestModel.hasFactSortBy || (requestModel.forceDimDriven && requestModel.hasDimFilters && requestModel.dimFilters.exists(_.operator == LikeFilterOperation))) {
       if (!requestModel.hasFactSortBy && requestModel.forceDimDriven) {
         //oracle + druid

@@ -273,6 +273,7 @@ sealed trait DimDrivenIndexedRowList extends IndexedRowList {
       val primaryKeyValue = primaryKeyAny.toString
       val subsequentValues: List[String] = rowGrouping.factGroupByCols.map{col => if(r.aliasMap.contains(col) && r.cols(r.aliasMap(col)) != null) r.getValue(col).toString else null}.filter(p => p != null)
       val checkedGrouping = RowGrouping(primaryKeyValue, subsequentValues)
+      val matchedGroups = aliasRowMap.filter{groupingWithRowSet => groupingWithRowSet._1.indexAlias == checkedGrouping.indexAlias}
       //if the grouping already exists in full
       if (aliasRowMap.contains(checkedGrouping)) {
         val rowSet = aliasRowMap(checkedGrouping)
@@ -288,7 +289,7 @@ sealed trait DimDrivenIndexedRowList extends IndexedRowList {
             }
             updatedRowSet += existingRowIndex
         }
-      } else if (checkedGrouping.factGroupByCols.nonEmpty) { //if the query has factGroupByCols but hasn't been inserted yet.
+      } else if (checkedGrouping.factGroupByCols.nonEmpty || matchedGroups.isEmpty) { //if the query has factGroupByCols but hasn't been inserted yet.
         //add new row
         val idx = list.size
         list += r
@@ -297,7 +298,6 @@ sealed trait DimDrivenIndexedRowList extends IndexedRowList {
         aliasRowMap.put(checkedGrouping, rowSet)
       } else { //If the grouping indexAlias DOES exist, but not necessarily its grouping.
         //update existing rows
-        val matchedGroups = aliasRowMap.filter{groupingWithRowSet => groupingWithRowSet._1.indexAlias == checkedGrouping.indexAlias}
         matchedGroups.foreach{
           group =>
             val rowSet = group._2
@@ -340,7 +340,7 @@ sealed trait DimDrivenIndexedRowList extends IndexedRowList {
             }
             updatedRowSet += existingRowIndex
         }
-      } else {
+      } else if (checkedGrouping.factGroupByCols.nonEmpty) {
         //add new row
         val idx = list.size
         list += r
@@ -348,6 +348,24 @@ sealed trait DimDrivenIndexedRowList extends IndexedRowList {
         val rowSet: Set[(Row, Int)] = Set((r, idx))
         aliasRowMap.put(checkedGrouping, rowSet)
         updatedRowSet += idx
+      } else { //If the grouping indexAlias DOES exist, but not necessarily its grouping.
+        //update existing rows
+        val matchedGroups = aliasRowMap.filter{groupingWithRowSet => groupingWithRowSet._1.indexAlias == checkedGrouping.indexAlias}
+        matchedGroups.foreach{
+          group =>
+            val rowSet = group._2
+            rowSet.foreach {
+              case (existingRow, existingRowIndex) =>
+                r.aliasMap.foreach {
+                  case (alias, index) =>
+                    val newValue = r.getValue(index)
+                    if (newValue != null) {
+                      existingRow.addValue(index, newValue)
+                    }
+                }
+                updatedRowSet += existingRowIndex
+            }
+        }
       }
     }
   }
@@ -423,8 +441,9 @@ sealed trait FactDrivenIndexedRowList extends IndexedRowList {
       val primaryKeyValue = primaryKeyAny.toString
       val subsequentValues: List[String] = rowGrouping.factGroupByCols.map{col => if(r.aliasMap.contains(col) && r.cols(r.aliasMap(col)) != null) r.getValue(col).toString else null}.filter(p => p != null)
       val checkedGrouping = RowGrouping(primaryKeyValue, subsequentValues)
-      if (aliasRowMap.contains(checkedGrouping)) {
-        aliasRowMap.get(checkedGrouping).get.foreach {
+      val matchedGroups = aliasRowMap.filter(rowGrouping => checkedGrouping.factGroupByCols.forall(col => rowGrouping._1.factGroupByCols.contains(col)))
+      if (matchedGroups.nonEmpty) {
+        matchedGroups.values.flatten.foreach {
           entry =>
             val (existingRow, existingRowIndex) = (entry._1, entry._2)
             //perform update
@@ -437,8 +456,25 @@ sealed trait FactDrivenIndexedRowList extends IndexedRowList {
             }
             updatedRowSet += existingRowIndex
         }
-      } else {
+      } else if (checkedGrouping.factGroupByCols.nonEmpty) {
         //since fact driven, update of row should not add new row, ignore the row
+      } else {
+        val matchedGroups = aliasRowMap.filter{groupingWithRowSet => groupingWithRowSet._1.indexAlias == checkedGrouping.indexAlias}
+        matchedGroups.foreach{
+          group =>
+            val rowSet = group._2
+            rowSet.foreach {
+              case (existingRow, existingRowIndex) =>
+                r.aliasMap.foreach {
+                  case (alias, index) =>
+                    val newValue = r.getValue(index)
+                    if (newValue != null) {
+                      existingRow.addValue(index, newValue)
+                    }
+                }
+                updatedRowSet += existingRowIndex
+            }
+        }
       }
     }
   }

@@ -501,7 +501,16 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
         row.addValue("Ad Group ID", 202)
         row.addValue("Impressions", 100)
         row.addValue("Clicks", 1)
+        row.addValue("Pricing Type", "CPC")
         rl.addRow(row)
+
+        val row2 = rl.newRow
+        row2.addValue("Campaign ID", 15)
+        row2.addValue("Ad Group ID", 202)
+        row2.addValue("Impressions", 100)
+        row2.addValue("Clicks", 1)
+        row2.addValue("Pricing Type", "CPA")
+        rl.addRow(row2)
     }.withOracleCallback {
       rl =>
         val row = rl.newRow
@@ -509,9 +518,6 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
         row.addValue("Ad Group Status", "ON")
         row.addValue("Campaign ID", 10)
         row.addValue("Ad Group ID", 202)
-        row.addValue("Source", 2)
-        row.addValue("Pricing Type", "CPC")
-        row.addValue("Destination URL", "url-10")
         rl.addRow(row)
     }.run()
 
@@ -708,6 +714,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
         row.addValue("Ad Group ID", 10)
         row.addValue("Impressions", 100)
         row.addValue("Clicks", 1)
+        row.addValue("Pricing Type", "CPC")
         rl.addRow(row)
     }.withOracleCallback {
       rl =>
@@ -715,9 +722,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
         row.addValue("Advertiser ID", 1)
         row.addValue("Ad Group Status", "ON")
         row.addValue("Ad Group ID", 10)
-        row.addValue("Source", 2)
         row.addValue("Pricing Type", "CPC")
-        row.addValue("Destination URL", "url-10")
         rl.addRow(row)
     }.run()
 
@@ -848,6 +853,9 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
         row.addValue("Ad Group ID", 10)
         row.addValue("Impressions", 100)
         row.addValue("Clicks", 1)
+        row.addValue("Source", 2)
+        row.addValue("Pricing Type", "CPC")
+        row.addValue("Destination URL", "url-10")
         rl.addRow(row)
     }.withOracleCallback {
       case rl: IndexedRowList =>
@@ -855,9 +863,6 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
         row.addValue("Advertiser ID", 1)
         row.addValue("Ad Group Status", "ON")
         row.addValue("Ad Group ID", 10)
-        row.addValue("Source", 2)
-        row.addValue("Pricing Type", "CPC")
-        row.addValue("Destination URL", "url-10")
         rl.updateRow(row)
       case any =>
         throw new UnsupportedOperationException("shouldn't be here")
