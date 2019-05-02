@@ -76,6 +76,8 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
           Map("Impressions" -> DecType(), "Spend" -> DecType()),
           constAliasToValueMapList = List(Map("Advertiser ID" -> "12345"), Map("Advertiser ID" -> "12345", "Impressions" -> "1.0")))
 
+    assert(rowList.forall(row=>row.isInstanceOf[Row]))
+
     //Base rowList tests
     assert(rowList.columnNames === IndexedSeq("Advertiser ID", "Day", "Impressions", "Spend"), "Expected columns and produced columns do not match")
     assert(rowList.isEmpty, "No rows have yet been added")

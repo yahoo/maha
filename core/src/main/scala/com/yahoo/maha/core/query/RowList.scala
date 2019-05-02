@@ -398,7 +398,7 @@ sealed trait FactDrivenIndexedRowList extends IndexedRowList {
   def rowGrouping: RowGrouping
 
   def getRowByIndex(indexAlias: RowGrouping) : scala.collection.Set[Row] = {
-    val rowSetOption =  aliasRowMap.get(indexAlias)
+    val rowSetOption: Option[Set[(Row, Int)]] = Some(aliasRowMap.filter(group => indexAlias.factGroupByCols.forall(col => group._1.factGroupByCols.contains(col))).values.flatten.toSet)
     rowSetOption.fold(scala.collection.Set.empty[Row]) {
       rowSet =>
         rowSet.map {

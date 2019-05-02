@@ -71,7 +71,7 @@ class OracleQueryExecutor(jdbcConnection: JdbcConnection, lifecycleListener: Exe
                 //get existing index row or create new one
                 val rowSet = {
                   val indexValue = columnValueExtractor.getColumnValue(index, indexColumn, resultSet)
-                  val rowSet = irl.getRowByIndex(RowGrouping(indexValue.toString, List.empty))
+                  val rowSet = irl.getRowByIndex(RowGrouping(indexValue.toString, List(indexValue.toString)))
                   //no row, create one
                   if(rowSet.isEmpty) {
                     val r = irl.newRow

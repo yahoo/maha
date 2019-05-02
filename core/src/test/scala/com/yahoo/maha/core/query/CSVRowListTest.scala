@@ -94,6 +94,13 @@ class CSVRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTest {
     assert(rowListWithHeaders.columnNames === IndexedSeq("Campaign ID", "Impressions", "Campaign Name", "Campaign Status", "CTR", "TOTALROWS"))
     assert(rowListWithHeaders.isEmpty)
 
+    assertThrows[UnsupportedOperationException](rowListWithHeaders.forall(row=>row.isInstanceOf[Row]), "Functionality not implemented on CSVRowList!")
+
+    //Just gives a logger warning.
+    rowListWithHeaders.foreach(row=>row)
+
+    assert(rowListWithHeaders.map(row => row).isEmpty, "CSVRowList mapping returns an empty iterable and logs a warning.")
+
     rowListWithHeaders.withLifeCycle {
       val row = rowListWithHeaders.newRow
 
@@ -120,7 +127,7 @@ class CSVRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTest {
 
       rowListWithHeaders.addRow(row)
     }
-    
+
     val csvLines = scala.io.Source.fromFile(tmpFile, "UTF-8").getLines()
     var count = 0
     csvLines.foreach {

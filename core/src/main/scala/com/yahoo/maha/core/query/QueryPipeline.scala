@@ -47,12 +47,12 @@ object QueryPipeline extends Logging {
   val dimDrivenPartialRowList: Query => RowList = (q) => {
     val indexAlias = q.queryContext.indexAliasOption.get
     val groupByKeys: List[String] = q.queryContext.factGroupByKeys
-    new DimDrivenPartialRowList(RowGrouping(q.queryContext.indexAliasOption.get, List.empty), q)
+    new DimDrivenPartialRowList(RowGrouping(q.queryContext.indexAliasOption.get, List(q.queryContext.indexAliasOption.get)), q)
   }
   val dimDrivenFactOrderedPartialRowList: Query => RowList = (q) => {
     val indexAlias = q.queryContext.indexAliasOption.get
     val groupByKeys: List[String] = q.queryContext.factGroupByKeys
-    new DimDrivenFactOrderedPartialRowList(RowGrouping(q.queryContext.indexAliasOption.get, List.empty), q)}
+    new DimDrivenFactOrderedPartialRowList(RowGrouping(q.queryContext.indexAliasOption.get, List(q.queryContext.indexAliasOption.get)), q)}
   val factDrivenPartialRowList: Query => RowList = (q) => {
     val indexAlias = q.queryContext.indexAliasOption.get
     val groupByKeys: List[String] = q.queryContext.factGroupByKeys

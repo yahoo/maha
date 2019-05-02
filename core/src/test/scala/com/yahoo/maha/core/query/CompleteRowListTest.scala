@@ -261,5 +261,12 @@ class CompleteRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListT
     ephemeralRow.addValue("show_sov_flag","NaN")
     assert(rowData.getInt("show_sov_flag") === None)
     assert(rowData.getLong("show_sov_flag") === None)
+
+    assert(rowData.getInt("inexistent_col") == None)
+    assert(rowData.getLong("inexistent_col") == None)
+
+    val rowDataWithoutEphemeralRow = PostResultRowData(row, None, "Impression Share")
+    assert(rowDataWithoutEphemeralRow.getInt("Impressions") == Some(1))
+    assert(rowDataWithoutEphemeralRow.getLong("Impressions") == Some(1))
   }
 }

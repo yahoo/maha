@@ -159,5 +159,7 @@ class DimDrivenFactOrderedPartialRowListTest extends BaseOracleQueryGeneratorTes
     assert(row.getValue("Campaign Status") === "on")
     assert(row.getValue("CTR") === 1.11D)
     assert(row.getValue("TOTALROWS") === 1)
+
+    assert(rowList.forall(row => row.isInstanceOf[Row]), "DimDrivenFactOrderedPartialRowList does lazy list.forall implementation.")
   }
 }
