@@ -5863,8 +5863,6 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       */
 
     assert(executedMultiEngineQuery.rowList.forall(row => {
-      val t = row
-      val u = executedMultiEngineQuery.rowList
       actualMultiEngineRowList.contains(row.toString)
     }))
     assert(postRowResult.rowList.forall(row => expectedUnmergedRowList.contains(row.toString)))
