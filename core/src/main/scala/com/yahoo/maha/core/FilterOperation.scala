@@ -12,12 +12,13 @@ import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{START_OF_THE_MONTH, START_OF_THE_WEEK}
 import com.yahoo.maha.core.MetaType.MetaType
 import com.yahoo.maha.core.dimension.{DruidFuncDimCol, DruidPostResultFuncDimCol}
-import com.yahoo.maha.core.request.fieldExtended
+import com.yahoo.maha.core.request.{Parameter, TimeZoneValue, fieldExtended}
 import grizzled.slf4j.Logging
 import io.druid.js.JavaScriptConfig
 import io.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec}
 import io.druid.query.extraction.{RegexDimExtractionFn, SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
 import io.druid.query.filter.JavaScriptDimFilter
+import org.joda.time.DateTimeZone
 
 import scala.collection.{Iterable, mutable}
 import scalaz.syntax.applicative._
@@ -694,7 +695,7 @@ object FilterDruid {
     }
   }
 
-  private[this] def processBetweenFilterForDate(fromDate: DateTime, toDate: DateTime, grain: Grain, columnAlias: String, column: Column, columnsByNameMap: Map[String, Column]) : DimFilter = {
+  private[this] def processBetweenFilterForDate(fromDate: DateTime, toDate: DateTime, grain: Grain, columnAlias: String, column: Column, columnsByNameMap: Map[String, Column], timezone: DateTimeZone) : DimFilter = {
     val values: List[String] = {
       val dates = new mutable.HashSet[String]()
       var currentDate = fromDate
@@ -711,6 +712,11 @@ object FilterDruid {
             val exFn = new TimeFormatExtractionFn(fmt, zone, null, null, false)
             values.map {
               v => new SelectorDimFilter(DRUID_TIME_FORMAT.sourceDimColName, druidLiteralMapper.toLiteral(column, v, Option(grain)), exFn)
+            }
+          case TIME_FORMAT_WITH_REQUEST_CONTEXT(fmt) =>
+            val exFn = new TimeFormatExtractionFn(fmt, timezone, null, null, false)
+            values.map {
+              v => new SelectorDimFilter(TIME_FORMAT_WITH_REQUEST_CONTEXT.sourceDimColName, druidLiteralMapper.toLiteral(column, v, Option(grain)), exFn)
             }
           case formatter@DATETIME_FORMATTER(fieldName, index, length) =>
             val exFn = new SubstringDimExtractionFn(index, length)
@@ -732,6 +738,9 @@ object FilterDruid {
                       aliasToNameMapFull: Map[String, String],
                       columnsByNameMap: Map[String, Column]) : Seq[DimFilter] = {
     val dimFilters = new mutable.ArrayBuffer[DimFilter]
+    val timezone = DateTimeZone.forID(model.additionalParameters.getOrElse(Parameter.TimeZone, TimeZoneValue.apply(DateTimeZone.UTC.getID))
+      .asInstanceOf[TimeZoneValue].value)
+
     model.localTimeDayFilter.operator match {
       case InFilterOperation | EqualityFilterOperation =>
         dimFilters += renderFilterDim(model.localTimeDayFilter, aliasToNameMapFull, columnsByNameMap, Option(DailyGrain))
@@ -753,7 +762,7 @@ object FilterDruid {
           val column = columnsByNameMap(name)
           val columnAlias = column.alias.getOrElse(name)
           val (f, t) = extractFromAndToDate(model.localTimeDayFilter, DailyGrain)
-          dimFilters += processBetweenFilterForDate(f, t, DailyGrain, columnAlias, column, columnsByNameMap)
+          dimFilters += processBetweenFilterForDate(f, t, DailyGrain, columnAlias, column, columnsByNameMap, timezone)
           (f, t)
         }
 
@@ -765,7 +774,7 @@ object FilterDruid {
               val columnAlias = column.alias.getOrElse(name)
               val (f, t) = extractFromAndToDate(filter, HourlyGrain)
               val (fWithHour, tWithHour) = (dayFrom.withHourOfDay(f.getHourOfDay), dayTo.withHourOfDay(t.getHourOfDay))
-              dimFilters += processBetweenFilterForDate(fWithHour, tWithHour, HourlyGrain, columnAlias, column, columnsByNameMap)
+              dimFilters += processBetweenFilterForDate(fWithHour, tWithHour, HourlyGrain, columnAlias, column, columnsByNameMap, timezone)
               (fWithHour, tWithHour)
           }
 
@@ -779,7 +788,7 @@ object FilterDruid {
               val columnAlias = column.alias.getOrElse(name)
               val (f, t) = extractFromAndToDate(filter, MinuteGrain)
               val (fWithHourAndMinute, tWithHourAndMinute) = (dayWithHourFrom.withMinuteOfHour(f.getMinuteOfHour), dayWithHourTo.withMinuteOfHour(t.getMinuteOfHour))
-              dimFilters += processBetweenFilterForDate(fWithHourAndMinute, tWithHourAndMinute, MinuteGrain, columnAlias, column, columnsByNameMap)
+              dimFilters += processBetweenFilterForDate(fWithHourAndMinute, tWithHourAndMinute, MinuteGrain, columnAlias, column, columnsByNameMap, timezone)
             }
           }
         }
