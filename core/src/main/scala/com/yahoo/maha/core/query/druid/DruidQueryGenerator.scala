@@ -1187,7 +1187,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               val exFn = new TimeFormatExtractionFn(fmt, zone, null, null, false)
               (new ExtractionDimensionSpec(DRUID_TIME_FORMAT.sourceDimColName, alias, getDimValueType(column), exFn, null), Option.empty)
             case TIME_FORMAT_WITH_REQUEST_CONTEXT(fmt) =>
-              val timezoneValue = queryContext.requestModel.additionalParameters.getOrElse(Parameter.TimeZone, DateTimeZone.UTC).asInstanceOf[TimeZoneValue]
+              val timezoneValue = queryContext.requestModel.additionalParameters
+                .getOrElse(Parameter.TimeZone, TimeZoneValue.apply(DateTimeZone.UTC.getID)).asInstanceOf[TimeZoneValue]
               val timezone = DateTimeZone.forID(timezoneValue.value)
               val exFn = new TimeFormatExtractionFn(fmt, timezone, null, null, false)
               (new ExtractionDimensionSpec(TIME_FORMAT_WITH_REQUEST_CONTEXT.sourceDimColName, alias, getDimValueType(column), exFn, null), Option.empty)
