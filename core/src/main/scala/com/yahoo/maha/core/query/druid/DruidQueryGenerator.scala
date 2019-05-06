@@ -38,7 +38,7 @@ import io.druid.query.timeseries.TimeseriesResultValue
 import io.druid.query.topn.{InvertedTopNMetricSpec, NumericTopNMetricSpec, TopNQueryBuilder, TopNResultValue}
 import io.druid.query.{Druids, Result}
 import io.druid.segment.column.ValueType
-import org.joda.time.{DateTime, Interval}
+import org.joda.time.{DateTime, DateTimeZone, Interval}
 import org.json4s.{DefaultFormats, JValue}
 
 import scala.collection.mutable.ArrayBuffer
@@ -1186,6 +1186,12 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             case DRUID_TIME_FORMAT(fmt, zone) =>
               val exFn = new TimeFormatExtractionFn(fmt, zone, null, null, false)
               (new ExtractionDimensionSpec(DRUID_TIME_FORMAT.sourceDimColName, alias, getDimValueType(column), exFn, null), Option.empty)
+            case TIME_FORMAT_WITH_REQUEST_CONTEXT(fmt) =>
+              val timezoneValue = queryContext.requestModel.additionalParameters
+                .getOrElse(Parameter.TimeZone, TimeZoneValue.apply(DateTimeZone.UTC.getID)).asInstanceOf[TimeZoneValue]
+              val timezone = DateTimeZone.forID(timezoneValue.value)
+              val exFn = new TimeFormatExtractionFn(fmt, timezone, null, null, false)
+              (new ExtractionDimensionSpec(TIME_FORMAT_WITH_REQUEST_CONTEXT.sourceDimColName, alias, getDimValueType(column), exFn, null), Option.empty)
             case datetimeFormatter@DATETIME_FORMATTER(fieldName, index, length) =>
               val exFn = new SubstringDimExtractionFn(index, length)
               (new ExtractionDimensionSpec(datetimeFormatter.dimColName, alias, getDimValueType(column), exFn, null), Option.empty)
@@ -1273,6 +1279,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                 Option.apply(new ExtractionDimensionSpec(alias, alias, getDimValueType(column), timeFormatFn, null)))
 
             case DRUID_TIME_FORMAT(fmt, zone) =>
+              renderColumnWithAlias(fact, column, alias)
+
+            case TIME_FORMAT_WITH_REQUEST_CONTEXT(fmt) =>
               renderColumnWithAlias(fact, column, alias)
 
             case any =>
