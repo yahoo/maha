@@ -862,7 +862,7 @@ OuterGroupBy operation has to be applied only in the following cases
       if (!requestModel.hasFactSortBy && requestModel.forceDimDriven) {
         //oracle + druid
         requestDebug("dimQueryThenFactQuery")
-        val dimQuery = getMultiEngineDimQuery(bestDimCandidates, requestModel, indexAlias, factGroupByKeys, queryAttributes, queryGenVersion)
+        val dimQuery = getMultiEngineDimQuery(bestDimCandidates, requestModel, indexAlias, List(indexAlias), queryAttributes, queryGenVersion)
         val subsequentQuery: (IndexedRowList, QueryAttributes) => Query = {
           case (irl, subqueryAttributes) =>
             val field = irl.rowGrouping.indexAlias
@@ -907,7 +907,7 @@ OuterGroupBy operation has to be applied only in the following cases
                 }
                 queryAttributesBuilder.build
               }
-              getMultiEngineDimQuery(bestDimCandidates, noRowCountRequestModel, indexAlias, factGroupByKeys, injectedAttributes, queryGenVersion)
+              getMultiEngineDimQuery(bestDimCandidates, noRowCountRequestModel, indexAlias, List(indexAlias), injectedAttributes, queryGenVersion)
             } else {
               QueryChain.logger.info("No data returned from druid, should run fallback query if there is one")
               NoopQuery
