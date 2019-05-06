@@ -4,9 +4,9 @@ import com.yahoo.maha.core
 import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, InternalSchema, ResellerSchema}
 import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{POST_RESULT_DECODE, START_OF_THE_MONTH, START_OF_THE_WEEK}
-import com.yahoo.maha.core.FilterOperation.{Equality, In, InBetweenEquality, InEquality, InNotInBetweenEqualityNotEqualsGreaterLesser, InEqualityFieldEquality, InEqualityLike, FieldEquality}
+import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol, DruidFuncDimCol, DruidPostResultFuncDimCol, PubCol}
+import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact.{PublicFactCol, _}
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
@@ -723,11 +723,12 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
         "fact9", HourlyGrain, DruidEngine, Set(AdvertiserSchema),
         Set(
           DimCol("id", IntType(), annotations = Set(ForeignKey("keyword")))
+          , DimCol("my_time", DateType("yyyyMMddHH"))
           , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
           , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
           , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", 8 -> "CPV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
           , DruidFuncDimCol("Derived Pricing Type", IntType(3), DECODE_DIM("{price_type}", "7", "6", "2", "1", "{price_type}"))
-          , DruidFuncDimCol("Date From Req Context", DateType(), TIME_FORMAT_WITH_REQUEST_CONTEXT("YYYY-MM-dd HH"))
+          , DruidFuncDimCol("Date From Req Context", DateType(), TIME_FORMAT_WITH_REQUEST_CONTEXT("{my_time}", "YYYY-MM-dd HH"))
 
         ),
         Set(
