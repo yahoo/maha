@@ -113,5 +113,11 @@ object DruidDerivedFunction {
   object DRUID_TIME_FORMAT {
     val sourceDimColName = "__time"
   }
+
+  /* Information like timezone is passed in the request context. */
+  case class TIME_FORMAT_WITH_REQUEST_CONTEXT(format: String) extends DruidDerivedFunction
+  object TIME_FORMAT_WITH_REQUEST_CONTEXT {
+    val sourceDimColName = "__time"
+  }
 }
 
