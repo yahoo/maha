@@ -99,6 +99,11 @@ trait RowList extends RowListLifeCycle {
   def getTotalRowCount : Int = {
     0
   }
+
+  def length: Int = {
+    0
+  }
+
   protected def start() : Unit = {
     //do nothing
   }
@@ -216,6 +221,10 @@ trait InMemRowList extends QueryRowList {
     }
 
     total_count
+  }
+
+  override def length : Int = {
+    list.length
   }
 
 }

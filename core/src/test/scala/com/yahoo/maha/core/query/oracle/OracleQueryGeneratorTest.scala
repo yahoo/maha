@@ -5862,6 +5862,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       * actual goal: If grouping primary key alias already exists, take all rows under that grouping, index the areas to overwrite Dim information, and do so.
       */
 
+
+    assert(executedMultiEngineQuery.rowList.length == 3)
     assert(executedMultiEngineQuery.rowList.forall(row => {
       actualMultiEngineRowList.contains(row.toString)
     }))

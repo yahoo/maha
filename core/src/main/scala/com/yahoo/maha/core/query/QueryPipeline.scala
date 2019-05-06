@@ -857,7 +857,6 @@ OuterGroupBy operation has to be applied only in the following cases
 
     def runMultiEngineQuery(factBestCandidateOption: Option[FactBestCandidate], bestDimCandidates: SortedSet[DimensionBundle], queryGenVersion: Version): QueryPipelineBuilder = {
       val indexAlias = bestDimCandidates.last.publicDim.primaryKeyByAlias
-      val factGroupByKeys = requestModel.bestCandidates.get.dimColMapping.values.toList
       //if (!requestModel.hasFactSortBy || (requestModel.forceDimDriven && requestModel.hasDimFilters && requestModel.dimFilters.exists(_.operator == LikeFilterOperation))) {
       if (!requestModel.hasFactSortBy && requestModel.forceDimDriven) {
         //oracle + druid
@@ -869,7 +868,7 @@ OuterGroupBy operation has to be applied only in the following cases
             val values = irl.keys.toList.map(_.toString)
             val filter = InFilter(field, values)
             val injectedFactBestCandidate = factOnlyInjectFilter(factBestCandidateOption.get, filter)
-            val query = getFactQuery(injectedFactBestCandidate, requestModel, indexAlias, factGroupByKeys, queryGenVersion)
+            val query = getFactQuery(injectedFactBestCandidate, requestModel, indexAlias, List(indexAlias), queryGenVersion)
             irl.addSubQuery(query)
             query
         }
@@ -890,7 +889,7 @@ OuterGroupBy operation has to be applied only in the following cases
         //since druid + oracle doesn't support row count
         requestDebug("factQueryThenDimQuery")
         val noRowCountRequestModel = requestModel.copy(includeRowCount = false)
-        val factQuery = getFactQuery(factBestCandidateOption.get, noRowCountRequestModel, indexAlias, factGroupByKeys, queryGenVersion)
+        val factQuery = getFactQuery(factBestCandidateOption.get, noRowCountRequestModel, indexAlias, List(indexAlias), queryGenVersion)
         val subsequentQuery: (IndexedRowList, QueryAttributes) => Query = {
           case (irl, subqueryqueryAttributes) =>
             val field = irl.rowGrouping.indexAlias
