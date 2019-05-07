@@ -27,6 +27,9 @@ case class Row(aliasMap: Map[String, Int], cols: collection.mutable.ArrayBuffer[
   def addValue(index: Int, value: Any) = {
     cols.update(index, value)
   }
+  def addValues(aliasValues: List[(String, Any)]) = {
+    aliasValues.foreach(aliasValuePair => addValue(aliasValuePair._1, aliasValuePair._2))
+  }
   def getValue(alias: String) : Any = {
     if(aliasMap.contains(alias)) {
       cols(aliasMap(alias))
@@ -337,7 +340,7 @@ sealed trait DimDrivenIndexedRowList extends IndexedRowList {
       val checkedGrouping = RowGrouping(primaryKeyValue, subsequentValues)
       val matchedGroups = aliasRowMap.filter{groupingWithRowSet => groupingWithRowSet._1.indexAlias == checkedGrouping.indexAlias}
       if (matchedGroups.nonEmpty) {
-        val rowSet = aliasRowMap(checkedGrouping)
+        val rowSet = matchedGroups.values.flatten
         //perform update
         rowSet.foreach {
           case (existingRow, existingRowIndex) =>
