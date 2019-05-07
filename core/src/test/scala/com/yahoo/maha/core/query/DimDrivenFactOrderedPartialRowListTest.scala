@@ -202,30 +202,30 @@ class DimDrivenFactOrderedPartialRowListTest extends BaseOracleQueryGeneratorTes
     //Rows should flatten & retain on unique Campaign ID and Pricing Type.
     val rowList: DimDrivenFactOrderedPartialRowList = DimDrivenFactOrderedPartialRowList(RowGrouping("Campaign ID", List("Pricing Type")), queryWithMultipleFactDimCols)
 
-    //Rows returned by the queried Dimension table.  Expect Campaign 123 to be removed since it isn't in the fact.
+    //Rows returned by the queried Dimension table.
     val dimRow1 = rowList.newRow
       dimRow1.addValues(List(("Campaign ID", 123), ("Campaign Name", "MegaCampaign"), ("Campaign Status", "ON")))
     val dimRow2 = rowList.newRow
       dimRow2.addValues(List(("Campaign ID", 124), ("Campaign Name", "MegaCampaign"), ("Campaign Status", "OFF")))
 
-    //Rows returned by the queried Fact table.
+    //Rows returned by the queried Fact table.  Expect CPC to be overwritten since it is duplicate in Dim.
     val factRow1 = rowList.newRow
-      factRow1.addValues(List(("Campaign ID", 124), ("Impressions", 150), ("CTR", 2.25), ("Pricing Type", "CPC")))
+      factRow1.addValues(List(("Campaign ID", 124), ("Impressions", 150), ("CTR", 2.25), ("Pricing Type", "CPC"), ("TOTALROWS", 10)))
     val factRow2 = rowList.newRow
-      factRow2.addValues(List(("Campaign ID", 124), ("Impressions", 150), ("CTR", 2.20), ("Pricing Type", "CPA")))
+      factRow2.addValues(List(("Campaign ID", 124), ("Impressions", 150), ("CTR", 2.20), ("Pricing Type", "CPA"), ("TOTALROWS", 500)))
 
     //Add & merge all rows.
     rowList.addRow(dimRow1)
-
     rowList.addRow(dimRow2)
     rowList.updateRow(factRow1)
     rowList.updateRow(factRow2)
 
-    assert(rowList.updatedSize == 0)
+    assert(rowList.updatedSize == 1)
 
+    //Expect the Fact query to only update the relevant Dimension row.
     val expectedMergedRows: List[String] = List(
-      s"""Row(Map(Campaign ID -> 0, Pricing Type -> 4, Campaign Status -> 3, Impressions -> 1, Campaign Name -> 2, CTR -> 5, TOTALROWS -> 6),ArrayBuffer(124, 150, MegaCampaign, OFF, CPC, 2.25, null))"""
-      , s"""Row(Map(Campaign ID -> 0, Pricing Type -> 4, Campaign Status -> 3, Impressions -> 1, Campaign Name -> 2, CTR -> 5, TOTALROWS -> 6),ArrayBuffer(124, 150, MegaCampaign, OFF, CPA, 2.2, null))""")
+      s"""Row(Map(Campaign ID -> 0, Pricing Type -> 4, Campaign Status -> 3, Impressions -> 1, Campaign Name -> 2, CTR -> 5, TOTALROWS -> 6),ArrayBuffer(123, 150, MegaCampaign, ON, null, null, null))"""
+      , s"""Row(Map(Campaign ID -> 0, Pricing Type -> 4, Campaign Status -> 3, Impressions -> 1, Campaign Name -> 2, CTR -> 5, TOTALROWS -> 6),ArrayBuffer(124, 150, MegaCampaign, OFF, CPA, 2.2, 500))""")
 
     assert(rowList.length == 2)
     rowList.foreach(row => assert(expectedMergedRows.contains(row.toString)))
