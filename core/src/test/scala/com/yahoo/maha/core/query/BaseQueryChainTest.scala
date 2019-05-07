@@ -12,6 +12,7 @@ trait BaseQueryChainTest {
   this: BaseQueryGeneratorTest =>
 
   val queryExecutorContext = getQueryExecutorContext
+  val queryExecutorContextWithoutReturnedRows = getQueryExecutorContextWithoutReturnedRows
   val partialQueryExecutorContext = getPartialQueryExecutorContext
 
   def updateRowList(rowList: QueryRowList) : Unit = {
@@ -43,6 +44,37 @@ trait BaseQueryChainTest {
     val qeDruid = new QueryExecutor {
       override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
         updateRowList(rowList.asInstanceOf[QueryRowList])
+        QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
+      }
+      override def engine: Engine = DruidEngine
+    }
+
+    val qec = new QueryExecutorContext
+    qec.register(qeOracle)
+    qec.register(qeHive)
+    qec.register(qeDruid)
+    qec
+  }
+
+  def getQueryExecutorContextWithoutReturnedRows: QueryExecutorContext = {
+    val qeOracle = new QueryExecutor {
+      override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
+        //updateRowList(rowList.asInstanceOf[QueryRowList])
+        QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
+      }
+      override def engine: Engine = OracleEngine
+    }
+
+    val qeHive = new QueryExecutor {
+      override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
+        //updateRowList(rowList.asInstanceOf[QueryRowList])
+        QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
+      }
+      override def engine: Engine = HiveEngine
+    }
+    val qeDruid = new QueryExecutor {
+      override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes) : QueryResult[T] = {
+        //updateRowList(rowList.asInstanceOf[QueryRowList])
         QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
       }
       override def engine: Engine = DruidEngine
