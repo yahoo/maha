@@ -3,7 +3,9 @@
 package com.yahoo.maha.core.query.druid
 
 import com.yahoo.maha.core.CoreSchema._
+import com.yahoo.maha.core.DruidDerivedFunction.TIME_FORMAT_WITH_REQUEST_CONTEXT
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.dimension.DruidFuncDimCol
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.{ReportingRequest, RequestContext}
 
@@ -2529,4 +2531,90 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("query pipeline should fail"))
     assert(queryPipelineTry.failed.toOption.get.getMessage.contains("requirement failed: druid select query type does not support druid lookups!"))
   }
+
+  test("dimension time extraction function for druid time when no timezone is specified in additional parameters") {
+    val jsonString = s"""{
+                          "queryType": "select",
+                          "cube": "k_stats_date_select",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":5
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, defaultRegistry)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+
+    val json = """{"type":"extraction","dimension":"__time","outputName":"Day","outputType":"STRING","extractionFn":{"type":"timeFormat","format":"YYYY-MM-dd HH","timeZone":"UTC","granularity":{"type":"none"},"asMillis":false}}"""
+    assert(result.contains(json), result)
+  }
+
+  test("dimension time extraction function for druid time when timezone is specified in the request") {
+    val jsonString = s"""{
+                          "queryType": "select",
+                          "cube": "k_stats_date_select",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":5
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.withTimeZone(getReportingRequestSync(jsonString), "America/Los_Angeles")
+    val requestModel = RequestModel.from(request, defaultRegistry)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val json = """{"type":"extraction","dimension":"__time","outputName":"Day","outputType":"STRING","extractionFn":{"type":"timeFormat","format":"YYYY-MM-dd HH","timeZone":"America/Los_Angeles","granularity":{"type":"none"},"asMillis":false}}"""
+    assert(result.contains(json), result)
+  }
+
+  test("Filter on time dimension extracted using request context should render correctly") {
+    val jsonString = s"""{
+                          "queryType": "select",
+                          "cube": "k_stats_date_select",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":5
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.withTimeZone(getReportingRequestSync(jsonString), "America/Los_Angeles")
+    val requestModel = RequestModel.from(request, defaultRegistry)
+
+    ColumnContext.withColumnContext { implicit cc =>
+      val dayCol = DruidFuncDimCol("Date From Req Context", DateType(), TIME_FORMAT_WITH_REQUEST_CONTEXT("YYYY-MM-dd HH"))
+      val filters = FilterDruid.renderDateDimFilters(requestModel.toOption.get, Map("Day" -> "Day"), Map("Day" -> dayCol))
+      assert(filters.nonEmpty)
+    }
+  }
+
 }
