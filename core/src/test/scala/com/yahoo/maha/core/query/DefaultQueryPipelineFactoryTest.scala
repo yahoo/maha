@@ -501,7 +501,6 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
         row.addValue("Ad Group ID", 202)
         row.addValue("Impressions", 100)
         row.addValue("Clicks", 1)
-        row.addValue("Pricing Type", "CPC")
         rl.addRow(row)
     }.withOracleCallback {
       rl =>
@@ -510,6 +509,9 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
         row.addValue("Ad Group Status", "ON")
         row.addValue("Campaign ID", 10)
         row.addValue("Ad Group ID", 202)
+        row.addValue("Source", 2)
+        row.addValue("Pricing Type", "CPC")
+        row.addValue("Destination URL", "url-10")
         rl.addRow(row)
     }.run()
 
