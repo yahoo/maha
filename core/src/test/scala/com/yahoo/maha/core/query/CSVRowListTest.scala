@@ -94,6 +94,11 @@ class CSVRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTest {
     assert(rowListWithHeaders.columnNames === IndexedSeq("Campaign ID", "Impressions", "Campaign Name", "Campaign Status", "CTR", "TOTALROWS"))
     assert(rowListWithHeaders.isEmpty)
 
+    //Just gives a logger warning.
+    rowListWithHeaders.foreach(row=>row)
+
+    assert(rowListWithHeaders.map(row => row).isEmpty, "CSVRowList mapping returns an empty iterable and logs a warning.")
+
     rowListWithHeaders.withLifeCycle {
       val row = rowListWithHeaders.newRow
 
