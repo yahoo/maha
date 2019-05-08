@@ -13,7 +13,7 @@ import org.json4s.scalaz.JsonScalaz
   **/
 object DrilldownConfig {
   val MAXIMUM_ROWS : BigInt = 1000
-  val DEFAULT_ENFORCE_FILTERS : Boolean = false
+  val DEFAULT_ENFORCE_FILTERS : Boolean = true
 
 
   implicit val formats: DefaultFormats.type = DefaultFormats

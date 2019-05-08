@@ -324,6 +324,9 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                         val newRequestWithInsertedFilter = insertValuesIntoDrilldownRequest(newReportingRequest
                           , fieldAlias, values.toList)
 
+                        require(newRequestWithInsertedFilter.filterExpressions.nonEmpty || curatorConfig.asInstanceOf[DrilldownConfig].enforceFilters
+                          , "Request must apply filters or enforce ReportingRequest input filters!  Check enforceFilters parameter value.")
+
                         if (mahaRequestContext.reportingRequest.isDebugEnabled) {
                           logger.info(s"drilldown request : ${new String(ReportingRequest.serialize(newRequestWithInsertedFilter))}")
                         }
