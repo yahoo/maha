@@ -190,6 +190,7 @@ class DerivedRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTe
 
     derivedRowList.foreach(r => assert(r.toString === "Row(Map(Campaign ID -> 0, Campaign Status -> 3, Impressions -> 1, Campaign Name -> 2, CTR -> 4, Impressions Prev -> 5, Impressions Pct Change -> 6),ArrayBuffer(1, 2, name, on, 2.11, 1, 100.0))"))
     derivedRowList.map(r => assert(r.toString === "Row(Map(Campaign ID -> 0, Campaign Status -> 3, Impressions -> 1, Campaign Name -> 2, CTR -> 4, Impressions Prev -> 5, Impressions Pct Change -> 6),ArrayBuffer(1, 2, name, on, 2.11, 1, 100.0))"))
+    assert(!derivedRowList.forall(row=>row.aliasMap.contains("not_a_key")))
 
   }
 

@@ -272,7 +272,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
   override def generate(queryContext: QueryContext): Query = {
     queryContext match {
       case CombinedQueryContext(dims, factBestCandidate, requestModel, queryAttributes) =>
-        generateFactQuery(dims, new FactQueryContext(factBestCandidate, requestModel, None, queryAttributes))
+        generateFactQuery(dims, new FactQueryContext(factBestCandidate, requestModel, None, List.empty, queryAttributes))
       case context: FactQueryContext =>
         generateFactQuery(SortedSet.empty, context)
       case any => throw new UnsupportedOperationException(s"query context not supported : $any")

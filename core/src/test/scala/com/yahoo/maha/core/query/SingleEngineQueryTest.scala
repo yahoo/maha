@@ -14,7 +14,7 @@ class SingleEngineQueryTest extends FunSuite with Matchers with BaseQueryGenerat
 
 
   test("successfully run dim only query") {
-    val query = getQuery(OracleEngine, getDimQueryContext(OracleEngine, getRequestModel(dimOnlyQueryJson), None), DimOnlyQuery)
+    val query = getQuery(OracleEngine, getDimQueryContext(OracleEngine, getRequestModel(dimOnlyQueryJson), None, List.empty), DimOnlyQuery)
     val qc = new SingleEngineQuery(query)
     val result = qc.execute(queryExecutorContext, (q) => new CompleteRowList(q), QueryAttributes.empty, new EngineQueryStats)
     result.rowList.foreach {
@@ -28,7 +28,7 @@ class SingleEngineQueryTest extends FunSuite with Matchers with BaseQueryGenerat
   }
 
   test("successfully run fact only query") {
-    val query = getQuery(OracleEngine, getFactQueryContext(OracleEngine, getRequestModel(factOnlyQueryJson), None, QueryAttributes.empty), FactOnlyQuery)
+    val query = getQuery(OracleEngine, getFactQueryContext(OracleEngine, getRequestModel(factOnlyQueryJson), None, List.empty, QueryAttributes.empty), FactOnlyQuery)
     val qc = new SingleEngineQuery(query)
     val result = qc.execute(queryExecutorContext, (q) => new CompleteRowList(q), QueryAttributes.empty, new EngineQueryStats)
     result.rowList.foreach {
@@ -56,7 +56,7 @@ class SingleEngineQueryTest extends FunSuite with Matchers with BaseQueryGenerat
   }
 
   test("with forced failing query result and fallback not defined") {
-    val query = getQuery(DruidEngine, getFactQueryContext(OracleEngine, getRequestModel(combinedQueryJson), None, QueryAttributes.empty), DimFactQuery)
+    val query = getQuery(DruidEngine, getFactQueryContext(OracleEngine, getRequestModel(combinedQueryJson), None, List.empty, QueryAttributes.empty), DimFactQuery)
     val qc = new SingleEngineQuery(query)
     val resultTry = Try(qc.execute(getPartialQueryExecutorContext, (q) => new CompleteRowList(q), QueryAttributes.empty, new EngineQueryStats))
     assert(resultTry.isFailure)

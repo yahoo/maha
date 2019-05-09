@@ -16,6 +16,7 @@ import scala.collection.SortedSet
 sealed trait QueryContext {
   def requestModel: RequestModel
   def indexAliasOption: Option[String]
+  def factGroupByKeys: List[String]
   def primaryTableName: String
 }
 
@@ -59,17 +60,20 @@ case object DimFactOuterGroupByQuery extends QueryType
 
 case class DimQueryContext private[query](dims: SortedSet[DimensionBundle],
                            requestModel: RequestModel,
-                           indexAliasOption: Option[String],
+                                          indexAliasOption: Option[String],
+                                          factGroupByKeys: List[String],
                            queryAttributes: QueryAttributes= QueryAttributes.empty) extends DimensionQueryContext
 case class FactQueryContext private[query](factBestCandidate: FactBestCandidate,
                             requestModel: RequestModel,
-                            indexAliasOption: Option[String],
+                                           indexAliasOption: Option[String],
+                                           factGroupByKeys: List[String],
                             queryAttributes: QueryAttributes) extends FactualQueryContext
 case class CombinedQueryContext private[query](dims: SortedSet[DimensionBundle],
                                 factBestCandidate: FactBestCandidate,
                                 requestModel: RequestModel,
                                 queryAttributes: QueryAttributes) extends DimensionQueryContext with FactualQueryContext {
   val indexAliasOption = None
+  val factGroupByKeys = List.empty
   override def primaryTableName: String = {
     if(requestModel.isDimDriven) {
       dims.last.dim.name
@@ -84,6 +88,7 @@ case class DimFactOuterGroupByQueryQueryContext(dims: SortedSet[DimensionBundle]
                                                 requestModel: RequestModel,
                                                 queryAttributes: QueryAttributes) extends DimensionQueryContext with FactualQueryContext {
   override def indexAliasOption: Option[String] = None
+  override def factGroupByKeys: List[String] = List.empty
   override def primaryTableName: String = factBestCandidate.fact.name
 
   lazy val shouldQualifyFactsInPreOuter: Boolean = {
@@ -143,6 +148,7 @@ class QueryContextBuilder(queryType: QueryType, requestModel: RequestModel) {
   var dims : SortedSet[DimensionBundle] = SortedSet.empty
   var factBestCandidate : Option[FactBestCandidate] = None
   var indexAliasOption : Option[String] = None
+  var factGroupByKeys : List[String] = List.empty
   var queryAttributes : QueryAttributes = QueryAttributes.empty
 
   def addDimTable(dimension: DimensionBundle) = {
@@ -170,6 +176,13 @@ class QueryContextBuilder(queryType: QueryType, requestModel: RequestModel) {
     this
   }
 
+  def addFactGroupByKeys(factGroupByKeyList: List[String]) = {
+    require(queryType != DimFactQuery, "dim fact query doesn't use Group By keys")
+    require(factGroupByKeys.isEmpty, s"fact group by is already defined : factGroupByKeys=${factGroupByKeys.toString()}, cannot set to ${factGroupByKeyList.toString()}")
+    this.factGroupByKeys = factGroupByKeyList
+    this
+  }
+
   def setQueryAttributes(queryAttributes: QueryAttributes) = {
     this.queryAttributes = queryAttributes
     this
@@ -179,10 +192,10 @@ class QueryContextBuilder(queryType: QueryType, requestModel: RequestModel) {
     queryType match {
       case DimOnlyQuery =>
         require(dims.nonEmpty, "dim only query should not have dimension empty")
-        DimQueryContext(dims, requestModel, indexAliasOption, queryAttributes)
+        DimQueryContext(dims, requestModel, indexAliasOption, factGroupByKeys, queryAttributes)
       case FactOnlyQuery =>
         require(factBestCandidate.isDefined, "fact only query should have fact defined")
-        FactQueryContext(factBestCandidate.get, requestModel, indexAliasOption, queryAttributes)
+        FactQueryContext(factBestCandidate.get, requestModel, indexAliasOption, factGroupByKeys, queryAttributes)
       case DimFactQuery =>
         require(factBestCandidate.isDefined, "dim fact query should have fact defined")
         CombinedQueryContext(dims, factBestCandidate.get, requestModel, queryAttributes)

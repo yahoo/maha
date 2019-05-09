@@ -895,6 +895,29 @@ trait SharedDimSchema {
       )
   }
 
+  def pubDimCombined: PublicDimension = {
+    val builder : DimensionBuilder = {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        Dimension.newDimension("combined_class", OracleEngine, LevelOne, Set(AdvertiserSchema),
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("address", StrType(1000))
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(OracleHashPartitioning, PKCompositeIndex("AD_ID"))
+        )
+      }
+    }
+
+    builder
+      .toPublicDimension("combined_class","combined_class",
+        Set(
+          PubCol("id", "Class ID", InEquality)
+          , PubCol("address", "Class Address", InEquality)
+        )
+      )
+  }
+
   override protected[this] def registerDims(registryBuilder : RegistryBuilder): Unit = {
     registryBuilder.register(keyword_dim)
     registryBuilder.register(ad_dim)
@@ -910,6 +933,7 @@ trait SharedDimSchema {
     registryBuilder.register(section_dim)
     registryBuilder.register(publisher_dim)
     registryBuilder.register(restaurant_dim)
+    registryBuilder.register(pubDimCombined)
     registryBuilder.build()
   }
 }

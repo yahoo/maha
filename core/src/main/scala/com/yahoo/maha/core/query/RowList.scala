@@ -27,6 +27,9 @@ case class Row(aliasMap: Map[String, Int], cols: collection.mutable.ArrayBuffer[
   def addValue(index: Int, value: Any) = {
     cols.update(index, value)
   }
+  def addValues(aliasValues: List[(String, Any)]) = {
+    aliasValues.foreach(aliasValuePair => addValue(aliasValuePair._1, aliasValuePair._2))
+  }
   def getValue(alias: String) : Any = {
     if(aliasMap.contains(alias)) {
       cols(aliasMap(alias))
@@ -87,6 +90,7 @@ trait RowList extends RowListLifeCycle {
   def addRow(r: Row, er: Option[Row] = None) : Unit
   def isEmpty : Boolean
   def foreach(fn: Row => Unit) : Unit
+  def forall(fn: Row => Boolean) : Boolean
   def map[T](fn: Row => T) : Iterable[T]
   def javaForeach[U](fn: ParFunction[Row, U]) : Unit = {
     foreach(r => fn.apply(r))
@@ -98,6 +102,11 @@ trait RowList extends RowListLifeCycle {
   def getTotalRowCount : Int = {
     0
   }
+
+  def length: Int = {
+    0
+  }
+
   protected def start() : Unit = {
     //do nothing
   }
@@ -187,6 +196,10 @@ trait InMemRowList extends QueryRowList {
     list.foreach(fn)
   }
 
+  def forall(fn: Row => Boolean) : Boolean = {
+    list.forall(fn)
+  }
+
   def map[T](fn: Row => T) : Iterable[T] = {
     list.map(fn)
   }
@@ -213,13 +226,17 @@ trait InMemRowList extends QueryRowList {
     total_count
   }
 
+  override def length : Int = {
+    list.length
+  }
+
 }
 
 case class CompleteRowList(query: Query) extends InMemRowList
 
 sealed trait IndexedRowList extends InMemRowList {
-  def indexAlias: String
-  def getRowByIndex(indexValue: Any) : scala.collection.Set[Row]
+  def rowGrouping: RowGrouping
+  def getRowByIndex(indexAlias: RowGrouping) : scala.collection.Set[Row]
   def updateRow(r: Row) : Unit
   def keys  : Iterable[Any]
   def addSubQuery(query: Query) : Unit
@@ -230,9 +247,12 @@ sealed trait IndexedRowList extends InMemRowList {
 object DimDrivenIndexedRowList {
   val logger: Logger = LoggerFactory.getLogger(classOf[DimDrivenIndexedRowList])
 }
+
+case class RowGrouping(indexAlias: String, factGroupByCols: List[String])
+
 sealed trait DimDrivenIndexedRowList extends IndexedRowList {
 
-  protected[this] val aliasRowMap = new collection.mutable.HashMap[String, Set[(Row, Int)]]
+  protected[this] val aliasRowMap = new collection.mutable.HashMap[RowGrouping, Set[(Row, Int)]]
 
   protected[this] val subQueryList = new ArrayBuffer[Query]()
 
@@ -241,10 +261,11 @@ sealed trait DimDrivenIndexedRowList extends IndexedRowList {
   override def subQuery: IndexedSeq[Query] = subQueryList
 
   val logger: Logger = DimDrivenIndexedRowList.logger
-  def indexAlias: String
 
-  def getRowByIndex(indexValue: Any) : scala.collection.Set[Row] = {
-    val rowSetOption =  aliasRowMap.get(indexValue.toString)
+  def rowGrouping: RowGrouping
+
+  def getRowByIndex(indexValue: RowGrouping) : scala.collection.Set[Row] = {
+    val rowSetOption =  aliasRowMap.get(indexValue)
     rowSetOption.fold(scala.collection.Set.empty[Row]) {
       rowSet =>
         rowSet.map {
@@ -257,13 +278,17 @@ sealed trait DimDrivenIndexedRowList extends IndexedRowList {
 
   override def addRow(r: Row, er: Option[Row] = None) : Unit = {
     postResultRowOperation(r, er)
-    val primaryKeyAny = r.getValue(indexAlias)
+    val primaryKeyAny = r.getValue(rowGrouping.indexAlias)
     if(primaryKeyAny == null) {
-      logger.error(s"Index alias ($indexAlias) value is null on addRow, dropping row : $r")
+      logger.error(s"Index alias (${rowGrouping.indexAlias}) value is null on addRow, dropping row : $r")
     } else {
       val primaryKeyValue = primaryKeyAny.toString
-      if (aliasRowMap.contains(primaryKeyValue)) {
-        val rowSet = aliasRowMap(primaryKeyValue)
+      val subsequentValues: List[String] = rowGrouping.factGroupByCols.map{col => if(r.aliasMap.contains(col) && r.cols(r.aliasMap(col)) != null) r.getValue(col).toString else null}.filter(p => p != null)
+      val checkedGrouping = RowGrouping(primaryKeyValue, subsequentValues)
+      val matchedGroups = aliasRowMap.filter{groupingWithRowSet => groupingWithRowSet._1.indexAlias == checkedGrouping.indexAlias}
+      //if the grouping already exists in full
+      if (aliasRowMap.contains(checkedGrouping)) {
+        val rowSet = aliasRowMap(checkedGrouping)
         //perform update
         rowSet.foreach {
           case (existingRow, existingRowIndex) =>
@@ -276,26 +301,46 @@ sealed trait DimDrivenIndexedRowList extends IndexedRowList {
             }
             updatedRowSet += existingRowIndex
         }
-      } else {
+      } else if (checkedGrouping.factGroupByCols.nonEmpty || matchedGroups.isEmpty) { //if the query has factGroupByCols but hasn't been inserted yet.
         //add new row
         val idx = list.size
         list += r
         //since it is dim driven, we should never have more than one value in the set so always overriding with new set
         val rowSet: Set[(Row, Int)] = Set((r, idx))
-        aliasRowMap.put(primaryKeyValue, rowSet)
+        aliasRowMap.put(checkedGrouping, rowSet)
+      } else { //If the grouping indexAlias DOES exist, but not necessarily its grouping.
+        //update existing rows
+        matchedGroups.foreach{
+          group =>
+            val rowSet = group._2
+            rowSet.foreach {
+              case (existingRow, existingRowIndex) =>
+                r.aliasMap.foreach {
+                  case (alias, index) =>
+                    val newValue = r.getValue(index)
+                    if (newValue != null) {
+                      existingRow.addValue(index, newValue)
+                    }
+                }
+                updatedRowSet += existingRowIndex
+            }
+        }
       }
     }
   }
 
   //used by subsequent query when back filling dim rows
   def updateRow(r: Row) : Unit = {
-    val primaryKeyAny = r.getValue(indexAlias)
+    val primaryKeyAny = r.getValue(rowGrouping.indexAlias)
     if(primaryKeyAny == null) {
-      logger.error(s"Index alias ($indexAlias) value is null on updateRow, dropping row : $r")
+      logger.error(s"Index alias (${rowGrouping.indexAlias}) value is null on updateRow, dropping row : $r")
     } else {
       val primaryKeyValue = primaryKeyAny.toString
-      if (aliasRowMap.contains(primaryKeyValue)) {
-        val rowSet = aliasRowMap(primaryKeyValue)
+      val subsequentValues: List[String] = rowGrouping.factGroupByCols.map{col => if(r.aliasMap.contains(col) && r.cols(r.aliasMap(col)) != null) r.getValue(col).toString else null}.filter(p => p != null)
+      val checkedGrouping = RowGrouping(primaryKeyValue, subsequentValues)
+      val matchedGroups = aliasRowMap.filter{groupingWithRowSet => groupingWithRowSet._1.indexAlias == checkedGrouping.indexAlias}
+      if (matchedGroups.nonEmpty) {
+        val rowSet = matchedGroups.values.flatten
         //perform update
         rowSet.foreach {
           case (existingRow, existingRowIndex) =>
@@ -308,19 +353,21 @@ sealed trait DimDrivenIndexedRowList extends IndexedRowList {
             }
             updatedRowSet += existingRowIndex
         }
-      } else {
+      } else if (checkedGrouping.factGroupByCols.nonEmpty) {
         //add new row
         val idx = list.size
         list += r
         //since it is dim driven, we should never have more than one value in the set so always overriding with new set
         val rowSet: Set[(Row, Int)] = Set((r, idx))
-        aliasRowMap.put(primaryKeyValue, rowSet)
+        aliasRowMap.put(checkedGrouping, rowSet)
         updatedRowSet += idx
+      } else {
+        //The row has nothing to group by (not even a Primary Key), so there is no row to add
       }
     }
   }
 
-  def keys  : Iterable[Any] = aliasRowMap.keys
+  def keys  : Iterable[Any] = aliasRowMap.keys.map(key => key.indexAlias)
 
   def addSubQuery(query: Query) : Unit = subQueryList += query
 
@@ -335,7 +382,7 @@ object FactDrivenIndexedRowList {
 }
 sealed trait FactDrivenIndexedRowList extends IndexedRowList {
 
-  protected[this] val aliasRowMap = new collection.mutable.HashMap[String, Set[(Row, Int)]]
+  protected[this] val aliasRowMap = new collection.mutable.HashMap[RowGrouping, Set[(Row, Int)]]
 
   protected[this] val subQueryList = new ArrayBuffer[Query]()
 
@@ -344,10 +391,11 @@ sealed trait FactDrivenIndexedRowList extends IndexedRowList {
   override def subQuery: IndexedSeq[Query] = subQueryList
 
   val logger: Logger = FactDrivenIndexedRowList.logger
-  def indexAlias: String
 
-  def getRowByIndex(indexValue: Any) : scala.collection.Set[Row] = {
-    val rowSetOption =  aliasRowMap.get(indexValue.toString)
+  def rowGrouping: RowGrouping
+
+  def getRowByIndex(indexAlias: RowGrouping) : scala.collection.Set[Row] = {
+    val rowSetOption: Option[Set[(Row, Int)]] = Some(aliasRowMap.filter(group => indexAlias.factGroupByCols.forall(col => group._1.factGroupByCols.contains(col))).values.flatten.toSet)
     rowSetOption.fold(scala.collection.Set.empty[Row]) {
       rowSet =>
         rowSet.map {
@@ -360,34 +408,39 @@ sealed trait FactDrivenIndexedRowList extends IndexedRowList {
 
   override def addRow(r: Row, er: Option[Row] = None) : Unit = {
     postResultRowOperation(r, er)
-      val primaryKeyAny = r.getValue(indexAlias)
+      val primaryKeyAny = r.getValue(rowGrouping.indexAlias)
       if(primaryKeyAny == null) {
-        logger.error(s"Index alias ($indexAlias) value is null on addRow, dropping row : $r")
+        logger.error(s"Index alias (${rowGrouping.indexAlias}) value is null on addRow, dropping row : $r")
       } else {
         val primaryKeyValue = primaryKeyAny.toString
+        val subsequentValues: List[String] = rowGrouping.factGroupByCols.map{col => if(r.aliasMap.contains(col) && r.cols(r.aliasMap(col)) != null) r.getValue(col).toString else null}.filter(p => p != null)
+        val checkedGrouping = RowGrouping(primaryKeyValue, subsequentValues)
         //add new row
         val idx = list.size
         list += r
-        val existingSetOption = aliasRowMap.get(primaryKeyValue)
+        val existingSetOption = aliasRowMap.get(checkedGrouping)
         if (existingSetOption.isDefined) {
           val rowSet: Set[(Row, Int)] = existingSetOption.get ++ Set((r, idx))
-          aliasRowMap.put(primaryKeyValue, rowSet)
+          aliasRowMap.put(checkedGrouping, rowSet)
         } else {
           val rowSet: Set[(Row, Int)] = Set((r, idx))
-          aliasRowMap.put(primaryKeyValue, rowSet)
+          aliasRowMap.put(checkedGrouping, rowSet)
         }
       }
     }
 
   //used by subsequent query when back filling dim rows : Fact Driven Case
   def updateRow(r: Row) : Unit = {
-    val primaryKeyAny = r.getValue(indexAlias)
+    val primaryKeyAny = r.getValue(rowGrouping.indexAlias)
     if(primaryKeyAny == null) {
-      logger.error(s"Index alias ($indexAlias) value is null on updateRow, dropping row : $r")
+      logger.error(s"Index alias (${rowGrouping.indexAlias}) value is null on updateRow, dropping row : $r")
     } else {
       val primaryKeyValue = primaryKeyAny.toString
-      if (aliasRowMap.contains(primaryKeyValue)) {
-        aliasRowMap.get(primaryKeyValue).get.foreach {
+      val subsequentValues: List[String] = rowGrouping.factGroupByCols.map{col => if(r.aliasMap.contains(col) && r.cols(r.aliasMap(col)) != null) r.getValue(col).toString else null}.filter(p => p != null)
+      val checkedGrouping = RowGrouping(primaryKeyValue, subsequentValues)
+      val matchedGroups = aliasRowMap.filter(rowGrouping => checkedGrouping.factGroupByCols.forall(col => rowGrouping._1.factGroupByCols.contains(col)))
+      if (matchedGroups.nonEmpty) { //The row to update is either part of the Fact existing rows, or is of no interest
+        matchedGroups.values.flatten.foreach {
           entry =>
             val (existingRow, existingRowIndex) = (entry._1, entry._2)
             //perform update
@@ -406,7 +459,7 @@ sealed trait FactDrivenIndexedRowList extends IndexedRowList {
     }
   }
 
-  def keys  : Iterable[Any] = aliasRowMap.keys
+  def keys  : Iterable[Any] = aliasRowMap.keys.map(key => key.indexAlias)
 
   def addSubQuery(query: Query) : Unit = subQueryList += query
 
@@ -416,9 +469,9 @@ sealed trait FactDrivenIndexedRowList extends IndexedRowList {
 
 }
 
-case class DimDrivenPartialRowList(indexAlias: String, query: Query) extends DimDrivenIndexedRowList
-case class FactDrivenPartialRowList(indexAlias: String, query: Query) extends FactDrivenIndexedRowList
-case class DimDrivenFactOrderedPartialRowList(indexAlias: String, query: Query) extends DimDrivenIndexedRowList {
+case class DimDrivenPartialRowList(rowGrouping: RowGrouping, query: Query) extends DimDrivenIndexedRowList
+case class FactDrivenPartialRowList(rowGrouping: RowGrouping, query: Query) extends FactDrivenIndexedRowList
+case class DimDrivenFactOrderedPartialRowList(rowGrouping: RowGrouping, query: Query) extends DimDrivenIndexedRowList {
 
   private[this] val model = query.queryContext.requestModel
 
@@ -444,6 +497,10 @@ case class DimDrivenFactOrderedPartialRowList(indexAlias: String, query: Query) 
     } else {
       super.foreach(fn)
     }
+  }
+
+  override def forall(fn: Row => Boolean) : Boolean = {
+    list.forall(fn)
   }
 
   override def map[T](fn: Row => T) : Iterable[T] = {
@@ -621,6 +678,10 @@ case class NoopRowList(query: Query) extends QueryRowList {
     throw new UnsupportedOperationException("foreach not implemented!")
   }
 
+  override def forall(fn: Row => Boolean) : Boolean = {
+    throw new UnsupportedOperationException("forall not implemented!")
+  }
+
   override def map[T](fn: (Row) => T): Iterable[T] = {
     throw new UnsupportedOperationException("map not implemented!")
   }
@@ -680,6 +741,11 @@ class CSVRowList(val query: Query, csvWriterProvider: RowCSVWriterProvider, writ
   override def foreach(fn: Row => Unit) : Unit = {
     CSVRowList.logger.warn("foreach not supported on CSVRowList")
   }
+
+  override def forall(fn: Row => Boolean) : Boolean = {
+    throw new UnsupportedOperationException("forall not implemented!")
+  }
+
   override def map[T](fn: Row => T) : Iterable[T] = {
     CSVRowList.logger.warn("map not supported on CSVRowList")
     Iterable.empty
@@ -710,6 +776,10 @@ class DerivedRowList(override val columns: IndexedSeq[ColumnInfo]
 
   override def foreach(fn: (Row) => Unit): Unit = {
     list.foreach(fn)
+  }
+
+  override def forall(fn: Row => Boolean) : Boolean = {
+    list.forall(fn)
   }
 
   override def map[T](fn: (Row) => T): Iterable[T] = {

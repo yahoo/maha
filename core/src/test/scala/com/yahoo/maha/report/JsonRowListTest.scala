@@ -107,7 +107,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
   }
 
   test("successfully construct json row list from another row list") {
-    val rowList : DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList("Campaign ID", query)
+    val rowList : DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList(RowGrouping("Campaign ID", List.empty), query)
     assert(rowList.columnNames === IndexedSeq("Campaign ID", "Impressions", "Campaign Name", "Campaign Status", "CTR", "TOTALROWS"))
     assert(rowList.isEmpty)
 
@@ -204,7 +204,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
   }
 
   test("successfully construct json row list from another row list in compatibility mode") {
-    val rowList : DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList("Campaign ID", query)
+    val rowList : DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList(RowGrouping("Campaign ID", List.empty), query)
     assert(rowList.columnNames === IndexedSeq("Campaign ID", "Impressions", "Campaign Name", "Campaign Status", "CTR", "TOTALROWS"))
     assert(rowList.isEmpty)
 
@@ -291,7 +291,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
       queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery]
 
     }
-    val rowList : DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList("Campaign ID", query)
+    val rowList : DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList(RowGrouping("Campaign ID", List.empty), query)
     assert(rowList.columnNames === IndexedSeq("Campaign ID", "Impressions", "Campaign Name", "Campaign Status", "CTR"))
     assert(rowList.isEmpty)
 

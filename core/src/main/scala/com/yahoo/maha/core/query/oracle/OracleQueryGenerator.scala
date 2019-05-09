@@ -28,7 +28,7 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
         generateDimOnlyQuery(context)
       case context: CombinedQueryContext =>
         generateDimFactQuery(context)
-      case FactQueryContext(factBestCandidate, model, indexAliasOption, attributes) =>
+      case FactQueryContext(factBestCandidate, model, indexAliasOption, factGroupByKeys, attributes) =>
         generateDimFactQuery(CombinedQueryContext(SortedSet.empty, factBestCandidate, model, attributes))
       case context: DimFactOuterGroupByQueryQueryContext =>
         generateDimFactOuterGroupByQuery(context)
@@ -38,7 +38,7 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
 
   override def generateDimensionSql(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext, includePagination: Boolean): DimensionSql = {
     queryContext match {
-      case DimQueryContext(dims, requestModel, indexAliasOption, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, true, None, includePagination)
+      case DimQueryContext(dims, requestModel, indexAliasOption, factGroupByKeys, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, true, None, includePagination)
       case CombinedQueryContext(dims, fact, requestModel, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, false, Option(fact), includePagination)
       case DimFactOuterGroupByQueryQueryContext(dims, fact, requestModel, queryAttributes) => generateDimensionSql(dims, requestModel, queryBuilderContext, false, Option(fact), includePagination)
       case any => throw new UnsupportedOperationException(s"query context not supported : ${Try(any.getClass.getSimpleName)}")

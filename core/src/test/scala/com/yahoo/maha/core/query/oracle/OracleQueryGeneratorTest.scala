@@ -10,6 +10,7 @@ import com.yahoo.maha.core.fact.Fact.ViewTable
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.query.druid.DruidQuery
 import com.yahoo.maha.core.request._
+import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockOracleQueryExecutor}
 
 
 /**
@@ -5200,7 +5201,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle
-         |            WHERE (advertiser_id = 213) AND (id IN (12,15,18,17,11,20,14,16,19,13))
+         |            WHERE (advertiser_id = 213) AND (id IN (12,19,15,11,13,16,17,14,20,18))
          |             ) ago2
          |          INNER JOIN
          |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
@@ -5295,7 +5296,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle
-         |            WHERE (advertiser_id = 213) AND (id IN (45,39,30,51,48,27,33,54,12,15,42,36,21,18,24,53,41,35,17,50,44,23,38,47,26,11,32,14,20,29,46,52,28,34,55,40,49,43,22,16,37,19,25,31,13))
+         |            WHERE (advertiser_id = 213) AND (id IN (45,34,12,51,19,23,40,15,11,44,33,22,55,26,50,37,13,46,24,35,16,48,21,54,43,32,49,36,39,17,25,14,47,31,53,42,20,27,38,18,30,29,41,52,28))
          |             ) ago2
          |          INNER JOIN
          |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
@@ -5389,7 +5390,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle
-         |            WHERE (advertiser_id = 213) AND (id IN (12,15,21,18,24,17,23,11,14,20,22,16,19,25,13))
+         |            WHERE (advertiser_id = 213) AND (id IN (12,19,23,15,11,22,13,24,16,21,17,25,14,20,18))
          |             ) ago2
          |          INNER JOIN
          |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
@@ -5411,7 +5412,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle
-         |            WHERE (advertiser_id = 213) AND (id NOT IN (12,15,21,18,24,17,23,11,14,20,22,16,19,25,13))
+         |            WHERE (advertiser_id = 213) AND (id NOT IN (12,19,23,15,11,22,13,24,16,21,17,25,14,20,18))
          |             ) ago2
          |          INNER JOIN
          |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
@@ -5750,6 +5751,126 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Verify Combined queries lose data in Multivalue Dim contexts (Class Name Collapses)") {
+    val jsonString: String =
+      s"""
+         |{
+         |  "cube": "class_stats",
+         |  "selectFields": [
+         |    { "field": "Class ID" },
+         |    { "field": "Class Name" },
+         |    { "field": "Class Address" },
+         |    { "field": "Students" }
+         |  ],
+         |  "filterExpressions": [
+         |    { "field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate" },
+         |    { "field": "Class ID", "operator": "=", "value": "12345" }
+         |  ]
+         |}
+       """.stripMargin
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val resultPipeline = queryPipelineTry.get
+
+    val result = resultPipeline.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+
+    /**
+      * Create a RowList of 3 rows in Druid & 2 Rows in Oracle, allow Pk to match.
+      * Check output.
+      *
+      * Expectation is that, for each Fact Row returned matching the Dim, both rows will be kept.
+      * Current state is that for Statically Mapped columns in Fact, MultiEngine queries collapse the
+      * row with unique mapped values since they aren't Pk Aliases.
+      */
+
+    val oracleExecutor = new MockOracleQueryExecutor(
+      {
+        rl =>
+          val row1 = rl.newRow
+          row1.addValue("Class ID", 12345L)
+          row1.addValue("Class Address", "8675 309th St.")
+          rl.addRow(row1)
+
+          val row2 = rl.newRow
+          row2.addValue("Class ID", 12345L)
+          row2.addValue("Class Address", "8675 301st Ave.")
+          rl.addRow(row2)
+      }
+    )
+
+    val druidExecutor = new MockDruidQueryExecutor(
+      {
+        rl =>
+          val row1 = rl.newRow
+          row1.addValue("Class ID", 12345L)
+          row1.addValue("Class Name", "Classy")
+          row1.addValue("Students", 55)
+          rl.addRow(row1)
+
+          val row2 = rl.newRow
+          row2.addValue("Class ID", 12345L)
+          row2.addValue("Class Name", "Classier")
+          row2.addValue("Students", 22)
+          rl.addRow(row2)
+
+          val row3 = rl.newRow
+          row3.addValue("Class ID", 12345L)
+          row3.addValue("Class Name", "Classiest")
+          row3.addValue("Students", 11)
+          rl.addRow(row3)
+      }
+    )
+
+    val irlFn = (q : Query) => new DimDrivenPartialRowList(RowGrouping("Class ID", List("Class Name")), q)
+
+    val queryExecutorContext: QueryExecutorContext = new QueryExecutorContext
+    queryExecutorContext.register(oracleExecutor)
+    queryExecutorContext.register(druidExecutor)
+
+    //Non-merged row results
+    val postRowResultTry = resultPipeline.execute(queryExecutorContext)
+    assert(postRowResultTry.isSuccess)
+    val postRowResult = postRowResultTry.get
+
+    //Post-multiEngineQuery Result using Class ID (Pk) as Join key.
+    val queryCastedToMultiEngine = resultPipeline.queryChain.asInstanceOf[MultiEngineQuery]
+    val executedMultiEngineQuery = queryCastedToMultiEngine.execute(queryExecutorContext, irlFn, QueryAttributes.empty, new EngineQueryStats)
+
+    val expectedUnmergedRowList = List(
+      "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, Classy, null, 55))"
+    , "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, Classier, null, 22))"
+    , "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, Classiest, null, 11))"
+    , "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, null, 8675 309th St., null))"
+    , "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, null, 8675 301st Ave., null))")
+
+    val actualMultiEngineRowList = List(
+      "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, Classy, 8675 301st Ave., 55))"
+      , "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, Classier, 8675 301st Ave., 22))"
+      , "Row(Map(Class ID -> 0, Class Name -> 1, Class Address -> 2, Students -> 3),ArrayBuffer(12345, Classiest, 8675 301st Ave., 11))"
+    )
+
+    /**
+      * current logic: If grouping already exists in full, overwrite (reason why the second dim grouping is the only one returned)
+      * actual goal: If grouping primary key alias already exists, take all rows under that grouping, index the areas to overwrite Dim information, and do so.
+      */
+
+
+    assert(executedMultiEngineQuery.rowList.length == 3)
+    assert(executedMultiEngineQuery.rowList.forall(row => {
+      actualMultiEngineRowList.contains(row.toString)
+    }))
+    assert(postRowResult.rowList.forall(row => expectedUnmergedRowList.contains(row.toString)))
+
+    println(result)
+
   }
 
 }

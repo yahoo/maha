@@ -1439,7 +1439,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
     withDruidQueryExecutor("http://localhost:6667/mock/timeseries") {
       executor =>
-        val rowList: DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList("Impressions", query)
+        val rowList: DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList(RowGrouping("Impressions", List.empty), query)
         val row = rowList.newRow
         row.addValue("Impressions", java.lang.Integer.valueOf(15))
         row.addValue("Day", null)
@@ -1511,9 +1511,9 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
             rowList match {
               case irl: IndexedRowList =>
 
-                val rowSet = irl.getRowByIndex("10")
+                val rowSet = irl.getRowByIndex(RowGrouping("10", List("10")))
                 rowSet.map(_.addValue("Keyword Value", "ten"))
-                val rowSet2 = irl.getRowByIndex("14")
+                val rowSet2 = irl.getRowByIndex(RowGrouping("14", List("14")))
                 rowSet2.map(_.addValue("Keyword Value", "fourteen"))
               case any => throw new IllegalArgumentException("unexptected row list type")
             }
@@ -1588,14 +1588,14 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
               case irl: IndexedRowList =>
 
                 for {
-                  row <- irl.getRowByIndex("10")
+                  row <- irl.getRowByIndex(RowGrouping("10", List("10")))
                 } {
                   row.addValue("Keyword Value", "ten")
                   row.addValue("Advertiser Name", "advertiser-ten")
                   row.addValue("Campaign Name", "campaign-ten")
                 }
                 for {
-                  row <- irl.getRowByIndex("14")
+                  row <- irl.getRowByIndex(RowGrouping("14", List("14")))
                 } {
                   row.addValue("Keyword Value", "fourteen")
                   row.addValue("Advertiser Name", "advertiser-fourteen")
@@ -1678,18 +1678,18 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
               case irl: IndexedRowList =>
 
                 for {
-                  row <- irl.getRowByIndex("10")
+                  row <- irl.getRowByIndex(RowGrouping("10", List.empty))
                 } {
                   row.addValue("Keyword Value", "ten")
                 }
                 for {
 
-                  row <- irl.getRowByIndex("14")
+                  row <- irl.getRowByIndex(RowGrouping("14", List.empty))
                 } {
                   row.addValue("Keyword Value", "fourteen")
                 }
                 val newRow = irl.newRow
-                newRow.addValue(irl.indexAlias, "11")
+                newRow.addValue(irl.rowGrouping.indexAlias, "11")
                 newRow.addValue("Keyword Value", "eleven")
                 irl.updateRow(newRow)
               case any => throw new IllegalArgumentException("unexptected row list type")
@@ -1749,7 +1749,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
     withDruidQueryExecutor("http://localhost:6667/mock/topn") {
       executor =>
-        val rowList: DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList("Keyword ID", query)
+        val rowList: DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList(RowGrouping("Keyword ID", List.empty), query)
         val row1 = rowList.newRow
         row1.addValue("Keyword ID", 14)
         row1.addValue("Impressions", null)
@@ -1803,7 +1803,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
     withDruidQueryExecutor("http://localhost:6667/mock/topnWithNull") {
       executor =>
-        val rowList: DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList("Keyword ID", query)
+        val rowList: DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList(RowGrouping("Keyword ID", List.empty), query)
         val row1 = rowList.newRow
         row1.addValue("Keyword ID", 14)
         row1.addValue("Impressions", null)
@@ -1880,7 +1880,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
             |            FROM
             |                (SELECT  value, id, advertiser_id
             |            FROM targetingattribute
-            |            WHERE (advertiser_id = 213) AND (id IN (14,13))
+            |            WHERE (advertiser_id = 213) AND (id IN (13,14))
             |             ) t0
             |
             |
@@ -1890,7 +1890,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
             |            FROM
             |                (SELECT  value, id, advertiser_id
             |            FROM targetingattribute
-            |            WHERE (advertiser_id = 213) AND (id NOT IN (14,13))
+            |            WHERE (advertiser_id = 213) AND (id NOT IN (13,14))
             |             ) t0
             |
             |
@@ -1965,7 +1965,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
              |            FROM
              |                (SELECT  id, value, advertiser_id
              |            FROM targetingattribute
-             |            WHERE (advertiser_id = 213) AND (id IN (14,13))
+             |            WHERE (advertiser_id = 213) AND (id IN (13,14))
              |            ORDER BY 1 ASC  ) t0
              |
                        |
@@ -1975,7 +1975,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
              |            FROM
              |                (SELECT  id, value, advertiser_id
              |            FROM targetingattribute
-             |            WHERE (advertiser_id = 213) AND (id NOT IN (14,13))
+             |            WHERE (advertiser_id = 213) AND (id NOT IN (13,14))
              |            ORDER BY 1 ASC  ) t0
              |
                        |
@@ -2058,7 +2058,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
     withDruidQueryExecutor("http://localhost:6667/mock/bh") {
       executor =>
-        val rowList: DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList("Keyword ID", query)
+        val rowList: DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList(RowGrouping("Keyword ID", List.empty), query)
         val row1 = rowList.newRow
         row1.addValue("Keyword ID", 14)
         row1.addValue("Impressions", null)
@@ -2102,7 +2102,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
     withDruidQueryExecutor("http://localhost:6667/mock/timeseriesunsupported1") {
       executor =>
-        val rowList: DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList("Impressions", query)
+        val rowList: DimDrivenFactOrderedPartialRowList = new DimDrivenFactOrderedPartialRowList(RowGrouping("Impressions", List.empty), query)
         val row = rowList.newRow
         row.addValue("Impressions", java.lang.Integer.valueOf(15))
         row.addValue("Day", null)

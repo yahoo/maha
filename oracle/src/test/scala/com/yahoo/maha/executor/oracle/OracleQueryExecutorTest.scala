@@ -1060,7 +1060,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
       //override def query: Query = {q}
     val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty, None, BucketParams())._1.get
-      .withRowListFunction(q => new DimDrivenPartialRowList("Campaign ID", q) {
+      .withRowListFunction(q => new DimDrivenPartialRowList(RowGrouping("Campaign ID", List.empty), q) {
         (q)
       }).build()
 
