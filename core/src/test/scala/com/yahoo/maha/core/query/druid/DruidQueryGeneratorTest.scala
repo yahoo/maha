@@ -2617,4 +2617,44 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     }
   }
 
+  test("Inner should query should not have limitSpec if 'shouldLimitInnerQueries' is set to false") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Average Bid"},
+                            {"field": "Impressions"},
+                            {"field": "Advertiser Status"},
+                            {"field": "Campaign Name"},
+                            {"field": "Campaign Total"}
+                            ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Advertiser Status", "operator": "In", "values": ["ON"]}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", ""))
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    val druidQueryGenerator =  new DruidQueryGenerator(new SyncDruidQueryOptimizer(timeout = 5000), 40000, shouldLimitInnerQueries = false)
+
+    altQueryGeneratorRegistry.register(DruidEngine, druidQueryGenerator)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val expect_empty_limitspec_inner_query = """"limitSpec":{"type":"NoopLimitSpec"},"context":{"applyLimitPushDown":"false""""
+    val expect_nonempty_limitspec_outer_query = """"limitSpec":{"type":"default","columns":[],"limit":220}"""
+    assert(result.contains(expect_empty_limitspec_inner_query))
+    assert(result.contains(expect_nonempty_limitspec_outer_query))
+  }
 }
