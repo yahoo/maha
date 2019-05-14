@@ -246,7 +246,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                           , defaultDimCardinality: Long
                           , maximumMaxRows: Int = DruidQueryGenerator.defaultMaximumMaxRows
                           , maximumTopNMaxRows: Int = DruidQueryGenerator.defaultMaximumTopNMaxRows
-                          , maximumMaxRowsAsync: Int = DruidQueryGenerator.defaultMaximumMaxRowsAsync) extends BaseQueryGenerator[WithDruidEngine] with Logging {
+                          , maximumMaxRowsAsync: Int = DruidQueryGenerator.defaultMaximumMaxRowsAsync
+                          , shouldLimitInnerQueries: Boolean = true) extends BaseQueryGenerator[WithDruidEngine] with Logging {
 
   import collection.JavaConverters._
 
@@ -494,8 +495,10 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             new DefaultLimitSpec(null, threshold)
           }
 
-          if(queryContext.requestModel.dimFilters.filter(filter => dims.exists(bundle => bundle.publicDim.containsHighCardinalityFilter(filter))).isEmpty)
+          if(shouldLimitInnerQueries && queryContext.requestModel.dimFilters.filter(
+            filter => dims.exists(bundle => bundle.publicDim.containsHighCardinalityFilter(filter))).isEmpty) {
             builder.setLimitSpec(limitSpec)
+          }
 
           val ephemeralAliasColumns: Map[String, Column] = ephemeralAliasColumnMap(queryContext)
 
