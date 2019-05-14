@@ -406,6 +406,7 @@ class MahaServiceTest extends BaseFactoryTest {
                          |            "maximumMaxRows": 5000,
                          |            "maximumTopNMaxRows": 400,
                          |            "maximumMaxRowsAsync": 100000,
+                         |            "shouldLimitInnerQueries": true,
                          |            "version": 0
                          |         }
                          |      }
@@ -738,7 +739,8 @@ class MahaServiceTest extends BaseFactoryTest {
 				"dimCardinality": 40000,
 				"maximumMaxRows": 5000,
 				"maximumTopNMaxRows": 400,
-				"maximumMaxRowsAsync": 100000
+				"maximumMaxRowsAsync": 100000,
+        "shouldLimitInnerQueries": true
 			}
 		},
 		"presto": {
