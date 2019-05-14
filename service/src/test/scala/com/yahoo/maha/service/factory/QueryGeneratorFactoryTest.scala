@@ -21,7 +21,8 @@ class QueryGeneratorFactoryTest extends BaseFactoryTest {
                          |"dimCardinality" : 40000,
                          |"maximumMaxRows" : 5000,
                          |"maximumTopNMaxRows" : 400,
-                         |"maximumMaxRowsAsync" : 100000
+                         |"maximumMaxRowsAsync" : 100000,
+                         |"shouldLimitInnerQueries" : true
                          |}
                        """.stripMargin
 
