@@ -258,9 +258,9 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
 
     val parameterizedQueryWithRowLimit = {
       if(queryContext.requestModel.maxRows > 0) {
-        s"""$parameterizedQuery LIMIT ${queryContext.requestModel.maxRows}"""
+        s"""$parameterizedQuery queryAlias LIMIT ${queryContext.requestModel.maxRows}"""
       } else {
-        parameterizedQuery
+        s"""$parameterizedQuery queryAlias"""
       }
     }
 

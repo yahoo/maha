@@ -297,7 +297,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
          |       )
          |ssf0
          |
-         |ORDER BY mang_impressions ASC) LIMIT 100
+         |ORDER BY mang_impressions ASC) queryAlias LIMIT 100
          |
         """.stripMargin
 
@@ -543,7 +543,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
          |
  |       )
          |ssf0
-         |) LIMIT 200
+         |) queryAlias LIMIT 200
       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
@@ -585,7 +585,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
          |
  |       )
          |ssf0
-         |) LIMIT 200
+         |) queryAlias LIMIT 200
       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
@@ -630,7 +630,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
          |HAVING (MAX(max_bid) = SUM(spend))
          |       )
          |ssf0
-         |) LIMIT 200
+         |) queryAlias LIMIT 200
       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
@@ -677,7 +677,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
          |
          |       )
          |ssf0
-         |) LIMIT 200
+         |) queryAlias LIMIT 200
       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
@@ -742,7 +742,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
             HAVING (SUM(impressions) > 1608)
               )
           ssf0
-      ) LIMIT 200""".stripMargin
+      ) queryAlias LIMIT 200""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
 
@@ -785,7 +785,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
             HAVING (SUM(impressions) < 1608)
               )
           ssf0
-      ) LIMIT 200""".stripMargin
+      ) queryAlias LIMIT 200""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
 
@@ -834,7 +834,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
          |
          |       )
          |ssf0
-         |) LIMIT 200
+         |) queryAlias LIMIT 200
        """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
