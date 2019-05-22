@@ -571,11 +571,19 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
           |$dimJoinQuery)
        """.stripMargin
 
+    val parameterizedQueryWithRowLimit = {
+      if(queryContext.requestModel.maxRows > 0) {
+        s"""$parameterizedQuery LIMIT ${queryContext.requestModel.maxRows}"""
+      } else {
+        parameterizedQuery
+      }
+    }
+
     val paramBuilder = new QueryParameterBuilder
 
     new PrestoQuery(
       queryContext,
-      parameterizedQuery,
+      parameterizedQueryWithRowLimit,
       Option(udfStatements),
       paramBuilder.build(),
       queryContext.requestModel.requestCols.map(_.alias),

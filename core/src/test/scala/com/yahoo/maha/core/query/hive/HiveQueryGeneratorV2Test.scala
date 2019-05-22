@@ -297,7 +297,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |
          |       )
          |ssf0
-         |ORDER BY mang_impressions ASC)
+         |ORDER BY mang_impressions ASC) LIMIT 100
         """.stripMargin
 
 
@@ -544,7 +544,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |
          |       )
          |ssf0
-         |)
+         |) LIMIT 200
       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
@@ -591,7 +591,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |
          |       )
          |ssf0
-         |)
+         |) LIMIT 200
       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
@@ -656,7 +656,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
             HAVING (SUM(impressions) > 1608)
               )
           ssf0
-      )""".stripMargin
+      ) LIMIT 200""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
 
@@ -700,7 +700,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
             HAVING (SUM(impressions) < 1608)
               )
           ssf0
-      )""".stripMargin
+      ) LIMIT 200""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
 
@@ -758,7 +758,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |ON
          |ssf0.account_id = a1.a1_id
          |
-         |ORDER BY mang_impressions ASC)
+         |ORDER BY mang_impressions ASC) LIMIT 200
        """.stripMargin
 
     println(expected)
@@ -821,7 +821,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |ON
          |ssf0.account_id = a1.a1_id
          |
-         |ORDER BY mang_impressions ASC, mang_advertiser_name DESC)
+         |ORDER BY mang_impressions ASC, mang_advertiser_name DESC) LIMIT 200
        """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
