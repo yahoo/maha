@@ -256,6 +256,14 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
        """.stripMargin
     }
 
+    val parameterizedQueryWithRowLimit = {
+      if(queryContext.requestModel.maxRows > 0) {
+        s"""$parameterizedQuery queryAlias LIMIT ${queryContext.requestModel.maxRows}"""
+      } else {
+        s"""$parameterizedQuery queryAlias"""
+      }
+    }
+
     // generate alias for request columns
     requestedCols.foreach {
       case FactColumnInfo(alias) =>
@@ -270,7 +278,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
 
     new HiveQuery(
       queryContext,
-      parameterizedQuery, 
+      parameterizedQueryWithRowLimit,
       Option(udfStatements),
       paramBuilder.build(),
       queryContext.requestModel.requestCols.map(_.alias),

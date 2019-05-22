@@ -34,7 +34,7 @@ class PrestoQueryGeneratorTest extends BasePrestoQueryGeneratorTest {
 
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    
+
     assert(result != null && result.length > 0)
 
     val expected = s"""SELECT mang_day, advertiser_id, campaign_id, mang_campaign_name, ad_group_id, keyword_id, mang_keyword, mang_search_term, mang_delivered_match_type, mang_impressions, mang_ad_group_start_date_full, mang_clicks, mang_average_cpc
@@ -55,7 +55,7 @@ WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' ))
 c1
 ON
 CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
-       )""".stripMargin
+       ) queryAlias LIMIT 100""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -100,7 +100,7 @@ CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
     HAVING (SUM(impressions) > 1608)
     )
     ssfu0
-    )""".stripMargin
+    ) queryAlias LIMIT 200""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -145,7 +145,7 @@ CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
     HAVING (SUM(impressions) < 1608)
     )
     ssfu0
-    )""".stripMargin
+    ) queryAlias LIMIT 200""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -190,7 +190,7 @@ CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
                       |HAVING (SUM(impressions) < 1608) AND (MAX(max_bid) = SUM(spend))
                       |       )
                       |ssfu0
-                      |)""".stripMargin
+                      |) queryAlias LIMIT 200""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }
