@@ -1,5 +1,7 @@
 package com.yahoo.maha.core.model
 
+import com.yahoo.maha.core.model.meta.RequestModelMeta
+
 /**
   * Purpose:
   * RequestModel is a large, consolidated class which contains many other classes & objects all to generate internal
@@ -13,6 +15,8 @@ package com.yahoo.maha.core.model
   * The problem that is solves is the egregious violations of OCP and SRP that occur throughout the requestModel,
   * causing any small edits made in this class to potentially balloon.
   */
-class RequestModelV1 {
+case class RequestModelV1 (
+                          requestModelMeta: RequestModelMeta
+                          ) {
 
 }
