@@ -12,5 +12,8 @@ case class ModelCardinalityMeta (
                                   factCost: Map[(String, Engine), FactRowsCostEstimate]
                                 , dimCardinalityEstimateOption: Option[Long]
                                 ) {
-
+  override def toString: String =
+    s"""${this.getClass.getSimpleName}:
+       factCost: $factCost
+       dimCardinalityEstimateOption: $dimCardinalityEstimateOption""".stripMargin
 }

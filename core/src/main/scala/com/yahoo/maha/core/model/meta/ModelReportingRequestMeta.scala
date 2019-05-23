@@ -19,5 +19,12 @@ case class ModelReportingRequestMeta (
                                      , startIndex: Int
                                      , maxRows: Int
                                      ) {
-
+  override def toString: String =
+    s"""${this.getClass.getSimpleName}:
+       cube: $cube
+       reportingRequest: $reportingRequest
+       requestedDaysWindow: $requestedDaysWindow
+       requestedDaysLookBack: $requestedDaysLookBack
+       startIndex: $startIndex
+       maxRows: $maxRows""".stripMargin
 }

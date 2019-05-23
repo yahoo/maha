@@ -41,5 +41,24 @@ case class ModelFlagMeta (
                            , isRequestingDistinct:Boolean
                            , hasLowCardinalityDimFilters: Boolean
                          ) {
-
+  override def toString: String =
+    s"""${this.getClass.getSimpleName}:
+       hasFactFilters: $hasFactFilters
+       hasMetricFilters: $hasMetricFilters
+       hasNonFKFactFilters: $hasNonFKFactFilters
+       hasDimFilters: $hasDimFilters
+       hasNonFKDimFilters: $hasNonFKDimFilters
+       hasFactSortBy: $hasFactSortBy
+       hasDimSortBy: $hasDimSortBy
+       isFactDriven: $isFactDriven
+       forceDimDriven: $forceDimDriven
+       forceFactDriven: $forceFactDriven
+       hasNonDrivingDimSortOrFilter: $hasNonDrivingDimSortOrFilter
+       hasDrivingDimNonFKNonPKSortBy: $hasDrivingDimNonFKNonPKSortBy
+       hasNonDrivingDimNonFKNonPKFilter: $hasNonDrivingDimNonFKNonPKFilter
+       anyDimHasNonFKNonForceFilter: $anyDimHasNonFKNonForceFilter
+       includeRowCount: $includeRowCount
+       isDebugEnabled: $isDebugEnabled
+       isRequestingDistinct: $isRequestingDistinct
+       hasLowCardinalityDimFilters: $hasLowCardinalityDimFilters""".stripMargin
 }

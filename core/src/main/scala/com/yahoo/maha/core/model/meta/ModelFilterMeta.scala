@@ -27,5 +27,15 @@ case class ModelFilterMeta (
                            , outerFilters: SortedSet[Filter]
                            , orFilterMeta: SortedSet[OrFilterMeta]
                            ) {
-
+  override def toString: String =
+    s"""${this.getClass.getSimpleName}:
+       factFilters: $factFilters
+       utcTimeDayFilter: $utcTimeDayFilter
+       localTimeDayFilter: $localTimeDayFilter
+       utcTimeHourFilterOption: $utcTimeHourFilterOption
+       localTimeHourFilterOption: $localTimeHourFilterOption
+       utcTimeMinuteFilterOption: $utcTimeMinuteFilterOption
+       localTimeMinuteFilterOption: $localTimeMinuteFilterOption
+       outerFilters: $outerFilters
+       orFilterMeta: $orFilterMeta""".stripMargin
 }

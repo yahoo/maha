@@ -22,5 +22,11 @@ case class ModelCandidateMeta (
                               , requestedFkAliasToPublicDimensionMap: Map[String, PublicDimension]
                               , dimensionRelations: DimensionRelations
                               ) {
-
+  override def toString: String =
+    s"""${this.getClass.getSimpleName}:
+       bestCandidatesOption: $bestCandidatesOption
+       factSchemaRequiredAliasesMap: $factSchemaRequiredAliasesMap
+       dimensionsCandidates: $dimensionsCandidates
+       requestedFkAliasToPublicDimensionMap: $requestedFkAliasToPublicDimensionMap
+       dimensionRelations: $dimensionRelations""".stripMargin
 }

@@ -21,5 +21,15 @@ case class RequestModelMeta(
                            , modelReportingRequestMeta: ModelReportingRequestMeta
                            , modelSortByMeta: ModelSortByMeta
                            ) {
+  override def toString: String =
+    s"""  ${this.getClass.getSimpleName}:
+      ${modelCandidateMeta.toString}
+      ${modelCardinalityMeta.toString}
+      ${modelColumnsMeta.toString}
+      ${modelFilterMeta.toString}
+      ${modelFlagMeta.toString}
+      ${modelPassedParameterMeta.toString}
+      ${modelReportingRequestMeta.toString}
+      ${modelSortByMeta.toString}"""
 
 }

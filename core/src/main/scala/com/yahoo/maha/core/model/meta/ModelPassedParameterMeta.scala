@@ -16,5 +16,10 @@ case class ModelPassedParameterMeta (
                                     , additionalParameters: Map[Parameter, Any]
                                     , queryGrainOption: Option[Grain]
                                     ) {
-
+  override def toString: String =
+    s"""${this.getClass.getSimpleName}:
+       schema: $schema
+       requestType: $requestType
+       additionalParameters: $additionalParameters
+       queryGrainOption: $queryGrainOption""".stripMargin
 }

@@ -18,5 +18,7 @@ import com.yahoo.maha.core.model.meta.RequestModelMeta
 case class RequestModelV1 (
                           requestModelMeta: RequestModelMeta
                           ) {
-
+  override def toString: String =
+    s"""${this.getClass.getSimpleName}:
+       |  ${requestModelMeta.toString}""".stripMargin
 }
