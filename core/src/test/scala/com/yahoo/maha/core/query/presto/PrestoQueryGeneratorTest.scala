@@ -37,9 +37,11 @@ class PrestoQueryGeneratorTest extends BasePrestoQueryGeneratorTest {
 
     assert(result != null && result.length > 0)
 
-    val expected = s"""SELECT mang_day, advertiser_id, campaign_id, mang_campaign_name, ad_group_id, keyword_id, mang_keyword, mang_search_term, mang_delivered_match_type, mang_impressions, mang_ad_group_start_date_full, mang_clicks, mang_average_cpc
+    println(result)
+
+    val expected = s"""SELECT CAST(mang_day as VARCHAR), CAST(advertiser_id as VARCHAR), CAST(campaign_id as VARCHAR), CAST(mang_campaign_name as VARCHAR), CAST(ad_group_id as VARCHAR), CAST(keyword_id as VARCHAR), CAST(mang_keyword as VARCHAR), CAST(mang_search_term as VARCHAR), CAST(mang_delivered_match_type as VARCHAR), CAST(mang_impressions as VARCHAR), CAST(mang_ad_group_start_date_full as VARCHAR), CAST(mang_clicks as VARCHAR), CAST(mang_average_cpc as VARCHAR)
                       |FROM(
-                      |SELECT getFormattedDate(stats_date) mang_day, CAST(COALESCE(account_id, 0) as VARCHAR) advertiser_id, COALESCE(CAST(ssfu0.campaign_id as VARCHAR), 'NA') campaign_id, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, CAST(COALESCE(ad_group_id, 0) as VARCHAR) ad_group_id, CAST(COALESCE(keyword_id, 0) as VARCHAR) keyword_id, getCsvEscapedString(CAST(COALESCE(keyword, '') AS VARCHAR)) mang_keyword, COALESCE(CAST(search_term as VARCHAR), 'None') mang_search_term, COALESCE(CAST(delivered_match_type as varchar), 'NA') mang_delivered_match_type, CAST(COALESCE(impressions, 0) as VARCHAR) mang_impressions, COALESCE(CAST(mang_ad_group_start_date_full as VARCHAR), 'NA') mang_ad_group_start_date_full, CAST(COALESCE(mang_clicks, 0) as VARCHAR) mang_clicks, CAST(ROUND(COALESCE((CASE WHEN clicks = 0 THEN 0.0 ELSE CAST(spend AS DOUBLE) / clicks END), 0), 10) as VARCHAR) mang_average_cpc
+                      |SELECT getFormattedDate(stats_date) mang_day, COALESCE(account_id, 0) advertiser_id, COALESCE(CAST(ssfu0.campaign_id as VARCHAR), 'NA') campaign_id, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(ad_group_id, 0) ad_group_id, COALESCE(keyword_id, 0) keyword_id, getCsvEscapedString(CAST(COALESCE(keyword, '') AS VARCHAR)) mang_keyword, COALESCE(CAST(search_term as VARCHAR), 'None') mang_search_term, COALESCE(CAST(delivered_match_type as varchar), 'NA') mang_delivered_match_type, COALESCE(impressions, 0) mang_impressions, COALESCE(CAST(mang_ad_group_start_date_full as VARCHAR), 'NA') mang_ad_group_start_date_full, COALESCE(mang_clicks, 0) mang_clicks, ROUND(COALESCE((CASE WHEN clicks = 0 THEN 0.0 ELSE CAST(spend AS DOUBLE) / clicks END), 0), 10) mang_average_cpc
                       |FROM(SELECT CASE WHEN (delivered_match_type IN (1)) THEN 'Exact' WHEN (delivered_match_type IN (2)) THEN 'Broad' WHEN (delivered_match_type IN (3)) THEN 'Phrase' ELSE 'UNKNOWN' END delivered_match_type, stats_date, keyword, ad_group_id, search_term, account_id, campaign_id, keyword_id, getDateFromEpoch(start_time, 'YYYY-MM-dd HH:mm:ss') mang_ad_group_start_date_full, SUM(clicks) mang_clicks, SUM(impressions) impressions, SUM(spend) spend
                       |FROM s_stats_fact_underlying
         WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -55,6 +57,7 @@ WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' ))
 c1
 ON
 CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
+ORDER BY mang_impressions ASC
        ) queryAlias LIMIT 100""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -90,9 +93,9 @@ CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
 
     assert(result != null && result.length > 0)
 
-    val expected = s"""SELECT advertiser_id, mang_impressions
+    val expected = s"""SELECT CAST(advertiser_id as VARCHAR), CAST(mang_impressions as VARCHAR)
     FROM(
-      SELECT CAST(COALESCE(account_id, 0) as VARCHAR) advertiser_id, CAST(COALESCE(impressions, 0) as VARCHAR) mang_impressions
+      SELECT COALESCE(account_id, 0) advertiser_id, COALESCE(impressions, 0) mang_impressions
         FROM(SELECT account_id, SUM(impressions) impressions
           FROM s_stats_fact_underlying
           WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -135,9 +138,9 @@ CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
 
     assert(result != null && result.length > 0)
 
-    val expected = s"""SELECT advertiser_id, mang_impressions
+    val expected = s"""SELECT CAST(advertiser_id as VARCHAR), CAST(mang_impressions as VARCHAR)
     FROM(
-      SELECT CAST(COALESCE(account_id, 0) as VARCHAR) advertiser_id, CAST(COALESCE(impressions, 0) as VARCHAR) mang_impressions
+      SELECT COALESCE(account_id, 0) advertiser_id, COALESCE(impressions, 0) mang_impressions
         FROM(SELECT account_id, SUM(impressions) impressions
           FROM s_stats_fact_underlying
           WHERE (ad_group_id = account_id) AND (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -180,9 +183,9 @@ CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
 
     assert(result != null && result.length > 0)
 
-    val expected = s"""SELECT advertiser_id, mang_impressions
+    val expected = s"""SELECT CAST(advertiser_id as VARCHAR), CAST(mang_impressions as VARCHAR)
                       |FROM(
-                      |SELECT CAST(COALESCE(account_id, 0) as VARCHAR) advertiser_id, CAST(COALESCE(impressions, 0) as VARCHAR) mang_impressions
+                      |SELECT COALESCE(account_id, 0) advertiser_id, COALESCE(impressions, 0) mang_impressions
                       |FROM(SELECT account_id, SUM(impressions) impressions
                       |FROM s_stats_fact_underlying
           WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -251,6 +254,115 @@ CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
     failRegistry.register(DruidEngine, dummyFalseQueryGenerator)
 
     PrestoQueryGenerator.register(failRegistry,DefaultPartitionColumnRenderer, TestPrestoUDFRegistrationFactory())
+  }
+
+  test("generating presto query with greater than filter and sort by") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                         "sortBy": [
+                           { "field": "Impressions", "order": "Desc" }
+                         ]
+          }"""
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    println(result)
+    assert(result != null && result.length > 0)
+
+    val expected =
+      s"""
+         |SELECT CAST(advertiser_id as VARCHAR), CAST(mang_impressions as VARCHAR)
+         |FROM(
+         |SELECT COALESCE(account_id, 0) advertiser_id, COALESCE(impressions, 0) mang_impressions
+         |FROM(SELECT account_id, SUM(impressions) impressions
+         |FROM s_stats_fact_underlying
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id
+         |HAVING (SUM(impressions) > 1608)
+         |       )
+         |ssfu0
+         |
+         |ORDER BY mang_impressions DESC
+         |          )
+         |        queryAlias LIMIT 200
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("generating presto query with greater than filter and multiple sort bys") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                         "sortBy": [
+                           { "field": "Impressions", "order": "Desc" },
+                           { "field": "Advertiser ID", "order": "Asc"}
+                         ]
+          }"""
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    println(result)
+    assert(result != null && result.length > 0)
+
+    val expected =
+      s"""
+         |SELECT CAST(advertiser_id as VARCHAR), CAST(mang_impressions as VARCHAR)
+         |FROM(
+         |SELECT COALESCE(account_id, 0) advertiser_id, COALESCE(impressions, 0) mang_impressions
+         |FROM(SELECT account_id, SUM(impressions) impressions
+         |FROM s_stats_fact_underlying
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id
+         |HAVING (SUM(impressions) > 1608)
+         |       )
+         |ssfu0
+         |
+         |ORDER BY mang_impressions DESC, advertiser_id ASC
+         |          )
+         |        queryAlias LIMIT 200
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
   }
 
 }
