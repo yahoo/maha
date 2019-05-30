@@ -172,7 +172,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
       val fact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, dimEngines = Set(PrestoEngine), queryGeneratorRegistry = queryGeneratorRegistry )
       builder.addFactBestCandidate(fact)
       val result = getPrestoQuery(builder.build()).asString
-      assert(result.contains("""SELECT mang_day, advertiser_id, campaign_id, ad_group_id, mang_source, mang_pricing_type, mang_destination_url, mang_impressions, mang_clicks"""))
+      assert(result.contains("""SELECT CAST(mang_day as VARCHAR), CAST(advertiser_id as VARCHAR), CAST(campaign_id as VARCHAR), CAST(ad_group_id as VARCHAR), CAST(mang_source as VARCHAR), CAST(mang_pricing_type as VARCHAR), CAST(mang_destination_url as VARCHAR), CAST(mang_impressions as VARCHAR), CAST(mang_clicks as VARCHAR)"""))
     }
   }
 
