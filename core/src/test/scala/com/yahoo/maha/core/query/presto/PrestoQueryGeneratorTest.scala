@@ -159,7 +159,8 @@ ORDER BY mang_impressions ASC
                           "cube": "s_stats",
                           "selectFields": [
                               {"field": "Advertiser ID"},
-                              {"field": "Impressions"}
+                              {"field": "Impressions"},
+                              {"field": "Network ID"}
                           ],
                           "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
@@ -180,16 +181,13 @@ ORDER BY mang_impressions ASC
 
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-
-    assert(result != null && result.length > 0)
-
-    val expected = s"""SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_impressions as VARCHAR) AS mang_impressions
+    val expected = s"""SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_impressions as VARCHAR) AS mang_impressions, CAST(network_id as VARCHAR) AS network_id
                       |FROM(
-                      |SELECT COALESCE(account_id, 0) advertiser_id, COALESCE(impressions, 0) mang_impressions
-                      |FROM(SELECT account_id, SUM(impressions) impressions
+                      |SELECT COALESCE(account_id, 0) advertiser_id, COALESCE(impressions, 0) mang_impressions, COALESCE(CAST(network_type as VARCHAR), 'NA') network_id
+                      |FROM(SELECT CASE WHEN (network_type IN ('TEST_PUBLISHER')) THEN 'Test Publisher' WHEN (network_type IN ('CONTENT_S')) THEN 'Content Secured' WHEN (network_type IN ('EXTERNAL')) THEN 'External Partners' WHEN (network_type IN ('INTERNAL')) THEN 'Internal Properties' ELSE 'NONE' END network_type, account_id, SUM(impressions) impressions
                       |FROM s_stats_fact_underlying
-          WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-                      |GROUP BY account_id
+                      |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+                      |GROUP BY CASE WHEN (network_type IN ('TEST_PUBLISHER')) THEN 'Test Publisher' WHEN (network_type IN ('CONTENT_S')) THEN 'Content Secured' WHEN (network_type IN ('EXTERNAL')) THEN 'External Partners' WHEN (network_type IN ('INTERNAL')) THEN 'Internal Properties' ELSE 'NONE' END, account_id
                       |HAVING (SUM(impressions) < 1608) AND (MAX(max_bid) = SUM(spend))
                       |       )
                       |ssfu0
