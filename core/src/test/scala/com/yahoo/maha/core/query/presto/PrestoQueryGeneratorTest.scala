@@ -184,10 +184,10 @@ CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
     val expected = s"""SELECT advertiser_id, mang_impressions, network_id
                       |FROM(
                       |SELECT CAST(COALESCE(account_id, 0) as VARCHAR) advertiser_id, CAST(COALESCE(impressions, 0) as VARCHAR) mang_impressions, COALESCE(CAST(network_type as VARCHAR), 'NA') network_id
-                      |FROM(SELECT CASE WHEN (network_type IN (TEST_PUBLISHER)) THEN 'Test Publisher' WHEN (network_type IN (CONTENT_S)) THEN 'Content Secured' WHEN (network_type IN (EXTERNAL)) THEN 'External Partners' WHEN (network_type IN (INTERNAL)) THEN 'Internal Properties' ELSE 'NONE' END network_type, account_id, SUM(impressions) impressions
+                      |FROM(SELECT CASE WHEN (network_type IN ('TEST_PUBLISHER')) THEN 'Test Publisher' WHEN (network_type IN ('CONTENT_S')) THEN 'Content Secured' WHEN (network_type IN ('EXTERNAL')) THEN 'External Partners' WHEN (network_type IN ('INTERNAL')) THEN 'Internal Properties' ELSE 'NONE' END network_type, account_id, SUM(impressions) impressions
                       |FROM s_stats_fact_underlying
                       |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-                      |GROUP BY CASE WHEN (network_type IN (TEST_PUBLISHER)) THEN 'Test Publisher' WHEN (network_type IN (CONTENT_S)) THEN 'Content Secured' WHEN (network_type IN (EXTERNAL)) THEN 'External Partners' WHEN (network_type IN (INTERNAL)) THEN 'Internal Properties' ELSE 'NONE' END, account_id
+                      |GROUP BY CASE WHEN (network_type IN ('TEST_PUBLISHER')) THEN 'Test Publisher' WHEN (network_type IN ('CONTENT_S')) THEN 'Content Secured' WHEN (network_type IN ('EXTERNAL')) THEN 'External Partners' WHEN (network_type IN ('INTERNAL')) THEN 'Internal Properties' ELSE 'NONE' END, account_id
                       |HAVING (SUM(impressions) < 1608) AND (MAX(max_bid) = SUM(spend))
                       |       )
                       |ssfu0
