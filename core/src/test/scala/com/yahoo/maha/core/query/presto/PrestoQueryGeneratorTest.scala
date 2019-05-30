@@ -39,7 +39,7 @@ class PrestoQueryGeneratorTest extends BasePrestoQueryGeneratorTest {
 
     println(result)
 
-    val expected = s"""SELECT CAST(mang_day as VARCHAR), CAST(advertiser_id as VARCHAR), CAST(campaign_id as VARCHAR), CAST(mang_campaign_name as VARCHAR), CAST(ad_group_id as VARCHAR), CAST(keyword_id as VARCHAR), CAST(mang_keyword as VARCHAR), CAST(mang_search_term as VARCHAR), CAST(mang_delivered_match_type as VARCHAR), CAST(mang_impressions as VARCHAR), CAST(mang_ad_group_start_date_full as VARCHAR), CAST(mang_clicks as VARCHAR), CAST(mang_average_cpc as VARCHAR)
+    val expected = s"""SELECT CAST(mang_day as VARCHAR) AS mang_day, CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(campaign_id as VARCHAR) AS campaign_id, CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(ad_group_id as VARCHAR) AS ad_group_id, CAST(keyword_id as VARCHAR) AS keyword_id, CAST(mang_keyword as VARCHAR) AS mang_keyword, CAST(mang_search_term as VARCHAR) AS mang_search_term, CAST(mang_delivered_match_type as VARCHAR) AS mang_delivered_match_type, CAST(mang_impressions as VARCHAR) AS mang_impressions, CAST(mang_ad_group_start_date_full as VARCHAR) AS mang_ad_group_start_date_full, CAST(mang_clicks as VARCHAR) AS mang_clicks, CAST(mang_average_cpc as VARCHAR) AS mang_average_cpc
                       |FROM(
                       |SELECT getFormattedDate(stats_date) mang_day, COALESCE(account_id, 0) advertiser_id, COALESCE(CAST(ssfu0.campaign_id as VARCHAR), 'NA') campaign_id, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(ad_group_id, 0) ad_group_id, COALESCE(keyword_id, 0) keyword_id, getCsvEscapedString(CAST(COALESCE(keyword, '') AS VARCHAR)) mang_keyword, COALESCE(CAST(search_term as VARCHAR), 'None') mang_search_term, COALESCE(CAST(delivered_match_type as varchar), 'NA') mang_delivered_match_type, COALESCE(impressions, 0) mang_impressions, COALESCE(CAST(mang_ad_group_start_date_full as VARCHAR), 'NA') mang_ad_group_start_date_full, COALESCE(mang_clicks, 0) mang_clicks, ROUND(COALESCE((CASE WHEN clicks = 0 THEN 0.0 ELSE CAST(spend AS DOUBLE) / clicks END), 0), 10) mang_average_cpc
                       |FROM(SELECT CASE WHEN (delivered_match_type IN (1)) THEN 'Exact' WHEN (delivered_match_type IN (2)) THEN 'Broad' WHEN (delivered_match_type IN (3)) THEN 'Phrase' ELSE 'UNKNOWN' END delivered_match_type, stats_date, keyword, ad_group_id, search_term, account_id, campaign_id, keyword_id, getDateFromEpoch(start_time, 'YYYY-MM-dd HH:mm:ss') mang_ad_group_start_date_full, SUM(clicks) mang_clicks, SUM(impressions) impressions, SUM(spend) spend
@@ -93,7 +93,7 @@ ORDER BY mang_impressions ASC
 
     assert(result != null && result.length > 0)
 
-    val expected = s"""SELECT CAST(advertiser_id as VARCHAR), CAST(mang_impressions as VARCHAR)
+    val expected = s"""SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_impressions as VARCHAR) AS mang_impressions
     FROM(
       SELECT COALESCE(account_id, 0) advertiser_id, COALESCE(impressions, 0) mang_impressions
         FROM(SELECT account_id, SUM(impressions) impressions
@@ -138,7 +138,7 @@ ORDER BY mang_impressions ASC
 
     assert(result != null && result.length > 0)
 
-    val expected = s"""SELECT CAST(advertiser_id as VARCHAR), CAST(mang_impressions as VARCHAR)
+    val expected = s"""SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_impressions as VARCHAR) AS mang_impressions
     FROM(
       SELECT COALESCE(account_id, 0) advertiser_id, COALESCE(impressions, 0) mang_impressions
         FROM(SELECT account_id, SUM(impressions) impressions
@@ -183,7 +183,7 @@ ORDER BY mang_impressions ASC
 
     assert(result != null && result.length > 0)
 
-    val expected = s"""SELECT CAST(advertiser_id as VARCHAR), CAST(mang_impressions as VARCHAR)
+    val expected = s"""SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_impressions as VARCHAR) AS mang_impressions
                       |FROM(
                       |SELECT COALESCE(account_id, 0) advertiser_id, COALESCE(impressions, 0) mang_impressions
                       |FROM(SELECT account_id, SUM(impressions) impressions
@@ -291,7 +291,7 @@ ORDER BY mang_impressions ASC
 
     val expected =
       s"""
-         |SELECT CAST(advertiser_id as VARCHAR), CAST(mang_impressions as VARCHAR)
+         |SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_impressions as VARCHAR) AS mang_impressions
          |FROM(
          |SELECT COALESCE(account_id, 0) advertiser_id, COALESCE(impressions, 0) mang_impressions
          |FROM(SELECT account_id, SUM(impressions) impressions
@@ -346,7 +346,7 @@ ORDER BY mang_impressions ASC
 
     val expected =
       s"""
-         |SELECT CAST(advertiser_id as VARCHAR), CAST(mang_impressions as VARCHAR)
+         |SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_impressions as VARCHAR) AS mang_impressions
          |FROM(
          |SELECT COALESCE(account_id, 0) advertiser_id, COALESCE(impressions, 0) mang_impressions
          |FROM(SELECT account_id, SUM(impressions) impressions

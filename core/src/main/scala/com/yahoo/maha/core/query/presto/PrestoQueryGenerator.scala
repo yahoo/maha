@@ -83,7 +83,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
       renderedConcateColumns.mkString(", ")
     }
 
-    def castToChar(renderedCol: String) : String = s"""CAST($renderedCol as VARCHAR)"""
+    def castToChar(renderedCol: String) : String = s"""CAST($renderedCol as VARCHAR) AS $renderedCol"""
 
     // render outercols with column expression
     def generateOuterColumns() : String = {
