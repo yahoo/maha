@@ -247,6 +247,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           , DimCol("stats_source", IntType(3))
           , DimCol("country", StrType())
           , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
+          , DimCol("network_type", StrType(100, (Map("TEST_PUBLISHER" -> "Test Publisher", "CONTENT_S" -> "Content Secured", "EXTERNAL" -> "External Partners" ,  "INTERNAL" -> "Internal Properties"), "NONE")))
           , DimCol("stats_date", DateType("YYYY-MM-dd"))
           , PrestoDerDimCol("Hour", DateType("YYYY-MM-DD HH24"), "concat({stats_date},' 00')")
         ),
@@ -272,6 +273,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           PubCol("advertiser_id", "Advertiser ID", InEquality),
           PubCol("stats_source", "Source", Equality),
           PubCol("country", "Country", Equality),
+          PubCol("network_type", "Network ID", InEquality),
           PubCol("price_type", "Pricing Type", In)
         ),
         Set(
@@ -402,7 +404,8 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           , impressions NUMBER(19)
           , clicks NUMBER(19)
           , spend NUMBER(21,6)
-          , max_bid NUMBER(21,6))
+          , max_bid NUMBER(21,6)
+          , network_type VARCHAR2(100 CHAR))
       """
     )
     assert(resultAdsStats.isSuccess && resultAdsStats.toOption.get === false)
@@ -469,42 +472,42 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val insertSqlAdsStats =
       """
         INSERT INTO ad_stats_presto 
-        (stats_date, ad_id, ad_group_id, campaign_id, advertiser_id, stats_source, price_type, impressions, clicks, spend, max_bid, country)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (stats_date, ad_id, ad_group_id, campaign_id, advertiser_id, stats_source, price_type, impressions, clicks, spend, max_bid, country, network_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       """
     val rowsAdsStats: List[Seq[Any]] = List(
-      Seq(sd, 1000, 100, 10, 1, 1, 1, 1002, 2, 2.10, 0.21, 23424977)
-      , Seq(sd, 1000, 100, 10, 1, 1, 1, 1003, 3, 3.10, 0.31, 23424977)
-      , Seq(sd, 1000, 100, 10, 1, 2, 1, 1003, 3, 3.10, 0.31, 23424977)
-      , Seq(sd, 1000, 100, 10, 1, 2, 2, 1004, 4, 4.10, 0.41, 123)
-      , Seq(sd, 1001, 100, 10, 1, 1, 1, 1003, 3, 3.10, 0.31, 23424977)
-      , Seq(sd, 1001, 100, 10, 1, 1, 2, 1004, 4, 4.10, 0.41, 23424977)
-      , Seq(sd, 1001, 100, 10, 1, 2, 1, 1004, 4, 4.10, 0.41, 23424977)
-      , Seq(sd, 1001, 100, 10, 1, 2, 2, 1005, 5, 5.10, 0.51, 23424977)
-      , Seq(sd, 1002, 101, 10, 1, 1, 1, 1004, 4, 4.10, 0.41, 23424977)
-      , Seq(sd, 1002, 101, 10, 1, 1, 2, 1005, 5, 5.10, 0.51, 23424977)
-      , Seq(sd, 1002, 101, 10, 1, 2, 1, 1005, 5, 5.10, 0.51, 23424977)
-      , Seq(sd, 1002, 101, 10, 1, 2, 2, 1006, 6, 6.10, 0.61, 23424977)
-      , Seq(sd, 1003, 101, 10, 1, 1, 1, 1005, 5, 5.10, 0.51, 23424977)
-      , Seq(sd, 1003, 101, 10, 1, 1, 2, 1006, 6, 6.10, 0.61, 23424977)
-      , Seq(sd, 1003, 101, 10, 1, 2, 1, 1006, 6, 6.10, 0.61, 23424977)
-      , Seq(sd, 1003, 101, 10, 1, 2, 2, 1007, 7, 7.10, 0.71, 23424977)
-      , Seq(sd, 1004, 102, 11, 1, 1, 1, 1006, 6, 6.10, 0.61, 23424977)
-      , Seq(sd, 1004, 102, 11, 1, 1, 2, 1007, 7, 7.10, 0.71, 23424977)
-      , Seq(sd, 1004, 102, 11, 1, 2, 1, 1007, 7, 7.10, 0.71, 23424977)
-      , Seq(sd, 1004, 102, 11, 1, 2, 2, 1008, 8, 8.10, 0.81, 23424977)
-      , Seq(sd, 1005, 102, 11, 1, 1, 1, 1007, 7, 7.10, 0.71, 23424977)
-      , Seq(sd, 1005, 102, 11, 1, 1, 2, 1008, 8, 8.10, 0.81, 23424977)
-      , Seq(sd, 1005, 102, 11, 1, 2, 1, 1008, 8, 8.10, 0.81, 23424977)
-      , Seq(sd, 1005, 102, 11, 1, 2, 2, 1009, 9, 9.10, 0.91, 23424977)
-      , Seq(sd, 1006, 103, 11, 1, 1, 1, 1008, 8, 8.10, 0.81, 23424977)
-      , Seq(sd, 1006, 103, 11, 1, 1, 2, 1009, 9, 9.10, 0.91, 23424977)
-      , Seq(sd, 1006, 103, 11, 1, 2, 1, 1009, 9, 9.10, 0.91, 23424977)
-      , Seq(sd, 1006, 103, 11, 1, 2, 2, 1010, 10, 10.10, 1.01, 23424977)
-      , Seq(sd, 1007, 103, 11, 1, 1, 1, 1009, 9, 9.10, 0.91, 23424977)
-      , Seq(sd, 1007, 103, 11, 1, 1, 2, 1010, 10, 10.10, 1.01, 23424977)
-      , Seq(sd, 1007, 103, 11, 1, 2, 1, 1010, 10, 10.10, 1.01, 23424977)
-      , Seq(sd, 1007, 103, 11, 1, 2, 2, 1011, 11, 11.10, 1.11, 23424977)
+      Seq(sd, 1000, 100, 10, 1, 1, 1, 1002, 2, 2.10, 0.21, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1000, 100, 10, 1, 1, 1, 1003, 3, 3.10, 0.31, 23424977, "CONTENT_S")
+      , Seq(sd, 1000, 100, 10, 1, 2, 1, 1003, 3, 3.10, 0.31, 23424977, "EXTERNAL")
+      , Seq(sd, 1000, 100, 10, 1, 2, 2, 1004, 4, 4.10, 0.41, 123, "TEST_PUBLISHER")
+      , Seq(sd, 1001, 100, 10, 1, 1, 1, 1003, 3, 3.10, 0.31, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1001, 100, 10, 1, 1, 2, 1004, 4, 4.10, 0.41, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1001, 100, 10, 1, 2, 1, 1004, 4, 4.10, 0.41, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1001, 100, 10, 1, 2, 2, 1005, 5, 5.10, 0.51, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1002, 101, 10, 1, 1, 1, 1004, 4, 4.10, 0.41, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1002, 101, 10, 1, 1, 2, 1005, 5, 5.10, 0.51, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1002, 101, 10, 1, 2, 1, 1005, 5, 5.10, 0.51, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1002, 101, 10, 1, 2, 2, 1006, 6, 6.10, 0.61, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1003, 101, 10, 1, 1, 1, 1005, 5, 5.10, 0.51, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1003, 101, 10, 1, 1, 2, 1006, 6, 6.10, 0.61, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1003, 101, 10, 1, 2, 1, 1006, 6, 6.10, 0.61, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1003, 101, 10, 1, 2, 2, 1007, 7, 7.10, 0.71, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1004, 102, 11, 1, 1, 1, 1006, 6, 6.10, 0.61, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1004, 102, 11, 1, 1, 2, 1007, 7, 7.10, 0.71, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1004, 102, 11, 1, 2, 1, 1007, 7, 7.10, 0.71, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1004, 102, 11, 1, 2, 2, 1008, 8, 8.10, 0.81, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1005, 102, 11, 1, 1, 1, 1007, 7, 7.10, 0.71, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1005, 102, 11, 1, 1, 2, 1008, 8, 8.10, 0.81, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1005, 102, 11, 1, 2, 1, 1008, 8, 8.10, 0.81, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1005, 102, 11, 1, 2, 2, 1009, 9, 9.10, 0.91, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1006, 103, 11, 1, 1, 1, 1008, 8, 8.10, 0.81, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1006, 103, 11, 1, 1, 2, 1009, 9, 9.10, 0.91, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1006, 103, 11, 1, 2, 1, 1009, 9, 9.10, 0.91, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1006, 103, 11, 1, 2, 2, 1010, 10, 10.10, 1.01, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1007, 103, 11, 1, 1, 1, 1009, 9, 9.10, 0.91, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1007, 103, 11, 1, 1, 2, 1010, 10, 10.10, 1.01, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1007, 103, 11, 1, 2, 1, 1010, 10, 10.10, 1.01, 23424977, "TEST_PUBLISHER")
+      , Seq(sd, 1007, 103, 11, 1, 2, 2, 1011, 11, 11.10, 1.11, 23424977, "TEST_PUBLISHER")
     )
 
     insertRows(insertSqlAdsStats, rowsAdsStats, "SELECT * FROM ad_stats_presto")
@@ -623,6 +626,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                             {"field": "Ad Date Modified"},
                             {"field": "Ad Date Modified Timestamp"},
                             {"field": "Pricing Type"},
+                            {"field": "Network ID"},
                             {"field": "Impressions"},
                             {"field": "Max Bid"},
                             {"field": "Average CPC"},
