@@ -207,10 +207,10 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
             s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
           case StrType(_, sm, _) if sm.isDefined =>
             val defaultValue = sm.get.default
-            val decodeValues = sm.get.tToStringMap.map {
-              case (from, to) => s"'$from', '$to'"
+            val whenClauses = sm.get.tToStringMap.map {
+              case (from, to) => s"WHEN ($nameOrAlias IN ($from)) THEN '$to'"
             }
-            s"""decodeUDF($nameOrAlias, ${decodeValues.mkString(", ")}, '$defaultValue')"""
+            s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
           case _ =>
             s"""COALESCE($nameOrAlias, "NA")"""
         }
