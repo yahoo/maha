@@ -79,9 +79,11 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
           queryBuilderContext.getDimensionColNameForAlias(alias)
         case FactColumnInfo(alias)=>
           queryBuilderContext.getFactColNameForAlias(alias)
-      }
+      }.map(castToChar)
       renderedConcateColumns.mkString(", ")
     }
+
+    def castToChar(renderedCol: String) : String = s"""CAST($renderedCol as VARCHAR) AS $renderedCol"""
 
     // render outercols with column expression
     def generateOuterColumns() : String = {
@@ -158,16 +160,16 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
       val renderedCol = column.dataType match {
         case DecType(_, _, Some(default), Some(min), Some(max), _) =>
           val minMaxClause = s"CASE WHEN (($finalAlias >= ${min}) AND ($finalAlias <= ${max})) THEN $finalAlias ELSE ${default} END"
-          s"""CAST(ROUND(COALESCE($minMaxClause, ${default}), 10) as VARCHAR)"""
+          s"""ROUND(COALESCE($minMaxClause, ${default}), 10)"""
         case DecType(_, _, Some(default), _, _, _) =>
-          s"""CAST(ROUND(COALESCE($finalAlias, ${default}), 10) as VARCHAR)"""
+          s"""ROUND(COALESCE($finalAlias, ${default}), 10)"""
         case DecType(_, _, _, _, _, _) =>
-          s"""CAST(ROUND(COALESCE($finalAlias, 0), 10) as VARCHAR)"""
+          s"""ROUND(COALESCE($finalAlias, 0), 10)"""
         case IntType(_,sm,_,_,_) =>
           if (sm.isDefined) {
             s"""COALESCE(CAST($finalAlias as varchar), 'NA')"""
           } else {
-            s"""CAST(COALESCE($finalAlias, 0) as VARCHAR)"""
+            s"""COALESCE($finalAlias, 0)"""
           }
         case DateType(_) => s"""getFormattedDate($finalAlias)"""
         case StrType(_, sm, df) =>
@@ -207,10 +209,10 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
             s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
           case StrType(_, sm, _) if sm.isDefined =>
             val defaultValue = sm.get.default
-            val decodeValues = sm.get.tToStringMap.map {
-              case (from, to) => s"'$from', '$to'"
+            val whenClauses = sm.get.tToStringMap.map {
+              case (from, to) => s"WHEN ($nameOrAlias IN ('$from')) THEN '$to'"
             }
-            s"""decodeUDF($nameOrAlias, ${decodeValues.mkString(", ")}, '$defaultValue')"""
+            s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
           case _ =>
             s"""COALESCE($nameOrAlias, "NA")"""
         }
@@ -560,6 +562,10 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
     val outerCols = generateOuterColumns()
     val dimJoinQuery = queryBuilder.getJoinExpressions
 
+    generateOrderByClause(queryContext, queryBuilderContext, queryBuilder);
+
+    val outerOrderByClause = queryBuilder.getOrderByClause
+
     // factViewAlias => needs to generate abbr from factView name like account_stats_1h_v2 -> as1v0
     // outerCols same cols in concate cols, different expression ???
     val parameterizedQuery : String =
@@ -568,7 +574,9 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
           |SELECT $outerCols
           |FROM($factQueryFragment)
           |$factViewAlias
-          |$dimJoinQuery)
+          |$dimJoinQuery
+          |$outerOrderByClause
+          )
        """.stripMargin
 
     val parameterizedQueryWithRowLimit = {
@@ -591,6 +599,22 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
       IndexedSeq.empty
     )
   }
+
+  def generateOrderByClause(queryContext: CombinedQueryContext,
+                            queryBuilderContext:QueryBuilderContext,
+                            queryBuilder: QueryBuilder): Unit = {
+    val model = queryContext.requestModel
+    model.requestSortByCols.map {
+      case FactSortByColumnInfo(alias, order) =>
+        val colExpression = queryBuilderContext.getFactColNameForAlias(alias)
+        s"$colExpression ${order}"
+      case DimSortByColumnInfo(alias, order) =>
+        val dimColName = queryBuilderContext.getDimensionColNameForAlias(alias)
+        s"$dimColName ${order}"
+      case a => throw new IllegalArgumentException(s"Unhandled SortByColumnInfo $a")
+    }.foreach(queryBuilder.addOrderBy(_))
+  }
+
 }
 
 object PrestoQueryGenerator extends Logging {
