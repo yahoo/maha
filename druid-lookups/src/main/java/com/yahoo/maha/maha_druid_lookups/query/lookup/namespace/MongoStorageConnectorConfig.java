@@ -178,10 +178,9 @@ public class MongoStorageConnectorConfig {
                 .hash(getHosts(), getDbName(), getUser(), passwordProvider, getClientProperties());
     }
 
-    public MongoClient getMongoClient() {
-        MongoStorageConnectorConfig config = this;
-        List<ServerAddress> serverAddressList = Arrays
-                .stream(config.getHosts().split(",")).map(s -> {
+    public List<ServerAddress> getServerAddressList() {
+        return Arrays
+                .stream(this.getHosts().split(",")).map(s -> {
                     String[] hostPort = s.split(":");
                     if (hostPort.length > 1) {
                         return new ServerAddress(hostPort[0], Integer.parseInt(hostPort[1]));
@@ -189,6 +188,11 @@ public class MongoStorageConnectorConfig {
                         return new ServerAddress(hostPort[0]);
                     }
                 }).collect(Collectors.toList());
+    }
+
+    public MongoClient getMongoClient() {
+        MongoStorageConnectorConfig config = this;
+        List<ServerAddress> serverAddressList = getServerAddressList();
 
         List<MongoCredential> mongoCredentialList = Collections.emptyList();
         if (getUser() != null && getPassword() != null) {

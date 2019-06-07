@@ -11,7 +11,7 @@ import com.metamx.common.logger.Logger;
 import java.util.Map;
 
 abstract public class MahaLookupExtractor extends LookupExtractor {
-    private static final Logger LOG = new Logger(JDBCLookupExtractor.class);
+    private static final Logger LOG = new Logger(MahaLookupExtractor.class);
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
