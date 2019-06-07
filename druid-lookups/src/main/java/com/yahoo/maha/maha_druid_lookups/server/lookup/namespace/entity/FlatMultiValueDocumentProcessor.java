@@ -73,7 +73,7 @@ public class FlatMultiValueDocumentProcessor implements MongoDocumentProcessor {
     }
 
     @Override
-    public void process(Document document, LookupBuilder lookupBuilder) {
+    public int process(Document document, LookupBuilder lookupBuilder) {
         Object keyObject = document.get(primaryKeyColumn);
 
         if (keyObject != null) {
@@ -88,7 +88,9 @@ public class FlatMultiValueDocumentProcessor implements MongoDocumentProcessor {
                 colValues.add(colValue);
             }
             lookupBuilder.add(keyValue, colValues);
+            return 1;
         }
+        return 0;
     }
 
     @Override

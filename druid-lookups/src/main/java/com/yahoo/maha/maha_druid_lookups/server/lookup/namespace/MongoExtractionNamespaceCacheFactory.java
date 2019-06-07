@@ -133,6 +133,7 @@ public class MongoExtractionNamespaceCacheFactory
                 }
                 documents = documents.projection(Projections.include(Lists.newArrayList(neededFields)));
                 long docTime = -1;
+                int count = 0;
                 for (Document d : documents) {
                     try {
                         if (extractionNamespace.isTsColumnEpochInteger()) {
@@ -141,7 +142,7 @@ public class MongoExtractionNamespaceCacheFactory
                             docTime = d.getDate(extractionNamespace.getTsColumn()).getTime();
                         }
                         try {
-                            processor.process(d, lookupBuilder);
+                            count += processor.process(d, lookupBuilder);
                             if (maxTime < docTime) {
                                 maxTime = docTime;
                             }
@@ -187,7 +188,7 @@ public class MongoExtractionNamespaceCacheFactory
                 emitter.emit(ServiceMetricEvent.builder()
                         .setDimension(MonitoringConstants.MAHA_LOOKUP_NAME, extractionNamespace.getLookupName())
                         .build(MonitoringConstants.MAHA_LOOKUP_MONGO_PROCESSING_TIME, System.currentTimeMillis() - startMillis));
-                LOG.info("Finished loading %d values for extractionNamespace[%s]", cache.size(), id);
+                LOG.info("Finished loading %d values for extractionNamespace[%s] with %d new/updated entries", cache.size(), id, count);
                 return String.format("%d", extractionNamespace.getPreviousLastUpdateTime());
             }
         };
