@@ -14,7 +14,7 @@ import org.bson.Document;
         @JsonSubTypes.Type(name = "flatmultivalue", value = FlatMultiValueDocumentProcessor.class),
 })
 public interface MongoDocumentProcessor {
-    void process(Document document, LookupBuilder lookupBuilder);
+    int process(Document document, LookupBuilder lookupBuilder);
 
     List<String> getColumnList();
 

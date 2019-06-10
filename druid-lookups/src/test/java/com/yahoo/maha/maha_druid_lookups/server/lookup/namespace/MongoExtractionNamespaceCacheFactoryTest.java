@@ -49,6 +49,7 @@ public class MongoExtractionNamespaceCacheFactoryTest extends TestMongoServer {
     LookupService lookupService;
 
     MongoStorageConnectorConfig mongoStorageConnectorConfig;
+    MongoStorageConnectorConfig badMongoStorageConnectorConfig;
 
     private static final String DEFAULT_COLLECTION = "advertiser";
 
@@ -64,7 +65,18 @@ public class MongoExtractionNamespaceCacheFactoryTest extends TestMongoServer {
                 "\t\t\"connectTimeout\": \"2000\"\n" +
                 "\t}\n" +
                 "}", serverAddress.getHostString(), serverAddress.getPort());
+        String badJsonConfig = String.format("{\n" +
+                "\t\"hosts\": \"%s:%s\",\n" +
+                "\t\"dbName\": \"mydb\",\n" +
+                "\t\"clientOptions\": {\n" +
+                "\t\t\"connectionsPerHost\": \"3\",\n" +
+                "\t\t\"serverSelectionTimeout\": \"2000\",\n" +
+                "\t\t\"socketTimeout\": \"10000\",\n" +
+                "\t\t\"connectTimeout\": \"2000\"\n" +
+                "\t}\n" +
+                "}", serverAddress.getHostString(), serverAddress.getPort() + 1);
         mongoStorageConnectorConfig = objectMapper.readValue(jsonConfig, MongoStorageConnectorConfig.class);
+        badMongoStorageConnectorConfig = objectMapper.readValue(badJsonConfig, MongoStorageConnectorConfig.class);
         createTestData("mongo_advertiser.json", DEFAULT_COLLECTION, objectMapper, mongoStorageConnectorConfig);
     }
 
@@ -138,6 +150,18 @@ public class MongoExtractionNamespaceCacheFactoryTest extends TestMongoServer {
         decodeConfig2.setColumnIfValueMatched("currency");
         decodeConfig2.setColumnIfValueNotMatched("status");
         Assert.assertEquals(obj.getCacheValue(extractionNamespace, map, "12345", "name", Optional.of(decodeConfig2)), "ON".getBytes());
+    }
+
+
+    @Test(expectedExceptions = com.mongodb.MongoTimeoutException.class)
+    public void testReplacementOfMongoStorageConnectorConfig() throws Exception {
+        Map<String, List<String>> cache = new ConcurrentHashMap<>();
+        MongoExtractionNamespace extractionNamespace =
+                new MongoExtractionNamespace(badMongoStorageConnectorConfig, "advertiser"
+                        , "updated_at", true, new Period(), true, "advertiser_lookup"
+                        , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
+        Callable<String> command = obj.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, null, cache);
+        command.call();
     }
 
     @Test

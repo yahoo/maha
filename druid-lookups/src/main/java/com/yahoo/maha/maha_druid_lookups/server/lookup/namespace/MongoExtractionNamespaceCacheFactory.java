@@ -8,6 +8,7 @@ import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.metamx.emitter.service.ServiceMetricEvent;
 import com.mongodb.MongoClient;
+import com.mongodb.ServerAddress;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -132,6 +133,7 @@ public class MongoExtractionNamespaceCacheFactory
                 }
                 documents = documents.projection(Projections.include(Lists.newArrayList(neededFields)));
                 long docTime = -1;
+                int count = 0;
                 for (Document d : documents) {
                     try {
                         if (extractionNamespace.isTsColumnEpochInteger()) {
@@ -140,7 +142,7 @@ public class MongoExtractionNamespaceCacheFactory
                             docTime = d.getDate(extractionNamespace.getTsColumn()).getTime();
                         }
                         try {
-                            processor.process(d, lookupBuilder);
+                            count += processor.process(d, lookupBuilder);
                             if (maxTime < docTime) {
                                 maxTime = docTime;
                             }
@@ -186,7 +188,7 @@ public class MongoExtractionNamespaceCacheFactory
                 emitter.emit(ServiceMetricEvent.builder()
                         .setDimension(MonitoringConstants.MAHA_LOOKUP_NAME, extractionNamespace.getLookupName())
                         .build(MonitoringConstants.MAHA_LOOKUP_MONGO_PROCESSING_TIME, System.currentTimeMillis() - startMillis));
-                LOG.info("Finished loading %d values for extractionNamespace[%s]", cache.size(), id);
+                LOG.info("Finished loading %d values for extractionNamespace[%s] with %d new/updated entries", cache.size(), id, count);
                 return String.format("%d", extractionNamespace.getPreviousLastUpdateTime());
             }
         };
@@ -196,7 +198,21 @@ public class MongoExtractionNamespaceCacheFactory
         final String key = id;
         MongoClient mongoClient = null;
         if (mongoClientCache.containsKey(key)) {
-            mongoClient = mongoClientCache.get(key);
+            MongoClient aMongoClient = mongoClientCache.get(key);
+            synchronized (aMongoClient) {
+                if (mongoClientCache.containsKey(key)) {
+                    HashSet<ServerAddress> serverAddressList = new HashSet<>(aMongoClient.getServerAddressList());
+                    HashSet<ServerAddress> currentAddressList = new HashSet<>(namespace.getConnectorConfig().getServerAddressList());
+                    if (serverAddressList.equals(currentAddressList)) {
+                        mongoClient = aMongoClient;
+                        LOG.info("Using existing mongo client for namespace : %s", id);
+                    } else {
+                        LOG.info("Removing stale mongo client for namespace : %s", id);
+                        mongoClientCache.remove(key);
+                        aMongoClient.close();
+                    }
+                }
+            }
         }
         if (mongoClient == null) {
             int numAttempts = 0;
