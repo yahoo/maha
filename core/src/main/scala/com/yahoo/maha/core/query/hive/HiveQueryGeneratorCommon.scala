@@ -378,4 +378,16 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
     }
 
   }
+
+  /*
+  concat column and alias
+ */
+  protected[this] def concat(tuple: (String, String)): String = {
+    if (tuple._2.isEmpty) {
+      s"""${tuple._1}"""
+    } else {
+      s"""${tuple._1} ${tuple._2}"""
+    }
+  }
+
 }

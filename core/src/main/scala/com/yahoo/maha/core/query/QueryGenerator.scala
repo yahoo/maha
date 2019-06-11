@@ -152,6 +152,10 @@ class QueryBuilderContext {
     preOuterFinalAliasToAliasMap.get(alias)
   }
 
+  def containsPreOuterFinalAliasToAliasMap(alias:String): Boolean = {
+    preOuterFinalAliasToAliasMap.contains(alias)
+  }
+
   def getPreOuterAliasToColumnMap(alias: String): Option[Column] = {
     preOuterAliasToColumnMap.get(alias)
   }
@@ -234,10 +238,10 @@ object QueryGeneratorHelper {
   def handleOuterFactColInfo(queryBuilderContext: QueryBuilderContext
                         , alias : String
                         , factCandidate : FactBestCandidate
-                        , renderFactCol: (String, String, Column, String) => String
+                        , renderFactCol: (String, String, Column, String) => (String,String)
                         , duplicateAliasMapping: Map[String, Set[String]]
                         , tableAlias : String
-                        , isOuterGroupBy: Boolean) : String = {
+                        , isOuterGroupBy: Boolean) : (String,String) = {
     if (queryBuilderContext.containsFactColNameForAlias(alias)) {
       val col = queryBuilderContext.getFactColByAlias(alias)
       val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)
@@ -313,6 +317,18 @@ object QueryGeneratorHelper {
       literalMapper
     )
   }
+
+  /*
+    Concat inner column and it's alias, alias is not quoted
+  */
+  def concat(tuple: (String, String)): String = {
+    if (tuple._2.isEmpty) {
+      s"""${tuple._1}"""
+    } else {
+      s"""${tuple._1} ${tuple._2}"""
+    }
+  }
+
 }
 
 sealed trait VersionNumber {
@@ -374,5 +390,6 @@ class QueryGeneratorRegistry {
       }.asInstanceOf[Option[QueryGenerator[EngineRequirement]]]
     } yield generator
   }
+
 
 }

@@ -27,8 +27,8 @@ class HiveQueryGeneratorV2(partitionColumnRenderer:PartitionColumnRenderer, udfS
         generateQuery(context)
       case FactQueryContext(factBestCandidate, model, indexAliasOption, factGroupByKeys, attributes) =>
         generateQuery(CombinedQueryContext(SortedSet.empty, factBestCandidate, model, attributes))
-      case DimFactOuterGroupByQueryQueryContext(dims, factBestCandidate, model, attributes) =>
-        generateOuterGroupByQuery(CombinedQueryContext(dims, factBestCandidate, model, attributes))
+      case ogbContext@DimFactOuterGroupByQueryQueryContext(dims, factBestCandidate, model, attributes) =>
+        generateOuterGroupByQuery(ogbContext)
       case any => throw new UnsupportedOperationException(s"query context not supported : $any")
     }
   }
@@ -81,14 +81,15 @@ class HiveQueryGeneratorV2(partitionColumnRenderer:PartitionColumnRenderer, udfS
         }
       }
 
-      def renderFactCol(alias: String, finalAliasOrExpression: String, col: Column, finalAlias: String): String = {
+      def renderFactCol(alias: String, finalAliasOrExpression: String, col: Column, finalAlias: String): (String,String) = {
         val postFilterAlias = renderNormalOuterColumnWithoutCasting(col, finalAliasOrExpression)
-        s"""$postFilterAlias $finalAlias"""
+        (postFilterAlias, finalAlias)
       }
+
 
       columnInfo match {
         case FactColumnInfo(alias) =>
-          QueryGeneratorHelper.handleOuterFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.name, false)
+          concat(QueryGeneratorHelper.handleOuterFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.name, false))
         case DimColumnInfo(alias) =>
           val col = queryBuilderContext.getDimensionColByAlias(alias)
           val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
@@ -291,10 +292,11 @@ object HiveQueryGeneratorV2 extends Logging {
     } else {
       queryGeneratorRegistry.getDefaultGenerator(HiveEngine).foreach {
         qg =>
-          if(!qg.isInstanceOf[HiveQueryGenerator]) {
+          if(!qg.isInstanceOf[HiveQueryGeneratorV2]) {
             warn(s"Another query generator registered for HiveEngine : ${qg.getClass.getCanonicalName}")
           }
       }
+      throw new IllegalArgumentException(s"Hive Query Generator Version V2 is already registered")
     }
   }
 }
