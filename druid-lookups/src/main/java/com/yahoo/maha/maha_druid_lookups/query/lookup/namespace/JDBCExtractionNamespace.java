@@ -42,6 +42,14 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     private Timestamp previousLastUpdateTimestamp;
     private final ImmutableMap<String, Integer> columnIndexMap;
 
+    @JsonProperty
+    private final String kafkaTopic = "unassigned";
+
+    @JsonProperty
+    private final String namespace = "unassigned";
+
+    @JsonProperty boolean isLeader = false;
+
     @JsonCreator
     public JDBCExtractionNamespace(
             @NotNull @JsonProperty(value = "connectorConfig", required = true) final MetadataStorageConnectorConfig connectorConfig,
@@ -49,8 +57,11 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
             @NotNull @JsonProperty(value = "columnList", required = true) final ArrayList<String> columnList,
             @NotNull @JsonProperty(value = "primaryKeyColumn", required = true) final String primaryKeyColumn,
             @Nullable @JsonProperty(value = "tsColumn", required = false) final String tsColumn,
+            @Nullable @JsonProperty(value = "kafkaTopic", required = false) final String kafkaTopic,
+            @Nullable @JsonProperty(value = "namespace", required = false) final String namespace,
             @Min(0) @Nullable @JsonProperty(value = "pollPeriod", required = false) final Period pollPeriod,
             @JsonProperty(value = "cacheEnabled", required = false) final boolean cacheEnabled,
+            @JsonProperty(value = "isLeader", required = false) final boolean isLeader,
             @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName
     ) {
         this.connectorConfig = Preconditions.checkNotNull(connectorConfig, "connectorConfig");
@@ -86,6 +97,8 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
         return connectorConfig;
     }
 
+    public boolean getIsLeader() { return isLeader; }
+
     public String getTable() {
         return table;
     }
@@ -101,6 +114,10 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     public String getTsColumn() {
         return tsColumn;
     }
+
+    public String getKafkaTopic() { return kafkaTopic; }
+
+    public String getNamespace() { return namespace; }
 
     public boolean isCacheEnabled() {
         return cacheEnabled;

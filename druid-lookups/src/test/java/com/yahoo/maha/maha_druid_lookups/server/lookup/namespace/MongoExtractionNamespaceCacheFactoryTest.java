@@ -160,7 +160,7 @@ public class MongoExtractionNamespaceCacheFactoryTest extends TestMongoServer {
                 new MongoExtractionNamespace(badMongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
                         , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
-        Callable<String> command = obj.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, null, cache);
+        Callable<String> command = obj.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, null, cache, null, null, null);
         command.call();
     }
 
@@ -171,7 +171,7 @@ public class MongoExtractionNamespaceCacheFactoryTest extends TestMongoServer {
                 new MongoExtractionNamespace(mongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
                         , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
-        Callable<String> command = obj.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, null, cache);
+        Callable<String> command = obj.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, null, cache, null, null, null);
         String version = command.call();
         Assert.assertTrue(cache.containsKey("5ad10906fc7b6ecac8d41080"));
         Assert.assertTrue(cache.containsKey("5ad10906fc7b6ecac8d41081"));
@@ -187,7 +187,7 @@ public class MongoExtractionNamespaceCacheFactoryTest extends TestMongoServer {
                 new MongoExtractionNamespace(mongoStorageConnectorConfig, "advertiser"
                         , "updated_at", true, new Period(), true, "advertiser_lookup"
                         , new FlatMultiValueDocumentProcessor(new ArrayList<>(Arrays.asList("name", "currency", "status")), "_id"), null);
-        Callable<String> command = obj.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, null, cache);
+        Callable<String> command = obj.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, null, cache, null, null, null);
         String version = command.call();
         Assert.assertTrue(cache.containsKey("5ad10906fc7b6ecac8d41080"));
         Assert.assertTrue(cache.containsKey("5ad10906fc7b6ecac8d41081"));

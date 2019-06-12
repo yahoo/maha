@@ -12,6 +12,7 @@ import com.metamx.common.lifecycle.LifecycleStop;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.metamx.emitter.service.ServiceMetricEvent;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.DB.MahaRocksDB;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import io.druid.guice.ManageLifecycle;
 import org.apache.commons.io.FileUtils;
@@ -185,7 +186,7 @@ public class RocksDBManager {
         if (!Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
             rocksDBSnapshot.kafkaConsumerGroupId = UUID.randomUUID().toString();
             rocksDBSnapshot.kafkaPartitionOffset = new ConcurrentHashMap<Integer, Long>();
-            kafkaExtractionManager.applyChangesSinceBeginning(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.rocksDB, rocksDBSnapshot.kafkaPartitionOffset);
+            kafkaExtractionManager.applyChangesSinceBeginning(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, new MahaRocksDB(rocksDBSnapshot.rocksDB), rocksDBSnapshot.kafkaPartitionOffset);
             LOG.info(rocksDBSnapshot.rocksDB.getProperty(STATS_KEY));
 
             if (extractionNamespace.isLookupAuditingEnabled()) {

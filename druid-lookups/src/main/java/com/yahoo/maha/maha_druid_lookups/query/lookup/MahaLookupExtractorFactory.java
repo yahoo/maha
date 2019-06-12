@@ -14,6 +14,7 @@ import com.metamx.common.StringUtils;
 import com.metamx.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaNamespaceExtractionCacheManager;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import io.druid.query.lookup.LookupExtractor;
 import io.druid.query.lookup.LookupExtractorFactory;
 import io.druid.query.lookup.LookupIntrospectHandler;
@@ -21,6 +22,7 @@ import io.druid.query.lookup.LookupIntrospectHandler;
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -39,6 +41,9 @@ public class MahaLookupExtractorFactory implements LookupExtractorFactory
 
     private volatile boolean started = false;
     private final ReadWriteLock startStopSync = new ReentrantReadWriteLock();
+    private final Properties kafkaProperties;
+    private final ProtobufSchemaFactory protobufSchemaFactory;
+    private final String producerKafkaTopic;
     private final MahaNamespaceExtractionCacheManager manager;
     private final LookupIntrospectHandler lookupIntrospectHandler;
     private final ExtractionNamespace extractionNamespace;
@@ -52,7 +57,10 @@ public class MahaLookupExtractorFactory implements LookupExtractorFactory
             @JsonProperty(value = "extractionNamespace") ExtractionNamespace extractionNamespace,
             @JsonProperty(value = "firstCacheTimeout") long firstCacheTimeout, //amount of time to wait for lookup to load
             @JsonProperty(value = "injective") boolean injective, //true if there is one to one mapping from key to value columns
-            @JacksonInject final MahaNamespaceExtractionCacheManager manager
+            @JacksonInject final MahaNamespaceExtractionCacheManager manager,
+            @JsonProperty(value = "kafkaProperties") Properties kafkaProperties,
+            @JsonProperty(value = "protobufSchemaFactory") ProtobufSchemaFactory protobufSchemaFactory,
+            @JsonProperty(value = "producerKafkaTopic") String producerKafkaTopic
     )
     {
         this.extractionNamespace = Preconditions.checkNotNull(
@@ -65,15 +73,21 @@ public class MahaLookupExtractorFactory implements LookupExtractorFactory
         this.manager = manager;
         this.extractorID = extractionNamespace.getLookupName();
         this.lookupIntrospectHandler = new MahaLookupIntrospectHandler(this, manager, extractorID);
+        this.kafkaProperties = kafkaProperties;
+        this.protobufSchemaFactory = protobufSchemaFactory;
+        this.producerKafkaTopic = producerKafkaTopic;
     }
 
     @VisibleForTesting
     public MahaLookupExtractorFactory(
             ExtractionNamespace extractionNamespace,
-            MahaNamespaceExtractionCacheManager manager
+            MahaNamespaceExtractionCacheManager manager,
+            Properties kafkaProperties,
+            ProtobufSchemaFactory protobufSchemaFactory,
+            String producerKafkaTopic
     )
     {
-        this(extractionNamespace, 60000, false, manager);
+        this(extractionNamespace, 60000, false, manager, kafkaProperties, protobufSchemaFactory, producerKafkaTopic);
     }
 
     @Override
@@ -93,13 +107,13 @@ public class MahaLookupExtractorFactory implements LookupExtractorFactory
             }
             if (firstCacheTimeout > 0) {
                 LOG.info(" Received request [%s] [%d]", extractionNamespace, firstCacheTimeout);
-                if (!manager.scheduleAndWait(extractorID, extractionNamespace, firstCacheTimeout)) {
+                if (!manager.scheduleAndWait(extractorID, extractionNamespace, firstCacheTimeout, kafkaProperties, protobufSchemaFactory, producerKafkaTopic)) {
                     LOG.error("Failed to schedule and wait for lookup [%s]", extractorID);
                     return false;
                 }
             } else {
                 LOG.info(" Received request [%s]", extractionNamespace);
-                if (!manager.scheduleOrUpdate(extractorID, extractionNamespace)) {
+                if (!manager.scheduleOrUpdate(extractorID, extractionNamespace, kafkaProperties, protobufSchemaFactory, producerKafkaTopic)) {
                     LOG.error("Failed to schedule lookup [%s]", extractorID);
                     return false;
                 }

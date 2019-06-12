@@ -27,7 +27,7 @@ public class JDBCLookupExtractorTest {
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
         JDBCExtractionNamespace extractionNamespace =
                 new JDBCExtractionNamespace(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
-                        "id", "", new Period(), true, "advertiser_lookup");
+                        "id", "", null, null, new Period(), true, false, "advertiser_lookup");
 
         Map<String, String> map = new HashMap<>();
         JDBCLookupExtractor JDBCLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
@@ -41,7 +41,7 @@ public class JDBCLookupExtractorTest {
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
         JDBCExtractionNamespace extractionNamespace =
                 new JDBCExtractionNamespace(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
-                        "id", "", new Period(), true, "advertiser_lookup");
+                        "id", "", null, null, new Period(), true, false, "advertiser_lookup");
 
         Map<String, String> map = new HashMap<>();
         JDBCLookupExtractor JDBCLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
@@ -56,7 +56,7 @@ public class JDBCLookupExtractorTest {
         JDBCExtractionNamespace extractionNamespace =
                 new JDBCExtractionNamespace(
                         metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
-                        "id", "", new Period(), true, "advertiser_lookup");
+                        "id", "", null, null, new Period(), true, false, "advertiser_lookup");
         Map<String, String> map = new HashMap<>();
         JDBCLookupExtractor JDBCLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
         MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
@@ -73,7 +73,7 @@ public class JDBCLookupExtractorTest {
         JDBCExtractionNamespace extractionNamespace =
                 new JDBCExtractionNamespace(
                         metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
-                        "id", "", new Period(), true, "advertiser_lookup");
+                        "id", "", null, null, new Period(), true, false, "advertiser_lookup");
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
         JDBCLookupExtractor JDBCLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
@@ -103,7 +103,7 @@ public class JDBCLookupExtractorTest {
         JDBCExtractionNamespace extractionNamespace =
                 new JDBCExtractionNamespace(
                         metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
-                        "id", "", new Period(), true, "advertiser_lookup");
+                        "id", "", null, null, new Period(), true, false, "advertiser_lookup");
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
         JDBCLookupExtractor JDBCLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
@@ -121,7 +121,7 @@ public class JDBCLookupExtractorTest {
         JDBCExtractionNamespace extractionNamespace =
                 new JDBCExtractionNamespace(
                         metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
-                        "id", "", new Period(), true, "advertiser_lookup");
+                        "id", "", null, null, new Period(), true, false, "advertiser_lookup");
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
         JDBCLookupExtractor JDBCLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
@@ -152,7 +152,7 @@ public class JDBCLookupExtractorTest {
         JDBCExtractionNamespace extractionNamespace =
                 new JDBCExtractionNamespace(
                         metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
-                        "id", "", new Period(), true, "advertiser_lookup");
+                        "id", "", null, null, new Period(), true, false, "advertiser_lookup");
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
         JDBCLookupExtractor JDBCLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);

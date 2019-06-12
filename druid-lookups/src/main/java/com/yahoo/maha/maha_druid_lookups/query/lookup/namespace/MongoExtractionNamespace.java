@@ -36,6 +36,9 @@ public class MongoExtractionNamespace implements OnlineDatastoreExtractionNamesp
     private long previousLastUpdateTime;
     private final ImmutableMap<String, Integer> columnIndexMap;
 
+    private final String kafkaTopic = "";
+    private final String namespace = "";
+
     @JsonCreator
     public MongoExtractionNamespace(
             @NotNull @JsonProperty(value = "connectorConfig", required = true) final MongoStorageConnectorConfig connectorConfig,
@@ -83,6 +86,10 @@ public class MongoExtractionNamespace implements OnlineDatastoreExtractionNamesp
         }
         return -1;
     }
+
+    public String getKafkaTopic() { return kafkaTopic; }
+
+    public String getNamespace() { return namespace; }
 
     @JsonIgnore
     public ImmutableMap<String, Integer> getColumnIndexMap() {

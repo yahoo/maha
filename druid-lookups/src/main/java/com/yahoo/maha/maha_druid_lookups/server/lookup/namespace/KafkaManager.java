@@ -12,8 +12,9 @@ import com.google.protobuf.Parser;
 import com.metamx.common.lifecycle.LifecycleStart;
 import com.metamx.common.lifecycle.LifecycleStop;
 import com.metamx.common.logger.Logger;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.DB.MahaDB;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaNamespaceExtractionCacheManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import io.druid.guice.ManageLifecycle;
@@ -27,7 +28,6 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.rocksdb.RocksDB;
-import org.rocksdb.RocksDBException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,11 +69,11 @@ public class KafkaManager {
         this.protobufSchemaFactory = protobufSchemaFactory;
     }
 
-    private void updateRocksDB(final Parser<Message> parser, final Descriptors.Descriptor descriptor,
-                               final Descriptors.FieldDescriptor tsField, final RocksDB rocksDB, final String key,
-                               final byte[] value) throws RocksDBException,
+    private void updateMahaDB(final Parser<Message> parser, final Descriptors.Descriptor descriptor,
+                              final Descriptors.FieldDescriptor tsField, final MahaDB mahaDB, final String key,
+                              final byte[] value) throws Exception,
             InvalidProtocolBufferException {
-        byte[] cacheValue = rocksDB.get(key.getBytes());
+        byte[] cacheValue = mahaDB.get(key.getBytes());
         if(cacheValue != null) {
 
             Message messageInDB = parser.parseFrom(cacheValue);
@@ -84,15 +84,15 @@ public class KafkaManager {
             newLastUpdated = Long.valueOf(newMessage.getField(tsField).toString());
 
             if(newLastUpdated > lastUpdatedInDB) {
-                rocksDB.put(key.getBytes(), value);
+                mahaDB.put(key.getBytes(), value);
             }
         } else {
-            rocksDB.put(key.getBytes(), value);
+            mahaDB.put(key.getBytes(), value);
         }
     }
 
-    public void applyChangesSinceBeginning(final RocksDBExtractionNamespace extractionNamespace,
-                                           final String groupId, final RocksDB rocksDB, final ConcurrentMap<Integer, Long> kafkaPartitionOffset) {
+    public void applyChangesSinceBeginning(final ExtractionNamespace extractionNamespace,
+                                           final String groupId, final MahaDB mahaDB, final ConcurrentMap<Integer, Long> kafkaPartitionOffset) {
 
         final String topic = extractionNamespace.getKafkaTopic();
         final String namespace = extractionNamespace.getNamespace();
@@ -139,10 +139,10 @@ public class KafkaManager {
                                 continue;
                             }
                             try {
-                                updateRocksDB(parser, descriptor, tsField, rocksDB, key, message);
+                                updateMahaDB(parser, descriptor, tsField, mahaDB, key, message);
                                 kafkaPartitionOffset.put(record.partition(), record.offset());
-                            } catch (RocksDBException | InvalidProtocolBufferException e) {
-                                log.error("Caught exception while applying changes to RocksDB", e);
+                            } catch (Exception e) {
+                                log.error("Caught exception while applying changes to MahaDB", e);
                             }
                             log.debug("Placed key[%s] val[%s]", key, message);
                             recordCount++;
@@ -172,7 +172,7 @@ public class KafkaManager {
         log.info("Applied all the changes since the beginning [%s]", topic);
     }
 
-    public void addListener(final RocksDBExtractionNamespace kafkaNamespace, final String groupId,
+    public void addListener(final ExtractionNamespace kafkaNamespace, final String groupId,
                             final ConcurrentMap<Integer, Long> kafkaPartitionOffset, final boolean seekOffsetToPreviousSnapshot) {
 
         final String topic = kafkaNamespace.getKafkaTopic();
