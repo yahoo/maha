@@ -48,7 +48,8 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     @JsonProperty
     private final String namespace = "unassigned";
 
-    @JsonProperty boolean isLeader = false;
+    @JsonProperty
+    public boolean isLeader = false;
 
     @JsonCreator
     public JDBCExtractionNamespace(

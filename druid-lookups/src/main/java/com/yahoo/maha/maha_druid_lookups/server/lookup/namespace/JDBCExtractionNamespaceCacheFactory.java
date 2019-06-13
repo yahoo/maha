@@ -114,7 +114,6 @@ public class JDBCExtractionNamespaceCacheFactory
                                                     extractionNamespace.getPreviousLastUpdateTimestamp())
                                             .list();
                                 }
-                                System.err.println("aerljkgbaerjklgbaejrnbg");
                                 if(extractionNamespace.getIsLeader()) {
                                     Message message = messageBuilder.build();
                                     LOG.info("Producing key[%s] val[%s]", extractionNamespace.getTable(), message);

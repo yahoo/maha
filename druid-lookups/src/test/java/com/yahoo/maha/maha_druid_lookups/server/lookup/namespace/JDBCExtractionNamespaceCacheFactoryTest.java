@@ -5,6 +5,7 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
 import io.druid.metadata.MetadataStorageConnectorConfig;
 import org.joda.time.Period;
 import org.mockito.InjectMocks;
@@ -116,5 +117,30 @@ public class JDBCExtractionNamespaceCacheFactoryTest {
         decodeConfig2.setColumnIfValueMatched("currency");
         decodeConfig2.setColumnIfValueNotMatched("status");
         Assert.assertEquals(obj.getCacheValue(extractionNamespace, map, "12345", "name", Optional.of(decodeConfig2)), "ON".getBytes());
+    }
+
+    @Test
+    public void testGetCachePopulator() throws Exception {
+        MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
+        JDBCExtractionNamespace extractionNamespace =
+                new JDBCExtractionNamespace(
+                        metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
+                        "id", "", null, null, new Period(), true, true, "advertiser_lookup");
+        Map<String, List<String>> map = new HashMap<>();
+        map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
+        DecodeConfig decodeConfig1 = new DecodeConfig();
+        decodeConfig1.setColumnToCheck("name");
+        decodeConfig1.setValueToCheck("my name");
+        decodeConfig1.setColumnIfValueMatched("currency");
+        decodeConfig1.setColumnIfValueNotMatched("status");
+        Assert.assertEquals(obj.getCacheValue(extractionNamespace, map, "12345", "name", Optional.of(decodeConfig1)), "USD".getBytes());
+
+        DecodeConfig decodeConfig2 = new DecodeConfig();
+        decodeConfig2.setColumnToCheck("name");
+        decodeConfig2.setValueToCheck("my unknown name");
+        decodeConfig2.setColumnIfValueMatched("currency");
+        decodeConfig2.setColumnIfValueNotMatched("status");
+        Assert.assertEquals(obj.getCacheValue(extractionNamespace, map, "12345", "name", Optional.of(decodeConfig2)), "ON".getBytes());
+        obj.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map, new Properties(), new TestProtobufSchemaFactory(), "topic");
     }
 }

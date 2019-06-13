@@ -20,7 +20,22 @@
     </properties>
 
     <dependencies>
+        <!-- Enable H2Driver for local Oracle query testing -->
         <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- END Enable H2Driver for local Oracle query testing -->
+
+        <dependency>
+            <groupId>com.yahoo.maha</groupId>
+            <artifactId>maha-db</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-client</artifactId>
             <version>2.3.0</version>
