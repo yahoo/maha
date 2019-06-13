@@ -27,7 +27,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.rocksdb.RocksDB;
 
 import java.util.ArrayList;
 import java.util.Arrays;
