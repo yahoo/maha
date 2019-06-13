@@ -379,6 +379,15 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
 
   }
 
+  protected[this] def getQueryAliasWithRowLimit(requestModel: RequestModel) : String = {
+    val QueryAlias = "queryAlias"
+    if(requestModel.maxRows > 0) {
+      s"""$QueryAlias LIMIT ${requestModel.maxRows}"""
+    } else {
+      s"""$QueryAlias"""
+    }
+  }
+
   /*
   concat column and alias
  */
@@ -390,4 +399,15 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
     }
   }
 
+  protected[this] def nvl(name:String) :String = {
+    s"""NVL($name,'')"""
+  }
+
+  protected[this] def to_string(col:String) : String = {
+    s"""CAST($col AS STRING)"""
+  }
+
+  protected[this] def concat_ws(csvCol:String) : String = {
+    s"""CONCAT_WS(',', $csvCol)"""
+  }
 }

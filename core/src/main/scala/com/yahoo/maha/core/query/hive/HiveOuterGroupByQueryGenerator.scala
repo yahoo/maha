@@ -157,19 +157,30 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
 
     val concatenatedCols = queryBuilder.getOuterColumns //generateConcatenatedColsWithCast(queryContext, queryBuilderContext)
 
+    val projectedConcatWs:String = {
+      concat_ws(requestModel.requestCols.map(colInfo =>
+        to_string(nvl(renderColumnAlias(colInfo.alias)))).mkString(",")
+      )
+    }
+
+    val queryAlias = getQueryAliasWithRowLimit(requestModel)
+
     val parameterizedQuery : String = {
       val dimJoinQuery = queryBuilder.getJoinExpressions
 
       // factViewAlias => needs to generate abbr from factView name like account_stats_1h_v2 -> as1v0
       // outerCols same cols in concate cols, different expression ???
-      s"""SELECT $concatenatedCols
+      s"""SELECT ${projectedConcatWs}
+         |FROM(
+         |SELECT $concatenatedCols
          |FROM(
          |SELECT $outerCols
          |FROM($factQueryFragment)
          |$factViewAlias
          |$dimJoinQuery
          |${queryBuilder.getOuterGroupByClause}
-         |$orderByClause)
+         |$orderByClause) OgbQueryAlias
+         |) $queryAlias
        """.stripMargin
     }
 
@@ -519,14 +530,16 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
           aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.getPreOuterAliasToColumnMap(columnInfo.alias).get)
         }
 
+        val renderedAlias = renderColumnAlias(columnInfo.alias)
+
         val renderedCol = columnInfo match {
           case FactColumnInfo(alias) if queryBuilderContext.containsPreOuterAlias(alias) =>
             val preOuterAliasOption = queryBuilderContext.getPreOuterFinalAliasToAliasMap(alias)
             if(preOuterAliasOption.isDefined) {
               val preOuterAlias = preOuterAliasOption.get
-              s"""$preOuterAlias AS "$alias""""
+              s"""$preOuterAlias AS $renderedAlias"""
             } else {
-              s""""$alias"""
+              s"""$renderedAlias"""
             }
           case FactColumnInfo(alias) =>
             val column:Column  = if(queryBuilderContext.containsFactAliasToColumnMap(alias)) {
@@ -543,13 +556,15 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
               val colName = aliasToColNameMap(alias)
               factBest.fact.columnsByNameMap(colName)
             }
-            renderParentOuterDerivedFactCols(queryBuilderContext, alias, column)
+            renderParentOuterDerivedFactCols(queryBuilderContext, renderedAlias, column)
           case DimColumnInfo(alias) => {
+            val renderedAlias = renderColumnAlias(alias)
             val colName = queryBuilderContext.getDimensionColNameForAlias(alias)
-            s"""$colName AS "$alias""""
+            s"""$colName AS $renderedAlias"""
           }
           case ConstantColumnInfo(alias, value) =>
-            s"""'$value' AS "$alias""""
+            val renderedAlias = renderColumnAlias(alias)
+            s"""'$value' AS $alias"""
           case _ => throw new UnsupportedOperationException("Unsupported Column Type")
         }
         queryBuilder.addOuterColumn(renderedCol)
@@ -636,37 +651,33 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
      Commonly used method
    */
   def renderParentOuterDerivedFactCols(queryBuilderContext:QueryBuilderContext, projectedAlias:String, column:Column): String = {
+    val renderedAlias = projectedAlias
+
     column match {
       case HiveDerDimCol(_, dt, cc, de, _, annotations, _) =>
-        val renderedAlias = s""""$projectedAlias""""
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
         s"""$renderedAlias"""
       case HivePartDimCol(_, dt, cc, _, annotations, _) =>
-        val renderedAlias = s""""$projectedAlias""""
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
         s"""$renderedAlias"""
       case DimCol(_, dt, cc, _, annotations, _) if queryBuilderContext.isDimensionCol(projectedAlias) =>
-        val renderedAlias = s""""$projectedAlias""""
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
         val innerColAlias = queryBuilderContext.getDimensionColNameForAlias(projectedAlias)
         s"""$innerColAlias AS $renderedAlias"""
       case DimCol(_, dt, cc, _, annotations, _) =>
         val innerAlias = renderColumnAlias(projectedAlias)
-        val renderedAlias = s"""$innerAlias AS "$projectedAlias""""
+        val renderedAlias = s"""$innerAlias AS $projectedAlias"""
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
         renderedAlias
       case factCol@FactCol(_, dt, cc, rollup, _, annotations, _) if factCol.rollupExpression.isInstanceOf[HiveCustomRollup]=>
-        val renderedAlias = s""""$projectedAlias""""
         val name = factCol.alias.getOrElse(factCol.name)
         val de = factCol.rollupExpression.asInstanceOf[HiveCustomRollup].expression
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
         s"""${de.render(name, Map.empty)} AS $renderedAlias"""
       case FactCol(_, dt, cc, rollup, _, annotations, _) =>
-        val renderedAlias = s""""$projectedAlias""""
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
         s"""$renderedAlias"""
       case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-        val renderedAlias = s""""$projectedAlias""""
         val name = column.alias.getOrElse(column.name)
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
         s"""${de.render(name, Map.empty)} AS $renderedAlias"""

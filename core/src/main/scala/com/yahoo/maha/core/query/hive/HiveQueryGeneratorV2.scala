@@ -242,6 +242,9 @@ class HiveQueryGeneratorV2(partitionColumnRenderer:PartitionColumnRenderer, udfS
     val outerCols = generateOuterColumns(queryContext, queryBuilderContext, queryBuilder, renderOuterColumn)
     val concatenatedCols = generateConcatenatedColsWithCast(queryContext, queryBuilderContext)
 
+
+    val queryAlias = getQueryAliasWithRowLimit(requestModel)
+
     val parameterizedQuery : String = {
       val dimJoinQuery = queryBuilder.getJoinExpressions
 
@@ -253,7 +256,7 @@ class HiveQueryGeneratorV2(partitionColumnRenderer:PartitionColumnRenderer, udfS
           |FROM($factQueryFragment)
           |$factViewAlias
           |$dimJoinQuery
-          |$orderByClause)
+          |$orderByClause) $queryAlias
        """.stripMargin
     }
 
