@@ -2,6 +2,8 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query.hive
 
+import java.nio.charset.StandardCharsets
+
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
@@ -9,10 +11,12 @@ import com.yahoo.maha.core.ddl.HiveDDLAnnotation
 import com.yahoo.maha.core.dimension.{PubCol, _}
 import com.yahoo.maha.core.fact.{PublicFactCol, _}
 import com.yahoo.maha.core.lookup.LongRangeLookup
-import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
+import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+
+import scala.util.Try
 
 /**
  * Created by hiral on 1/19/16.
@@ -481,7 +485,7 @@ trait BaseHiveQueryGeneratorTest
     }
 
     case class TEST_MATH_UDAF(args: HiveExp*) extends UDFHiveExpression(TestDecodeUDFRegistration) {
-      val hasRollupExpression = true
+      val hasRollupExpression = args.exists(_.hasRollupExpression)
       val hasNumericOperation = args.exists(_.hasNumericOperation)
       val argStrs = args.map(_.asString).mkString(", ")
       def asString: String = s"mathUDAF($argStrs)"
