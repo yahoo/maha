@@ -25,6 +25,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
 
   override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
     registryBuilder.register(pubfact(forcedFilters))
+    registryBuilder.register(pubfactWithExpensiveDateTime(forcedFilters))
     registryBuilder.register(pubfact_v1(forcedFilters))
     registryBuilder.register(pubfact2(forcedFilters))
     registryBuilder.register(pubfact3(forcedFilters))
@@ -104,6 +105,26 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , FactCol("segments_unique_users", DecType(), DruidFilteredRollup(InFilter("segments", List("1234")), "uniqueUserCount", DruidThetaSketchRollup))
           , FactCol("conv_unique_users", DecType(), DruidFilteredRollup(JavaScriptFilter("segments", "function(x) { return x > 0; }"), "uniqueUserCount", DruidThetaSketchRollup))
           , DruidDerFactCol("Total Unique User Count", DecType(), ThetaSketchEstimator(INTERSECT, List("{ageBucket_unique_users}", "{woeids_unique_users}", "{segments_unique_users}")))
+        ),
+        annotations = annotations
+      )
+    }
+  }
+
+  private[this] def factBuilderWithExpensiveDateTime(annotations: Set[FactAnnotation]): FactBuilder = {
+    import DruidExpression._
+    import ThetaSketchSetOp._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      Fact.newFact(
+        "fact1", HourlyGrain, DruidEngine, Set(AdvertiserSchema, InternalSchema),
+        Set(
+          DimCol("id", IntType(), annotations = Set(ForeignKey("keyword")))
+          , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DruidFuncDimCol("expensive_date_time", DateType(), TIME_FORMAT_WITH_REQUEST_CONTEXT("YYYY-MM-dd HH"))
+        ),
+        Set(
+          FactCol("impressions", IntType(3, 1))
+          , FactCol("clicks", IntType(3, 0, 1, 800))
         ),
         annotations = annotations
       )
@@ -329,6 +350,23 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("Total Unique User Count", "Total Unique User Count", InBetweenEquality)
         ),
         //Set(EqualityFilter("Source", "2")),
+        Set(),
+        getMaxDaysWindow, getMaxDaysLookBack, renderLocalTimeFilter = true
+      )
+  }
+
+  private[this] def pubfactWithExpensiveDateTime(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    factBuilderWithExpensiveDateTime(Set.empty)
+      .toPublicFact("k_stats_expensive_date_time",
+        Set(
+          PubCol("expensive_date_time", "Day", InBetweenEquality),
+          PubCol("id", "Keyword ID", InEqualityFieldEquality),
+          PubCol("advertiser_id", "Advertiser ID", InEqualityLike)
+        ),
+        Set(
+          PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
+          PublicFactCol("clicks", "Clicks", InBetweenEquality)
+        ),
         Set(),
         getMaxDaysWindow, getMaxDaysLookBack, renderLocalTimeFilter = true
       )

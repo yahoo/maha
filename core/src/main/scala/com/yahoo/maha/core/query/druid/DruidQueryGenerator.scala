@@ -416,8 +416,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
           if (dimensionSpecTupleList.nonEmpty)
             builder.dimension(dimensionSpecTupleList.head._1)
 
-          if (dimFilterList.nonEmpty)
-            builder.filters(new AndDimFilter(dimFilterList.asJava))
+          val dimWithDateTimeFilterList = getDateTimeFilters(queryContext) ++ dimFilterList
+          if (dimWithDateTimeFilterList.nonEmpty)
+            builder.filters(new AndDimFilter(dimWithDateTimeFilterList.asJava))
 
           if (aggregatorList.nonEmpty)
             builder.aggregators(aggregatorList.asJava)
@@ -442,8 +443,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             .granularity(getGranularity(queryContext))
             .context(context)
 
-          if (dimFilterList.nonEmpty)
-            builder.filters(new AndDimFilter(dimFilterList.asJava))
+          val dimWithDateTimeFilterList = getDateTimeFilters(queryContext) ++ dimFilterList
+          if (dimWithDateTimeFilterList.nonEmpty)
+            builder.filters(new AndDimFilter(dimWithDateTimeFilterList.asJava))
 
           if (aggregatorList.nonEmpty)
             builder.aggregators(aggregatorList.asJava)
@@ -463,9 +465,6 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
           if (dimensionSpecTupleList.nonEmpty)
             builder.setDimensions(dimensionSpecTupleList.map(_._1).asJava)
-
-          if (dimFilterList.nonEmpty)
-            builder.setDimFilter(new AndDimFilter(dimFilterList.asJava))
 
           val havingSpec: AndHavingSpec = if (factFilterList.nonEmpty) {
             new AndHavingSpec(factFilterList.asJava)
@@ -502,7 +501,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
           val ephemeralAliasColumns: Map[String, Column] = ephemeralAliasColumnMap(queryContext)
 
-          val query: GroupByQuery = generateGroupByQuery(dims, queryContext, dimensionSpecTupleList, builder, havingSpec, limitSpec, context, ephemeralAliasColumns)
+          val query: GroupByQuery = generateGroupByQuery(dims, queryContext, dimensionSpecTupleList, dimFilterList, builder, havingSpec, limitSpec, context, ephemeralAliasColumns)
 
           new GroupByDruidQuery(queryContext, aliasColumnMap, query, additionalColumns(queryContext), ephemeralAliasColumns, threshold, model.isSyncRequest)
         }
@@ -547,8 +546,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
           throw new UnsupportedOperationException(s"druid select query does not support derived columns : ${groupedFactCols(true).map(_._2).mkString(" ")}")
         }
 
-        if (dimFilterList.nonEmpty)
-          builder.filters(new AndDimFilter(dimFilterList.asJava))
+        val dimWithDateTimeFilterList = getDateTimeFilters(queryContext) ++ dimFilterList
+        if (dimWithDateTimeFilterList.nonEmpty)
+          builder.filters(new AndDimFilter(dimWithDateTimeFilterList.asJava))
 
         groupedFactCols.get(false).foreach {
           nonDerivedColsList =>
@@ -583,6 +583,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
   private[this] def generateGroupByQuery(dims: SortedSet[DimensionBundle],
                                          queryContext: FactQueryContext,
                                          dimensionSpecTupleList: mutable.Buffer[(DimensionSpec, Option[DimensionSpec])],
+                                         dimFilterList: Seq[DimFilter],
                                          innerGroupByQueryBuilder: Builder,
                                          innerGroupByQueryHavingSpec: HavingSpec,
                                          innerGroupByQueryLimitSpec: DefaultLimitSpec,
@@ -644,7 +645,17 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       }
     }
 
-    if (hasDimFilterOnLookupColumn || hasLookupWithDecodeColumn) {
+    val hasExpensiveDateDimFilter = FilterDruid.isExpensiveDateDimFilter(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, queryContext.factBestCandidate.fact.columnsByNameMap)
+
+    if (hasDimFilterOnLookupColumn || hasLookupWithDecodeColumn || hasExpensiveDateDimFilter) {
+
+      if(!hasExpensiveDateDimFilter) {
+        val dimWithDateTimeFilterList = getDateTimeFilters(queryContext) ++ dimFilterList
+        if (dimWithDateTimeFilterList.nonEmpty)
+          innerGroupByQueryBuilder.setDimFilter(new AndDimFilter(dimWithDateTimeFilterList.asJava))
+      } else if (dimFilterList.nonEmpty) {
+        innerGroupByQueryBuilder.setDimFilter(new AndDimFilter(dimFilterList.asJava))
+      }
 
       val outerQueryBuilder = GroupByQuery.builder()
         .setDataSource(innerGroupByQueryBuilder.build())
@@ -702,6 +713,10 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
           if(!(meta.filterType == MetaType.FactType)) outerQueryDimFilterList += FilterDruid.renderOrDimFilters(meta.orFilter.filters, aliases.toMap, cols, Option.empty, true)
       }
 
+      if(hasExpensiveDateDimFilter) {
+        outerQueryDimFilterList ++= FilterDruid.renderDateDimFilters(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, queryContext.factBestCandidate.fact.columnsByNameMap, forOuterQuery = true)
+      }
+
       if (outerQueryDimFilterList.nonEmpty) {
         outerQueryBuilder.setDimFilter(new AndDimFilter(outerQueryDimFilterList.asJava))
       }
@@ -725,6 +740,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       outerQueryBuilder.build()
 
     } else {
+      val dimWithDateTimeFilterList = getDateTimeFilters(queryContext) ++ dimFilterList
+      if (dimWithDateTimeFilterList.nonEmpty)
+        innerGroupByQueryBuilder.setDimFilter(new AndDimFilter(dimWithDateTimeFilterList.asJava))
       innerGroupByQueryBuilder.build()
     }
   }
@@ -1370,7 +1388,25 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       }
     }
 
+    // include expensive dateTimeFilter columns also in dimSpecList if not included already as it is required for filters in outer query
+    val hasExpensiveDateDimFilter = FilterDruid.isExpensiveDateDimFilter(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, queryContext.factBestCandidate.fact.columnsByNameMap)
+    val name: String = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap(queryContext.requestModel.localTimeDayFilter.field)
+    if(!queryContext.factBestCandidate.dimColMapping.contains(name) && hasExpensiveDateDimFilter) {
+      val column = queryContext.factBestCandidate.fact.columnsByNameMap(name)
+      dimensionSpecTupleList += renderColumnWithAlias(fact, column, queryContext.requestModel.localTimeDayFilter.field)
+    }
+
     dimensionSpecTupleList
+  }
+
+  private[this] def getDateTimeFilters(queryContext: FactQueryContext): Seq[DimFilter] = {
+    val fact = queryContext.factBestCandidate.fact
+    val filters = queryContext.factBestCandidate.filters
+    val whereFilters = new ArrayBuffer[DimFilter](filters.size)
+    if (queryContext.factBestCandidate.publicFact.renderLocalTimeFilter) {
+      whereFilters ++= FilterDruid.renderDateDimFilters(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, fact.columnsByNameMap)
+    }
+    whereFilters
   }
 
   private[this] def getFilters(queryContext: FactQueryContext, dims: SortedSet[DimensionBundle]): (mutable.Buffer[DimFilter], mutable.Buffer[HavingSpec]) = {
@@ -1381,26 +1417,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     val allFilters = factForcedFilters // ++ filters need to append regular filters or pass in
     val whereFilters = new ArrayBuffer[DimFilter](filters.size)
     val havingFilters = new ArrayBuffer[HavingSpec](filters.size)
-    if (queryContext.factBestCandidate.publicFact.renderLocalTimeFilter) {
-      whereFilters ++= FilterDruid.renderDateDimFilters(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, fact.columnsByNameMap)
-      /*
-      whereFilters += FilterDruid.renderFilterDim(
-        queryContext.requestModel.localTimeDayFilter,
-        queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
-        fact.columnsByNameMap, Option(DailyGrain))
 
-      queryContext.requestModel.localTimeHourFilter.foreach {
-        filter =>
-          val aliasToNameMapFull = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap
-          if(aliasToNameMapFull.contains(HourlyGrain.HOUR_FILTER_FIELD)) {
-            whereFilters += FilterDruid.renderFilterDim(
-              filter,
-              aliasToNameMapFull,
-              fact.columnsByNameMap, Option(HourlyGrain))
-          }
-      }
-      */
-    }
     val constantColumnNames: Set[String] = {
       fact match {
         case f: FactView =>

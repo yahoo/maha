@@ -716,7 +716,7 @@ object FilterDruid {
           case TIME_FORMAT_WITH_REQUEST_CONTEXT(fmt) =>
             val exFn = new TimeFormatExtractionFn(fmt, timezone, null, null, false)
             values.map {
-              v => new SelectorDimFilter(TIME_FORMAT_WITH_REQUEST_CONTEXT.sourceDimColName, druidLiteralMapper.toLiteral(column, v, Option(grain)), exFn)
+              v => new SelectorDimFilter(columnAlias, druidLiteralMapper.toLiteral(column, v, Option(grain)), null)
             }
           case formatter@DATETIME_FORMATTER(fieldName, index, length) =>
             val exFn = new SubstringDimExtractionFn(index, length)
@@ -734,9 +734,27 @@ object FilterDruid {
     new OrDimFilter(selectorList.asJava)
   }
 
+  def isExpensiveDateDimFilter(model: RequestModel,
+                               aliasToNameMapFull: Map[String, String],
+                               columnsByNameMap: Map[String, Column]) : Boolean = {
+
+    val name: String = aliasToNameMapFull(model.localTimeDayFilter.field)
+    val column = columnsByNameMap(name)
+
+    column match {
+      case DruidFuncDimCol(_, _, _, df, _, _, _) =>
+        df match {
+          case TIME_FORMAT_WITH_REQUEST_CONTEXT(fmt) => true
+          case _ => false
+        }
+      case _ => false
+    }
+
+  }
+
   def renderDateDimFilters(model: RequestModel,
                       aliasToNameMapFull: Map[String, String],
-                      columnsByNameMap: Map[String, Column]) : Seq[DimFilter] = {
+                      columnsByNameMap: Map[String, Column], forOuterQuery: Boolean = false) : Seq[DimFilter] = {
     val dimFilters = new mutable.ArrayBuffer[DimFilter]
     val timezone = DateTimeZone.forID(model.additionalParameters.getOrElse(Parameter.TimeZone, TimeZoneValue.apply(DateTimeZone.UTC.getID))
       .asInstanceOf[TimeZoneValue].value)
@@ -760,7 +778,7 @@ object FilterDruid {
         val (dayFrom, dayTo) = {
           val name: String = aliasToNameMapFull(model.localTimeDayFilter.field)
           val column = columnsByNameMap(name)
-          val columnAlias = column.alias.getOrElse(name)
+          val columnAlias = if(forOuterQuery) model.localTimeDayFilter.field else column.alias.getOrElse(name)
           val (f, t) = extractFromAndToDate(model.localTimeDayFilter, DailyGrain)
           dimFilters += processBetweenFilterForDate(f, t, DailyGrain, columnAlias, column, columnsByNameMap, timezone)
           (f, t)
