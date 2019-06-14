@@ -123,30 +123,11 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
       }.foreach(queryBuilder.addOrderBy(_))
     }
 
-    def generateConcatenatedColsWithCast(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext): String = {
-      def castAsString(finalAlias: String):String = {
-        s"CAST($finalAlias AS STRING)"
-      }
-      val renderedConcateColumns = queryContext.requestModel.requestCols.map {
-        case ConstantColumnInfo(alias, _) =>
-          val finalAlias = getConstantColAlias(alias)
-          s"""NVL(${castAsString(finalAlias)}, '')"""
-        case DimColumnInfo(alias) =>
-          val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
-          s"""NVL(${castAsString(finalAlias)}, '')"""
-        case FactColumnInfo(alias)=>
-          val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)
-          s"""NVL(${castAsString(finalAlias)}, '')"""
-      }
-      "CONCAT_WS(\",\"," + (renderedConcateColumns).mkString(", ") + ")"
-    }
-
-
     /**
-      * Final Query
+      * Inner most fact query
       */
-
     val factQueryFragment = generateFactOGBQuery(queryContext, queryBuilder, queryBuilderContext, renderRollupExpression, renderColumnWithAlias, primitiveColsSet, noopRollupColSet)
+
     generateDimSelects(dims, queryBuilderContext, queryBuilder, requestModel, fact, factViewAlias)
 
     ogbGeneratePreOuterColumns(primitiveColsSet.toMap, noopRollupColsMap = noopRollupColSet.toMap, queryContext.factBestCandidate, queryContext, queryBuilder, queryBuilderContext)
@@ -187,18 +168,6 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
        """.stripMargin
     }
 
-    // generate alias for request columns
-/*
-    requestedCols.foreach {
-      case FactColumnInfo(alias) =>
-        columnAliasToColMap += queryBuilderContext.getFactColNameForAlias(alias) -> queryBuilderContext.getFactColByAlias(alias)
-      case DimColumnInfo(alias) =>
-        columnAliasToColMap += queryBuilderContext.getDimensionColNameForAlias(alias) -> queryBuilderContext.getDimensionColByAlias(alias)
-      case ConstantColumnInfo(alias, value) =>
-      //TODO: fix this
-      //constantColumnsMap += renderColumnAlias(alias) -> value
-    }
-*/
     val paramBuilder = new QueryParameterBuilder
 
     new HiveQuery(
@@ -212,8 +181,6 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
       queryGenVersion = Some(this.version)
     )
   }
-
-
 
   /**
     * Inner Fact query generator which select only primitive columns from the fact.

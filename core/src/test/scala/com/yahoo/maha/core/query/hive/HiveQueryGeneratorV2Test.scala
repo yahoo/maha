@@ -528,7 +528,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
-    val queryPipelineTry `= generatePipeline(requestModel.toOption.get)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
 

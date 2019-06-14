@@ -1642,9 +1642,9 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
       override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = None
       override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = {
         Some(QueryGenBucketingConfig.builder()
-          .internalBucketPercentage(Map(Version.v0 -> 100, Version.v1 -> 0))
-          .externalBucketPercentage(Map(Version.v0 -> 100, Version.v1 -> 0))
-          .dryRunPercentage(Map(Version.v1 -> 100))
+          .internalBucketPercentage(Map(Version.v0 -> 100, Version.v2 -> 0))
+          .externalBucketPercentage(Map(Version.v0 -> 100, Version.v2 -> 0))
+          .dryRunPercentage(Map(Version.v2 -> 100))
           .build())
       }
     }
@@ -1671,25 +1671,25 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
       override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = None
       override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = {
         Some(QueryGenBucketingConfig.builder()
-          .internalBucketPercentage(Map(Version.v0 -> 100, Version.v1 -> 0))
-          .externalBucketPercentage(Map(Version.v0 -> 100, Version.v1 -> 0))
-          .dryRunPercentage(Map(Version.v1 -> 100))
+          .internalBucketPercentage(Map(Version.v0 -> 100, Version.v2 -> 0))
+          .externalBucketPercentage(Map(Version.v0 -> 100, Version.v2 -> 0))
+          .dryRunPercentage(Map(Version.v2 -> 100))
           .build())
       }
     }
 
     val bucketSelector = new BucketSelector(registry, TestBucketingConfig)
 
-    val queryPipelineBuilderTry = queryPipelineFactory.builder(requestModel.get, QueryAttributes.empty, Option(bucketSelector), BucketParams(forceQueryGenVersion = Option(Version.v1)))._1
+    val queryPipelineBuilderTry = queryPipelineFactory.builder(requestModel.get, QueryAttributes.empty, Option(bucketSelector), BucketParams(forceQueryGenVersion = Option(Version.v2)))._1
     assert(queryPipelineBuilderTry.isSuccess, queryPipelineBuilderTry)
     val pipeline = queryPipelineBuilderTry.get.build()
 
     assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
-    assert(Version.v1.equals(pipeline.queryChain.drivingQuery.queryGenVersion.get))
+    assert(Version.v2.equals(pipeline.queryChain.drivingQuery.queryGenVersion.get))
 
-    val queryPipelineTry = queryPipelineFactory.fromQueryGenVersion(requestModel.get, QueryAttributes.empty, Version.v1)
+    val queryPipelineTry = queryPipelineFactory.fromQueryGenVersion(requestModel.get, QueryAttributes.empty, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry)
-    assert(Version.v1.equals(queryPipelineTry.get.queryChain.drivingQuery.queryGenVersion.get))
+    assert(Version.v2.equals(queryPipelineTry.get.queryChain.drivingQuery.queryGenVersion.get))
   }
 
   test("successfully generate query with queryGeneratorBucket defined and no dryRun requestModel") {
@@ -1702,9 +1702,9 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
       override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = None
       override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = {
         Some(QueryGenBucketingConfig.builder()
-          .internalBucketPercentage(Map(Version.v0 -> 100, Version.v1 -> 0))
-          .externalBucketPercentage(Map(Version.v0 -> 100, Version.v1 -> 0))
-          .dryRunPercentage(Map(Version.v1 -> 100))
+          .internalBucketPercentage(Map(Version.v0 -> 100, Version.v2 -> 0))
+          .externalBucketPercentage(Map(Version.v0 -> 100, Version.v2 -> 0))
+          .dryRunPercentage(Map(Version.v2 -> 100))
           .build())
       }
     }
