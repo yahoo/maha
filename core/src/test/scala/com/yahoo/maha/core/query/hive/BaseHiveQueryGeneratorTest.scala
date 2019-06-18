@@ -26,7 +26,7 @@ trait BaseHiveQueryGeneratorTest
 
   override protected def beforeAll(): Unit = {
     HiveQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
-    HiveQueryGeneratorV2.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
+    HiveQueryGeneratorV2.register(queryGeneratorRegistry, TestPartitionRenderer, TestUDFRegistrationFactory())
   }
 
   override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
@@ -192,6 +192,7 @@ trait BaseHiveQueryGeneratorTest
             , DimCol("last_updated", IntType(10))
             , DimCol("current_bid", DecType(0, "0.0"))
             , DimCol("modified_bid", DecType(0, "0.0"))
+            , ConstDimCol("test_constant_col", DecType(), "test_constant_col_value")
             , HiveDerDimCol("bid_modifier", DecType(0, "0.0"), HiveDerivedExpression("({modified_bid}" - "{current_bid})" / "{current_bid}" * "100"))
             , HiveDerDimCol("Day", DateType("YYYYMMdd"), HiveDerivedExpression("SUBSTRING({load_time}, 1, 8)"))
             , HivePartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
@@ -235,7 +236,8 @@ trait BaseHiveQueryGeneratorTest
                   "spend",
                   "budget",
                   "forecasted_budget",
-                  "last_updated"
+                  "last_updated",
+                  "test_constant_col"
                 ))), annotations = Set(HivePartitioningScheme("frequency"))
         )
       }
@@ -244,22 +246,24 @@ trait BaseHiveQueryGeneratorTest
     val publicFact = builder.toPublicFact(
       "bid_reco",
       Set(
-        PubCol("ad_group_id", "Ad Group ID",InNotInEquality, required = true)
+        PubCol("ad_group_id", "Ad Group ID",InNotInEquality)
         , PubCol("account_id", "Advertiser ID", InNotInEquality, required = true)
         , PubCol("campaign_id", "Campaign ID", InNotInEquality)
         , PubCol("supply_group", "Supply Group Name", InNotInEquality)
-        , PubCol("bid_strategy", "Bid Strategy", InNotInEquality, required = true)
+        , PubCol("bid_strategy", "Bid Strategy", InNotInEquality)
         , PubCol("current_bid", "Current Base Bid", InNotInEquality)
         , PubCol("modified_bid", "Modified Bid", InNotInEquality)
         , PubCol("bid_modifier", "Bid Modifier", InBetweenEquality)
         , PubCol("status", "Status", InNotInEquality)
         , PubCol("Day", "Day", BetweenEquality)
+        , PubCol("test_constant_col", "Test Constant Col", Set.empty)
+        , PubCol("load_time", "Load Time", Set.empty) // Projecting Part Col, to cover tests
       ),
       Set(
         PublicFactCol("recommended_bid", "Recommended Bid", InBetweenEquality)
         , PublicFactCol("actual_clicks", "Clicks", InBetweenEquality)
         , PublicFactCol("forecasted_clicks", "Forecasted Clicks", InBetweenEquality)
-        , PublicFactCol("actual_impressions", "Impressions", InBetweenEquality)
+        , PublicFactCol("actual_impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser)
         , PublicFactCol("forecasted_impr", "Forecasted Impressions", InBetweenEquality)
         , PublicFactCol("budget", "Budget", InBetweenEquality)
         , PublicFactCol("spend", "Spend", InBetweenEquality)

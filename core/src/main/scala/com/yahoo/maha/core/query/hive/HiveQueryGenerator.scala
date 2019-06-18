@@ -55,7 +55,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
     val requestedCols = queryContext.requestModel.requestCols
     val columnAliasToColMap = new mutable.HashMap[String, Column]()
 
-    def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], factCandidate: FactBestCandidate): String = {
+    def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], factCandidate: FactBestCandidate, isOuterGroupBy: Boolean = false): (String,String) = {
 
       def renderNormalOuterColumnWithoutCasting(column: Column, finalAlias: String) : String = {
         val renderedCol = column.dataType match {
@@ -88,17 +88,17 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
 
       columnInfo match {
         case FactColumnInfo(alias) =>
-          concat(QueryGeneratorHelper.handleOuterFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.name, false))
+          QueryGeneratorHelper.handleOuterFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.name, false)
         case DimColumnInfo(alias) =>
           val col = queryBuilderContext.getDimensionColByAlias(alias)
           val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
           val publicDim = queryBuilderContext.getDimensionForColAlias(alias)
           val referredAlias = s"${queryBuilderContext.getAliasForTable(publicDim.name)}.$finalAlias"
           val postFilterAlias = renderNormalOuterColumnWithoutCasting(col, referredAlias)
-          s"""$postFilterAlias $finalAlias"""
+          (postFilterAlias, finalAlias)
         case ConstantColumnInfo(alias, value) =>
           val finalAlias = getConstantColAlias(alias)
-          s"""'$value' $finalAlias"""
+          (s"'$value'", finalAlias)
         case _ => throw new UnsupportedOperationException("Unsupported Column Type")
       }
     }

@@ -1,6 +1,6 @@
 package com.yahoo.maha.core.query.hive
 
-import com.yahoo.maha.core.HiveExpression.{BaseHiveExpression, COALESCE, COL, NVL, ROUND}
+import com.yahoo.maha.core.HiveExpression.{COALESCE, COL, NVL, ROUND}
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
@@ -327,7 +327,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
         } else {
           // Condition to handle dimCols mapped to FactColumnInfo in requestModel
           if(queryBuilderContext.containsFactAliasToColumnMap(alias)) {
-            val (renderedCol, renderedAlias) = renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, factBest)
+            val (renderedCol, renderedAlias) = renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, factBest, true)
             queryBuilder.addPreOuterColumn(concat(renderedCol, renderedAlias))
             queryBuilder.addOuterGroupByExpressions(renderedCol)
             queryBuilderContext.setPreOuterAliasToColumnMap(renderedCol, renderedAlias, col)
@@ -336,7 +336,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
         }
 
       case columnInfo@DimColumnInfo(alias) =>
-        val (renderedCol, renderedAlias) = renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, factBest)
+        val (renderedCol, renderedAlias) = renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, factBest, true)
         queryBuilder.addPreOuterColumn(concat(renderedCol, renderedAlias))
         queryBuilder.addOuterGroupByExpressions(renderedCol)
         queryBuilderContext.setPreOuterAliasToColumnMap(renderedCol, renderedAlias, queryBuilderContext.getDimensionColByAlias(alias))
@@ -351,7 +351,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
         col match {
           case dimCol:DimensionColumn =>
             //dim col which are dependent upon the DerFact cols
-            val (renderedCol, renderedAlias) = renderOuterColumn(FactColumnInfo(alias), queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, factBest)
+            val (renderedCol, renderedAlias) = renderOuterColumn(FactColumnInfo(alias), queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, factBest, true)
             queryBuilder.addPreOuterColumn(concat(s"$renderedCol $renderedAlias",""))
             queryBuilder.addOuterGroupByExpressions(renderedCol)
             queryBuilderContext.setPreOuterAliasToColumnMap(renderedCol, renderedAlias, col)
@@ -554,6 +554,9 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
     val renderedAlias = projectedAlias
 
     column match {
+      case HiveDerDimAggregateCol(_, dt, cc, de, _, annotations, _) =>
+        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+        s"""$renderedAlias"""
       case HiveDerDimCol(_, dt, cc, de, _, annotations, _) =>
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
         s"""$renderedAlias"""
@@ -565,6 +568,11 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
         val innerColAlias = queryBuilderContext.getDimensionColNameForAlias(projectedAlias)
         s"""$innerColAlias AS $renderedAlias"""
       case DimCol(_, dt, cc, _, annotations, _) =>
+        val innerAlias = renderColumnAlias(projectedAlias)
+        val renderedAlias = s"""$innerAlias AS $projectedAlias"""
+        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+        renderedAlias
+      case ConstDimCol(_, dt, value, cc, _, annotations, _) =>
         val innerAlias = renderColumnAlias(projectedAlias)
         val renderedAlias = s"""$innerAlias AS $projectedAlias"""
         queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
@@ -592,7 +600,8 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
   def renderOuterColumn(columnInfo: ColumnInfo,
                         queryBuilderContext: QueryBuilderContext,
                         duplicateAliasMapping: Map[String, Set[String]],
-                        factCandidate: FactBestCandidate): (String, String) = {
+                        factCandidate: FactBestCandidate,
+                        isOuterGroupBy: Boolean = false): (String, String) = {
 
       def renderNormalOuterColumnWithoutCasting(column: Column, finalAlias: String) : String = {
         val renderedCol = column.dataType match {
@@ -625,7 +634,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
 
       columnInfo match {
         case FactColumnInfo(alias) =>
-          QueryGeneratorHelper.handleOuterFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.name, true)
+          QueryGeneratorHelper.handleOuterFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.name, isOuterGroupBy)
         case DimColumnInfo(alias) =>
           val col = queryBuilderContext.getDimensionColByAlias(alias)
           val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)

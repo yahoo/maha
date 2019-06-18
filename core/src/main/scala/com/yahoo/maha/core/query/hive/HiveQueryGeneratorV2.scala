@@ -55,55 +55,6 @@ class HiveQueryGeneratorV2(partitionColumnRenderer:PartitionColumnRenderer, udfS
     val requestedCols = queryContext.requestModel.requestCols
     val columnAliasToColMap = new mutable.HashMap[String, Column]()
 
-    def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], factCandidate: FactBestCandidate): String = {
-
-      def renderNormalOuterColumnWithoutCasting(column: Column, finalAlias: String) : String = {
-        val renderedCol = column.dataType match {
-          case DecType(_, _, Some(default), Some(min), Some(max), _) =>
-            val minMaxClause = s"CASE WHEN (($finalAlias >= ${min}) AND ($finalAlias <= ${max})) THEN $finalAlias ELSE ${default} END"
-            s"""ROUND(COALESCE($minMaxClause, ${default}), 10)"""
-          case DecType(_, _, Some(default), _, _, _) =>
-            s"""ROUND(COALESCE($finalAlias, ${default}), 10)"""
-          case DecType(_, _, _, _, _, _) =>
-            s"""ROUND(COALESCE($finalAlias, 0L), 10)"""
-          case IntType(_,sm,_,_,_) =>
-            s"""COALESCE($finalAlias, 0L)"""
-          case DateType(_) => s"""getFormattedDate($finalAlias)"""
-          case StrType(_, sm, df) =>
-            val defaultValue = df.getOrElse("NA")
-            s"""COALESCE($finalAlias, "$defaultValue")"""
-          case _ => s"""COALESCE($finalAlias, "NA")"""
-        }
-        if (column.annotations.contains(EscapingRequired)) {
-          s"""getCsvEscapedString(CAST(NVL($finalAlias, '') AS STRING))"""
-        } else {
-          renderedCol
-        }
-      }
-
-      def renderFactCol(alias: String, finalAliasOrExpression: String, col: Column, finalAlias: String): (String,String) = {
-        val postFilterAlias = renderNormalOuterColumnWithoutCasting(col, finalAliasOrExpression)
-        (postFilterAlias, finalAlias)
-      }
-
-
-      columnInfo match {
-        case FactColumnInfo(alias) =>
-          concat(QueryGeneratorHelper.handleOuterFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.name, false))
-        case DimColumnInfo(alias) =>
-          val col = queryBuilderContext.getDimensionColByAlias(alias)
-          val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
-          val publicDim = queryBuilderContext.getDimensionForColAlias(alias)
-          val referredAlias = s"${queryBuilderContext.getAliasForTable(publicDim.name)}.$finalAlias"
-          val postFilterAlias = renderNormalOuterColumnWithoutCasting(col, referredAlias)
-          s"""$postFilterAlias $finalAlias"""
-        case ConstantColumnInfo(alias, value) =>
-          val finalAlias = getConstantColAlias(alias)
-          s"""'$value' $finalAlias"""
-        case _ => throw new UnsupportedOperationException("Unsupported Column Type")
-      }
-    }
-
     def renderDerivedFactCols(derivedCols: List[(Column, String)]) = {
       val requiredInnerCols: Set[String] =
         derivedCols.view.map(_._1.asInstanceOf[DerivedColumn]).flatMap(dc => dc.derivedExpression.sourceColumns).toSet
@@ -207,15 +158,9 @@ object HiveQueryGeneratorV2 extends Logging {
 
   def register(queryGeneratorRegistry: QueryGeneratorRegistry, partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) = {
     if(!queryGeneratorRegistry.isEngineRegistered(HiveEngine, Option(Version.v2))) {
-      val generator = new HiveQueryGeneratorV2(partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements)
+      val generator = new HiveQueryGeneratorV2(partitionDimensionColumnRenderer, udfStatements)
       queryGeneratorRegistry.register(HiveEngine, generator, generator.version)
     } else {
-      queryGeneratorRegistry.getDefaultGenerator(HiveEngine).foreach {
-        qg =>
-          if(!qg.isInstanceOf[HiveQueryGeneratorV2]) {
-            warn(s"Another query generator registered for HiveEngine : ${qg.getClass.getCanonicalName}")
-          }
-      }
       throw new IllegalArgumentException(s"Hive Query Generator Version V2 is already registered")
     }
   }

@@ -27,57 +27,18 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
     renderColumnAlias(alias.replaceAll("[^a-zA-Z0-9_]", ""))
   }
 
-  def generateConcatenatedCols(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext): String = {
-    val renderedConcateColumns = queryContext.requestModel.requestCols.map {
-      case ConstantColumnInfo(alias, _) =>
-        val finalAlias = getConstantColAlias(alias)
-        s"""NVL($finalAlias, '')"""
-      case DimColumnInfo(alias) =>
-        val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
-        s"""NVL($finalAlias, '')"""
-      case FactColumnInfo(alias)=>
-        val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)
-        s"""NVL($finalAlias, '')"""
-    }
-    "CONCAT_WS(\",\"," + (renderedConcateColumns).mkString(", ") + ")"
-  }
-
   // render outercols with column expression
   def generateOuterColumns(queryContext: CombinedQueryContext,
                            queryBuilderContext: QueryBuilderContext,
                            queryBuilder: QueryBuilder,
-                           renderOuterColumn: (ColumnInfo, QueryBuilderContext, Map[String, Set[String]], FactBestCandidate) => String
+                           renderOuterColumn: (ColumnInfo, QueryBuilderContext, Map[String, Set[String]], FactBestCandidate, Boolean) => (String, String)
   ) : String = {
     queryContext.requestModel.requestCols foreach {
       columnInfo =>
         QueryGeneratorHelper.populateAliasColMapOfRequestCols(columnInfo, queryBuilderContext, queryContext)
-        queryBuilder.addOuterColumn(renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, queryContext.factBestCandidate))
+        queryBuilder.addOuterColumn(concat(renderOuterColumn(columnInfo, queryBuilderContext, queryContext.factBestCandidate.duplicateAliasMapping, queryContext.factBestCandidate, false)))
     }
     queryBuilder.getOuterColumns
-  }
-
-  def renderNormalOuterColumn(column: Column, finalAlias: String) : String = {
-    val renderedCol = column.dataType match {
-      case DecType(_, _, Some(default), Some(min), Some(max), _) =>
-        val minMaxClause = s"CASE WHEN (($finalAlias >= ${min}) AND ($finalAlias <= ${max})) THEN $finalAlias ELSE ${default} END"
-        s"""CAST(ROUND(COALESCE($minMaxClause, ${default}), 10) as STRING)"""
-      case DecType(_, _, Some(default), _, _, _) =>
-        s"""CAST(ROUND(COALESCE($finalAlias, ${default}), 10) as STRING)"""
-      case DecType(_, _, _, _, _, _) =>
-        s"""CAST(ROUND(COALESCE($finalAlias, 0L), 10) as STRING)"""
-      case IntType(_,sm,_,_,_) =>
-        s"""CAST(COALESCE($finalAlias, 0L) as STRING)"""
-      case DateType(_) => s"""getFormattedDate($finalAlias)"""
-      case StrType(_, sm, df) =>
-        val defaultValue = df.getOrElse("NA")
-        s"""COALESCE($finalAlias, "$defaultValue")"""
-      case _ => s"""COALESCE($finalAlias, "NA")"""
-    }
-    if (column.annotations.contains(EscapingRequired)) {
-      s"""getCsvEscapedString(CAST(NVL($finalAlias, '') AS STRING))"""
-    } else {
-      renderedCol
-    }
   }
 
   /**
@@ -436,10 +397,18 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
         val renderedAlias = renderColumnAlias(alias)
         queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
         name
+      case ConstDimCol(_, dt, value, _, _, _, _) =>
+        val renderedAlias = renderColumnAlias(alias)
+        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
+        s"'$value' AS $name"
       case HiveDerDimCol(_, dt, _, de, _, _, _) =>
         val renderedAlias = renderColumnAlias(alias)
         queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
         s"""${de.render(name, Map.empty)} $renderedAlias"""
+      case HivePartDimCol(_, dt, _, _, _, _) =>
+        val renderedAlias = renderColumnAlias(alias)
+        queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
+        name
       case FactCol(_, dt, _, rollup, _, _, _) =>
         dt match {
           case DecType(_, _, Some(default), Some(min), Some(max), _) =>
