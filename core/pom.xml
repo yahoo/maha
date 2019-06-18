@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.267-SNAPSHOT</version>
+        <version>5.269-SNAPSHOT</version>
     </parent>
 
     <name>maha core</name>
@@ -144,14 +144,6 @@
         <dependency>
             <groupId>io.druid.extensions</groupId>
             <artifactId>druid-histogram</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.jsuereth</groupId>
-            <artifactId>scala-arm_${scala.major.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

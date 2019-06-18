@@ -11,8 +11,8 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 import scala.util.Try
 
 /**
- * Created by hiral on 1/26/16.
- */
+  * Created by hiral on 1/26/16.
+  */
 class JdbcConnectionTest extends FunSuite with Matchers with BeforeAndAfterAll {
   private var dataSource: HikariDataSource = null
   private var jdbcConnection: JdbcConnection = null
@@ -34,7 +34,7 @@ class JdbcConnectionTest extends FunSuite with Matchers with BeforeAndAfterAll {
   override protected def afterAll(): Unit = {
     dataSource.close()
   }
-  
+
   test("create table") {
     val result = jdbcConnection.execute("CREATE TABLE dummy (string VARCHAR2(244), num INT, decimalValue DECIMAL, dt DATE, ts TIMESTAMP, lo BIGINT, bool BIT, fl REAL, by TINYINT, sh SMALLINT, da DATE)")
     assert(result.isSuccess && result.toOption.get === false)
@@ -47,7 +47,7 @@ class JdbcConnectionTest extends FunSuite with Matchers with BeforeAndAfterAll {
     val interpolatedResult : Try[Boolean] = jdbcConnection.execute(interpolatedInput)
     assert(interpolatedResult.isSuccess && interpolatedResult.toOption.get === false)
   }
-  
+
   test("insert rows") {
     val string: String = "string"
     val num: Int = 1
@@ -71,7 +71,7 @@ class JdbcConnectionTest extends FunSuite with Matchers with BeforeAndAfterAll {
     val resultInt : Try[Int] = jdbcConnection.executeUpdate(s"CREATE TABLE student_grade_sheet (total_marks NUMBER(0) NULL, year NUMBER(3) NOT NULL, obtained_marks NUMBER(0) NULL, date DATE NOT NULL, comment VARCHAR2(0 CHAR) NOT NULL, section_id NUMBER(3) NOT NULL, class_id NUMBER(0) NOT NULL, student_id NUMBER(0) NOT NULL)")
     assert(resultInt.isSuccess && resultInt.toOption.get === 0)
   }
-  
+
   test("read rows") {
     jdbcConnection.queryForObject("SELECT * FROM dummy") {
       rs =>

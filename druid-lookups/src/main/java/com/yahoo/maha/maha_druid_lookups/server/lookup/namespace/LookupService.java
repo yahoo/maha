@@ -234,6 +234,8 @@ public class LookupService {
 
             if(decodeConfigOptional.isPresent() && that.decodeConfigOptional.isPresent()) {
                 result &= Objects.equals(decodeConfigOptional.get(), that.decodeConfigOptional.get());
+            } else if (decodeConfigOptional.isPresent() || that.decodeConfigOptional.isPresent()) {
+                return false;
             }
             return result;
         }

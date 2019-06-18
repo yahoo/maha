@@ -8,13 +8,29 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.267-SNAPSHOT</version>
+        <version>5.269-SNAPSHOT</version>
     </parent>
 
     <name>maha db</name>
     <url>http://maven.apache.org</url>
 
     <dependencies>
+        <!-- BEGIN H2DB & JDBC Dependencies in test -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.jsuereth</groupId>
+            <artifactId>scala-arm_${scala.major.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- END H2DB & JDBC Dependencies in test -->
+
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
