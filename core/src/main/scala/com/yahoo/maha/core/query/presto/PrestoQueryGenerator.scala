@@ -107,14 +107,14 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
 
     def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], factCandidate: FactBestCandidate): String = {
 
-      def renderFactCol(alias: String, finalAliasOrExpression: String, col: Column, finalAlias: String): String = {
+      def renderFactCol(alias: String, finalAliasOrExpression: String, col: Column, finalAlias: String): (String,String) = {
         val postFilterAlias = renderNormalOuterColumn(col, finalAliasOrExpression)
-        s"""$postFilterAlias $finalAlias"""
+        (postFilterAlias,finalAlias)
       }
 
       columnInfo match {
         case FactColumnInfo(alias) =>
-          QueryGeneratorHelper.handleOuterFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.underlyingTableName.getOrElse(factCandidate.fact.name), false)
+          QueryGeneratorHelper.concat(QueryGeneratorHelper.handleOuterFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.underlyingTableName.getOrElse(factCandidate.fact.name), false))
           /*if (queryBuilderContext.containsFactColNameForAlias(alias)) {
             val col = queryBuilderContext.getFactColByAlias(alias)
             val finalAlias = queryBuilderContext.getFactColNameForAlias(alias)

@@ -27,6 +27,8 @@ class JdbcConnectionTest extends FunSuite with Matchers with BeforeAndAfterAll {
     config.setMaximumPoolSize(1)
     dataSource = new HikariDataSource(config)
     jdbcConnection = new JdbcConnection(dataSource)
+    jdbcConnection.queryForList("select * from dual")
+    jdbcConnection.executeQuery("select * from dual")
   }
 
   override protected def afterAll(): Unit = {

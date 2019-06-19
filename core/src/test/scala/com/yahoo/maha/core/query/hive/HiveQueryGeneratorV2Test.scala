@@ -623,40 +623,56 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
       s"""{
                           "cube": "s_stats",
                           "selectFields": [
-                              {"field": "Advertiser ID"},
+                              {"field": "Advertiser Name"},
                               {"field": "Impressions"}
                           ],
                           "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
                               {"field": "Impressions", "operator": ">", "value": "1608"}
-                          ]
+                          ],
+                          "sortBy": [{"field": "Advertiser Name", "order": "Desc"},  {"field": "Impressions", "order": "DESC"}]
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
+    val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
 
     val expected =
-      s"""SELECT CONCAT_WS(",",NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''))
-          FROM(
-            SELECT COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 0L) mang_impressions
-            FROM(SELECT account_id, SUM(impressions) impressions
-            FROM s_stats_fact
-            WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-            GROUP BY account_id
-            HAVING (SUM(impressions) > 1608)
-              )
-          ssf0
-      ) queryAlias LIMIT 200""".stripMargin
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_advertiser_name,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING))
+         |FROM(
+         |SELECT mang_advertiser_name AS mang_advertiser_name, impressions AS mang_impressions
+         |FROM(
+         |SELECT COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, SUM(impressions) AS impressions
+         |FROM(SELECT account_id, SUM(impressions) impressions
+         |FROM s_stats_fact
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id
+         |HAVING (SUM(impressions) > 1608)
+         |       )
+         |ssf0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM advertiser_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |ssf0.account_id = a1.a1_id
+         |
+         |GROUP BY COALESCE(a1.mang_advertiser_name, 'NA')
+         |ORDER BY mang_advertiser_name DESC, impressions DESC) OgbQueryAlias
+         |) queryAlias LIMIT 200
+         |
+       """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
 
@@ -827,6 +843,329 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     result should equal (expected) (after being whiteSpaceNormalised)
 
   }
+
+
+  test("generating hive query with outer group containing derived columns of level 2") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Campaign Name"},
+                              {"field": "Average CPC"},
+                              {"field": "Average Position"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryChain = queryPipelineTry.toOption.get.queryChain
+
+    val result =  queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    assert(queryChain.drivingQuery.queryGenVersion.isDefined)
+    assert(queryChain.drivingQuery.queryGenVersion.get == Version.v2)
+
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_average_cpc,'') AS STRING),CAST(NVL(mang_average_position,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING))
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS mang_average_cpc, avg_pos AS mang_average_position, impressions AS mang_impressions
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend
+         |FROM(SELECT campaign_id, SUM(impressions) impressions, SUM(clicks) clicks, SUM(spend) spend
+         |FROM s_stats_fact
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id
+         |
+         |       )
+         |ssf0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |ssf0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING))
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+         |
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("generating hive query with outer group by, 2 dim joins and sorting") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Campaign Name"},
+                              {"field": "Advertiser Name"},
+                              {"field": "Average CPC"},
+                              {"field": "Average Position"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                          {"field": "Impressions", "order": "Desc"},  {"field": "Advertiser Name", "order": "DESC"}]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryChain = queryPipelineTry.toOption.get.queryChain
+
+    val result =  queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    assert(queryChain.drivingQuery.queryGenVersion.isDefined)
+    assert(queryChain.drivingQuery.queryGenVersion.get == Version.v2)
+
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(advertiser_id,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_advertiser_name,'') AS STRING),CAST(NVL(mang_average_cpc,'') AS STRING),CAST(NVL(mang_average_position,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING))
+         |FROM(
+         |SELECT advertiser_id AS advertiser_id, mang_campaign_name AS mang_campaign_name, mang_advertiser_name AS mang_advertiser_name, CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS mang_average_cpc, avg_pos AS mang_average_position, impressions AS mang_impressions
+         |FROM(
+         |SELECT COALESCE(account_id, 0L) advertiser_id, getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend
+         |FROM(SELECT account_id, campaign_id, SUM(impressions) impressions, SUM(clicks) clicks, SUM(spend) spend
+         |FROM s_stats_fact
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id, campaign_id
+         |
+         |       )
+         |ssf0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM advertiser_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |ssf0.account_id = a1.a1_id
+         |       LEFT OUTER JOIN (
+         |SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c2
+         |ON
+         |ssf0.campaign_id = c2.c2_id
+         |
+         |GROUP BY COALESCE(account_id, 0L), getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)), COALESCE(a1.mang_advertiser_name, 'NA')
+         |ORDER BY impressions DESC, mang_advertiser_name DESC) OgbQueryAlias
+         |) queryAlias LIMIT 200
+         |
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+
+  test("generating hive query with outer group by, derived cols") {
+    val jsonString =
+      s"""{
+                          "cube": "performance_stats",
+                          "selectFields": [
+                              {"field": "Campaign Name"},
+                              {"field": "N Clicks"},
+                              {"field": "Pricing Type"},
+                              {"field": "Total Impressions"},
+                              {"field": "N Spend"},
+                              {"field": "Month"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                          {"field": "Campaign Name", "order": "Desc"},  {"field": "Total Impressions", "order": "DESC"}]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryChain = queryPipelineTry.toOption.get.queryChain
+
+    val result =  queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    assert(queryChain.drivingQuery.queryGenVersion.isDefined)
+    assert(queryChain.drivingQuery.queryGenVersion.get == Version.v2)
+
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_n_clicks,'') AS STRING),CAST(NVL(mang_pricing_type,'') AS STRING),CAST(NVL(mang_total_impressions,'') AS STRING),CAST(NVL(mang_n_spend,'') AS STRING),CAST(NVL(mang_month,'') AS STRING))
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, decodeUDF(stats_source, 1, clicks, 0.0) AS mang_n_clicks, mang_pricing_type AS mang_pricing_type, impressions AS mang_total_impressions, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend, mang_month
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(price_type, 0L) mang_pricing_type, getFormattedDate(mang_month) mang_month, SUM(impressions) AS impressions, SUM(clicks) AS clicks, COALESCE(stats_source, 0L) stats_source, SUM(spend) AS spend
+         |FROM(SELECT CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, campaign_id, dateUDF(stats_date, 'M') mang_month, SUM(impressions) impressions, SUM(clicks) clicks, stats_source, SUM(spend) spend
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, campaign_id, dateUDF(stats_date, 'M')
+         |
+         |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(price_type, 0L), getFormattedDate(mang_month), COALESCE(stats_source, 0L)
+         |ORDER BY mang_campaign_name DESC, impressions DESC) OgbQueryAlias
+         |) queryAlias LIMIT 200
+         |
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("generating hive query with outer group by, having and partitioning scheme, test part col renderer") {
+    val jsonString =
+      s"""{
+                          "cube": "bid_reco",
+                          "selectFields": [
+                              {"field": "Campaign Name"},
+                              {"field": "Bid Strategy"},
+                              {"field": "Advertiser Name"},
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"},
+                              {"field": "Test Constant Col"},
+                              {"field": "Load Time"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                          "sortBy": [
+                             {"field": "Campaign Name", "order": "Desc"},  {"field": "Impressions", "order": "DESC"}]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryChain = queryPipelineTry.toOption.get.queryChain
+
+    val result =  queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    assert(queryChain.drivingQuery.queryGenVersion.isDefined)
+    assert(queryChain.drivingQuery.queryGenVersion.get == Version.v2)
+
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_bid_strategy,'') AS STRING),CAST(NVL(mang_advertiser_name,'') AS STRING),CAST(NVL(advertiser_id,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING),CAST(NVL(mang_test_constant_col,'') AS STRING),CAST(NVL(mang_load_time,'') AS STRING))
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, mang_bid_strategy AS mang_bid_strategy, mang_advertiser_name AS mang_advertiser_name, advertiser_id AS advertiser_id, actual_impressions AS mang_impressions, mang_test_constant_col AS mang_test_constant_col, mang_load_time
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(bid_strategy, 0L) mang_bid_strategy, COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, COALESCE(account_id, 0L) advertiser_id, ROUND(COALESCE(test_constant_col, 0L), 10) mang_test_constant_col, COALESCE(mang_load_time, 'NA') mang_load_time, SUM(actual_impressions) AS actual_impressions
+         |FROM(SELECT CASE WHEN (bid_strategy IN (1)) THEN 'Max Click' WHEN (bid_strategy IN (2)) THEN 'Inflection Point' ELSE 'NONE' END bid_strategy, account_id, load_time, 'test_constant_col_value' AS test_constant_col, campaign_id, SUM(actual_impressions) actual_impressions
+         |FROM bidreco_complete
+         |WHERE (account_id = 12345) AND (status = 'Valid') AND (factPartCol = 123)
+         |GROUP BY CASE WHEN (bid_strategy IN (1)) THEN 'Max Click' WHEN (bid_strategy IN (2)) THEN 'Inflection Point' ELSE 'NONE' END, account_id, load_time, test_constant_col, campaign_id
+         |HAVING (SUM(actual_impressions) > 1608)
+         |       )
+         |bc0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM advertiser_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |bc0.account_id = a1.a1_id
+         |       LEFT OUTER JOIN (
+         |SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c2
+         |ON
+         |bc0.campaign_id = c2.c2_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)), COALESCE(bid_strategy, 0L), COALESCE(a1.mang_advertiser_name, 'NA'), COALESCE(account_id, 0L), ROUND(COALESCE(test_constant_col, 0L), 10), COALESCE(mang_load_time, 'NA')
+         |ORDER BY mang_campaign_name DESC, actual_impressions DESC) OgbQueryAlias
+         |) queryAlias LIMIT 200
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("generating hive query with outer group by, count dims") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Campaign Name"},
+                              {"field": "Impressions"},
+                              {"field": "Keyword Count"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryChain = queryPipelineTry.toOption.get.queryChain
+
+    val result =  queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    assert(queryChain.drivingQuery.queryGenVersion.isDefined)
+    assert(queryChain.drivingQuery.queryGenVersion.get == Version.v2)
+
+    assert(result.contains(s"""(COUNT(distinct keyword_id)) mang_keyword_count"""))
+  }
+
 
   def generateHiveQuery(requestJson: String): String = {
     val requestRaw = ReportingRequest.deserializeAsync(requestJson.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
