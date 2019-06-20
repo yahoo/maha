@@ -47,6 +47,7 @@ object ExampleMahaService extends Logging {
       }
     }
 
+    // Mandatory step of registering all the schemas used in the definitions
     ExampleSchema.register()
 
     val mahaServiceConfig = mahaServiceResult.toOption.get
