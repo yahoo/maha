@@ -46,6 +46,9 @@ object ExampleMahaService extends Logging {
           error(s"Failed to launch Example MahaService, MahaService Error list is: ${res.list.map(er=> er.message -> er.source).toList}")
       }
     }
+
+    ExampleSchema.register()
+
     val mahaServiceConfig = mahaServiceResult.toOption.get
     val mahaService: MahaService = new DefaultMahaService(mahaServiceConfig)
     stageStudentData(mahaServiceConfig)
