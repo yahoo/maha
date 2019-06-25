@@ -34,7 +34,7 @@ public class MahaRegisteredLookupExtractionFnTest {
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
         JDBCExtractionNamespace extractionNamespace =
                 new JDBCExtractionNamespace(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
-                        "id", "", null, null, new Period(), true, false, "advertiser_lookup");
+                        "id", "", new Period(), true, "advertiser_lookup");
 
         Map<String, List<String>> map = new HashMap<>();
         map.put("123", Arrays.asList("123", "some name", "USD", "ON"));
@@ -60,7 +60,7 @@ public class MahaRegisteredLookupExtractionFnTest {
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
         JDBCExtractionNamespace extractionNamespace =
                 new JDBCExtractionNamespace(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
-                        "id", "", null, null, new Period(), true, false, "advertiser_lookup");
+                        "id", "", new Period(), true, "advertiser_lookup");
 
         Map<String, List<String>> map = new HashMap<>();
         map.put("123", Arrays.asList("123", "some name", "USD", "ON"));
@@ -88,7 +88,7 @@ public class MahaRegisteredLookupExtractionFnTest {
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
         JDBCExtractionNamespace extractionNamespace =
                 new JDBCExtractionNamespace(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
-                        "id", "", null, null, new Period(), true, false, "advertiser_lookup");
+                        "id", "", new Period(), true, "advertiser_lookup");
 
         Map<String, List<String>> map = new HashMap<>();
         map.put("123", Arrays.asList("123", "some name", "USD", "ON"));
@@ -115,7 +115,7 @@ public class MahaRegisteredLookupExtractionFnTest {
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
         JDBCExtractionNamespace extractionNamespace =
                 new JDBCExtractionNamespace(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
-                        "id", "", null, null, new Period(), true, false, "advertiser_lookup");
+                        "id", "", new Period(), true, "advertiser_lookup");
 
         Map<String, List<String>> map = new HashMap<>();
         map.put("123", Arrays.asList("123", "some name", "USD", "ON"));

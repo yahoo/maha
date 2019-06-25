@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.jdbc.JdbcConnection;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCProducerExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -45,7 +46,7 @@ public class JdbcH2QueryTest {
     private HikariDataSource ds;
     private JdbcConnection jdbcConnection;
 
-    private JDBCExtractionNamespaceCacheFactory jdbcEncFactory = new JDBCExtractionNamespaceCacheFactory();
+    private JDBCProducerExtractionNamespaceCacheFactory jdbcEncFactory = new JDBCProducerExtractionNamespaceCacheFactory();
     private String jdbcUrl;
     private String userName;
     private String passWord;
@@ -153,8 +154,8 @@ public class JdbcH2QueryTest {
         String currentDate = (new SimpleDateFormat("hh:mm:ss")).format(new Date());
 
         //new MetadataStorageConnectorConfig();
-        JDBCExtractionNamespace extractionNamespace =
-                new JDBCExtractionNamespace(
+        JDBCProducerExtractionNamespace extractionNamespace =
+                new JDBCProducerExtractionNamespace(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated")),
                         "id", "date", null, null, new Period(), true, true, "ad_lookup");
         Map<String, List<String>> map = new HashMap<>();
@@ -177,8 +178,8 @@ public class JdbcH2QueryTest {
         String currentDate = (new SimpleDateFormat("hh:mm:ss")).format(new Date());
 
         //new MetadataStorageConnectorConfig();
-        JDBCExtractionNamespace extractionNamespace =
-                new JDBCExtractionNamespace(
+        JDBCProducerExtractionNamespace extractionNamespace =
+                new JDBCProducerExtractionNamespace(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated")),
                         "id", "date", null, null, new Period(), true, true, "ad_lookup");
         Map<String, List<String>> map = new HashMap<>();

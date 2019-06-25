@@ -42,7 +42,7 @@ public class MahaNamespacesCacheResourceTest {
         JDBCExtractionNamespace extractionNamespace =
                 new JDBCExtractionNamespace(
                         metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
-                        "id", "", null, null, new Period(), true, false, "advertiser_lookup");
+                        "id", "", new Period(), true, "advertiser_lookup");
 
         when(cacheManager.getExtractionNamespace(anyString())).thenReturn(Optional.of(extractionNamespace));
         when(cacheManager.getExtractionNamespaceFunctionFactory(any())).thenReturn(new JDBCExtractionNamespaceCacheFactory());
@@ -74,7 +74,7 @@ public class MahaNamespacesCacheResourceTest {
         JDBCExtractionNamespace extractionNamespace =
                 new JDBCExtractionNamespace(
                         metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
-                        "id", "", null, null, new Period(), true, false, "advertiser_lookup");
+                        "id", "", new Period(), true, "advertiser_lookup");
 
         when(cacheManager.getExtractionNamespace(anyString())).thenReturn(Optional.of(extractionNamespace));
         when(cacheManager.getExtractionNamespaceFunctionFactory(any())).thenReturn(new JDBCExtractionNamespaceCacheFactory());
