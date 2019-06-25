@@ -160,6 +160,8 @@ public class JdbcH2QueryTest {
                         "id", "date", null, null, new Period(), true, true, "ad_lookup");
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "3.1", currentDate, currentDate));
+        jdbcEncFactory.setKafkaProperties(kafkaProperties);
+        jdbcEncFactory.setProtobufSchemaFactory(new TestProtobufSchemaFactory());
         Callable<String> populator = jdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);//, kafkaProperties, new TestProtobufSchemaFactory(), "topic");
         System.err.println("Callable Result: " + populator.call());
     }
@@ -185,6 +187,8 @@ public class JdbcH2QueryTest {
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "3.1", currentDate, currentDate));
         extractionNamespace.isLeader = true;
+        jdbcEncFactory.setKafkaProperties(kafkaProperties);
+        jdbcEncFactory.setProtobufSchemaFactory(new TestProtobufSchemaFactory());
         Callable<String> populator = jdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);//, kafkaProperties, new TestProtobufSchemaFactory(), "topic");
         System.err.println("Callable Result: " + populator.call());
     }

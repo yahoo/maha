@@ -8,7 +8,6 @@ import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCProducerExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.RowMapper;
@@ -27,6 +26,7 @@ import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.Objects;
 
 /**
  *
@@ -42,6 +42,10 @@ public class JDBCProducerExtractionNamespaceCacheFactory
 
     private KafkaProducer<String, byte[]> kafkaProducer = null;
 
+    private Properties kafkaProperties;
+
+    private ProtobufSchemaFactory protobufSchemaFactory;
+
     @Inject
     LookupService lookupService;
     @Inject
@@ -54,7 +58,17 @@ public class JDBCProducerExtractionNamespaceCacheFactory
             final String lastVersion,
             final Map<String, List<String>> cache
     ) {
-        return getCachePopulator(id, extractionNamespace, lastVersion, cache, null, null);
+        Objects.requireNonNull(kafkaProperties, "Most first define kafkaProperties to create a JDBC -> Kafka link.");
+        Objects.requireNonNull(protobufSchemaFactory, "Kafka needs a Protobuf for the JDBC input.");
+        return getCachePopulator(id, extractionNamespace, lastVersion, cache, kafkaProperties, protobufSchemaFactory);
+    }
+
+    public void setKafkaProperties(Properties kafkaProperties) {
+        this.kafkaProperties = kafkaProperties;
+    }
+
+    public void setProtobufSchemaFactory(ProtobufSchemaFactory protobufSchemaFactory) {
+        this.protobufSchemaFactory = protobufSchemaFactory;
     }
 
     public Callable<String> getCachePopulator(
@@ -133,6 +147,7 @@ public class JDBCProducerExtractionNamespaceCacheFactory
                                     kafkaProducer.send(producerRecord);
                                 } else {
                                     LOG.info("Leader disabled on node.  Using default read/write functionality.");
+                                    LOG.info("This is where the node reads from the topic to write the lookup result.");
                                 }
 
                                 return null;
