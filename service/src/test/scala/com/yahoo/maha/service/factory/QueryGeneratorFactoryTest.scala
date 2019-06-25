@@ -91,14 +91,14 @@ class QueryGeneratorFactoryTest extends BaseFactoryTest {
     assert("HiveQueryGenerator".equals(generatorResult.toOption.get.getClass.getSimpleName), generatorResult)
   }
 
-  test("successfully construct Hive query generator V1 from json") {
+  test("successfully construct Hive query generator V2 from json") {
     val jsonString =   """
                          |{
                          |"partitionColumnRendererClass" : "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
                          |"partitionColumnRendererConfig" : [{"key": "value"}],
                          |"udfRegistrationFactoryName" : "com.yahoo.maha.service.factory.DefaultMahaUDFRegistrationFactory",
                          |"udfRegistrationFactoryConfig" : [{"key": "value"}],
-                         |"version": 1
+                         |"version": 2
                          |}
                        """.stripMargin
 
@@ -109,7 +109,7 @@ class QueryGeneratorFactoryTest extends BaseFactoryTest {
     val generatorResult = factory.fromJson(json)
 
     assert(generatorResult.isSuccess, generatorResult)
-    assert("HiveQueryGeneratorV1".equals(generatorResult.toOption.get.getClass.getSimpleName), generatorResult)
+    assert("HiveQueryGeneratorV2".equals(generatorResult.toOption.get.getClass.getSimpleName), generatorResult)
   }
 
   test("successfully construct Presto query generator from json") {

@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets
 import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.query.{QueryGeneratorRegistry, _}
+import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.request.ReportingRequest
 import org.mockito.Mockito._
 import org.mockito.Matchers._
@@ -15,10 +16,14 @@ import scala.util.Try
 
 /**
  * Created by shengyao on 12/21/15.
+  *
+  * Verification tests for old hive outer group by tests running against new hive OGB query generator v2
  */
 class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
 
-  lazy val defaultRegistry = getDefaultRegistry()
+  val defaultRegistry = getDefaultRegistry()
+
+  require(defaultRegistry.factMap.nonEmpty)
 
   test("registering Hive query generation multiple times should fail") {
     intercept[IllegalArgumentException] {
@@ -31,8 +36,8 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
       }
 
       val queryGeneratorRegistryTest = new QueryGeneratorRegistry
-      queryGeneratorRegistryTest.register(HiveEngine, dummyQueryGenerator, Version.v1)
-      HiveQueryGeneratorV1.register(queryGeneratorRegistryTest, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
+      queryGeneratorRegistryTest.register(HiveEngine, dummyQueryGenerator, Version.v2)
+      HiveQueryGeneratorV2.register(queryGeneratorRegistryTest, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
     }
   }
 
@@ -46,16 +51,16 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
 
         override def engine: Engine = OracleEngine
       }
-      queryGeneratorRegistryTest.register(HiveEngine, dummyOracleQueryGenerator, Version.v1)
-      HiveQueryGeneratorV1.register(queryGeneratorRegistryTest, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
+      queryGeneratorRegistryTest.register(HiveEngine, dummyOracleQueryGenerator, Version.v2)
+      HiveQueryGeneratorV2.register(queryGeneratorRegistryTest, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
     }
   }
 
   test("Invalid query context") {
     intercept[UnsupportedOperationException] {
-      val hiveQueryGeneratorV1 = new HiveQueryGeneratorV1(DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
+      val hiveQueryGeneratorV2 = new HiveQueryGeneratorV2(DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
       val queryContext = mock(classOf[QueryContext])
-      hiveQueryGeneratorV1.generate(queryContext)
+      hiveQueryGeneratorV2.generate(queryContext)
     }
   }
 
@@ -68,12 +73,12 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
 
     val resultQuery = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery]
-    assert(Version.v1.equals(resultQuery.queryGenVersion.get), "Expected v1 queryGenVersion")
+    assert(Version.v2.equals(resultQuery.queryGenVersion.get), "Expected v2 queryGenVersion")
 
   }
 
@@ -86,7 +91,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
 
@@ -102,7 +107,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     val sourceForceFilter: EqualityFilter = EqualityFilter("Source", "2", isForceFilter = true)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     assert(queryPipelineTry.toOption.get.factBestCandidate.get.filters.size == 3, requestModel.errorMessage("Building request model failed"))
@@ -120,7 +125,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
@@ -135,7 +140,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
@@ -150,7 +155,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery]
@@ -165,7 +170,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery]
@@ -179,7 +184,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
@@ -194,7 +199,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
@@ -203,7 +208,6 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     assert(result.contains("mang_keyword"), "Should mangle non-id field: Keyword")
     assert(result.contains("mang_impression"), "Should mangle non-id field: Impression")
     assert(result.contains("mang_delivered_match_type"), "Should mangle non-id field: Delivered Match Type")
-
   }
 
   test("Should support “NA” for NULL string") {
@@ -214,13 +218,39 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
 
-    assert(result.contains("COALESCE(outergroupby.mang_advertiser_status, \"NA\") mang_advertiser_status"), "Should support “NA” for NULL string")
-    //assert(result.contains("COALESCE(a1.mang_advertiser_status, \"NA\") mang_advertiser_status"), "Should support “NA” for NULL string")
+    println(result)
+
+    val expected =
+      s"""
+        |SELECT mang_day AS "Day", mang_destination_url AS "Destination URL", mang_advertiser_status AS "Advertiser Status", impressions AS "Impressions"
+        |FROM(
+        |SELECT getFormattedDate(stats_date) mang_day, getCsvEscapedString(CAST(NVL(landing_page_url, '') AS STRING)) mang_destination_url, COALESCE(a1.mang_advertiser_status, "NA") mang_advertiser_status, SUM(impressions) AS impressions
+        |FROM(SELECT account_id, landing_page_url, stats_date, SUM(impressions) impressions
+        |FROM s_stats_fact
+        |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+        |GROUP BY account_id, landing_page_url, stats_date
+        |
+        |       )
+        |ssf0
+        |LEFT OUTER JOIN (
+        |SELECT decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_advertiser_status, id a1_id
+        |FROM advertiser_hive
+        |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+        |)
+        |a1
+        |ON
+        |ssf0.account_id = a1.a1_id
+        |
+        |GROUP BY getFormattedDate(stats_date), getCsvEscapedString(CAST(NVL(landing_page_url, '') AS STRING)), COALESCE(a1.mang_advertiser_status, "NA")
+        |ORDER BY impressions ASC)
+        |
+      """.stripMargin
+
   }
 
   test("Query with request DecType fields that contains max and min should return query with max and min range") {
@@ -231,7 +261,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
@@ -246,11 +276,11 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    assert(result.contains("NVL(mang_source, '')"), "No constant field in concatenated columns")
+    assert(result.contains("NVL(CAST(mang_source AS STRING), ''))"), "No constant field in concatenated columns")
     assert(result.contains("'2' mang_source"), "No constant field in outer columns")
   }
 
@@ -262,7 +292,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
@@ -278,7 +308,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
@@ -293,7 +323,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
@@ -308,15 +338,15 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
     val expected =
       s"""
-         |SELECT CONCAT_WS(",",NVL(mang_day, ''), NVL(advertiser_id, ''), NVL(campaign_id, ''), NVL(ad_group_id, ''), NVL(keyword_id, ''), NVL(mang_keyword, ''), NVL(mang_search_term, ''), NVL(mang_delivered_match_type, ''), NVL(mang_impressions, ''), NVL(mang_average_cpc, ''))
+         |SELECT CONCAT_WS(",",NVL(CAST(mang_day AS STRING), ''), NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(campaign_id AS STRING), ''), NVL(CAST(ad_group_id AS STRING), ''), NVL(CAST(keyword_id AS STRING), ''), NVL(CAST(mang_keyword AS STRING), ''), NVL(CAST(mang_search_term AS STRING), ''), NVL(CAST(mang_delivered_match_type AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_average_cpc AS STRING), ''))
          |FROM(
-         |SELECT getFormattedDate(stats_date) mang_day, CAST(COALESCE(account_id, 0L) as STRING) advertiser_id, CAST(COALESCE(campaign_id, 0L) as STRING) campaign_id, CAST(COALESCE(ad_group_id, 0L) as STRING) ad_group_id, CAST(COALESCE(keyword_id, 0L) as STRING) keyword_id, getCsvEscapedString(CAST(NVL(keyword, '') AS STRING)) mang_keyword, COALESCE(search_term, "None") mang_search_term, CAST(COALESCE(delivered_match_type, 0L) as STRING) mang_delivered_match_type, CAST(COALESCE(impressions, 0L) as STRING) mang_impressions, CAST(ROUND(COALESCE((CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END), 0L), 10) as STRING) mang_average_cpc
+         |SELECT getFormattedDate(stats_date) mang_day, COALESCE(account_id, 0L) advertiser_id, COALESCE(campaign_id, 0L) campaign_id, COALESCE(ad_group_id, 0L) ad_group_id, COALESCE(keyword_id, 0L) keyword_id, getCsvEscapedString(CAST(NVL(keyword, '') AS STRING)) mang_keyword, COALESCE(search_term, 'None') mang_search_term, COALESCE(delivered_match_type, 0L) mang_delivered_match_type, COALESCE(impressions, 0L) mang_impressions, ROUND(COALESCE((CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END), 0L), 10) mang_average_cpc
          |FROM(SELECT CASE WHEN (delivered_match_type IN (1)) THEN 'Exact' WHEN (delivered_match_type IN (2)) THEN 'Broad' WHEN (delivered_match_type IN (3)) THEN 'Phrase' ELSE 'UNKNOWN' END delivered_match_type, stats_date, keyword, ad_group_id, search_term, account_id, campaign_id, keyword_id, SUM(impressions) impressions, SUM(clicks) clicks, SUM(spend) spend
          |FROM s_stats_fact
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -324,7 +354,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |
           |       )
          |ssf0
-         |)
+         |ORDER BY mang_impressions ASC) queryAlias LIMIT 100
          |
         """.stripMargin
 
@@ -342,7 +372,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
 
     assert(requestModel.toOption.get.anyDimHasNonFKNonForceFilter == true)
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
@@ -360,7 +390,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
 
     assert(requestModel.toOption.get.anyDimHasNonFKNonForceFilter == false)
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
@@ -376,27 +406,36 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
 
+    println(result)
     assert(result.contains("(lower(campaign_name) LIKE lower('%yahoo%'))"))
     val expected =
       s"""
-         |SELECT CONCAT_WS(",",NVL(mang_day, ''), NVL(advertiser_id, ''), NVL(campaign_id, ''), NVL(mang_campaign_name, ''), NVL(ad_group_id, ''), NVL(keyword_id, ''), NVL(mang_keyword, ''), NVL(mang_search_term, ''), NVL(mang_delivered_match_type, ''), NVL(mang_impressions, ''), NVL(mang_average_cpc_cents, ''), NVL(mang_average_cpc, ''))
+         |SELECT CONCAT_WS(",",NVL(CAST(mang_day AS STRING), ''), NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(campaign_id AS STRING), ''), NVL(CAST(mang_campaign_name AS STRING), ''), NVL(CAST(ad_group_id AS STRING), ''), NVL(CAST(keyword_id AS STRING), ''), NVL(CAST(mang_keyword AS STRING), ''), NVL(CAST(mang_search_term AS STRING), ''), NVL(CAST(mang_delivered_match_type AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_average_cpc_cents AS STRING), ''), NVL(CAST(mang_average_cpc AS STRING), ''))
          |FROM(
-         |SELECT getFormattedDate(stats_date) mang_day, CAST(COALESCE(account_id, 0L) as STRING) advertiser_id, CAST(COALESCE(ssf0.campaign_id, 0L) as STRING) campaign_id, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(ad_group_id, 0L) as STRING) ad_group_id, CAST(COALESCE(keyword_id, 0L) as STRING) keyword_id, getCsvEscapedString(CAST(NVL(keyword, '') AS STRING)) mang_keyword, COALESCE(search_term, "None") mang_search_term, CAST(COALESCE(delivered_match_type, 0L) as STRING) mang_delivered_match_type, CAST(COALESCE(impressions, 0L) as STRING) mang_impressions, CAST(ROUND(COALESCE((mang_average_cpc * 100), 0L), 10) as STRING) mang_average_cpc_cents, CAST(ROUND(COALESCE(mang_average_cpc, 0L), 10) as STRING) mang_average_cpc
+         |SELECT getFormattedDate(stats_date) mang_day, COALESCE(account_id, 0L) advertiser_id, COALESCE(ssf0.campaign_id, 0L) campaign_id, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(ad_group_id, 0L) ad_group_id, COALESCE(keyword_id, 0L) keyword_id, getCsvEscapedString(CAST(NVL(keyword, '') AS STRING)) mang_keyword, COALESCE(search_term, 'None') mang_search_term, COALESCE(delivered_match_type, 0L) mang_delivered_match_type, COALESCE(impressions, 0L) mang_impressions, ROUND(COALESCE((mang_average_cpc * 100), 0L), 10) mang_average_cpc_cents, ROUND(COALESCE(mang_average_cpc, 0L), 10) mang_average_cpc
          |FROM(SELECT CASE WHEN (delivered_match_type IN (1)) THEN 'Exact' WHEN (delivered_match_type IN (2)) THEN 'Broad' WHEN (delivered_match_type IN (3)) THEN 'Phrase' ELSE 'UNKNOWN' END delivered_match_type, stats_date, keyword, ad_group_id, search_term, account_id, campaign_id, keyword_id, SUM(impressions) impressions, (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) mang_average_cpc
          |FROM s_stats_fact
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
          |GROUP BY CASE WHEN (delivered_match_type IN (1)) THEN 'Exact' WHEN (delivered_match_type IN (2)) THEN 'Broad' WHEN (delivered_match_type IN (3)) THEN 'Phrase' ELSE 'UNKNOWN' END, stats_date, keyword, ad_group_id, search_term, account_id, campaign_id, keyword_id
          |
- |       )
+         |       )
          |ssf0
          |JOIN (
          |SELECT campaign_name AS mang_campaign_name, id c1_id
          |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345) AND (lower(campaign_name) LIKE lower('%yahoo%'))
+         |)
+         |c1
+         |ON
+         |ssf0.campaign_id = c1.c1_id
+         |
+         |ORDER BY mang_impressions ASC)
+         |
          |""".stripMargin
 
     whiteSpaceNormalised.normalized(result) should startWith(whiteSpaceNormalised.normalized(expected))
@@ -410,7 +449,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
@@ -466,7 +505,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
@@ -475,7 +514,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     assert(result.contains("GROUP BY modified_bid, CASE WHEN (bid_strategy IN (1)) THEN 'Max Click' WHEN (bid_strategy IN (2)) THEN 'Inflection Point' ELSE 'NONE' END, ad_group_id, account_id, campaign_id, current_bid, (modified_bid - current_bid) / current_bid * 100"))
   }
 
-  test("HiveQueryGeneratorV1Test: should fail to generate Hive query for Outer Filters") {
+  test("HiveQueryGeneratorv2Test: should fail to generate Hive query for Outer Filters") {
     val jsonString =
       s"""
          |{
@@ -527,7 +566,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("Outer Filters on Hive Query should fail to get the query pipeline"))
     assert(queryPipelineTry.failed.get.getMessage.contains("Failed to find best candidate"))
   }
@@ -555,15 +594,15 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
 
     val expected =
       s"""
-         |SELECT CONCAT_WS(",",NVL(device_id, ''), NVL(advertiser_id, ''), NVL(mang_impressions, ''), NVL(mang_pricing_type, ''), NVL(network_id, ''))
+         |SELECT CONCAT_WS(",",NVL(CAST(device_id AS STRING), ''), NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_pricing_type AS STRING), ''), NVL(CAST(network_id AS STRING), ''))
          |FROM(
-         |SELECT CAST(COALESCE(device_id, 0L) as STRING) device_id, CAST(COALESCE(account_id, 0L) as STRING) advertiser_id, CAST(COALESCE(impressions, 0L) as STRING) mang_impressions, CAST(COALESCE(price_type, 0L) as STRING) mang_pricing_type, COALESCE(network_type, "NA") network_id
+         |SELECT COALESCE(device_id, 0L) device_id, COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 0L) mang_impressions, COALESCE(price_type, 0L) mang_pricing_type, COALESCE(network_type, 'NA') network_id
          |FROM(SELECT decodeUDF(network_type, 'TEST_PUBLISHER', 'Test Publisher', 'CONTENT_S', 'Content Secured', 'EXTERNAL', 'External Partners', 'INTERNAL', 'Internal Properties', 'NONE') network_type, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, account_id, CASE WHEN (device_id IN (11)) THEN 'Desktop' WHEN (device_id IN (22)) THEN 'Tablet' WHEN (device_id IN (33)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END device_id, SUM(impressions) impressions
          |FROM s_stats_fact
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -571,7 +610,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |
          |       )
          |ssf0
-         |)
+         |) queryAlias LIMIT 200
       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
@@ -598,8 +637,9 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, "Querypipeline containing fields with MAX rollup should generate successfully")
+    println(queryPipelineTry.get.queryChain.drivingQuery.asString)
   }
 
   test("where clause: ensure duplicate filter mappings are not propagated into the where clause") {
@@ -628,15 +668,15 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
     assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
 
     val expected =
       s"""
-         |SELECT CONCAT_WS(",",NVL(device_id, ''), NVL(advertiser_id, ''), NVL(mang_impressions, ''), NVL(mang_pricing_type, ''), NVL(network_id, ''))
+         |SELECT CONCAT_WS(",",NVL(CAST(device_id AS STRING), ''), NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_pricing_type AS STRING), ''), NVL(CAST(network_id AS STRING), ''))
          |FROM(
-         |SELECT CAST(COALESCE(device_id, 0L) as STRING) device_id, CAST(COALESCE(account_id, 0L) as STRING) advertiser_id, CAST(COALESCE(impressions, 0L) as STRING) mang_impressions, CAST(COALESCE(price_type, 0L) as STRING) mang_pricing_type, COALESCE(network_type, "NA") network_id
+         |SELECT COALESCE(device_id, 0L) device_id, COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 0L) mang_impressions, COALESCE(price_type, 0L) mang_pricing_type, COALESCE(network_type, 'NA') network_id
          |FROM(SELECT CASE WHEN (device_id IN (11)) THEN 'Desktop' WHEN (device_id IN (22)) THEN 'Tablet' WHEN (device_id IN (33)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END device_id, decodeUDF(network_type, 'TEST_PUBLISHER', 'Test Publisher', 'CONTENT_S', 'Content Secured', 'EXTERNAL', 'External Partners', 'INTERNAL', 'Internal Properties', 'NONE') network_type, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, account_id, SUM(impressions) impressions
          |FROM s_stats_fact
          |WHERE (account_id = 12345) AND (stats_source = 2) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -644,21 +684,21 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |
          |       )
          |ssf0
-         |)
+         |)  queryAlias LIMIT 200
       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("fact only query context should be switched to CombinedQueryContext") {
-    val hiveQueryGeneratorV1  = spy(new HiveQueryGeneratorV1(DefaultPartitionColumnRenderer, TestUDFRegistrationFactory()))
+    val hiveQueryGeneratorV2  = spy(new HiveQueryGeneratorV2(DefaultPartitionColumnRenderer, TestUDFRegistrationFactory()))
     val queryContext = mock(classOf[FactQueryContext])
     try {
-      hiveQueryGeneratorV1.generate(queryContext)
+      hiveQueryGeneratorV2.generate(queryContext)
     } catch {
       case e: Exception => // Ignore
     }
 
-    verify(hiveQueryGeneratorV1).generateQuery(any(classOf[CombinedQueryContext]))
+    verify(hiveQueryGeneratorV2).generate(any(classOf[CombinedQueryContext]))
   }
 
   test("Duplicate registration of the generator") {
@@ -680,7 +720,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     failRegistry.register(OracleEngine, dummyHiveQueryGenerator)
     failRegistry.register(DruidEngine, dummyFalseQueryGenerator)
 
-    HiveQueryGeneratorV1.register(failRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
+    HiveQueryGeneratorV2.register(failRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
   }
 
 
@@ -707,32 +747,35 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                            ]
                            }""".stripMargin
 
-    val result = generateHiveQuery(jsonString)
+    val result = generateHiveQuery(jsonString, defaultRegistry)
+
     val expected =
-      s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_spend, ''))
-    |FROM(
-    |SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-    |FROM(
-    |SELECT c1.mang_campaign_name,SUM(spend) spend
-    |FROM(SELECT campaign_id, SUM(spend) spend
-    |FROM ad_fact1
-    |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-    |GROUP BY campaign_id
-    |
-    |       )
-    |af0
-    |LEFT OUTER JOIN (
-    |SELECT campaign_name AS mang_campaign_name, id c1_id
-    |FROM campaing_hive
-    |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-    |)
-    |c1
-    |ON
-    |af0.campaign_id = c1.c1_id
-    |
-    |GROUP BY c1.mang_campaign_name) outergroupby
-    |)""".stripMargin
-    println(result)
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, spend AS mang_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, SUM(spend) AS spend
+         |FROM(SELECT campaign_id, SUM(spend) spend
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id
+         |
+         |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING))
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+         """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -761,31 +804,35 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                            ]
                            }""".stripMargin
 
-    val result = generateHiveQuery(jsonString)
+    val result = generateHiveQuery(jsonString, defaultRegistry)
     val expected =
-      s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_source, ''), NVL(mang_n_spend, ''))
-    FROM(
-    SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(stats_source, 0L) as STRING) mang_source, CAST(ROUND(COALESCE(decodeUDF(stats_source, 1, spend, 0.0), 0L), 10) as STRING) mang_n_spend
-    FROM(
-    SELECT c1.mang_campaign_name,af0.stats_source,SUM(spend) spend
-    FROM(SELECT campaign_id, stats_source, SUM(spend) spend
-    FROM ad_fact1
-    WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-    GROUP BY campaign_id, stats_source
-
-           )
-    af0
-    LEFT OUTER JOIN (
-    SELECT campaign_name AS mang_campaign_name, id c1_id
-    FROM campaing_hive
-    WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-    )
-    c1
-    ON
-    af0.campaign_id = c1.c1_id
-
-    GROUP BY c1.mang_campaign_name,af0.stats_source) outergroupby
-    )""".stripMargin
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_source,'') AS STRING),CAST(NVL(mang_n_spend,'') AS STRING))
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, mang_source AS mang_source, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(stats_source, 0L) mang_source, SUM(spend) AS spend, stats_source AS stats_source
+         |FROM(SELECT campaign_id, stats_source, SUM(spend) spend
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id, stats_source
+         |
+         |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(stats_source, 0L), stats_source
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+         |
+       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -815,31 +862,34 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
-    val result = generateHiveQuery(jsonString)
+    val result = generateHiveQuery(jsonString, defaultRegistry)
     val expected =
-      s"""SELECT CONCAT_WS(",",NVL(mang_day, ''), NVL(mang_campaign_name, ''), NVL(mang_spend, ''))
-      FROM(
-      SELECT getFormattedDate(stats_date) mang_day, getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-      FROM(
-      SELECT af0.stats_date,c1.mang_campaign_name,SUM(spend) spend
-      FROM(SELECT campaign_id, stats_date, SUM(spend) spend
-      FROM ad_fact1
-      WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-      GROUP BY campaign_id, stats_date
-
-             )
-      af0
-      LEFT OUTER JOIN (
-      SELECT campaign_name AS mang_campaign_name, id c1_id
-      FROM campaing_hive
-      WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-      )
-      c1
-      ON
-      af0.campaign_id = c1.c1_id
-
-      GROUP BY af0.stats_date,c1.mang_campaign_name) outergroupby
-      )""".stripMargin
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_day,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
+         |FROM(
+         |SELECT mang_day AS mang_day, mang_campaign_name AS mang_campaign_name, spend AS mang_spend
+         |FROM(
+         |SELECT getFormattedDate(stats_date) mang_day, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, SUM(spend) AS spend
+         |FROM(SELECT campaign_id, stats_date, SUM(spend) spend
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id, stats_date
+         |
+         |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getFormattedDate(stats_date), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING))
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -869,38 +919,42 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
-    val result = generateHiveQuery(jsonString)
-    val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_advertiser_currency, ''), NVL(mang_spend, ''))
-      FROM(
-      SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(outergroupby.mang_advertiser_currency, "NA") mang_advertiser_currency, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-      FROM(
-      SELECT c2.mang_campaign_name,a1.mang_advertiser_currency,SUM(spend) spend
-      FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend
-      FROM ad_fact1
-      WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-      GROUP BY advertiser_id, campaign_id
-
-             )
-      af0
-      LEFT OUTER JOIN (
-      SELECT currency AS mang_advertiser_currency, id a1_id
-      FROM advertiser_hive
-      WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
-      )
-      a1
-      ON
-      af0.advertiser_id = a1.a1_id
-             LEFT OUTER JOIN (
-      SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
-      FROM campaing_hive
-      WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-      )
-      c2
-      ON
-      af0.campaign_id = c2.c2_id
-
-      GROUP BY c2.mang_campaign_name,a1.mang_advertiser_currency) outergroupby
-      )""".stripMargin
+    val result = generateHiveQuery(jsonString, defaultRegistry)
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_advertiser_currency,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, mang_advertiser_currency AS mang_advertiser_currency, spend AS mang_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a1.mang_advertiser_currency, 'NA') mang_advertiser_currency, SUM(spend) AS spend
+         |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY advertiser_id, campaign_id
+         |
+         |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT currency AS mang_advertiser_currency, id a1_id
+         |FROM advertiser_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |af0.advertiser_id = a1.a1_id
+         |       LEFT OUTER JOIN (
+         |SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c2
+         |ON
+         |af0.campaign_id = c2.c2_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)), COALESCE(a1.mang_advertiser_currency, 'NA')
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -935,8 +989,14 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
-    val result = generateHiveQuery(jsonString)
-    assert(!result.contains("outergroupby"))
+    val result = generateHiveQuery(jsonString, defaultRegistry)
+    assert(!result.contains("OgbQueryAlias"))
+
+    println(result)
+    val expected =
+      """
+        |
+      """.stripMargin
   }
 
   test("Successfully generated Outer Group By Query with 2 dimension non id fields and and two fact transitively dependent cols") {
@@ -975,38 +1035,42 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
-    val result = generateHiveQuery(jsonString)
-    val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_advertiser_currency, ''), NVL(mang_average_cpc_cents, ''), NVL(mang_average_cpc, ''), NVL(mang_spend, ''))
-      |FROM(
-      |SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(outergroupby.mang_advertiser_currency, "NA") mang_advertiser_currency, CAST(ROUND(COALESCE((CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100, 0L), 10) as STRING) mang_average_cpc_cents, CAST(ROUND(COALESCE(CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END, 0L), 10) as STRING) mang_average_cpc, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-      |FROM(
-      |SELECT c2.mang_campaign_name,a1.mang_advertiser_currency,SUM(clicks) clicks,SUM(spend) spend
-      |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks
-      |FROM ad_fact1
-      |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-      |GROUP BY advertiser_id, campaign_id
-      |
-      |       )
-      |af0
-      |LEFT OUTER JOIN (
-      |SELECT currency AS mang_advertiser_currency, id a1_id
-      |FROM advertiser_hive
-      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
-      |)
-      |a1
-      |ON
-      |af0.advertiser_id = a1.a1_id
-      |      LEFT OUTER JOIN (
-      |SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
-      |FROM campaing_hive
-      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-      |)
-      |c2
-      |ON
-      |af0.campaign_id = c2.c2_id
-      |
-      |GROUP BY c2.mang_campaign_name,a1.mang_advertiser_currency) outergroupby
-      |)""".stripMargin
+    val result = generateHiveQuery(jsonString, defaultRegistry)
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_advertiser_currency,'') AS STRING),CAST(NVL(mang_average_cpc_cents,'') AS STRING),CAST(NVL(mang_average_cpc,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, mang_advertiser_currency AS mang_advertiser_currency, (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS mang_average_cpc_cents, CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS mang_average_cpc, spend AS mang_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a1.mang_advertiser_currency, 'NA') mang_advertiser_currency, SUM(spend) AS spend, SUM(clicks) AS clicks
+         |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY advertiser_id, campaign_id
+         |
+         |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT currency AS mang_advertiser_currency, id a1_id
+         |FROM advertiser_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |af0.advertiser_id = a1.a1_id
+         |       LEFT OUTER JOIN (
+         |SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c2
+         |ON
+         |af0.campaign_id = c2.c2_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)), COALESCE(a1.mang_advertiser_currency, 'NA')
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -1039,38 +1103,42 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
-    val result = generateHiveQuery(jsonString)
-    val expected = s"""SELECT CONCAT_WS(",",NVL(mang_ad_status, ''), NVL(mang_campaign_name, ''), NVL(campaign_id, ''), NVL(mang_spend, ''))
-      |FROM(
-      |SELECT COALESCE(outergroupby.mang_ad_status, "NA") mang_ad_status, getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(campaign_id, 0L) as STRING) campaign_id, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-      |FROM(
-      |SELECT a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id,SUM(spend) spend
-      |FROM(SELECT campaign_id, ad_id, SUM(spend) spend
-      |FROM ad_fact1
-      |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-      |GROUP BY campaign_id, ad_id
-      |
-      |       )
-      |af0
-      |LEFT OUTER JOIN (
-      |SELECT campaign_name AS mang_campaign_name, id c1_id
-      |FROM campaing_hive
-      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-      |)
-      |c1
-      |ON
-      |af0.campaign_id = c1.c1_id
-      |      LEFT OUTER JOIN (
-      |SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
-      |FROM ad_dim_hive
-      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-      |)
-      |a2
-      |ON
-      |af0.ad_id = a2.a2_id
-      |
-      |GROUP BY a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id) outergroupby
-      |)""".stripMargin
+    val result = generateHiveQuery(jsonString, defaultRegistry)
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_ad_status,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(campaign_id,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
+         |FROM(
+         |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend
+         |FROM(
+         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(campaign_id, 0L) campaign_id, SUM(spend) AS spend
+         |FROM(SELECT campaign_id, ad_id, SUM(spend) spend
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id, ad_id
+         |
+         |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |       LEFT OUTER JOIN (
+         |SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
+         |FROM ad_dim_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |a2
+         |ON
+         |af0.ad_id = a2.a2_id
+         |
+         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(campaign_id, 0L)
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -1098,30 +1166,34 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
-    val result = generateHiveQuery(jsonString)
-    val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_average_cpc, ''), NVL(mang_spend, ''))
-      |FROM(
-      |SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END, 0L), 10) as STRING) mang_average_cpc, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-      |FROM(
-      |SELECT c1.mang_campaign_name,SUM(clicks) clicks,SUM(spend) spend
-      |FROM(SELECT campaign_id, SUM(spend) spend, SUM(clicks) clicks
-      |FROM ad_fact1
-      |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-      |GROUP BY campaign_id
-      |
-      |       )
-      |af0
-      |LEFT OUTER JOIN (
-      |SELECT campaign_name AS mang_campaign_name, id c1_id
-      |FROM campaing_hive
-      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-      |)
-      |c1
-      |ON
-      |af0.campaign_id = c1.c1_id
-      |
-      |GROUP BY c1.mang_campaign_name) outergroupby
-      |)""".stripMargin
+    val result = generateHiveQuery(jsonString, defaultRegistry)
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_average_cpc,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS mang_average_cpc, spend AS mang_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, SUM(spend) AS spend, SUM(clicks) AS clicks
+         |FROM(SELECT campaign_id, SUM(spend) spend, SUM(clicks) clicks
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id
+         |
+         |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING))
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -1150,30 +1222,34 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                            ]
                            }""".stripMargin
 
-    val result = generateHiveQuery(jsonString)
-    val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_average_position, ''), NVL(mang_spend, ''))
-      |FROM(
-      |SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END, 0.0), 10) as STRING) mang_average_position, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-      |FROM(
-      |SELECT c1.mang_campaign_name,(CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) avg_pos,SUM(spend) spend
-      |FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) avg_pos
-      |FROM ad_fact1
-      |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-      |GROUP BY campaign_id
-      |
-      |       )
-      |af0
-      |LEFT OUTER JOIN (
-      |SELECT campaign_name AS mang_campaign_name, id c1_id
-      |FROM campaing_hive
-      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-      |)
-      |c1
-      |ON
-      |af0.campaign_id = c1.c1_id
-      |
-      |GROUP BY c1.mang_campaign_name) outergroupby
-      |)""".stripMargin
+    val result = generateHiveQuery(jsonString, defaultRegistry)
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_average_position,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, avg_pos AS mang_average_position, spend AS mang_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(impressions) AS impressions
+         |FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id
+         |
+         |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING))
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -1204,30 +1280,34 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
-    val result = generateHiveQuery(jsonString)
-    val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_average_position, ''), NVL(mang_average_cpc, ''), NVL(mang_spend, ''))
-      |FROM(
-      |SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(ROUND(COALESCE(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END, 0.0), 10) as STRING) mang_average_position, CAST(ROUND(COALESCE(CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END, 0L), 10) as STRING) mang_average_cpc, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-      |FROM(
-      |SELECT c1.mang_campaign_name,(CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) avg_pos,SUM(clicks) clicks,SUM(spend) spend
-      |FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) avg_pos, SUM(clicks) clicks
-      |FROM ad_fact1
-      |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-      |GROUP BY campaign_id
-      |
-      |)
-      |af0
-      |LEFT OUTER JOIN (
-      |SELECT campaign_name AS mang_campaign_name, id c1_id
-      |FROM campaing_hive
-      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-      |)
-      |c1
-      |ON
-      |af0.campaign_id = c1.c1_id
-      |
-      |GROUP BY c1.mang_campaign_name) outergroupby
-      |)""".stripMargin
+    val result = generateHiveQuery(jsonString, defaultRegistry)
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_average_position,'') AS STRING),CAST(NVL(mang_average_cpc,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, avg_pos AS mang_average_position, CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS mang_average_cpc, spend AS mang_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(impressions) AS impressions
+         |FROM(SELECT campaign_id, SUM(spend) spend, SUM(clicks) clicks, SUM(impressions) impressions
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id
+         |
+         |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING))
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -1258,30 +1338,34 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
-    val result = generateHiveQuery(jsonString)
-    val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(advertiser_id, ''), NVL(mang_n_average_cpc, ''), NVL(mang_spend, ''))
-      |FROM(
-      |SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(advertiser_id, 0L) as STRING) advertiser_id, CAST(ROUND(COALESCE(CASE WHEN decodeUDF(stats_source, 1, clicks, 0.0) = 0 THEN 0.0 ELSE decodeUDF(stats_source, 1, spend, 0.0) / decodeUDF(stats_source, 1, clicks, 0.0) END, 0L), 10) as STRING) mang_n_average_cpc, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-      |FROM(
-      |SELECT c1.mang_campaign_name,af0.advertiser_id,af0.stats_source,SUM(clicks) clicks,SUM(spend) spend
-      |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend, stats_source, SUM(clicks) clicks
-      |FROM ad_fact1
-      |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-      |GROUP BY advertiser_id, campaign_id, stats_source
-      |
-      |       )
-      |af0
-      |LEFT OUTER JOIN (
-      |SELECT campaign_name AS mang_campaign_name, id c1_id
-      |FROM campaing_hive
-      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-      |)
-      |c1
-      |ON
-      |af0.campaign_id = c1.c1_id
-      |
-      |GROUP BY c1.mang_campaign_name,af0.advertiser_id,af0.stats_source) outergroupby
-      |)""".stripMargin
+    val result = generateHiveQuery(jsonString, defaultRegistry)
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(advertiser_id,'') AS STRING),CAST(NVL(mang_n_average_cpc,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, advertiser_id AS advertiser_id, CASE WHEN decodeUDF(stats_source, 1, clicks, 0.0) = 0 THEN 0.0 ELSE decodeUDF(stats_source, 1, spend, 0.0) / decodeUDF(stats_source, 1, clicks, 0.0) END AS mang_n_average_cpc, spend AS mang_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(advertiser_id, 0L) advertiser_id, SUM(spend) AS spend, SUM(clicks) AS clicks, COALESCE(stats_source, 0L) stats_source
+         |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks, stats_source
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY advertiser_id, campaign_id
+         |
+         |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(advertiser_id, 0L), COALESCE(stats_source, 0L)
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -1309,30 +1393,34 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
-    val result = generateHiveQuery(jsonString)
-    val expected = s"""SELECT CONCAT_WS(",",NVL(mang_campaign_name, ''), NVL(mang_impression_share, ''), NVL(mang_spend, ''))
-      |FROM(
-      |SELECT getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(impression_share, 0L) as STRING) mang_impression_share, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend
-      |FROM(
-      |SELECT c1.mang_campaign_name,(decodeUDF(MAX(show_flag), 1, ROUND(CASE WHEN SUM(s_impressions) = 0 THEN 0.0 ELSE SUM(impressions) / (SUM(s_impressions)) END, 4), NULL)) impression_share,SUM(spend) spend
-      |FROM(SELECT campaign_id, SUM(spend) spend, show_flag, SUM(s_impressions) s_impressions, SUM(impressions) impressions
-      |FROM ad_fact1
-      |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-      |GROUP BY campaign_id, show_flag
-      |
-      |       )
-      |af0
-      |LEFT OUTER JOIN (
-      |SELECT campaign_name AS mang_campaign_name, id c1_id
-      |FROM campaing_hive
-      |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-      |)
-      |c1
-      |ON
-      |af0.campaign_id = c1.c1_id
-      |
-      |GROUP BY c1.mang_campaign_name) outergroupby
-      |)""".stripMargin
+    val result = generateHiveQuery(jsonString, defaultRegistry)
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_impression_share,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, impression_share_rounded AS mang_impression_share, spend AS mang_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, SUM(spend) AS spend, SUM(impressions) AS impressions, SUM(s_impressions) AS s_impressions, COALESCE(show_flag, 0L) show_flag, (ROUND((decodeUDF(MAX(show_flag), 1, ROUND(CASE WHEN SUM(s_impressions) = 0 THEN 0.0 ELSE SUM(impressions) / (SUM(s_impressions)) END, 4), NULL)), 5)) AS impression_share_rounded
+         |FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions, SUM(s_impressions) s_impressions, show_flag
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id
+         |
+         |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(show_flag, 0L)
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -1370,38 +1458,42 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
-      val result = generateHiveQuery(jsonString)
-      val expected = s"""SELECT CONCAT_WS(",",NVL(mang_ad_status, ''), NVL(mang_campaign_name, ''), NVL(campaign_id, ''), NVL(mang_spend, ''), NVL(mang_engagement_rate, ''))
-FROM(
-SELECT COALESCE(outergroupby.mang_ad_status, "NA") mang_ad_status, getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(campaign_id, 0L) as STRING) campaign_id, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend, CAST(ROUND(COALESCE(100 * mathUDF(engagement_count, impressions), 0L), 10) as STRING) mang_engagement_rate
-FROM(
-SELECT a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id,SUM(spend) spend,SUM(engagement_count) engagement_count,SUM(impressions) impressions
-FROM(SELECT ad_id, campaign_id, SUM(spend) spend, SUM(engagement_count) engagement_count, SUM(impressions) impressions
-FROM ad_fact1
-WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-GROUP BY ad_id, campaign_id
-
-       )
-af0
-LEFT OUTER JOIN (
-SELECT campaign_name AS mang_campaign_name, id c1_id
-FROM campaing_hive
-WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-)
-c1
-ON
-af0.campaign_id = c1.c1_id
-       LEFT OUTER JOIN (
-SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
-FROM ad_dim_hive
-WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-)
-a2
-ON
-af0.ad_id = a2.a2_id
-
-GROUP BY a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id) outergroupby
-)""".stripMargin
+      val result = generateHiveQuery(jsonString, defaultRegistry)
+      val expected =
+        s"""
+           |SELECT CONCAT_WS(',', CAST(NVL(mang_ad_status,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(campaign_id,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING),CAST(NVL(mang_engagement_rate,'') AS STRING))
+           |FROM(
+           |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate
+           |FROM(
+           |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(campaign_id, 0L) campaign_id, SUM(spend) AS spend, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
+           |FROM(SELECT ad_id, campaign_id, SUM(spend) spend, SUM(engagement_count) engagement_count, SUM(impressions) impressions
+           |FROM ad_fact1
+           |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+           |GROUP BY ad_id, campaign_id
+           |
+           |       )
+           |af0
+           |LEFT OUTER JOIN (
+           |SELECT campaign_name AS mang_campaign_name, id c1_id
+           |FROM campaing_hive
+           |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+           |)
+           |c1
+           |ON
+           |af0.campaign_id = c1.c1_id
+           |       LEFT OUTER JOIN (
+           |SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
+           |FROM ad_dim_hive
+           |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+           |)
+           |a2
+           |ON
+           |af0.ad_id = a2.a2_id
+           |
+           |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(campaign_id, 0L)
+           |) OgbQueryAlias
+           |) queryAlias LIMIT 200
+         """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
@@ -1445,53 +1537,62 @@ GROUP BY a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id) outergroupby
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ]
                            }""".stripMargin
-    val result = generateHiveQuery(jsonString)
-    val expected = s"""SELECT CONCAT_WS(",",NVL(mang_ad_status, ''), NVL(mang_campaign_name, ''), NVL(campaign_id, ''), NVL(mang_spend, ''), NVL(mang_engagement_rate, ''), NVL(mang_paid_engagement_rate, ''))
-FROM(
-SELECT COALESCE(outergroupby.mang_ad_status, "NA") mang_ad_status, getCsvEscapedString(CAST(NVL(outergroupby.mang_campaign_name, '') AS STRING)) mang_campaign_name, CAST(COALESCE(campaign_id, 0L) as STRING) campaign_id, CAST(ROUND(COALESCE(spend, 0.0), 10) as STRING) mang_spend, CAST(ROUND(COALESCE(100 * mathUDF(engagement_count, impressions), 0L), 10) as STRING) mang_engagement_rate, CAST(ROUND(COALESCE(mang_paid_engagement_rate, 0L), 10) as STRING) mang_paid_engagement_rate
-FROM(
-SELECT a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id,SUM(spend) spend,SUM(engagement_count) engagement_count,SUM(impressions) impressions,(100 * mathUDAF(engagement_count, 0, 0, clicks, impressions)) mang_paid_engagement_rate
-FROM(SELECT ad_id, campaign_id, SUM(spend) spend, SUM(engagement_count) engagement_count, SUM(clicks) clicks, SUM(impressions) impressions
-FROM ad_fact1
-WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-GROUP BY ad_id, campaign_id
-
-       )
-af0
-LEFT OUTER JOIN (
-SELECT campaign_name AS mang_campaign_name, id c1_id
-FROM campaing_hive
-WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-)
-c1
-ON
-af0.campaign_id = c1.c1_id
-       LEFT OUTER JOIN (
-SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
-FROM ad_dim_hive
-WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-)
-a2
-ON
-af0.ad_id = a2.a2_id
-
-GROUP BY a2.mang_ad_status,c1.mang_campaign_name,af0.campaign_id) outergroupby
-)""".stripMargin
+    val result = generateHiveQuery(jsonString, defaultRegistry)
+    println(result)
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_ad_status,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(campaign_id,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING),CAST(NVL(mang_engagement_rate,'') AS STRING),CAST(NVL(mang_paid_engagement_rate,'') AS STRING))
+         |FROM(
+         |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate, 100 * mathUDAF(engagement_count, 0, 0, clicks, impressions) AS mang_paid_engagement_rate
+         |FROM(
+         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(campaign_id, 0L) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
+         |FROM(SELECT ad_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks, SUM(engagement_count) engagement_count, SUM(impressions) impressions
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY ad_id, campaign_id
+         |
+         |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |       LEFT OUTER JOIN (
+         |SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
+         |FROM ad_dim_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |a2
+         |ON
+         |af0.ad_id = a2.a2_id
+         |
+         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(campaign_id, 0L)
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+         |
+       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
-
-  def generateHiveQuery(requestJson: String): String = {
+  def getHiveReportingRequest(requestJson:String) : ReportingRequest = {
     val requestRaw = ReportingRequest.deserializeAsync(requestJson.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
-    val registry = defaultRegistry
-    val request = ReportingRequest.forceHive(requestRaw.toOption.get)
-    val requestModel = RequestModel.from(request, registry)
+    assert(requestRaw.isSuccess, "Failed to deserializeAsync RR")
+    ReportingRequest.forceHive(requestRaw.toOption.get)
+  }
+
+  def generateHiveQuery(requestJson: String, registry:Registry): String = {
+    val requestModel = RequestModel.from(getHiveReportingRequest(requestJson), registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry: Try[QueryPipeline] = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
-    assert(queryPipelineTry.isSuccess, queryPipelineTry.failed.errorMessage("Fail to get the query pipeline"))
+    val queryPipelineTry: Try[QueryPipeline] = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.failed.errorMessage(s"Fail to get the query pipeline $queryPipelineTry"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    println(s"got json $requestJson")
     println(result)
     result
   }

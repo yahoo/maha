@@ -2657,4 +2657,74 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(result.contains(expect_empty_limitspec_inner_query))
     assert(result.contains(expect_nonempty_limitspec_outer_query))
   }
+
+  test("should generate nested groupby query if expensive date time filter is present") {
+    val jsonString = s"""{
+                          "cube": "k_stats_expensive_date_time",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Clicks"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.withTimeZone(getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", "")), "America/Los_Angeles")
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+//    println(result)
+    val json = """\{"queryType":"groupBy","dataSource":\{"type":"query","query":\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"},"intervals":\{"type":"intervals","intervals":\[".*"\]},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"advertiser_id","value":"12345"}\]},"granularity":\{"type":"all"},"dimensions":\[\{"type":"extraction","dimension":"__time","outputName":"Day","outputType":"STRING","extractionFn":\{"type":"timeFormat","format":"YYYY-MM-dd HH","timeZone":"America/Los_Angeles","granularity":\{"type":"none"},"asMillis":false}}\],"aggregations":\[\{"type":"longSum","name":"Clicks","fieldName":"clicks"},\{"type":"longSum","name":"Impressions","fieldName":"impressions"}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":120},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"},"descending":false}},"intervals":\{"type":"intervals","intervals":\[".*"\]},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"Day","value":".*"},\{"type":"selector","dimension":"Day","value":".*"},\{"type":"selector","dimension":"Day","value":".*"},\{"type":"selector","dimension":"Day","value":".*"},\{"type":"selector","dimension":"Day","value":".*"},\{"type":"selector","dimension":"Day","value":".*"},\{"type":"selector","dimension":"Day","value":".*"},\{"type":"selector","dimension":"Day","value":".*"}\]}\]},"granularity":\{"type":"all"},"dimensions":\[\{"type":"default","dimension":"Day","outputName":"Day","outputType":"STRING"}\],"aggregations":\[\{"type":"longSum","name":"Clicks","fieldName":"Clicks"},\{"type":"longSum","name":"Impressions","fieldName":"Impressions"}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":120},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"},"descending":false}"""
+
+    result should fullyMatch regex json
+  }
+
+  test("should generate nested groupby query if expensive date time filter is present and inner groupby should include Day even though it's not in the original request") {
+    val jsonString = s"""{
+                          "cube": "k_stats_expensive_date_time",
+                          "selectFields": [
+                            {"field": "Clicks"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.withTimeZone(getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", "")), "America/Los_Angeles")
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+//    println(result)
+    val json = """\{"queryType":"groupBy","dataSource":\{"type":"query","query":\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"extraction","dimension":"__time","outputName":"Day","outputType":"STRING","extractionFn":\{"type":"timeFormat","format":"YYYY-MM-dd HH","timeZone":"America/Los_Angeles","granularity":\{"type":"none"\},"asMillis":false\}\}\],"aggregations":\[\{"type":"longSum","name":"Clicks","fieldName":"clicks"\},\{"type":"longSum","name":"Impressions","fieldName":"impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":120\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\},"descending":false\}\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"Day","value":".*"\},\{"type":"selector","dimension":"Day","value":".*"\},\{"type":"selector","dimension":"Day","value":".*"\},\{"type":"selector","dimension":"Day","value":".*"\},\{"type":"selector","dimension":"Day","value":".*"\},\{"type":"selector","dimension":"Day","value":".*"\},\{"type":"selector","dimension":"Day","value":".*"\},\{"type":"selector","dimension":"Day","value":".*"\}\]\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\],"aggregations":\[\{"type":"longSum","name":"Clicks","fieldName":"Clicks"\},\{"type":"longSum","name":"Impressions","fieldName":"Impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":120\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\},"descending":false\}"""
+
+    result should fullyMatch regex json
+  }
+
 }

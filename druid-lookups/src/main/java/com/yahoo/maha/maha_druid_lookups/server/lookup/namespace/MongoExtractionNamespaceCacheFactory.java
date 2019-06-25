@@ -205,15 +205,25 @@ public class MongoExtractionNamespaceCacheFactory
             MongoClient aMongoClient = mongoClientCache.get(key);
             synchronized (aMongoClient) {
                 if (mongoClientCache.containsKey(key)) {
-                    HashSet<ServerAddress> serverAddressList = new HashSet<>(aMongoClient.getServerAddressList());
-                    HashSet<ServerAddress> currentAddressList = new HashSet<>(namespace.getConnectorConfig().getServerAddressList());
-                    if (serverAddressList.equals(currentAddressList)) {
-                        mongoClient = aMongoClient;
-                        LOG.info("Using existing mongo client for namespace : %s", id);
-                    } else {
+                    HashSet<ServerAddress> serverAddressList = null;
+                    try {
+                        serverAddressList = new HashSet<>(aMongoClient.getServerAddressList());
+                    } catch (Exception e) {
+                        LOG.error(e, "Failed to get client server address list, closing");
                         LOG.info("Removing stale mongo client for namespace : %s", id);
                         mongoClientCache.remove(key);
                         aMongoClient.close();
+                    }
+                    if (serverAddressList != null) {
+                        HashSet<ServerAddress> currentAddressList = new HashSet<>(namespace.getConnectorConfig().getServerAddressList());
+                        if (serverAddressList.equals(currentAddressList)) {
+                            mongoClient = aMongoClient;
+                            LOG.info("Using existing mongo client for namespace : %s", id);
+                        } else {
+                            LOG.info("Removing stale mongo client for namespace : %s", id);
+                            mongoClientCache.remove(key);
+                            aMongoClient.close();
+                        }
                     }
                 }
             }

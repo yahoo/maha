@@ -55,7 +55,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
     val requestedCols = queryContext.requestModel.requestCols
     val columnAliasToColMap = new mutable.HashMap[String, Column]()
 
-    def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], factCandidate: FactBestCandidate): String = {
+    def renderOuterColumn(columnInfo: ColumnInfo, queryBuilderContext: QueryBuilderContext, duplicateAliasMapping: Map[String, Set[String]], factCandidate: FactBestCandidate, isOuterGroupBy: Boolean = false): (String,String) = {
 
       def renderNormalOuterColumnWithoutCasting(column: Column, finalAlias: String) : String = {
         val renderedCol = column.dataType match {
@@ -81,9 +81,9 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
         }
       }
 
-      def renderFactCol(alias: String, finalAliasOrExpression: String, col: Column, finalAlias: String): String = {
+      def renderFactCol(alias: String, finalAliasOrExpression: String, col: Column, finalAlias: String): (String,String) = {
         val postFilterAlias = renderNormalOuterColumnWithoutCasting(col, finalAliasOrExpression)
-        s"""$postFilterAlias $finalAlias"""
+        (postFilterAlias, finalAlias)
       }
 
       columnInfo match {
@@ -95,10 +95,10 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
           val publicDim = queryBuilderContext.getDimensionForColAlias(alias)
           val referredAlias = s"${queryBuilderContext.getAliasForTable(publicDim.name)}.$finalAlias"
           val postFilterAlias = renderNormalOuterColumnWithoutCasting(col, referredAlias)
-          s"""$postFilterAlias $finalAlias"""
+          (postFilterAlias, finalAlias)
         case ConstantColumnInfo(alias, value) =>
           val finalAlias = getConstantColAlias(alias)
-          s"""'$value' $finalAlias"""
+          (s"'$value'", finalAlias)
         case _ => throw new UnsupportedOperationException("Unsupported Column Type")
       }
     }
@@ -122,7 +122,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
         derivedCols.view.map(_._1.asInstanceOf[DerivedColumn]).flatMap(dc => dc.derivedExpression.sourceColumns).toSet
       derivedCols.foreach {
         case (column, alias) =>
-          renderColumnWithAlias(fact: Fact, column, alias, requiredInnerCols, false)
+          renderColumnWithAlias(fact: Fact, column, alias, requiredInnerCols, false, queryContext, queryBuilderContext, queryBuilder)
       }
     }
 
@@ -130,7 +130,11 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
                               column: Column,
                               alias: String,
                               requiredInnerCols: Set[String],
-                              isOuterColumn: Boolean): Unit = {
+                              isOuterColumn: Boolean,
+                              queryContext: QueryContext,
+                              queryBuilderContext: QueryBuilderContext,
+                              queryBuilder: QueryBuilder): Unit = {
+      val factBestCandidate = getFactBest(queryContext)
       val name = column.alias.getOrElse(column.name)
       val exp = column match {
         case any if queryBuilderContext.containsColByName(name) =>
@@ -171,7 +175,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
           queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
           s"""${renderRollupExpression(de.render(name, Map.empty), NoopRollup)} $renderedAlias"""
         case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
-          if queryContext.factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)
+          if factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)
             || de.isDimensionDriven =>
           val renderedAlias = renderColumnAlias(alias)
           queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
@@ -183,7 +187,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
               val sourceCol = fact.columnsByNameMap(src)
               //val renderedAlias = renderColumnAlias(sourceCol.name)
               val renderedAlias = sourceCol.alias.getOrElse(sourceCol.name)
-              renderColumnWithAlias(fact, sourceCol, renderedAlias, requiredInnerCols, isOuterColumn)
+              renderColumnWithAlias(fact, sourceCol, renderedAlias, requiredInnerCols, isOuterColumn, queryContext, queryBuilderContext, queryBuilder)
             case _ => //do nothing if we reference ourselves
           }
           //val renderedAlias = renderColumnAlias(alias)
@@ -232,7 +236,7 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
      * Final Query
      */
 
-    val factQueryFragment = generateFactQueryFragment(queryContext, queryBuilder, renderDerivedFactCols, renderRollupExpression, renderColumnWithAlias)
+    val factQueryFragment = generateFactQueryFragment(queryContext, queryBuilderContext, queryBuilder, renderDerivedFactCols, renderRollupExpression, renderColumnWithAlias)
     generateDimSelects(dims, queryBuilderContext, queryBuilder, requestModel, fact, factViewAlias)
 
     generateOrderByClause(queryContext, queryBuilder)
