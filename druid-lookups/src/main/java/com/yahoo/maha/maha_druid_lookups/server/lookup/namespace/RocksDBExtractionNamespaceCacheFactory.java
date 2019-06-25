@@ -18,7 +18,6 @@ import org.rocksdb.RocksDBException;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.concurrent.Callable;
 
 /**
@@ -43,10 +42,7 @@ public class RocksDBExtractionNamespaceCacheFactory
             final String id,
             final RocksDBExtractionNamespace extractionNamespace,
             final String lastVersion,
-            final Map<String, String> cache,
-            final Properties kafkaProperties,
-            final ProtobufSchemaFactory protobufSchemaFactory,
-            final String producerKafkaTopic
+            final Map<String, String> cache
     )
     {
         if(!extractionNamespace.isCacheEnabled()) {

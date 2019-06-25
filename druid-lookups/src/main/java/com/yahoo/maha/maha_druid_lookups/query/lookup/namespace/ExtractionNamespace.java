@@ -22,8 +22,4 @@ public interface ExtractionNamespace {
     String getTsColumn();
 
     boolean isCacheEnabled();
-
-    String getKafkaTopic();
-
-    String getNamespace();
 }

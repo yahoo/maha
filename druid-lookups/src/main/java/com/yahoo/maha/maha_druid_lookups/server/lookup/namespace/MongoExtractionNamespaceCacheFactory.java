@@ -26,7 +26,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import org.bson.Document;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -52,10 +51,7 @@ public class MongoExtractionNamespaceCacheFactory
             final String id,
             final MongoExtractionNamespace extractionNamespace,
             final String lastVersion,
-            final Map<String, List<String>> cache,
-            final Properties kafkaProperties,
-            final ProtobufSchemaFactory protobufSchemaFactory,
-            final String producerKafkaTopic
+            final Map<String, List<String>> cache
     ) {
         final long lastCheck = lastVersion == null ? Long.MIN_VALUE / 2 : Long.parseLong(lastVersion);
         if (!extractionNamespace.isCacheEnabled()) {

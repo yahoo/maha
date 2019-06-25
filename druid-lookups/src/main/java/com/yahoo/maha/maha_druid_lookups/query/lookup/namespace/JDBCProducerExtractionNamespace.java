@@ -16,11 +16,10 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.Objects;
 
 @JsonTypeName("mahajdbc")
-public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespace {
+public class JDBCProducerExtractionNamespace implements OnlineDatastoreExtractionNamespace {
     @JsonProperty
     private final MetadataStorageConnectorConfig connectorConfig;
     @JsonProperty
@@ -52,7 +51,7 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     public boolean isLeader = false;
 
     @JsonCreator
-    public JDBCExtractionNamespace(
+    public JDBCProducerExtractionNamespace(
             @NotNull @JsonProperty(value = "connectorConfig", required = true) final MetadataStorageConnectorConfig connectorConfig,
             @NotNull @JsonProperty(value = "table", required = true) final String table,
             @NotNull @JsonProperty(value = "columnList", required = true) final ArrayList<String> columnList,
@@ -171,7 +170,7 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        JDBCExtractionNamespace that = (JDBCExtractionNamespace) o;
+        JDBCProducerExtractionNamespace that = (JDBCProducerExtractionNamespace) o;
         return isCacheEnabled() == that.isCacheEnabled() &&
                 Objects.equals(getConnectorConfig(), that.getConnectorConfig()) &&
                 Objects.equals(getTable(), that.getTable()) &&

@@ -3,12 +3,17 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.google.inject.Inject;
+import com.google.protobuf.Message;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCProducerExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.RowMapper;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.tweak.HandleCallback;
@@ -18,6 +23,7 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -25,14 +31,17 @@ import java.util.concurrent.ConcurrentMap;
 /**
  *
  */
-public class JDBCExtractionNamespaceCacheFactory
-        implements ExtractionNamespaceCacheFactory<JDBCExtractionNamespace, List<String>> {
-    private static final Logger LOG = new Logger(JDBCExtractionNamespaceCacheFactory.class);
+public class JDBCProducerExtractionNamespaceCacheFactory
+        implements ExtractionNamespaceCacheFactory<JDBCProducerExtractionNamespace, List<String>> {
+    private static final Logger LOG = new Logger(JDBCProducerExtractionNamespaceCacheFactory.class);
     private static final String COMMA_SEPARATOR = ",";
     private static final String FIRST_TIME_CACHING_WHERE_CLAUSE = " WHERE LAST_UPDATED <= :lastUpdatedTimeStamp";
     private static final String SUBSEQUENT_CACHING_WHERE_CLAUSE = " WHERE LAST_UPDATED > :lastUpdatedTimeStamp";
     private static final int FETCH_SIZE = 10000;
     private final ConcurrentMap<String, DBI> dbiCache = new ConcurrentHashMap<>();
+
+    private KafkaProducer<String, byte[]> kafkaProducer = null;
+
     @Inject
     LookupService lookupService;
     @Inject
@@ -41,10 +50,23 @@ public class JDBCExtractionNamespaceCacheFactory
     @Override
     public Callable<String> getCachePopulator(
             final String id,
-            final JDBCExtractionNamespace extractionNamespace,
+            final JDBCProducerExtractionNamespace extractionNamespace,
             final String lastVersion,
             final Map<String, List<String>> cache
     ) {
+        return getCachePopulator(id, extractionNamespace, lastVersion, cache, null, null);
+    }
+
+    public Callable<String> getCachePopulator(
+            final String id,
+            final JDBCProducerExtractionNamespace extractionNamespace,
+            final String lastVersion,
+            final Map<String, List<String>> cache,
+            final Properties kafkaProperties,
+            final ProtobufSchemaFactory protobufSchemaFactory
+    ) {
+        final String producerKafkaTopic = extractionNamespace.getKafkaTopic();
+
         final long lastCheck = lastVersion == null ? Long.MIN_VALUE / 2 : Long.parseLong(lastVersion);
         if (!extractionNamespace.isCacheEnabled()) {
             return new Callable<String>() {
@@ -70,10 +92,15 @@ public class JDBCExtractionNamespaceCacheFactory
                 final DBI dbi = ensureDBI(id, extractionNamespace);
 
                 LOG.debug("Updating [%s]", id);
+
+                kafkaProducer = ensureKafkaProducer(kafkaProperties);
                 dbi.withHandle(
                         new HandleCallback<Void>() {
                             @Override
                             public Void withHandle(Handle handle) throws Exception {
+
+                                Message.Builder messageBuilder = protobufSchemaFactory.getProtobufMessageBuilder(extractionNamespace.getLookupName());
+
                                 String query = String.format("SELECT %s FROM %s",
                                         String.join(COMMA_SEPARATOR, extractionNamespace.getColumnList()),
                                         extractionNamespace.getTable()
@@ -97,6 +124,17 @@ public class JDBCExtractionNamespaceCacheFactory
                                                     extractionNamespace.getPreviousLastUpdateTimestamp())
                                             .list();
                                 }
+                                if(extractionNamespace.getIsLeader()) {
+                                    Message message = messageBuilder.build();
+                                    LOG.info("Producing key[%s] val[%s]", extractionNamespace.getTable(), message);
+                                    LOG.info("Leader mode enabled on node.  Duplicating lookup record to Kafka Topic " + producerKafkaTopic);
+                                    ProducerRecord<String, byte[]> producerRecord =
+                                            new ProducerRecord<>(producerKafkaTopic, extractionNamespace.getTable(), message.toByteArray());
+                                    kafkaProducer.send(producerRecord);
+                                } else {
+                                    LOG.info("Leader disabled on node.  Using default read/write functionality.");
+                                }
+
                                 return null;
                             }
                         }
@@ -109,7 +147,21 @@ public class JDBCExtractionNamespaceCacheFactory
         };
     }
 
-    private DBI ensureDBI(String id, JDBCExtractionNamespace namespace) {
+    synchronized KafkaProducer<String, byte[]> ensureKafkaProducer(Properties kafkaProperties) {
+        if(kafkaProducer == null) {
+            kafkaProducer = new KafkaProducer<>(kafkaProperties);
+        }
+        return kafkaProducer;
+    }
+
+    public void stop() {
+        if(kafkaProducer != null) {
+            kafkaProducer.flush();
+            kafkaProducer.close();
+        }
+    }
+
+    private DBI ensureDBI(String id, JDBCProducerExtractionNamespace namespace) {
         final String key = id;
         DBI dbi = null;
         if (dbiCache.containsKey(key)) {
@@ -127,7 +179,7 @@ public class JDBCExtractionNamespaceCacheFactory
         return dbi;
     }
 
-    private Timestamp lastUpdates(String id, JDBCExtractionNamespace namespace) {
+    private Timestamp lastUpdates(String id, JDBCProducerExtractionNamespace namespace) {
         final DBI dbi = ensureDBI(id, namespace);
         final String table = namespace.getTable();
         final String tsColumn = namespace.getTsColumn();
@@ -155,13 +207,13 @@ public class JDBCExtractionNamespaceCacheFactory
     }
 
     @Override
-    public void updateCache(final JDBCExtractionNamespace extractionNamespace, final Map<String, List<String>> cache,
+    public void updateCache(final JDBCProducerExtractionNamespace extractionNamespace, final Map<String, List<String>> cache,
                             final String key, final byte[] value) {
         //No-Op
     }
 
     @Override
-    public byte[] getCacheValue(final JDBCExtractionNamespace extractionNamespace, final Map<String, List<String>> cache, final String key, final String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
+    public byte[] getCacheValue(final JDBCProducerExtractionNamespace extractionNamespace, final Map<String, List<String>> cache, final String key, final String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
         if (!extractionNamespace.isCacheEnabled()) {
             byte[] value = lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn, decodeConfigOptional));
             value = (value == null) ? new byte[0] : value;
@@ -186,7 +238,7 @@ public class JDBCExtractionNamespaceCacheFactory
         return (value == null) ? new byte[0] : value.getBytes();
     }
 
-    private byte[] handleDecode(JDBCExtractionNamespace extractionNamespace, List<String> cacheValue, DecodeConfig decodeConfig) {
+    private byte[] handleDecode(JDBCProducerExtractionNamespace extractionNamespace, List<String> cacheValue, DecodeConfig decodeConfig) {
 
         final int columnToCheckIndex = extractionNamespace.getColumnIndex(decodeConfig.getColumnToCheck());
         if (columnToCheckIndex < 0 || columnToCheckIndex >= cacheValue.size()) {
@@ -213,7 +265,7 @@ public class JDBCExtractionNamespaceCacheFactory
     }
 
     @Override
-    public String getCacheSize(final JDBCExtractionNamespace extractionNamespace, final Map<String, List<String>> cache) {
+    public String getCacheSize(final JDBCProducerExtractionNamespace extractionNamespace, final Map<String, List<String>> cache) {
         if (!extractionNamespace.isCacheEnabled()) {
             return String.valueOf(lookupService.getSize());
         }
@@ -221,7 +273,7 @@ public class JDBCExtractionNamespaceCacheFactory
     }
 
     @Override
-    public Long getLastUpdatedTime(final JDBCExtractionNamespace extractionNamespace) {
+    public Long getLastUpdatedTime(final JDBCProducerExtractionNamespace extractionNamespace) {
         if (!extractionNamespace.isCacheEnabled()) {
             return lookupService.getLastUpdatedTime(new LookupService.LookupData(extractionNamespace));
         }

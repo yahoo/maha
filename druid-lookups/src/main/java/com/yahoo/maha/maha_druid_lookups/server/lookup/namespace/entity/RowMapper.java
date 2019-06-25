@@ -4,6 +4,8 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 
 import com.metamx.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCProducerExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.OnlineDatastoreExtractionNamespace;
 import org.skife.jdbi.v2.StatementContext;
 import org.skife.jdbi.v2.tweak.ResultSetMapper;
 
@@ -16,10 +18,15 @@ import java.util.Map;
 public class RowMapper implements ResultSetMapper<Void> {
 
     private static final Logger LOG = new Logger(RowMapper.class);
-    private JDBCExtractionNamespace extractionNamespace;
+    private OnlineDatastoreExtractionNamespace extractionNamespace;
     private Map<String, List<String>> cache;
 
     public RowMapper(JDBCExtractionNamespace extractionNamespace, Map<String, List<String>> cache) {
+        this.extractionNamespace = extractionNamespace;
+        this.cache = cache;
+    }
+
+    public RowMapper(JDBCProducerExtractionNamespace extractionNamespace, Map<String, List<String>> cache) {
         this.extractionNamespace = extractionNamespace;
         this.cache = cache;
     }

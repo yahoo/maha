@@ -26,7 +26,6 @@ import javax.annotation.concurrent.GuardedBy;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -170,22 +169,19 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
     // return value means actually schedule or not
     public boolean scheduleOrUpdate(
             final String id,
-            ExtractionNamespace namespace,
-            final Properties kafkaProperties,
-            final ProtobufSchemaFactory protobufSchemaFactory,
-            final String producerKafkaTopic
+            ExtractionNamespace namespace
     ) {
         final NamespaceImplData implDatum = implData.get(id);
         if (implDatum == null) {
             // New, probably
             log.info("[%s] is new", id);
-            schedule(id, namespace, kafkaProperties, protobufSchemaFactory, producerKafkaTopic);
+            schedule(id, namespace);
             return true;
         }
         if (!implDatum.enabled.get()) {
             // Race condition. Someone else disabled it first, go ahead and reschedule
             log.info("[%s] is not new", id);
-            schedule(id, namespace, kafkaProperties, protobufSchemaFactory, producerKafkaTopic);
+            schedule(id, namespace);
             return true;
         }
 
@@ -201,19 +197,16 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
         synchronized (implDatum.changeLock) {
             removeNamespaceLocalMetadata(implDatum);
         }
-        schedule(id, namespace, kafkaProperties, protobufSchemaFactory, producerKafkaTopic);
+        schedule(id, namespace);
         return true;
     }
 
     public boolean scheduleAndWait(
             final String id,
             ExtractionNamespace namespace,
-            long waitForFirstRun,
-            final Properties kafkaProperties,
-            final ProtobufSchemaFactory protobufSchemaFactory,
-            final String producerKafkaTopic
+            long waitForFirstRun
     ) {
-        if (scheduleOrUpdate(id, namespace, kafkaProperties, protobufSchemaFactory, producerKafkaTopic)) {
+        if (scheduleOrUpdate(id, namespace)) {
             log.debug("Scheduled new namespace [%s]: %s", id, namespace);
         } else {
             log.debug("Namespace [%s] already running: %s", id, namespace);
@@ -282,16 +275,14 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
     }
 
     // Optimistic scheduling of updates to a namespace.
-    public <T extends ExtractionNamespace> ListenableFuture<?> schedule(final String id, final T namespace, final Properties kafkaProperties,
-                                                                        final ProtobufSchemaFactory protobufSchemaFactory,
-                                                                        final String producerKafkaTopic) {
+    public <T extends ExtractionNamespace> ListenableFuture<?> schedule(final String id, final T namespace) {
         final ExtractionNamespaceCacheFactory<T, U> factory = (ExtractionNamespaceCacheFactory<T, U>)
                 namespaceFunctionFactoryMap.get(namespace.getClass());
         if (factory == null) {
             throw new ISE("Cannot find factory for namespace [%s]", namespace);
         }
         final String cacheId = id;
-        return schedule(id, namespace, factory, cacheId, kafkaProperties, protobufSchemaFactory, producerKafkaTopic);
+        return schedule(id, namespace, factory, cacheId);
     }
 
     // For testing purposes this is protected
@@ -299,10 +290,7 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
             final String id,
             final T namespace,
             final ExtractionNamespaceCacheFactory<T, U> factory,
-            final String cacheId,
-            final Properties kafkaProperties,
-            final ProtobufSchemaFactory protobufSchemaFactory,
-            final String producerKafkaTopic
+            final String cacheId
     ) {
         log.info("Trying to update namespace [%s]", id);
         final NamespaceImplData implDatum = implData.get(id);
@@ -332,7 +320,7 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
                         }
                         final Map<String, U> cache = getCacheMap(cacheId);
                         final String preVersion = implData.latestVersion;
-                        final Callable<String> runnable = factory.getCachePopulator(id, namespace, preVersion, cache, kafkaProperties, protobufSchemaFactory, producerKafkaTopic);
+                        final Callable<String> runnable = factory.getCachePopulator(id, namespace, preVersion, cache);
 
                         tasksStarted.incrementAndGet();
                         final String newVersion = runnable.call();
