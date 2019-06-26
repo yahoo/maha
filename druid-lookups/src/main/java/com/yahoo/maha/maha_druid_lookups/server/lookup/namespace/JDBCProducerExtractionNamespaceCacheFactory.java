@@ -3,6 +3,7 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.google.inject.Inject;
+import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
@@ -14,6 +15,7 @@ import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.RowMappe
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.skife.jdbi.v2.DBI;
+import org.skife.jdbi.v2.DefaultMapper;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.tweak.HandleCallback;
 import org.skife.jdbi.v2.util.TimestampMapper;
@@ -113,14 +115,15 @@ public class JDBCProducerExtractionNamespaceCacheFactory
                             @Override
                             public Void withHandle(Handle handle) throws Exception {
 
+                                Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getLookupName());
                                 Message.Builder messageBuilder = protobufSchemaFactory.getProtobufMessageBuilder(extractionNamespace.getLookupName());
+                                Map<String, Object> map;
 
                                 String query = String.format("SELECT %s FROM %s",
                                         String.join(COMMA_SEPARATOR, extractionNamespace.getColumnList()),
                                         extractionNamespace.getTable()
                                 );
                                 if (extractionNamespace.isFirstTimeCaching()) {
-
                                     extractionNamespace.setFirstTimeCaching(false);
                                     query = String.format("%s %s", query, FIRST_TIME_CACHING_WHERE_CLAUSE);
                                     handle.createQuery(query).map(
@@ -128,6 +131,11 @@ public class JDBCProducerExtractionNamespaceCacheFactory
                                             .setFetchSize(FETCH_SIZE)
                                             .bind("lastUpdatedTimeStamp", lastDBUpdate)
                                             .list();
+                                    map = handle.createQuery(query)
+                                            .bind(extractionNamespace.getPrimaryKeyColumn(), extractionNamespace.getTable())
+                                            .bind("lastUpdatedTimeStamp", lastDBUpdate)
+                                            .map(new DefaultMapper())
+                                            .first();
 
                                 } else {
                                     query = String.format("%s %s", query, SUBSEQUENT_CACHING_WHERE_CLAUSE);
@@ -137,8 +145,21 @@ public class JDBCProducerExtractionNamespaceCacheFactory
                                             .bind("lastUpdatedTimeStamp",
                                                     extractionNamespace.getPreviousLastUpdateTimestamp())
                                             .list();
+                                    map = handle.createQuery(query)
+                                            .bind(extractionNamespace.getPrimaryKeyColumn(), extractionNamespace.getTable())
+                                            .bind("lastUpdatedTimeStamp",
+                                                    extractionNamespace.getPreviousLastUpdateTimestamp())
+                                            .map(new DefaultMapper())
+                                            .first();
                                 }
-                                if(extractionNamespace.getIsLeader()) {
+
+                                if(extractionNamespace.getIsLeader() && Objects.nonNull(map)) {
+                                    //Execute Kafka side of the Leader
+
+                                    descriptor.getFields()
+                                            .stream()
+                                            .forEach(fd -> messageBuilder.setField(fd, String.valueOf(map.get(fd.getName()))));
+
                                     Message message = messageBuilder.build();
                                     LOG.info("Producing key[%s] val[%s]", extractionNamespace.getTable(), message);
                                     LOG.info("Leader mode enabled on node.  Duplicating lookup record to Kafka Topic " + producerKafkaTopic);

@@ -3,7 +3,6 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.jdbc.JdbcConnection;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCProducerExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
 import com.zaxxer.hikari.HikariConfig;
@@ -12,6 +11,7 @@ import io.druid.metadata.MetadataStorageConnectorConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.joda.time.DateTime;
 import org.joda.time.Period;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -22,6 +22,7 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -52,6 +53,10 @@ public class JdbcH2QueryTest {
     private String passWord;
     private String jdbcConnectorConfig;
     private Properties kafkaProperties;
+
+    Date currentMoment = new Date();
+    DateTime currentDateTime = new DateTime(currentMoment);
+    String toDatePlusOneHour = (new SimpleDateFormat("YYYY-MM-dd HH:mm:ss")).format(currentDateTime.plusHours(1).toDate());
 
     //Mock classes, currently unused in this test suite.
     @Mock
@@ -88,7 +93,8 @@ public class JdbcH2QueryTest {
     }
 
     void insertIntoStudentTable() {
-        scala.util.Try insertResult = jdbcConnection.execute("INSERT INTO ad values ('Bobbert', 1234, 3.1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+        String insertDate = toDatePlusOneHour;
+        scala.util.Try insertResult = jdbcConnection.execute("INSERT INTO ad values ('Bobbert', 1234, 3.1, ts '" + toDatePlusOneHour + "', ts '" + toDatePlusOneHour + "')");//CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
         Assert.assertTrue(insertResult.isSuccess(), "Should be able to insert data into the new table.");
     }
 
@@ -123,21 +129,26 @@ public class JdbcH2QueryTest {
      */
     @Test
     public void testConnectJdbcToH2Lookup() {
-        scala.util.Try queryResult = jdbcConnection.queryForObject("SELECT MAX(date) from ad", (
+        scala.util.Try queryResult = jdbcConnection.queryForObject("SELECT * from ad where NAME = 'Bobbert'", (
                 rs -> {
                     try {
-                        String name = rs.getString(0);
-                        long id = rs.getLong(1);
-                        Float gpa = rs.getFloat(2);
+                        if(rs.isBeforeFirst())
+                            rs.next();
+
+                        String name = rs.getString("name");
+                        long id = rs.getLong("id");
+                        Float gpa = rs.getFloat("gpa");
+                        Timestamp ts = rs.getTimestamp("last_updated");
                         Assert.assertEquals(name, "Bobbert", "");
                         Assert.assertEquals((Object)id, 1234L, "");
-                        Assert.assertEquals(gpa, 3.1, "");
+                        Assert.assertEquals(gpa, 3.1F, "");
+                        System.err.println("Inserted data TS is: " + ts.toString());
                         return null;
                     } catch (SQLException e) {
                         return new scala.util.Failure(e);
                     }
                 }));
-        Assert.assertTrue(queryResult.isSuccess(), "Should be able to query the advertiser table.");
+        Assert.assertTrue(queryResult.isSuccess(), "Should be able to query the advertiser table." + queryResult.toString());
     }
 
     /**
@@ -151,15 +162,13 @@ public class JdbcH2QueryTest {
         .readerFor(MetadataStorageConnectorConfig.class)
         .readValue(jdbcConnectorConfig);
 
-        String currentDate = (new SimpleDateFormat("hh:mm:ss")).format(new Date());
-
         //new MetadataStorageConnectorConfig();
         JDBCProducerExtractionNamespace extractionNamespace =
                 new JDBCProducerExtractionNamespace(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated")),
                         "id", "date", null, null, new Period(), true, true, "ad_lookup");
         Map<String, List<String>> map = new HashMap<>();
-        map.put("12345", Arrays.asList("12345", "my name", "3.1", currentDate, currentDate));
+        map.put("12345", Arrays.asList("12345", "my name", "3.1", toDatePlusOneHour, toDatePlusOneHour));
         jdbcEncFactory.setKafkaProperties(kafkaProperties);
         jdbcEncFactory.setProtobufSchemaFactory(new TestProtobufSchemaFactory());
         Callable<String> populator = jdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);//, kafkaProperties, new TestProtobufSchemaFactory(), "topic");
@@ -184,6 +193,8 @@ public class JdbcH2QueryTest {
                 new JDBCProducerExtractionNamespace(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated")),
                         "id", "date", null, null, new Period(), true, true, "ad_lookup");
+        extractionNamespace.setFirstTimeCaching(false);
+        extractionNamespace.setPreviousLastUpdateTimestamp(new Timestamp(currentDateTime.getMillis()));
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "3.1", currentDate, currentDate));
         extractionNamespace.isLeader = true;
