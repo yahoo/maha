@@ -42,13 +42,13 @@ public class JDBCProducerExtractionNamespace implements OnlineDatastoreExtractio
     private final ImmutableMap<String, Integer> columnIndexMap;
 
     @JsonProperty
-    private final String kafkaTopic = "unassigned";
+    private String kafkaTopic = "unassigned";
 
     @JsonProperty
     private final String namespace = "unassigned";
 
     @JsonProperty
-    public boolean isLeader = false;
+    private boolean isLeader = false;
 
     @JsonCreator
     public JDBCProducerExtractionNamespace(
@@ -141,6 +141,10 @@ public class JDBCProducerExtractionNamespace implements OnlineDatastoreExtractio
     public void setFirstTimeCaching(boolean value) {
         this.firstTimeCaching = value;
     }
+
+    public void setIsLeader(boolean isLeader) { this.isLeader = isLeader; }
+
+    public void setKafkaTopic(String topic) { this.kafkaTopic = topic; }
 
     public Timestamp getPreviousLastUpdateTimestamp() {
         return previousLastUpdateTimestamp;

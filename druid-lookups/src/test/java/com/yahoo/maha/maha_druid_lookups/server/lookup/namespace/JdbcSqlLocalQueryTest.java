@@ -2,17 +2,18 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.metamx.emitter.service.ServiceEmitter;
-import com.yahoo.maha.jdbc.JdbcConnection;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCProducerExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import io.druid.metadata.MetadataStorageConnectorConfig;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.joda.time.DateTime;
 import org.joda.time.Period;
+import org.junit.Ignore;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.testng.Assert;
@@ -21,9 +22,9 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
-import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.*;
 import java.util.concurrent.Callable;
 
@@ -35,17 +36,25 @@ import java.util.concurrent.Callable;
  *                  into a leader-follower set.
  *
  * Leader Role:     Reads data from Oracle & writes to a Kafka topic.
- * Follower Role:   Reads from Kafka topic & writes back to Druid.
+ * Follower Role:   Reads from Kafka topic & writes back to local Cache.
  *
- * Progress:        setIsLeader ensures leader functionality, but consumer currently does nothing with data
- *                  parsed from its Topic except to return an updated TS (no cache writeback yet).
+ * Purpose:         These tests, marked as @Ignored, are to be implemented locally to demonstrate full lookup
+ *                  functionality.
+ *
+ * Requirements:    Local instance of mySQL DB, running on the Port noted in the connection String.
+ *                  Local instance of Kafka running on the same port as bootstrap.servers.
+ *                  TODO: Local instance of Druid to load these instances into.
+ *
+ * TODOS:           TODO: Above
+ *                  TODO: Ensure KafkaConsumer runs properly by creating a 1-minute test that periodically
+ *                        writes to an active Kafka topic.
  */
-public class JdbcH2QueryTest {
+public class JdbcSqlLocalQueryTest {
 
     private HikariConfig config;
     private String h2dbId = UUID.randomUUID().toString().replace("-", "");
     private HikariDataSource ds;
-    private JdbcConnection jdbcConnection;
+    private Statement jdbcConnection;
 
     private JDBCProducerExtractionNamespaceCacheFactory jdbcEncFactory = new JDBCProducerExtractionNamespaceCacheFactory();
     private String jdbcUrl;
@@ -65,6 +74,9 @@ public class JdbcH2QueryTest {
     @Mock
     LookupService lookupService;
 
+    /**
+     * Set up local Kafka Producer and Comsumer, which will share properties.
+     */
     void setKafkaProperties() {
         kafkaProperties = new Properties();
         kafkaProperties.put("bootstrap.servers", "localhost:9092");
@@ -72,36 +84,45 @@ public class JdbcH2QueryTest {
         kafkaProperties.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
         kafkaProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         kafkaProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
-        kafkaProperties.put("group.id", "test-consumer-group");
+        kafkaProperties.put(ConsumerConfig.GROUP_ID_CONFIG, "test-consumer-group");
     }
 
-    void initJdbcToH2() {
-        config = new HikariConfig();
-        config.setJdbcUrl(jdbcUrl);
-        config.setUsername(userName);
-        config.setPassword(passWord);
-        config.setMaximumPoolSize(2);
-        ds = new HikariDataSource(config);
-        Assert.assertTrue(ds.isRunning(), "Expect a running HikariDataSource.");
-        jdbcConnection = new JdbcConnection(ds, 10);
-        scala.util.Try testQuery = jdbcConnection.execute("SELECT * from DUAL;");
-        Assert.assertTrue(testQuery.isSuccess(), "Expect JDBC connection to succeed with basic queries.");
+    /**
+     * Create a JDBC Connection to your local mySQL database.
+     * @throws Exception
+     */
+    void initJdbcToMySql() throws Exception {
+        Class.forName("com.mysql.cj.jdbc.Driver");
+        Connection connection = DriverManager
+                .getConnection("jdbc:mysql://localhost:3306/sys?"
+                        + "user=root&password=password&useSSL=false&serverTimezone=UTC");
+        jdbcConnection = connection.createStatement();
+        ResultSet testQuery = jdbcConnection.executeQuery("SELECT * from AD;");
+        testQuery.next();
+        String p = testQuery.getString(1);
+        Assert.assertTrue(testQuery.isFirst());
     }
 
+    /**
+     * Create tables in your mySQL instance.
+     */
     void buildJdbcTablesToQuery() {
-        scala.util.Try createResult = jdbcConnection.execute(
-                "CREATE TABLE ad (name VARCHAR2(255), id BIGINT, gpa DECIMAL, date TIMESTAMP, last_updated TIMESTAMP, title VARCHAR2(255), status VARCHAR2(255));");
-        Assert.assertTrue(createResult.isSuccess(),"Should not fail to create a table in H2.");
+        //scala.util.Try createResult = jdbcConnection.execute("CREATE TABLE ad (name VARCHAR2(255), id BIGINT, gpa DECIMAL, date TIMESTAMP, last_updated TIMESTAMP);");
+        //Assert.assertTrue(createResult.isSuccess(),"Should not fail to create a table in H2.");
     }
 
+    /**
+     * Insert into the mySQL table created.
+     */
     void insertIntoStudentTable() {
         String insertDate = toDatePlusOneHour;
-        scala.util.Try insertResult = jdbcConnection.execute("INSERT INTO ad values ('Bobbert', 1234, 3.1, ts '" + toDatePlusOneHour + "', ts '" + toDatePlusOneHour + "', 'Good Title', 'DELETED')");
-        scala.util.Try insertResult2 = jdbcConnection.execute("INSERT INTO ad values ('Bobbert', 4444, 1.1, ts '" + toDatePlusOneHour + "', ts '" + toDatePlusOneHour + "', 'Gooder Title', 'ON')");
-        Assert.assertTrue(insertResult.isSuccess(), "Should be able to insert data into the new table.");
-        Assert.assertTrue(insertResult2.isSuccess(), "Should be able to insert data into the new table.");
+        //scala.util.Try insertResult = jdbcConnection.execute("INSERT INTO ad values ('Bobbert', 1234, 3.1, ts '" + toDatePlusOneHour + "', ts '" + toDatePlusOneHour + "')");//CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+        //Assert.assertTrue(insertResult.isSuccess(), "Should be able to insert data into the new table.");
     }
 
+    /**
+     * Create mocks as necessary.
+     */
     @BeforeTest
     public void setUp() {
         MockitoAnnotations.initMocks(this);
@@ -110,14 +131,18 @@ public class JdbcH2QueryTest {
     }
 
 
+    /**
+     * Set all variables used in your local mySQL and Kafka instances, and initialize both.
+     * @throws Exception
+     */
     @BeforeClass
-    public void init() {
-        jdbcUrl = "jdbc:h2:mem:" + h2dbId + ";MODE=Oracle;DB_CLOSE_DELAY=-1";
-        userName = "testUser";
-        passWord = "h2.test.database.password";
+    public void init() throws Exception {
+        jdbcUrl = "jdbc:mysql://localhost:3306/sys?serverTimezone=UTC";
+        userName = "root";
+        passWord = "password";
         jdbcConnectorConfig = "{\"connectURI\":\"" + jdbcUrl + "\", \"user\":\"" + userName + "\", \"password\":\"" + passWord + "\"}";
 
-        initJdbcToH2();
+        initJdbcToMySql();
         buildJdbcTablesToQuery();
         insertIntoStudentTable();
         setKafkaProperties();
@@ -125,42 +150,15 @@ public class JdbcH2QueryTest {
 
     @AfterClass
     public void shutDown() {
-        ds.close();
     }
 
     /**
-     * Validate JDBC Connection works in test with a dummy table & values.
+     * Test Consumer Logic is able to parse a message from a Kafka topic of the format generated
+     * by the Producer & convert it into a correct DruidLookup cache.
      */
-    @Test
-    public void testConnectJdbcToH2Lookup() {
-        scala.util.Try queryResult = jdbcConnection.queryForObject("SELECT * from ad where NAME = 'Bobbert'", (
-                rs -> {
-                    try {
-                        if(rs.isBeforeFirst())
-                            rs.next();
 
-                        String name = rs.getString("name");
-                        long id = rs.getLong("id");
-                        Float gpa = rs.getFloat("gpa");
-                        Timestamp ts = rs.getTimestamp("last_updated");
-                        Assert.assertEquals(name, "Bobbert", "");
-                        Assert.assertEquals((Object)id, 1234L, "");
-                        Assert.assertEquals(gpa, 3.1F, "");
-                        System.err.println("Inserted data TS is: " + ts.toString());
-                        return null;
-                    } catch (SQLException e) {
-                        return new scala.util.Failure(e);
-                    }
-                }));
-        Assert.assertTrue(queryResult.isSuccess(), "Should be able to query the advertiser table." + queryResult.toString());
-    }
-
-    /**
-     * Test getCachePopulator in JDBC EN Cache Factory using non-leader logic
-     * (basic lookup & write-back).
-     */
-    @Test
-    public void testCreateJdbcLookupOnH2() throws Exception {
+    @Ignore
+    public void testCreateJdbcLookupOnMySqlAsFollower() throws Exception {
 
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new ObjectMapper()
         .readerFor(MetadataStorageConnectorConfig.class)
@@ -169,7 +167,7 @@ public class JdbcH2QueryTest {
         //new MetadataStorageConnectorConfig();
         JDBCProducerExtractionNamespace extractionNamespace =
                 new JDBCProducerExtractionNamespace(
-                        metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated")),
+                        metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated", "title", "status")),
                         "id", "date", null, null, new Period(), true, true, "ad_lookup");
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "3.1", toDatePlusOneHour, toDatePlusOneHour));
@@ -180,11 +178,11 @@ public class JdbcH2QueryTest {
     }
 
     /**
-     * Test getCachePopulator in JDBC EN Cache Factory using Leader logic
-     * Should create and write to a kafka topic.
+     * Test Producer logic is able to ingest a full Oracle table & write that message back to a Kafka
+     * topic.
      */
-    @Test
-    public void testCreateJdbcLookupOnH2asLeader() throws Exception {
+    @Ignore
+    public void testCreateJdbcLookupOnMySqlAsLeader() throws Exception {
 
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new ObjectMapper()
                 .readerFor(MetadataStorageConnectorConfig.class)
@@ -196,14 +194,13 @@ public class JdbcH2QueryTest {
         JDBCProducerExtractionNamespace extractionNamespace =
                 new JDBCProducerExtractionNamespace(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated", "title", "status")),
-                        "id", "date", null, null, new Period(), true, true, "ad_lookup");
-
-        extractionNamespace.setFirstTimeCaching(false);
+                        "id", "date", "ad_test", null, new Period(), true, true, "ad_lookup");
+        extractionNamespace.setFirstTimeCaching(true);
         extractionNamespace.setPreviousLastUpdateTimestamp(new Timestamp(currentDateTime.getMillis()));
+        Map<String, List<String>> map = new HashMap<>();
+        map.put("12345", Arrays.asList("12345", "my name", "3.1", currentDate, currentDate));
         extractionNamespace.setIsLeader(true);
         extractionNamespace.setKafkaTopic("ad_test");
-
-        Map<String, List<String>> map = new HashMap<>();
         jdbcEncFactory.setKafkaProperties(kafkaProperties);
         jdbcEncFactory.setProtobufSchemaFactory(new TestProtobufSchemaFactory());
         Callable<String> populator = jdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);//, kafkaProperties, new TestProtobufSchemaFactory(), "topic");

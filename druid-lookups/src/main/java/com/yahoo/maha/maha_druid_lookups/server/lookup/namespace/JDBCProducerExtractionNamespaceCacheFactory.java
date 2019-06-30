@@ -12,6 +12,7 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamesp
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCProducerExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.RowMapper;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.skife.jdbi.v2.DBI;
@@ -21,14 +22,11 @@ import org.skife.jdbi.v2.tweak.HandleCallback;
 import org.skife.jdbi.v2.util.TimestampMapper;
 
 import java.sql.Timestamp;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -43,6 +41,7 @@ public class JDBCProducerExtractionNamespaceCacheFactory
     private final ConcurrentMap<String, DBI> dbiCache = new ConcurrentHashMap<>();
 
     private KafkaProducer<String, byte[]> kafkaProducer = null;
+    private KafkaConsumer<String, byte[]> kafkaConsumer = null;
 
     private Properties kafkaProperties;
 
@@ -60,7 +59,7 @@ public class JDBCProducerExtractionNamespaceCacheFactory
             final String lastVersion,
             final Map<String, List<String>> cache
     ) {
-        Objects.requireNonNull(kafkaProperties, "Most first define kafkaProperties to create a JDBC -> Kafka link.");
+        Objects.requireNonNull(kafkaProperties, "Must first define kafkaProperties to create a JDBC -> Kafka link.");
         Objects.requireNonNull(protobufSchemaFactory, "Kafka needs a Protobuf for the JDBC input.");
         return getCachePopulator(id, extractionNamespace, lastVersion, cache, kafkaProperties, protobufSchemaFactory);
     }
@@ -81,27 +80,25 @@ public class JDBCProducerExtractionNamespaceCacheFactory
             final Properties kafkaProperties,
             final ProtobufSchemaFactory protobufSchemaFactory
     ) {
-        final String producerKafkaTopic = extractionNamespace.getKafkaTopic();
-
         final long lastCheck = lastVersion == null ? Long.MIN_VALUE / 2 : Long.parseLong(lastVersion);
         if (!extractionNamespace.isCacheEnabled()) {
-            return new Callable<String>() {
-                @Override
-                public String call() throws Exception {
-                    return String.valueOf(lastCheck);
-                }
-            };
+            return nonCacheEnabledCall(lastCheck);
         }
         final Timestamp lastDBUpdate = lastUpdates(id, extractionNamespace);
-        if (lastDBUpdate != null && lastDBUpdate.getTime() <= lastCheck) {
+        if (Objects.nonNull(lastDBUpdate) && lastDBUpdate.getTime() <= lastCheck) {
             return new Callable<String>() {
                 @Override
-                public String call() throws Exception {
+                public String call() {
                     extractionNamespace.setPreviousLastUpdateTimestamp(lastDBUpdate);
                     return lastVersion;
                 }
             };
         }
+        if(extractionNamespace.getIsLeader()) {
+            return doLeaderOperations(id, extractionNamespace, lastVersion, cache, kafkaProperties, protobufSchemaFactory, lastDBUpdate);
+        } else {
+            return doFollowerOperations(id, extractionNamespace, lastVersion, cache, kafkaProperties, protobufSchemaFactory);
+        }/*
         return new Callable<String>() {
             @Override
             public String call() {
@@ -109,7 +106,12 @@ public class JDBCProducerExtractionNamespaceCacheFactory
 
                 LOG.debug("Updating [%s]", id);
 
-                kafkaProducer = ensureKafkaProducer(kafkaProperties);
+                if(extractionNamespace.getIsLeader()) {
+                    doLeaderOperations(id, extractionNamespace, lastVersion, cache, kafkaProperties, protobufSchemaFactory);
+                } else {
+                    doFollowerOperations(id, extractionNamespace, lastVersion, cache, kafkaProperties, protobufSchemaFactory);
+                }
+
                 dbi.withHandle(
                         new HandleCallback<Void>() {
                             @Override
@@ -117,12 +119,15 @@ public class JDBCProducerExtractionNamespaceCacheFactory
 
                                 Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getLookupName());
                                 Message.Builder messageBuilder = protobufSchemaFactory.getProtobufMessageBuilder(extractionNamespace.getLookupName());
-                                Map<String, Object> map;
-
+                                Map<String, Object> map = new HashMap<>();
+                                List<Map<String,  Object>> lm;
                                 String query = String.format("SELECT %s FROM %s",
                                         String.join(COMMA_SEPARATOR, extractionNamespace.getColumnList()),
                                         extractionNamespace.getTable()
                                 );
+
+                                //TODO: isFirstTimeCaching cannot be set by a leader, since it never caches and only writes to a topic.
+                                //TODO: non-leaders don't make any queries and only consume, but they CAN have isFirstTimeCaching.
                                 if (extractionNamespace.isFirstTimeCaching()) {
                                     extractionNamespace.setFirstTimeCaching(false);
                                     query = String.format("%s %s", query, FIRST_TIME_CACHING_WHERE_CLAUSE);
@@ -131,11 +136,12 @@ public class JDBCProducerExtractionNamespaceCacheFactory
                                             .setFetchSize(FETCH_SIZE)
                                             .bind("lastUpdatedTimeStamp", lastDBUpdate)
                                             .list();
-                                    map = handle.createQuery(query)
-                                            .bind(extractionNamespace.getPrimaryKeyColumn(), extractionNamespace.getTable())
+                                    lm = handle.createQuery(query).map(
+                                            new RowMapper(extractionNamespace, cache))
+                                            .setFetchSize(FETCH_SIZE)
                                             .bind("lastUpdatedTimeStamp", lastDBUpdate)
                                             .map(new DefaultMapper())
-                                            .first();
+                                            .list();
 
                                 } else {
                                     query = String.format("%s %s", query, SUBSEQUENT_CACHING_WHERE_CLAUSE);
@@ -145,27 +151,29 @@ public class JDBCProducerExtractionNamespaceCacheFactory
                                             .bind("lastUpdatedTimeStamp",
                                                     extractionNamespace.getPreviousLastUpdateTimestamp())
                                             .list();
-                                    map = handle.createQuery(query)
-                                            .bind(extractionNamespace.getPrimaryKeyColumn(), extractionNamespace.getTable())
-                                            .bind("lastUpdatedTimeStamp",
-                                                    extractionNamespace.getPreviousLastUpdateTimestamp())
+                                    lm = handle.createQuery(query).map(
+                                            new RowMapper(extractionNamespace, cache))
+                                            .setFetchSize(FETCH_SIZE)
+                                            .bind("lastUpdatedTimeStamp", extractionNamespace.getPreviousLastUpdateTimestamp())
                                             .map(new DefaultMapper())
-                                            .first();
+                                            .list();
                                 }
 
                                 if(extractionNamespace.getIsLeader() && Objects.nonNull(map)) {
                                     //Execute Kafka side of the Leader
 
-                                    descriptor.getFields()
-                                            .stream()
-                                            .forEach(fd -> messageBuilder.setField(fd, String.valueOf(map.get(fd.getName()))));
+                                    for(Map<String, Object> row: lm) {
+                                        descriptor.getFields()
+                                                .stream()
+                                                .forEach(fd -> messageBuilder.setField(fd, String.valueOf(row.get(fd.getName()))));
 
-                                    Message message = messageBuilder.build();
-                                    LOG.info("Producing key[%s] val[%s]", extractionNamespace.getTable(), message);
-                                    LOG.info("Leader mode enabled on node.  Duplicating lookup record to Kafka Topic " + producerKafkaTopic);
-                                    ProducerRecord<String, byte[]> producerRecord =
-                                            new ProducerRecord<>(producerKafkaTopic, extractionNamespace.getTable(), message.toByteArray());
-                                    kafkaProducer.send(producerRecord);
+                                        Message message = messageBuilder.build();
+                                        LOG.info("Producing key[%s] val[%s]", extractionNamespace.getTable(), message);
+                                        LOG.info("Leader mode enabled on node.  Duplicating lookup record to Kafka Topic " + producerKafkaTopic);
+                                        ProducerRecord<String, byte[]> producerRecord =
+                                                new ProducerRecord<>(producerKafkaTopic, extractionNamespace.getTable(), message.toByteArray());
+                                        kafkaProducer.send(producerRecord);
+                                    }
                                 } else {
                                     LOG.info("Leader disabled on node.  Using default read/write functionality.");
                                     LOG.info("This is where the node reads from the topic to write the lookup result.");
@@ -180,7 +188,141 @@ public class JDBCProducerExtractionNamespaceCacheFactory
                 extractionNamespace.setPreviousLastUpdateTimestamp(lastDBUpdate);
                 return String.format("%d", lastDBUpdate.getTime());
             }
+        };*/
+    }
+
+    private List<Map<String, Object>> populateRowListFromJDBC(
+            JDBCProducerExtractionNamespace extractionNamespace,
+            String query,
+            Map<String, List<String>> cache,
+            Timestamp lastDBUpdate,
+            Handle handle
+    ) {
+        List<Map<String, Object>> rowList;
+        if (extractionNamespace.isFirstTimeCaching()) {
+            extractionNamespace.setFirstTimeCaching(false);
+            query = String.format("%s %s", query, FIRST_TIME_CACHING_WHERE_CLAUSE);
+            rowList = handle.createQuery(query).map(
+                    new RowMapper(extractionNamespace, cache))
+                    .setFetchSize(FETCH_SIZE)
+                    .bind("lastUpdatedTimeStamp", lastDBUpdate)
+                    .map(new DefaultMapper())
+                    .list();
+
+        } else {
+            query = String.format("%s %s", query, SUBSEQUENT_CACHING_WHERE_CLAUSE);
+            rowList = handle.createQuery(query).map(
+                    new RowMapper(extractionNamespace, cache))
+                    .setFetchSize(FETCH_SIZE)
+                    .bind("lastUpdatedTimeStamp", extractionNamespace.getPreviousLastUpdateTimestamp())
+                    .map(new DefaultMapper())
+                    .list();
+        }
+
+        return rowList;
+    }
+
+    /**
+     * Use the active JDBC
+     * @param id
+     * @param extractionNamespace
+     * @param lastVersion
+     * @param cache
+     * @param kafkaProperties
+     * @param protobufSchemaFactory
+     * @param lastDBUpdate
+     * @return
+     */
+    public Callable<String> doLeaderOperations(final String id,
+                                               final JDBCProducerExtractionNamespace extractionNamespace,
+                                               final String lastVersion,
+                                               final Map<String, List<String>> cache,
+                                               final Properties kafkaProperties,
+                                               final ProtobufSchemaFactory protobufSchemaFactory,
+                                               final Timestamp lastDBUpdate) {
+        LOG.info("Running Kafka Leader - Producer actions on %s.", id);
+        kafkaProducer = ensureKafkaProducer(kafkaProperties);
+        final String producerKafkaTopic = extractionNamespace.getKafkaTopic();
+
+        return new Callable<String>() {
+            @Override
+            public String call() {
+                final DBI dbi = ensureDBI(id, extractionNamespace);
+
+                LOG.debug("Updating [%s]", id);
+
+                //Call Oracle through JDBC connection
+                dbi.withHandle(
+                        new HandleCallback<Void>() {
+                            @Override
+                            public Void withHandle(Handle handle) {
+
+                                Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getLookupName());
+                                Message.Builder messageBuilder = protobufSchemaFactory.getProtobufMessageBuilder(extractionNamespace.getLookupName());
+                                Map<String, Object> map = new HashMap<>();
+                                List<Map<String,  Object>> rowList;
+                                String query =
+                                        String.format(
+                                                "SELECT %s FROM %s",
+                                                String.join(COMMA_SEPARATOR, extractionNamespace.getColumnList()),
+                                                extractionNamespace.getTable()
+                                        );
+
+                                rowList = populateRowListFromJDBC(extractionNamespace, query, cache, lastDBUpdate, handle);
+
+                                if(Objects.nonNull(rowList)) {
+                                    for(Map<String, Object> row: rowList) {
+                                        descriptor.getFields()
+                                                .stream()
+                                                .forEach(fd -> messageBuilder.setField(fd, String.valueOf(row.get(fd.getName()))));
+
+                                        Message message = messageBuilder.build();
+                                        LOG.info("Producing key [%s] val [%s]", extractionNamespace.getTable(), message);
+                                        LOG.info("Leader mode enabled on node.  Sending lookup record to Kafka Topic " + producerKafkaTopic);
+                                        ProducerRecord<String, byte[]> producerRecord =
+                                                new ProducerRecord<>(producerKafkaTopic, extractionNamespace.getTable(), message.toByteArray());
+                                        kafkaProducer.send(producerRecord);
+                                    }
+                                } else {
+                                    LOG.info("No query results to return.");
+                                }
+
+                                return null;
+                            }
+                        }
+                );
+
+                LOG.info("Finished loading %d values for extractionNamespace[%s]", cache.size(), id);
+                extractionNamespace.setPreviousLastUpdateTimestamp(lastDBUpdate);
+                return String.format("%d", lastDBUpdate.getTime());
+            }
         };
+
+
+    }
+
+    public Callable<String> doFollowerOperations(final String id,
+                                                 final JDBCProducerExtractionNamespace extractionNamespace,
+                                                 final String lastVersion,
+                                                 final Map<String, List<String>> cache,
+                                                 final Properties kafkaProperties,
+                                                 final ProtobufSchemaFactory protobufSchemaFactory) {
+        LOG.info("Running Kafka Follower - Consumer actions on %s.", id);
+        String kafkaProducerTopic = extractionNamespace.getKafkaTopic();
+        kafkaConsumer = ensureKafkaConsumer(kafkaProperties);
+        kafkaConsumer.subscribe(Collections.singletonList(kafkaProducerTopic));
+        kafkaConsumer.poll(10000);
+        return new Callable<String>() {
+            @Override
+            public String call() {
+                return "I like turtles.";
+            }
+        };
+
+    }
+
+    private Callable<String> nonCacheEnabledCall(long lastCheck) {
+        return () -> String.valueOf(lastCheck);
     }
 
     synchronized KafkaProducer<String, byte[]> ensureKafkaProducer(Properties kafkaProperties) {
@@ -188,6 +330,13 @@ public class JDBCProducerExtractionNamespaceCacheFactory
             kafkaProducer = new KafkaProducer<>(kafkaProperties);
         }
         return kafkaProducer;
+    }
+
+    synchronized KafkaConsumer<String, byte[]> ensureKafkaConsumer(Properties kafkaProperties) {
+        if(kafkaConsumer == null) {
+            kafkaConsumer = new KafkaConsumer<>(kafkaProperties);
+        }
+        return kafkaConsumer;
     }
 
     public void stop() {
