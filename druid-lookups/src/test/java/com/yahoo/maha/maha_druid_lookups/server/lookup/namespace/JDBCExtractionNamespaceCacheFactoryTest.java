@@ -5,7 +5,7 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCProducerExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespaceWithLeaderAndFollower;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
 import io.druid.metadata.MetadataStorageConnectorConfig;
 import org.joda.time.Period;
@@ -24,7 +24,7 @@ public class JDBCExtractionNamespaceCacheFactoryTest {
     JDBCExtractionNamespaceCacheFactory obj = new JDBCExtractionNamespaceCacheFactory();
 
     @InjectMocks
-    JDBCProducerExtractionNamespaceCacheFactory objProducer = new JDBCProducerExtractionNamespaceCacheFactory();
+    JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower objProducer = new JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower();
 
     @Mock
     ServiceEmitter serviceEmitter;
@@ -80,10 +80,10 @@ public class JDBCExtractionNamespaceCacheFactoryTest {
     @Test
     public void testGetCacheValueWithDecodeConfig() throws Exception{
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
-        JDBCProducerExtractionNamespace extractionNamespace =
-                new JDBCProducerExtractionNamespace(
+        JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
+                new JDBCExtractionNamespaceWithLeaderAndFollower(
                         metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
-                        "id", "", null, null, new Period(), true, false, "advertiser_lookup");
+                        "id", "", new Period(), true, "advertiser_lookup", "ad_test", false);
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
         DecodeConfig decodeConfig1 = new DecodeConfig();
@@ -104,10 +104,10 @@ public class JDBCExtractionNamespaceCacheFactoryTest {
     @Test
     public void testGetCacheValueWithDecodeConfigAndLeaderEnabled() throws Exception{
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
-        JDBCProducerExtractionNamespace extractionNamespace =
-                new JDBCProducerExtractionNamespace(
+        JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
+                new JDBCExtractionNamespaceWithLeaderAndFollower(
                         metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
-                        "id", "", null, null, new Period(), true, true, "advertiser_lookup");
+                        "id", "", new Period(), true, "advertiser_lookup", "ad_test", true);
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
         DecodeConfig decodeConfig1 = new DecodeConfig();

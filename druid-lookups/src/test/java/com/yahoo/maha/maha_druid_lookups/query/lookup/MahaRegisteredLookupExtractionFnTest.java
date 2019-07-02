@@ -5,7 +5,7 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCProducerExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespaceWithLeaderAndFollower;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import io.druid.metadata.MetadataStorageConnectorConfig;
 import io.druid.query.lookup.LookupExtractorFactory;
@@ -138,13 +138,13 @@ public class MahaRegisteredLookupExtractionFnTest {
     public void testWhenLeaderValueIsSet() {
 
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
-        JDBCProducerExtractionNamespace extractionNamespace =
-                new JDBCProducerExtractionNamespace(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
-                        "id", "", null, null, new Period(), true, true, "advertiser_lookup");
+        JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
+                new JDBCExtractionNamespaceWithLeaderAndFollower(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
+                        "id", "", new Period(), true,"advertiser_lookup", "ad_test", true);
 
         Map<String, List<String>> map = new HashMap<>();
         map.put("123", Arrays.asList("123", "some name", "USD", "ON"));
-        JDBCProducerLookupExtractor jdbcLookupExtractor = new JDBCProducerLookupExtractor(extractionNamespace, map, lookupService);
+        JDBCLookupExtractor jdbcLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
 
         LookupExtractorFactory lef = mock(LookupExtractorFactory.class);
         when(lef.get()).thenReturn(jdbcLookupExtractor);

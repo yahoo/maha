@@ -2,7 +2,7 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.metamx.emitter.service.ServiceEmitter;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCProducerExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespaceWithLeaderAndFollower;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -56,7 +56,7 @@ public class JdbcSqlLocalQueryTest {
     private HikariDataSource ds;
     private Statement jdbcConnection;
 
-    private JDBCProducerExtractionNamespaceCacheFactory jdbcEncFactory = new JDBCProducerExtractionNamespaceCacheFactory();
+    private JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower jdbcEncFactory = new JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower();
     private String jdbcUrl;
     private String userName;
     private String passWord;
@@ -165,10 +165,10 @@ public class JdbcSqlLocalQueryTest {
         .readValue(jdbcConnectorConfig);
 
         //new MetadataStorageConnectorConfig();
-        JDBCProducerExtractionNamespace extractionNamespace =
-                new JDBCProducerExtractionNamespace(
+        JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
+                new JDBCExtractionNamespaceWithLeaderAndFollower(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated", "title", "status")),
-                        "id", "date", null, null, new Period(), true, true, "ad_lookup");
+                        "id", "date", new Period(), true, "ad_lookup", "ad_test", false);
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "3.1", toDatePlusOneHour, toDatePlusOneHour));
         jdbcEncFactory.setKafkaProperties(kafkaProperties);
@@ -191,16 +191,14 @@ public class JdbcSqlLocalQueryTest {
         String currentDate = (new SimpleDateFormat("hh:mm:ss")).format(new Date());
 
         //new MetadataStorageConnectorConfig();
-        JDBCProducerExtractionNamespace extractionNamespace =
-                new JDBCProducerExtractionNamespace(
+        JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
+                new JDBCExtractionNamespaceWithLeaderAndFollower(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated", "title", "status")),
-                        "id", "date", "ad_test", null, new Period(), true, true, "ad_lookup");
+                        "id", "date", new Period(), true, "ad_lookup", "ad_test", true);
         extractionNamespace.setFirstTimeCaching(true);
         extractionNamespace.setPreviousLastUpdateTimestamp(new Timestamp(currentDateTime.getMillis()));
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "3.1", currentDate, currentDate));
-        extractionNamespace.setIsLeader(true);
-        extractionNamespace.setKafkaTopic("ad_test");
         jdbcEncFactory.setKafkaProperties(kafkaProperties);
         jdbcEncFactory.setProtobufSchemaFactory(new TestProtobufSchemaFactory());
         Callable<String> populator = jdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);//, kafkaProperties, new TestProtobufSchemaFactory(), "topic");

@@ -3,7 +3,7 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.jdbc.JdbcConnection;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCProducerExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespaceWithLeaderAndFollower;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -47,7 +47,7 @@ public class JdbcH2QueryTest {
     private HikariDataSource ds;
     private JdbcConnection jdbcConnection;
 
-    private JDBCProducerExtractionNamespaceCacheFactory jdbcEncFactory = new JDBCProducerExtractionNamespaceCacheFactory();
+    private JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower jdbcEncFactory = new JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower();
     private String jdbcUrl;
     private String userName;
     private String passWord;
@@ -107,6 +107,7 @@ public class JdbcH2QueryTest {
         MockitoAnnotations.initMocks(this);
         jdbcEncFactory.emitter = serviceEmitter;
         jdbcEncFactory.lookupService = lookupService;
+        jdbcEncFactory.protobufSchemaFactory = new TestProtobufSchemaFactory();
     }
 
 
@@ -167,12 +168,12 @@ public class JdbcH2QueryTest {
         .readValue(jdbcConnectorConfig);
 
         //new MetadataStorageConnectorConfig();
-        JDBCProducerExtractionNamespace extractionNamespace =
-                new JDBCProducerExtractionNamespace(
+        JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
+                new JDBCExtractionNamespaceWithLeaderAndFollower(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated")),
-                        "id", "date", null, null, new Period(), true, true, "ad_lookup");
+                        "id", "last_updated", new Period(), true, "ad_lookup", "ad_test", false);
         Map<String, List<String>> map = new HashMap<>();
-        map.put("12345", Arrays.asList("12345", "my name", "3.1", toDatePlusOneHour, toDatePlusOneHour));
+        map.put("12345", Arrays.asList("12345", "my name", "3.1", toDatePlusOneHour));
         jdbcEncFactory.setKafkaProperties(kafkaProperties);
         jdbcEncFactory.setProtobufSchemaFactory(new TestProtobufSchemaFactory());
         Callable<String> populator = jdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);//, kafkaProperties, new TestProtobufSchemaFactory(), "topic");
@@ -193,15 +194,13 @@ public class JdbcH2QueryTest {
         String currentDate = (new SimpleDateFormat("hh:mm:ss")).format(new Date());
 
         //new MetadataStorageConnectorConfig();
-        JDBCProducerExtractionNamespace extractionNamespace =
-                new JDBCProducerExtractionNamespace(
+        JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
+                new JDBCExtractionNamespaceWithLeaderAndFollower(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated", "title", "status")),
-                        "id", "date", null, null, new Period(), true, true, "ad_lookup");
+                        "id", "last_updated", new Period(), false, "ad_lookup", "ad_test", true);
 
         extractionNamespace.setFirstTimeCaching(false);
         extractionNamespace.setPreviousLastUpdateTimestamp(new Timestamp(currentDateTime.getMillis()));
-        extractionNamespace.setIsLeader(true);
-        extractionNamespace.setKafkaTopic("ad_test");
 
         Map<String, List<String>> map = new HashMap<>();
         jdbcEncFactory.setKafkaProperties(kafkaProperties);

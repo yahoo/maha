@@ -3,11 +3,16 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.google.inject.Inject;
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Message;
+import com.google.protobuf.Parser;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.RowMapper;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
@@ -37,6 +42,8 @@ public class JDBCExtractionNamespaceCacheFactory
     LookupService lookupService;
     @Inject
     ServiceEmitter emitter;
+    @Inject
+    ProtobufSchemaFactory protobufSchemaFactory;
 
     @Override
     public Callable<String> getCachePopulator(
@@ -109,7 +116,7 @@ public class JDBCExtractionNamespaceCacheFactory
         };
     }
 
-    private DBI ensureDBI(String id, JDBCExtractionNamespace namespace) {
+    protected DBI ensureDBI(String id, JDBCExtractionNamespace namespace) {
         final String key = id;
         DBI dbi = null;
         if (dbiCache.containsKey(key)) {
@@ -127,7 +134,7 @@ public class JDBCExtractionNamespaceCacheFactory
         return dbi;
     }
 
-    private Timestamp lastUpdates(String id, JDBCExtractionNamespace namespace) {
+    protected Timestamp lastUpdates(String id, JDBCExtractionNamespace namespace) {
         final DBI dbi = ensureDBI(id, namespace);
         final String table = namespace.getTable();
         final String tsColumn = namespace.getTsColumn();
@@ -157,7 +164,7 @@ public class JDBCExtractionNamespaceCacheFactory
     @Override
     public void updateCache(final JDBCExtractionNamespace extractionNamespace, final Map<String, List<String>> cache,
                             final String key, final byte[] value) {
-        //No-Op
+        //No-op
     }
 
     @Override
