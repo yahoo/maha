@@ -8,27 +8,21 @@ import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespaceWithLeaderAndFollower;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.RowMapper;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.skife.jdbi.v2.DBI;
-import org.skife.jdbi.v2.DefaultMapper;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.tweak.HandleCallback;
-import org.skife.jdbi.v2.util.TimestampMapper;
 
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 /**
@@ -38,10 +32,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         extends JDBCExtractionNamespaceCacheFactory {
     private static final Logger LOG = new Logger(JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower.class);
     private static final String COMMA_SEPARATOR = ",";
-    private static final String FIRST_TIME_CACHING_WHERE_CLAUSE = " WHERE LAST_UPDATED <= :lastUpdatedTimeStamp";
-    private static final String SUBSEQUENT_CACHING_WHERE_CLAUSE = " WHERE LAST_UPDATED > :lastUpdatedTimeStamp";
-    private static final int FETCH_SIZE = 10000;
-    private final ConcurrentMap<String, DBI> dbiCache = new ConcurrentHashMap<>();
+
 
     private KafkaProducer<String, byte[]> kafkaProducer = null;
     private KafkaConsumer<String, byte[]> kafkaConsumer = null;
@@ -57,6 +48,14 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
     ServiceEmitter emitter;
 
 
+    /**
+     * Populate cache or write to Kafka topic.  Validates Kafka and protobuf.
+     * @param id
+     * @param extractionNamespace
+     * @param lastVersion
+     * @param cache
+     * @return
+     */
     public Callable<String> getCachePopulator(
             final String id,
             final JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace,
@@ -76,6 +75,16 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         this.protobufSchemaFactory = protobufSchemaFactory;
     }
 
+    /**
+     * Populate cache or write to Kafka topic.
+     * @param id
+     * @param extractionNamespace
+     * @param lastVersion
+     * @param cache
+     * @param kafkaProperties
+     * @param protobufSchemaFactory
+     * @return
+     */
     public Callable<String> getCachePopulator(
             final String id,
             final JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace,
@@ -105,39 +114,8 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         }
     }
 
-    private List<Map<String, Object>> populateRowListFromJDBC(
-            JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace,
-            String query,
-            Map<String, List<String>> cache,
-            Timestamp lastDBUpdate,
-            Handle handle
-    ) {
-        List<Map<String, Object>> rowList;
-        if (extractionNamespace.isFirstTimeCaching()) {
-            extractionNamespace.setFirstTimeCaching(false);
-            query = String.format("%s %s", query, FIRST_TIME_CACHING_WHERE_CLAUSE);
-            rowList = handle.createQuery(query).map(
-                    new RowMapper(extractionNamespace, cache))
-                    .setFetchSize(FETCH_SIZE)
-                    .bind("lastUpdatedTimeStamp", lastDBUpdate)
-                    .map(new DefaultMapper())
-                    .list();
-
-        } else {
-            query = String.format("%s %s", query, SUBSEQUENT_CACHING_WHERE_CLAUSE);
-            rowList = handle.createQuery(query).map(
-                    new RowMapper(extractionNamespace, cache))
-                    .setFetchSize(FETCH_SIZE)
-                    .bind("lastUpdatedTimeStamp", extractionNamespace.getPreviousLastUpdateTimestamp())
-                    .map(new DefaultMapper())
-                    .list();
-        }
-
-        return rowList;
-    }
-
     /**
-     * Use the active JDBC
+     * Use the active JDBC to populate a rowList & send it to the open Kafka topic.
      * @param id
      * @param extractionNamespace
      * @param lastVersion
@@ -166,14 +144,13 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 LOG.debug("Updating [%s]", id);
 
                 //Call Oracle through JDBC connection
-                dbi.withHandle(
-                        new HandleCallback<Void>() {
+                Long numEntries = dbi.withHandle(
+                        new HandleCallback<Long>() {
                             @Override
-                            public Void withHandle(Handle handle) {
+                            public Long withHandle(Handle handle) {
 
                                 Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getLookupName());
                                 Message.Builder messageBuilder = protobufSchemaFactory.getProtobufMessageBuilder(extractionNamespace.getLookupName());
-                                Map<String, Object> map = new HashMap<>();
                                 List<Map<String,  Object>> rowList;
                                 String query =
                                         String.format(
@@ -182,7 +159,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                                                 extractionNamespace.getTable()
                                         );
 
-                                rowList = populateRowListFromJDBC(extractionNamespace, query, cache, lastDBUpdate, handle);
+                                rowList = populateRowListFromJDBC(extractionNamespace, query, null, lastDBUpdate, handle);
 
                                 if(Objects.nonNull(rowList)) {
                                     for(Map<String, Object> row: rowList) {
@@ -196,17 +173,18 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                                         ProducerRecord<String, byte[]> producerRecord =
                                                 new ProducerRecord<>(producerKafkaTopic, extractionNamespace.getTable(), message.toByteArray());
                                         kafkaProducer.send(producerRecord);
+                                        return (long) rowList.size();
                                     }
                                 } else {
                                     LOG.info("No query results to return.");
                                 }
 
-                                return null;
+                                return 0L;
                             }
                         }
                 );
 
-                LOG.info("Finished loading %d values for extractionNamespace[%s]", cache.size(), id);
+                LOG.info("Finished loading %d values for extractionNamespace[%s]", numEntries, id);
                 extractionNamespace.setPreviousLastUpdateTimestamp(lastDBUpdate);
                 return String.format("%d", lastDBUpdate.getTime());
             }
@@ -215,6 +193,16 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
     }
 
+    /**
+     * Poll the Kafka topic & populate the local cache.
+     * @param id
+     * @param extractionNamespace
+     * @param lastVersion
+     * @param cache
+     * @param kafkaProperties
+     * @param protobufSchemaFactory
+     * @return
+     */
     public Callable<String> doFollowerOperations(final String id,
                                                  final JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace,
                                                  final String lastVersion,
@@ -251,6 +239,13 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
     }
 
+    /**
+     * Parse the received message into the local cache.
+     * @param extractionNamespace
+     * @param cache
+     * @param key
+     * @param value
+     */
     public void updateLocalCache(final JDBCExtractionNamespace extractionNamespace, Map<String, List<String>> cache,
                             final String key, final byte[] value) {
         Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getLookupName());
@@ -273,6 +268,14 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         }
     }
 
+    /**
+     * CHeck Message timestamp against the last update I've received.
+     * @param cache
+     * @param extractionNamespace
+     * @param newMessage
+     * @param field
+     * @return
+     */
     boolean checkNamespaceAgainstMessageUpdateTS(Map<String, List<String>> cache,
                                                  JDBCExtractionNamespace extractionNamespace,
                                                  Message newMessage,
@@ -288,10 +291,20 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
     }
 
 
+    /**
+     * If the follower is cache-disabled, don't update it.
+     * @param lastCheck
+     * @return
+     */
     private Callable<String> nonCacheEnabledCall(long lastCheck) {
         return () -> String.valueOf(lastCheck);
     }
 
+    /**
+     * Safe KafkaProducer create/call.
+     * @param kafkaProperties
+     * @return
+     */
     synchronized KafkaProducer<String, byte[]> ensureKafkaProducer(Properties kafkaProperties) {
         if(kafkaProducer == null) {
             kafkaProducer = new KafkaProducer<>(kafkaProperties);
@@ -299,6 +312,11 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         return kafkaProducer;
     }
 
+    /**
+     * Safe KafkaConsumer create/call.
+     * @param kafkaProperties
+     * @return
+     */
     synchronized KafkaConsumer<String, byte[]> ensureKafkaConsumer(Properties kafkaProperties) {
         if(kafkaConsumer == null) {
             kafkaConsumer = new KafkaConsumer<>(kafkaProperties);
@@ -306,10 +324,18 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         return kafkaConsumer;
     }
 
+    /**
+     * End leader || follower actions on the current node.
+     */
     public void stop() {
         if(kafkaProducer != null) {
             kafkaProducer.flush();
             kafkaProducer.close();
+        }
+
+        if(kafkaConsumer != null) {
+            kafkaConsumer.unsubscribe();
+            kafkaConsumer.close();
         }
     }
 }

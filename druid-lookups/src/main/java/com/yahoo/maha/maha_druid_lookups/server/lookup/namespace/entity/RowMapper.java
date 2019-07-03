@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class RowMapper implements ResultSetMapper<Void> {
 
@@ -33,7 +34,9 @@ public class RowMapper implements ResultSetMapper<Void> {
         for(String columnName: extractionNamespace.getColumnList()) {
             strings.add(resultSet.getString(columnName));
         }
-        cache.put(resultSet.getString(extractionNamespace.getPrimaryKeyColumn()), strings);
+        if(Objects.nonNull(cache))
+            cache.put(resultSet.getString(extractionNamespace.getPrimaryKeyColumn()), strings);
+
         return null;
     }
 }

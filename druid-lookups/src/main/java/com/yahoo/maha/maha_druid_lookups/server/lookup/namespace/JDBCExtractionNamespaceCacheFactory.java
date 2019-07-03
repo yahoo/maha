@@ -12,9 +12,11 @@ import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespaceWithLeaderAndFollower;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.RowMapper;
 import org.skife.jdbi.v2.DBI;
+import org.skife.jdbi.v2.DefaultMapper;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.tweak.HandleCallback;
 import org.skife.jdbi.v2.util.TimestampMapper;
@@ -85,25 +87,8 @@ public class JDBCExtractionNamespaceCacheFactory
                                         String.join(COMMA_SEPARATOR, extractionNamespace.getColumnList()),
                                         extractionNamespace.getTable()
                                 );
-                                if (extractionNamespace.isFirstTimeCaching()) {
 
-                                    extractionNamespace.setFirstTimeCaching(false);
-                                    query = String.format("%s %s", query, FIRST_TIME_CACHING_WHERE_CLAUSE);
-                                    handle.createQuery(query).map(
-                                            new RowMapper(extractionNamespace, cache))
-                                            .setFetchSize(FETCH_SIZE)
-                                            .bind("lastUpdatedTimeStamp", lastDBUpdate)
-                                            .list();
-
-                                } else {
-                                    query = String.format("%s %s", query, SUBSEQUENT_CACHING_WHERE_CLAUSE);
-                                    handle.createQuery(query).map(
-                                            new RowMapper(extractionNamespace, cache))
-                                            .setFetchSize(FETCH_SIZE)
-                                            .bind("lastUpdatedTimeStamp",
-                                                    extractionNamespace.getPreviousLastUpdateTimestamp())
-                                            .list();
-                                }
+                                populateRowListFromJDBC(extractionNamespace, query, cache, lastDBUpdate, handle);
                                 return null;
                             }
                         }
@@ -114,6 +99,37 @@ public class JDBCExtractionNamespaceCacheFactory
                 return String.format("%d", lastDBUpdate.getTime());
             }
         };
+    }
+
+    protected List<Map<String, Object>> populateRowListFromJDBC(
+            JDBCExtractionNamespace extractionNamespace,
+            String query,
+            Map<String, List<String>> cache,
+            Timestamp lastDBUpdate,
+            Handle handle
+    ) {
+        List<Map<String, Object>> rowList;
+        if (extractionNamespace.isFirstTimeCaching()) {
+            extractionNamespace.setFirstTimeCaching(false);
+            query = String.format("%s %s", query, FIRST_TIME_CACHING_WHERE_CLAUSE);
+            rowList = handle.createQuery(query).map(
+                    new RowMapper(extractionNamespace, cache))
+                    .setFetchSize(FETCH_SIZE)
+                    .bind("lastUpdatedTimeStamp", lastDBUpdate)
+                    .map(new DefaultMapper())
+                    .list();
+
+        } else {
+            query = String.format("%s %s", query, SUBSEQUENT_CACHING_WHERE_CLAUSE);
+            rowList = handle.createQuery(query).map(
+                    new RowMapper(extractionNamespace, cache))
+                    .setFetchSize(FETCH_SIZE)
+                    .bind("lastUpdatedTimeStamp", extractionNamespace.getPreviousLastUpdateTimestamp())
+                    .map(new DefaultMapper())
+                    .list();
+        }
+
+        return rowList;
     }
 
     protected DBI ensureDBI(String id, JDBCExtractionNamespace namespace) {
