@@ -383,6 +383,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
               :: ("required" -> toJSON(dimCol.required))
               :: ("filteringRequired" -> toJSON(dimCol.filteringRequired))
               :: ("incompatibleColumns" -> incompatibleColumns)
+              :: ("isImageCol" -> toJSON(dimCol.isImageColumn))
               :: Nil
           )
       }

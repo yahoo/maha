@@ -18,6 +18,7 @@ trait PublicColumn {
   def hiddenFromJson: Boolean
   def filteringRequired: Boolean
   def restrictedSchemas: Set[Schema]
+  def isImageColumn: Boolean
 }
 
 trait Column {

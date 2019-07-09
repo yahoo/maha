@@ -22,7 +22,7 @@ trait BaseOracleQueryGeneratorTest
 
   override protected def beforeAll(): Unit = {
     OracleQueryGenerator.register(queryGeneratorRegistry,DefaultPartitionColumnRenderer)
-    DruidQueryGenerator.register(queryGeneratorRegistry, queryOptimizer = new SyncDruidQueryOptimizer(timeout = 5000))
+    DruidQueryGenerator.register(queryGeneratorRegistry, queryOptimizer = new SyncDruidQueryOptimizer(timeout = 5000), useCustomRoundingSumAggregator = true)
   }
 
   override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
@@ -105,7 +105,7 @@ trait BaseOracleQueryGeneratorTest
           PubCol("stats_source", "Source", EqualityFieldEquality, incompatibleColumns = Set("Source Name")),
           PubCol("source_name", "Source Name", InNotInBetweenEqualityNotEqualsGreaterLesser, incompatibleColumns = Set("Source")),
           PubCol("price_type", "Pricing Type", In),
-          PubCol("landing_page_url", "Destination URL", FieldEquality),
+          PubCol("landing_page_url", "Destination URL", FieldEquality, isImageColumn = true),
           PubCol("target_page_url", "Source URL", FieldEquality),
           PubCol("column_id", "Column ID", Equality),
           PubCol("column2_id", "Column2 ID", Equality),
