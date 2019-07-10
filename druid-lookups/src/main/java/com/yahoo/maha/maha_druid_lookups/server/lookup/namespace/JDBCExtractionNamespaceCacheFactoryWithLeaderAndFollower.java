@@ -190,8 +190,8 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             ++i;
         }
 
-        LOG.error("Follower operation num records returned [%d]: " + i);
-        return null;
+        LOG.error("Follower operation num records returned [%d]: ", i);
+        return String.format("%d", extractionNamespace.getPreviousLastUpdateTimestamp().getTime());
             }
         };
 
@@ -228,7 +228,9 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                     newValue.add(columnValue);
                 }
 
-                if(isTSColumn && Timestamp.valueOf(columnValue).after(extractionNamespace.getPreviousLastUpdateTimestamp())) {
+                if(isTSColumn && !Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp()))
+                    extractionNamespace.setPreviousLastUpdateTimestamp(Timestamp.valueOf(columnValue));
+                else if(isTSColumn && Timestamp.valueOf(columnValue).after(extractionNamespace.getPreviousLastUpdateTimestamp())) {
                     LOG.debug("Updating last update TS for cache to [%s]", columnValue );
                     extractionNamespace.setPreviousLastUpdateTimestamp(Timestamp.valueOf(columnValue));
                 }
@@ -237,11 +239,10 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                     keyColumn = columnKvPair[1];
 
             }
-            LOG.info(newValue.toString());
             cache.put(keyColumn, newValue);
 
         } catch (Exception e) {
-            LOG.error(e.toString());
+            LOG.error("Updating cache caused exception: " + e.toString() + "\n" + e.getStackTrace().toString());
         }
     }
 

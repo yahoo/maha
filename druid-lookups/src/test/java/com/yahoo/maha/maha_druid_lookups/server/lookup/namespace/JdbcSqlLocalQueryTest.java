@@ -157,7 +157,7 @@ public class JdbcSqlLocalQueryTest {
      * by the Producer & convert it into a correct DruidLookup cache.
      */
 
-    @Ignore
+    @Test
     public void testCreateJdbcLookupOnMySqlAsFollower() throws Exception {
 
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new ObjectMapper()
@@ -179,7 +179,7 @@ public class JdbcSqlLocalQueryTest {
      * Test Producer logic is able to ingest a full Oracle table & write that message back to a Kafka
      * topic.
      */
-    @Ignore
+    @Test
     public void testCreateJdbcLookupOnMySqlAsLeader() throws Exception {
 
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new ObjectMapper()
