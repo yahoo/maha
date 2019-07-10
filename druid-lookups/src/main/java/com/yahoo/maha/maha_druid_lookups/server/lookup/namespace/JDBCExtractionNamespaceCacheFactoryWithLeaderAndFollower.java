@@ -191,7 +191,8 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         }
 
         LOG.error("Follower operation num records returned [%d]: ", i);
-        return String.format("%d", extractionNamespace.getPreviousLastUpdateTimestamp().getTime());
+        long lastUpdatedTS = Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp()) ? extractionNamespace.getPreviousLastUpdateTimestamp().getTime() : 0L;
+        return String.format("%d", lastUpdatedTS);
             }
         };
 
@@ -208,9 +209,9 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
         try {
             String keyColumn = "";
-            String allColumnsString = new String(value);
+            String allColumnsString = new String(value).replaceAll("\\{", "").replaceAll("\\}", "");
             String[] allColumnArray = allColumnsString.split(", ");
-            List<String> newValue = new ArrayList<>();
+            Map<String, String> mapOfColumns = new HashMap<>();
             for(String str: allColumnArray) {
                 String[] columnKvPair = str.split("=");
                 boolean isInvalidKVPair = columnKvPair.length < 2;
@@ -221,11 +222,11 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
                 if(isInvalidKVPair) {
                     LOG.error("Record passed in null value for column " + columnKvPair);
-                    newValue.add(columnValue);
+                    mapOfColumns.put(columnName, columnValue);
                 }
                 else {
                     columnValue = columnKvPair[1];
-                    newValue.add(columnValue);
+                    mapOfColumns.put(columnName, columnValue);
                 }
 
                 if(isTSColumn && !Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp()))
@@ -239,7 +240,13 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                     keyColumn = columnKvPair[1];
 
             }
-            cache.put(keyColumn, newValue);
+
+            List<String> columnsInOrder = new ArrayList<>();
+            for(String str: extractionNamespace.getColumnList()) {
+                columnsInOrder.add(mapOfColumns.getOrDefault(str, null));
+            }
+
+            cache.put(keyColumn, columnsInOrder);
 
         } catch (Exception e) {
             LOG.error("Updating cache caused exception: " + e.toString() + "\n" + e.getStackTrace().toString());
