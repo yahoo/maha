@@ -2,10 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.Message;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
@@ -17,9 +14,10 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.skife.jdbi.v2.DBI;
-import org.skife.jdbi.v2.DefaultMapper;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.tweak.HandleCallback;
 
@@ -121,6 +119,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                                                final Properties kafkaProperties,
                                                final Timestamp lastDBUpdate) {
         LOG.info("Running Kafka Leader - Producer actions on %s.", id);
+        kafkaProducer = ensureKafkaProducer(kafkaProperties);
 
         return new Callable<String>() {
             @Override
@@ -141,7 +140,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                                                 extractionNamespace.getTable()
                                         );
 
-                                populateRowListFromJDBC(extractionNamespace, query, lastDBUpdate, handle, new KafkaRowMapper(extractionNamespace, cache));
+                                populateRowListFromJDBC(extractionNamespace, query, lastDBUpdate, handle, new KafkaRowMapper(extractionNamespace, cache, kafkaProducer));
                                 return null;
                             }
                         }
@@ -253,6 +252,19 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
      */
     private Callable<String> nonCacheEnabledCall(long lastCheck) {
         return () -> String.valueOf(lastCheck);
+    }
+
+    /**
+     * Safe KafkaProducer create/call.
+     * @param kafkaProperties
+     * @return
+     */
+    private synchronized Producer<String, byte[]> ensureKafkaProducer(Properties kafkaProperties) {
+
+        if(kafkaProducer == null) {
+            kafkaProducer = new KafkaProducer<>(kafkaProperties, new StringSerializer(), new ByteArraySerializer());
+        }
+        return kafkaProducer;
     }
 
     /**

@@ -4,11 +4,8 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 
 import com.metamx.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespaceWithLeaderAndFollower;
-import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.*;
-import org.apache.kafka.common.serialization.ByteArraySerializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.skife.jdbi.v2.DefaultMapper;
 import org.skife.jdbi.v2.StatementContext;
 
@@ -24,11 +21,12 @@ public class KafkaRowMapper extends RowMapper {
     private Producer<String, byte[]> kafkaProducer;
     private String producerKafkaTopic;
 
-    public KafkaRowMapper(JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace, Map<String, List<String>> cache ) {
+    public KafkaRowMapper(JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace, Map<String, List<String>> cache, Producer<String, byte[]> kafkaProducer ) {
         super(extractionNamespace, cache);
         this.extractionNamespace = extractionNamespace;
         this.cache = cache;
         this.producerKafkaTopic = extractionNamespace.getKafkaTopic();
+        this.kafkaProducer = kafkaProducer;
     }
 
     @Override
@@ -46,7 +44,6 @@ public class KafkaRowMapper extends RowMapper {
         Map<String, Object> row = new DefaultMapper().map(i, resultSet, statementContext);
         if(Objects.nonNull(row)) {
 
-                kafkaProducer = ensureKafkaProducer(extractionNamespace.getKafkaProperties());
                 ProducerRecord<String, byte[]> producerRecord =
                         new ProducerRecord<>(producerKafkaTopic, extractionNamespace.getTable(), row.toString().getBytes());
                 kafkaProducer.send(producerRecord);
@@ -55,20 +52,5 @@ public class KafkaRowMapper extends RowMapper {
         }
 
         return null;
-    }
-
-
-
-    /**
-     * Safe KafkaProducer create/call.
-     * @param kafkaProperties
-     * @return
-     */
-    private synchronized Producer<String, byte[]> ensureKafkaProducer(Properties kafkaProperties) {
-
-        if(kafkaProducer == null) {
-            kafkaProducer = new KafkaProducer<>(kafkaProperties, new StringSerializer(), new ByteArraySerializer());
-        }
-        return kafkaProducer;
     }
 }
