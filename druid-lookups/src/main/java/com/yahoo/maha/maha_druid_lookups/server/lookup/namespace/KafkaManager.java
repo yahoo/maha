@@ -341,6 +341,7 @@ public class KafkaManager {
             properties.put(ProducerConfig.RETRIES_CONFIG, kafkaProperties.getProperty("acks", "0"));
             properties.put(ProducerConfig.BUFFER_MEMORY_CONFIG, kafkaProperties.getProperty("buffer.memory", "1048576"));
             properties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, kafkaProperties.getProperty("max.block.ms", "1000"));
+            Thread.currentThread().setContextClassLoader(null);
             this.kafkaProducer = new KafkaProducer<>(properties);
         }
         return kafkaProducer;

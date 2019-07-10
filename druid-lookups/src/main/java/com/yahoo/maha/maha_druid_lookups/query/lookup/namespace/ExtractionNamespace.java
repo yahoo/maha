@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableList;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes(value = {
+        @JsonSubTypes.Type(name = "mahajdbcleaderfollower", value = JDBCExtractionNamespaceWithLeaderAndFollower.class),
         @JsonSubTypes.Type(name = "mahajdbc", value = JDBCExtractionNamespace.class),
         @JsonSubTypes.Type(name = "maharocksdb", value = RocksDBExtractionNamespace.class),
         @JsonSubTypes.Type(name = "mahainmemorydb", value = RocksDBExtractionNamespace.class),

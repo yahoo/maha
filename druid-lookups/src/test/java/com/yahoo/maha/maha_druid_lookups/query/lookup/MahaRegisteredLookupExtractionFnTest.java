@@ -133,32 +133,4 @@ public class MahaRegisteredLookupExtractionFnTest {
 
         Assert.assertNull(fn.apply(null));
     }
-
-    @Test
-    public void testWhenLeaderValueIsSet() {
-
-        MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
-        JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
-                new JDBCExtractionNamespaceWithLeaderAndFollower(metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id", "name", "currency", "status")),
-                        "id", "", new Period(), true,"advertiser_lookup", "ad_test", true);
-
-        Map<String, List<String>> map = new HashMap<>();
-        map.put("123", Arrays.asList("123", "some name", "USD", "ON"));
-        JDBCLookupExtractor jdbcLookupExtractor = new JDBCLookupExtractor(extractionNamespace, map, lookupService);
-
-        LookupExtractorFactory lef = mock(LookupExtractorFactory.class);
-        when(lef.get()).thenReturn(jdbcLookupExtractor);
-
-        LookupExtractorFactoryContainer lefc = mock(LookupExtractorFactoryContainer.class);
-        when(lefc.getLookupExtractorFactory()).thenReturn(lef);
-        LookupReferencesManager lrm = mock(LookupReferencesManager.class);
-        when(lrm.get(anyString())).thenReturn(lefc);
-
-        MahaRegisteredLookupExtractionFn fn = spy(new MahaRegisteredLookupExtractionFn(lrm, "advertiser_lookup", false, "", false, false, "status", null, null, true));
-
-        fn.ensureCache().put("123", "hola");
-
-        Assert.assertEquals(fn.apply("123"), "hola");
-        Assert.assertEquals(fn.cache.getIfPresent("123"), "hola");
-    }
 }

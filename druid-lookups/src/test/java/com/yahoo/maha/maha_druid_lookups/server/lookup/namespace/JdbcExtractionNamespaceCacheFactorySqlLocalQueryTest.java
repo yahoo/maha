@@ -2,6 +2,7 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.metamx.emitter.service.ServiceEmitter;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespaceWithLeaderAndFollower;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
 import com.zaxxer.hikari.HikariConfig;
@@ -49,14 +50,14 @@ import java.util.concurrent.Callable;
  *                  TODO: Ensure KafkaConsumer runs properly by creating a 1-minute test that periodically
  *                        writes to an active Kafka topic.
  */
-public class JdbcSqlLocalQueryTest {
+public class JdbcExtractionNamespaceCacheFactorySqlLocalQueryTest {
 
     private HikariConfig config;
     private String h2dbId = UUID.randomUUID().toString().replace("-", "");
     private HikariDataSource ds;
     private Statement jdbcConnection;
 
-    private JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower jdbcEncFactory = new JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower();
+    private JDBCExtractionNamespaceCacheFactory jdbcEncFactory = new JDBCExtractionNamespaceCacheFactory();
     private String jdbcUrl;
     private String userName;
     private String passWord;
@@ -82,9 +83,9 @@ public class JdbcSqlLocalQueryTest {
         kafkaProperties.put("bootstrap.servers", "localhost:9092");
         kafkaProperties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         kafkaProperties.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
-        kafkaProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        kafkaProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
-        kafkaProperties.put(ConsumerConfig.GROUP_ID_CONFIG, "test-consumer-group");
+        kafkaProperties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        kafkaProperties.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        kafkaProperties.put("group.id", "test-consumer-group");
     }
 
     /**
@@ -137,7 +138,7 @@ public class JdbcSqlLocalQueryTest {
      */
     @BeforeClass
     public void init() throws Exception {
-        jdbcUrl = "jdbc:mysql://localhost:3306/test?serverTimezone=UTC";
+        jdbcUrl = "jdbc:mysql://localhost:3306/sys?serverTimezone=UTC";
         userName = "root";
         passWord = "password";
         jdbcConnectorConfig = "{\"connectURI\":\"" + jdbcUrl + "\", \"user\":\"" + userName + "\", \"password\":\"" + passWord + "\"}";
@@ -165,10 +166,10 @@ public class JdbcSqlLocalQueryTest {
         .readValue(jdbcConnectorConfig);
 
         //new MetadataStorageConnectorConfig();
-        JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
-                new JDBCExtractionNamespaceWithLeaderAndFollower(
+        JDBCExtractionNamespace extractionNamespace =
+                new JDBCExtractionNamespace(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated", "title", "status")),
-                        "id", "date", new Period(), true, "ad_lookup", "ad_test", false, kafkaProperties);
+                        "id", "date", new Period(), true, "ad_lookup");
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "3.1", toDatePlusOneHour, toDatePlusOneHour));
         Callable<String> populator = jdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);//, kafkaProperties, new TestProtobufSchemaFactory(), "topic");
@@ -189,10 +190,10 @@ public class JdbcSqlLocalQueryTest {
         String currentDate = (new SimpleDateFormat("hh:mm:ss")).format(new Date());
 
         //new MetadataStorageConnectorConfig();
-        JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
-                new JDBCExtractionNamespaceWithLeaderAndFollower(
+        JDBCExtractionNamespace extractionNamespace =
+                new JDBCExtractionNamespace(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated", "title", "status")),
-                        "id", "date", new Period(), true, "ad_lookup", "ad_test", true, kafkaProperties);
+                        "id", "date", new Period(), true, "ad_lookup");
         extractionNamespace.setFirstTimeCaching(true);
         extractionNamespace.setPreviousLastUpdateTimestamp(new Timestamp(currentDateTime.getMillis()));
         Map<String, List<String>> map = new HashMap<>();

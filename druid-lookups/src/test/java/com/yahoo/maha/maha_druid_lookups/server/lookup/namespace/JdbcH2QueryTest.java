@@ -107,7 +107,7 @@ public class JdbcH2QueryTest {
         MockitoAnnotations.initMocks(this);
         jdbcEncFactory.emitter = serviceEmitter;
         jdbcEncFactory.lookupService = lookupService;
-        jdbcEncFactory.protobufSchemaFactory = new TestProtobufSchemaFactory();
+        //jdbcEncFactory.protobufSchemaFactory = new TestProtobufSchemaFactory();
     }
 
 
@@ -171,12 +171,11 @@ public class JdbcH2QueryTest {
         JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
                 new JDBCExtractionNamespaceWithLeaderAndFollower(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated")),
-                        "id", "last_updated", new Period(), true, "ad_lookup", "ad_test", false);
+                        "id", "last_updated", new Period(), true,
+                        "ad_lookup", "ad_test", false, kafkaProperties);
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "3.1", toDatePlusOneHour));
-        jdbcEncFactory.setKafkaProperties(kafkaProperties);
-        jdbcEncFactory.setProtobufSchemaFactory(new TestProtobufSchemaFactory());
-        Callable<String> populator = jdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);//, kafkaProperties, new TestProtobufSchemaFactory(), "topic");
+        Callable<String> populator = jdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);
         System.err.println("Callable Result: " + populator.call());
     }
 
@@ -197,15 +196,14 @@ public class JdbcH2QueryTest {
         JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
                 new JDBCExtractionNamespaceWithLeaderAndFollower(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated", "title", "status")),
-                        "id", "last_updated", new Period(), false, "ad_lookup", "ad_test", true);
+                        "id", "last_updated", new Period(), false,
+                        "ad_lookup", "ad_test", true, kafkaProperties);
 
         extractionNamespace.setFirstTimeCaching(false);
         extractionNamespace.setPreviousLastUpdateTimestamp(new Timestamp(currentDateTime.getMillis()));
 
         Map<String, List<String>> map = new HashMap<>();
-        jdbcEncFactory.setKafkaProperties(kafkaProperties);
-        jdbcEncFactory.setProtobufSchemaFactory(new TestProtobufSchemaFactory());
-        Callable<String> populator = jdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);//, kafkaProperties, new TestProtobufSchemaFactory(), "topic");
+        Callable<String> populator = jdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);
         System.err.println("Callable Result: " + populator.call());
     }
 }

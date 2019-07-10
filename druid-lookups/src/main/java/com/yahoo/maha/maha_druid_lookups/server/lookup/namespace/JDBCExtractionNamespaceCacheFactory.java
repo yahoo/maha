@@ -3,28 +3,19 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.google.inject.Inject;
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.Message;
-import com.google.protobuf.Parser;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespaceWithLeaderAndFollower;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.RowMapper;
 import org.skife.jdbi.v2.DBI;
-import org.skife.jdbi.v2.DefaultMapper;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.tweak.HandleCallback;
 import org.skife.jdbi.v2.util.TimestampMapper;
 
 import java.sql.Timestamp;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -44,8 +35,6 @@ public class JDBCExtractionNamespaceCacheFactory
     LookupService lookupService;
     @Inject
     ServiceEmitter emitter;
-    @Inject
-    ProtobufSchemaFactory protobufSchemaFactory;
 
     @Override
     public Callable<String> getCachePopulator(
@@ -88,7 +77,7 @@ public class JDBCExtractionNamespaceCacheFactory
                                         extractionNamespace.getTable()
                                 );
 
-                                populateRowListFromJDBC(extractionNamespace, query, cache, lastDBUpdate, handle);
+                                populateRowListFromJDBC(extractionNamespace, query, lastDBUpdate, handle, new RowMapper(extractionNamespace, cache));
                                 return null;
                             }
                         }
@@ -101,35 +90,30 @@ public class JDBCExtractionNamespaceCacheFactory
         };
     }
 
-    protected List<Map<String, Object>> populateRowListFromJDBC(
+    protected Void populateRowListFromJDBC(
             JDBCExtractionNamespace extractionNamespace,
             String query,
-            Map<String, List<String>> cache,
             Timestamp lastDBUpdate,
-            Handle handle
+            Handle handle,
+            RowMapper rm
     ) {
-        List<Map<String, Object>> rowList;
+        Timestamp updateTS;
         if (extractionNamespace.isFirstTimeCaching()) {
             extractionNamespace.setFirstTimeCaching(false);
             query = String.format("%s %s", query, FIRST_TIME_CACHING_WHERE_CLAUSE);
-            rowList = handle.createQuery(query).map(
-                    new RowMapper(extractionNamespace, cache))
-                    .setFetchSize(FETCH_SIZE)
-                    .bind("lastUpdatedTimeStamp", lastDBUpdate)
-                    .map(new DefaultMapper())
-                    .list();
+            updateTS = lastDBUpdate;
 
         } else {
             query = String.format("%s %s", query, SUBSEQUENT_CACHING_WHERE_CLAUSE);
-            rowList = handle.createQuery(query).map(
-                    new RowMapper(extractionNamespace, cache))
-                    .setFetchSize(FETCH_SIZE)
-                    .bind("lastUpdatedTimeStamp", extractionNamespace.getPreviousLastUpdateTimestamp())
-                    .map(new DefaultMapper())
-                    .list();
+            updateTS = extractionNamespace.getPreviousLastUpdateTimestamp();
         }
 
-        return rowList;
+        handle.createQuery(query).map(rm)
+                .setFetchSize(FETCH_SIZE)
+                .bind("lastUpdatedTimeStamp", updateTS)
+                .list();
+
+        return null;
     }
 
     protected DBI ensureDBI(String id, JDBCExtractionNamespace namespace) {
