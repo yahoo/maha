@@ -383,6 +383,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
               :: ("required" -> toJSON(dimCol.required))
               :: ("filteringRequired" -> toJSON(dimCol.filteringRequired))
               :: ("incompatibleColumns" -> incompatibleColumns)
+              :: ("isImageColumn" -> toJSON(dimCol.isImageColumn))
               :: Nil
           )
       }
@@ -460,6 +461,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
               :: ("filterOperations" -> filterOperations)
               :: ("required" -> toJSON(dimCol.required))
               :: ("filteringRequired" -> toJSON(dimCol.filteringRequired))
+              :: ("isImageColumn" -> toJSON(dimCol.isImageColumn))
               :: Nil
           )
       }
@@ -488,6 +490,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
                    :: ("filterOperations" -> filterOperations)
                    :: ("required" -> toJSON(dimCol._2.required))
                    :: ("filteringRequired" -> toJSON(dimCol._2.filteringRequired))
+                   :: ("isImageColumn" -> toJSON(dimCol._2.isImageColumn))
                    :: Nil
                )
           }

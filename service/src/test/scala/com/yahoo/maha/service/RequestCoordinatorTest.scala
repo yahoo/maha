@@ -34,8 +34,8 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
 
     val studentInsertSql =
-      """INSERT INTO student (id, name, admitted_year, status, department_id)
-        VALUES (?, ?, ?, ?, ?)"""
+      """INSERT INTO student (profile_url, id, name, admitted_year, status, department_id)
+        VALUES (?, ?, ?, ?, ?, ?)"""
 
     val classInsertSql =
       """INSERT INTO class (id, name, start_year, status, department_id, professor)
@@ -55,7 +55,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     )
 
     val studentRows: List[Seq[Any]] = List(
-      Seq(213, "ACTIVE", 2017, "ACTIVE", 54321)
+      Seq("www.google.com",213, "ACTIVE", 2017, "ACTIVE", 54321)
     )
 
     val classRows: List[Seq[Any]] = List(
@@ -69,31 +69,31 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     rows.foreach {
       row =>
         val result = jdbcConnection.get.executeUpdate(insertSql, row)
-        assert(result.isSuccess)
+        assert(result.isSuccess, s"Insertion failed: ${result.failed}")
     }
 
     rows.foreach {
       row =>
         val result = jdbcConnection.get.executeUpdate(insertSql.replaceAllLiterally("student_grade_sheet", "student_grade_sheet_again"), row)
-        assert(result.isSuccess)
+        assert(result.isSuccess, s"Insertion failed: ${result.failed}")
     }
 
     studentRows.foreach{
       row =>
         val result = jdbcConnection.get.executeUpdate(studentInsertSql, row)
-        assert(result.isSuccess)
+        assert(result.isSuccess, s"Insertion failed: ${result.failed}")
     }
 
     classRows.foreach{
       row =>
         val result = jdbcConnection.get.executeUpdate(classInsertSql, row)
-        assert(result.isSuccess)
+        assert(result.isSuccess, s"Insertion failed: ${result.failed}")
     }
 
     sectionRows.foreach {
       row =>
         val result = jdbcConnection.get.executeUpdate(sectionInsertSql, row)
-        assert(result.isSuccess)
+        assert(result.isSuccess, s"Insertion failed: ${result.failed}")
     }
 
     var count = 0

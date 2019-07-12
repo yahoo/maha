@@ -1490,6 +1490,7 @@ case class PublicFactCol (name: String
                           , required: Boolean = false
                           , hiddenFromJson: Boolean = false
                           , filteringRequired: Boolean = false
+                          , isImageColumn: Boolean = false
                           , restrictedSchemas: Set[Schema] = Set.empty) extends PublicFactColumn
 
 case class FactBestCandidate(fkCols: SortedSet[String]
