@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
+import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
@@ -221,7 +222,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 boolean isPkColumn = columnName.equals(extractionNamespace.getPrimaryKeyColumn());
 
                 if(isInvalidKVPair) {
-                    LOG.error("Record passed in null value for column " + columnKvPair);
+                    LOG.error("Record passed in null value for column " + str);
                     mapOfColumns.put(columnName, columnValue);
                 }
                 else {
@@ -229,10 +230,12 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                     mapOfColumns.put(columnName, columnValue);
                 }
 
-                if(isTSColumn && !Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp()))
+                if(isTSColumn && !Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp())) {
+                    LOG.info("Setting first update time for lookup " + extractionNamespace.getLookupName());
                     extractionNamespace.setPreviousLastUpdateTimestamp(Timestamp.valueOf(columnValue));
+                }
                 else if(isTSColumn && Timestamp.valueOf(columnValue).after(extractionNamespace.getPreviousLastUpdateTimestamp())) {
-                    LOG.debug("Updating last update TS for cache to [%s]", columnValue );
+                    LOG.info("Updating last update TS for cache to [%s]", columnValue );
                     extractionNamespace.setPreviousLastUpdateTimestamp(Timestamp.valueOf(columnValue));
                 }
 
@@ -246,7 +249,9 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 columnsInOrder.add(mapOfColumns.getOrDefault(str, null));
             }
 
-            cache.put(keyColumn, columnsInOrder);
+            if(!Strings.isNullOrEmpty(keyColumn)) {
+                cache.put(keyColumn, columnsInOrder);
+            }
 
         } catch (Exception e) {
             LOG.error("Updating cache caused exception: " + e.toString() + "\n" + e.getStackTrace().toString());
@@ -267,7 +272,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
      * @param kafkaProperties
      * @return
      */
-    private synchronized Producer<String, byte[]> ensureKafkaProducer(Properties kafkaProperties) {
+    synchronized Producer<String, byte[]> ensureKafkaProducer(Properties kafkaProperties) {
 
         if(kafkaProducer == null) {
             kafkaProducer = new KafkaProducer<>(kafkaProperties, new StringSerializer(), new ByteArraySerializer());

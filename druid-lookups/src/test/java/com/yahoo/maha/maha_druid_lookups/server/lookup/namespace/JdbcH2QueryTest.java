@@ -8,7 +8,15 @@ import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProt
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import io.druid.metadata.MetadataStorageConnectorConfig;
+import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.MockProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.Cluster;
+import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.joda.time.DateTime;
@@ -16,6 +24,8 @@ import org.joda.time.Period;
 import org.junit.Ignore;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.internal.util.reflection.Whitebox;
+import org.skife.jdbi.v2.DBI;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -27,6 +37,12 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doCallRealMethod;
 
 /**
  * Created:         ryanwagner
@@ -159,16 +175,69 @@ public class JdbcH2QueryTest {
 
     /**
      * Test getCachePopulator in JDBC EN Cache Factory using non-leader logic
-     * (basic lookup & write-back).
+     * Ensures follower logic can read and insert into cache.
      */
-    @Ignore
+    @Test
     public void testCreateJdbcLookupOnH2() throws Exception {
+        JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower myJdbcEncFactory = mock(
+                JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower.class);
+        MockConsumer mockConsumer = new MockConsumer<String, byte[]>(OffsetResetStrategy.EARLIEST);
+
+        doCallRealMethod().when(myJdbcEncFactory).getCachePopulator(any(), any(), any(), any());
+        doCallRealMethod().when(myJdbcEncFactory).doFollowerOperations(any(), any(), any(), any());
+        doCallRealMethod().when(myJdbcEncFactory).populateRowListFromJDBC(any(), any(), any(), any(), any());
+        doCallRealMethod().when(myJdbcEncFactory).lastUpdates(any(), any());
+        doCallRealMethod().when(myJdbcEncFactory).ensureDBI(any(), any());
+        doCallRealMethod().when(myJdbcEncFactory).updateLocalCache(any(), any(), any());
+        doCallRealMethod().when(myJdbcEncFactory).getCacheValue(any(), any(), any(), any(), any());
+
+        Whitebox.setInternalState(myJdbcEncFactory, "dbiCache", new ConcurrentHashMap<>());
+        ConsumerRecord<String, byte[]> record = new ConsumerRecord<String, byte[]>(
+                "ad_lookup",
+                0,
+                179,
+                new DateTime().getMillis(),
+                TimestampType.CREATE_TIME,
+                3065736663L,
+                2,
+                120,
+                "ad",
+                "{date=2019-07-09 01:53:53.0, last_updated=2019-07-09 01:53:53.0, name=Bobbert, gpa=, id=1234, title=Good Ad, status=ON}".getBytes());
+        ConsumerRecords<String, byte[]> crs = new ConsumerRecords<String, byte[]>(
+                Collections.singletonMap(
+                        new TopicPartition("ad_lookup", 1),
+                        Arrays.asList(record)
+        ));
+
+        TopicPartition adPartition = new TopicPartition("ad_lookup", 0);
+        List<TopicPartition> partitions = Arrays.asList(adPartition);
+        List<String> topics = Arrays.asList("ad_lookup");
+        Map<TopicPartition, Long> beginOffsets = new HashMap<TopicPartition, Long>(){
+            {
+                put(adPartition, 0L);
+            }
+        };
+        Map<TopicPartition, Long> endOffsets = new HashMap<TopicPartition, Long>(){
+            {
+                put(adPartition, 1L);
+            }
+        };
+        mockConsumer.subscribe(topics);
+        mockConsumer.rebalance(partitions);
+        mockConsumer.updateBeginningOffsets(beginOffsets);
+        mockConsumer.updateEndOffsets(endOffsets);
+        mockConsumer.addRecord(record);
+
+        when(myJdbcEncFactory.ensureKafkaProducer(any())).thenReturn(mock(KafkaProducer.class));
+        when(myJdbcEncFactory.ensureKafkaConsumer(any())).thenReturn(mockConsumer);
+
+        myJdbcEncFactory.emitter = serviceEmitter;
+        myJdbcEncFactory.lookupService = lookupService;
 
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new ObjectMapper()
         .readerFor(MetadataStorageConnectorConfig.class)
         .readValue(jdbcConnectorConfig);
 
-        //new MetadataStorageConnectorConfig();
         JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
                 new JDBCExtractionNamespaceWithLeaderAndFollower(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated")),
@@ -176,24 +245,58 @@ public class JdbcH2QueryTest {
                         "ad_lookup", "ad_test", false, kafkaProperties);
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "3.1", toDatePlusOneHour));
-        Callable<String> populator = jdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);
+        Callable<String> populator = myJdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);
         System.err.println("Callable Result: " + populator.call());
+        Assert.assertTrue(mockConsumer.position(adPartition) >= 110L, "Expected >= 120 offset (1 message) but got " + mockConsumer.position(adPartition));
+        String cachedName = new String(myJdbcEncFactory.getCacheValue(extractionNamespace, map, "1234", "name", Optional.empty()));
+        Assert.assertTrue(cachedName.equals("Bobbert"));
+        String cachedGpa = new String(myJdbcEncFactory.getCacheValue(extractionNamespace, map, "1234", "gpa", Optional.empty()));
+        Assert.assertTrue(cachedGpa.equals(""));
     }
 
     /**
      * Test getCachePopulator in JDBC EN Cache Factory using Leader logic
      * Should create and write to a kafka topic.
      */
-    @Ignore
+    @Test
     public void testCreateJdbcLookupOnH2asLeader() throws Exception {
+
+        JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower myJdbcEncFactory = mock(
+                JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower.class);
+        MockProducer mockProducer = new MockProducer(true, new StringSerializer(), new ByteArraySerializer());
+
+
+        doCallRealMethod().when(myJdbcEncFactory).getCachePopulator(any(), any(), any(), any());
+        doCallRealMethod().when(myJdbcEncFactory).doLeaderOperations(any(), any(), any(), any(), any());
+        doCallRealMethod().when(myJdbcEncFactory).populateRowListFromJDBC(any(), any(), any(), any(), any());
+        doCallRealMethod().when(myJdbcEncFactory).lastUpdates(any(), any());
+        doCallRealMethod().when(myJdbcEncFactory).ensureDBI(any(), any());
+
+        Whitebox.setInternalState(myJdbcEncFactory, "dbiCache", new ConcurrentHashMap<>());
+
+        TopicPartition adPartition = new TopicPartition("ad_lookup", 0);
+        List<TopicPartition> partitions = Arrays.asList(adPartition);
+        List<String> topics = Arrays.asList("ad_lookup");
+        Map<TopicPartition, Long> beginOffsets = new HashMap<TopicPartition, Long>(){
+            {
+                put(adPartition, 0L);
+            }
+        };
+        Map<TopicPartition, Long> endOffsets = new HashMap<TopicPartition, Long>(){
+            {
+                put(adPartition, 1L);
+            }
+        };
+
+        when(myJdbcEncFactory.ensureKafkaProducer(any())).thenReturn(mockProducer);
+
+        myJdbcEncFactory.emitter = serviceEmitter;
+        myJdbcEncFactory.lookupService = lookupService;
 
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = new ObjectMapper()
                 .readerFor(MetadataStorageConnectorConfig.class)
                 .readValue(jdbcConnectorConfig);
 
-        String currentDate = (new SimpleDateFormat("hh:mm:ss")).format(new Date());
-
-        //new MetadataStorageConnectorConfig();
         JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
                 new JDBCExtractionNamespaceWithLeaderAndFollower(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated", "title", "status")),
@@ -204,7 +307,17 @@ public class JdbcH2QueryTest {
         extractionNamespace.setPreviousLastUpdateTimestamp(new Timestamp(currentDateTime.getMillis()));
 
         Map<String, List<String>> map = new HashMap<>();
-        Callable<String> populator = jdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);
+        Callable<String> populator = myJdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);
         System.err.println("Callable Result: " + populator.call());
+        System.err.println("Producer history: " + mockProducer.history());
+        Assert.assertTrue(mockProducer.history().size() == 2, "Expect to see 2 producerRecords sent.");
+        for(Object record: mockProducer.history()) {
+            Assert.assertTrue(record.getClass().equals(ProducerRecord.class));
+            ProducerRecord rc = (ProducerRecord) record;
+            Assert.assertTrue(rc.key() == "ad");
+            Assert.assertTrue(rc.topic() == "ad_test");
+            String recordedValueAsString = new String((byte[])rc.value());
+            Assert.assertTrue(recordedValueAsString.contains("1234") || recordedValueAsString.contains(("4444")));
+        }
     }
 }

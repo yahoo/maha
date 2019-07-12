@@ -90,7 +90,7 @@ public class JDBCExtractionNamespaceCacheFactory
         };
     }
 
-    protected Void populateRowListFromJDBC(
+    Void populateRowListFromJDBC(
             JDBCExtractionNamespace extractionNamespace,
             String query,
             Timestamp lastDBUpdate,
