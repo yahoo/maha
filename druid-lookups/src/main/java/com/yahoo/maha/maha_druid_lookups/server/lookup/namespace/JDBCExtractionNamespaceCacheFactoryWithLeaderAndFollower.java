@@ -22,6 +22,8 @@ import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.tweak.HandleCallback;
 
+import java.io.ByteArrayInputStream;
+import java.io.ObjectInputStream;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -191,12 +193,30 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             ++i;
         }
 
-        LOG.error("Follower operation num records returned [%d]: ", i);
+        LOG.info("Follower operation num records returned [%d]: ", i);
         long lastUpdatedTS = Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp()) ? extractionNamespace.getPreviousLastUpdateTimestamp().getTime() : 0L;
         return String.format("%d", lastUpdatedTS);
             }
         };
 
+    }
+
+    /**
+     *
+     * @param lastUpdatedTS
+     * @param extractionNamespace
+     */
+    public void populateLastUpdatedTime(Timestamp lastUpdatedTS,
+                                        JDBCExtractionNamespace extractionNamespace) {
+        if (!Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp())) {
+            LOG.info("Setting last updated TS as current value.");
+            extractionNamespace.setPreviousLastUpdateTimestamp(lastUpdatedTS);
+        } else if (Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp()) &&
+                extractionNamespace.getPreviousLastUpdateTimestamp().before(lastUpdatedTS)) {
+            extractionNamespace.setPreviousLastUpdateTimestamp(lastUpdatedTS);
+        } else {
+            LOG.info("show me...");
+        }
     }
 
     /**
@@ -209,52 +229,29 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                             final byte[] value) {
 
         try {
-            String keyColumn = "";
-            String allColumnsString = new String(value).replaceAll("\\{", "").replaceAll("\\}", "");
-            String[] allColumnArray = allColumnsString.split(", ");
-            Map<String, String> mapOfColumns = new HashMap<>();
-            for(String str: allColumnArray) {
-                String[] columnKvPair = str.split("=");
-                boolean isInvalidKVPair = columnKvPair.length < 2;
-                String columnName = columnKvPair[0];
-                String columnValue = "";
-                boolean isTSColumn = columnName.equals(extractionNamespace.getTsColumn());
-                boolean isPkColumn = columnName.equals(extractionNamespace.getPrimaryKeyColumn());
-
-                if(isInvalidKVPair) {
-                    LOG.error("Record passed in null value for column " + str);
-                    mapOfColumns.put(columnName, columnValue);
-                }
-                else {
-                    columnValue = columnKvPair[1];
-                    mapOfColumns.put(columnName, columnValue);
-                }
-
-                if(isTSColumn && !Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp())) {
-                    LOG.info("Setting first update time for lookup " + extractionNamespace.getLookupName());
-                    extractionNamespace.setPreviousLastUpdateTimestamp(Timestamp.valueOf(columnValue));
-                }
-                else if(isTSColumn && Timestamp.valueOf(columnValue).after(extractionNamespace.getPreviousLastUpdateTimestamp())) {
-                    LOG.info("Updating last update TS for cache to [%s]", columnValue );
-                    extractionNamespace.setPreviousLastUpdateTimestamp(Timestamp.valueOf(columnValue));
-                }
-
-                if(isPkColumn)
-                    keyColumn = columnKvPair[1];
-
-            }
+            String keyColname = extractionNamespace.getPrimaryKeyColumn();
+            ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(value));
+            Map<String, Object> allColumnsMap = (Map<String, Object>)ois.readObject();
+            String pkValue = allColumnsMap.getOrDefault(keyColname, null).toString();
 
             List<String> columnsInOrder = new ArrayList<>();
             for(String str: extractionNamespace.getColumnList()) {
-                columnsInOrder.add(mapOfColumns.getOrDefault(str, null));
+                Object retVal = allColumnsMap.getOrDefault(str, "");
+                columnsInOrder.add(String.valueOf(retVal));
+                boolean isTS = Objects.nonNull(retVal) && str.equals(extractionNamespace.getTsColumn());
+
+                if(isTS)
+                    populateLastUpdatedTime((Timestamp)retVal, extractionNamespace);
             }
 
-            if(!Strings.isNullOrEmpty(keyColumn)) {
-                cache.put(keyColumn, columnsInOrder);
+            if(Objects.nonNull(pkValue)) {
+                cache.put(pkValue, columnsInOrder);
+            } else {
+                LOG.error("No Valid Primary Key parsed for column.  Refusing to update.");
             }
 
         } catch (Exception e) {
-            LOG.error("Updating cache caused exception: " + e.toString() + "\n" + e.getStackTrace().toString());
+            LOG.error("Updating cache caused exception (Check column names): " + e.toString() + "\n" + e.getStackTrace().toString());
         }
     }
 

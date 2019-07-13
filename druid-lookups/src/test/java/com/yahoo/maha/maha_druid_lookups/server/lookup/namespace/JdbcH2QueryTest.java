@@ -26,6 +26,10 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -212,6 +216,7 @@ public class JdbcH2QueryTest {
         doCallRealMethod().when(myJdbcEncFactory).ensureDBI(any(), any());
         doCallRealMethod().when(myJdbcEncFactory).updateLocalCache(any(), any(), any());
         doCallRealMethod().when(myJdbcEncFactory).getCacheValue(any(), any(), any(), any(), any());
+        doCallRealMethod().when(myJdbcEncFactory).populateLastUpdatedTime(any(), any());
 
         Whitebox.setInternalState(myJdbcEncFactory, "dbiCache", new ConcurrentHashMap<>());
 
@@ -222,6 +227,22 @@ public class JdbcH2QueryTest {
         when(myJdbcEncFactory.ensureKafkaConsumer(any())).thenReturn(mockConsumer);
 
         return myJdbcEncFactory;
+    }
+
+    public byte[] createInputRow() throws Exception{
+        Map<String, Object> row = new HashMap<>();
+        row.put("date", new Timestamp(new DateTime().getMillis()));
+        row.put("last_updated", new Timestamp(new DateTime().getMillis()));
+        row.put("name", "Bobbert");
+        row.put("gpa", null);
+        row.put("id", 1234L);
+        row.put("title", "Good Ad");
+        row.put("status", "ON");
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(row);
+        oos.close();
+        return baos.toByteArray();
     }
 
     /**
@@ -243,7 +264,7 @@ public class JdbcH2QueryTest {
                 2,
                 120,
                 "ad",
-                "{date=2019-07-09 01:53:53.0, last_updated=2019-07-09 01:53:53.0, name=Bobbert, gpa=, id=1234, title=Good Ad, status=ON}".getBytes());
+                createInputRow());
 
         MockConsumer<String, byte[]> mockConsumer = createAndPopulateNewConsumer(Collections.singletonList(adRecord), "ad_lookup");
         MockProducer<String, byte[]> mockProducer = createAndPopulateNewProducer();
@@ -271,7 +292,7 @@ public class JdbcH2QueryTest {
         String cachedName = new String(myJdbcEncFactory.getCacheValue(extractionNamespace, map, "1234", "name", Optional.empty()));
         Assert.assertEquals(cachedName, "Bobbert");
         String cachedGpa = new String(myJdbcEncFactory.getCacheValue(extractionNamespace, map, "1234", "gpa", Optional.empty()));
-        Assert.assertEquals(cachedGpa, "");
+        Assert.assertEquals(cachedGpa, "null");
     }
 
     /**
@@ -292,7 +313,7 @@ public class JdbcH2QueryTest {
                 2,
                 120,
                 "ad",
-                "{date=2019-07-09 01:53:53.0, last_updated=2019-07-09 01:53:53.0, name=Bobbert, gpa=, id=1234, title=Good Ad, status=ON}".getBytes());
+                createInputRow());
 
         MockConsumer<String, byte[]> mockConsumer = createAndPopulateNewConsumer(Collections.singletonList(adRecord), "ad_lookup");
         MockProducer<String, byte[]> mockProducer = createAndPopulateNewProducer();
@@ -324,7 +345,9 @@ public class JdbcH2QueryTest {
             ProducerRecord rc = (ProducerRecord) record;
             Assert.assertSame("ad", rc.key());
             Assert.assertSame("ad_test", rc.topic());
-            String recordedValueAsString = new String((byte[])rc.value());
+            ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream((byte[])rc.value()));
+            Map<String, Object> allColumnsMap = (Map<String, Object>)ois.readObject();
+            String recordedValueAsString = allColumnsMap.toString();
             Assert.assertTrue(recordedValueAsString.contains("1234") || recordedValueAsString.contains(("4444")));
         }
     }

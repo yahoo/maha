@@ -9,6 +9,9 @@ import org.apache.kafka.clients.producer.*;
 import org.skife.jdbi.v2.DefaultMapper;
 import org.skife.jdbi.v2.StatementContext;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -44,9 +47,17 @@ public class KafkaRowMapper extends RowMapper {
         Map<String, Object> row = new DefaultMapper().map(i, resultSet, statementContext);
         if(Objects.nonNull(row)) {
 
+            try {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ObjectOutputStream oos = new ObjectOutputStream(baos);
+                oos.writeObject(row);
+                oos.close();
                 ProducerRecord<String, byte[]> producerRecord =
-                        new ProducerRecord<>(producerKafkaTopic, extractionNamespace.getTable(), row.toString().getBytes());
+                        new ProducerRecord<>(producerKafkaTopic, extractionNamespace.getTable(), baos.toByteArray());
                 kafkaProducer.send(producerRecord);
+            } catch (IOException e) {
+                LOG.error("Caught IO exception: " + e.getStackTrace());
+            }
         } else {
             LOG.info("No query results to return.");
         }
