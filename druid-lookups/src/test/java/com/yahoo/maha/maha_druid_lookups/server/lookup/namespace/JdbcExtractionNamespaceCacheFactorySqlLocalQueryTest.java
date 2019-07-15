@@ -10,7 +10,9 @@ import com.zaxxer.hikari.HikariDataSource;
 import io.druid.metadata.MetadataStorageConnectorConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.joda.time.DateTime;
 import org.joda.time.Period;
@@ -18,11 +20,10 @@ import org.junit.Ignore;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeTest;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
 
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -76,15 +77,16 @@ public class JdbcExtractionNamespaceCacheFactorySqlLocalQueryTest {
     LookupService lookupService;
 
     /**
-     * Set up local Kafka Producer and Comsumer, which will share properties.
+     * Set up local Kafka Producer and Consumer, which will share properties.
+     * Bootstrap Kafka Config using default quickstart local port for local testing.
      */
     void setKafkaProperties() {
         kafkaProperties = new Properties();
         kafkaProperties.put("bootstrap.servers", "localhost:9092");
-        kafkaProperties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        kafkaProperties.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
-        kafkaProperties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        kafkaProperties.put("value.serializer", "org.apache.kafka.common.serialization.ByteArraySerializer");
+        kafkaProperties.put("key.deserializer", StringDeserializer.class.getName());
+        kafkaProperties.put("value.deserializer", ByteArrayDeserializer.class.getName());
+        kafkaProperties.put("key.serializer", StringSerializer.class.getName());
+        kafkaProperties.put("value.serializer", ByteArraySerializer.class.getName());
         kafkaProperties.put("group.id", "test-consumer-group");
     }
 
@@ -98,27 +100,9 @@ public class JdbcExtractionNamespaceCacheFactorySqlLocalQueryTest {
                 .getConnection("jdbc:mysql://localhost:3306/test?"
                         + "user=root&password=password&useSSL=false&serverTimezone=UTC");
         jdbcConnection = connection.createStatement();
-        ResultSet testQuery = jdbcConnection.executeQuery("SELECT * from AD;");
+        ResultSet testQuery = jdbcConnection.executeQuery("SELECT 1 from DUAL;");
         testQuery.next();
-        String p = testQuery.getString(1);
         Assert.assertTrue(testQuery.isFirst());
-    }
-
-    /**
-     * Create tables in your mySQL instance.
-     */
-    void buildJdbcTablesToQuery() {
-        //scala.util.Try createResult = jdbcConnection.execute("CREATE TABLE ad (name VARCHAR2(255), id BIGINT, gpa DECIMAL, date TIMESTAMP, last_updated TIMESTAMP);");
-        //Assert.assertTrue(createResult.isSuccess(),"Should not fail to create a table in H2.");
-    }
-
-    /**
-     * Insert into the mySQL table created.
-     */
-    void insertIntoStudentTable() {
-        String insertDate = toDatePlusOneHour;
-        //scala.util.Try insertResult = jdbcConnection.execute("INSERT INTO ad values ('Bobbert', 1234, 3.1, ts '" + toDatePlusOneHour + "', ts '" + toDatePlusOneHour + "')");//CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
-        //Assert.assertTrue(insertResult.isSuccess(), "Should be able to insert data into the new table.");
     }
 
     /**
@@ -136,7 +120,7 @@ public class JdbcExtractionNamespaceCacheFactorySqlLocalQueryTest {
      * Set all variables used in your local mySQL and Kafka instances, and initialize both.
      * @throws Exception
      */
-    @BeforeClass
+    @BeforeTest
     public void init() throws Exception {
         jdbcUrl = "jdbc:mysql://localhost:3306/sys?serverTimezone=UTC";
         userName = "root";
@@ -144,13 +128,13 @@ public class JdbcExtractionNamespaceCacheFactorySqlLocalQueryTest {
         jdbcConnectorConfig = "{\"connectURI\":\"" + jdbcUrl + "\", \"user\":\"" + userName + "\", \"password\":\"" + passWord + "\"}";
 
         initJdbcToMySql();
-        buildJdbcTablesToQuery();
-        insertIntoStudentTable();
         setKafkaProperties();
     }
 
     @AfterClass
     public void shutDown() {
+        serviceEmitter = null;
+        lookupService = null;
     }
 
     /**

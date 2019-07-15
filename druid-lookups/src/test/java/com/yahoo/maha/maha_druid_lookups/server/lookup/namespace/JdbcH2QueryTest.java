@@ -9,11 +9,12 @@ import com.zaxxer.hikari.HikariDataSource;
 import io.druid.metadata.MetadataStorageConnectorConfig;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.MockProducer;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.record.TimestampType;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.joda.time.DateTime;
 import org.joda.time.Period;
@@ -26,10 +27,8 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
+import java.net.ServerSocket;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -66,6 +65,7 @@ public class JdbcH2QueryTest {
     private String passWord;
     private String jdbcConnectorConfig;
     private Properties kafkaProperties;
+    private ServerSocket freeSocket;
 
     private Date currentMoment = new Date();
     private DateTime currentDateTime = new DateTime(currentMoment);
@@ -80,16 +80,26 @@ public class JdbcH2QueryTest {
     @Mock
     LookupService lookupService;
 
-    private void setKafkaProperties() {
+    /**
+     * Set up Kafka for testing using suggested parameters for Producer & Consumer,
+     * though actual behavior will be mocked.
+     * @throws IOException
+     */
+    private void setKafkaProperties() throws IOException {
         kafkaProperties = new Properties();
-        kafkaProperties.put("bootstrap.servers", "localhost:9092");
-        kafkaProperties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        kafkaProperties.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
-        kafkaProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        kafkaProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
+        freeSocket = new ServerSocket(0);
+        int freePort = freeSocket.getLocalPort();
+        kafkaProperties.put("bootstrap.servers", "localhost:" + freePort);
+        kafkaProperties.put("key.deserializer", StringDeserializer.class.getName());
+        kafkaProperties.put("value.deserializer", ByteArrayDeserializer.class.getName());
+        kafkaProperties.put("key.serializer", StringSerializer.class.getName());
+        kafkaProperties.put("value.serializer", ByteArraySerializer.class.getName());
         kafkaProperties.put("group.id", "test-consumer-group");
     }
 
+    /**
+     * Open a JDBC Connection to local H2 DB.
+     */
     private void initJdbcToH2() {
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(jdbcUrl);
@@ -99,22 +109,29 @@ public class JdbcH2QueryTest {
         ds = new HikariDataSource(config);
         Assert.assertTrue(ds.isRunning(), "Expect a running HikariDataSource.");
         jdbcConnection = new JdbcConnection(ds, 10);
-        scala.util.Try testQuery = jdbcConnection.execute("SELECT * from DUAL;");
+        scala.util.Try testQuery = jdbcConnection.execute("SELECT 1 from DUAL;");
         Assert.assertTrue(testQuery.isSuccess(), "Expect JDBC connection to succeed with basic queries.");
     }
 
+    /**
+     * Create queries to be passed in the lookup configs.
+     */
     private void buildJdbcTablesToQuery() {
         scala.util.Try createResult = jdbcConnection.execute(
                 "CREATE TABLE ad (name VARCHAR2(255), id BIGINT, gpa DECIMAL, date TIMESTAMP, last_updated TIMESTAMP, title VARCHAR2(255), status VARCHAR2(255));");
         Assert.assertTrue(createResult.isSuccess(),"Should not fail to create a table in H2.");
     }
 
-    private void insertIntoStudentTable() {
+    /**
+     * Insert a few old & new rows into the Ad table to test against.
+     */
+    private void insertIntoAdTable() {
         scala.util.Try insertResult = jdbcConnection.execute("INSERT INTO ad values ('Bobbert', 1234, 3.1, ts '" + toDatePlusOneHour + "', ts '" + toDatePlusOneHour + "', 'Good Title', 'DELETED')");
         scala.util.Try insertResult2 = jdbcConnection.execute("INSERT INTO ad values ('Bobbert', 4444, 1.1, ts '" + toDatePlusOneHour + "', ts '" + toDatePlusOneHour + "', 'Gooder Title', 'ON')");
         scala.util.Try insertResult3 = jdbcConnection.execute("INSERT INTO ad values ('Before_Bob', 4444, 1.1, ts '" + toDateMinusOneHour + "', ts '" + toDateMinusOneHour + "', 'Gooder Title', 'ON')");
         Assert.assertTrue(insertResult.isSuccess(), "Should be able to insert data into the new table.");
         Assert.assertTrue(insertResult2.isSuccess(), "Should be able to insert data into the new table.");
+        Assert.assertTrue(insertResult3.isSuccess(), "Should be able to insert data into the new table.");
     }
 
     @BeforeTest
@@ -126,7 +143,7 @@ public class JdbcH2QueryTest {
 
 
     @BeforeClass
-    public void init() {
+    public void init() throws IOException {
         jdbcUrl = "jdbc:h2:mem:" + h2dbId + ";MODE=Oracle;DB_CLOSE_DELAY=-1";
         userName = "testUser";
         passWord = "h2.test.database.password";
@@ -134,13 +151,17 @@ public class JdbcH2QueryTest {
 
         initJdbcToH2();
         buildJdbcTablesToQuery();
-        insertIntoStudentTable();
+        insertIntoAdTable();
         setKafkaProperties();
     }
 
     @AfterClass
-    public void shutDown() {
+    public void shutDown() throws IOException {
+        freeSocket.close();
         ds.close();
+        serviceEmitter = null;
+        lookupService = null;
+
     }
 
     /**
@@ -169,6 +190,13 @@ public class JdbcH2QueryTest {
         Assert.assertTrue(queryResult.isSuccess(), "Should be able to query the advertiser table." + queryResult.toString());
     }
 
+    /**
+     * Create a false consumer with the ad_lookup partition name to Mock topic reading.
+     * The consumerRecords are created mainly using the createInputRow logic.
+     * @param recordsToUse
+     * @param lookupName
+     * @return
+     */
     private MockConsumer<String, byte[]> createAndPopulateNewConsumer(
             List<ConsumerRecord<String, byte[]>> recordsToUse,
             String lookupName) {
@@ -204,6 +232,14 @@ public class JdbcH2QueryTest {
         return new MockProducer<>(true, new StringSerializer(), new ByteArraySerializer());
     }
 
+    /**
+     * Create a mocked factory with Producer & Consumer, in order to Mock any behavior that would
+     * otherwise require actual Kafka behavior.
+     * This will test SerDe & other reading/writing logic.
+     * @param mockConsumer
+     * @param mockProducer
+     * @return
+     */
     private JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower createMockCacheFactory(
             MockConsumer<String, byte[]> mockConsumer,
             MockProducer<String, byte[]> mockProducer
@@ -232,10 +268,15 @@ public class JdbcH2QueryTest {
         return myJdbcEncFactory;
     }
 
-    public byte[] createInputRow() throws Exception{
+    /**
+     * Create a row, testing a null input & future Timestamp.
+     * @return
+     * @throws Exception
+     */
+    private byte[] createInputRow() throws Exception{
         Map<String, Object> row = new HashMap<>();
         row.put("date", new Timestamp(new DateTime().getMillis()));
-        row.put("last_updated", new Timestamp(new DateTime().getMillis()));
+        row.put("last_updated", new Timestamp(new DateTime().plusHours(1).getMillis()));
         row.put("name", "Bobbert");
         row.put("gpa", null);
         row.put("id", 1234L);
@@ -248,7 +289,12 @@ public class JdbcH2QueryTest {
         return baos.toByteArray();
     }
 
-    public byte[] createInputRowOldTime() throws Exception{
+    /**
+     * Create a row with an old timestamp to parse.
+     * @return
+     * @throws Exception
+     */
+    private byte[] createInputRowOldTime() throws Exception{
         Map<String, Object> row = new HashMap<>();
         row.put("date", new Timestamp(new DateTime().getMillis()));
         row.put("last_updated", new Timestamp(currentDateTimeMinusOneHour.getMillis()));

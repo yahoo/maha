@@ -71,7 +71,7 @@ public class JDBCExtractionNamespaceCacheFactory
                 dbi.withHandle(
                         new HandleCallback<Void>() {
                             @Override
-                            public Void withHandle(Handle handle) throws Exception {
+                            public Void withHandle(Handle handle) {
                                 String query = String.format("SELECT %s FROM %s",
                                         String.join(COMMA_SEPARATOR, extractionNamespace.getColumnList()),
                                         extractionNamespace.getTable()
