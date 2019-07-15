@@ -120,7 +120,7 @@ public class JdbcExtractionNamespaceCacheFactorySqlLocalQueryTest {
      * Set all variables used in your local mySQL and Kafka instances, and initialize both.
      * @throws Exception
      */
-    @BeforeTest
+    @BeforeClass
     public void init() throws Exception {
         jdbcUrl = "jdbc:mysql://localhost:3306/sys?serverTimezone=UTC";
         userName = "root";

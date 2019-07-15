@@ -59,7 +59,6 @@ public class JdbcH2QueryTest {
     private HikariDataSource ds;
     private JdbcConnection jdbcConnection;
 
-    private JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower jdbcEncFactory = new JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower();
     private String jdbcUrl;
     private String userName;
     private String passWord;
@@ -137,8 +136,6 @@ public class JdbcH2QueryTest {
     @BeforeTest
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        jdbcEncFactory.emitter = serviceEmitter;
-        jdbcEncFactory.lookupService = lookupService;
     }
 
 

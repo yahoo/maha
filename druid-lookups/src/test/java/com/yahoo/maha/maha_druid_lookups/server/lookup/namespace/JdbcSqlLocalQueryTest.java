@@ -117,7 +117,7 @@ public class JdbcSqlLocalQueryTest {
      * Set all variables used in your local mySQL and Kafka instances, and initialize both.
      * @throws Exception
      */
-    @BeforeTest
+    @BeforeClass
     public void init() throws Exception {
         jdbcUrl = "jdbc:mysql://localhost:3306/test?serverTimezone=UTC";
         userName = "root";
