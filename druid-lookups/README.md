@@ -8,23 +8,51 @@ An extension to druid which provides for MongoDB, JDBC and RocksDB (for high car
 * Lookup service for real-time tasks - Provides a built in lookup service which is used to query lookups on historicals at query time for real-time tasks.  Otherwise, real-time tasks would have to keep local copy of all lookups and that can get costly if they are high cardinality.
 
 ## Getting Started
+Here is tutorial of how to set up maha-druid-lookups as an extensions of Druid in your local box.  
+For convenience, we use `/druid` as our druid root path for the following document.
+### Requirement
+* [druid-0.11.0](http://druid.io/docs/0.11.0/tutorials/quickstart.html)
+* zookeeper
+* your local datasource (mysql, oracle, etc)
+
+### Zookeeper setup
+#### Download:
+```
+curl http://www.gtlib.gatech.edu/pub/apache/zookeeper/zookeeper-3.4.10/zookeeper-3.4.10.tar.gz -o zookeeper-3.4.10.tar.gz
+tar -xzf zookeeper-3.4.10.tar.gz
+cd zookeeper-3.4.10
+cp conf/zoo_sample.cfg conf/zoo.cfg
+```
+#### Start up zookeeper:
+```
+cd zookeeper-3.4.10
+./bin/zkServer.sh start
+```
+
+> NOTE: for shutting down the zoopkeeper, please use `./bin/zkServer.sh stop`
+
+### Using **maha-druid-lookups** package
 Adding maha druid lookups to druid is simple.  The command below will produce a zip file with all the jars in target directory which you can include in your druid installation's class path.
 
 ```
-#this builds the jar and then assembles the zip file with all dependent jars
-mvn clean install
+$ mvn clean install //this builds the jar and then assembles the zip file with all dependent jars
 
-#the zip file can be found with this:
-ls -l target/maha-druid-lookups-* 
-
+$ ls -l target/maha-druid-lookups-* //the zip file can be found with this
 -rw-r--r--  1 patelh  user  16084081 Feb 25 12:35 target/maha-druid-lookups-5.242-SNAPSHOT.zip
-
-
-#now copy the zip file to your build server and unzip to get all the jars needed for the lookups and put them in druid jars directory.
 ```
 
-### Configuration in common runtime.properties
+Now unzip assembled zip file and move all the jars to a new repo for your package under`/druid/extensions/`. 
+The path will be something like:
+```/druid/extensions/maha-druid-lookups/some-jar-file.jar```
 
+### Configuration: using conf-quickstart for quick setup
+Here we take advantage of config files under `/druid/conf-quickstart`, which is originally for druid tutorial, for our local setup, there are multiple files we need to modify:
+
+#### /druid/conf-quickstart/druid/_common/common.runtime.properties
+1. add package name **maha-druid-lookups** to druid.extensions.loadList:
+```druid.extensions.loadList=["extension1", "extension2" , … , "maha-druid-lookups"]```
+
+2. add maha-druid-lookups config:
 ```
 # This is config for auth header factory, if you have your own implementation with whatever method you use to secure druid connections, set it here
 druid.lookup.maha.namespace.authHeaderFactory=com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.NoopAuthHeaderFactory
@@ -36,10 +64,10 @@ druid.lookup.maha.namespace.schemaFactory=com.yahoo.maha.maha_druid_lookups.serv
 druid.lookup.maha.namespace.lookupService.service_scheme=http
 
 # This is the port your historicals are configured to use, needed by lookup service
-druid.lookup.maha.namespace.lookupService.service_port=4080
+druid.lookup.maha.namespace.lookupService.service_port=8083
 
 # List of historicals which can be used by lookup service
-druid.lookup.maha.namespace.lookupService.service_nodes=hist1,hist2,hist3
+druid.lookup.maha.namespace.lookupService.service_nodes=historical
 
 # Local storage directory for rocksdb based lookups
 druid.lookup.maha.namespace.rocksdb.localStorageDirectory=/tmp
@@ -48,99 +76,181 @@ druid.lookup.maha.namespace.rocksdb.localStorageDirectory=/tmp
 druid.lookup.maha.namespace.rocksdb.blockCacheSize=1048576
 ```
 
-## Registering Druid Lookups
-Druid lookups are managed using APIs on coordinators.  Refer [here](http://druid.io/docs/latest/querying/lookups.html).
+#### /druid/conf-quickstart/druid/historical/runtime.properties
+add a line for historical lookup tier:
+```druid.lookup.lookupTier=historicalLookupTier```
 
-Example POST to /druid/coordinator/v1/lookups/config :
+#### conf-quickstart/druid/broker/runtime.properties (Optional)
+> Note: If you just want to check the functionality of lookups and won't need to do query, just skip this step.
+
+add a line for broker lookup tier:
+```druid.lookup.lookupTier=brokerLookupTier```
+
+### Start up Druid
+#### init Druid: creating required repos for log
+```/druid/bin/init```
+
+> NOTE:
+> To reset druid for a clean start, do`rm -rf var/* && rm -rf log && bin/init`
+
+#### Start coordinator node:
+```
+java `cat conf-quickstart/druid/coordinator/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/coordinator:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server coordinator
+```
+
+#### Start historical node:
+```
+java `cat conf-quickstart/druid/historical/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/historical:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server historical
+```
+
+#### Start broker node (Optional):
+> Note: If you just want to check the functionality of lookups and won't need to do query, just skip this step.
 
 ```
-{
-  "__default": {
+java `cat conf-quickstart/druid/broker/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/broker:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server broker
+```
+
+### Troubleshooting
+* JDBC Driver
+If encountering the following error:
+```
+org.skife.jdbi.v2.exceptions.UnableToObtainConnectionException: java.sql.SQLException: No suitable driver found for jdbc:mysql://localhost:3306/...
+```
+
+**Solution:** instead of putting the jar under your package repo, you need to include the jdbc connector for your local datasource to  /druid/lib, for example:
+`/druid/lib/mysql-connector-java-8.0.16.jar`
+
+* HDFS Configuration
+If encounter the following error:
+```
+Exception in thread "main" com.google.common.util.concurrent.ExecutionError: com.google.common.util.concurrent.ExecutionError: java.lang.NoClassDefFoundError: org/apache/hadoop/conf/Configuration
+    at com.google.common.cache.LocalCache$Segment.get(LocalCache.java:2199)
+    at com.google.common.cache.LocalCache.get(LocalCache.java:3934)
+    …
+```
+This is caused by lack of Hadoop dependency.  
+
+**Solution:** For Druid-0.11.0, it already has the hadoop client jars under `hadoop-dependencies/hadoop-client/2.7.3/*`.  Just make sure you have included the path in your command when trying to bring up the node, for example:
+```
+java `cat conf-quickstart/druid/coordinator/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/coordinator:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server coordinator
+```
+
+### Registering Druid Lookups
+Druid lookups are managed using APIs on coordinators.  Refer [here](http://druid.io/docs/latest/querying/lookups.html).
+
+Example POST to /druid/coordinator/v1/lookups/config:
+
+```
+{ //mahajdbc_lookup_config_for_historical.json
+  "historicalLookupTier": { //the tier of the lookup
     "advertiser_lookup": {
-      "version": "v1",
+      "version": "v0",
       "lookupExtractorFactory": {
         "type": "cachedNamespace",
-        "firstCacheTimeout": 180000,
-        "injective": false,
         "extractionNamespace": {
-          "type": "mahamongo",
-          "connectorConfig": {
-            "hosts": "1.1.1.1:1111,1.1.1.2:1111",
-            "dbName": "mydb",
-            "user": "myuser",
-            "password": {
-              "type": "default",
-              "password": "mypassword"
-            },
-            "clientOptions": {
-              "socketTimeout": 180000
-            }
-          },
-          "collectionName": "advertiser",
-          "tsColumn": "updated_at",
-          "tsColumnEpochInteger": true,
-          "pollPeriod": "PT60S",
-          "cacheEnabled": true,
+          "type": "mahajdbc",
           "lookupName": "advertiser_lookup",
-          "documentProcessor": {
-            "type": "flatmultivalue",
-            "columnList": [
-              "name",
-              "country",
-              "currency"
-            ],
-            "primaryKeyColumn": "_id"
+          "connectorConfig": {
+            "createTables": false,
+            "connectURI": "jdbc:mysql://localhost:3306/test?serverTimezone=UTC",
+            "user": "jay",
+            "password": "jay"
           },
-          "mongoClientRetryCount": 3
-        }
+          "table": "advertiser",
+          "columnList": [
+            "id",
+            "status",
+            "mdm_company_name"
+
+          ],
+          "primaryKeyColumn": "id",
+          "tsColumn": "last_updated",
+          "pollPeriod": "PT3M", //poll every 3 mins
+          "cacheEnabled": true //enable building cache in node (hashmap), should be true for historical
+        },
+        "firstCacheTimeout": 0
       }
     }
   }
 }
+
 ```
 
-### Example queries using above lookup
+### Sample Commands for lookups
+#### Initialization
+```
+curl -XPOST -H'Content-Type: application/json' -d '{}' http://localhost:8081/druid/coordinator/v1/lookups/config
+```
 
-Example query using lookup in filter, we filter advertisers by doing a lookup on country:
+#### Update or Create
+For historical lookup:
+```
+curl -XPOST -H'Content-Type: application/json' -d '@mahajdbc_lookup_config_for_historical.json' http://localhost:8081/druid/coordinator/v1/lookups/config
+```
+
+For broker lookup:
+```
+curl -XPOST -H'Content-Type: application/json' -d '<@mahajdbc_lookup_config_for_broker.json>' http://localhost:8081/druid/coordinator/v1/lookups/config
+```
+
+#### Delete
+```
+curl -XDELETE http://localhost:8081/druid/coordinator/v1/lookups/config/historicalLookupTier/advertiser_lookup
+```
+
+#### Get lookup schema
+```
+curl http://localhost:8081/druid/coordinator/v1/lookups/config/historicalLookupTier/advertiser_lookup
+```
+
+#### Query lookup hashmap size (get request to historical node)
+```
+curl "http://localhost:8083/druid/v1/namespaces/advertiser_lookup?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace"
+```
+
+### Query lookup hashmap with key (get request to historical node)
+```
+curl "http://localhost:8083/druid/v1/namespaces/advertiser_lookup?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace&key=1&valueColumn=status&debug=true"
+```
+
+### Example queries using above lookup (require broker)
+Example query using lookup for advertiser's status:
 
 ```
 {
-	"dataSource": "advertiser_stats",
-	"queryType": "topN",
-	"aggregations": [{
-		"type": "doubleSum",
-		"name": "spend"
-	}],
-	"context": {
-		"timeout": 30000,
-		"queryId": "abcd"
-	},
-	"filter": {
-		"type": "and",
-		"fields": [{
-			"type": "selector",
-			"dimension": "advertiser_id",
-			"value": "US",
-			"extractionFn": {
-				"type": "mahaRegisteredLookup",
-				"lookup": "advertiser_lookup",
-				"retainMissingValue": false,
-				"replaceMissingValueWith": "N/A",
-				"injective": false,
-				"optimize": true,
-				"valueColumn": "country",
-				"dimensionOverrideMap": {},
-				"useQueryLevelCache": false
-			}
-		}]
-	},
-	"granularity": "all",
-	"threshold": 10,
-	"metric": "spend",
-	"dimension": "advertiser_id",
-	"intervals": [
-		"2019-02-25T00:00:00.000Z/2019-02-26T00:00:00.000Z"
-	]
+  "queryType": "groupBy",
+  "dataSource": "advertiser_stats",
+  "granularity": "day",
+  "dimensions": [
+    {
+      "type": "default",
+      "dimension": "id",
+      "outputName": "Advertiser ID",
+      "outputType": "STRING"
+    },
+    {
+      "type": "extraction",
+      "dimension": "id",
+      "outputName": "status",
+      "outputType": "STRING",
+      "extractionFn": {
+        "type": "mahaRegisteredLookup",
+        "lookup": "advertiser_lookup",
+        "retainMissingValue": false,
+        "replaceMissingValueWith": "null",
+        "injective": false,
+        "optimize": true,
+        "valueColumn": "status",
+        "decode": null,
+        "dimensionOverrideMap": {},
+        "useQueryLevelCache": false
+      }
+    }
+  ],
+  "aggregations": [
+    { "type": "longSum", "name": "SPEND", "fieldName": "spend" }
+  ],
+  "intervals": [ "2015-09-12T00:00:00.000/2015-09-13T00:00:00.000" ]
 }
 ```
 
