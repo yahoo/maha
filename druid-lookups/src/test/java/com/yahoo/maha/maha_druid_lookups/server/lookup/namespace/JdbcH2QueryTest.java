@@ -69,7 +69,9 @@ public class JdbcH2QueryTest {
 
     private Date currentMoment = new Date();
     private DateTime currentDateTime = new DateTime(currentMoment);
+    private DateTime currentDateTimeMinusOneHour = new DateTime(currentMoment).minusHours(1);
     private String toDatePlusOneHour = (new SimpleDateFormat("YYYY-MM-dd HH:mm:ss")).format(currentDateTime.plusHours(1).toDate());
+    private String toDateMinusOneHour = (new SimpleDateFormat("YYYY-MM-dd HH:mm:ss")).format(currentDateTime.minusHours(1).toDate());
 
     //Mock classes, currently unused in this test suite.
     @Mock
@@ -110,6 +112,7 @@ public class JdbcH2QueryTest {
     private void insertIntoStudentTable() {
         scala.util.Try insertResult = jdbcConnection.execute("INSERT INTO ad values ('Bobbert', 1234, 3.1, ts '" + toDatePlusOneHour + "', ts '" + toDatePlusOneHour + "', 'Good Title', 'DELETED')");
         scala.util.Try insertResult2 = jdbcConnection.execute("INSERT INTO ad values ('Bobbert', 4444, 1.1, ts '" + toDatePlusOneHour + "', ts '" + toDatePlusOneHour + "', 'Gooder Title', 'ON')");
+        scala.util.Try insertResult3 = jdbcConnection.execute("INSERT INTO ad values ('Before_Bob', 4444, 1.1, ts '" + toDateMinusOneHour + "', ts '" + toDateMinusOneHour + "', 'Gooder Title', 'ON')");
         Assert.assertTrue(insertResult.isSuccess(), "Should be able to insert data into the new table.");
         Assert.assertTrue(insertResult2.isSuccess(), "Should be able to insert data into the new table.");
     }
@@ -245,12 +248,29 @@ public class JdbcH2QueryTest {
         return baos.toByteArray();
     }
 
+    public byte[] createInputRowOldTime() throws Exception{
+        Map<String, Object> row = new HashMap<>();
+        row.put("date", new Timestamp(new DateTime().getMillis()));
+        row.put("last_updated", new Timestamp(currentDateTimeMinusOneHour.getMillis()));
+        row.put("name", "Old Bobbert");
+        row.put("gpa", null);
+        row.put("id", 1234L);
+        row.put("title", "Good Ad");
+        row.put("status", "ON");
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(row);
+        oos.close();
+        return baos.toByteArray();
+    }
+
     /**
      * Test getCachePopulator in JDBC EN Cache Factory using non-leader logic
      * Ensures follower logic can read and insert into cache.
+     * This assumes it isn't the first time caching.
      */
     @Test
-    public void testCreateJdbcLookupOnH2() throws Exception {
+    public void testCreateJdbcLookupOnH2AsFollower() throws Exception {
 
         String lookupName = "ad_lookup";
         TopicPartition adPartition = new TopicPartition(lookupName, 0);
@@ -279,9 +299,10 @@ public class JdbcH2QueryTest {
 
         JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
                 new JDBCExtractionNamespaceWithLeaderAndFollower(
-                        metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated")),
+                        metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date")),
                         "id", "last_updated", new Period(), true,
                         "ad_lookup", "ad_test", false, kafkaProperties);
+        extractionNamespace.setFirstTimeCaching(false);
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "3.1", toDatePlusOneHour));
         Callable<String> populator = myJdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);
@@ -293,6 +314,61 @@ public class JdbcH2QueryTest {
         Assert.assertEquals(cachedName, "Bobbert");
         String cachedGpa = new String(myJdbcEncFactory.getCacheValue(extractionNamespace, map, "1234", "gpa", Optional.empty()));
         Assert.assertEquals(cachedGpa, "null");
+    }
+
+    /**
+     * Test getCachePopulator in JDBC EN Cache Factory using non-leader logic
+     * Ensures follower logic can read and insert into cache.
+     * This assumes it isn't the first time caching.
+     * Use a record older than current last updated date,
+     * testing out-of-order Kafka processing
+     */
+    @Test
+    public void testCreateJdbcLookupOnH2AsFollowerBadRecord() throws Exception {
+
+        String lookupName = "ad_lookup";
+        TopicPartition adPartition = new TopicPartition(lookupName, 0);
+        ConsumerRecord<String, byte[]> adRecord = new ConsumerRecord<>(
+                lookupName,
+                0,
+                179,
+                currentDateTimeMinusOneHour.getMillis(),
+                TimestampType.CREATE_TIME,
+                3065736663L,
+                2,
+                120,
+                "ad",
+                createInputRowOldTime());
+
+        MockConsumer<String, byte[]> mockConsumer = createAndPopulateNewConsumer(Collections.singletonList(adRecord), "ad_lookup");
+        MockProducer<String, byte[]> mockProducer = createAndPopulateNewProducer();
+
+
+        JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower myJdbcEncFactory =
+                createMockCacheFactory(mockConsumer, mockProducer);
+
+        MetadataStorageConnectorConfig metadataStorageConnectorConfig = new ObjectMapper()
+                .readerFor(MetadataStorageConnectorConfig.class)
+                .readValue(jdbcConnectorConfig);
+
+        JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
+                new JDBCExtractionNamespaceWithLeaderAndFollower(
+                        metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date")),
+                        "id", "last_updated", new Period(), true,
+                        "ad_lookup", "ad_test", false, kafkaProperties);
+        extractionNamespace.setFirstTimeCaching(false);
+        extractionNamespace.setPreviousLastUpdateTimestamp(new Timestamp(currentDateTime.getMillis()));
+        Map<String, List<String>> map = new HashMap<>();
+        map.put("12345", Arrays.asList("12345", "my name", "3.1", toDatePlusOneHour));
+        Callable<String> populator = myJdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);
+        System.err.println("Callable Result Timestamp (long): " + populator.call());
+
+        //Populator has been called, assertions here.
+        Assert.assertTrue(mockConsumer.position(adPartition) >= 110L, "Expected >= 120 offset (1 message) but got " + mockConsumer.position(adPartition));
+        String cachedName = new String(myJdbcEncFactory.getCacheValue(extractionNamespace, map, "1234", "name", Optional.empty()));
+        Assert.assertEquals(cachedName, "");
+        String cachedGpa = new String(myJdbcEncFactory.getCacheValue(extractionNamespace, map, "1234", "gpa", Optional.empty()));
+        Assert.assertEquals(cachedGpa, "");
     }
 
     /**
@@ -327,7 +403,7 @@ public class JdbcH2QueryTest {
 
         JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
                 new JDBCExtractionNamespaceWithLeaderAndFollower(
-                        metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated", "title", "status")),
+                        metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "title", "status")),
                         "id", "last_updated", new Period(), false,
                         "ad_lookup", "ad_test", true, kafkaProperties);
 
@@ -340,6 +416,63 @@ public class JdbcH2QueryTest {
 
         //Populator has been called, assertions here.
         Assert.assertEquals(mockProducer.history().size(), 2, "Expect to see 2 producerRecords sent.");
+        for(Object record: mockProducer.history()) {
+            Assert.assertEquals(ProducerRecord.class, record.getClass());
+            ProducerRecord rc = (ProducerRecord) record;
+            Assert.assertSame("ad", rc.key());
+            Assert.assertSame("ad_test", rc.topic());
+            ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream((byte[])rc.value()));
+            Map<String, Object> allColumnsMap = (Map<String, Object>)ois.readObject();
+            String recordedValueAsString = allColumnsMap.toString();
+            Assert.assertTrue(recordedValueAsString.contains("1234") || recordedValueAsString.contains(("4444")));
+        }
+    }
+
+    /**
+     * Test getCachePopulator in JDBC EN Cache Factory using Leader logic
+     * Should create and write to a kafka topic.
+     */
+    @Test
+    public void testCreateJdbcLookupOnH2asLeaderFirstTime() throws Exception {
+
+        String lookupName = "ad_lookup";
+        ConsumerRecord<String, byte[]> adRecord = new ConsumerRecord<>(
+                lookupName,
+                0,
+                179,
+                new DateTime().getMillis(),
+                TimestampType.CREATE_TIME,
+                3065736663L,
+                2,
+                120,
+                "ad",
+                createInputRow());
+
+        MockConsumer<String, byte[]> mockConsumer = createAndPopulateNewConsumer(Collections.singletonList(adRecord), "ad_lookup");
+        MockProducer<String, byte[]> mockProducer = createAndPopulateNewProducer();
+
+        JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower myJdbcEncFactory =
+                createMockCacheFactory(mockConsumer, mockProducer);
+
+        MetadataStorageConnectorConfig metadataStorageConnectorConfig = new ObjectMapper()
+                .readerFor(MetadataStorageConnectorConfig.class)
+                .readValue(jdbcConnectorConfig);
+
+        JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
+                new JDBCExtractionNamespaceWithLeaderAndFollower(
+                        metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "title", "status")),
+                        "id", "last_updated", new Period(), true,
+                        "ad_lookup", "ad_test", true, kafkaProperties);
+
+        extractionNamespace.setFirstTimeCaching(true);
+        extractionNamespace.setPreviousLastUpdateTimestamp(new Timestamp(currentDateTime.getMillis()));
+
+        Map<String, List<String>> map = new HashMap<>();
+        Callable<String> populator = myJdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);
+        System.err.println("Callable Result Timestamp (long): " + populator.call());
+
+        //Populator has been called, assertions here.
+        Assert.assertEquals(mockProducer.history().size(), 0, "Expect to see 0 producerRecords sent, since first time should use default behavior.");
         for(Object record: mockProducer.history()) {
             Assert.assertEquals(ProducerRecord.class, record.getClass());
             ProducerRecord rc = (ProducerRecord) record;

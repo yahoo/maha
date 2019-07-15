@@ -10,6 +10,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import io.druid.metadata.MetadataStorageConnectorConfig;
+import org.apache.commons.lang.ArrayUtils;
 import org.joda.time.Period;
 
 import javax.annotation.Nullable;
@@ -17,6 +18,7 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Properties;
 
@@ -68,13 +70,14 @@ public class JDBCExtractionNamespaceWithLeaderAndFollower extends JDBCExtraction
             @JsonProperty(value = "isLeader", required = true) final boolean isLeader,
             @JsonProperty(value = "kafkaProperties", required = true) final Properties kafkaProperties
             ) {
-
         super(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName);
 
         this.connectorConfig = Preconditions.checkNotNull(connectorConfig, "connectorConfig");
         Preconditions.checkNotNull(connectorConfig.getConnectURI(), "connectorConfig.connectURI");
         this.table = Preconditions.checkNotNull(table, "table");
-        this.columnList = ImmutableList.copyOf(Preconditions.checkNotNull(columnList, "columnList"));
+        ArrayList<String> allColumnsWithTS = columnList;
+        allColumnsWithTS.add(tsColumn);
+        this.columnList = ImmutableList.copyOf(Preconditions.checkNotNull(allColumnsWithTS, "columnList"));
         this.primaryKeyColumn = Preconditions.checkNotNull(primaryKeyColumn, "primaryKeyColumn");
         this.tsColumn = tsColumn;
         this.pollPeriod = pollPeriod == null ? new Period(0L) : pollPeriod;
@@ -86,6 +89,7 @@ public class JDBCExtractionNamespaceWithLeaderAndFollower extends JDBCExtraction
             builder.put(col, index);
             index += 1;
         }
+
         this.columnIndexMap = builder.build();
 
         this.kafkaTopic = Objects.nonNull(kafkaTopic) ? kafkaTopic : "unassigned";
@@ -93,6 +97,8 @@ public class JDBCExtractionNamespaceWithLeaderAndFollower extends JDBCExtraction
         this.isLeader = Objects.nonNull(isLeader) ? isLeader : false;
 
         this.kafkaProperties = kafkaProperties;
+
+        this.setPreviousLastUpdateTimestamp(new Timestamp(0L));
     }
 
     @Override
@@ -120,6 +126,31 @@ public class JDBCExtractionNamespaceWithLeaderAndFollower extends JDBCExtraction
 
     public boolean getIsLeader() {
         return isLeader;
+    }
+
+    @Override
+    public ImmutableList<String> getColumnList() {
+        return columnList;
+    }
+
+    @Override
+    public void setPreviousLastUpdateTimestamp(Timestamp previousLastUpdateTimestamp) {
+        this.previousLastUpdateTimestamp = previousLastUpdateTimestamp;
+    }
+
+    @Override
+    public Timestamp getPreviousLastUpdateTimestamp() {
+        return previousLastUpdateTimestamp;
+    }
+
+    @Override
+    public void setFirstTimeCaching(boolean value) {
+        this.firstTimeCaching = value;
+    }
+
+    @Override
+    public boolean isFirstTimeCaching() {
+        return firstTimeCaching;
     }
 
     public Properties getKafkaProperties() { return kafkaProperties; }

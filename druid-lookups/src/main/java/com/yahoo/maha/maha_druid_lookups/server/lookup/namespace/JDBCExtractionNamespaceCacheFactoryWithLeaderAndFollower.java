@@ -100,7 +100,9 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 }
             };
         }
-        if(extractionNamespace.getIsLeader()) {
+        if(extractionNamespace.isFirstTimeCaching()) {
+            return super.getCachePopulator(id, extractionNamespace, lastVersion, cache);
+        }else if(extractionNamespace.getIsLeader()) {
             return doLeaderOperations(id, extractionNamespace, cache, kafkaProperties, lastDBUpdate);
         } else {
             return doFollowerOperations(id, extractionNamespace, cache, kafkaProperties);
@@ -179,6 +181,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         kafkaConsumer.subscribe(Collections.singletonList(kafkaProducerTopic));
         ConsumerRecords<String, byte[]> records =  kafkaConsumer.poll(10000);
 
+        Timestamp latestTSFromRows = new Timestamp(0L);
         int i = 0;
         for(ConsumerRecord<String, byte[]> record : records) {
             final String key = record.key();
@@ -189,9 +192,16 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 continue;
             }
 
-            updateLocalCache(extractionNamespace, cache, message);
+            //Return the latest updated TS to load back into the namespace.
+            Timestamp singleRowUpdateTS = updateLocalCache(extractionNamespace, cache, message);
+
+            if(singleRowUpdateTS.after(latestTSFromRows))
+                latestTSFromRows = singleRowUpdateTS;
+
             ++i;
         }
+
+        populateLastUpdatedTime(latestTSFromRows, extractionNamespace);
 
         LOG.info("Follower operation num records returned [%d]: ", i);
         long lastUpdatedTS = Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp()) ? extractionNamespace.getPreviousLastUpdateTimestamp().getTime() : 0L;
@@ -215,17 +225,19 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 extractionNamespace.getPreviousLastUpdateTimestamp().before(lastUpdatedTS)) {
             extractionNamespace.setPreviousLastUpdateTimestamp(lastUpdatedTS);
         } else {
-            LOG.info("show me...");
+            //No-Op, current TS in the namespace is newer than the current record.
         }
     }
 
     /**
      * Parse the received message into the local cache.
+     * Return the current row's last updated TS.
+     * Cache is only updated if the record is new (in parent)
      * @param extractionNamespace
      * @param cache
      * @param value
      */
-    public void updateLocalCache(final JDBCExtractionNamespace extractionNamespace, Map<String, List<String>> cache,
+    public Timestamp updateLocalCache(final JDBCExtractionNamespace extractionNamespace, Map<String, List<String>> cache,
                             final byte[] value) {
 
         try {
@@ -235,24 +247,30 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             String pkValue = allColumnsMap.getOrDefault(keyColname, null).toString();
 
             List<String> columnsInOrder = new ArrayList<>();
+            Timestamp rowTS = new Timestamp(0L);
             for(String str: extractionNamespace.getColumnList()) {
                 Object retVal = allColumnsMap.getOrDefault(str, "");
                 columnsInOrder.add(String.valueOf(retVal));
                 boolean isTS = Objects.nonNull(retVal) && str.equals(extractionNamespace.getTsColumn());
 
-                if(isTS)
-                    populateLastUpdatedTime((Timestamp)retVal, extractionNamespace);
+                if(isTS) {
+                    rowTS = (Timestamp) retVal;
+                }
             }
 
-            if(Objects.nonNull(pkValue)) {
+            if(Objects.nonNull(pkValue) && extractionNamespace.getPreviousLastUpdateTimestamp().before(rowTS)) {
                 cache.put(pkValue, columnsInOrder);
             } else {
-                LOG.error("No Valid Primary Key parsed for column.  Refusing to update.");
+                LOG.error("No Valid Primary Key parsed for column (or old record passed).  Refusing to update.");
             }
+
+            return rowTS;
 
         } catch (Exception e) {
             LOG.error("Updating cache caused exception (Check column names): " + e.toString() + "\n" + e.getStackTrace().toString());
+            return new Timestamp(0L);
         }
+
     }
 
     /**
