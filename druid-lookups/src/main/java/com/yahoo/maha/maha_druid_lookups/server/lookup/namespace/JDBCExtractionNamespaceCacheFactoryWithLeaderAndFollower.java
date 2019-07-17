@@ -177,8 +177,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             public String call() {
         LOG.info("Running Kafka Follower - Consumer actions on %s.", id);
         String kafkaProducerTopic = extractionNamespace.getKafkaTopic();
-        kafkaConsumer = ensureKafkaConsumer(kafkaProperties);
-        kafkaConsumer.subscribe(Collections.singletonList(kafkaProducerTopic));
+        kafkaConsumer = ensureKafkaConsumer(kafkaProperties, kafkaProducerTopic);
         ConsumerRecords<String, byte[]> records =  kafkaConsumer.poll(10000);
 
         Timestamp latestTSFromRows = new Timestamp(0L);
@@ -300,9 +299,10 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
      * @param kafkaProperties
      * @return
      */
-    synchronized Consumer<String, byte[]> ensureKafkaConsumer(Properties kafkaProperties) {
+    synchronized Consumer<String, byte[]> ensureKafkaConsumer(Properties kafkaProperties, String kafkaProducerTopic) {
         if(kafkaConsumer == null) {
             kafkaConsumer = new KafkaConsumer<>(kafkaProperties, new StringDeserializer(), new ByteArrayDeserializer());
+            kafkaConsumer.subscribe(Collections.singletonList(kafkaProducerTopic));
         }
         return kafkaConsumer;
     }
