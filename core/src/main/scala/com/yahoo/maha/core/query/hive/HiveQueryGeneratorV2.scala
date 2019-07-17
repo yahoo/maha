@@ -25,7 +25,7 @@ class HiveQueryGeneratorV2(partitionColumnRenderer:PartitionColumnRenderer, udfS
     queryContext match {
       case context : CombinedQueryContext =>
         generateQuery(context)
-      case FactQueryContext(factBestCandidate, model, indexAliasOption, factGroupByKeys, attributes) =>
+      case FactQueryContext(factBestCandidate, model, indexAliasOption, factGroupByKeys, attributes, _) =>
         generateQuery(CombinedQueryContext(SortedSet.empty, factBestCandidate, model, attributes))
       case ogbContext@DimFactOuterGroupByQueryQueryContext(dims, factBestCandidate, model, attributes) =>
         generateOuterGroupByQuery(ogbContext)

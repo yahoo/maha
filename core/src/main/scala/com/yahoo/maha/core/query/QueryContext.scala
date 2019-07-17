@@ -67,7 +67,7 @@ case class FactQueryContext private[query](factBestCandidate: FactBestCandidate,
                             requestModel: RequestModel,
                                            indexAliasOption: Option[String],
                                            factGroupByKeys: List[String],
-                            queryAttributes: QueryAttributes) extends FactualQueryContext
+                            queryAttributes: QueryAttributes, dims: Option[SortedSet[DimensionBundle]] = None) extends FactualQueryContext
 case class CombinedQueryContext private[query](dims: SortedSet[DimensionBundle],
                                 factBestCandidate: FactBestCandidate,
                                 requestModel: RequestModel,
@@ -158,7 +158,6 @@ class QueryContextBuilder(queryType: QueryType, requestModel: RequestModel) {
   }
 
   def addDimTable(dimensions: SortedSet[DimensionBundle]) = {
-    require(queryType != FactOnlyQuery, "fact only query should not have dim table")
     dims ++= dimensions
     this
   }
@@ -195,7 +194,7 @@ class QueryContextBuilder(queryType: QueryType, requestModel: RequestModel) {
         DimQueryContext(dims, requestModel, indexAliasOption, factGroupByKeys, queryAttributes)
       case FactOnlyQuery =>
         require(factBestCandidate.isDefined, "fact only query should have fact defined")
-        FactQueryContext(factBestCandidate.get, requestModel, indexAliasOption, factGroupByKeys, queryAttributes)
+        FactQueryContext(factBestCandidate.get, requestModel, indexAliasOption, factGroupByKeys, queryAttributes, Some(dims))
       case DimFactQuery =>
         require(factBestCandidate.isDefined, "dim fact query should have fact defined")
         CombinedQueryContext(dims, factBestCandidate.get, requestModel, queryAttributes)
