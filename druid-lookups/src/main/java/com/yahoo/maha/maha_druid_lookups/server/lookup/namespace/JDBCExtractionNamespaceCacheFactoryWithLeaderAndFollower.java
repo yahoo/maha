@@ -18,13 +18,16 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.joda.time.DateTime;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.tweak.HandleCallback;
+import scala.Tuple2;
 
 import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
 import java.sql.Timestamp;
+import java.time.Period;
 import java.util.*;
 import java.util.concurrent.Callable;
 
@@ -35,6 +38,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         extends JDBCExtractionNamespaceCacheFactory {
     private static final Logger LOG = new Logger(JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower.class);
     private static final String COMMA_SEPARATOR = ",";
+    private boolean cancelled = false;
 
 
     private Producer<String, byte[]> kafkaProducer;
@@ -175,39 +179,62 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         return new Callable<String>() {
             @Override
             public String call() {
-        LOG.info("Running Kafka Follower - Consumer actions on %s.", id);
-        String kafkaProducerTopic = extractionNamespace.getKafkaTopic();
-        kafkaConsumer = ensureKafkaConsumer(kafkaProperties, kafkaProducerTopic);
-        ConsumerRecords<String, byte[]> records =  kafkaConsumer.poll(10000);
+                LOG.info("Running Kafka Follower - Consumer actions on %s.", id);
+                String kafkaProducerTopic = extractionNamespace.getKafkaTopic();
+                kafkaConsumer = ensureKafkaConsumer(kafkaProperties);
+                        kafkaConsumer.subscribe(Collections.singletonList(kafkaProducerTopic));
+                long consumerPollPeriod = extractionNamespace.getPollMs();
 
-        Timestamp latestTSFromRows = new Timestamp(0L);
-        int i = 0;
-        for(ConsumerRecord<String, byte[]> record : records) {
-            final String key = record.key();
-            final byte[] message = record.value();
+                Tuple2<Integer, Timestamp> runRowsWithTS = pollKafkaTopicForUpdates(kafkaConsumer, consumerPollPeriod, kafkaProducerTopic, extractionNamespace, cache);
+                Integer totalNumRowsUpdated = runRowsWithTS._1;
+                Timestamp polledLastUpdatedTS = runRowsWithTS._2;
 
-            if (key == null || message == null) {
-                LOG.error("Bad key/message from topic [%s], skipping record.", kafkaProducerTopic);
-                continue;
-            }
+                populateLastUpdatedTime(polledLastUpdatedTS, extractionNamespace);
 
-            //Return the latest updated TS to load back into the namespace.
-            Timestamp singleRowUpdateTS = updateLocalCache(extractionNamespace, cache, message);
-
-            if(singleRowUpdateTS.after(latestTSFromRows))
-                latestTSFromRows = singleRowUpdateTS;
-
-            ++i;
-        }
-
-        populateLastUpdatedTime(latestTSFromRows, extractionNamespace);
-
-        LOG.info("Follower operation num records returned [%d]: ", i);
-        long lastUpdatedTS = Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp()) ? extractionNamespace.getPreviousLastUpdateTimestamp().getTime() : 0L;
-        return String.format("%d", lastUpdatedTS);
+                LOG.info("Follower operation num records returned [%d]: ", totalNumRowsUpdated);
+                long lastUpdatedTS = Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp()) ? extractionNamespace.getPreviousLastUpdateTimestamp().getTime() : 0L;
+                return String.format("%d", lastUpdatedTS);
             }
         };
 
+    }
+
+    private Tuple2<Integer, Timestamp> pollKafkaTopicForUpdates(Consumer<String, byte[]> kafkaConsumer,
+                                                               long consumerPollPeriod,
+                                                               String kafkaProducerTopic,
+                                                               final JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace,
+                                                               final Map<String, List<String>> cache
+                                                               ) {
+        long halfPollPeriod = consumerPollPeriod/2;
+        long tenPercentPollPeriod = consumerPollPeriod/10;
+
+        long endTime = new DateTime().getMillis() + (halfPollPeriod);
+
+        int i = 0;
+        Timestamp latestTSFromRows = new Timestamp(0L);
+
+        while(new DateTime().getMillis() < endTime && !cancelled) {
+            ConsumerRecords<String, byte[]> records = kafkaConsumer.poll(tenPercentPollPeriod);
+            for (ConsumerRecord<String, byte[]> record : records) {
+                final String key = record.key();
+                final byte[] message = record.value();
+
+                if (key == null || message == null) {
+                    LOG.error("Bad key/message from topic [%s], skipping record.", kafkaProducerTopic);
+                    continue;
+                }
+
+                //Return the latest updated TS to load back into the namespace.
+                Timestamp singleRowUpdateTS = updateLocalCache(extractionNamespace, cache, message);
+
+                if (singleRowUpdateTS.after(latestTSFromRows))
+                    latestTSFromRows = singleRowUpdateTS;
+
+                ++i;
+            }
+        }
+
+        return new Tuple2<>(i, latestTSFromRows);
     }
 
     /**
@@ -257,16 +284,22 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 }
             }
 
-            if(Objects.nonNull(pkValue) && extractionNamespace.getPreviousLastUpdateTimestamp().before(rowTS)) {
+            if(Objects.nonNull(pkValue) && !Objects.nonNull(cache.get(pkValue))) {
                 cache.put(pkValue, columnsInOrder);
             } else {
-                LOG.error("No Valid Primary Key parsed for column (or old record passed).  Refusing to update.");
+                List<String> cachedRow = cache.get(pkValue);
+                Timestamp cachedLastUpdateTS = Timestamp.valueOf(cachedRow.get(cachedRow.size()-1));
+                if(cachedLastUpdateTS.before(rowTS)) {
+                    cache.put(pkValue, columnsInOrder);
+                } else {
+                    LOG.error("No Valid Primary Key parsed for column (or old record passed).  Refusing to update.");
+                }
             }
 
             return rowTS;
 
         } catch (Exception e) {
-            LOG.error("Updating cache caused exception (Check column names): " + e.toString() + "\n" + e.getStackTrace().toString());
+            LOG.error("Updating cache caused exception (Check column names): " + e.toString() + "\n", e);
             return new Timestamp(0L);
         }
 
@@ -299,10 +332,9 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
      * @param kafkaProperties
      * @return
      */
-    synchronized Consumer<String, byte[]> ensureKafkaConsumer(Properties kafkaProperties, String kafkaProducerTopic) {
+    synchronized Consumer<String, byte[]> ensureKafkaConsumer(Properties kafkaProperties) {
         if(kafkaConsumer == null) {
             kafkaConsumer = new KafkaConsumer<>(kafkaProperties, new StringDeserializer(), new ByteArrayDeserializer());
-            kafkaConsumer.subscribe(Collections.singletonList(kafkaProducerTopic));
         }
         return kafkaConsumer;
     }
@@ -320,5 +352,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             kafkaConsumer.unsubscribe();
             kafkaConsumer.close();
         }
+
+        cancelled = true;
     }
 }

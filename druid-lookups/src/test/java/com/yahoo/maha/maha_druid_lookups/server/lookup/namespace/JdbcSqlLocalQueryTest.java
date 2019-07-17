@@ -150,7 +150,7 @@ public class JdbcSqlLocalQueryTest {
         JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
                 new JDBCExtractionNamespaceWithLeaderAndFollower(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated", "title", "status")),
-                        "id", "date", new Period(), true, "ad_lookup", "ad_test", false, kafkaProperties);
+                        "id", "date", new Period(3000L), true, "ad_lookup", "ad_test", false, kafkaProperties);
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "3.1", toDatePlusOneHour, toDatePlusOneHour));
         Callable<String> populator = jdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);//, kafkaProperties, new TestProtobufSchemaFactory(), "topic");
@@ -174,7 +174,7 @@ public class JdbcSqlLocalQueryTest {
         JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
                 new JDBCExtractionNamespaceWithLeaderAndFollower(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "last_updated", "title", "status")),
-                        "id", "date", new Period(), true, "ad_lookup", "ad_test", true, kafkaProperties);
+                        "id", "date", new Period(3000L), true, "ad_lookup", "ad_test", true, kafkaProperties);
         extractionNamespace.setFirstTimeCaching(true);
         extractionNamespace.setPreviousLastUpdateTimestamp(new Timestamp(currentDateTime.getMillis()));
         Map<String, List<String>> map = new HashMap<>();

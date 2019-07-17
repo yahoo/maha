@@ -343,7 +343,7 @@ public class JdbcH2QueryTest {
         JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
                 new JDBCExtractionNamespaceWithLeaderAndFollower(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date")),
-                        "id", "last_updated", new Period(), true,
+                        "id", "last_updated", new Period(3000L), true,
                         "ad_lookup", "ad_test", false, kafkaProperties);
         extractionNamespace.setFirstTimeCaching(false);
         Map<String, List<String>> map = new HashMap<>();
@@ -397,7 +397,7 @@ public class JdbcH2QueryTest {
         JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
                 new JDBCExtractionNamespaceWithLeaderAndFollower(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date")),
-                        "id", "last_updated", new Period(), true,
+                        "id", "last_updated", new Period(3000L), true,
                         "ad_lookup", "ad_test", false, kafkaProperties);
         extractionNamespace.setFirstTimeCaching(false);
         extractionNamespace.setPreviousLastUpdateTimestamp(new Timestamp(currentDateTime.getMillis()));
@@ -447,7 +447,7 @@ public class JdbcH2QueryTest {
         JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
                 new JDBCExtractionNamespaceWithLeaderAndFollower(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "title", "status")),
-                        "id", "last_updated", new Period(), false,
+                        "id", "last_updated", new Period(3000L), false,
                         "ad_lookup", "ad_test", true, kafkaProperties);
 
         extractionNamespace.setFirstTimeCaching(false);
@@ -504,7 +504,7 @@ public class JdbcH2QueryTest {
         JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
                 new JDBCExtractionNamespaceWithLeaderAndFollower(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "title", "status")),
-                        "id", "last_updated", new Period(), true,
+                        "id", "last_updated", new Period(3000L), true,
                         "ad_lookup", "ad_test", true, kafkaProperties);
 
         extractionNamespace.setFirstTimeCaching(true);
