@@ -67,8 +67,8 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             final String lastVersion,
             final Map<String, List<String>> cache
     ) {
-        LOG.info("Calling Leader/Follower populator with variables: " +
-                "id=" + id + ", namespace=" + extractionNamespace.toString() + ", lastVers=" + lastVersion + ", cache=" + (Objects.nonNull(cache) ? cache : "NULL"));
+        LOG.info("Calling Leader or Follower populator with variables: " +
+                "id=" + id + ", namespace=" + extractionNamespace.toString() + ", lastVers=" + lastVersion);
 
         return getCachePopulator(id, (JDBCExtractionNamespaceWithLeaderAndFollower)extractionNamespace, lastVersion, cache);
     }
@@ -191,7 +191,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
                 populateLastUpdatedTime(polledLastUpdatedTS, extractionNamespace);
 
-                LOG.info("Follower operation num records returned [%d]: ", totalNumRowsUpdated);
+                LOG.info("Follower operation num records returned [%d] with final cache size of [%d]: ", totalNumRowsUpdated, cache.size());
                 long lastUpdatedTS = Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp()) ? extractionNamespace.getPreviousLastUpdateTimestamp().getTime() : 0L;
                 return String.format("%d", lastUpdatedTS);
             }
