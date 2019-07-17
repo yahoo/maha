@@ -402,16 +402,18 @@ public class JdbcH2QueryTest {
         extractionNamespace.setFirstTimeCaching(false);
         extractionNamespace.setPreviousLastUpdateTimestamp(new Timestamp(currentDateTime.getMillis()));
         Map<String, List<String>> map = new HashMap<>();
-        map.put("12345", Arrays.asList("12345", "my name", "3.1", toDatePlusOneHour));
+
+
+        map.put("1234", Arrays.asList("1234", "my name", "3.1", toDatePlusOneHour, toDatePlusOneHour));
         Callable<String> populator = myJdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);
         System.err.println("Callable Result Timestamp (long): " + populator.call());
 
         //Populator has been called, assertions here.
         Assert.assertTrue(mockConsumer.position(adPartition) >= 110L, "Expected >= 120 offset (1 message) but got " + mockConsumer.position(adPartition));
         String cachedName = new String(myJdbcEncFactory.getCacheValue(extractionNamespace, map, "1234", "name", Optional.empty()));
-        Assert.assertEquals(cachedName, "");
+        Assert.assertEquals(cachedName, "my name");
         String cachedGpa = new String(myJdbcEncFactory.getCacheValue(extractionNamespace, map, "1234", "gpa", Optional.empty()));
-        Assert.assertEquals(cachedGpa, "");
+        Assert.assertEquals(cachedGpa, "3.1");
     }
 
     /**
