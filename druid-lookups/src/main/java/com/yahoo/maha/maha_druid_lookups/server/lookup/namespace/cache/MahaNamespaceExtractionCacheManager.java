@@ -79,7 +79,7 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
     ) {
         this.listeningScheduledExecutorService = MoreExecutors.listeningDecorator(
                 Executors.newScheduledThreadPool(
-                        15,
+                        100,
                         new ThreadFactoryBuilder()
                                 .setDaemon(true)
                                 .setNameFormat("MahaNamespaceExtractionCacheManager-%d")
