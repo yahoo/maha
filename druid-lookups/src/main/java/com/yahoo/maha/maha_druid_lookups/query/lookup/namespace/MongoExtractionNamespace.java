@@ -97,6 +97,7 @@ public class MongoExtractionNamespace implements OnlineDatastoreExtractionNamesp
         return collectionName;
     }
 
+    @Override
     public List<String> getColumnList() {
         return documentProcessor.getColumnList();
     }

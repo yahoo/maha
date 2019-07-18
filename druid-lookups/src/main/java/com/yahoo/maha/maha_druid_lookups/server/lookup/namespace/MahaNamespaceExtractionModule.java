@@ -89,6 +89,10 @@ public class MahaNamespaceExtractionModule implements DruidModule
                 .addBinding(MongoExtractionNamespace.class)
                 .to(MongoExtractionNamespaceCacheFactory.class)
                 .in(LazySingleton.class);
+        getNamespaceFactoryMapBinder(binder)
+                .addBinding(JDBCExtractionNamespaceWithLeaderAndFollower.class)
+                .to(JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower.class)
+                .in(LazySingleton.class);
 
         LifecycleModule.register(binder, RocksDBManager.class);
         LifecycleModule.register(binder, KafkaManager.class);

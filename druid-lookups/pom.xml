@@ -5,7 +5,7 @@
     <parent>
         <artifactId>maha-parent</artifactId>
         <groupId>com.yahoo.maha</groupId>
-        <version>5.274-SNAPSHOT</version>
+        <version>5.275-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -20,7 +20,27 @@
     </properties>
 
     <dependencies>
+        <!-- Enable H2Driver for local Oracle query testing -->
         <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- END Enable H2Driver for local Oracle query testing -->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.11</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.yahoo.maha</groupId>
+            <artifactId>maha-db</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-client</artifactId>
             <version>2.3.0</version>
