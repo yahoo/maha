@@ -137,6 +137,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
                 LOG.debug("Updating [%s]", id);
 
+                KafkaRowMapper mapper = new KafkaRowMapper(extractionNamespace, cache, kafkaProducer);
                 //Call Oracle through JDBC connection
                 dbi.withHandle(
                         new HandleCallback<Void>() {
@@ -149,13 +150,13 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                                                 extractionNamespace.getTable()
                                         );
 
-                                populateRowListFromJDBC(extractionNamespace, query, lastDBUpdate, handle, new KafkaRowMapper(extractionNamespace, cache, kafkaProducer));
+                                populateRowListFromJDBC(extractionNamespace, query, lastDBUpdate, handle, mapper);
                                 return null;
                             }
                         }
                 );
 
-                LOG.info("Leader finished loading %d values for extractionNamespace [%s]", cache.size(), id);
+                LOG.info("Leader finished loading %d values giving final cache size of [%d] for extractionNamespace [%s]", mapper.getNumRecordsReturned(), cache.size(), id);
                 extractionNamespace.setPreviousLastUpdateTimestamp(lastDBUpdate);
                 return String.format("%d", lastDBUpdate.getTime());
             }

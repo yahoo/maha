@@ -455,7 +455,12 @@ public class JdbcH2QueryTest {
         extractionNamespace.setFirstTimeCaching(false);
         extractionNamespace.setPreviousLastUpdateTimestamp(new Timestamp(currentDateTime.getMillis()));
 
+        //Should see:
+        //Leader finished loading 2 values giving final cache size of [4] for extractionNamespace [ad_lookup]
+        //on debug
         Map<String, List<String>> map = new HashMap<>();
+        map.put("232323", Arrays.asList("232323", "another name", "3.1", toDatePlusOneHour, toDatePlusOneHour));
+        map.put("2323234", Arrays.asList("2323234", "another name", "3.1", toDatePlusOneHour, toDatePlusOneHour));
         Callable<String> populator = myJdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);
         System.err.println("Callable Result Timestamp (long): " + populator.call());
 

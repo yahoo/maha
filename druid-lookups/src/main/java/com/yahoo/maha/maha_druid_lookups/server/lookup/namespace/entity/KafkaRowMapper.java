@@ -23,6 +23,11 @@ public class KafkaRowMapper extends RowMapper {
     private Map<String, List<String>> cache;
     private Producer<String, byte[]> kafkaProducer;
     private String producerKafkaTopic;
+    private int numRecordsReturned;
+
+    public int getNumRecordsReturned() {
+        return numRecordsReturned;
+    }
 
     public KafkaRowMapper(JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace, Map<String, List<String>> cache, Producer<String, byte[]> kafkaProducer ) {
         super(extractionNamespace, cache);
@@ -30,6 +35,7 @@ public class KafkaRowMapper extends RowMapper {
         this.cache = cache;
         this.producerKafkaTopic = extractionNamespace.getKafkaTopic();
         this.kafkaProducer = kafkaProducer;
+        this.numRecordsReturned = 0;
     }
 
     @Override
@@ -55,6 +61,7 @@ public class KafkaRowMapper extends RowMapper {
                 ProducerRecord<String, byte[]> producerRecord =
                         new ProducerRecord<>(producerKafkaTopic, extractionNamespace.getTable(), baos.toByteArray());
                 kafkaProducer.send(producerRecord);
+                ++numRecordsReturned;
             } catch (IOException e) {
                 LOG.error("Caught IO exception: " + e.getStackTrace());
             }

@@ -108,7 +108,7 @@ public class JDBCExtractionNamespaceCacheFactory
             updateTS = extractionNamespace.getPreviousLastUpdateTimestamp();
         }
 
-        handle.createQuery(query).map(rm)
+        List<Void> p = handle.createQuery(query).map(rm)
                 .setFetchSize(FETCH_SIZE)
                 .bind("lastUpdatedTimeStamp", updateTS)
                 .list();
