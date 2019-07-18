@@ -274,8 +274,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     queryContext match {
       case CombinedQueryContext(dims, factBestCandidate, requestModel, queryAttributes) =>
         generateFactQuery(dims, new FactQueryContext(factBestCandidate, requestModel, None, List.empty, queryAttributes))
-      case context: FactQueryContext =>
-        generateFactQuery(SortedSet.empty, context)
+      case FactQueryContext(factBestCandidate, requestModel, indexAliasOption, factGroupByKeys, queryAttributes, dimsOption) =>
+        generateFactQuery(dimsOption.getOrElse(SortedSet.empty[DimensionBundle]).filter(f => f.dim.engine == DruidEngine), new FactQueryContext(factBestCandidate, requestModel, indexAliasOption, factGroupByKeys, queryAttributes))
       case any => throw new UnsupportedOperationException(s"query context not supported : $any")
     }
   }

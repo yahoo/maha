@@ -28,7 +28,7 @@ class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, lite
         generateDimOnlyQuery(context)
       case context: CombinedQueryContext =>
         generateDimFactQuery(context)
-      case FactQueryContext(factBestCandidate, model, indexAliasOption, factGroupByKeys, attributes) =>
+      case FactQueryContext(factBestCandidate, model, indexAliasOption, factGroupByKeys, attributes, _) =>
         generateDimFactQuery(CombinedQueryContext(SortedSet.empty, factBestCandidate, model, attributes))
       case context: DimFactOuterGroupByQueryQueryContext =>
         generateDimFactOuterGroupByQuery(context)
