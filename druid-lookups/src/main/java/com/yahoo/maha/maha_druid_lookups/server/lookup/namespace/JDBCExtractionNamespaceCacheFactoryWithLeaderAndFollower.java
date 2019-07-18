@@ -91,7 +91,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
         Objects.requireNonNull(kafkaProperties, "Must first define kafkaProperties to create a JDBC -> Kafka link.");
         final long lastCheck = lastVersion == null ? Long.MIN_VALUE / 2 : Long.parseLong(lastVersion);
-        if (!extractionNamespace.isCacheEnabled() && !extractionNamespace.getIsLeader()) {
+        if (!extractionNamespace.isCacheEnabled()) {
             return nonCacheEnabledCall(lastCheck);
         }
         final Timestamp lastDBUpdate = lastUpdates(id, extractionNamespace);

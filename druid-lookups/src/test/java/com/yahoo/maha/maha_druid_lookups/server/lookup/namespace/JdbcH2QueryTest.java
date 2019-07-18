@@ -449,7 +449,7 @@ public class JdbcH2QueryTest {
         JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace =
                 new JDBCExtractionNamespaceWithLeaderAndFollower(
                         metadataStorageConnectorConfig, "ad", new ArrayList<>(Arrays.asList("id","name","gpa","date", "title", "status")),
-                        "id", "last_updated", new Period(3000L), false,
+                        "id", "last_updated", new Period(3000L), true,
                         "ad_lookup", "ad_test", true, kafkaProperties);
 
         extractionNamespace.setFirstTimeCaching(false);
