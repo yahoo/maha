@@ -84,6 +84,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , FactCol("min_bid", DecType(0, "0.0"), MinRollup)
           , FactCol("avg_bid", DecType(0, "0.0"), AverageRollup)
           , FactCol("avg_pos_times_impressions", DecType(0, "0.0"), MaxRollup)
+          , FactCol("avg_pos_times_impressions_trim", DecType(0, "0.0", "0", "1000"), MaxRollup)
           , FactCol("engagement_count", IntType(0, 0))
           , ConstFactCol("const_a", IntType(0, 0), "0")
           , ConstFactCol("const_b", IntType(0, 0), "0")
@@ -334,6 +335,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("Const Der Fact Col C", "Const Der Fact Col C", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),
           PublicFactCol("derived_avg_pos", "Average Position", Set.empty),
+          PublicFactCol("avg_pos_times_impressions_trim", "Average Position Maxed", Set.empty),
           PublicFactCol("max_bid", "Max Bid", FieldEquality),
           PublicFactCol("min_bid", "Min Bid", FieldEquality),
           PublicFactCol("avg_bid", "Average Bid", Set.empty),

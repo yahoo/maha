@@ -68,6 +68,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                             {"field": "Min Bid"},
                             {"field": "Average Bid"},
                             {"field": "Average Position"},
+                            {"field": "Average Position Maxed"},
                             {"field": "Impressions"}
                           ],
                           "filterExpressions": [
