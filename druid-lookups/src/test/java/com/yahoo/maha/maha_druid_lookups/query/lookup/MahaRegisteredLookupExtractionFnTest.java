@@ -5,6 +5,7 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespaceWithLeaderAndFollower;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import io.druid.metadata.MetadataStorageConnectorConfig;
 import io.druid.query.lookup.LookupExtractorFactory;

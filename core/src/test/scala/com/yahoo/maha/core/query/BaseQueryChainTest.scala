@@ -128,7 +128,7 @@ trait BaseQueryChainTest {
 
   def getDimQueryContext(engine: Engine,model: RequestModel, indexOption: Option[String], factGroupByKeys: List[String]) : DimQueryContext = {
     val dimMapping = DefaultQueryPipelineFactory.findDimCandidatesMapping(model)
-    val dims = DefaultQueryPipelineFactory.findBestDimCandidates(engine, model.schema, dimMapping, druidMultiQueryEngineList)
+    val dims = DefaultQueryPipelineFactory.findBestDimCandidates(engine, model, dimMapping, druidMultiQueryEngineList)
     DimQueryContext(dims, model, indexOption, factGroupByKeys)
   }
 
@@ -139,7 +139,7 @@ trait BaseQueryChainTest {
 
   def getCombinedQueryContext(engine: Engine,model: RequestModel, indexOption: Option[String], queryAttributes: QueryAttributes) : CombinedQueryContext = {
     val dimMapping = DefaultQueryPipelineFactory.findDimCandidatesMapping(model)
-    val dims = DefaultQueryPipelineFactory.findBestDimCandidates(engine, model.schema, dimMapping, druidMultiQueryEngineList)
+    val dims = DefaultQueryPipelineFactory.findBestDimCandidates(engine, model, dimMapping, druidMultiQueryEngineList)
     val fact = DefaultQueryPipelineFactory.findBestFactCandidate(model, dimEngines = Set(engine), queryGeneratorRegistry = new QueryGeneratorRegistry)
     CombinedQueryContext(dims, fact, model, queryAttributes)
   }

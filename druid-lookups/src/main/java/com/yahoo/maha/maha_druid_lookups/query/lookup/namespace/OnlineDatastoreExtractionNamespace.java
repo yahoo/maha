@@ -4,6 +4,8 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup.namespace;
 
 import com.google.common.collect.ImmutableMap;
 
+import java.util.List;
+
 public interface OnlineDatastoreExtractionNamespace extends ExtractionNamespace {
 
     long getPollMs();
@@ -17,4 +19,6 @@ public interface OnlineDatastoreExtractionNamespace extends ExtractionNamespace 
     String getPrimaryKeyColumn();
 
     ImmutableMap<String, Integer> getColumnIndexMap();
+
+    public List<String> getColumnList();
 }

@@ -558,7 +558,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
         assert(row.getValue("Clicks") === 1)
     }
   }
-  test("successfully generate Druid single engine query with Dim lookup") {
+  test("successfully generate Druid + Oracle multi engine query with Dim lookup for dimDriven sync request") {
 
     val requestWithMetricSort = s"""{
                           "cube": "k_stats",
@@ -581,7 +581,175 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
                           "rowsPerPage":100
                           }"""
 
-    val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestSync(requestWithMetricSort))
+    val request: ReportingRequest = getReportingRequestSync(requestWithMetricSort)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[MultiEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[MultiEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
+    val drivingQuery = pipeline.queryChain.drivingQuery.asString
+    val json = """\{"queryType":"groupBy","dataSource":\{"type":"query","query":\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact_druid"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\}\]\},\{"type":"selector","dimension":"advertiser_id","value":"213"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"advertiser_id","outputName":"Advertiser ID","outputType":"STRING"\},\{"type":"extraction","dimension":"advertiser_id","outputName":"Advertiser Status","outputType":"STRING","extractionFn":\{"type":"mahaRegisteredLookup","lookup":"advertiser_lookup","retainMissingValue":false,"replaceMissingValueWith":"OFF","injective":false,"optimize":true,"valueColumn":"status","dimensionOverrideMap":\{\},"useQueryLevelCache":false\}\}\],"aggregations":\[\{"type":"longSum","name":"Clicks","fieldName":"clicks"\},\{"type":"longSum","name":"Impressions","fieldName":"impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Impressions","direction":"ascending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":100\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":300000,"queryId":".*"\},"descending":false\}\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"Advertiser ID","outputName":"Advertiser ID","outputType":"STRING"\},\{"type":"extraction","dimension":"Advertiser Status","outputName":"Advertiser Status","outputType":"STRING","extractionFn":\{"type":"lookup","lookup":\{"type":"map","map":\{"ON":"ON"\},"isOneToOne":false\},"retainMissingValue":false,"replaceMissingValueWith":"OFF","injective":false,"optimize":true\}\}\],"aggregations":\[\{"type":"longSum","name":"Clicks","fieldName":"Clicks"\},\{"type":"longSum","name":"Impressions","fieldName":"Impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Impressions","direction":"ascending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":100\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":300000,"queryId":".*"\},"descending":false\}"""
+    drivingQuery should fullyMatch regex json
+
+    val result = pipeline.withDruidCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Advertiser ID", 1)
+        row.addValue("Advertiser Status", "ON")
+        row.addValue("Impressions", 100)
+        row.addValue("Clicks", 1)
+        rl.addRow(row)
+    }.withOracleCallback {
+      rl =>
+        val row1 = rl.newRow
+        row1.addValue("Advertiser ID", 1)
+        row1.addValue("Advertiser Status", "ON")
+        rl.addRow(row1)
+        val row2 = rl.newRow
+        row2.addValue("Advertiser ID", 2)
+        row2.addValue("Advertiser Status", "OFF")
+        rl.addRow(row2)
+    }.run()
+
+    val subsequentQuery = pipeline.queryChain.subsequentQueryList.head.asString
+    assert(subsequentQuery.contains("advertiser_oracle"))
+    assert(result.isSuccess, result)
+    assert(result.get.rowList.length == 2)
+    var count = 1
+    result.toOption.get.rowList.foreach {
+      row =>
+        if(count == 1) {
+          assert(row.getValue("Advertiser ID") === 1)
+          assert(row.getValue("Advertiser Status") === "ON")
+          assert(row.getValue("Impressions") === 100)
+          assert(row.getValue("Clicks") === 1)
+        } else {
+          assert(row.getValue("Advertiser ID") === 2)
+          assert(row.getValue("Advertiser Status") === "OFF")
+          assert(row.getValue("Impressions") === null)
+          assert(row.getValue("Clicks") === null)
+        }
+        count = count + 1
+    }
+  }
+  test("successfully generate Oracle + Druid multi engine query with Dim lookup for dimDriven sync request") {
+
+    val requestWithMetricSort = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Advertiser Status"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [],
+                          "includeRowCount" : true,
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(requestWithMetricSort)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    assert(pipeline.queryChain.isInstanceOf[MultiEngineQuery])
+    assert(pipeline.queryChain.asInstanceOf[MultiEngineQuery].drivingQuery.isInstanceOf[OracleQuery])
+    val drivingQuery = pipeline.queryChain.drivingQuery.asString
+//    println(drivingQuery)
+    val expectedQuery = """SELECT  *
+                          |      FROM (SELECT ao0.id "Advertiser ID", ao0."Advertiser Status" "Advertiser Status", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
+                          |            FROM
+                          |                (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+                          |            FROM advertiser_oracle
+                          |            WHERE (id = 213)
+                          |             ) ao0
+                          |           )
+                          |             WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
+
+    drivingQuery should equal (expectedQuery) (after being whiteSpaceNormalised)
+
+    val result = pipeline.withOracleCallback {
+      rl =>
+        val row1 = rl.newRow
+        row1.addValue("Advertiser ID", 1)
+        row1.addValue("Advertiser Status", "ON")
+        rl.addRow(row1)
+        val row2 = rl.newRow
+        row2.addValue("Advertiser ID", 2)
+        row2.addValue("Advertiser Status", "OFF")
+        rl.addRow(row2)
+    }.withDruidCallback {
+      rl =>
+        val row = rl.newRow
+        row.addValue("Advertiser ID", 1)
+        row.addValue("Advertiser Status", "ON")
+        row.addValue("Impressions", 100)
+        row.addValue("Clicks", 1)
+        rl.addRow(row)
+    }.run()
+
+    val subsequentQuery = pipeline.queryChain.subsequentQueryList.head.asString
+//    println(subsequentQuery)
+    val json = """\{"queryType":"groupBy","dataSource":\{"type":"query","query":\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact_druid"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\}\]\},\{"type":"or","fields":\[\{"type":"selector","dimension":"advertiser_id","value":"2"\},\{"type":"selector","dimension":"advertiser_id","value":"1"\}\]\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"advertiser_id","outputName":"Advertiser ID","outputType":"STRING"\},\{"type":"extraction","dimension":"advertiser_id","outputName":"Advertiser Status","outputType":"STRING","extractionFn":\{"type":"mahaRegisteredLookup","lookup":"advertiser_lookup","retainMissingValue":false,"replaceMissingValueWith":"OFF","injective":false,"optimize":true,"valueColumn":"status","dimensionOverrideMap":\{\},"useQueryLevelCache":false\}\}\],"aggregations":\[\{"type":"longSum","name":"Clicks","fieldName":"clicks"\},\{"type":"longSum","name":"Impressions","fieldName":"impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":100\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":300000,"queryId":".*"\},"descending":false\}\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"Advertiser ID","outputName":"Advertiser ID","outputType":"STRING"\},\{"type":"extraction","dimension":"Advertiser Status","outputName":"Advertiser Status","outputType":"STRING","extractionFn":\{"type":"lookup","lookup":\{"type":"map","map":\{"ON":"ON"\},"isOneToOne":false\},"retainMissingValue":false,"replaceMissingValueWith":"OFF","injective":false,"optimize":true\}\}\],"aggregations":\[\{"type":"longSum","name":"Clicks","fieldName":"Clicks"\},\{"type":"longSum","name":"Impressions","fieldName":"Impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":100\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":300000,"queryId":".*"\},"descending":false\}"""
+    subsequentQuery should fullyMatch regex json
+
+    assert(result.isSuccess, result)
+    assert(result.get.rowList.length == 2)
+    var count = 1
+    result.toOption.get.rowList.foreach {
+      row =>
+        if(count == 1) {
+          assert(row.getValue("Advertiser ID") === 1)
+          assert(row.getValue("Advertiser Status") === "ON")
+          assert(row.getValue("Impressions") === 100)
+          assert(row.getValue("Clicks") === 1)
+        } else {
+          assert(row.getValue("Advertiser ID") === 2)
+          assert(row.getValue("Advertiser Status") === "OFF")
+          assert(row.getValue("Impressions") === null)
+          assert(row.getValue("Clicks") === null)
+        }
+        count = count + 1
+    }
+  }
+  test("successfully generate Druid single engine query with Dim lookup for factDriven sync request") {
+
+    val requestWithMetricSort = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Advertiser Status"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                              {"field": "Impressions", "order": "ASC"}
+                          ],
+                          "forceDimensionDriven": false,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(requestWithMetricSort)
     val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
@@ -592,6 +760,9 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
 
     assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
     assert(pipeline.queryChain.asInstanceOf[SingleEngineQuery].drivingQuery.isInstanceOf[DruidQuery[_]])
+    val drivingQuery = pipeline.queryChain.drivingQuery.asString
+    val json = """\{"queryType":"groupBy","dataSource":\{"type":"query","query":\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact_druid"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"stats_date","value":".*"\}\]\},\{"type":"selector","dimension":"advertiser_id","value":"213"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"advertiser_id","outputName":"Advertiser ID","outputType":"STRING"\},\{"type":"extraction","dimension":"advertiser_id","outputName":"Advertiser Status","outputType":"STRING","extractionFn":\{"type":"mahaRegisteredLookup","lookup":"advertiser_lookup","retainMissingValue":false,"replaceMissingValueWith":"OFF","injective":false,"optimize":true,"valueColumn":"status","dimensionOverrideMap":\{\},"useQueryLevelCache":false\}\}\],"aggregations":\[\{"type":"longSum","name":"Clicks","fieldName":"clicks"\},\{"type":"longSum","name":"Impressions","fieldName":"impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Impressions","direction":"ascending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":100\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":300000,"queryId":".*"\},"descending":false\}\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"Advertiser ID","outputName":"Advertiser ID","outputType":"STRING"\},\{"type":"extraction","dimension":"Advertiser Status","outputName":"Advertiser Status","outputType":"STRING","extractionFn":\{"type":"lookup","lookup":\{"type":"map","map":\{"ON":"ON"\},"isOneToOne":false\},"retainMissingValue":false,"replaceMissingValueWith":"OFF","injective":false,"optimize":true\}\}\],"aggregations":\[\{"type":"longSum","name":"Clicks","fieldName":"Clicks"\},\{"type":"longSum","name":"Impressions","fieldName":"Impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Impressions","direction":"ascending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":100\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":300000,"queryId":".*"\},"descending":false\}"""
+    drivingQuery should fullyMatch regex json
 
     val result = pipeline.withDruidCallback {
       rl =>

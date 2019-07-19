@@ -280,6 +280,9 @@ Licensed under the terms of the Apache License 2.0. Please see LICENSE file in p
                 if(mapOfTierLookup.get(tier).get(lookup) === 'mahajdbc'){
                     namespace = 'JDBCExtractionNamespace';
                 }
+                else if(mapOfTierLookup.get(tier).get(lookup) === 'mahajdbcleaderfollower'){
+                    namespace = 'JDBCExtractionNamespaceWithLeaderAndFollower';
+                }
                 else{
                     namespace = 'InMemoryDBExtractionNamespace';
                 }

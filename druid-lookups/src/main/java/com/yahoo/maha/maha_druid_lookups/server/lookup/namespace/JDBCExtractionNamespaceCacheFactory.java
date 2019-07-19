@@ -15,9 +15,7 @@ import org.skife.jdbi.v2.tweak.HandleCallback;
 import org.skife.jdbi.v2.util.TimestampMapper;
 
 import java.sql.Timestamp;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -73,30 +71,13 @@ public class JDBCExtractionNamespaceCacheFactory
                 dbi.withHandle(
                         new HandleCallback<Void>() {
                             @Override
-                            public Void withHandle(Handle handle) throws Exception {
+                            public Void withHandle(Handle handle) {
                                 String query = String.format("SELECT %s FROM %s",
                                         String.join(COMMA_SEPARATOR, extractionNamespace.getColumnList()),
                                         extractionNamespace.getTable()
                                 );
-                                if (extractionNamespace.isFirstTimeCaching()) {
 
-                                    extractionNamespace.setFirstTimeCaching(false);
-                                    query = String.format("%s %s", query, FIRST_TIME_CACHING_WHERE_CLAUSE);
-                                    handle.createQuery(query).map(
-                                            new RowMapper(extractionNamespace, cache))
-                                            .setFetchSize(FETCH_SIZE)
-                                            .bind("lastUpdatedTimeStamp", lastDBUpdate)
-                                            .list();
-
-                                } else {
-                                    query = String.format("%s %s", query, SUBSEQUENT_CACHING_WHERE_CLAUSE);
-                                    handle.createQuery(query).map(
-                                            new RowMapper(extractionNamespace, cache))
-                                            .setFetchSize(FETCH_SIZE)
-                                            .bind("lastUpdatedTimeStamp",
-                                                    extractionNamespace.getPreviousLastUpdateTimestamp())
-                                            .list();
-                                }
+                                populateRowListFromJDBC(extractionNamespace, query, lastDBUpdate, handle, new RowMapper(extractionNamespace, cache));
                                 return null;
                             }
                         }
@@ -109,7 +90,33 @@ public class JDBCExtractionNamespaceCacheFactory
         };
     }
 
-    private DBI ensureDBI(String id, JDBCExtractionNamespace namespace) {
+    Void populateRowListFromJDBC(
+            JDBCExtractionNamespace extractionNamespace,
+            String query,
+            Timestamp lastDBUpdate,
+            Handle handle,
+            RowMapper rm
+    ) {
+        Timestamp updateTS;
+        if (extractionNamespace.isFirstTimeCaching()) {
+            extractionNamespace.setFirstTimeCaching(false);
+            query = String.format("%s %s", query, FIRST_TIME_CACHING_WHERE_CLAUSE);
+            updateTS = lastDBUpdate;
+
+        } else {
+            query = String.format("%s %s", query, SUBSEQUENT_CACHING_WHERE_CLAUSE);
+            updateTS = extractionNamespace.getPreviousLastUpdateTimestamp();
+        }
+
+        List<Void> p = handle.createQuery(query).map(rm)
+                .setFetchSize(FETCH_SIZE)
+                .bind("lastUpdatedTimeStamp", updateTS)
+                .list();
+
+        return null;
+    }
+
+    protected DBI ensureDBI(String id, JDBCExtractionNamespace namespace) {
         final String key = id;
         DBI dbi = null;
         if (dbiCache.containsKey(key)) {
@@ -127,7 +134,7 @@ public class JDBCExtractionNamespaceCacheFactory
         return dbi;
     }
 
-    private Timestamp lastUpdates(String id, JDBCExtractionNamespace namespace) {
+    protected Timestamp lastUpdates(String id, JDBCExtractionNamespace namespace) {
         final DBI dbi = ensureDBI(id, namespace);
         final String table = namespace.getTable();
         final String tsColumn = namespace.getTsColumn();
@@ -157,7 +164,7 @@ public class JDBCExtractionNamespaceCacheFactory
     @Override
     public void updateCache(final JDBCExtractionNamespace extractionNamespace, final Map<String, List<String>> cache,
                             final String key, final byte[] value) {
-        //No-Op
+        //No-op
     }
 
     @Override

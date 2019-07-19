@@ -9,6 +9,7 @@ import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.registry.{DimensionRegistrationFactory, FactRegistrationFactory, RegistryBuilder}
 import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
+import javax.annotation.Nullable
 
 /**
  * Created by pranavbhole on 09/06/17.
@@ -189,6 +190,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
             , DimCol("department_id", IntType())
             , DimCol("admitted_year", IntType())
             , DimCol("status", StrType())
+            , DimCol("profile_url", StrType())
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , schemaColMap = Map(StudentSchema -> "id")
@@ -199,6 +201,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
             , PubCol("name", "Student Name", EqualityFieldEquality)
             , PubCol("admitted_year", "Admitted Year", InEquality, hiddenFromJson = true)
             , PubCol("status", "Student Status", InEqualityFieldEquality)
+            , PubCol("profile_url", "Profile URL", InEqualityLike, isImageColumn = true)
           ), highCardinalityFilters = Set(NotInFilter("Student Status", List("DELETED")))
         )
       }

@@ -12,6 +12,7 @@ import com.metamx.common.lifecycle.Lifecycle;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.metamx.emitter.service.ServiceMetricEvent;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.JDBCLookupExtractorWithLeaderAndFollower;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.MongoLookupExtractor;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.RocksDBLookupExtractor;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.JDBCLookupExtractor;
@@ -78,7 +79,7 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
     ) {
         this.listeningScheduledExecutorService = MoreExecutors.listeningDecorator(
                 Executors.newScheduledThreadPool(
-                        15,
+                        100,
                         new ThreadFactoryBuilder()
                                 .setDaemon(true)
                                 .setNameFormat("MahaNamespaceExtractionCacheManager-%d")
@@ -381,7 +382,10 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
     }
 
     private LookupExtractor getLookupExtractor(final ExtractionNamespace extractionNamespace, Map<String, U> map) {
-        if (extractionNamespace instanceof JDBCExtractionNamespace) {
+        log.error("Passed through namespace: " + extractionNamespace.toString() + "\nwith concrete className: " + extractionNamespace.getClass().getName());
+        if(extractionNamespace instanceof  JDBCExtractionNamespaceWithLeaderAndFollower) {
+            return new JDBCLookupExtractorWithLeaderAndFollower((JDBCExtractionNamespaceWithLeaderAndFollower) extractionNamespace, map, lookupService);
+        } else if (extractionNamespace instanceof JDBCExtractionNamespace) {
             return new JDBCLookupExtractor((JDBCExtractionNamespace) extractionNamespace, map, lookupService);
         } else if (extractionNamespace instanceof RocksDBExtractionNamespace) {
             return new RocksDBLookupExtractor((RocksDBExtractionNamespace) extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory, serviceEmitter);

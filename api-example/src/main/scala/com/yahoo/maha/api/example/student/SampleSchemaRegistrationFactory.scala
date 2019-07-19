@@ -6,7 +6,7 @@ import com.yahoo.maha.api.example.ExampleSchema
 import com.yahoo.maha.api.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension._
+import com.yahoo.maha.core.dimension.{PubCol, _}
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.registry.{DimensionRegistrationFactory, FactRegistrationFactory, RegistryBuilder}
 import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
