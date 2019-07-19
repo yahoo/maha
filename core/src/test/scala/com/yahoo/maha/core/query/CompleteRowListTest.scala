@@ -9,7 +9,7 @@ import com.yahoo.maha.core.FilterOperation.{Equality, In, InBetweenEquality, InE
 import com.yahoo.maha.core.dimension.{DimCol, DruidFuncDimCol, PubCol}
 import com.yahoo.maha.core.{ColumnContext, DailyGrain, DateType, DecType, DruidEngine, DruidExpression, EqualityFilter, EscapingRequired, Filter, ForeignKey, IntType, RequestModel, StrType}
 import com.yahoo.maha.core.fact._
-import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator, SyncDruidQueryOptimizer}
+import com.yahoo.maha.core.query.druid.{AsyncDruidQueryOptimizer, DruidQuery, DruidQueryGenerator, SyncDruidQueryOptimizer}
 import com.yahoo.maha.core.query.oracle.BaseOracleQueryGeneratorTest
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.ReportingRequest
@@ -207,7 +207,7 @@ class CompleteRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListT
   }
 
   test("successfully construct complete row list with post result ephemeral columns") {
-    DruidQueryGenerator.register(queryGeneratorRegistry, queryOptimizer = new SyncDruidQueryOptimizer(timeout = 5000))
+    DruidQueryGenerator.register(queryGeneratorRegistry, queryOptimizer = new AsyncDruidQueryOptimizer, useCustomRoundingSumAggregator = false)
     val rowList : CompleteRowList = new CompleteRowList(druidQuery)
     assert(rowList.columnNames === IndexedSeq("Impressions", "Impression Share"))
     assert(rowList.isEmpty)
