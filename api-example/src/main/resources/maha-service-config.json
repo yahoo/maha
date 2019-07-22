@@ -158,7 +158,7 @@
         "maximumTopNMaxRows": 400,
         "maximumMaxRowsAsync": 100000,
         "shouldLimitInnerQueries": true,
-        "useCustomRoundingSumAggregator" : true
+        "useCustomRoundingSumAggregator" : false
       }
     },
     "presto": {
