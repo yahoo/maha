@@ -2,11 +2,16 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.Module;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
 import com.google.inject.Key;
+import com.google.inject.Provides;
+import com.google.inject.name.Named;
 import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.MapBinder;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.MahaLookupExtractorFactory;
@@ -20,9 +25,13 @@ import io.druid.guice.JsonConfigProvider;
 import io.druid.guice.LazySingleton;
 import io.druid.guice.LifecycleModule;
 import io.druid.guice.PolyBind;
+import io.druid.guice.annotations.Json;
 import io.druid.initialization.DruidModule;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  *
@@ -30,7 +39,10 @@ import java.util.List;
 public class MahaNamespaceExtractionModule implements DruidModule
 {
     public static final String PREFIX = "druid.lookup.maha.namespace";
-    public static final String TYPE_PREFIX = "druid.lookup.maha.namespace.cache.type";
+    public static final String TYPE_PREFIX = "druid.lookup.namespace.cache.type";
+    private static final String PROPERTIES_KEY = "druid.query.rename.kafka.properties";
+    private static final String ROCKSDB_PROPERTIES_KEY = "druid.query.extraction.namespace.rocksdb.properties";
+    private static final String LOOKUP_SERVICE_PROPERTY_KEY = "druid.query.extraction.namespace.lookupservice.properties";
 
     @Override
     public List<? extends Module> getJacksonModules()
@@ -42,7 +54,7 @@ public class MahaNamespaceExtractionModule implements DruidModule
         );
     }
 
-    public static MapBinder<Class<? extends ExtractionNamespace>, ExtractionNamespaceCacheFactory<?,?>> getNamespaceFactoryMapBinder(
+    private static MapBinder<Class<? extends ExtractionNamespace>, ExtractionNamespaceCacheFactory<?,?>> getNamespaceFactoryMapBinder(
             final Binder binder
     )
     {
@@ -55,6 +67,64 @@ public class MahaNamespaceExtractionModule implements DruidModule
                 {
                 }
         );
+    }
+
+    private Properties getTypedProperties(
+            ObjectMapper mapper,
+            Properties systemProperties,
+            String key
+    )
+    {
+        String val = systemProperties.getProperty(key);
+        if (val == null) {
+            return new Properties();
+        }
+        try {
+            final Properties properties = new Properties();
+            properties.putAll(
+                    mapper.<Map<String, String>>readValue(
+                            val, new TypeReference<Map<String, String>>()
+                            {
+                            }
+                    )
+            );
+            return properties;
+        }
+        catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    @Provides
+    @Named("kafkaProperties")
+    @LazySingleton
+    public Properties getProperties(
+            @Json ObjectMapper mapper,
+            Properties systemProperties
+    )
+    {
+        return getTypedProperties(mapper, systemProperties, PROPERTIES_KEY);
+    }
+
+    @Provides
+    @Named("rocksdbProperties")
+    @LazySingleton
+    public Properties getRocksDBProperties(
+            @Json ObjectMapper mapper,
+            Properties systemProperties
+    )
+    {
+        return getTypedProperties(mapper, systemProperties, ROCKSDB_PROPERTIES_KEY);
+    }
+
+    @Provides
+    @Named("lookupServiceProperties")
+    @LazySingleton
+    public Properties getLookupServiceProperties(
+            @Json ObjectMapper mapper,
+            Properties systemProperties
+    ) {
+        return getTypedProperties(mapper, systemProperties, LOOKUP_SERVICE_PROPERTY_KEY);
     }
 
     @Override
