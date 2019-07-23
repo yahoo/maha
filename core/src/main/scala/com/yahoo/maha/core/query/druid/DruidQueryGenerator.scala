@@ -1292,8 +1292,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null), Option.empty)
 
-            case lookupFunc@LOOKUP_WITH_TIMEFORMATTER(lookupNamespace, valueColumn, inputFormat, resultFormat, dimensionOverrideMap) =>
-              val regExFn = new MahaRegisteredLookupExtractionFn(null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
+            case lookupFunc@LOOKUP_WITH_TIMEFORMATTER(lookupNamespace, valueColumn, inputFormat, resultFormat, dimensionOverrideMap, overrideValue) =>
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, lookupNamespace, false, overrideValue.getOrElse(DruidQuery.replaceMissingValueWith), false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
               val timeFormatFn = new TimeDimExtractionFn(inputFormat, resultFormat)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null),

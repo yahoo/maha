@@ -85,7 +85,7 @@ object DruidDerivedFunction {
                                                 columnIfValueNotMatched: String,
                                                 dimensionOverrideMap: Map[String, String] = Map.empty) extends DruidDerivedFunction
 
-  case class LOOKUP_WITH_TIMEFORMATTER(lookupNameSpace:String, valueColumn:String, inputFormat:String,resultFormat:String, dimensionOverrideMap: Map[String, String] = Map.empty) extends DruidDerivedFunction
+  case class LOOKUP_WITH_TIMEFORMATTER(lookupNameSpace:String, valueColumn:String, inputFormat:String,resultFormat:String, dimensionOverrideMap: Map[String, String] = Map.empty, overrideValue: Option[String] = None) extends DruidDerivedFunction
 
   case class LOOKUP_WITH_DECODE(lookupNamespace: String,
                                 valueColumn: String,
