@@ -1294,14 +1294,10 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
             case lookupFunc@LOOKUP_WITH_TIMEFORMATTER(lookupNamespace, valueColumn, inputFormat, resultFormat, dimensionOverrideMap, overrideValue) =>
               val regExFn = new MahaRegisteredLookupExtractionFn(null, lookupNamespace, false, overrideValue.getOrElse(DruidQuery.replaceMissingValueWith), false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
+              val timeFormatFn = new TimeDimExtractionFn(inputFormat, resultFormat)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
-              val dimensionSpecOption = overrideValue match {
-                case None =>
-                  Option.apply(new ExtractionDimensionSpec(alias, alias, getDimValueType(column), new TimeDimExtractionFn(inputFormat, resultFormat), null))
-                case _ =>
-                  Option.empty
-              }
-              (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null), dimensionSpecOption)
+              (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null),
+                Option.apply(new ExtractionDimensionSpec(alias, alias, getDimValueType(column), timeFormatFn, null)))
 
             case DRUID_TIME_FORMAT(fmt, zone) =>
               renderColumnWithAlias(fact, column, alias)
