@@ -1,5 +1,5 @@
 {
-  "type": "maharocksdb",
+  "type": "mahainmemorydb",
   "namespace": "advertiser",
   "rocksDbInstanceHDFSPath": "/data/druid/lookups/snapshots/advertiser",
   "lookupAuditingHDFSPath": "/data/druid/lookups/audits/advertiser",
