@@ -570,7 +570,7 @@ object DefaultQueryPipelineFactory extends Logging {
         bestDimensionCandidates += dc.head
 
         // if forceDimDriven and factEngine is Druid then add other Engines which are part of MultiQueryEngineList
-        if(requestModel.forceDimDriven) {
+        if(requestModel.isSyncRequest && requestModel.forceDimDriven) {
           druidMultiQueryEngineList.map {
             engine =>
               val dc = bundles.filter(_.dim.engine == engine)
