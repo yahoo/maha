@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.277-SNAPSHOT</version>
+        <version>5.278-SNAPSHOT</version>
     </parent>
 
     <name>maha service</name>
