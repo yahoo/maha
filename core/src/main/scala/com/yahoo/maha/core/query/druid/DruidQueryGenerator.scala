@@ -606,7 +606,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                     case LOOKUP_WITH_DECODE(_, _, _, args@_*) => true
                     case LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE(_, _, _, _, _, args@_*) => true
                     case LOOKUP_WITH_DECODE_ON_OTHER_COLUMN(_, _, _, _, _, _) => true
-                    case LOOKUP_WITH_TIMEFORMATTER(_, _, _, _, _) => true
+                    case LOOKUP_WITH_TIMEFORMATTER(_, _, _, _, _, _) => true
                     case _ => false
                   }
                 case _ => false
@@ -632,7 +632,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                   df match {
                     case LOOKUP_WITH_DECODE(_, _, _, args@_*) => true
                     case LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE(_, _, _, _, _, args@_*) => true
-                    case LOOKUP_WITH_TIMEFORMATTER(__, _, _, _, _) => true
+                    case LOOKUP_WITH_TIMEFORMATTER(__, _, _, _, _, _) => true
                     case _ => false
                   }
                 case _ => false
@@ -1294,10 +1294,14 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
             case lookupFunc@LOOKUP_WITH_TIMEFORMATTER(lookupNamespace, valueColumn, inputFormat, resultFormat, dimensionOverrideMap, overrideValue) =>
               val regExFn = new MahaRegisteredLookupExtractionFn(null, lookupNamespace, false, overrideValue.getOrElse(DruidQuery.replaceMissingValueWith), false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
-              val timeFormatFn = new TimeDimExtractionFn(inputFormat, resultFormat)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
-              (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null),
-                Option.apply(new ExtractionDimensionSpec(alias, alias, getDimValueType(column), timeFormatFn, null)))
+              val dimensionSpecOption = overrideValue match {
+                case None =>
+                  Option.apply(new ExtractionDimensionSpec(alias, alias, getDimValueType(column), new TimeDimExtractionFn(inputFormat, resultFormat), null))
+                case _ =>
+                  Option.empty
+              }
+              (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null), dimensionSpecOption)
 
             case DRUID_TIME_FORMAT(fmt, zone) =>
               renderColumnWithAlias(fact, column, alias)
