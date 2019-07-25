@@ -60,7 +60,7 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    DruidQueryGenerator.register(queryGeneratorRegistry)
+    DruidQueryGenerator.register(queryGeneratorRegistry, useCustomRoundingSumAggregator = true)
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))

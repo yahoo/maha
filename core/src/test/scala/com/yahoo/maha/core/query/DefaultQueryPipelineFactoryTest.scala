@@ -475,7 +475,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
   import DefaultQueryPipelineFactoryTest._
   override protected def beforeAll(): Unit = {
     OracleQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer)
-    DruidQueryGenerator.register(queryGeneratorRegistry)
+    DruidQueryGenerator.register(queryGeneratorRegistry, useCustomRoundingSumAggregator = false)
     HiveQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
     HiveQueryGeneratorV2.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
   }
@@ -1545,7 +1545,7 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
-    altQueryGeneratorRegistry.register(DruidEngine, new DruidQueryGenerator(new SyncDruidQueryOptimizer(), 40000)) //do not include local time filter
+    altQueryGeneratorRegistry.register(DruidEngine, new DruidQueryGenerator(new SyncDruidQueryOptimizer(), 40000, useCustomRoundingSumAggregator = true)) //do not include local time filter
     altQueryGeneratorRegistry.register(OracleEngine, new OracleQueryGenerator(DefaultPartitionColumnRenderer))
     val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
