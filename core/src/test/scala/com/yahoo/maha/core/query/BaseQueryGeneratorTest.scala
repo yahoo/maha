@@ -93,6 +93,8 @@ trait BaseQueryGeneratorTest {
     val userDir = System.getProperty("user.dir")
     if(userDir.endsWith("core")) {
       s"$userDir/src/test/resources/"
+    } else if (userDir.endsWith("presto")) {
+      s"$userDir/../core/src/test/resources/"
     } else {
       s"$userDir/core/src/test/resources/"
     }

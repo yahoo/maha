@@ -1382,6 +1382,8 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                             {"field": "Impressions"},
                             {"field": "Advertiser Status"},
                             {"field": "Campaign Name"},
+                            {"field": "Campaign Start Date"},
+                            {"field": "Campaign End Date"},
                             {"field": "Campaign Total"}
                             ],
                           "filterExpressions": [
@@ -1407,10 +1409,14 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     val expect_empty_lookup = """{"type":"extraction","dimension":"campaign_id_alias","outputName":"Campaign Name","outputType":"STRING","extractionFn":{"type":"mahaRegisteredLookup","lookup":"campaign_lookup","retainMissingValue":false,"replaceMissingValueWith":"MAHA_LOOKUP_EMPTY","injective":false,"optimize":true,"valueColumn":"name","dimensionOverrideMap":{},"useQueryLevelCache":false}}"""
-    val expect_other = """{"type":"extraction","dimension":"campaign_id_alias","outputName":"Campaign Total","outputType":"STRING","extractionFn":{"type":"mahaRegisteredLookup","lookup":"campaign_lookup","retainMissingValue":false,"replaceMissingValueWith":"Other","injective":false,"optimize":true,"valueColumn":"total","dimensionOverrideMap":{},"useQueryLevelCache":false}}"""
-
+    val expect_replace_with_other = """{"type":"extraction","dimension":"campaign_id_alias","outputName":"Campaign Total","outputType":"STRING","extractionFn":{"type":"mahaRegisteredLookup","lookup":"campaign_lookup","retainMissingValue":false,"replaceMissingValueWith":"Other","injective":false,"optimize":true,"valueColumn":"total","dimensionOverrideMap":{},"useQueryLevelCache":false}}"""
+    val expect_time_extract_func = """{"type":"extraction","dimension":"Campaign Start Date","outputName":"Campaign Start Date","outputType":"STRING","extractionFn":{"type":"time","timeFormat":"yyyy-MM-dd HH:mm:ss","resultFormat":"yyyy-MM-dd"}}"""
+    val expect_replace_with_null = """{"type":"extraction","dimension":"campaign_id_alias","outputName":"Campaign End Date","outputType":"STRING","extractionFn":{"type":"mahaRegisteredLookup","lookup":"campaign_lookup","retainMissingValue":false,"replaceMissingValueWith":"null","injective":false,"optimize":true,"valueColumn":"end_time","dimensionOverrideMap":{},"useQueryLevelCache":false}}"""
+    
     assert(result.contains(expect_empty_lookup))
-    assert(result.contains(expect_other))
+    assert(result.contains(expect_replace_with_other))
+    assert(result.contains(expect_time_extract_func))
+    assert(result.contains(expect_replace_with_null))
   }
 
   test("should generate nested groupby query if dim filter is present") {
