@@ -52,7 +52,7 @@ public class JDBCExtractionNamespaceCacheFactory
                 }
             };
         }
-        final Timestamp lastDBUpdate = lastUpdates(id, extractionNamespace);
+        final Timestamp lastDBUpdate = lastUpdates(id, extractionNamespace, false);
         if (lastDBUpdate != null && lastDBUpdate.getTime() <= lastCheck) {
             return new Callable<String>() {
                 @Override
@@ -134,13 +134,17 @@ public class JDBCExtractionNamespaceCacheFactory
         return dbi;
     }
 
-    protected Timestamp lastUpdates(String id, JDBCExtractionNamespace namespace) {
+    protected Timestamp lastUpdates(String id, JDBCExtractionNamespace namespace, Boolean isFollower) {
         final DBI dbi = ensureDBI(id, namespace);
         final String table = namespace.getTable();
         final String tsColumn = namespace.getTsColumn();
         if (tsColumn == null) {
             return null;
         }
+
+        if(!namespace.isFirstTimeCaching() && isFollower)
+            return namespace.getPreviousLastUpdateTimestamp();
+
         final Timestamp lastUpdatedTimeStamp = dbi.withHandle(
                 new HandleCallback<Timestamp>() {
 

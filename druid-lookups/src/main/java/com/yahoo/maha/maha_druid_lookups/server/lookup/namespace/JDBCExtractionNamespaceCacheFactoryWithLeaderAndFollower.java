@@ -94,7 +94,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         if (!extractionNamespace.isCacheEnabled()) {
             return nonCacheEnabledCall(lastCheck);
         }
-        final Timestamp lastDBUpdate = lastUpdates(id, extractionNamespace);
+        final Timestamp lastDBUpdate = lastUpdates(id, extractionNamespace, !extractionNamespace.getIsLeader());
         if (Objects.nonNull(lastDBUpdate) && lastDBUpdate.getTime() <= lastCheck) {
             return new Callable<String>() {
                 @Override
@@ -293,7 +293,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 if(cachedLastUpdateTS < rowTS) {
                     cache.put(pkValue, columnsInOrder);
                 } else {
-                    LOG.error("No Valid Primary Key parsed for column (or old record passed).  Refusing to update.");
+                    LOG.error("No Valid Primary Key parsed for column (or old record passed).  Refusing to update.  Failed row is: %s", columnsInOrder);
                 }
             }
 
