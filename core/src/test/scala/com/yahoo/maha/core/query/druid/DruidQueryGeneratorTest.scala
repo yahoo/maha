@@ -68,6 +68,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                             {"field": "Min Bid"},
                             {"field": "Average Bid"},
                             {"field": "Average Position"},
+                            {"field": "Average Position Maxed"},
                             {"field": "Impressions"}
                           ],
                           "filterExpressions": [
@@ -344,6 +345,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    println(result)
 
     val json = """\{"queryType":"topN","dataSource":\{"type":"table","name":"fact1"\},"virtualColumns":\[\],"dimension":\{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"\},"metric":\{"type":"numeric","metric":"Impressions"\},"threshold":120,"intervals":\{"type":"intervals","intervals":\[".*"\]\},"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"roundingDoubleSum","name":"_sum_avg_bid","fieldName":"avg_bid","scale":10,"enableRoundingDoubleSumAggregatorFactory":true\},\{"type":"count","name":"_count_avg_bid"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Average Bid","fn":"/","fields":\[\{"type":"fieldAccess","name":"_sum_avg_bid","fieldName":"_sum_avg_bid"\},\{"type":"fieldAccess","name":"_count_avg_bid","fieldName":"_count_avg_bid"\}\]\}\],"context":\{"applyLimitPushDown":"false","userId":"someUser","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\},"descending":false\}"""
 
@@ -407,6 +409,8 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+
+    println(result)
 
     val json = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"columnComparison","dimensions":\[\{"type":"default","dimension":"ad_id","outputName":"ad_id","outputType":"STRING"\},\{"type":"default","dimension":"ad_group_id","outputName":"ad_group_id","outputType":"STRING"\}\]\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"\}\],"aggregations":\[\{"type":"roundingDoubleSum","name":"_sum_avg_bid","fieldName":"avg_bid","scale":10,"enableRoundingDoubleSumAggregatorFactory":true\},\{"type":"count","name":"_count_avg_bid"\},\{"type":"filtered","aggregator":\{"type":"thetaSketch","name":"Conversion User Count","fieldName":"uniqueUserCount","size":16384,"shouldFinalize":true,"isInputThetaSketch":false\},"filter":\{"type":"javascript","dimension":"segments","function":"function\(x\) \{ return x \> 0; \}"\},"name":"Conversion User Count"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Average Bid","fn":"\/","fields":\[\{"type":"fieldAccess","name":"_sum_avg_bid","fieldName":"_sum_avg_bid"\},\{"type":"fieldAccess","name":"_count_avg_bid","fieldName":"_count_avg_bid"\}\]\}\],"limitSpec":\{"type":"default","columns":\[\],"limit":120\},"context":\{"applyLimitPushDown":"false","userId":"someUser","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\},"descending":false\}"""
 
@@ -1378,6 +1382,8 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                             {"field": "Impressions"},
                             {"field": "Advertiser Status"},
                             {"field": "Campaign Name"},
+                            {"field": "Campaign Start Date"},
+                            {"field": "Campaign End Date"},
                             {"field": "Campaign Total"}
                             ],
                           "filterExpressions": [
@@ -1403,10 +1409,14 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     val expect_empty_lookup = """{"type":"extraction","dimension":"campaign_id_alias","outputName":"Campaign Name","outputType":"STRING","extractionFn":{"type":"mahaRegisteredLookup","lookup":"campaign_lookup","retainMissingValue":false,"replaceMissingValueWith":"MAHA_LOOKUP_EMPTY","injective":false,"optimize":true,"valueColumn":"name","dimensionOverrideMap":{},"useQueryLevelCache":false}}"""
-    val expect_other = """{"type":"extraction","dimension":"campaign_id_alias","outputName":"Campaign Total","outputType":"STRING","extractionFn":{"type":"mahaRegisteredLookup","lookup":"campaign_lookup","retainMissingValue":false,"replaceMissingValueWith":"Other","injective":false,"optimize":true,"valueColumn":"total","dimensionOverrideMap":{},"useQueryLevelCache":false}}"""
-
+    val expect_replace_with_other = """{"type":"extraction","dimension":"campaign_id_alias","outputName":"Campaign Total","outputType":"STRING","extractionFn":{"type":"mahaRegisteredLookup","lookup":"campaign_lookup","retainMissingValue":false,"replaceMissingValueWith":"Other","injective":false,"optimize":true,"valueColumn":"total","dimensionOverrideMap":{},"useQueryLevelCache":false}}"""
+    val expect_time_extract_func = """{"type":"extraction","dimension":"Campaign Start Date","outputName":"Campaign Start Date","outputType":"STRING","extractionFn":{"type":"time","timeFormat":"yyyy-MM-dd HH:mm:ss","resultFormat":"yyyy-MM-dd"}}"""
+    val expect_replace_with_null = """{"type":"extraction","dimension":"campaign_id_alias","outputName":"Campaign End Date","outputType":"STRING","extractionFn":{"type":"mahaRegisteredLookup","lookup":"campaign_lookup","retainMissingValue":false,"replaceMissingValueWith":"null","injective":false,"optimize":true,"valueColumn":"end_time","dimensionOverrideMap":{},"useQueryLevelCache":false}}"""
+    
     assert(result.contains(expect_empty_lookup))
-    assert(result.contains(expect_other))
+    assert(result.contains(expect_replace_with_other))
+    assert(result.contains(expect_time_extract_func))
+    assert(result.contains(expect_replace_with_null))
   }
 
   test("should generate nested groupby query if dim filter is present") {
@@ -2113,7 +2123,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     failRegistry.register(OracleEngine, dummyOracleQueryGenerator)
     failRegistry.register(DruidEngine, dummyFalseQueryGenerator)
 
-    DruidQueryGenerator.register(failRegistry, queryOptimizer = new SyncDruidQueryOptimizer(timeout = 5000))
+    DruidQueryGenerator.register(failRegistry, queryOptimizer = new SyncDruidQueryOptimizer(timeout = 5000), useCustomRoundingSumAggregator = true)
   }
   test("Join key should not be included in dimension bundle if it is not in the original request when using druid lookups") {
     val jsonString = s"""{

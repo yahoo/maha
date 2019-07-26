@@ -157,15 +157,20 @@ object DruidQueryGenerator extends Logging {
   val defaultMaximumTopNMaxRows: Int = 400
   val defaultMaximumMaxRowsAsync: Int = 100000
 
+  /*
+   useCustomRoundingSumAggregator: RoundingDoubleSumAggregatorFactory used for rounding dec type up to n decimals places
+   if you set to true, make sure that you have RoundingDoubleSumDruidModule registered in druid
+   */
   def register(queryGeneratorRegistry: QueryGeneratorRegistry
                , queryOptimizer: DruidQueryOptimizer = new SyncDruidQueryOptimizer()
                , defaultDimCardinality: Long = defaultMaxSingleThreadedDimCardinality
                , maximumMaxRows: Int = defaultMaximumMaxRows
                , maximumTopNMaxRows: Int = defaultMaximumTopNMaxRows
                , maximumMaxRowsAsync: Int = defaultMaximumMaxRowsAsync
+               , useCustomRoundingSumAggregator: Boolean  = false
               ) = {
     if (!queryGeneratorRegistry.isEngineRegistered(DruidEngine, Option(Version.DEFAULT))) {
-      val generator = new DruidQueryGenerator(queryOptimizer, defaultDimCardinality, maximumMaxRows, maximumTopNMaxRows, maximumMaxRowsAsync)
+      val generator = new DruidQueryGenerator(queryOptimizer, defaultDimCardinality, maximumMaxRows, maximumTopNMaxRows, maximumMaxRowsAsync, useCustomRoundingSumAggregator = useCustomRoundingSumAggregator)
       queryGeneratorRegistry.register(DruidEngine, generator)
     } else {
       queryGeneratorRegistry.getDefaultGenerator(DruidEngine).foreach {
@@ -247,7 +252,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                           , maximumMaxRows: Int = DruidQueryGenerator.defaultMaximumMaxRows
                           , maximumTopNMaxRows: Int = DruidQueryGenerator.defaultMaximumTopNMaxRows
                           , maximumMaxRowsAsync: Int = DruidQueryGenerator.defaultMaximumMaxRowsAsync
-                          , shouldLimitInnerQueries: Boolean = true) extends BaseQueryGenerator[WithDruidEngine] with Logging {
+                          , shouldLimitInnerQueries: Boolean = true
+                          , useCustomRoundingSumAggregator : Boolean = false) extends BaseQueryGenerator[WithDruidEngine] with Logging {
 
   import collection.JavaConverters._
 
@@ -606,7 +612,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                     case LOOKUP_WITH_DECODE(_, _, _, args@_*) => true
                     case LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE(_, _, _, _, _, args@_*) => true
                     case LOOKUP_WITH_DECODE_ON_OTHER_COLUMN(_, _, _, _, _, _) => true
-                    case LOOKUP_WITH_TIMEFORMATTER(_, _, _, _, _) => true
+                    case LOOKUP_WITH_TIMEFORMATTER(_, _, _, _, _, _) => true
                     case _ => false
                   }
                 case _ => false
@@ -632,7 +638,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                   df match {
                     case LOOKUP_WITH_DECODE(_, _, _, args@_*) => true
                     case LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE(_, _, _, _, _, args@_*) => true
-                    case LOOKUP_WITH_TIMEFORMATTER(__, _, _, _, _) => true
+                    case LOOKUP_WITH_TIMEFORMATTER(__, _, _, _, _, _) => true
                     case _ => false
                   }
                 case _ => false
@@ -846,12 +852,20 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       dataType match {
         case DecType(_, scale, Some(default), Some(min), Some(max), _) =>
           //TODO: fix min, max, and default value handling
-          new RoundingDoubleSumAggregatorFactory(outputFieldName, inputFieldName, applyScaleCleanup(scale), null, ExprMacroTable.nil, true)
+          if(useCustomRoundingSumAggregator) {
+            new RoundingDoubleSumAggregatorFactory(outputFieldName, inputFieldName, applyScaleCleanup(scale), null, ExprMacroTable.nil, true)
+          } else {
+            new DoubleSumAggregatorFactory(outputFieldName, inputFieldName)
+          }
         case IntType(_, _, Some(default), Some(min), Some(max)) =>
           //TODO: fix min, max, and default value handling
           new LongSumAggregatorFactory(outputFieldName, inputFieldName)
         case DecType(_, scale, _, _, _, _) =>
-          new RoundingDoubleSumAggregatorFactory(outputFieldName, inputFieldName, applyScaleCleanup(scale), null, ExprMacroTable.nil, true)
+          if(useCustomRoundingSumAggregator) {
+            new RoundingDoubleSumAggregatorFactory(outputFieldName, inputFieldName, applyScaleCleanup(scale), null, ExprMacroTable.nil, true)
+          } else {
+            new DoubleSumAggregatorFactory(outputFieldName, inputFieldName)
+          }
         case IntType(_, _, _, _, _) =>
           new LongSumAggregatorFactory(outputFieldName, inputFieldName)
         case any =>
@@ -1292,8 +1306,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null), Option.empty)
 
-            case lookupFunc@LOOKUP_WITH_TIMEFORMATTER(lookupNamespace, valueColumn, inputFormat, resultFormat, dimensionOverrideMap) =>
-              val regExFn = new MahaRegisteredLookupExtractionFn(null, lookupNamespace, false, DruidQuery.replaceMissingValueWith, false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
+            case lookupFunc@LOOKUP_WITH_TIMEFORMATTER(lookupNamespace, valueColumn, inputFormat, resultFormat, dimensionOverrideMap, overrideValue) =>
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, lookupNamespace, false, overrideValue.getOrElse(DruidQuery.replaceMissingValueWith), false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
               val timeFormatFn = new TimeDimExtractionFn(inputFormat, resultFormat)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null),

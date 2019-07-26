@@ -67,7 +67,8 @@ class DruidQueryGeneratorFactory extends QueryGeneratorFactory {
     |"maximumMaxRows" : "5000",
     |"maximumTopNMaxRows" : "400",
     |"maximumMaxRowsAsync" : "100000",
-    |"shouldLimitInnerQueries" : true
+    |"shouldLimitInnerQueries" : true,
+    |"useCustomRoundingSumAggregator" : true
     |}
   """.stripMargin
 
@@ -80,6 +81,8 @@ class DruidQueryGeneratorFactory extends QueryGeneratorFactory {
     val maximumTopNMaxRowsResult: MahaServiceConfig.MahaConfigResult[Int] = fieldExtended[Int]("maximumTopNMaxRows")(configJson)
     val maximumMaxRowsAsyncResult: MahaServiceConfig.MahaConfigResult[Int] = fieldExtended[Int]("maximumMaxRowsAsync")(configJson)
     val shouldLimitInnerQueries: MahaServiceConfig.MahaConfigResult[Boolean] = fieldExtended[Boolean]("shouldLimitInnerQueries")(configJson)
+    val useCustomRoundingSumAggregatorResult: MahaServiceConfig.MahaConfigResult[Boolean] = fieldExtended[Boolean]("useCustomRoundingSumAggregator")(configJson)
+
 
     val queryOptimizer: MahaServiceConfig.MahaConfigResult[DruidQueryOptimizer] = for {
       queryOptimizerClass <- queryOptimizerClassResult
@@ -88,8 +91,8 @@ class DruidQueryGeneratorFactory extends QueryGeneratorFactory {
       queryOptimizer <- queryOptimizerFactory.fromJson(queryOptimizerConfig)
     } yield queryOptimizer
 
-    (queryOptimizer |@| dimCardinalityResult |@| maximumMaxRowsResult |@| maximumTopNMaxRowsResult |@| maximumMaxRowsAsyncResult |@| shouldLimitInnerQueries) {
-      (a, b, c ,d, e, f) => new DruidQueryGenerator(a, b, c, d, e, f)
+    (queryOptimizer |@| dimCardinalityResult |@| maximumMaxRowsResult |@| maximumTopNMaxRowsResult |@| maximumMaxRowsAsyncResult |@| shouldLimitInnerQueries |@| useCustomRoundingSumAggregatorResult) {
+      (a, b, c ,d, e, f, g) => new DruidQueryGenerator(a, b, c, d, e, f, g)
     }
   }
 

@@ -20,7 +20,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
   override protected def beforeAll(): Unit = {
     OracleQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer)
     HiveQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
-    DruidQueryGenerator.register(queryGeneratorRegistry)
+    DruidQueryGenerator.register(queryGeneratorRegistry, useCustomRoundingSumAggregator = true)
     PrestoQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestPrestoUDFRegistrationFactory())
   }
 
