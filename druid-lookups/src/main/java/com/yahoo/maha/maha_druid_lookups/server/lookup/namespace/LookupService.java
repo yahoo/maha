@@ -125,7 +125,7 @@ public class LookupService {
     private byte[] callService(LookupData lookupData) throws URISyntaxException, IOException {
 
         HttpGet httpGet = new HttpGet();
-        Map<String, String> authHeaders = authHeaderFactory.getAuthHeaders();
+        Map<String, String> authHeaders = authHeaderFactory.getAuthHeaders(lookupServiceProperties);
         if(authHeaders != null) {
             authHeaders.entrySet().stream().forEach(e -> httpGet.addHeader(e.getKey(), e.getValue()));
         }
@@ -155,7 +155,7 @@ public class LookupService {
         Long lastUpdatedTime = -1L;
         try {
             HttpGet httpGet = new HttpGet();
-            Map<String, String> authHeaders = authHeaderFactory.getAuthHeaders();
+            Map<String, String> authHeaders = authHeaderFactory.getAuthHeaders(lookupServiceProperties);
             if(authHeaders != null) {
                 authHeaders.entrySet().stream().forEach(e -> httpGet.addHeader(e.getKey(), e.getValue()));
             }
