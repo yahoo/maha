@@ -94,7 +94,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         if (!extractionNamespace.isCacheEnabled()) {
             return nonCacheEnabledCall(lastCheck);
         }
-        final Timestamp lastDBUpdate = lastUpdates(id, extractionNamespace);
+        final Timestamp lastDBUpdate = lastUpdates(id, extractionNamespace, !extractionNamespace.getIsLeader());
         if (Objects.nonNull(lastDBUpdate) && lastDBUpdate.getTime() <= lastCheck) {
             return new Callable<String>() {
                 @Override
@@ -274,14 +274,14 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             String pkValue = allColumnsMap.getOrDefault(keyColname, null).toString();
 
             List<String> columnsInOrder = new ArrayList<>();
-            Timestamp rowTS = new Timestamp(0L);
+            Long rowTS = 0L;
             for(String str: extractionNamespace.getColumnList()) {
                 Object retVal = allColumnsMap.getOrDefault(str, "");
                 columnsInOrder.add(String.valueOf(retVal));
                 boolean isTS = Objects.nonNull(retVal) && str.equals(extractionNamespace.getTsColumn());
 
                 if(isTS) {
-                    rowTS = (Timestamp) retVal;
+                    rowTS = Timestamp.valueOf(retVal.toString()).getTime();
                 }
             }
 
@@ -289,15 +289,15 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 cache.put(pkValue, columnsInOrder);
             } else {
                 List<String> cachedRow = cache.get(pkValue);
-                Timestamp cachedLastUpdateTS = Timestamp.valueOf(cachedRow.get(cachedRow.size()-1));
-                if(cachedLastUpdateTS.before(rowTS)) {
+                Long cachedLastUpdateTS = Timestamp.valueOf((cachedRow.get(cachedRow.size()-1))).getTime();
+                if(cachedLastUpdateTS < rowTS) {
                     cache.put(pkValue, columnsInOrder);
                 } else {
-                    LOG.error("No Valid Primary Key parsed for column (or old record passed).  Refusing to update.");
+                    LOG.error("No Valid Primary Key parsed for column (or old record passed).  Refusing to update.  Failed row is: %s", columnsInOrder);
                 }
             }
 
-            return rowTS;
+            return new Timestamp(rowTS);
 
         } catch (Exception e) {
             LOG.error("Updating cache caused exception (Check column names): " + e.toString() + "\n", e);
