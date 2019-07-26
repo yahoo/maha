@@ -10,8 +10,8 @@ import com.google.common.collect.ImmutableList;
 @JsonSubTypes(value = {
         @JsonSubTypes.Type(name = "mahajdbcleaderfollower", value = JDBCExtractionNamespaceWithLeaderAndFollower.class),
         @JsonSubTypes.Type(name = "mahajdbc", value = JDBCExtractionNamespace.class),
-        @JsonSubTypes.Type(name = "mahainmemorydb", value = RocksDBExtractionNamespace.class),
         @JsonSubTypes.Type(name = "maharocksdb", value = RocksDBExtractionNamespace.class),
+        @JsonSubTypes.Type(name = "mahainmemorydb", value = RocksDBExtractionNamespace.class),
         @JsonSubTypes.Type(name = "mahamongo", value = MongoExtractionNamespace.class)
 })
 public interface ExtractionNamespace {
