@@ -69,7 +69,7 @@ class QueryPipelineWithFallbackTest extends FunSuite with Matchers with BeforeAn
 
   override protected def beforeAll(): Unit = {
     OracleQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer)
-    DruidQueryGenerator.register(queryGeneratorRegistry)
+    DruidQueryGenerator.register(queryGeneratorRegistry, useCustomRoundingSumAggregator = true)
     HiveQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestUDFRegistrationFactory())
   }
 

@@ -4,9 +4,10 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Properties;
 
 public interface AuthHeaderFactory {
-    default Map<String, String> getAuthHeaders() {
+    default Map<String, String> getAuthHeaders(Properties lookupServiceProperties) {
         return Collections.EMPTY_MAP;
     }
 }

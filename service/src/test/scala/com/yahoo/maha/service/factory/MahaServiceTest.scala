@@ -740,7 +740,8 @@ class MahaServiceTest extends BaseFactoryTest {
 				"maximumMaxRows": 5000,
 				"maximumTopNMaxRows": 400,
 				"maximumMaxRowsAsync": 100000,
-        "shouldLimitInnerQueries": true
+        "shouldLimitInnerQueries": true,
+        "useCustomRoundingSumAggregator": true
 			}
 		},
 		"presto": {

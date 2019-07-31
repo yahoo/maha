@@ -20,7 +20,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
 
   override protected def beforeAll(): Unit = {
     OracleQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer)
-    DruidQueryGenerator.register(queryGeneratorRegistry, queryOptimizer = new SyncDruidQueryOptimizer(timeout = 5000))
+    DruidQueryGenerator.register(queryGeneratorRegistry, queryOptimizer = new SyncDruidQueryOptimizer(timeout = 5000), useCustomRoundingSumAggregator = true)
   }
 
   override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
@@ -84,6 +84,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , FactCol("min_bid", DecType(0, "0.0"), MinRollup)
           , FactCol("avg_bid", DecType(0, "0.0"), AverageRollup)
           , FactCol("avg_pos_times_impressions", DecType(0, "0.0"), MaxRollup)
+          , FactCol("avg_pos_times_impressions_trim", DecType(0, "0.0", "0", "1000"), MaxRollup)
           , FactCol("engagement_count", IntType(0, 0))
           , ConstFactCol("const_a", IntType(0, 0), "0")
           , ConstFactCol("const_b", IntType(0, 0), "0")
@@ -100,6 +101,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , DruidPostResultDerivedFactCol("impression_share", StrType(), "{impressions}" /- "{sov_impressions}", postResultFunction = POST_RESULT_DECODE("{show_sov_flag}", "0", "N/A"))
           , FactCol("uniqueUserCount", DecType(0, "0.0"))
           , FactCol("blarghUserCount", DecType(0, "0.0"))
+          , FactCol("blarghUserCount1", DecType(0, "0.0", "2", "10"))
           , FactCol("ageBucket_unique_users", DecType(), DruidFilteredRollup(InFilter("ageBucket", List("18-20")), "uniqueUserCount", DruidThetaSketchRollup))
           , FactCol("woeids_unique_users", DecType(), DruidFilteredRollup(InFilter("woeids", List("4563")), "uniqueUserCount", DruidThetaSketchRollup))
           , FactCol("segments_unique_users", DecType(), DruidFilteredRollup(InFilter("segments", List("1234")), "uniqueUserCount", DruidThetaSketchRollup))
@@ -333,6 +335,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("Const Der Fact Col C", "Const Der Fact Col C", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),
           PublicFactCol("derived_avg_pos", "Average Position", Set.empty),
+          PublicFactCol("avg_pos_times_impressions_trim", "Average Position Maxed", Set.empty),
           PublicFactCol("max_bid", "Max Bid", FieldEquality),
           PublicFactCol("min_bid", "Min Bid", FieldEquality),
           PublicFactCol("avg_bid", "Average Bid", Set.empty),
@@ -794,6 +797,6 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
   }
 
   protected[this] def getDruidQueryGenerator: DruidQueryGenerator = {
-    new DruidQueryGenerator(new SyncDruidQueryOptimizer(timeout = 5000), 40000)
+    new DruidQueryGenerator(new SyncDruidQueryOptimizer(timeout = 5000), 40000, useCustomRoundingSumAggregator = true)
   }
 }

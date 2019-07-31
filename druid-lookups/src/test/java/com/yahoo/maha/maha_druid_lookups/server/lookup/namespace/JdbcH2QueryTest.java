@@ -248,7 +248,7 @@ public class JdbcH2QueryTest {
         doCallRealMethod().when(myJdbcEncFactory).doFollowerOperations(any(), any(), any(), any());
         doCallRealMethod().when(myJdbcEncFactory).doLeaderOperations(any(), any(), any(), any(), any());
         doCallRealMethod().when(myJdbcEncFactory).populateRowListFromJDBC(any(), any(), any(), any(), any());
-        doCallRealMethod().when(myJdbcEncFactory).lastUpdates(any(), any());
+        doCallRealMethod().when(myJdbcEncFactory).lastUpdates(any(), any(), any());
         doCallRealMethod().when(myJdbcEncFactory).ensureDBI(any(), any());
         doCallRealMethod().when(myJdbcEncFactory).updateLocalCache(any(), any(), any());
         doCallRealMethod().when(myJdbcEncFactory).getCacheValue(any(), any(), any(), any(), any());
@@ -346,6 +346,7 @@ public class JdbcH2QueryTest {
                         "id", "last_updated", new Period(3000L), true,
                         "ad_lookup", "ad_test", false, kafkaProperties);
         extractionNamespace.setFirstTimeCaching(false);
+        extractionNamespace.setPreviousLastUpdateTimestamp(new Timestamp(currentDateTimeMinusOneHour.getMillis()));
         Map<String, List<String>> map = new HashMap<>();
         map.put("12345", Arrays.asList("12345", "my name", "3.1", toDatePlusOneHour));
         Callable<String> populator = myJdbcEncFactory.getCachePopulator(extractionNamespace.getLookupName(), extractionNamespace, "0", map);
