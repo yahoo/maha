@@ -13,7 +13,6 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import java.util.Objects;
 
-@JsonTypeName("maharocksdb")
 public class RocksDBExtractionNamespace implements ExtractionNamespace {
 
     @JsonProperty
