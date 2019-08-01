@@ -45,12 +45,12 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
-                            {"field": "Student ID", "operator": "=", "value": "213"}
+                            {"field": "Student ID", "operator": "=", "value": "5432345"}
                           ],
                           "includeRowCount" : true
                         }"""
 
-  val reportingRequest = ReportingRequest.deserializeSync(jsonRequest.getBytes, StudentSchema).toOption.get
+  val reportingRequest = ReportingRequest.forceOracle(ReportingRequest.deserializeSync(jsonRequest.getBytes, StudentSchema).toOption.get)
 
   val registry = mahaServiceConfig.registry(REGISTRY)
 
