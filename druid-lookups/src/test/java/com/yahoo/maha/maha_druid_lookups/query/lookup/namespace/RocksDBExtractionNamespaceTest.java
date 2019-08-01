@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.fasterxml.jackson.datatype.joda.deser.DurationDeserializer;
 import com.fasterxml.jackson.datatype.joda.deser.PeriodDeserializer;
 import com.fasterxml.jackson.datatype.joda.deser.key.DateTimeKeyDeserializer;
-import com.google.common.collect.Lists;
+import io.druid.jackson.DefaultObjectMapper;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.Interval;
@@ -17,8 +17,14 @@ import org.testng.annotations.Test;
 
 import static org.testng.Assert.assertEquals;
 
+/**
+ * Note: these classes are testing Jackson version 2.9.9, and druid-server
+ * 0.11.0 uses Jackson 2.4.*
+ * Multiple bindings (ExtractionNamespace) are not supported before Jackson 2.6.*,
+ * so whichever Binding is mentioned first is used by Druid.
+ */
 public class RocksDBExtractionNamespaceTest {
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper = new DefaultObjectMapper();
 
 
     @BeforeClass
@@ -64,6 +70,5 @@ public class RocksDBExtractionNamespaceTest {
         assertEquals(namespace.getPollMs(), 30000);
         assertEquals(namespace.isCacheEnabled(), true);
         assertEquals(namespace.getLookupName(), "advertiser_lookup");
-
     }
 }

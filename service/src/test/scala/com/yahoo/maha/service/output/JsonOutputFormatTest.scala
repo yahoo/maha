@@ -47,14 +47,16 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
                             {"field": "Student ID", "operator": "=", "value": "213"}
                           ],
-                          "includeRowCount" : true
+                          "includeRowCount" : true,
+                          "additionalParameters": {
+                              "debug": true
+                          }
                         }"""
-
-  val reportingRequest = ReportingRequest.deserializeSync(jsonRequest.getBytes, StudentSchema).toOption.get
-
   val registry = mahaServiceConfig.registry(REGISTRY)
+  val reportingRequest = ReportingRequest.forceOracle(ReportingRequest.deserializeSync(jsonRequest.getBytes, StudentSchema).toOption.get)
 
-  val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+
+  val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(0))
 
   val mahaRequestContext = MahaRequestContext(REGISTRY,
     bucketParams,
@@ -64,7 +66,7 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
   val mahaRequestLogBuilder = MahaRequestLogHelper(mahaRequestContext, mahaService.mahaRequestLogWriter)
   val (pse, queryPipeline, query, queryChain) = {
-    val bucketParams = BucketParams(UserInfo("test", false))
+    val bucketParams = BucketParams(UserInfo("test", false), forceRevision = Some(0))
 
     val requestModel = mahaService.generateRequestModel(REGISTRY
       , reportingRequest

@@ -10,10 +10,16 @@ import com.google.common.collect.ImmutableList;
 @JsonSubTypes(value = {
         @JsonSubTypes.Type(name = "mahajdbcleaderfollower", value = JDBCExtractionNamespaceWithLeaderAndFollower.class),
         @JsonSubTypes.Type(name = "mahajdbc", value = JDBCExtractionNamespace.class),
-        @JsonSubTypes.Type(name = "maharocksdb", value = RocksDBExtractionNamespace.class),
         @JsonSubTypes.Type(name = "mahainmemorydb", value = RocksDBExtractionNamespace.class),
+        @JsonSubTypes.Type(name = "maharocksdb", value = RocksDBExtractionNamespace.class),
         @JsonSubTypes.Type(name = "mahamongo", value = MongoExtractionNamespace.class)
 })
+/**
+ * Druid version 0.11.0 uses Jackson version 2.4.*, which does not have support
+ * for multiple bindings (one class using two names).
+ * For now, switch the two to use the binding we utilize.
+ * When Druid is upgraded, revisit this class.
+ */
 public interface ExtractionNamespace {
 
     long getPollMs();
