@@ -188,11 +188,11 @@
             "internal": [
               {
                 "revision": 0,
-                "percent": 0
+                "percent": 10
               },
               {
                 "revision": 1,
-                "percent": 100
+                "percent": 90
               }
             ],
             "external": [
