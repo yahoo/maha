@@ -445,11 +445,11 @@ object RequestModel extends Logging {
             case reqCol if (publicFact.restrictedSchemasMap.contains(reqCol)
               && !publicFact.restrictedSchemasMap(reqCol)(request.schema))
               => reqCol
-            case reqCol if (requestedDimAliasesToPublicDimMap.contains(reqCol)
-              && requestedDimAliasesToPublicDimMap(reqCol).restrictedSchemasMap.contains(reqCol)
-              && !requestedDimAliasesToPublicDimMap(reqCol).restrictedSchemasMap(reqCol)(request.schema)
+            case dimReqCol if (requestedDimAliasesToPublicDimMap.contains(dimReqCol)
+              && requestedDimAliasesToPublicDimMap(dimReqCol).restrictedSchemasMap.contains(dimReqCol)
+              && !requestedDimAliasesToPublicDimMap(dimReqCol).restrictedSchemasMap(dimReqCol)(request.schema)
               )
-            => reqCol
+            => dimReqCol
           }
           require(colsWithRestrictedSchema.isEmpty, RestrictedSchemaError(colsWithRestrictedSchema, request.schema.entryName, publicFact.name))
 
