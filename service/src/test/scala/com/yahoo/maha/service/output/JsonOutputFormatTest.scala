@@ -49,10 +49,9 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
                           ],
                           "includeRowCount" : true
                         }"""
-
+  val registry = mahaServiceConfig.registry(REGISTRY)
   val reportingRequest = ReportingRequest.forceOracle(ReportingRequest.deserializeSync(jsonRequest.getBytes, StudentSchema).toOption.get)
 
-  val registry = mahaServiceConfig.registry(REGISTRY)
 
   val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
 
