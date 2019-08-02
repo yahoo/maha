@@ -95,7 +95,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             return nonCacheEnabledCall(lastCheck);
         }
         final Timestamp lastDBUpdate = lastUpdates(id, extractionNamespace, !extractionNamespace.getIsLeader());
-        if (Objects.nonNull(lastDBUpdate) && lastDBUpdate.getTime() < lastCheck && extractionNamespace.getIsLeader()) {
+        if (Objects.nonNull(lastDBUpdate) && lastDBUpdate.getTime() <= lastCheck && extractionNamespace.getIsLeader()) {
             return new Callable<String>() {
                 @Override
                 public String call() {
