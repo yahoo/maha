@@ -263,6 +263,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
   private[this] val DRUID_REQUEST_ID_CONTEXT = "queryId"
   private[this] val DRUID_USER_ID_CONTEXT = "userId"
   private[this] val MIN_TOPN_THRESHOLD = "minTopNThreshold"
+  private[this] val DRUID_HOST_NAME_CONTEXT = "hostName"
 
   private[this] def findDirection(order: Order): OrderByColumnSpec.Direction = order match {
     case ASC => OrderByColumnSpec.Direction.ASCENDING
@@ -305,6 +306,12 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     if (!userId.isEmpty) {
       info(s"Druid userId is set to $userId")
       context.put(DRUID_USER_ID_CONTEXT, userId)
+    }
+    val hostNameValue = model.additionalParameters.getOrElse(Parameter.HostName, HostNameValue(""))
+    val hostName = hostNameValue.asInstanceOf[HostNameValue].value
+    if (!hostName.isEmpty) {
+      info(s"Hostname is set to $hostName")
+      context.put(DRUID_HOST_NAME_CONTEXT, hostName)
     }
     queryOptimizer.optimize(queryContext, context)
     val dimCardinality = queryContext.requestModel.dimCardinalityEstimate.getOrElse(defaultDimCardinality)
