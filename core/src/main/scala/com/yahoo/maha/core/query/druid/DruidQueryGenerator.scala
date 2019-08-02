@@ -304,13 +304,13 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     val userIdValue = model.additionalParameters.getOrElse(Parameter.UserId, UserIdValue(""))
     val userId = userIdValue.asInstanceOf[UserIdValue].value
     if (!userId.isEmpty) {
-      info(s"Druid userId is set to $userId")
+      debug(s"Druid userId is set to $userId")
       context.put(DRUID_USER_ID_CONTEXT, userId)
     }
     val hostNameValue = model.additionalParameters.getOrElse(Parameter.HostName, HostNameValue(""))
     val hostName = hostNameValue.asInstanceOf[HostNameValue].value
     if (!hostName.isEmpty) {
-      info(s"Hostname is set to $hostName")
+      debug(s"Hostname is set to $hostName")
       context.put(DRUID_HOST_NAME_CONTEXT, hostName)
     }
     queryOptimizer.optimize(queryContext, context)
