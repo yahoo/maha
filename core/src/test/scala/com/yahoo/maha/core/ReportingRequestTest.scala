@@ -535,7 +535,7 @@ class ReportingRequestTest extends FlatSpec {
                               "registryName" : "maha",
                               "testName" : "test1",
                               "labels" : ["label1","label2"],
-                              "HostName" : "10.211.45.217"
+                              "HostName" : "127.0.0.1"
                           }
                           }"""
     val request =  ReportingRequest.deserializeWithAdditionalParameters(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
