@@ -1370,9 +1370,9 @@ class ReportingRequestTest extends FlatSpec {
 
     val request = getReportingRequestValidationSync(jsonString)
     assert(request.isSuccess)
-    val requestWithHostName = ReportingRequest.withHostname(request.toOption.get, "10.211.45.217")
+    val requestWithHostName = ReportingRequest.withHostname(request.toOption.get, "127.0.0.1")
     assert(requestWithHostName.additionalParameters.contains(Parameter.HostName))
-    assert(requestWithHostName.additionalParameters(Parameter.HostName) === HostNameValue("10.211.45.217"))
+    assert(requestWithHostName.additionalParameters(Parameter.HostName) === HostNameValue("127.0.0.1"))
   }
 
   "ReportingRequest" should "successfully deserialize async request and with timezone and schema" in {
