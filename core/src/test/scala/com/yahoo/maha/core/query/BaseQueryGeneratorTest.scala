@@ -67,6 +67,11 @@ trait BaseQueryGeneratorTest {
     ReportingRequest.addRequestContext(request, requestContext)
   }
 
+  protected[this] def getReportingRequestSyncWithHostName(jsonString: String, hostName: String) = {
+    val request = ReportingRequest.deserializeSync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
+    ReportingRequest.withHostname(request, hostName)
+  }
+
   protected[this] def generatePipeline(requestModel: RequestModel) : Try[QueryPipeline] = {
     queryPipelineFactory.from(requestModel, QueryAttributes.empty)
   }
