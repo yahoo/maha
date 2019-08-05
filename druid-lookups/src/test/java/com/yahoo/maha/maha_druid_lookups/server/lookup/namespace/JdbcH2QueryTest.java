@@ -35,6 +35,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
@@ -253,6 +254,7 @@ public class JdbcH2QueryTest {
         doCallRealMethod().when(myJdbcEncFactory).updateLocalCache(any(), any(), any());
         doCallRealMethod().when(myJdbcEncFactory).getCacheValue(any(), any(), any(), any(), any());
         doCallRealMethod().when(myJdbcEncFactory).populateLastUpdatedTime(any(), any());
+        myJdbcEncFactory.executorService = Executors.newCachedThreadPool();
 
         Whitebox.setInternalState(myJdbcEncFactory, "dbiCache", new ConcurrentHashMap<>());
 
