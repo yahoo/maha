@@ -196,7 +196,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 populateLastUpdatedTime(polledLastUpdatedTS, extractionNamespace);
 
 
-                LOG.info("Follower operation num records returned [%d] with final cache size of [%d]: ", totalNumRowsUpdated, cache.size());
+                LOG.info("Follower operation on kafkaTopic [%s] num records returned [%d] with final cache size of [%d]: ", extractionNamespace.getKafkaTopic() , totalNumRowsUpdated, cache.size());
 
                 long lastUpdatedTS = Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp()) ? extractionNamespace.getPreviousLastUpdateTimestamp().getTime() : 0L;
                 return String.format("%d", lastUpdatedTS);
