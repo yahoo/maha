@@ -2,7 +2,6 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
-import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
@@ -27,9 +26,11 @@ import scala.Tuple2;
 import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
 import java.sql.Timestamp;
-import java.time.Period;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  *
@@ -42,9 +43,8 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
 
     private Producer<String, byte[]> kafkaProducer;
-    private Consumer<String, byte[]> kafkaConsumer;
-
-    private Properties kafkaProperties;
+    //private Consumer<String, byte[]> kafkaConsumer;
+    private ThreadLocal<Consumer<String, byte[]>> threadLocalConsumer = new ThreadLocal<>();
 
     @Inject
     LookupService lookupService;
@@ -87,7 +87,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             final String lastVersion,
             final Map<String, List<String>> cache
     ) {
-        kafkaProperties = extractionNamespace.getKafkaProperties();
+        Properties kafkaProperties = extractionNamespace.getKafkaProperties();
 
         Objects.requireNonNull(kafkaProperties, "Must first define kafkaProperties to create a JDBC -> Kafka link.");
         final long lastCheck = lastVersion == null ? Long.MIN_VALUE / 2 : Long.parseLong(lastVersion);
@@ -182,8 +182,11 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             public String call() {
                 LOG.info("Running Kafka Follower - Consumer actions on %s.", id);
                 String kafkaProducerTopic = extractionNamespace.getKafkaTopic();
-                kafkaConsumer = ensureKafkaConsumer(kafkaProperties);
-                        kafkaConsumer.subscribe(Collections.singletonList(kafkaProducerTopic));
+
+                Consumer<String, byte[]> kafkaConsumer = ensureKafkaConsumer(kafkaProperties);
+
+                kafkaConsumer.subscribe(Collections.singletonList(kafkaProducerTopic));
+
                 long consumerPollPeriod = extractionNamespace.getPollMs();
 
                 Tuple2<Integer, Timestamp> runRowsWithTS = pollKafkaTopicForUpdates(kafkaConsumer, consumerPollPeriod, kafkaProducerTopic, extractionNamespace, cache);
@@ -192,7 +195,9 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
                 populateLastUpdatedTime(polledLastUpdatedTS, extractionNamespace);
 
+
                 LOG.info("Follower operation num records returned [%d] with final cache size of [%d]: ", totalNumRowsUpdated, cache.size());
+
                 long lastUpdatedTS = Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp()) ? extractionNamespace.getPreviousLastUpdateTimestamp().getTime() : 0L;
                 return String.format("%d", lastUpdatedTS);
             }
@@ -334,10 +339,11 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
      * @return
      */
     synchronized Consumer<String, byte[]> ensureKafkaConsumer(Properties kafkaProperties) {
-        if(kafkaConsumer == null) {
-            kafkaConsumer = new KafkaConsumer<>(kafkaProperties, new StringDeserializer(), new ByteArrayDeserializer());
+        if(!Objects.nonNull(threadLocalConsumer.get())) {
+            threadLocalConsumer.set(new KafkaConsumer<>(kafkaProperties, new StringDeserializer(), new ByteArrayDeserializer()));
         }
-        return kafkaConsumer;
+
+        return threadLocalConsumer.get();
     }
 
     /**
@@ -349,7 +355,8 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             kafkaProducer.close();
         }
 
-        if(kafkaConsumer != null) {
+        if(Objects.nonNull(threadLocalConsumer.get())) {
+            Consumer<String, byte[]> kafkaConsumer = threadLocalConsumer.get();
             kafkaConsumer.unsubscribe();
             kafkaConsumer.close();
         }
