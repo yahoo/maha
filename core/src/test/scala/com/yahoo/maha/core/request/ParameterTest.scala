@@ -72,7 +72,7 @@ class ParameterTest extends FunSuite with Matchers {
 
     result.getOrElse() match{
       case m: Map[Parameter, ParameterValue[_]] => {
-        m.size shouldBe 12
+        m.size shouldBe 13
         m.get(Parameter.ReportFormat).get shouldBe ReportFormatValue(ReportFormatType.CSVFormat)
         m.get(Parameter.DryRun).get shouldBe DryRunValue(false)
         m.get(Parameter.GeneratedQuery).get shouldBe GeneratedQueryValue("Generated-Query")
