@@ -232,6 +232,7 @@ object Parameter extends Enum[Parameter] with Logging {
       case Distinct => p.entryName -> JBool(v.asInstanceOf[DistinctValue].value)
       case JobName => p.entryName -> JString(v.asInstanceOf[JobNameValue].value)
       case RegistryName => p.entryName -> JString(v.asInstanceOf[RegistryNameValue].value)
+      case HostName => p.entryName -> JString(v.asInstanceOf[HostNameValue].value)
     }
     
   }
