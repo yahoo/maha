@@ -67,7 +67,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             final String lastVersion,
             final Map<String, List<String>> cache
     ) {
-        LOG.error("Calling Leader or Follower populator with variables: " +
+        LOG.info("Calling Leader or Follower populator with variables: " +
                 "id=" + id + ", namespace=" + extractionNamespace.toString() + ", lastVers=" + lastVersion);
 
         return getCachePopulator(id, (JDBCExtractionNamespaceWithLeaderAndFollower)extractionNamespace, lastVersion, cache);
@@ -127,7 +127,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                                                final Map<String, List<String>> cache,
                                                final Properties kafkaProperties,
                                                final Timestamp lastDBUpdate) {
-        LOG.error("Running Kafka Leader - Producer actions on %s.", id);
+        LOG.info("Running Kafka Leader - Producer actions on %s.", id);
         kafkaProducer = ensureKafkaProducer(kafkaProperties);
 
         return new Callable<String>() {
@@ -180,14 +180,14 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         return new Callable<String>() {
             @Override
             public String call() {
-                LOG.error("Running Kafka Follower - Consumer actions on %s.", id);
+                LOG.info("Running Kafka Follower - Consumer actions on %s.", id);
                 String kafkaProducerTopic = extractionNamespace.getKafkaTopic();
 
                 Consumer<String, byte[]> kafkaConsumer = ensureKafkaConsumer(kafkaProperties);
 
                 kafkaConsumer.subscribe(Collections.singletonList(kafkaProducerTopic));
 
-                LOG.error("Consumer subscribing to topic [%s] with result [%s]", kafkaProducerTopic, kafkaConsumer.subscription().isEmpty() ? kafkaConsumer.subscription() : "Not subscribed.");
+                LOG.info("Consumer subscribing to topic [%s] with result [%s]", kafkaProducerTopic, kafkaConsumer.subscription().isEmpty() ? kafkaConsumer.subscription() : "Not subscribed.");
 
                 long consumerPollPeriod = extractionNamespace.getPollMs();
 
@@ -198,7 +198,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 populateLastUpdatedTime(polledLastUpdatedTS, extractionNamespace);
 
 
-                LOG.error("Follower operation on kafkaTopic [%s] num records returned [%d] with final cache size of [%d]: ", extractionNamespace.getKafkaTopic() , totalNumRowsUpdated, cache.size());
+                LOG.info("Follower operation on kafkaTopic [%s] num records returned [%d] with final cache size of [%d]: ", extractionNamespace.getKafkaTopic() , totalNumRowsUpdated, cache.size());
 
                 long lastUpdatedTS = Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp()) ? extractionNamespace.getPreviousLastUpdateTimestamp().getTime() : 0L;
                 return String.format("%d", lastUpdatedTS);
@@ -220,7 +220,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
         try {
             ConsumerRecords<String, byte[]> records = kafkaConsumer.poll(tenPercentPollPeriod);
-            LOG.error("Num Kafka Records returned from poll: [%d]", records.count());
+            LOG.info("Num Kafka Records returned from poll: [%d]", records.count());
             for (ConsumerRecord<String, byte[]> record : records) {
                 final String key = record.key();
                 final byte[] message = record.value();
