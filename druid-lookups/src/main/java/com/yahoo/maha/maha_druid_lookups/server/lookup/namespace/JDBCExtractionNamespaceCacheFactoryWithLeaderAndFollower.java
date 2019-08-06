@@ -2,7 +2,6 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
-import com.google.common.base.Strings;
 import com.google.inject.Inject;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
@@ -27,9 +26,11 @@ import scala.Tuple2;
 import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
 import java.sql.Timestamp;
-import java.time.Period;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  *
@@ -42,9 +43,8 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
 
     private Producer<String, byte[]> kafkaProducer;
-    private Consumer<String, byte[]> kafkaConsumer;
-
-    private Properties kafkaProperties;
+    //private Consumer<String, byte[]> kafkaConsumer;
+    private ThreadLocal<Consumer<String, byte[]>> threadLocalConsumer = new ThreadLocal<>();
 
     @Inject
     LookupService lookupService;
@@ -87,7 +87,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             final String lastVersion,
             final Map<String, List<String>> cache
     ) {
-        kafkaProperties = extractionNamespace.getKafkaProperties();
+        Properties kafkaProperties = extractionNamespace.getKafkaProperties();
 
         Objects.requireNonNull(kafkaProperties, "Must first define kafkaProperties to create a JDBC -> Kafka link.");
         final long lastCheck = lastVersion == null ? Long.MIN_VALUE / 2 : Long.parseLong(lastVersion);
@@ -182,8 +182,13 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             public String call() {
                 LOG.info("Running Kafka Follower - Consumer actions on %s.", id);
                 String kafkaProducerTopic = extractionNamespace.getKafkaTopic();
-                kafkaConsumer = ensureKafkaConsumer(kafkaProperties);
-                        kafkaConsumer.subscribe(Collections.singletonList(kafkaProducerTopic));
+
+                Consumer<String, byte[]> kafkaConsumer = ensureKafkaConsumer(kafkaProperties);
+
+                kafkaConsumer.subscribe(Collections.singletonList(kafkaProducerTopic));
+
+                LOG.info("Consumer subscribing to topic [%s] with result [%s]", kafkaProducerTopic, kafkaConsumer.subscription().isEmpty() ? kafkaConsumer.subscription() : "Not subscribed.");
+
                 long consumerPollPeriod = extractionNamespace.getPollMs();
 
                 Tuple2<Integer, Timestamp> runRowsWithTS = pollKafkaTopicForUpdates(kafkaConsumer, consumerPollPeriod, kafkaProducerTopic, extractionNamespace, cache);
@@ -192,7 +197,9 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
                 populateLastUpdatedTime(polledLastUpdatedTS, extractionNamespace);
 
-                LOG.info("Follower operation num records returned [%d] with final cache size of [%d]: ", totalNumRowsUpdated, cache.size());
+
+                LOG.info("Follower operation on kafkaTopic [%s] num records returned [%d] with final cache size of [%d]: ", extractionNamespace.getKafkaTopic() , totalNumRowsUpdated, cache.size());
+
                 long lastUpdatedTS = Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp()) ? extractionNamespace.getPreviousLastUpdateTimestamp().getTime() : 0L;
                 return String.format("%d", lastUpdatedTS);
             }
@@ -206,16 +213,14 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                                                                final JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace,
                                                                final Map<String, List<String>> cache
                                                                ) {
-        long halfPollPeriod = consumerPollPeriod/2;
         long tenPercentPollPeriod = consumerPollPeriod/10;
-
-        long endTime = new DateTime().getMillis() + (halfPollPeriod);
 
         int i = 0;
         Timestamp latestTSFromRows = new Timestamp(0L);
 
-        while(new DateTime().getMillis() < endTime && !cancelled) {
+        try {
             ConsumerRecords<String, byte[]> records = kafkaConsumer.poll(tenPercentPollPeriod);
+            LOG.info("Num Kafka Records returned from poll: [%d]", records.count());
             for (ConsumerRecord<String, byte[]> record : records) {
                 final String key = record.key();
                 final byte[] message = record.value();
@@ -233,6 +238,9 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
                 ++i;
             }
+        } catch (Exception e) {
+            LOG.error("Caught consumer poll exception ", e);
+            throw e;
         }
 
         return new Tuple2<>(i, latestTSFromRows);
@@ -334,10 +342,11 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
      * @return
      */
     synchronized Consumer<String, byte[]> ensureKafkaConsumer(Properties kafkaProperties) {
-        if(kafkaConsumer == null) {
-            kafkaConsumer = new KafkaConsumer<>(kafkaProperties, new StringDeserializer(), new ByteArrayDeserializer());
+        if(!Objects.nonNull(threadLocalConsumer.get())) {
+            threadLocalConsumer.set(new KafkaConsumer<>(kafkaProperties, new StringDeserializer(), new ByteArrayDeserializer()));
         }
-        return kafkaConsumer;
+
+        return threadLocalConsumer.get();
     }
 
     /**
@@ -349,7 +358,8 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             kafkaProducer.close();
         }
 
-        if(kafkaConsumer != null) {
+        if(Objects.nonNull(threadLocalConsumer.get())) {
+            Consumer<String, byte[]> kafkaConsumer = threadLocalConsumer.get();
             kafkaConsumer.unsubscribe();
             kafkaConsumer.close();
         }
