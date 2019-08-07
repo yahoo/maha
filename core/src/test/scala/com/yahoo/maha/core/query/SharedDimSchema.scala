@@ -5,7 +5,7 @@ package com.yahoo.maha.core.query
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.FilterOperation._
-import com.yahoo.maha.core.{DruidDerivedFunction, _}
+import com.yahoo.maha.core.{_}
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.registry.RegistryBuilder
@@ -422,7 +422,7 @@ trait SharedDimSchema {
             DruidFuncDimCol("name", StrType(), LOOKUP("advertiser_lookup", "name")),
             DruidFuncDimCol("Advertiser Status", StrType(), LOOKUP_WITH_DECODE("advertiser_lookup", "status", dimensionOverrideMap = Map.empty, "ON", "ON", "OFF")),
             DruidFuncDimCol("managed_by", StrType(), LOOKUP("advertiser_lookup", "managed_by")),
-            DruidFuncDimCol("last_updated", StrType(), DruidDerivedFunction.LOOKUP_WITH_TIMESTAMP("advertiser_lookup", "last_updated", "YYYYMMdd"))
+            DruidFuncDimCol("last_updated", StrType(), LOOKUP_WITH_TIMESTAMP("advertiser_lookup", "last_updated", "YYYYMMdd"))
           )
           , Option(Map(AsyncRequest -> 14, SyncRequest -> 14))
         )

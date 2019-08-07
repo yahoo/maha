@@ -2780,7 +2780,6 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "selectFields": [
                             {"field": "Day"},
                             {"field": "Impressions"},
-                            {"field": "Advertiser Name"},
                             {"field": "Advertiser Last Updated"}
                           ],
                           "filterExpressions": [
