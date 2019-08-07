@@ -5,7 +5,7 @@ package com.yahoo.maha.core.query
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.FilterOperation._
-import com.yahoo.maha.core.{_}
+import com.yahoo.maha.core._
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.registry.RegistryBuilder
