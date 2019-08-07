@@ -104,7 +104,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 }
             };
         }
-        if(extractionNamespace.isFirstTimeCaching()) {
+        if(extractionNamespace.isFirstTimeCaching() && !extractionNamespace.getIsLeader()) {
             return super.getCachePopulator(id, extractionNamespace, lastVersion, cache);
         }else if(extractionNamespace.getIsLeader()) {
             return doLeaderOperations(id, extractionNamespace, cache, kafkaProperties, lastDBUpdate);
@@ -329,6 +329,10 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
      * @return
      */
     synchronized Producer<String, byte[]> ensureKafkaProducer(Properties kafkaProperties) {
+        kafkaProperties.put(ProducerConfig.ACKS_CONFIG, kafkaProperties.getProperty("retries", "0"));
+        kafkaProperties.put(ProducerConfig.RETRIES_CONFIG, kafkaProperties.getProperty("acks", "0"));
+        kafkaProperties.put(ProducerConfig.BUFFER_MEMORY_CONFIG, kafkaProperties.getProperty("buffer.memory", "1048576"));
+        kafkaProperties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, kafkaProperties.getProperty("max.block.ms", "1000"));
 
         if(kafkaProducer == null) {
             kafkaProducer = new KafkaProducer<>(kafkaProperties, new StringSerializer(), new ByteArraySerializer());
@@ -338,11 +342,18 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
     /**
      * Safe KafkaConsumer create/call.
+     * The properties set in here will overwrite your passed in properties,
+     * and correspond to the properties in RocksDB-based lookups.
+     * If a Producer bootstrap writes 25M records, expect a startup backlog of 5 minutes.
      * @param kafkaProperties
      * @return
      */
     synchronized Consumer<String, byte[]> ensureKafkaConsumer(Properties kafkaProperties) {
         if(!Objects.nonNull(threadLocalConsumer.get())) {
+            kafkaProperties.put(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
+            kafkaProperties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+            kafkaProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+            kafkaProperties.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "5000000");
             threadLocalConsumer.set(new KafkaConsumer<>(kafkaProperties, new StringDeserializer(), new ByteArrayDeserializer()));
         }
 
