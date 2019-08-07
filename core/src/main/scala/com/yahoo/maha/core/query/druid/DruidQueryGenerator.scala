@@ -620,6 +620,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                     case LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE(_, _, _, _, _, args@_*) => true
                     case LOOKUP_WITH_DECODE_ON_OTHER_COLUMN(_, _, _, _, _, _) => true
                     case LOOKUP_WITH_TIMEFORMATTER(_, _, _, _, _, _) => true
+                    case LOOKUP_WITH_TIMESTAMP(_, _, _, _, _, _) => true
                     case _ => false
                   }
                 case _ => false
@@ -645,7 +646,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                   df match {
                     case LOOKUP_WITH_DECODE(_, _, _, args@_*) => true
                     case LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE(_, _, _, _, _, args@_*) => true
-                    case LOOKUP_WITH_TIMEFORMATTER(__, _, _, _, _, _) => true
+                    case LOOKUP_WITH_TIMEFORMATTER(_, _, _, _, _, _) => true
+                    case LOOKUP_WITH_TIMESTAMP(_, _, _, _, _, _) => true
                     case _ => false
                   }
                 case _ => false
@@ -1325,6 +1327,16 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
             case TIME_FORMAT_WITH_REQUEST_CONTEXT(fmt) =>
               renderColumnWithAlias(fact, column, alias)
+
+            case lookupFunc@LOOKUP_WITH_TIMESTAMP(lookupNamespace, valueColumn, resultFormat, dimensionOverrideMap, overrideValue, asMillis) =>
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, lookupNamespace, false, overrideValue.getOrElse(DruidQuery.replaceMissingValueWith), false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
+              val timezoneValue = queryContext.requestModel.additionalParameters
+                .getOrElse(Parameter.TimeZone, TimeZoneValue.apply(DateTimeZone.UTC.getID)).asInstanceOf[TimeZoneValue]
+              val timezone = DateTimeZone.forID(timezoneValue.value)
+              val timeFormatFn = new TimeFormatExtractionFn(resultFormat, timezone, null, null, asMillis)
+              val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
+              (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null),
+                Option.apply(new ExtractionDimensionSpec(alias, alias, getDimValueType(column), timeFormatFn, null)))
 
             case any =>
               throw new UnsupportedOperationException(s"Found unhandled DruidDerivedFunction : $any")

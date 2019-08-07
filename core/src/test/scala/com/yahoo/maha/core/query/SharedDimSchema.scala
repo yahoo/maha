@@ -5,7 +5,7 @@ package com.yahoo.maha.core.query
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.FilterOperation._
-import com.yahoo.maha.core._
+import com.yahoo.maha.core.{DruidDerivedFunction, _}
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.registry.RegistryBuilder
@@ -363,6 +363,7 @@ trait SharedDimSchema {
             , DimCol("booking_country", StrType())
             , DimCol("device_id", IntType(3, (Map(1 -> "Desktop", 2 -> "Tablet", 3 -> "SmartPhone", -1 -> "UNKNOWN"), "UNKNOWN")))
             , OracleDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
+            , DimCol("last_updated", StrType())
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , schemaColMap = Map(AdvertiserSchema -> "id", ResellerSchema -> "managed_by")
@@ -420,7 +421,8 @@ trait SharedDimSchema {
             DimCol("id", IntType(10), annotations = Set(PrimaryKey)),
             DruidFuncDimCol("name", StrType(), LOOKUP("advertiser_lookup", "name")),
             DruidFuncDimCol("Advertiser Status", StrType(), LOOKUP_WITH_DECODE("advertiser_lookup", "status", dimensionOverrideMap = Map.empty, "ON", "ON", "OFF")),
-            DruidFuncDimCol("managed_by", StrType(), LOOKUP("advertiser_lookup", "managed_by"))
+            DruidFuncDimCol("managed_by", StrType(), LOOKUP("advertiser_lookup", "managed_by")),
+            DruidFuncDimCol("last_updated", StrType(), DruidDerivedFunction.LOOKUP_WITH_TIMESTAMP("advertiser_lookup", "last_updated", "YYYYMMdd"))
           )
           , Option(Map(AsyncRequest -> 14, SyncRequest -> 14))
         )
@@ -437,6 +439,7 @@ trait SharedDimSchema {
           , PubCol("currency", "Advertiser Currency", InEquality)
           , PubCol("booking_country", "Booking Country", InEquality)
           , PubCol("device_id", "Advertiser Device ID", InEquality)
+          , PubCol("last_updated", "Advertiser Last Updated", InEquality)
         ), highCardinalityFilters = Set(NotInFilter("Advertiser Status", List("DELETED")), InFilter("Booking Country", List("US")), LikeFilter("Advertiser Name", "Blue"))
       )
   }

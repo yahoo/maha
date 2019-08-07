@@ -2773,4 +2773,35 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(result.contains(""""hostName":"127.1.1.0""""))
   }
 
+  test("namespace lookup extraction functionality for timestamp") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Impressions"},
+                            {"field": "Advertiser Name"},
+                            {"field": "Advertiser Last Updated"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestSync(jsonString))
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val query =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    assert(query.contains("""{"type":"extraction","dimension":"Advertiser Last Updated","outputName":"Advertiser Last Updated","outputType":"STRING","extractionFn":{"type":"timeFormat","format":"YYYYMMdd","timeZone":"UTC","granularity":{"type":"none"},"asMillis":true}}"""))
+  }
+
 }
