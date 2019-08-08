@@ -417,7 +417,6 @@ trait BaseHiveQueryGeneratorTest
         ),
         Set(
           PublicFactCol("impressions", "Impressions", InBetweenEquality),
-          PublicFactCol("impressions", "Total Impressions", InBetweenEquality),
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),
           PublicFactCol("avg_pos", "Average Position", Set.empty),

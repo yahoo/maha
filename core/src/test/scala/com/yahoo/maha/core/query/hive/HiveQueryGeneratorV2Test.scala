@@ -353,8 +353,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
 
-    println(result)
-
     assert(result.contains("(lower(campaign_name) LIKE lower('%yahoo%'))"))
     val expected =
       s"""
@@ -751,8 +749,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
 
-    println(result)
-
     val expected =
       s"""
          |SELECT CONCAT_WS(",",NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_advertiser_name AS STRING), ''))
@@ -776,8 +772,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |
          |ORDER BY mang_impressions ASC) queryAlias LIMIT 200
        """.stripMargin
-
-    println(expected)
 
     result should equal (expected) (after being whiteSpaceNormalised)
 
@@ -875,9 +869,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     val result =  queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
     assert(queryChain.drivingQuery.queryGenVersion.isDefined)
     assert(queryChain.drivingQuery.queryGenVersion.get == Version.v2)
-
-    println(result)
-
     val expected =
       s"""
          |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_average_cpc,'') AS STRING),CAST(NVL(mang_average_position,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING))
@@ -945,8 +936,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     assert(queryChain.drivingQuery.queryGenVersion.isDefined)
     assert(queryChain.drivingQuery.queryGenVersion.get == Version.v2)
 
-    println(result)
-
     val expected =
       s"""
          |SELECT CONCAT_WS(',', CAST(NVL(advertiser_id,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_advertiser_name,'') AS STRING),CAST(NVL(mang_average_cpc,'') AS STRING),CAST(NVL(mang_average_position,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING))
@@ -996,16 +985,17 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
                               {"field": "Campaign Name"},
                               {"field": "N Clicks"},
                               {"field": "Pricing Type"},
-                              {"field": "Total Impressions"},
+                              {"field": "Impressions"},
                               {"field": "N Spend"},
-                              {"field": "Month"}
+                              {"field": "Month"},
+                              {"field": "Clicks"}
                           ],
                           "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                           ],
                           "sortBy": [
-                          {"field": "Campaign Name", "order": "Desc"},  {"field": "Total Impressions", "order": "DESC"}]
+                          {"field": "Campaign Name", "order": "Desc"},  {"field": "Impressions", "order": "DESC"}]
                           }"""
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
@@ -1025,12 +1015,12 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
 
     val expected =
       s"""
-         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_n_clicks,'') AS STRING),CAST(NVL(mang_pricing_type,'') AS STRING),CAST(NVL(mang_total_impressions,'') AS STRING),CAST(NVL(mang_n_spend,'') AS STRING),CAST(NVL(mang_month,'') AS STRING))
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_n_clicks,'') AS STRING),CAST(NVL(mang_pricing_type,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING),CAST(NVL(mang_n_spend,'') AS STRING),CAST(NVL(mang_month,'') AS STRING),CAST(NVL(mang_clicks,'') AS STRING))
          |FROM(
-         |SELECT mang_campaign_name AS mang_campaign_name, decodeUDF(stats_source, 1, clicks, 0.0) AS mang_n_clicks, mang_pricing_type AS mang_pricing_type, impressions AS mang_total_impressions, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend, mang_month
+         |SELECT mang_campaign_name AS mang_campaign_name, decodeUDF(stats_source, 1, clicks, 0.0) AS mang_n_clicks, mang_pricing_type AS mang_pricing_type, impressions AS mang_impressions, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend, mang_month, clicks AS mang_clicks
          |FROM(
-         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(price_type, 0L) mang_pricing_type, getFormattedDate(mang_month) mang_month, SUM(impressions) AS impressions, SUM(clicks) AS clicks, COALESCE(stats_source, 0L) stats_source, SUM(spend) AS spend
-         |FROM(SELECT CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, campaign_id, dateUDF(stats_date, 'M') mang_month, SUM(impressions) impressions, SUM(clicks) clicks, stats_source, SUM(spend) spend
+         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(price_type, 0L) mang_pricing_type, SUM(impressions) AS impressions, getFormattedDate(mang_month) mang_month, SUM(clicks) AS clicks, COALESCE(stats_source, 0L) stats_source, SUM(spend) AS spend
+         |FROM(SELECT CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, campaign_id, dateUDF(stats_date, 'M') mang_month, SUM(clicks) clicks, SUM(impressions) impressions, stats_source, SUM(spend) spend
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
          |GROUP BY CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, campaign_id, dateUDF(stats_date, 'M')
@@ -1092,15 +1082,13 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     assert(queryChain.drivingQuery.queryGenVersion.isDefined)
     assert(queryChain.drivingQuery.queryGenVersion.get == Version.v2)
 
-    println(result)
-
     val expected =
       s"""
          |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_bid_strategy,'') AS STRING),CAST(NVL(mang_advertiser_name,'') AS STRING),CAST(NVL(advertiser_id,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING),CAST(NVL(mang_test_constant_col,'') AS STRING),CAST(NVL(mang_load_time,'') AS STRING))
          |FROM(
          |SELECT mang_campaign_name AS mang_campaign_name, mang_bid_strategy AS mang_bid_strategy, mang_advertiser_name AS mang_advertiser_name, advertiser_id AS advertiser_id, actual_impressions AS mang_impressions, mang_test_constant_col AS mang_test_constant_col, mang_load_time
          |FROM(
-         |SELECT getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(bid_strategy, 0L) mang_bid_strategy, COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, COALESCE(account_id, 0L) advertiser_id, ROUND(COALESCE(test_constant_col, 0L), 10) mang_test_constant_col, COALESCE(mang_load_time, 'NA') mang_load_time, SUM(actual_impressions) AS actual_impressions
+         |SELECT getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(bid_strategy, 0L) mang_bid_strategy, COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, COALESCE(account_id, 0L) advertiser_id, SUM(actual_impressions) AS actual_impressions, ROUND(COALESCE(test_constant_col, 0L), 10) mang_test_constant_col, COALESCE(mang_load_time, 'NA') mang_load_time
          |FROM(SELECT CASE WHEN (bid_strategy IN (1)) THEN 'Max Click' WHEN (bid_strategy IN (2)) THEN 'Inflection Point' ELSE 'NONE' END bid_strategy, account_id, load_time, 'test_constant_col_value' AS test_constant_col, campaign_id, SUM(actual_impressions) actual_impressions
          |FROM bidreco_complete
          |WHERE (account_id = 12345) AND (status = 'Valid') AND (factPartCol = 123)
@@ -1178,7 +1166,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
     result
   }
 }
