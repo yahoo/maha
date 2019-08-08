@@ -177,7 +177,8 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
     groupedFactCols.get(false).foreach { nonDerivedCols =>
       nonDerivedCols.foreach {
         case (column:FactCol, alias) if !column.rollupExpression.isInstanceOf[HiveCustomRollup] =>
-          primitiveColsSet.add((alias, column))
+          val name = column.alias.getOrElse(column.name)
+          primitiveColsSet.add((name, column))
         case _=>
       }
     }
