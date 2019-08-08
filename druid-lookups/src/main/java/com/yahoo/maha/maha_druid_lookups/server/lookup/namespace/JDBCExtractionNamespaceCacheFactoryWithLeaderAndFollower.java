@@ -190,7 +190,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 else
                     LOG.info("Continuing with subscription to topic: " + kafkaProducerTopic);
 
-                LOG.info("Consumer subscribing to topic [%s] with result [%s]", kafkaProducerTopic, kafkaConsumer.subscription().isEmpty() ? kafkaConsumer.subscription() : "Not subscribed.");
+                LOG.info("Consumer subscribing to topic [%s] with result [%s]", kafkaProducerTopic, kafkaConsumer.subscription().isEmpty() ? "Not subscribed." : kafkaConsumer.subscription());
 
                 long consumerPollPeriod = extractionNamespace.getPollMs();
 
