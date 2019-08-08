@@ -301,7 +301,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             } else {
                 List<String> cachedRow = cache.get(pkValue);
                 Long cachedLastUpdateTS = Timestamp.valueOf((cachedRow.get(cachedRow.size()-1))).getTime();
-                if(cachedLastUpdateTS < rowTS) {
+                if(cachedLastUpdateTS <= rowTS) {
                     cache.put(pkValue, columnsInOrder);
                 } else {
                     LOG.error("No Valid Primary Key parsed for column (or old record passed).  Refusing to update.  Failed row is: %s", columnsInOrder);
