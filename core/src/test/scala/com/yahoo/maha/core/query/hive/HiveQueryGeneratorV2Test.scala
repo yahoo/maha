@@ -353,8 +353,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
 
-    println(result)
-
     assert(result.contains("(lower(campaign_name) LIKE lower('%yahoo%'))"))
     val expected =
       s"""
@@ -751,8 +749,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
 
-    println(result)
-
     val expected =
       s"""
          |SELECT CONCAT_WS(",",NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_advertiser_name AS STRING), ''))
@@ -776,8 +772,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |
          |ORDER BY mang_impressions ASC) queryAlias LIMIT 200
        """.stripMargin
-
-    println(expected)
 
     result should equal (expected) (after being whiteSpaceNormalised)
 
@@ -875,9 +869,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     val result =  queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
     assert(queryChain.drivingQuery.queryGenVersion.isDefined)
     assert(queryChain.drivingQuery.queryGenVersion.get == Version.v2)
-
-    println(result)
-
     val expected =
       s"""
          |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_average_cpc,'') AS STRING),CAST(NVL(mang_average_position,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING))
@@ -944,8 +935,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     val result =  queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
     assert(queryChain.drivingQuery.queryGenVersion.isDefined)
     assert(queryChain.drivingQuery.queryGenVersion.get == Version.v2)
-
-    println(result)
 
     val expected =
       s"""
@@ -1024,8 +1013,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     assert(queryChain.drivingQuery.queryGenVersion.isDefined)
     assert(queryChain.drivingQuery.queryGenVersion.get == Version.v2)
 
-    println(result)
-
     val expected =
       s"""
          |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_n_clicks,'') AS STRING),CAST(NVL(mang_pricing_type,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING),CAST(NVL(mang_n_spend,'') AS STRING),CAST(NVL(mang_month,'') AS STRING),CAST(NVL(mang_clicks,'') AS STRING))
@@ -1035,7 +1022,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(price_type, 0L) mang_pricing_type, SUM(impressions) AS impressions, getFormattedDate(mang_month) mang_month, SUM(clicks) AS clicks, COALESCE(stats_source, 0L) stats_source, SUM(spend) AS spend
          |FROM(SELECT CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, campaign_id, dateUDF(stats_date, 'M') mang_month, SUM(clicks) clicks, SUM(impressions) impressions, stats_source, SUM(spend) spend
          |FROM ad_fact1
-         |WHERE (advertiser_id = 12345) AND (stats_date >= '2019-08-01' AND stats_date <= '2019-08-08')
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
          |GROUP BY CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, campaign_id, dateUDF(stats_date, 'M')
          |
          |       )
@@ -1094,8 +1081,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     val result =  queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
     assert(queryChain.drivingQuery.queryGenVersion.isDefined)
     assert(queryChain.drivingQuery.queryGenVersion.get == Version.v2)
-
-    println(result)
 
     val expected =
       s"""
@@ -1181,7 +1166,6 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
     result
   }
 }
