@@ -239,10 +239,11 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 if (singleRowUpdateTS.after(latestTSFromRows))
                     latestTSFromRows = singleRowUpdateTS;
 
-                ++i;
+                if(singleRowUpdateTS.getTime() > 0L)
+                    ++i;
             }
         } catch (Exception e) {
-            LOG.error("Caught consumer poll exception ", e);
+            LOG.error("Caught consumer poll exception on topic " + kafkaProducerTopic, e);
             throw e;
         }
 
@@ -304,14 +305,14 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 if(cachedLastUpdateTS <= rowTS) {
                     cache.put(pkValue, columnsInOrder);
                 } else {
-                    LOG.error("No Valid Primary Key parsed for column (or old record passed).  Refusing to update.  Failed row is: %s", columnsInOrder);
+                    return new Timestamp(0L);
                 }
             }
 
             return new Timestamp(rowTS);
 
         } catch (Exception e) {
-            LOG.error("Updating cache caused exception (Check column names): " + e.toString() + "\n", e);
+            LOG.error("Updating cache in lookup " + extractionNamespace.getLookupName() + " caused exception (Check column names): " + e.toString() + "\n", e);
             return new Timestamp(0L);
         }
 
