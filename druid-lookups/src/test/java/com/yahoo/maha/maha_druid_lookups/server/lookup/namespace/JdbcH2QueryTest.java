@@ -523,7 +523,7 @@ public class JdbcH2QueryTest {
         System.err.println("Callable Result Timestamp (long): " + populator.call());
 
         //Populator has been called, assertions here.
-        Assert.assertEquals(mockProducer.history().size(), 3, "Expect to see 3 producerRecords sent, since all iterations read & write back.");
+        Assert.assertEquals(mockProducer.history().size(), 0, "Expect to see 0 producerRecords sent, since KafkaProducer should usr JDBC on bootstrap.");
         for(Object record: mockProducer.history()) {
             Assert.assertEquals(ProducerRecord.class, record.getClass());
             ProducerRecord rc = (ProducerRecord) record;

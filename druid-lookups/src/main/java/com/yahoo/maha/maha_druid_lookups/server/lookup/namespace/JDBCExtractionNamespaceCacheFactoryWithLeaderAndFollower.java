@@ -104,7 +104,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 }
             };
         }
-        if(extractionNamespace.isFirstTimeCaching() && !extractionNamespace.getIsLeader()) {
+        if(extractionNamespace.isFirstTimeCaching()) {
             return super.getCachePopulator(id, extractionNamespace, lastVersion, cache);
         }else if(extractionNamespace.getIsLeader()) {
             return doLeaderOperations(id, extractionNamespace, cache, kafkaProperties, lastDBUpdate);
@@ -185,7 +185,10 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
                 Consumer<String, byte[]> kafkaConsumer = ensureKafkaConsumer(kafkaProperties);
 
-                kafkaConsumer.subscribe(Collections.singletonList(kafkaProducerTopic));
+                if(kafkaConsumer.subscription().size() < 1)
+                    kafkaConsumer.subscribe(Collections.singletonList(kafkaProducerTopic));
+                else
+                    LOG.info("Continuing with subscription to topic: " + kafkaProducerTopic);
 
                 LOG.info("Consumer subscribing to topic [%s] with result [%s]", kafkaProducerTopic, kafkaConsumer.subscription().isEmpty() ? kafkaConsumer.subscription() : "Not subscribed.");
 
@@ -329,10 +332,10 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
      * @return
      */
     synchronized Producer<String, byte[]> ensureKafkaProducer(Properties kafkaProperties) {
-        kafkaProperties.put(ProducerConfig.ACKS_CONFIG, kafkaProperties.getProperty("retries", "0"));
-        kafkaProperties.put(ProducerConfig.RETRIES_CONFIG, kafkaProperties.getProperty("acks", "0"));
+        kafkaProperties.put(ProducerConfig.ACKS_CONFIG, kafkaProperties.getProperty("acks", "0"));
+        kafkaProperties.put(ProducerConfig.RETRIES_CONFIG, kafkaProperties.getProperty("retries", "0"));
         kafkaProperties.put(ProducerConfig.BUFFER_MEMORY_CONFIG, kafkaProperties.getProperty("buffer.memory", "1048576"));
-        kafkaProperties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, kafkaProperties.getProperty("max.block.ms", "1000"));
+        kafkaProperties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, kafkaProperties.getProperty("max.block.ms", "10000"));
 
         if(kafkaProducer == null) {
             kafkaProducer = new KafkaProducer<>(kafkaProperties, new StringSerializer(), new ByteArraySerializer());
@@ -353,7 +356,6 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             kafkaProperties.put(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
             kafkaProperties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
             kafkaProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-            kafkaProperties.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "5000000");
             threadLocalConsumer.set(new KafkaConsumer<>(kafkaProperties, new StringDeserializer(), new ByteArrayDeserializer()));
         }
 
