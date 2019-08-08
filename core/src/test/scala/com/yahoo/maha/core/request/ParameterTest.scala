@@ -29,6 +29,7 @@ class ParameterTest extends FunSuite with Matchers {
     map_parameters.put(Parameter.Distinct, DistinctValue(true))
     map_parameters.put(Parameter.JobName, JobNameValue("tools_1"))
     map_parameters.put(Parameter.RegistryName, RegistryNameValue("mahaRegistry"))
+    map_parameters.put(Parameter.HostName, HostNameValue("127.0.0.1"))
 
     val result = Parameter.serializeParameters(map_parameters.toMap)
     result.length shouldBe map_parameters.size
@@ -63,14 +64,15 @@ class ParameterTest extends FunSuite with Matchers {
         | "Schema": "Schema",
         | "Distinct": true,
         | "Job-Name": "Job-Name",
-        | "RegistryName": "mahaRegistry"
+        | "RegistryName": "mahaRegistry",
+        | "HostName": "127.0.0.1"
         |}
         |""".stripMargin
     val result = Parameter.deserializeParameters(JsonMethods.parse(inputJson))
 
     result.getOrElse() match{
       case m: Map[Parameter, ParameterValue[_]] => {
-        m.size shouldBe 12
+        m.size shouldBe 13
         m.get(Parameter.ReportFormat).get shouldBe ReportFormatValue(ReportFormatType.CSVFormat)
         m.get(Parameter.DryRun).get shouldBe DryRunValue(false)
         m.get(Parameter.GeneratedQuery).get shouldBe GeneratedQueryValue("Generated-Query")
@@ -83,6 +85,7 @@ class ParameterTest extends FunSuite with Matchers {
         m.get(Parameter.Distinct).get shouldBe DistinctValue(true)
         m.get(Parameter.JobName).get shouldBe JobNameValue("Job-Name")
         m.get(Parameter.RegistryName).get shouldBe RegistryNameValue("mahaRegistry")
+        m.get(Parameter.HostName).get shouldBe HostNameValue("127.0.0.1")
       }
       case _ => fail
     }

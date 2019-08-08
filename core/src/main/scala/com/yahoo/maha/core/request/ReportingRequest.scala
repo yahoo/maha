@@ -219,6 +219,10 @@ trait BaseRequest {
     reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.QueryEngine -> QueryEngineValue(PrestoEngine)))
   }
 
+  def withHostname(reportingRequest: ReportingRequest, hostName: String) : ReportingRequest = {
+    reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.HostName -> HostNameValue(hostName)))
+  }
+
   def addRequestContext(reportingRequest: ReportingRequest, requestContext: RequestContext) : ReportingRequest = {
     reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++
       Map(

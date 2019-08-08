@@ -534,7 +534,8 @@ class ReportingRequestTest extends FlatSpec {
                               "debug" : true,
                               "registryName" : "maha",
                               "testName" : "test1",
-                              "labels" : ["label1","label2"]
+                              "labels" : ["label1","label2"],
+                              "HostName" : "127.0.0.1"
                           }
                           }"""
     val request =  ReportingRequest.deserializeWithAdditionalParameters(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
@@ -1339,6 +1340,39 @@ class ReportingRequestTest extends FlatSpec {
     val requestWithTimeZone = ReportingRequest.withTimeZone(request.toOption.get, DateTimeZone.UTC.toString)
     assert(requestWithTimeZone.additionalParameters.contains(Parameter.TimeZone))
     assert(requestWithTimeZone.additionalParameters(Parameter.TimeZone) === TimeZoneValue(DateTimeZone.UTC.toString))
+  }
+
+  "ReportingRequest" should "successfully deserialize request and add hostname" in {
+    val jsonString = """{
+                          "cube": "performance_stats",
+                          "reportDisplayName" : null,
+                          "schema": "advertiser",
+                          "selectFields": [
+                              {"field": "Ad ID"},
+                              {"field": "Day"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": 12345},
+                              {"field": "Campaign ID", "operator": "in", "values": ["1", 2, 10000000000, 3.0, false, null]},
+                              {"field": "Ad ID", "operator": "between", "from": "true", "to" : false},
+                              {"field": "Day", "operator": "=", "value": "2014-04-01"}
+                          ],
+                          "sortBy": [
+                              {"field": "Advertiser Id", "order": "Asc"},
+                              {"field": "Ad Id", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100,
+                          "forceDimensionDriven" : false,
+                          "forceFactDriven" : true,
+                          "includeRowCount" : true
+                          }"""
+
+    val request = getReportingRequestValidationSync(jsonString)
+    assert(request.isSuccess)
+    val requestWithHostName = ReportingRequest.withHostname(request.toOption.get, "127.0.0.1")
+    assert(requestWithHostName.additionalParameters.contains(Parameter.HostName))
+    assert(requestWithHostName.additionalParameters(Parameter.HostName) === HostNameValue("127.0.0.1"))
   }
 
   "ReportingRequest" should "successfully deserialize async request and with timezone and schema" in {

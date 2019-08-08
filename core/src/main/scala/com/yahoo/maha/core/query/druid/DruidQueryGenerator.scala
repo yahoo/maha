@@ -263,6 +263,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
   private[this] val DRUID_REQUEST_ID_CONTEXT = "queryId"
   private[this] val DRUID_USER_ID_CONTEXT = "userId"
   private[this] val MIN_TOPN_THRESHOLD = "minTopNThreshold"
+  private[this] val DRUID_HOST_NAME_CONTEXT = "hostName"
 
   private[this] def findDirection(order: Order): OrderByColumnSpec.Direction = order match {
     case ASC => OrderByColumnSpec.Direction.ASCENDING
@@ -303,8 +304,14 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     val userIdValue = model.additionalParameters.getOrElse(Parameter.UserId, UserIdValue(""))
     val userId = userIdValue.asInstanceOf[UserIdValue].value
     if (!userId.isEmpty) {
-      info(s"Druid userId is set to $userId")
+      debug(s"Druid userId is set to $userId")
       context.put(DRUID_USER_ID_CONTEXT, userId)
+    }
+    val hostNameValue = model.additionalParameters.getOrElse(Parameter.HostName, HostNameValue(""))
+    val hostName = hostNameValue.asInstanceOf[HostNameValue].value
+    if (!hostName.isEmpty) {
+      debug(s"Hostname is set to $hostName")
+      context.put(DRUID_HOST_NAME_CONTEXT, hostName)
     }
     queryOptimizer.optimize(queryContext, context)
     val dimCardinality = queryContext.requestModel.dimCardinalityEstimate.getOrElse(defaultDimCardinality)
@@ -613,6 +620,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                     case LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE(_, _, _, _, _, args@_*) => true
                     case LOOKUP_WITH_DECODE_ON_OTHER_COLUMN(_, _, _, _, _, _) => true
                     case LOOKUP_WITH_TIMEFORMATTER(_, _, _, _, _, _) => true
+                    case LOOKUP_WITH_TIMESTAMP(_, _, _, _, _, _) => true
                     case _ => false
                   }
                 case _ => false
@@ -638,7 +646,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                   df match {
                     case LOOKUP_WITH_DECODE(_, _, _, args@_*) => true
                     case LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE(_, _, _, _, _, args@_*) => true
-                    case LOOKUP_WITH_TIMEFORMATTER(__, _, _, _, _, _) => true
+                    case LOOKUP_WITH_TIMEFORMATTER(_, _, _, _, _, _) => true
+                    case LOOKUP_WITH_TIMESTAMP(_, _, _, _, _, _) => true
                     case _ => false
                   }
                 case _ => false
@@ -1318,6 +1327,16 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
             case TIME_FORMAT_WITH_REQUEST_CONTEXT(fmt) =>
               renderColumnWithAlias(fact, column, alias)
+
+            case lookupFunc@LOOKUP_WITH_TIMESTAMP(lookupNamespace, valueColumn, resultFormat, dimensionOverrideMap, overrideValue, asMillis) =>
+              val regExFn = new MahaRegisteredLookupExtractionFn(null, lookupNamespace, false, overrideValue.getOrElse(DruidQuery.replaceMissingValueWith), false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
+              val timezoneValue = queryContext.requestModel.additionalParameters
+                .getOrElse(Parameter.TimeZone, TimeZoneValue.apply(DateTimeZone.UTC.getID)).asInstanceOf[TimeZoneValue]
+              val timezone = DateTimeZone.forID(timezoneValue.value)
+              val timeFormatFn = new TimeFormatExtractionFn(resultFormat, timezone, null, null, asMillis)
+              val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
+              (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null),
+                Option.apply(new ExtractionDimensionSpec(alias, alias, getDimValueType(column), timeFormatFn, null)))
 
             case any =>
               throw new UnsupportedOperationException(s"Found unhandled DruidDerivedFunction : $any")

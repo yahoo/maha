@@ -122,5 +122,7 @@ object DruidDerivedFunction {
 
   }
 
+  case class LOOKUP_WITH_TIMESTAMP(lookupNamespace:String, valueColumn:String,resultFormat:String, dimensionOverrideMap: Map[String, String] = Map.empty, overrideValue: Option[String] = None, asMillis: Boolean = true) extends DruidDerivedFunction
+
 }
 

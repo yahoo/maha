@@ -4,7 +4,7 @@ package com.yahoo.maha.core
 
 import java.nio.charset.StandardCharsets
 
-import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, InternalSchema, ResellerSchema}
+import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, InternalSchema, PublisherSchema, ResellerSchema}
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core.HiveExpression._
 import com.yahoo.maha.core.bucketing._
@@ -394,6 +394,7 @@ class RequestModelTest extends FunSuite with Matchers {
           DimCol("id", IntType(), annotations = Set(PrimaryKey))
           , DimCol("status", StrType())
           , DimCol("name", StrType())
+          , DimCol("email", StrType())
         )
         , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
         , schemaColMap = Map(AdvertiserSchema -> "id")
@@ -403,6 +404,7 @@ class RequestModelTest extends FunSuite with Matchers {
           PubCol("id", "Advertiser ID", InEquality)
           , PubCol("status", "Advertiser Status", InEquality)
           , PubCol("name", "Advertiser Name", InEquality)
+          , PubCol("email", "Advertiser Email", InEquality, restrictedSchemas = Set(InternalSchema))
         ), highCardinalityFilters = Set(NotInFilter("Advertiser Status", List("DELETED")))
       )
     }
@@ -5582,6 +5584,39 @@ class RequestModelTest extends FunSuite with Matchers {
 
     assert(model.publicDimToJoinTypeMap("advertiser") == LeftOuterJoin, "Should LeftOuterJoin as request fact driven")
     assert(model.publicDimToJoinTypeMap("campaign") == LeftOuterJoin, "Should LeftOuterJoin as request fact driven")
+  }
+
+  test("""Restricted schema columns from linked dimensions should not be allowed for other schemas""") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Campaign Status"},
+                              {"field": "Impressions"},
+                              {"field": "Advertiser Status"},
+                              {"field": "Advertiser Email"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val registry = defaultRegistry
+
+    val validRequest: ReportingRequest = getReportingRequestSync(jsonString, InternalSchema)
+    val validResp = RequestModel.from(validRequest, registry)
+    assert(validResp.isSuccess, validResp)
+
+    val invalidRequest: ReportingRequest = getReportingRequestSync(jsonString, PublisherSchema)
+    val failureResp = RequestModel.from(invalidRequest, registry)
+    failureResp.isFailure shouldBe true
+    failureResp.failed.get.getMessage should  startWith (s"requirement failed: ERROR_CODE:10007 (Advertiser Email) can't be used with publisher schema ")
+
   }
 }
 

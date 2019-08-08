@@ -434,8 +434,22 @@ object RequestModel extends Logging {
               }
           }
 
+
+          val requestedDimAliasesToPublicDimMap: Map[String, PublicDimension] =
+            requestedAliasList
+            .filter(reqCol => registry.getDimColIdentity(reqCol).isDefined && registry.dimMap.contains(registry.getDimColIdentity(reqCol).get.publcDimName, publicFact.dimRevision))
+            .map(reqCol => reqCol -> registry.dimMap(registry.getDimColIdentity(reqCol).get.publcDimName, publicFact.dimRevision))
+            .toMap
+
           val colsWithRestrictedSchema: IndexedSeq[String] = requestedAliasList.collect {
-            case reqCol if (publicFact.restrictedSchemasMap.contains(reqCol) && !publicFact.restrictedSchemasMap(reqCol)(request.schema)) => reqCol
+            case reqCol if (publicFact.restrictedSchemasMap.contains(reqCol)
+              && !publicFact.restrictedSchemasMap(reqCol)(request.schema))
+              => reqCol
+            case dimReqCol if (requestedDimAliasesToPublicDimMap.contains(dimReqCol)
+              && requestedDimAliasesToPublicDimMap(dimReqCol).restrictedSchemasMap.contains(dimReqCol)
+              && !requestedDimAliasesToPublicDimMap(dimReqCol).restrictedSchemasMap(dimReqCol)(request.schema)
+              )
+            => dimReqCol
           }
           require(colsWithRestrictedSchema.isEmpty, RestrictedSchemaError(colsWithRestrictedSchema, request.schema.entryName, publicFact.name))
 
