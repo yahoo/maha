@@ -259,8 +259,11 @@ public class JdbcH2QueryTest {
         myJdbcEncFactory.emitter = serviceEmitter;
         myJdbcEncFactory.lookupService = lookupService;
 
+        ConcurrentHashMap<String, Consumer<String, byte[]>> mockConsumerWrapper = new ConcurrentHashMap<>();
+        mockConsumerWrapper.put("ad_test", mockConsumer);
+
+        myJdbcEncFactory.lookupConsumerMap = mockConsumerWrapper;
         when(myJdbcEncFactory.ensureKafkaProducer(any())).thenReturn(mockProducer);
-        when(myJdbcEncFactory.ensureKafkaConsumer(any())).thenReturn(mockConsumer);
 
         return myJdbcEncFactory;
     }
