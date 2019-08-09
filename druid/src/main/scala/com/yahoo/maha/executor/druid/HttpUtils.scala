@@ -8,19 +8,19 @@ package com.yahoo.maha.executor.druid
 
 import java.io.Closeable
 import javax.net.ssl.SSLContext
-
-import com.ning.http.client.{AsyncHttpClient, AsyncHttpClientConfig, Response}
 import com.yahoo.maha.executor.druid.filters.TimeoutThrottlingFilter
 import grizzled.slf4j.Logging
+import io.netty.handler.ssl.{SslContext, SslContextBuilder}
 import org.apache.http.HttpHeaders
-import org.apache.http.entity.ContentType;
+import org.apache.http.entity.ContentType
+import org.asynchttpclient.{AsyncHttpClient, AsyncHttpClientConfig, BoundRequestBuilder, DefaultAsyncHttpClient, DefaultAsyncHttpClientConfig, Response};
 
 class HttpUtils(config:AsyncHttpClientConfig, enableRetryOn500: Boolean, retryDelayMillis: Int, maxRetry: Int) extends Logging with Closeable {
 
   sealed trait RequestMethod
   case object GET extends RequestMethod
   case object POST extends RequestMethod
-  private[this] val client = new AsyncHttpClient(config)
+  private[this] val client = new DefaultAsyncHttpClient(config)
   private[this] def sendRequest(url:String
                                 , method:RequestMethod
                                 ,headers:Option[Map[String, String]] = None
@@ -29,7 +29,7 @@ class HttpUtils(config:AsyncHttpClientConfig, enableRetryOn500: Boolean, retryDe
                                  ):Response = {
 
     def execute(): Response = {
-      val requestBuilder: AsyncHttpClient#BoundRequestBuilder = method match {
+      val requestBuilder:BoundRequestBuilder = method match {
         case GET =>
           client.prepareGet(url)
         case POST =>
@@ -74,7 +74,7 @@ class HttpUtils(config:AsyncHttpClientConfig, enableRetryOn500: Boolean, retryDe
   }
 
 
-  override def close(): Unit = client.closeAsynchronously()
+  override def close(): Unit = client.close()
 
   def get(url:String,method:RequestMethod,headers:Option[Map[String, String]] = None ): Response =
   {
@@ -104,13 +104,12 @@ object ClientConfig{
                 , timeoutMaxResponseTimeInMs:Int
                 , sslContextVersion:String
                 , commaSeparatedCipherSuitesList:String
-                , customizeBuilder: Option[(AsyncHttpClientConfig.Builder) => Unit] = None
+                , customizeBuilder: Option[(DefaultAsyncHttpClientConfig.Builder) => Unit] = None
                ): AsyncHttpClientConfig ={
-    val builder =  new AsyncHttpClientConfig.Builder()
-    val sslContext: SSLContext = SSLContext.getInstance(sslContextVersion)
-    sslContext.init(null, null, null)
+    val builder =  new DefaultAsyncHttpClientConfig.Builder()
+    val sslContext: SslContext = SslContextBuilder.forClient().build()
     customizeBuilder.foreach(_(builder))
-    builder.setAllowPoolingConnections(true)
+    builder
       .setMaxConnectionsPerHost(maxConnectionsPerHost)
       .setMaxConnections(maxConnections)
       .setConnectTimeout(connectionTimeout)
@@ -120,9 +119,8 @@ object ClientConfig{
       .addRequestFilter(new TimeoutThrottlingFilter(timeoutThreshold = timeoutThreshold,
         timeoutRetryInterval = timeoutRetryInterval,
         timeoutMaxResponseTime= timeoutMaxResponseTimeInMs))
-      .setAllowPoolingSslConnections(true)
       .setCompressionEnforced(true)
-      .setSSLContext(sslContext)
+      .setSslContext(sslContext)
       .setEnabledProtocols(Array(sslContextVersion))
       .setEnabledCipherSuites(commaSeparatedCipherSuitesList.split(","))
     builder.build()
