@@ -16,6 +16,12 @@ class FieldExtendedTest extends FunSuite with Matchers {
        """.stripMargin
 
     val jVal: JValue = parse(json)
+
+    val defaultSuccess = fieldExtended[String]("name")(jVal)
+    val optionalSuccess = optionalFieldExtended[String]("name", "default")(jVal)
+
+    assert(defaultSuccess.isSuccess && optionalSuccess.isSuccess)
+    assert(defaultSuccess.getOrElse("a").equals(optionalSuccess.getOrElse("b")))
   }
 
   test("Verify fieldExtended failure returns default value on Option.") {
