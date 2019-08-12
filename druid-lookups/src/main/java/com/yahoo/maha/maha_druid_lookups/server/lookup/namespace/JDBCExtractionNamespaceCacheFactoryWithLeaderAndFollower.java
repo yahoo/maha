@@ -329,11 +329,6 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
      * @return
      */
     synchronized Producer<String, byte[]> ensureKafkaProducer(Properties kafkaProperties) {
-        kafkaProperties.put(ProducerConfig.ACKS_CONFIG, kafkaProperties.getProperty("acks", "0"));
-        kafkaProperties.put(ProducerConfig.RETRIES_CONFIG, kafkaProperties.getProperty("retries", "0"));
-        kafkaProperties.put(ProducerConfig.BUFFER_MEMORY_CONFIG, kafkaProperties.getProperty("buffer.memory", "1048576"));
-        kafkaProperties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, kafkaProperties.getProperty("max.block.ms", "10000"));
-
         if(kafkaProducer == null) {
             kafkaProducer = new KafkaProducer<>(kafkaProperties, new StringSerializer(), new ByteArraySerializer());
         }
@@ -349,12 +344,8 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
      * @return
      */
     synchronized void ensureKafkaConsumer(Properties kafkaProperties, String kafkaTopic) {
-        if(!Objects.nonNull(lookupConsumerMap.get(kafkaTopic))) {
-            kafkaProperties.put(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
-            kafkaProperties.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
-            kafkaProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-            lookupConsumerMap.put(kafkaTopic, new KafkaConsumer<>(kafkaProperties, new StringDeserializer(), new ByteArrayDeserializer()));
-        }
+        kafkaProperties.put(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
+        lookupConsumerMap.putIfAbsent(kafkaTopic, new KafkaConsumer<>(kafkaProperties, new StringDeserializer(), new ByteArrayDeserializer()));
     }
 
     /**
