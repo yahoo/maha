@@ -27,10 +27,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
 import java.sql.Timestamp;
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 /**
  *
@@ -43,8 +40,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
 
     private Producer<String, byte[]> kafkaProducer;
-    //private Consumer<String, byte[]> kafkaConsumer;
-    private ThreadLocal<Consumer<String, byte[]>> threadLocalConsumer = new ThreadLocal<>();
+    ConcurrentHashMap<String, Consumer<String, byte[]>> lookupConsumerMap = new ConcurrentHashMap<>();
 
     @Inject
     LookupService lookupService;
@@ -183,15 +179,18 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 LOG.info("Running Kafka Follower - Consumer actions on %s.", id);
                 String kafkaProducerTopic = extractionNamespace.getKafkaTopic();
 
-                Consumer<String, byte[]> kafkaConsumer = ensureKafkaConsumer(kafkaProperties);
+                ensureKafkaConsumer(kafkaProperties, kafkaProducerTopic);
 
-                kafkaConsumer.subscribe(Collections.singletonList(kafkaProducerTopic));
+                if(lookupConsumerMap.get(kafkaProducerTopic).subscription().size() < 1)
+                    lookupConsumerMap.get(kafkaProducerTopic).subscribe(Collections.singletonList(kafkaProducerTopic));
+                else
+                    LOG.info("Continuing with subscription to topic: " + kafkaProducerTopic);
 
-                LOG.info("Consumer subscribing to topic [%s] with result [%s]", kafkaProducerTopic, kafkaConsumer.subscription().isEmpty() ? kafkaConsumer.subscription() : "Not subscribed.");
+                LOG.info("Consumer subscribing to topic [%s] with result %s", kafkaProducerTopic, lookupConsumerMap.get(kafkaProducerTopic).subscription().isEmpty() ? "Not subscribed." : lookupConsumerMap.get(kafkaProducerTopic).subscription());
 
                 long consumerPollPeriod = extractionNamespace.getPollMs();
 
-                Tuple2<Integer, Timestamp> runRowsWithTS = pollKafkaTopicForUpdates(kafkaConsumer, consumerPollPeriod, kafkaProducerTopic, extractionNamespace, cache);
+                Tuple2<Integer, Timestamp> runRowsWithTS = pollKafkaTopicForUpdates(consumerPollPeriod, kafkaProducerTopic, extractionNamespace, cache);
                 Integer totalNumRowsUpdated = runRowsWithTS._1;
                 Timestamp polledLastUpdatedTS = runRowsWithTS._2;
 
@@ -207,8 +206,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
     }
 
-    private Tuple2<Integer, Timestamp> pollKafkaTopicForUpdates(Consumer<String, byte[]> kafkaConsumer,
-                                                               long consumerPollPeriod,
+    private Tuple2<Integer, Timestamp> pollKafkaTopicForUpdates(long consumerPollPeriod,
                                                                String kafkaProducerTopic,
                                                                final JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace,
                                                                final Map<String, List<String>> cache
@@ -219,7 +217,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         Timestamp latestTSFromRows = new Timestamp(0L);
 
         try {
-            ConsumerRecords<String, byte[]> records = kafkaConsumer.poll(tenPercentPollPeriod);
+            ConsumerRecords<String, byte[]> records = lookupConsumerMap.get(kafkaProducerTopic).poll(tenPercentPollPeriod);
             LOG.info("Num Kafka Records returned from poll: [%d]", records.count());
             for (ConsumerRecord<String, byte[]> record : records) {
                 final String key = record.key();
@@ -236,10 +234,11 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 if (singleRowUpdateTS.after(latestTSFromRows))
                     latestTSFromRows = singleRowUpdateTS;
 
-                ++i;
+                if(singleRowUpdateTS.getTime() > 0L)
+                    ++i;
             }
         } catch (Exception e) {
-            LOG.error("Caught consumer poll exception ", e);
+            LOG.error("Caught consumer poll exception on topic " + kafkaProducerTopic, e);
             throw e;
         }
 
@@ -301,14 +300,15 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 if(cachedLastUpdateTS < rowTS) {
                     cache.put(pkValue, columnsInOrder);
                 } else {
-                    LOG.error("No Valid Primary Key parsed for column (or old record passed).  Refusing to update.  Failed row is: %s", columnsInOrder);
+                    LOG.debug("No Valid Primary Key parsed for column (or old record passed).  Refusing to update.  Failed row  in lookup [%s] is: [%s]", extractionNamespace.getLookupName(), columnsInOrder);
+                    return new Timestamp(0L);
                 }
             }
 
             return new Timestamp(rowTS);
 
         } catch (Exception e) {
-            LOG.error("Updating cache caused exception (Check column names): " + e.toString() + "\n", e);
+            LOG.error("Updating cache in lookup " + extractionNamespace.getLookupName() + " caused exception (Check column names): " + e.toString() + "\n", e);
             return new Timestamp(0L);
         }
 
@@ -329,7 +329,6 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
      * @return
      */
     synchronized Producer<String, byte[]> ensureKafkaProducer(Properties kafkaProperties) {
-
         if(kafkaProducer == null) {
             kafkaProducer = new KafkaProducer<>(kafkaProperties, new StringSerializer(), new ByteArraySerializer());
         }
@@ -338,15 +337,15 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
     /**
      * Safe KafkaConsumer create/call.
+     * The properties set in here will overwrite your passed in properties,
+     * and correspond to the properties in RocksDB-based lookups.
+     * If a Producer bootstrap writes 25M records, expect a startup backlog of 5 minutes.
      * @param kafkaProperties
      * @return
      */
-    synchronized Consumer<String, byte[]> ensureKafkaConsumer(Properties kafkaProperties) {
-        if(!Objects.nonNull(threadLocalConsumer.get())) {
-            threadLocalConsumer.set(new KafkaConsumer<>(kafkaProperties, new StringDeserializer(), new ByteArrayDeserializer()));
-        }
-
-        return threadLocalConsumer.get();
+    synchronized void ensureKafkaConsumer(Properties kafkaProperties, String kafkaTopic) {
+        kafkaProperties.put(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
+        lookupConsumerMap.putIfAbsent(kafkaTopic, new KafkaConsumer<>(kafkaProperties, new StringDeserializer(), new ByteArrayDeserializer()));
     }
 
     /**
@@ -358,10 +357,11 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             kafkaProducer.close();
         }
 
-        if(Objects.nonNull(threadLocalConsumer.get())) {
-            Consumer<String, byte[]> kafkaConsumer = threadLocalConsumer.get();
-            kafkaConsumer.unsubscribe();
-            kafkaConsumer.close();
+        if(!lookupConsumerMap.isEmpty()) {
+            lookupConsumerMap.values().forEach(kafkaConsumer -> {
+                kafkaConsumer.unsubscribe();
+                kafkaConsumer.close();
+            });
         }
 
         cancelled = true;

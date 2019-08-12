@@ -259,8 +259,11 @@ public class JdbcH2QueryTest {
         myJdbcEncFactory.emitter = serviceEmitter;
         myJdbcEncFactory.lookupService = lookupService;
 
+        ConcurrentHashMap<String, Consumer<String, byte[]>> mockConsumerWrapper = new ConcurrentHashMap<>();
+        mockConsumerWrapper.put("ad_test", mockConsumer);
+
+        myJdbcEncFactory.lookupConsumerMap = mockConsumerWrapper;
         when(myJdbcEncFactory.ensureKafkaProducer(any())).thenReturn(mockProducer);
-        when(myJdbcEncFactory.ensureKafkaConsumer(any())).thenReturn(mockConsumer);
 
         return myJdbcEncFactory;
     }
@@ -523,7 +526,7 @@ public class JdbcH2QueryTest {
         System.err.println("Callable Result Timestamp (long): " + populator.call());
 
         //Populator has been called, assertions here.
-        Assert.assertEquals(mockProducer.history().size(), 0, "Expect to see 0 producerRecords sent, since first time should use default behavior.");
+        Assert.assertEquals(mockProducer.history().size(), 0, "Expect to see 0 producerRecords sent, since KafkaProducer should usr JDBC on bootstrap.");
         for(Object record: mockProducer.history()) {
             Assert.assertEquals(ProducerRecord.class, record.getClass());
             ProducerRecord rc = (ProducerRecord) record;
