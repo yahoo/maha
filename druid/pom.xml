@@ -17,7 +17,7 @@
     <url>http://maven.apache.org</url>
 
     <properties>
-        <asynchttpclient.version>2.10.1</asynchttpclient.version>
+        <ning.version>1.9.40</ning.version>
     </properties>
 
     <dependencies>
@@ -139,9 +139,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.asynchttpclient</groupId>
+            <groupId>com.ning</groupId>
             <artifactId>async-http-client</artifactId>
-            <version>${asynchttpclient.version}</version>
+            <version>${ning.version}</version>
         </dependency>
         <dependency>
             <groupId>org.http4s</groupId>

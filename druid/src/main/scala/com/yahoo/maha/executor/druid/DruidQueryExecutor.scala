@@ -7,7 +7,7 @@ import java.math.MathContext
 import java.nio.charset.StandardCharsets
 
 import com.google.common.cache.{CacheBuilder, CacheLoader}
-import org.asynchttpclient.Response
+import com.ning.http.client.Response
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.fact.FactColumn
 import com.yahoo.maha.core.query._
@@ -153,7 +153,7 @@ object DruidQueryExecutor extends Logging {
   def parseJsonAndPopulateResultSet[T <: QueryRowList](query: Query, response: Response, rowList: T, getRow: List[JField] => Row, getEphemeralRow: List[JField] => Row,
                                                        transformers: List[ResultSetTransformer], allowPartialIfResultExceedsMaxRowLimit:Boolean): Option[JValue] = {
     var pagination: Option[JValue] = None
-    val jsonString: String = response.getResponseBody(StandardCharsets.UTF_8)
+    val jsonString: String = response.getResponseBody(StandardCharsets.UTF_8.displayName())
 
     if (query.queryContext.requestModel.isDebugEnabled) {
       info("received http response " + jsonString)
@@ -403,7 +403,7 @@ class DruidQueryExecutor(config: DruidQueryExecutorConfig, lifecycleListener: Ex
     val latestDate: DateTime = FilterDruid.getMaxDate(requestModel.utcTimeDayFilter, DailyGrain)
     if (config.enableFallbackOnUncoveredIntervals
       && latestDate.isBeforeNow()
-      && response.getHeaders().contains(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)
+      && response.getHeaders().containsKey(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)
       && response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT).contains(DruidQueryExecutor.UNCOVERED_INTERVAL_VALUE)) {
       //val exception = new IllegalStateException("Druid data missing, identified in uncoveredIntervals")
       logger.error(s"uncoveredIntervals Found: ${response.getHeader(DruidQueryExecutor.DRUID_RESPONSE_CONTEXT)}")

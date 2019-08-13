@@ -5,10 +5,10 @@ package com.yahoo.maha.executor.druid.filters
 import java.net.ConnectException
 import java.util
 import java.util.concurrent.TimeoutException
+
+import com.ning.http.client._
+import com.ning.http.client.filter.{FilterContext, FilterException, RequestFilter}
 import grizzled.slf4j.Logging
-import io.netty.handler.codec.http.HttpHeaders
-import org.asynchttpclient.{AsyncHandler, HttpResponseBodyPart, HttpResponseStatus, Request}
-import org.asynchttpclient.filter.{FilterContext, FilterException, RequestFilter}
 
 /**
  * Created by pranavbhole on 28/06/17.
@@ -70,18 +70,18 @@ case class TimeoutThrottlingFilter(timeoutWindow: Long = 30000L,
       }
     }
 
-    override def onBodyPartReceived(bodyPart: HttpResponseBodyPart): AsyncHandler.State = {
+    override def onBodyPartReceived(bodyPart: HttpResponseBodyPart): AsyncHandler.STATE = {
       return asyncHandler.onBodyPartReceived(bodyPart)
     }
 
-    override def onStatusReceived(responseStatus: HttpResponseStatus): AsyncHandler.State = {
+    override def onStatusReceived(responseStatus: HttpResponseStatus): AsyncHandler.STATE = {
       if (timeoutHttpStatusCodes.contains(responseStatus.getStatusCode)) {
         timeoutMillsStore.addTimeout()
       }
       return asyncHandler.onStatusReceived(responseStatus)
     }
 
-    override def onHeadersReceived(headers: HttpHeaders): AsyncHandler.State = {
+    override def onHeadersReceived(headers: HttpResponseHeaders): AsyncHandler.STATE = {
       return asyncHandler.onHeadersReceived(headers)
     }
   }
