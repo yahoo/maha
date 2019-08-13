@@ -6,10 +6,10 @@ import java.net.{InetSocketAddress, URI}
 import java.util.concurrent.ExecutionException
 
 import cats.effect.IO
-import com.ning.http.client.filter.FilterException
-import com.ning.http.client.{AsyncHttpClient, AsyncHttpClientConfig}
 import com.yahoo.maha.executor.druid.filters.{ServiceUnavailableException, TimeoutMillsStore, TimeoutThrottlingFilter}
 import grizzled.slf4j.Logging
+import org.asynchttpclient.filter.FilterException
+import org.asynchttpclient.{DefaultAsyncHttpClient, DefaultAsyncHttpClientConfig}
 import org.http4s.HttpService
 import org.http4s.dsl.io._
 import org.http4s.server.blaze.BlazeBuilder
@@ -72,8 +72,7 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
     val targetURI = new URI("http://localhost:" + server.address.getPort + "/mock/endpoint");
 
     // Build http client
-    val config = new AsyncHttpClientConfig.Builder()
-      .setAllowPoolingConnections(true)
+    val config = new DefaultAsyncHttpClientConfig.Builder()
       .setCompressionEnforced(false)
       .setMaxConnectionsPerHost(5)
       .setMaxConnections(5)
@@ -81,10 +80,10 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
       .addRequestFilter(new TimeoutThrottlingFilter(1000L, 2, 1000L, 1))
       .build();
 
-    val ningClient = new AsyncHttpClient(config);
+    val asyncHttpClient = new DefaultAsyncHttpClient(config);
 
     // Send 1 good request.
-    val f = ningClient.prepareGet(targetURI.toASCIIString()).execute();
+    val f = asyncHttpClient.prepareGet(targetURI.toASCIIString()).execute();
     Thread.sleep(3000)
     val response = f.get();
     val statusCode = response.getStatusCode();
@@ -94,7 +93,7 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
     // Bottleneck the service with threshold timeouts
     for (i <- 1 to 3) {
      val result = Try {
-        val f = ningClient.prepareGet(new URI("http://localhost:0/echo").toASCIIString()).execute();
+        val f = asyncHttpClient.prepareGet(new URI("http://localhost:0/echo").toASCIIString()).execute();
         // We block here to give chance to return the status code.
         val response = f.get();
         
@@ -104,7 +103,7 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
 
 
     try {
-      ningClient.prepareGet(targetURI.toASCIIString()).execute().get()
+      asyncHttpClient.prepareGet(targetURI.toASCIIString()).execute().get()
     } catch {
       case e: ExecutionException =>
         val fe = e.getCause()
@@ -115,7 +114,7 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
     //Wait for service becomes available: waiting for window
     Thread.sleep(1000)
 
-    val trynow = Try(ningClient.prepareGet(targetURI.toASCIIString()).execute().get())
+    val trynow = Try(asyncHttpClient.prepareGet(targetURI.toASCIIString()).execute().get())
     
     assert(trynow.isSuccess)
   }
@@ -126,8 +125,7 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
 
     val filter = new TimeoutThrottlingFilter(1000L, 2, 1000L)
     // Build http client
-    val config = new AsyncHttpClientConfig.Builder()
-      .setAllowPoolingConnections(true)
+    val config = new DefaultAsyncHttpClientConfig.Builder()
       .setCompressionEnforced(false)
       .setMaxConnectionsPerHost(5)
       .setMaxConnections(5)
@@ -135,12 +133,12 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
       .addRequestFilter(filter)
       .build();
 
-    val ningClient = new AsyncHttpClient(config)
+    val asyncHttpClient = new DefaultAsyncHttpClient(config)
 
     val testNingThreads = new mutable.ListBuffer[TestAsyncThread]()
 
     for (i <- 1 to 5) {
-      testNingThreads += TestAsyncThread(ningClient, new URI(s"http://localhost:${server.address.getPort+1}/bad"))
+      testNingThreads += TestAsyncThread(asyncHttpClient, new URI(s"http://localhost:${server.address.getPort+1}/bad"))
     }
 
     var filterExceptionCount = 0
@@ -165,7 +163,7 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
     assert(filterExceptionCount == 2)
     assert(connectionExceptionCount == 3)
 
-    val result = Try(ningClient.prepareGet(targetURI.toASCIIString()).execute().get())
+    val result = Try(asyncHttpClient.prepareGet(targetURI.toASCIIString()).execute().get())
     assert(result.isFailure)
     
     val filterException = result.failed.get.getCause
@@ -175,15 +173,15 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
     //Wait for service becomes available: waiting for window
     Thread.sleep(1000)
 
-    val trynow = Try(ningClient.prepareGet(targetURI.toASCIIString()).execute().get())
+    val trynow = Try(asyncHttpClient.prepareGet(targetURI.toASCIIString()).execute().get())
     
     assert(trynow.isSuccess)
   }
 
 }
 
-case class TestAsyncThread(ningClient: AsyncHttpClient, url :URI) extends Thread {
+case class TestAsyncThread(asyncHttpClient: DefaultAsyncHttpClient, url :URI) extends Thread {
   override def run(): Unit =  {
-    ningClient.prepareGet(url.toASCIIString()).execute().get()
+    asyncHttpClient.prepareGet(url.toASCIIString()).execute().get()
   }
 }
