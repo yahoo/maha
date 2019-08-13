@@ -88,6 +88,7 @@ case class FactCol(name: String,
           columnContext.render(filter.field, Map.empty)
         }
       case DruidThetaSketchRollup =>
+      case DruidHyperUniqueRollup(f) =>
       case customRollup: CustomRollup =>
         //error, we missed a check on custom rollup
         throw new IllegalArgumentException(s"Need a check on custom rollup")

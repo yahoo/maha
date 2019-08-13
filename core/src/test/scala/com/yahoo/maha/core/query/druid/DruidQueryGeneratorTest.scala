@@ -2803,4 +2803,35 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(query.contains("""{"type":"extraction","dimension":"Advertiser Last Updated","outputName":"Advertiser Last Updated","outputType":"STRING","extractionFn":{"type":"timeFormat","format":"YYYYMMdd","timeZone":"UTC","granularity":{"type":"none"},"asMillis":true}}"""))
   }
 
+  test("Successfully generate a query with HyperUniques Filter") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Average Bid"},
+                            {"field": "Unique Ad IDs"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Ad ID", "operator": "==", "compareTo": "Ad Group ID"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", "someUser"))
+    val requestModel = RequestModel.from(request, defaultRegistry)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+
+    val json = "{\"type\":\"hyperUnique\",\"name\":\"Unique Ad IDs\",\"fieldName\":\"ad_id\",\"isInputHyperUnique\":false,\"round\":true}"
+
+    assert(result.contains(json))
+  }
+
+
 }
