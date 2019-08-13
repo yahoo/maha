@@ -22,7 +22,6 @@ import io.druid.js.JavaScriptConfig
 import io.druid.math.expr.ExprMacroTable
 import io.druid.query.aggregation._
 import io.druid.query.aggregation.datasketches.theta.{SketchMergeAggregatorFactory, SketchModule}
-import io.druid.query.aggregation.hyperloglog.HyperUniquesAggregatorFactory
 import io.druid.query.aggregation.post.{ArithmeticPostAggregator, FieldAccessPostAggregator}
 import io.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec, ExtractionDimensionSpec}
 import io.druid.query.extraction._
@@ -883,15 +882,6 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       }
     }
 
-    def getHyperUniqueAggregatorFactory(dataType: DataType, outputFieldName:String, fieldName: String): AggregatorFactory = {
-      dataType match {
-        case IntType(_, _, _, _, _) =>
-          new HyperUniquesAggregatorFactory(outputFieldName, fieldName, false, true)
-        case any =>
-          throw new UnsupportedOperationException(s"Unhandled data type $any")
-      }
-    }
-
     def getMinAggregatorFactory(dataType: DataType, outputFieldName: String, inputFieldName: String): AggregatorFactory = {
       dataType match {
         case DecType(_, _, Some(default), Some(min), Some(max), _) =>
@@ -1005,8 +995,6 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             columnAlias)
         case DruidFilteredListRollup(_, _, _) =>
           getFilteredListAggregatorFactory(dataType, rollup, alias)
-        case DruidHyperUniqueRollup(fieldName) =>
-          getHyperUniqueAggregatorFactory(dataType, alias, fieldName)
         case DruidThetaSketchRollup =>
           getThetaSketchAggregatorFactory(alias, columnAlias)
         case NoopRollup =>

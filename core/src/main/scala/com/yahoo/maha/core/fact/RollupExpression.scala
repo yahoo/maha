@@ -28,6 +28,5 @@ case class DruidFilteredRollup(filter: Filter, factCol: DruidExpression.FieldAcc
                                delegateAggregatorRollupExpression: RollupExpression) extends CustomRollup with WithDruidEngine
 case class DruidFilteredListRollup(filter: List[Filter], factCol: DruidExpression.FieldAccess,
                                delegateAggregatorRollupExpression: RollupExpression) extends CustomRollup with WithDruidEngine
-case class DruidHyperUniqueRollup(column: String) extends CustomRollup with WithDruidEngine
 case object DruidThetaSketchRollup extends CustomRollup with WithDruidEngine
 

@@ -85,7 +85,6 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , FactCol("avg_bid", DecType(0, "0.0"), AverageRollup)
           , FactCol("avg_pos_times_impressions", DecType(0, "0.0"), MaxRollup)
           , FactCol("avg_pos_times_impressions_trim", DecType(0, "0.0", "0", "1000"), MaxRollup)
-          , FactCol("unique_ad_ids", IntType(), DruidHyperUniqueRollup("ad_id"))
           , FactCol("engagement_count", IntType(0, 0))
           , ConstFactCol("const_a", IntType(0, 0), "0")
           , ConstFactCol("const_b", IntType(0, 0), "0")
@@ -346,7 +345,6 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("Click Rate", "Click Rate", InBetweenEquality),
           PublicFactCol("Click Rate Success Case", "Click Rate Success Case", InBetweenEquality),
           PublicFactCol("CTR", "CTR", InBetweenEquality),
-          PublicFactCol("unique_ad_ids", "Unique Ad IDs", InBetweenEquality),
           PublicFactCol("uniqueUserCount", "Unique User Count", InBetweenEquality),
           PublicFactCol("ageBucket_unique_users", "ageBucket_unique_users", InBetweenEquality),
           PublicFactCol("woeids_unique_users", "woeids_unique_users", InBetweenEquality),
