@@ -397,6 +397,7 @@ trait BaseHiveQueryGeneratorTest
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), HiveCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
           , HiveDerFactCol("impression_share", IntType(), DECODE(MAX("{show_flag}"), "1", ROUND(SUM("{impressions}") /- SUM("{s_impressions}"), 4), "NULL"), rollupExpression = NoopRollup)
           , HiveDerFactCol("impression_share_rounded", IntType(), ROUND("{impression_share}", 5), rollupExpression = NoopRollup)
+          , HiveDerFactCol("Click Rate", IntType(), SUM("{clicks}") /- SUM("{impressions}"), rollupExpression = NoopRollup)
         ),
         annotations = Set(
         )
@@ -427,6 +428,7 @@ trait BaseHiveQueryGeneratorTest
           PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
           PublicFactCol("CTR", "CTR", InBetweenEquality),
           PublicFactCol("N Spend", "N Spend", InBetweenEquality),
+          PublicFactCol("Click Rate", "Click Rate", Set.empty),
           PublicFactCol("N Clicks", "N Clicks", InBetweenEquality),
           PublicFactCol("N Average CPC", "N Average CPC", InBetweenEquality),
           PublicFactCol("impression_share_rounded", "Impression Share", InBetweenEquality)

@@ -976,6 +976,68 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
+  test("generating hive query with outer group by,  Noop rollup cols") {
+    val jsonString =
+      s"""{
+                          "cube": "performance_stats",
+                          "selectFields": [
+                              {"field": "Campaign Name"},
+                              {"field": "Clicks"},
+                              {"field": "Impressions"},
+                              {"field": "Click Rate"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryChain = queryPipelineTry.toOption.get.queryChain
+
+    val result =  queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    assert(queryChain.drivingQuery.queryGenVersion.isDefined)
+    assert(queryChain.drivingQuery.queryGenVersion.get == Version.v2)
+
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_clicks,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING),CAST(NVL(mang_click_rate,'') AS STRING))
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, clicks AS mang_clicks, impressions AS mang_impressions, mang_click_rate AS mang_click_rate
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, SUM(clicks) AS clicks, SUM(impressions) AS impressions, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(clicks) / (SUM(impressions)) END) AS mang_click_rate
+         |FROM(SELECT campaign_id, SUM(clicks) clicks, SUM(impressions) impressions
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id
+         |
+         |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING))
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
 
   test("generating hive query with outer group by, derived cols") {
     val jsonString =

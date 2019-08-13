@@ -382,7 +382,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
     // Render NoopRollup cols
     noopRollupColsMap.foreach {
       case (alias, col) if !preOuterRenderedColAliasMap.keySet.contains(col) =>
-        val colInnerAlias = col.name
+        val colInnerAlias = renderColumnAlias(col.name)
         val qualifiedColInnerAlias = if(queryContext.shouldQualifyFactsInPreOuter) {
           queryBuilderContext.getFactColNameForAlias(colInnerAlias)
         } else col.alias.getOrElse(col.name)
