@@ -632,17 +632,25 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
         val postFilterAlias = renderNormalOuterColumnWithoutCasting(col, finalAliasOrExpression)
         (postFilterAlias,finalAlias)
       }
+      def renderDimCol(alias:String) : (String, String) = {
+        val col = queryBuilderContext.getDimensionColByAlias(alias)
+        val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
+        val publicDim = queryBuilderContext.getDimensionForColAlias(alias)
+        val referredAlias = s"${queryBuilderContext.getAliasForTable(publicDim.name)}.$finalAlias"
+        val postFilterAlias = renderNormalOuterColumnWithoutCasting(col, referredAlias)
+        (postFilterAlias, finalAlias)
+      }
 
       columnInfo match {
         case FactColumnInfo(alias) =>
-          QueryGeneratorHelper.handleOuterFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.name, isOuterGroupBy)
+          if (queryBuilderContext.isDimensionCol(alias)) {
+            // Render ID Cols from dimensions with table alias
+            renderDimCol(alias)
+          } else {
+            QueryGeneratorHelper.handleOuterFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.name, isOuterGroupBy)
+          }
         case DimColumnInfo(alias) =>
-          val col = queryBuilderContext.getDimensionColByAlias(alias)
-          val finalAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
-          val publicDim = queryBuilderContext.getDimensionForColAlias(alias)
-          val referredAlias = s"${queryBuilderContext.getAliasForTable(publicDim.name)}.$finalAlias"
-          val postFilterAlias = renderNormalOuterColumnWithoutCasting(col, referredAlias)
-          (postFilterAlias, finalAlias)
+          renderDimCol(alias)
         case ConstantColumnInfo(alias, value) =>
           val finalAlias = getConstantColAlias(alias)
           (s"'$value'", finalAlias)

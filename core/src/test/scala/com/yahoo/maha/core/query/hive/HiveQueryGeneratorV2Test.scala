@@ -942,7 +942,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |FROM(
          |SELECT advertiser_id AS advertiser_id, mang_campaign_name AS mang_campaign_name, mang_advertiser_name AS mang_advertiser_name, CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS mang_average_cpc, avg_pos AS mang_average_position, impressions AS mang_impressions
          |FROM(
-         |SELECT COALESCE(account_id, 0L) advertiser_id, getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend
+         |SELECT COALESCE(c2.advertiser_id, 0L) advertiser_id, getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend
          |FROM(SELECT account_id, campaign_id, SUM(impressions) impressions, SUM(clicks) clicks, SUM(spend) spend
          |FROM s_stats_fact
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -967,7 +967,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |ON
          |ssf0.campaign_id = c2.c2_id
          |
-         |GROUP BY COALESCE(account_id, 0L), getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)), COALESCE(a1.mang_advertiser_name, 'NA')
+         |GROUP BY COALESCE(c2.advertiser_id, 0L), getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)), COALESCE(a1.mang_advertiser_name, 'NA')
          |ORDER BY impressions DESC, mang_advertiser_name DESC) OgbQueryAlias
          |) queryAlias LIMIT 200
          |
@@ -1150,7 +1150,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |FROM(
          |SELECT mang_campaign_name AS mang_campaign_name, mang_bid_strategy AS mang_bid_strategy, mang_advertiser_name AS mang_advertiser_name, advertiser_id AS advertiser_id, actual_impressions AS mang_impressions, mang_test_constant_col AS mang_test_constant_col, mang_load_time
          |FROM(
-         |SELECT getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(bid_strategy, 0L) mang_bid_strategy, COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, COALESCE(account_id, 0L) advertiser_id, SUM(actual_impressions) AS actual_impressions, ROUND(COALESCE(test_constant_col, 0L), 10) mang_test_constant_col, COALESCE(mang_load_time, 'NA') mang_load_time
+         |SELECT getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(bid_strategy, 0L) mang_bid_strategy, COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, COALESCE(c2.advertiser_id, 0L) advertiser_id, SUM(actual_impressions) AS actual_impressions, ROUND(COALESCE(test_constant_col, 0L), 10) mang_test_constant_col, COALESCE(mang_load_time, 'NA') mang_load_time
          |FROM(SELECT CASE WHEN (bid_strategy IN (1)) THEN 'Max Click' WHEN (bid_strategy IN (2)) THEN 'Inflection Point' ELSE 'NONE' END bid_strategy, account_id, load_time, 'test_constant_col_value' AS test_constant_col, campaign_id, SUM(actual_impressions) actual_impressions
          |FROM bidreco_complete
          |WHERE (account_id = 12345) AND (status = 'Valid') AND (factPartCol = 123)
@@ -1175,7 +1175,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |ON
          |bc0.campaign_id = c2.c2_id
          |
-         |GROUP BY getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)), COALESCE(bid_strategy, 0L), COALESCE(a1.mang_advertiser_name, 'NA'), COALESCE(account_id, 0L), ROUND(COALESCE(test_constant_col, 0L), 10), COALESCE(mang_load_time, 'NA')
+         |GROUP BY getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)), COALESCE(bid_strategy, 0L), COALESCE(a1.mang_advertiser_name, 'NA'), COALESCE(c2.advertiser_id, 0L), ROUND(COALESCE(test_constant_col, 0L), 10), COALESCE(mang_load_time, 'NA')
          |ORDER BY mang_campaign_name DESC, actual_impressions DESC) OgbQueryAlias
          |) queryAlias LIMIT 200
        """.stripMargin
