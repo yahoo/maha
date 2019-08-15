@@ -1349,7 +1349,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks, stats_source
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-         |GROUP BY advertiser_id, campaign_id
+         |GROUP BY advertiser_id, campaign_id, stats_source
          |
          |       )
          |af0
@@ -1404,7 +1404,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions, SUM(s_impressions) s_impressions, show_flag
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-         |GROUP BY campaign_id
+         |GROUP BY campaign_id, show_flag
          |
          |       )
          |af0
