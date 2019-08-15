@@ -201,6 +201,11 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
     primitiveColsSet.foreach {
       case (alias:String, column: Column) =>
         renderColumnWithAlias(fact, column, alias, Set.empty, false, queryContext, queryBuilderContext, queryBuilder)
+        val colName= column.alias.getOrElse(column.name)
+        // If recursively found primitive col is dimension column then add it to group by clause
+        if (fact.dimColMap.contains(colName)) {
+          queryBuilder.addGroupBy(colName)
+        }
     }
 
     val hasPartitioningScheme = fact.annotations.contains(HiveQueryGenerator.ANY_PARTITIONING_SCHEME)
