@@ -643,7 +643,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
 
       columnInfo match {
         case FactColumnInfo(alias) =>
-          if (queryBuilderContext.isDimensionCol(alias)) {
+          if (queryBuilderContext.isDimensionCol(alias) && isOuterGroupBy) {
             // Render ID Cols from dimensions with table alias
             renderDimCol(alias)
           } else {
