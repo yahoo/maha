@@ -1110,7 +1110,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |FROM(
          |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend
          |FROM(
-         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(campaign_id, 0L) campaign_id, SUM(spend) AS spend
+         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a2.campaign_id, 0L) campaign_id, SUM(spend) AS spend
          |FROM(SELECT campaign_id, ad_id, SUM(spend) spend
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -1135,7 +1135,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |ON
          |af0.ad_id = a2.a2_id
          |
-         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(campaign_id, 0L)
+         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(a2.campaign_id, 0L)
          |) OgbQueryAlias
          |) queryAlias LIMIT 200
        """.stripMargin
@@ -1349,7 +1349,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks, stats_source
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-         |GROUP BY advertiser_id, campaign_id
+         |GROUP BY advertiser_id, campaign_id, stats_source
          |
          |       )
          |af0
@@ -1404,7 +1404,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions, SUM(s_impressions) s_impressions, show_flag
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-         |GROUP BY campaign_id
+         |GROUP BY campaign_id, show_flag
          |
          |       )
          |af0
@@ -1465,7 +1465,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
            |FROM(
            |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate
            |FROM(
-           |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(campaign_id, 0L) campaign_id, SUM(spend) AS spend, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
+           |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a2.campaign_id, 0L) campaign_id, SUM(spend) AS spend, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
            |FROM(SELECT ad_id, campaign_id, SUM(spend) spend, SUM(engagement_count) engagement_count, SUM(impressions) impressions
            |FROM ad_fact1
            |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -1490,7 +1490,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
            |ON
            |af0.ad_id = a2.a2_id
            |
-           |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(campaign_id, 0L)
+           |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(a2.campaign_id, 0L)
            |) OgbQueryAlias
            |) queryAlias LIMIT 200
          """.stripMargin
@@ -1545,7 +1545,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |FROM(
          |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate, 100 * mathUDAF(engagement_count, 0, 0, clicks, impressions) AS mang_paid_engagement_rate
          |FROM(
-         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(campaign_id, 0L) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
+         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a2.campaign_id, 0L) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
          |FROM(SELECT ad_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks, SUM(engagement_count) engagement_count, SUM(impressions) impressions
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -1570,7 +1570,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |ON
          |af0.ad_id = a2.a2_id
          |
-         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(campaign_id, 0L)
+         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(a2.campaign_id, 0L)
          |) OgbQueryAlias
          |) queryAlias LIMIT 200
          |
