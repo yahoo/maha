@@ -361,7 +361,18 @@
   },
   "mahaRequestLoggingConfig": {
     "factoryClass": "com.yahoo.maha.service.factory.NoopMahaRequestLogWriterFactory",
-    "config": {},
+    "config": {
+      "kafkaBrokerList" : "",
+      "bootstrapServers" : "",
+      "producerType" : "async",
+      "serializerClass" : "org.apache.kafka.common.serialization.ByteArraySerializer" ,
+      "requestRequiredAcks" : "0",
+      "kafkaBlockOnBufferFull" : "false",
+      "batchNumMessages" : "100" ,
+      "topicName" : "maha_request_log",
+      "bufferMemory" : "1048576",
+      "maxBlockMs" : "1000"
+    },
     "isLoggingEnabled": false
   },
   "curatorMap": {
