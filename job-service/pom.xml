@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.290-SNAPSHOT</version>
+        <version>5.291-SNAPSHOT</version>
     </parent>
 
     <name>maha job service</name>
@@ -43,6 +43,14 @@
         <dependency>
             <groupId>org.clapper</groupId>
             <artifactId>grizzled-slf4j_${scala.major.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.jsuereth</groupId>
+            <artifactId>scala-arm_${scala.major.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>

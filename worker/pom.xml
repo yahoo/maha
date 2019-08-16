@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.290-SNAPSHOT</version>
+        <version>5.291-SNAPSHOT</version>
     </parent>
 
     <name>maha worker</name>
@@ -71,6 +71,10 @@
             <version>${akka.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.jsuereth</groupId>
+            <artifactId>scala-arm_${scala.major.version}</artifactId>
+        </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>

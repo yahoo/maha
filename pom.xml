@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>5.290-SNAPSHOT</version>
+    <version>5.291-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -32,7 +32,7 @@
         <scalaz.version>7.2.22</scalaz.version>
         <jackson.version>2.9.9</jackson.version>
         <httpclient.version>4.5.5</httpclient.version>
-        <guava.version>24.1.1-jre</guava.version>
+        <guava.version>27.1-jre</guava.version>
         <jodatime.version>2.9.9</jodatime.version>
         <druid.version>0.11.0</druid.version>
         <scala.arm.version>2.0</scala.arm.version>
@@ -60,7 +60,7 @@
         <archaius.version>2.3.13</archaius.version>
         <bytebuddy.version>1.8.12</bytebuddy.version>
         <kryo.version>4.0.2</kryo.version>
-        <lz4.version>1.4.1</lz4.version>
+        <lz4.version>1.5.1</lz4.version>
         <curator.version>4.0.1</curator.version>
         <akka.version>2.5.4</akka.version>
         <mongo-java-driver.version>3.3.0</mongo-java-driver.version>
@@ -112,7 +112,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.4</version>
+                <version>3.8.1</version>
             </dependency>
             <dependency>
                 <groupId>commons-io</groupId>
@@ -314,11 +314,13 @@
                 <groupId>com.zaxxer</groupId>
                 <artifactId>HikariCP</artifactId>
                 <version>${hikaricp.version}</version>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>com.jsuereth</groupId>
                 <artifactId>scala-arm_${scala.major.version}</artifactId>
                 <version>${scala.arm.version}</version>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
