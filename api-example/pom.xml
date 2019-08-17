@@ -11,7 +11,7 @@
     <parent>
         <artifactId>maha-parent</artifactId>
         <groupId>com.yahoo.maha</groupId>
-        <version>5.290-SNAPSHOT</version>
+        <version>5.291-SNAPSHOT</version>
     </parent>
 
     <name>maha api-example</name>
@@ -28,6 +28,11 @@
             <groupId>com.yahoo.maha</groupId>
             <artifactId>maha-api-jersey</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.beachape</groupId>
