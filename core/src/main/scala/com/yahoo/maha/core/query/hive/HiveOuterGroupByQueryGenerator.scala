@@ -649,8 +649,15 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
       columnInfo match {
         case FactColumnInfo(alias) =>
           if (queryBuilderContext.isDimensionCol(alias) && isOuterGroupBy) {
-            // Render ID Cols from dimensions with table alias
-            renderDimCol(alias)
+            // Render ID Cols from dimensions with table and alias it with fact col as it is FactColumnInfo
+            val col = queryBuilderContext.getDimensionColByAlias(alias)
+            val dimAlias = queryBuilderContext.getDimensionColNameForAlias(alias)
+            val publicDim = queryBuilderContext.getDimensionForColAlias(alias)
+            val referredAlias = s"${queryBuilderContext.getAliasForTable(publicDim.name)}.$dimAlias"
+            val postFilterAlias = renderNormalOuterColumnWithoutCasting(col, referredAlias)
+
+            val factAlias = queryBuilderContext.getFactColNameForAlias(alias)
+            (postFilterAlias, factAlias)
           } else {
             QueryGeneratorHelper.handleOuterFactColInfo(queryBuilderContext, alias, factCandidate, renderFactCol, duplicateAliasMapping, factCandidate.fact.name, isOuterGroupBy)
           }
