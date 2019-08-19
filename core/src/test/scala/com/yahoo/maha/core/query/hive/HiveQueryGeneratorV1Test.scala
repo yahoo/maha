@@ -1578,6 +1578,94 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 
+  test("Successfully generated Outer Group By Query with id cols requested from dims") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Ad Status",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                                "field": "Ad Group ID"
+                             },
+                             {
+                                "field": "Advertiser ID"
+                             },
+                             {
+                               "field": "Campaign Name"
+                             },
+                             {
+                               "field": "Campaign ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                                "field": "Engagement Rate",
+                                "alias": null,
+                                "value": null
+                             },
+                             {
+                                "field": "Paid Engagement Rate",
+                                "alias": null,
+                                "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+    val result = generateHiveQuery(jsonString, defaultRegistry)
+    println(result)
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_ad_status,'') AS STRING),CAST(NVL(ad_group_id,'') AS STRING),CAST(NVL(advertiser_id,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(campaign_id,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING),CAST(NVL(mang_engagement_rate,'') AS STRING),CAST(NVL(mang_paid_engagement_rate,'') AS STRING))
+         |FROM(
+         |SELECT mang_ad_status AS mang_ad_status, ad_group_id AS ad_group_id, advertiser_id AS advertiser_id, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate, 100 * mathUDAF(engagement_count, 0, 0, clicks, impressions) AS mang_paid_engagement_rate
+         |FROM(
+         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, COALESCE(ad_group_id, 0L) ad_group_id, COALESCE(advertiser_id, 0L) advertiser_id, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a2.campaign_id, 0L) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
+         |FROM(SELECT advertiser_id, ad_id, campaign_id, ad_group_id, SUM(spend) spend, SUM(clicks) clicks, SUM(engagement_count) engagement_count, SUM(impressions) impressions
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY advertiser_id, ad_id, campaign_id, ad_group_id
+         |
+         |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |       LEFT OUTER JOIN (
+         |SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
+         |FROM ad_dim_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |a2
+         |ON
+         |af0.ad_id = a2.a2_id
+         |
+         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), COALESCE(ad_group_id, 0L), COALESCE(advertiser_id, 0L), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(a2.campaign_id, 0L)
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+         |
+         |
+       """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+
   def getHiveReportingRequest(requestJson:String) : ReportingRequest = {
     val requestRaw = ReportingRequest.deserializeAsync(requestJson.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     assert(requestRaw.isSuccess, "Failed to deserializeAsync RR")
