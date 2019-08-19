@@ -1592,9 +1592,6 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                                 "field": "Ad Group ID"
                              },
                              {
-                                "field": "Ad Group Name"
-                             },
-                             {
                                 "field": "Advertiser ID"
                              },
                              {
@@ -1630,12 +1627,11 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     println(result)
     val expected =
       s"""
-         |
-         |SELECT CONCAT_WS(',', CAST(NVL(mang_ad_status,'') AS STRING),CAST(NVL(ad_group_id,'') AS STRING),CAST(NVL(mang_ad_group_name,'') AS STRING),CAST(NVL(advertiser_id,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(campaign_id,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING),CAST(NVL(mang_engagement_rate,'') AS STRING),CAST(NVL(mang_paid_engagement_rate,'') AS STRING))
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_ad_status,'') AS STRING),CAST(NVL(ad_group_id,'') AS STRING),CAST(NVL(advertiser_id,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(campaign_id,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING),CAST(NVL(mang_engagement_rate,'') AS STRING),CAST(NVL(mang_paid_engagement_rate,'') AS STRING))
          |FROM(
-         |SELECT mang_ad_status AS mang_ad_status, ad_group_id AS ad_group_id, mang_ad_group_name AS mang_ad_group_name, advertiser_id AS advertiser_id, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate, 100 * mathUDAF(engagement_count, 0, 0, clicks, impressions) AS mang_paid_engagement_rate
+         |SELECT mang_ad_status AS mang_ad_status, ad_group_id AS ad_group_id, advertiser_id AS advertiser_id, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate, 100 * mathUDAF(engagement_count, 0, 0, clicks, impressions) AS mang_paid_engagement_rate
          |FROM(
-         |SELECT COALESCE(a3.mang_ad_status, 'NA') mang_ad_status, COALESCE(a3.ad_group_id, 0L) ad_group_id, getCsvEscapedString(CAST(NVL(ag2.mang_ad_group_name, '') AS STRING)) mang_ad_group_name, COALESCE(advertiser_id, 0L) advertiser_id, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a3.campaign_id, 0L) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
+         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, COALESCE(ad_group_id, 0L) ad_group_id, COALESCE(advertiser_id, 0L) advertiser_id, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a2.campaign_id, 0L) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
          |FROM(SELECT advertiser_id, ad_id, campaign_id, ad_group_id, SUM(spend) spend, SUM(clicks) clicks, SUM(engagement_count) engagement_count, SUM(impressions) impressions
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -1652,25 +1648,18 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |ON
          |af0.campaign_id = c1.c1_id
          |       LEFT OUTER JOIN (
-         |SELECT campaign_id AS campaign_id, name AS mang_ad_group_name, id ag2_id
-         |FROM ad_group_hive
-         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' )) AND (advertiser_id = 12345)
-         |)
-         |ag2
-         |ON
-         |af0.ad_group_id = ag2.ag2_id
-         |       LEFT OUTER JOIN (
-         |SELECT ad_group_id AS ad_group_id, campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a3_id
+         |SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
          |FROM ad_dim_hive
          |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
          |)
-         |a3
+         |a2
          |ON
-         |af0.ad_id = a3.a3_id
+         |af0.ad_id = a2.a2_id
          |
-         |GROUP BY COALESCE(a3.mang_ad_status, 'NA'), COALESCE(a3.ad_group_id, 0L), getCsvEscapedString(CAST(NVL(ag2.mang_ad_group_name, '') AS STRING)), COALESCE(advertiser_id, 0L), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(a3.campaign_id, 0L)
+         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), COALESCE(ad_group_id, 0L), COALESCE(advertiser_id, 0L), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(a2.campaign_id, 0L)
          |) OgbQueryAlias
          |) queryAlias LIMIT 200
+         |
          |
        """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
