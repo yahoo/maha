@@ -485,7 +485,7 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
       response => {
         val hosts = response.json.as[JsObject].keys
         Logger.debug(s"successfully got hosts: $hosts")
-        val errorMap: scala.collection.mutable.Map[String, Exception] = scala.collection.mutable.HashMap.empty[String, Exception]
+        val errorMap: scala.collection.mutable.Map[String, Throwable] = scala.collection.mutable.HashMap.empty[String, Throwable]
         val hostList = hosts.map {
           host =>
           val tupleFuture = ws.url(s"$druidHistoricalsHttpScheme://$host/druid/v1/namespaces?").withHeaders(headers.head._1 -> headers.head._2).get().map {
@@ -510,6 +510,7 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
             case Failure(e) =>
               Logger.error(s"unable to get tupleList for host - $host: ${e.printStackTrace}")
               errorMap += (host -> e)
+              (host -> List.empty)
               //throw new UnsupportedOperationException("exception occurred while getting tupleList")
           }
         }
