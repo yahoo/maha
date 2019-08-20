@@ -509,7 +509,7 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
             }
             case Failure(e) =>
               Logger.error(s"unable to get tupleList for host - $host: ${e.printStackTrace}")
-              errorMap += (host, e)
+              errorMap += (host -> e)
               //throw new UnsupportedOperationException("exception occurred while getting tupleList")
           }
         }
@@ -517,7 +517,7 @@ class DashBoard  @Inject() (ws:WSClient, druidCoordinator: String,
           val errorString: String = errorMap.map(errorPair => "\nhost: " + errorPair._1 + " error Message: " + errorPair._2.getMessage).mkString("")
           throw new UnsupportedOperationException("exception occurred while getting tupleList (see host/manager logs for details)" + errorString)
         }
-        
+
         hostList.toMap
       }
     }
