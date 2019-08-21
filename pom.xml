@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>5.292-SNAPSHOT</version>
+    <version>5.293-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -48,7 +48,7 @@
         <enforcer.skip>true</enforcer.skip>
         <log4j2.version>2.3</log4j2.version>
         <leveldb.version>1.8</leveldb.version>
-        <rocksdb.version>5.13.4</rocksdb.version>
+        <rocksdb.version>6.2.2</rocksdb.version>
         <protobuf.version>2.6.1</protobuf.version>
         <http4s.version>0.18.15</http4s.version>
         <maven-site-plugin.skip>true</maven-site-plugin.skip>
@@ -117,7 +117,7 @@
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
-                <version>2.4</version>
+                <version>2.6</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>

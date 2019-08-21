@@ -102,4 +102,17 @@ class RocksDBAccessorTest extends FunSuite with Matchers with BeforeAndAfterAll 
     assertTrue(rocksDBAccessor.remove(testKey) == false)
   }
 
+  test("test cleanup base dir") {
+    val baseDir = "/tmp/deleteall"
+    val file = new java.io.File(baseDir)
+    file.mkdirs()
+    val rocksDBAccessor2: RocksDBAccessor[String, String] = new RocksDBAccessorBuilder("testdb2", Some(baseDir)).addKeySerDe(StringSerDe).addValSerDe(StringSerDe).toRocksDBAccessor
+    val list = RocksDBAccessor.listDBs(baseDir)
+    assertTrue(list.size > 0)
+    rocksDBAccessor2.close
+    RocksDBAccessor.cleanupBaseDir(baseDir)
+    list.foreach {
+      f => assertFalse(f.getAbsolutePath, f.exists())
+    }
+  }
 }

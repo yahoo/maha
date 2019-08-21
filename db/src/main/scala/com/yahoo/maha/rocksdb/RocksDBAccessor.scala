@@ -8,20 +8,38 @@ import java.util.concurrent.atomic.AtomicInteger
 import com.yahoo.maha.serde.SerDe
 import grizzled.slf4j.Logging
 import org.apache.commons.io.FileUtils
+import org.apache.commons.io.filefilter._
 import org.rocksdb._
 
 import scala.collection.mutable
 import scala.util.Try
 
-object RocksDBAccessor {
+object RocksDBAccessor extends Logging {
   val instanceId = new AtomicInteger(0)
+  val prefix = "rocksdb_"
   def incrementAndGetId() : Int = instanceId.incrementAndGet()
+  def getDBName[K, V](builder: RocksDBAccessorBuilder[K, V]): String = {
+    s"$prefix${RocksDBAccessor.incrementAndGetId()}-${System.currentTimeMillis()}-${builder.dbName}"
+  }
+
+  def listDBs(baseDir: String): Iterable[File] = {
+    import scala.collection.JavaConverters._
+    val filters = FileFilterUtils.and(DirectoryFileFilter.INSTANCE, new PrefixFileFilter(prefix))
+    FileUtils.listFilesAndDirs(new File(baseDir), filters, filters).asScala.filter(_.getName.startsWith(prefix))
+  }
+
+  def cleanupBaseDir(baseDir: String): Unit = {
+    for(dir <- listDBs(baseDir)) {
+      info(s"Cleaning up rocksdb base dir path : ${dir.getAbsolutePath}")
+      Try(FileUtils.deleteDirectory(dir))
+    }
+  }
 }
 class RocksDBAccessor[K, V](builder: RocksDBAccessorBuilder[K, V]) extends Logging {
 
   val baseDir = new File(builder.baseDir)
   baseDir.deleteOnExit()
-  val dbFileName = s"rocksdb_${RocksDBAccessor.incrementAndGetId()}-${System.currentTimeMillis()}-${builder.dbName}"
+  val dbFileName: String = RocksDBAccessor.getDBName(builder)
   val dbFile: File = new File(baseDir, dbFileName)
   info(s"Creating rocksDB : ${dbFile.getAbsolutePath}")
   val db: RocksDB = {
