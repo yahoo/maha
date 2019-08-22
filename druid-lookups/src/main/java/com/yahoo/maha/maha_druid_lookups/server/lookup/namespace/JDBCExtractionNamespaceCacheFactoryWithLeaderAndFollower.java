@@ -18,12 +18,10 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.joda.time.DateTime;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.tweak.HandleCallback;
 import scala.Tuple2;
-import scala.collection.immutable.Stream;
 
 import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
@@ -214,7 +212,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         Timestamp latestTSFromRows = new Timestamp(0L);
 
         try {
-            ConsumerRecords<String, byte[]> records = lookupConsumerMap.get(kafkaProducerTopic).poll(100L);
+            ConsumerRecords<String, byte[]> records = lookupConsumerMap.get(kafkaProducerTopic).poll(tenPercentPollPeriod);
             if(records.count() > 0)
                 LOG.info("Num Kafka Records returned from poll: [%d]", records.count());
 
@@ -243,13 +241,6 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         }
 
         return new Tuple2<>(i, latestTSFromRows);
-    }
-
-    Map<TopicPartition, OffsetAndMetadata> getOffset(ConsumerRecord<String, byte[]> consumerRecord
-    , String kafkaProducerTopic) {
-        Map<TopicPartition, OffsetAndMetadata> returnedOffsetData = new HashMap<>();
-        returnedOffsetData.put(new TopicPartition(kafkaProducerTopic, consumerRecord.partition()), new OffsetAndMetadata(consumerRecord.offset() + 1));
-        return returnedOffsetData;
     }
 
     /**
