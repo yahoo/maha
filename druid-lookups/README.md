@@ -118,6 +118,7 @@ org.skife.jdbi.v2.exceptions.UnableToObtainConnectionException: java.sql.SQLExce
 ```
 
 **Solution:** 
+
 Instead of putting the jar under your package repo, you need to include the jdbc connector for your local datasource to  /druid/lib, for example:
 `/druid/lib/mysql-connector-java-8.0.16.jar`
 
@@ -132,6 +133,7 @@ Exception in thread "main" com.google.common.util.concurrent.ExecutionError: com
 This is caused by lack of Hadoop dependency.  
 
 **Solution:** 
+
 For Druid-0.11.0, it already has the hadoop client jars under `hadoop-dependencies/hadoop-client/2.7.3/*`.  Just make sure you have included the path in your command when trying to bring up the node, for example:
 ```
 java `cat conf-quickstart/druid/coordinator/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/coordinator:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server coordinator
@@ -214,7 +216,7 @@ curl http://localhost:8081/druid/coordinator/v1/lookups/config/historicalLookupT
 curl "http://localhost:8083/druid/v1/namespaces/advertiser_lookup?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace"
 ```
 
-### Query lookup with key (GET request to historical node)
+#### Query lookup with key (GET request to historical node)
 ```
 curl "http://localhost:8083/druid/v1/namespaces/advertiser_lookup?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace&key=1&valueColumn=status&debug=true"
 ```
