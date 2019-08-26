@@ -13,11 +13,11 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.joda.time.DateTime;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
 import org.skife.jdbi.v2.tweak.HandleCallback;
@@ -36,7 +36,6 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         extends JDBCExtractionNamespaceCacheFactory {
     private static final Logger LOG = new Logger(JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower.class);
     private static final String COMMA_SEPARATOR = ",";
-    private boolean cancelled = false;
 
 
     private Producer<String, byte[]> kafkaProducer;
@@ -64,7 +63,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
             final Map<String, List<String>> cache
     ) {
         LOG.info("Calling Leader or Follower populator with variables: " +
-                "id=" + id + ", namespace=" + extractionNamespace.toString() + ", lastVers=" + lastVersion);
+                "id=" + id + ", namespace=" + extractionNamespace.getClass().getName() + ", lastVers=" + lastVersion);
 
         return getCachePopulator(id, (JDBCExtractionNamespaceWithLeaderAndFollower)extractionNamespace, lastVersion, cache);
     }
@@ -183,10 +182,6 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
                 if(lookupConsumerMap.get(kafkaProducerTopic).subscription().size() < 1)
                     lookupConsumerMap.get(kafkaProducerTopic).subscribe(Collections.singletonList(kafkaProducerTopic));
-                else
-                    LOG.info("Continuing with subscription to topic: " + kafkaProducerTopic);
-
-                LOG.info("Consumer subscribing to topic [%s] with result %s", kafkaProducerTopic, lookupConsumerMap.get(kafkaProducerTopic).subscription().isEmpty() ? "Not subscribed." : lookupConsumerMap.get(kafkaProducerTopic).subscription());
 
                 long consumerPollPeriod = extractionNamespace.getPollMs();
 
@@ -197,7 +192,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 populateLastUpdatedTime(polledLastUpdatedTS, extractionNamespace);
 
 
-                LOG.info("Follower operation on kafkaTopic [%s] num records returned [%d] with final cache size of [%d]: ", extractionNamespace.getKafkaTopic() , totalNumRowsUpdated, cache.size());
+                LOG.info("Follower operation on kafkaTopic [%s] num records returned [%d] with final cache size of [%d] ", extractionNamespace.getKafkaTopic() , totalNumRowsUpdated, cache.size());
 
                 long lastUpdatedTS = Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp()) ? extractionNamespace.getPreviousLastUpdateTimestamp().getTime() : 0L;
                 return String.format("%d", lastUpdatedTS);
@@ -218,7 +213,9 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
         try {
             ConsumerRecords<String, byte[]> records = lookupConsumerMap.get(kafkaProducerTopic).poll(tenPercentPollPeriod);
-            LOG.info("Num Kafka Records returned from poll: [%d]", records.count());
+            if(records.count() > 0)
+                LOG.info("Num Kafka Records returned from poll: [%d]", records.count());
+
             for (ConsumerRecord<String, byte[]> record : records) {
                 final String key = record.key();
                 final byte[] message = record.value();
@@ -236,6 +233,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
                 if(singleRowUpdateTS.getTime() > 0L)
                     ++i;
+
             }
         } catch (Exception e) {
             LOG.error("Caught consumer poll exception on topic " + kafkaProducerTopic, e);
@@ -344,8 +342,15 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
      * @return
      */
     synchronized void ensureKafkaConsumer(Properties kafkaProperties, String kafkaTopic) {
-        kafkaProperties.put(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
-        lookupConsumerMap.putIfAbsent(kafkaTopic, new KafkaConsumer<>(kafkaProperties, new StringDeserializer(), new ByteArrayDeserializer()));
+
+        if(!lookupConsumerMap.containsKey(kafkaTopic)) {
+            String groupId = UUID.randomUUID().toString();
+            kafkaProperties.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+            LOG.info("Creating a new consumer for topic " + kafkaTopic + " with Group ID " + groupId);
+            lookupConsumerMap.put(kafkaTopic, new KafkaConsumer<>(kafkaProperties, new StringDeserializer(), new ByteArrayDeserializer()));
+        } else {
+            LOG.info("No consumer updates to use!  We have consumer on topic " + kafkaTopic + " with group ID " + kafkaProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG));
+        }
     }
 
     /**
@@ -363,7 +368,5 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 kafkaConsumer.close();
             });
         }
-
-        cancelled = true;
     }
 }
