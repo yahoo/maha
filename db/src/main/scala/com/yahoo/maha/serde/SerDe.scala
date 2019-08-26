@@ -16,8 +16,20 @@ object StringSerDe extends SerDe[String] {
   }
 
   override def deserialize(bytes: Array[Byte]): String = {
-    require(bytes != null, "Cannot serialize null byte array")
+    require(bytes != null, "Cannot deserialize null byte array")
     new String(bytes, StandardCharsets.UTF_8)
   }
 
+}
+
+object BytesSerDe extends SerDe[Array[Byte]] {
+  override def serialize(ba: Array[Byte]): Array[Byte] = {
+    require(ba != null, "Cannot serialize null array")
+    ba
+  }
+
+  override def deserialize(bytes: Array[Byte]): Array[Byte] = {
+    require(bytes != null, "Cannot deserialize null byte array")
+    bytes
+  }
 }
