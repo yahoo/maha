@@ -346,10 +346,10 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         if(!lookupConsumerMap.containsKey(kafkaTopic)) {
             String groupId = UUID.randomUUID().toString();
             kafkaProperties.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
-            LOG.info("Creating a new consumer for topic " + kafkaTopic + " with ID " + groupId);
+            LOG.info("Creating a new consumer for topic " + kafkaTopic + " with Group ID " + groupId);
             lookupConsumerMap.put(kafkaTopic, new KafkaConsumer<>(kafkaProperties, new StringDeserializer(), new ByteArrayDeserializer()));
         } else {
-            LOG.info("No consumer updates to use!  We have consumer on topic " + kafkaTopic + " with properties " + lookupConsumerMap.get(kafkaTopic).subscription());
+            LOG.info("No consumer updates to use!  We have consumer on topic " + kafkaTopic + " with group ID " + kafkaProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG));
         }
     }
 
