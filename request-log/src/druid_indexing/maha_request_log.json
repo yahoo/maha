@@ -1,0 +1,197 @@
+{
+  "type": "kafka",
+  "dataSchema": {
+    "dataSource": "maha_request_log",
+    "parser": {
+      "type": "realtimeString",
+      "parseSpec": {
+        "format": "json",
+        "timestampSpec": {
+          "column": "requestEndTime",
+          "format": "yyyyMMddHHmmss",
+          "missingValue": null
+        },
+        "dimensionsSpec": {
+          "dimensions": [
+            "requestId",
+            "userId",
+            "cube",
+            "schema",
+            "isInternal",
+            "requestType",
+            "drivingQueryEngine",
+            "drivingTable",
+            "queryChainType",
+            "firstSubsequentQueryEngine",
+            "firstSubsequentQueryTable",
+            "status",
+            "errorMessage",
+            "hasFactFilters",
+            "hasNonFKFactFilters",
+            "hasDimFilters",
+            "hasNonFKDimFilters",
+            "hasFactSortBy",
+            "hasDimSortBy",
+            "isFactDriven",
+            "forceDimDriven",
+            "forceFactDriven",
+            "hasNonDrivingDimSortOrFilter",
+            "hasDimAndFactOperations",
+            "requestSortByCols1Alias",
+            "requestSortByCols1Order",
+            "requestSortByCols2Alias",
+            "requestSortByCols2Order",
+            "requestSortByCols3Alias",
+            "requestSortByCols3Order",
+            "requestSortByCols4Alias",
+            "requestSortByCols4Order",
+            "dimensionsCandidate1",
+            "dimensionsCandidate2",
+            "dimensionsCandidate3",
+            "dimensionsCandidate4",
+            "reRunEngine",
+            "jobId",
+            "grain",
+            "asyncJobStatus",
+            "isDryRun",
+            "jobResultURL",
+            "jobName",
+            "queueType",
+            "cubeRevision",
+            "mahaServiceRegistryName",
+            "mahaServiceHostname",
+            "responseTimeBucket",
+            "isGrainOptimized",
+            "isIndexOptimized",
+            "curator"
+          ],
+          "dimensionExclusions": []
+        }
+      }
+    },
+    "metricsSpec": [
+      {
+        "type": "longSum",
+        "name": "requestDuration",
+        "fieldName": "requestDuration",
+        "expression": null
+      },
+      {
+        "type": "count",
+        "name": "rowCount"
+      },
+      {
+        "type": "longSum",
+        "name": "dimCardinalityEstimate",
+        "fieldName": "dimCardinalityEstimate",
+        "expression": null
+      },
+      {
+        "type": "longSum",
+        "name": "drivingQueryEngineLatency",
+        "fieldName": "drivingQueryEngineLatency",
+        "expression": null
+      },
+      {
+        "type": "longSum",
+        "name": "firstSubsequentQueryEngineLatency",
+        "fieldName": "firstSubsequentQueryEngineLatency",
+        "expression": null
+      },
+      {
+        "type": "longSum",
+        "name": "reRunEngineQueryLatency",
+        "fieldName": "reRunEngineQueryLatency",
+        "expression": null
+      },
+      {
+        "type": "longSum",
+        "name": "requestSortByColsTotalCount",
+        "fieldName": "requestSortByColsTotalCount",
+        "expression": null
+      },
+      {
+        "type": "longSum",
+        "name": "dimensionsCandidatesTotalCount",
+        "fieldName": "dimensionsCandidatesTotalCount",
+        "expression": null
+      },
+      {
+        "type": "longSum",
+        "name": "factCostTotalCount",
+        "fieldName": "factCostTotalCount",
+        "expression": null
+      },
+      {
+        "type": "longSum",
+        "name": "days",
+        "fieldName": "days",
+        "expression": null
+      },
+      {
+        "type": "longSum",
+        "name": "queueWaitingTime",
+        "fieldName": "queueWaitingTime",
+        "expression": null
+      }
+    ],
+    "granularitySpec": {
+      "type": "uniform",
+      "segmentGranularity": "HOUR",
+      "queryGranularity": {
+        "type": "duration",
+        "duration": 60000,
+        "origin": "1970-01-01T00:00:00.000Z"
+      },
+      "rollup": true,
+      "intervals": null
+    },
+    "transformSpec": {
+      "filter": null,
+      "transforms": []
+    }
+  },
+  "tuningConfig": {
+    "type": "kafka",
+    "maxRowsInMemory": 500000,
+    "maxRowsPerSegment": 5000000,
+    "intermediatePersistPeriod": "PT10M",
+    "basePersistDirectory": "/tmp",
+    "maxPendingPersists": 0,
+    "indexSpec": {
+      "bitmap": {
+        "type": "concise"
+      },
+      "dimensionCompression": "lz4",
+      "metricCompression": "lz4",
+      "longEncoding": "longs"
+    },
+    "buildV9Directly": true,
+    "reportParseExceptions": false,
+    "handoffConditionTimeout": 300000,
+    "resetOffsetAutomatically": true,
+    "workerThreads": null,
+    "chatThreads": null,
+    "chatRetries": 8,
+    "httpTimeout": "PT10S",
+    "shutdownTimeout": "PT80S",
+    "offsetFetchPeriod": "PT30S"
+  },
+  "ioConfig": {
+    "topic": "maha_request_log_processed",
+    "replicas": 2,
+    "taskCount": 2,
+    "taskDuration": "PT7200S",
+    "consumerProperties": {
+      "bootstrap.servers": "kafka1.test.maha.yahoo.com:9092,kafka2.test.maha.yahoo.com:9092"
+    },
+    "startDelay": "PT5S",
+    "period": "PT30S",
+    "useEarliestOffset": false,
+    "completionTimeout": "PT1800S",
+    "lateMessageRejectionPeriod": "PT1800S",
+    "earlyMessageRejectionPeriod": null,
+    "skipOffsetGaps": false
+  },
+  "context": {}
+}
