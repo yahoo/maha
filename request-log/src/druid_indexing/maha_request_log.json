@@ -3,7 +3,7 @@
   "dataSchema": {
     "dataSource": "maha_request_log",
     "parser": {
-      "type": "realtimeString",
+      "type": "string",
       "parseSpec": {
         "format": "json",
         "timestampSpec": {
