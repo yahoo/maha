@@ -27,8 +27,8 @@ public class JDBCExtractionNamespaceCacheFactory
         implements ExtractionNamespaceCacheFactory<JDBCExtractionNamespace, List<String>> {
     private static final Logger LOG = new Logger(JDBCExtractionNamespaceCacheFactory.class);
     private static final String COMMA_SEPARATOR = ",";
-    private static final String FIRST_TIME_CACHING_WHERE_CLAUSE = " WHERE LAST_UPDATED <= :lastUpdatedTimeStamp";
-    private static final String SUBSEQUENT_CACHING_WHERE_CLAUSE = " WHERE LAST_UPDATED > :lastUpdatedTimeStamp";
+    private static final String FIRST_TIME_CACHING_WHERE_CLAUSE = " WHERE %s <= :lastUpdatedTimeStamp";
+    private static final String SUBSEQUENT_CACHING_WHERE_CLAUSE = " WHERE %s > :lastUpdatedTimeStamp";
     private static final int FETCH_SIZE = 10000;
     private final ConcurrentMap<String, DBI> dbiCache = new ConcurrentHashMap<>();
     @Inject
@@ -100,11 +100,17 @@ public class JDBCExtractionNamespaceCacheFactory
         Timestamp updateTS;
         if (extractionNamespace.isFirstTimeCaching()) {
             extractionNamespace.setFirstTimeCaching(false);
-            query = String.format("%s %s", query, FIRST_TIME_CACHING_WHERE_CLAUSE);
+            query = String.format("%s %s",
+                    query,
+                    getCachingWhereClause(FIRST_TIME_CACHING_WHERE_CLAUSE, extractionNamespace)
+            );
             updateTS = lastDBUpdate;
 
         } else {
-            query = String.format("%s %s", query, SUBSEQUENT_CACHING_WHERE_CLAUSE);
+            query = String.format("%s %s",
+                    query,
+                    getCachingWhereClause(SUBSEQUENT_CACHING_WHERE_CLAUSE, extractionNamespace)
+            );
             updateTS = extractionNamespace.getPreviousLastUpdateTimestamp();
         }
 
@@ -116,6 +122,13 @@ public class JDBCExtractionNamespaceCacheFactory
         return null;
     }
 
+    protected String getCachingWhereClause(String baseClause, JDBCExtractionNamespace namespace) {
+        return String.format(
+                baseClause,
+                namespace.getTsColumn()
+        );
+    }
+
     protected DBI ensureDBI(String id, JDBCExtractionNamespace namespace) {
         final String key = id;
         DBI dbi = null;
@@ -123,14 +136,30 @@ public class JDBCExtractionNamespaceCacheFactory
             dbi = dbiCache.get(key);
         }
         if (dbi == null) {
-            final DBI newDbi = new DBI(
-                    namespace.getConnectorConfig().getConnectURI(),
-                    namespace.getConnectorConfig().getUser(),
-                    namespace.getConnectorConfig().getPassword()
-            );
-            dbiCache.putIfAbsent(key, newDbi);
-            dbi = dbiCache.get(key);
+            if (!namespace.hasKerberosProperties()) {
+                dbi = createDBIWithPassword(namespace);
+            } else {
+                dbi = createDBIWithKerberos(namespace);
+            }
+            dbiCache.putIfAbsent(key, dbi);
         }
+        return dbi;
+    }
+
+    protected DBI createDBIWithPassword(JDBCExtractionNamespace namespace) {
+        final DBI dbi = new DBI(
+                namespace.getConnectorConfig().getConnectURI(),
+                namespace.getConnectorConfig().getUser(),
+                namespace.getConnectorConfig().getPassword()
+        );
+        return dbi;
+    }
+
+    protected DBI createDBIWithKerberos(JDBCExtractionNamespace namespace) {
+        final DBI dbi = new DBI(
+                namespace.getConnectorConfig().getConnectURI(),
+                namespace.getKerberosProperties()
+        );
         return dbi;
     }
 
@@ -142,23 +171,19 @@ public class JDBCExtractionNamespaceCacheFactory
             return null;
         }
 
-        if(!namespace.isFirstTimeCaching() && isFollower)
+        if (!namespace.isFirstTimeCaching() && isFollower)
             return namespace.getPreviousLastUpdateTimestamp();
 
         final Timestamp lastUpdatedTimeStamp = dbi.withHandle(
-                new HandleCallback<Timestamp>() {
-
-                    @Override
-                    public Timestamp withHandle(Handle handle) throws Exception {
-                        final String query = String.format(
-                                "SELECT MAX(%s) FROM %s",
-                                tsColumn, table
-                        );
-                        return handle
-                                .createQuery(query)
-                                .map(TimestampMapper.FIRST)
-                                .first();
-                    }
+                handle -> {
+                    final String query = String.format(
+                            "SELECT MAX(%s) FROM %s",
+                            tsColumn, table
+                    );
+                    return handle
+                            .createQuery(query)
+                            .map(TimestampMapper.FIRST)
+                            .first();
                 }
         );
         return lastUpdatedTimeStamp;

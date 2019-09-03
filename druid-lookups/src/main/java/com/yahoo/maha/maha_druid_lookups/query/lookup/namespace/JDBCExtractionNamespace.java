@@ -18,6 +18,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 
 @JsonTypeName("mahajdbc")
 public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespace {
@@ -37,6 +38,8 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     private boolean cacheEnabled = true;
     @JsonProperty
     private final String lookupName;
+    @JsonProperty
+    private final Properties kerberosProperties;
 
     private boolean firstTimeCaching = true;
     private Timestamp previousLastUpdateTimestamp;
@@ -51,7 +54,8 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
             @Nullable @JsonProperty(value = "tsColumn", required = false) final String tsColumn,
             @Min(0) @Nullable @JsonProperty(value = "pollPeriod", required = false) final Period pollPeriod,
             @JsonProperty(value = "cacheEnabled", required = false) final boolean cacheEnabled,
-            @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName
+            @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName,
+            @JsonProperty(value = "kerberosProperties", required = false) final Properties kerberosProperties
     ) {
         this.connectorConfig = Preconditions.checkNotNull(connectorConfig, "connectorConfig");
         Preconditions.checkNotNull(connectorConfig.getConnectURI(), "connectorConfig.connectURI");
@@ -62,6 +66,7 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
         this.pollPeriod = pollPeriod == null ? new Period(0L) : pollPeriod;
         this.cacheEnabled = cacheEnabled;
         this.lookupName = lookupName;
+        this.kerberosProperties = kerberosProperties;
         int index = 0;
         ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
         for (String col : columnList) {
@@ -116,6 +121,14 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
         return lookupName;
     }
 
+    public Properties getKerberosProperties() {
+        return kerberosProperties;
+    }
+
+    public boolean hasKerberosProperties() {
+        return kerberosProperties == null || kerberosProperties.size() == 0;
+    }
+
     public boolean isFirstTimeCaching() {
         return firstTimeCaching;
     }
@@ -130,6 +143,10 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
 
     public void setPreviousLastUpdateTimestamp(Timestamp previousLastUpdateTimestamp) {
         this.previousLastUpdateTimestamp = previousLastUpdateTimestamp;
+    }
+
+    public Period getPollPeriod() {
+        return pollPeriod;
     }
 
     @Override
