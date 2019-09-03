@@ -373,6 +373,11 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
           } else {
             toJSON(incompatibleColumnsList)
           }
+          val allowedSchemas = if(dimCol.restrictedSchemas.isEmpty) {
+            JNull
+          } else {
+            toJSON(dimCol.restrictedSchemas.map(_.entryName).toList)
+          }
           makeObj(
             ("field" -> toJSON(dimCol.alias))
               :: ("type" -> toJSON("Dimension"))
@@ -384,6 +389,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
               :: ("filteringRequired" -> toJSON(dimCol.filteringRequired))
               :: ("incompatibleColumns" -> incompatibleColumns)
               :: ("isImageColumn" -> toJSON(dimCol.isImageColumn))
+              :: ("allowedSchemas" -> toJSON(allowedSchemas))
               :: Nil
           )
       }
@@ -402,6 +408,11 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
           } else {
             toJSON(incompatibleColumnsList)
           }
+          val allowedSchemas = if(factCol.restrictedSchemas.isEmpty) {
+            JNull
+          } else {
+            toJSON(factCol.restrictedSchemas.map(_.entryName).toList)
+          }
           val fc = publicFact.baseFact.factColMap(publicFact.aliasToNameColumnMap(factCol.alias))
           makeObj(
             ("field" -> toJSON(factCol.alias))
@@ -414,6 +425,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
               :: ("filteringRequired" -> toJSON(factCol.filteringRequired))
               :: ("rollupExpression" -> toJSON(fc.rollupExpression.toString))
               :: ("incompatibleColumns" -> incompatibleColumns)
+              :: ("allowedSchemas" -> toJSON(allowedSchemas))
               :: Nil
           )
       }
@@ -452,6 +464,11 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
           } else {
             toJSON(filterList)
           }
+          val allowedSchemas = if(dimCol.restrictedSchemas.isEmpty) {
+            JNull
+          } else {
+            toJSON(dimCol.restrictedSchemas.map(_.entryName).toList)
+          }
           makeObj(
             ("field" -> toJSON(dimCol.alias))
               :: ("type" -> toJSON("Dimension"))
@@ -462,6 +479,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
               :: ("required" -> toJSON(dimCol.required))
               :: ("filteringRequired" -> toJSON(dimCol.filteringRequired))
               :: ("isImageColumn" -> toJSON(dimCol.isImageColumn))
+              :: ("allowedSchemas" -> toJSON(allowedSchemas))
               :: Nil
           )
       }
@@ -481,6 +499,11 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
               } else {
                 toJSON(filterList)
               }
+              val allowedSchemas = if(dimCol._2.restrictedSchemas.isEmpty) {
+                JNull
+              } else {
+                toJSON(dimCol._2.restrictedSchemas.map(_.entryName).toList)
+              }
               flattenDimCols += makeObj(
                  ("field" -> toJSON(dimCol._2.alias))
                    :: ("type" -> toJSON("Dimension"))
@@ -491,6 +514,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
                    :: ("required" -> toJSON(dimCol._2.required))
                    :: ("filteringRequired" -> toJSON(dimCol._2.filteringRequired))
                    :: ("isImageColumn" -> toJSON(dimCol._2.isImageColumn))
+                   :: ("allowedSchemas" -> toJSON(allowedSchemas))
                    :: Nil
                )
           }
@@ -504,6 +528,11 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
           } else {
             toJSON(filterList)
           }
+          val allowedSchemas = if(factCol.restrictedSchemas.isEmpty) {
+            JNull
+          } else {
+            toJSON(factCol.restrictedSchemas.map(_.entryName).toList)
+          }
           val fc = publicFact.baseFact.factColMap(publicFact.aliasToNameColumnMap(factCol.alias))
           makeObj(
             ("field" -> toJSON(factCol.alias))
@@ -515,6 +544,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
               :: ("required" -> toJSON(factCol.required))
               :: ("filteringRequired" -> toJSON(factCol.filteringRequired))
               :: ("rollupExpression" -> toJSON(fc.rollupExpression.toString))
+              :: ("allowedSchemas" -> toJSON(allowedSchemas))
               :: Nil
           )
       }
