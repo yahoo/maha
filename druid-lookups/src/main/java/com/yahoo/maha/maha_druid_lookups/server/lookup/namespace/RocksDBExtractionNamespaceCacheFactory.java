@@ -112,7 +112,7 @@ public class RocksDBExtractionNamespaceCacheFactory
     @Override
     public byte[] getCacheValue(final RocksDBExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key, String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
 
-        return new DoFunctionClass().doStuff(extractionNamespace, cache, key, valueColumn, decodeConfigOptional, LOG, rocksDBManager, protobufSchemaFactory, lookupService, emitter);
+        return extractionNamespace.doFunctionClass.doStuff(extractionNamespace, cache, key, valueColumn, decodeConfigOptional, LOG, rocksDBManager, protobufSchemaFactory, lookupService, emitter);
     }
 
     @Override
