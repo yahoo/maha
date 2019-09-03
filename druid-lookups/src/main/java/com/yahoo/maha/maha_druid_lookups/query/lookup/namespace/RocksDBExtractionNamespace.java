@@ -39,6 +39,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
 
     private Long lastUpdatedTime = -1L;
 
+    public Boolean useNewLogic;
+
     @JsonCreator
     public RocksDBExtractionNamespace(@NotNull @JsonProperty(value = "namespace", required = true)
                                               String namespace,
@@ -51,7 +53,9 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                                       @JsonProperty(value = "lookupAuditingEnabled", required = false) final boolean lookupAuditingEnabled,
                                       @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName,
                                       @Nullable @JsonProperty(value = "tsColumn", required = false) final String tsColumn,
-                                      @NotNull @JsonProperty(value = "missingLookupConfig", required = false) final MissingLookupConfig missingLookupConfig) {
+                                      @NotNull @JsonProperty(value = "missingLookupConfig", required = false) final MissingLookupConfig missingLookupConfig,
+                                      @JsonProperty(value = "useNewLogic", required = false
+                                      @JsonProperty() ProtobufSchemaFactory schemafactoryclass) final Boolean useNewLogic) {
         this.rocksDbInstanceHDFSPath = Preconditions.checkNotNull(rocksDbInstanceHDFSPath, "rocksDbInstanceHDFSPath");
         this.lookupAuditingHDFSPath = Preconditions.checkNotNull(lookupAuditingHDFSPath, "lookupAuditingHDFSPath");
         this.namespace = Preconditions.checkNotNull(namespace, "namespace");

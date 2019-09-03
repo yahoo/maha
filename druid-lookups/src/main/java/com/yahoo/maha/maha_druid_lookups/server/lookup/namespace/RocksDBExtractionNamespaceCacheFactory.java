@@ -12,6 +12,7 @@ import com.metamx.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.DoFunctionClass;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -111,28 +112,7 @@ public class RocksDBExtractionNamespaceCacheFactory
     @Override
     public byte[] getCacheValue(final RocksDBExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key, String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
 
-        try {
-            if (!extractionNamespace.isCacheEnabled()) {
-                return lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn, decodeConfigOptional));
-            }
-
-            final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
-            if (db != null) {
-                Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
-                byte[] cacheByteValue = db.get(key.getBytes());
-                if(cacheByteValue == null) {
-                    return new byte[0];
-                }
-                Message message = parser.parseFrom(cacheByteValue);
-                Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
-                Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn);
-                return (field == null) ? new byte[0] : message.getField(field).toString().getBytes();
-            }
-        } catch (Exception e) {
-            LOG.error(e, "Caught exception while getting cache value");
-            emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE, 1));
-        }
-        return null;
+        return new DoFunctionClass().doStuff(extractionNamespace, cache, key, valueColumn, decodeConfigOptional, LOG, rocksDBManager, protobufSchemaFactory, lookupService, emitter);
     }
 
     @Override
