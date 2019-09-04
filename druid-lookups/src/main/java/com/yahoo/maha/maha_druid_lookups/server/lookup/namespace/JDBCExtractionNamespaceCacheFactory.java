@@ -45,48 +45,34 @@ public class JDBCExtractionNamespaceCacheFactory
     ) {
         final long lastCheck = lastVersion == null ? Long.MIN_VALUE / 2 : Long.parseLong(lastVersion);
         if (!extractionNamespace.isCacheEnabled()) {
-            return new Callable<String>() {
-                @Override
-                public String call() throws Exception {
-                    return String.valueOf(lastCheck);
-                }
-            };
+            return () -> String.valueOf(lastCheck);
         }
         final Timestamp lastDBUpdate = lastUpdates(id, extractionNamespace, false);
         if (lastDBUpdate != null && lastDBUpdate.getTime() <= lastCheck) {
-            return new Callable<String>() {
-                @Override
-                public String call() throws Exception {
-                    extractionNamespace.setPreviousLastUpdateTimestamp(lastDBUpdate);
-                    return lastVersion;
-                }
+            return () -> {
+                extractionNamespace.setPreviousLastUpdateTimestamp(lastDBUpdate);
+                return lastVersion;
             };
         }
-        return new Callable<String>() {
-            @Override
-            public String call() {
-                final DBI dbi = ensureDBI(id, extractionNamespace);
+        return () -> {
+            final DBI dbi = ensureDBI(id, extractionNamespace);
 
-                LOG.debug("Updating [%s]", id);
-                dbi.withHandle(
-                        new HandleCallback<Void>() {
-                            @Override
-                            public Void withHandle(Handle handle) {
-                                String query = String.format("SELECT %s FROM %s",
-                                        String.join(COMMA_SEPARATOR, extractionNamespace.getColumnList()),
-                                        extractionNamespace.getTable()
-                                );
+            LOG.debug("Updating [%s]", id);
+            dbi.withHandle(
+                    (HandleCallback<Void>) handle -> {
+                        String query = String.format("SELECT %s FROM %s",
+                                String.join(COMMA_SEPARATOR, extractionNamespace.getColumnList()),
+                                extractionNamespace.getTable()
+                        );
 
-                                populateRowListFromJDBC(extractionNamespace, query, lastDBUpdate, handle, new RowMapper(extractionNamespace, cache));
-                                return null;
-                            }
-                        }
-                );
+                        populateRowListFromJDBC(extractionNamespace, query, lastDBUpdate, handle, new RowMapper(extractionNamespace, cache));
+                        return null;
+                    }
+            );
 
-                LOG.info("Finished loading %d values for extractionNamespace[%s]", cache.size(), id);
-                extractionNamespace.setPreviousLastUpdateTimestamp(lastDBUpdate);
-                return String.format("%d", lastDBUpdate.getTime());
-            }
+            LOG.info("Finished loading %d values for extractionNamespace[%s]", cache.size(), id);
+            extractionNamespace.setPreviousLastUpdateTimestamp(lastDBUpdate);
+            return String.format("%d", lastDBUpdate.getTime());
         };
     }
 
