@@ -18,6 +18,7 @@ import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -38,7 +39,7 @@ public class RocksDBExtractionNamespaceCacheFactory
     @Inject
     ServiceEmitter emitter;
 
-    private CacheActionRunner cacheActionRunner = new CacheActionRunner();
+    private CacheActionRunner cacheActionRunner;
 
     @Override
     public Callable<String> getCachePopulator(
@@ -76,10 +77,12 @@ public class RocksDBExtractionNamespaceCacheFactory
 
     public void tryResetRunnerOrLog(RocksDBExtractionNamespace extractionNamespace) {
         try {
-            if (!extractionNamespace.cacheActionRunner.isEmpty()) {
+            if (!extractionNamespace.cacheActionRunner.isEmpty() && Objects.isNull(cacheActionRunner)) {
                 cacheActionRunner = CacheActionRunner.class.cast(
                         Class.forName(extractionNamespace.cacheActionRunner).newInstance());
                 LOG.debug("Populated a new CacheActionRunner with description " + cacheActionRunner.toString());
+            } else if (Objects.isNull(cacheActionRunner)) {
+                cacheActionRunner = new CacheActionRunner();
             }
         } catch(Exception e){
             LOG.error("Failed to get a valid cacheActionRunner.", e);
