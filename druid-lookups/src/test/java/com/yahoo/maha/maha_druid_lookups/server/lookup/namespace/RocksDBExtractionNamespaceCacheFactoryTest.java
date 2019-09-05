@@ -35,6 +35,10 @@ public class RocksDBExtractionNamespaceCacheFactoryTest {
     RocksDBExtractionNamespaceCacheFactory obj =
             new RocksDBExtractionNamespaceCacheFactory();
 
+    @InjectMocks
+    RocksDBExtractionNamespaceCacheFactory noopObj =
+            new RocksDBExtractionNamespaceCacheFactory();
+
     @Mock
     RocksDBManager rocksDBManager;
 
@@ -47,6 +51,9 @@ public class RocksDBExtractionNamespaceCacheFactoryTest {
         obj.rocksDBManager = rocksDBManager;
         obj.protobufSchemaFactory = new TestProtobufSchemaFactory();
         obj.emitter = serviceEmitter;
+        noopObj.rocksDBManager = rocksDBManager;
+        noopObj.protobufSchemaFactory = new TestProtobufSchemaFactory();
+        noopObj.emitter = serviceEmitter;
     }
 
     @Test
@@ -132,23 +139,19 @@ public class RocksDBExtractionNamespaceCacheFactoryTest {
 
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
-            RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
-                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner");
-
             Message msgFromKafka = AdProtos.Ad.newBuilder()
                     .setId("32309719080")
                     .setTitle("some updated title")
                     .setStatus("OFF")
                     .setLastUpdated("1480733203505")
                     .build();
-            extractionNamespace = new RocksDBExtractionNamespace(
+            RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
                     , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopCacheActionRunner");
 
-            obj.getCachePopulator("ad_lookup", extractionNamespace, "32309719080", new HashMap<>());
-            obj.updateCache(extractionNamespace, new HashMap<>(), "32309719080", msgFromKafka.toByteArray());
-            byte[] cacheVal = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "", Optional.empty());
+            noopObj.getCachePopulator("ad_lookup", extractionNamespace, "32309719080", new HashMap<>());
+            noopObj.updateCache(extractionNamespace, new HashMap<>(), "32309719080", msgFromKafka.toByteArray());
+            byte[] cacheVal = noopObj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "", Optional.empty());
             Assert.assertNull(cacheVal);
         } finally {
             if(db != null) {
