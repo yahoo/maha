@@ -40,7 +40,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
 
     private Long lastUpdatedTime = -1L;
 
-    public CacheActionRunner cacheActionRunner;
+    @JsonProperty
+    public String cacheActionRunner = "";
 
     @JsonCreator
     public RocksDBExtractionNamespace(@NotNull @JsonProperty(value = "namespace", required = true)
@@ -55,7 +56,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                                       @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName,
                                       @Nullable @JsonProperty(value = "tsColumn", required = false) final String tsColumn,
                                       @NotNull @JsonProperty(value = "missingLookupConfig", required = false) final MissingLookupConfig missingLookupConfig,
-                                      @JsonProperty(value = "cacheActionRunner", required = false) CacheActionRunner cacheActionRunner) {
+                                      @JsonProperty(value = "cacheActionRunner", required = false) final String cacheActionRunner) {
         this.rocksDbInstanceHDFSPath = Preconditions.checkNotNull(rocksDbInstanceHDFSPath, "rocksDbInstanceHDFSPath");
         this.lookupAuditingHDFSPath = Preconditions.checkNotNull(lookupAuditingHDFSPath, "lookupAuditingHDFSPath");
         this.namespace = Preconditions.checkNotNull(namespace, "namespace");
@@ -66,7 +67,16 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         this.lookupAuditingEnabled = lookupAuditingEnabled;
         this.lookupName = lookupName;
         this.tsColumn = tsColumn;
-        this.cacheActionRunner = Objects.nonNull(cacheActionRunner) ? cacheActionRunner : new CacheActionRunner(this);
+
+        try {
+            if(!cacheActionRunner.isEmpty() && Objects.nonNull(Class.forName(cacheActionRunner)))
+                this.cacheActionRunner = cacheActionRunner;
+            else {
+                this.cacheActionRunner = "";
+            }
+        } catch (Exception e) {
+            this.cacheActionRunner = "";
+        }
     }
 
     public String getRocksDbInstanceHDFSPath() {
@@ -121,6 +131,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         return tsColumn;
     }
 
+    public String getCacheActionRunner() { return cacheActionRunner; }
+
     @Override
     public String toString() {
         return "RocksDBExtractionNamespace{" +
@@ -135,6 +147,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 ", tsColumn='" + tsColumn + '\'' +
                 ", missingLookupConfig=" + missingLookupConfig +
                 ", lastUpdatedTime=" + lastUpdatedTime +
+                ", cacheActionRunner=" + cacheActionRunner +
                 '}';
     }
 
@@ -152,7 +165,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 Objects.equals(kafkaTopic, that.kafkaTopic) &&
                 Objects.equals(lookupName, that.lookupName) &&
                 Objects.equals(tsColumn, that.tsColumn) &&
-                Objects.equals(missingLookupConfig, that.missingLookupConfig);
+                Objects.equals(missingLookupConfig, that.missingLookupConfig) &&
+                Objects.equals(cacheActionRunner, that.cacheActionRunner);
     }
 
     @Override
@@ -167,6 +181,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 lookupAuditingEnabled,
                 lookupName,
                 tsColumn,
-                missingLookupConfig);
+                missingLookupConfig,
+                cacheActionRunner);
     }
 }

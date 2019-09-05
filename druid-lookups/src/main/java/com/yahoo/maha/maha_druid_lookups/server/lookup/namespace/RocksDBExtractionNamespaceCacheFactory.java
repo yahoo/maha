@@ -12,6 +12,7 @@ import com.metamx.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -37,6 +38,8 @@ public class RocksDBExtractionNamespaceCacheFactory
     @Inject
     ServiceEmitter emitter;
 
+    private CacheActionRunner cacheActionRunner = new CacheActionRunner();
+
     @Override
     public Callable<String> getCachePopulator(
             final String id,
@@ -45,6 +48,16 @@ public class RocksDBExtractionNamespaceCacheFactory
             final Map<String, String> cache
     )
     {
+        try {
+            if (!extractionNamespace.cacheActionRunner.isEmpty()) {
+                cacheActionRunner = CacheActionRunner.class.cast(
+                        Class.forName(extractionNamespace.cacheActionRunner).newInstance());
+                LOG.error("Populated a new CacheActionRunner with description " + cacheActionRunner.toString());
+            }
+        } catch(Exception e){
+            LOG.error("Failed to get a valid cacheActionRunner.");
+        }
+
         if(!extractionNamespace.isCacheEnabled()) {
             return new Callable<String>() {
                 @Override
@@ -72,13 +85,13 @@ public class RocksDBExtractionNamespaceCacheFactory
     @Override
     public void updateCache(final RocksDBExtractionNamespace extractionNamespace,
                             final Map<String, String> cache, final String key, final byte[] value) {
-        extractionNamespace.cacheActionRunner.updateCache(protobufSchemaFactory, key, value, rocksDBManager, emitter);
+        cacheActionRunner.updateCache(protobufSchemaFactory, key, value, rocksDBManager, emitter, extractionNamespace);
     }
 
     @Override
     public byte[] getCacheValue(final RocksDBExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key, String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
 
-        return extractionNamespace.cacheActionRunner.getCacheValue(key, valueColumn, decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, emitter);
+        return cacheActionRunner.getCacheValue(key, valueColumn, decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, emitter, extractionNamespace);
     }
 
     @Override

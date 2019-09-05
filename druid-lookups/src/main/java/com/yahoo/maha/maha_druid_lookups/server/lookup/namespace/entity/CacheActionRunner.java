@@ -1,5 +1,7 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
@@ -13,24 +15,21 @@ import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
 import com.metamx.common.logger.Logger;
 import org.rocksdb.RocksDB;
 
+import java.util.Objects;
 import java.util.Optional;
 
 public class CacheActionRunner {
 
     private static final Logger LOG = new Logger(CacheActionRunner.class);
-    private final RocksDBExtractionNamespace extractionNamespace;
 
-    public CacheActionRunner(RocksDBExtractionNamespace extractionNamespace) {
-        this.extractionNamespace = extractionNamespace;
-    }
-
-    public final byte[] getCacheValue(final String key
+    public byte[] getCacheValue(final String key
             , String valueColumn
             , final Optional<DecodeConfig> decodeConfigOptional
             , RocksDBManager rocksDBManager
             , ProtobufSchemaFactory protobufSchemaFactory
             , LookupService lookupService
-            , ServiceEmitter emitter){
+            , ServiceEmitter emitter
+            , RocksDBExtractionNamespace extractionNamespace){
         try {
             if (!extractionNamespace.isCacheEnabled()) {
                 return lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn, decodeConfigOptional));
@@ -55,11 +54,12 @@ public class CacheActionRunner {
         return null;
     }
 
-    public final void updateCache(ProtobufSchemaFactory protobufSchemaFactory
+    public void updateCache(ProtobufSchemaFactory protobufSchemaFactory
             , final String key
             , final byte[] value
             , RocksDBManager rocksDBManager
-            , ServiceEmitter serviceEmitter) {
+            , ServiceEmitter serviceEmitter
+            , RocksDBExtractionNamespace extractionNamespace) {
         if (extractionNamespace.isCacheEnabled()) {
             try {
 
@@ -94,5 +94,20 @@ public class CacheActionRunner {
                 serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_FAILURE, 1));
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "CacheActionRunner{}";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return this == o;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(this);
     }
 }

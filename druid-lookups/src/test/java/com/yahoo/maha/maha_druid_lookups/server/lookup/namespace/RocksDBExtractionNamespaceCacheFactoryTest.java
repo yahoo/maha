@@ -74,7 +74,7 @@ public class RocksDBExtractionNamespaceCacheFactoryTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            );
+            , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopCacheActionRunner");
 
             Message msgFromKafka = AdProtos.Ad.newBuilder()
                     .setId("32309719080")
@@ -99,6 +99,10 @@ public class RocksDBExtractionNamespaceCacheFactoryTest {
             field = descriptor.findFieldByName("last_updated");
             Assert.assertEquals(updatedMessage.getField(field).toString(), "1480733203505");
             Assert.assertEquals(extractionNamespace.getLastUpdatedTime().longValue(), 1480733203505L);
+
+            obj.getCachePopulator("ad_lookup", extractionNamespace, "32309719080", new HashMap<>());
+            obj.updateCache(extractionNamespace, new HashMap<>(), "32309719080", msgFromKafka.toByteArray());
+            Assert.assertEquals(obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "", Optional.empty()), null);
 
         } finally {
             if(db != null) {
@@ -135,7 +139,7 @@ public class RocksDBExtractionNamespaceCacheFactoryTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            );
+            , null);
 
             Message msgFromKafka = AdProtos.Ad.newBuilder()
                     .setId("32309719080")
@@ -196,7 +200,7 @@ public class RocksDBExtractionNamespaceCacheFactoryTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            );
+            , null);
 
             byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "title", Optional.empty());
 
@@ -228,7 +232,7 @@ public class RocksDBExtractionNamespaceCacheFactoryTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            );
+            , null);
 
             byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "title", Optional.empty());
 
