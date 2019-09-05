@@ -79,10 +79,10 @@ public class RocksDBExtractionNamespaceCacheFactory
             if (!extractionNamespace.cacheActionRunner.isEmpty()) {
                 cacheActionRunner = CacheActionRunner.class.cast(
                         Class.forName(extractionNamespace.cacheActionRunner).newInstance());
-                LOG.error("Populated a new CacheActionRunner with description " + cacheActionRunner.toString());
+                LOG.debug("Populated a new CacheActionRunner with description " + cacheActionRunner.toString());
             }
         } catch(Exception e){
-            LOG.error("Failed to get a valid cacheActionRunner.");
+            LOG.error("Failed to get a valid cacheActionRunner.", e);
         }
     }
 

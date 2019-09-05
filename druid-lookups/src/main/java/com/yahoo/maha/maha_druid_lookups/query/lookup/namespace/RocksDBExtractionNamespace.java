@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.base.Preconditions;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
+import org.apache.commons.lang.StringUtils;
 import org.joda.time.Period;
 
 import javax.annotation.Nullable;
@@ -69,7 +70,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         this.tsColumn = tsColumn;
 
         try {
-            if(!cacheActionRunner.isEmpty() && Objects.nonNull(Class.forName(cacheActionRunner)))
+            if(StringUtils.isNotBlank(cacheActionRunner) && Objects.nonNull(Class.forName(cacheActionRunner)))
                 this.cacheActionRunner = cacheActionRunner;
             else {
                 this.cacheActionRunner = "";
