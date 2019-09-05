@@ -24,7 +24,8 @@ public class CacheActionRunner {
         this.extractionNamespace = extractionNamespace;
     }
 
-    public final byte[] getCacheValue(final String key, String valueColumn
+    public final byte[] getCacheValue(final String key
+            , String valueColumn
             , final Optional<DecodeConfig> decodeConfigOptional
             , RocksDBManager rocksDBManager
             , ProtobufSchemaFactory protobufSchemaFactory

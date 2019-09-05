@@ -55,7 +55,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                                       @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName,
                                       @Nullable @JsonProperty(value = "tsColumn", required = false) final String tsColumn,
                                       @NotNull @JsonProperty(value = "missingLookupConfig", required = false) final MissingLookupConfig missingLookupConfig,
-                                      @JsonProperty(value = "doFunctionClass", required = false) CacheActionRunner cacheActionRunner) {
+                                      @JsonProperty(value = "cacheActionRunner", required = false) CacheActionRunner cacheActionRunner) {
         this.rocksDbInstanceHDFSPath = Preconditions.checkNotNull(rocksDbInstanceHDFSPath, "rocksDbInstanceHDFSPath");
         this.lookupAuditingHDFSPath = Preconditions.checkNotNull(lookupAuditingHDFSPath, "lookupAuditingHDFSPath");
         this.namespace = Preconditions.checkNotNull(namespace, "namespace");
