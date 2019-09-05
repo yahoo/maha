@@ -72,13 +72,13 @@ public class RocksDBExtractionNamespaceCacheFactory
     @Override
     public void updateCache(final RocksDBExtractionNamespace extractionNamespace,
                             final Map<String, String> cache, final String key, final byte[] value) {
-        extractionNamespace.cacheActionRunner.updateCache(protobufSchemaFactory, key, value, cache, rocksDBManager, emitter);
+        extractionNamespace.cacheActionRunner.updateCache(protobufSchemaFactory, key, value, rocksDBManager, emitter);
     }
 
     @Override
     public byte[] getCacheValue(final RocksDBExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key, String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
 
-        return extractionNamespace.cacheActionRunner.getCacheValue(cache, key, valueColumn, decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, emitter);
+        return extractionNamespace.cacheActionRunner.getCacheValue(key, valueColumn, decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, emitter);
     }
 
     @Override

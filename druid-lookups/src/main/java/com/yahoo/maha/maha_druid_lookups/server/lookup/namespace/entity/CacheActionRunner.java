@@ -13,7 +13,6 @@ import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
 import com.metamx.common.logger.Logger;
 import org.rocksdb.RocksDB;
 
-import java.util.Map;
 import java.util.Optional;
 
 public class CacheActionRunner {
@@ -25,8 +24,7 @@ public class CacheActionRunner {
         this.extractionNamespace = extractionNamespace;
     }
 
-    public final byte[] getCacheValue(final Map<String, String> cache
-            , final String key, String valueColumn
+    public final byte[] getCacheValue(final String key, String valueColumn
             , final Optional<DecodeConfig> decodeConfigOptional
             , RocksDBManager rocksDBManager
             , ProtobufSchemaFactory protobufSchemaFactory
@@ -59,7 +57,6 @@ public class CacheActionRunner {
     public final void updateCache(ProtobufSchemaFactory protobufSchemaFactory
             , final String key
             , final byte[] value
-            , final Map<String, String> cache
             , RocksDBManager rocksDBManager
             , ServiceEmitter serviceEmitter) {
         if (extractionNamespace.isCacheEnabled()) {
