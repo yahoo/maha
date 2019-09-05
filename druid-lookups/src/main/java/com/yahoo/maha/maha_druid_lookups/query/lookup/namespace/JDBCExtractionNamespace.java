@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Objects;
 
+@JsonTypeName("mahajdbc")
 public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespace {
     @JsonProperty
     private final MetadataStorageConnectorConfig connectorConfig;
