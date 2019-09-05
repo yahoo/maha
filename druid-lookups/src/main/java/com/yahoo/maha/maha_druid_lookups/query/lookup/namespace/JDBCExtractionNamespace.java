@@ -76,6 +76,10 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
         this.columnIndexMap = builder.build();
     }
 
+    public JDBCExtractionNamespace(MetadataStorageConnectorConfig connectorConfig, String table, ArrayList<String> columnList, String primaryKeyColumn, String tsColumn, Period pollPeriod, boolean cacheEnabled, String lookupName) {
+        this(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, new Properties());
+    }
+
     public int getColumnIndex(String valueColumn) {
         if (columnIndexMap != null && valueColumn != null && columnIndexMap.containsKey(valueColumn)) {
             return columnIndexMap.get(valueColumn);
