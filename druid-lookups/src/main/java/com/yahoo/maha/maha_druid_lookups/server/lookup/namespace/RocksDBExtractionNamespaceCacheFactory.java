@@ -48,15 +48,7 @@ public class RocksDBExtractionNamespaceCacheFactory
             final Map<String, String> cache
     )
     {
-        try {
-            if (!extractionNamespace.cacheActionRunner.isEmpty()) {
-                cacheActionRunner = CacheActionRunner.class.cast(
-                        Class.forName(extractionNamespace.cacheActionRunner).newInstance());
-                LOG.error("Populated a new CacheActionRunner with description " + cacheActionRunner.toString());
-            }
-        } catch(Exception e){
-            LOG.error("Failed to get a valid cacheActionRunner.");
-        }
+        tryResetRunnerOrLog(extractionNamespace);
 
         if(!extractionNamespace.isCacheEnabled()) {
             return new Callable<String>() {
@@ -82,14 +74,29 @@ public class RocksDBExtractionNamespaceCacheFactory
         };
     }
 
+    public void tryResetRunnerOrLog(RocksDBExtractionNamespace extractionNamespace) {
+        try {
+            if (!extractionNamespace.cacheActionRunner.isEmpty()) {
+                cacheActionRunner = CacheActionRunner.class.cast(
+                        Class.forName(extractionNamespace.cacheActionRunner).newInstance());
+                LOG.error("Populated a new CacheActionRunner with description " + cacheActionRunner.toString());
+            }
+        } catch(Exception e){
+            LOG.error("Failed to get a valid cacheActionRunner.");
+        }
+    }
+
     @Override
     public void updateCache(final RocksDBExtractionNamespace extractionNamespace,
                             final Map<String, String> cache, final String key, final byte[] value) {
+        tryResetRunnerOrLog(extractionNamespace);
+
         cacheActionRunner.updateCache(protobufSchemaFactory, key, value, rocksDBManager, emitter, extractionNamespace);
     }
 
     @Override
     public byte[] getCacheValue(final RocksDBExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key, String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
+        tryResetRunnerOrLog(extractionNamespace);
 
         return cacheActionRunner.getCacheValue(key, valueColumn, decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, emitter, extractionNamespace);
     }
