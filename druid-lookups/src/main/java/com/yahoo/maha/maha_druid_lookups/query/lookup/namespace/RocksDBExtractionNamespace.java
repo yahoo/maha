@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.base.Preconditions;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.DoFunctionClass;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
 import org.joda.time.Period;
 
 import javax.annotation.Nullable;
@@ -40,7 +40,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
 
     private Long lastUpdatedTime = -1L;
 
-    public DoFunctionClass doFunctionClass;
+    public CacheActionRunner cacheActionRunner;
 
     @JsonCreator
     public RocksDBExtractionNamespace(@NotNull @JsonProperty(value = "namespace", required = true)
@@ -55,7 +55,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                                       @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName,
                                       @Nullable @JsonProperty(value = "tsColumn", required = false) final String tsColumn,
                                       @NotNull @JsonProperty(value = "missingLookupConfig", required = false) final MissingLookupConfig missingLookupConfig,
-                                      @JsonProperty(value = "doFunctionClass", required = false) DoFunctionClass doFunctionClass) {
+                                      @JsonProperty(value = "doFunctionClass", required = false) CacheActionRunner cacheActionRunner) {
         this.rocksDbInstanceHDFSPath = Preconditions.checkNotNull(rocksDbInstanceHDFSPath, "rocksDbInstanceHDFSPath");
         this.lookupAuditingHDFSPath = Preconditions.checkNotNull(lookupAuditingHDFSPath, "lookupAuditingHDFSPath");
         this.namespace = Preconditions.checkNotNull(namespace, "namespace");
@@ -66,7 +66,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         this.lookupAuditingEnabled = lookupAuditingEnabled;
         this.lookupName = lookupName;
         this.tsColumn = tsColumn;
-        this.doFunctionClass = Objects.nonNull(doFunctionClass) ? doFunctionClass : new DoFunctionClass();
+        this.cacheActionRunner = Objects.nonNull(cacheActionRunner) ? cacheActionRunner : new CacheActionRunner(this);
     }
 
     public String getRocksDbInstanceHDFSPath() {

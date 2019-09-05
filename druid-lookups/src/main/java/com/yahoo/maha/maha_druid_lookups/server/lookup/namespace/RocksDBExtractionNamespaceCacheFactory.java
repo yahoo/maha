@@ -12,7 +12,6 @@ import com.metamx.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.DoFunctionClass;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -73,46 +72,13 @@ public class RocksDBExtractionNamespaceCacheFactory
     @Override
     public void updateCache(final RocksDBExtractionNamespace extractionNamespace,
                             final Map<String, String> cache, final String key, final byte[] value) {
-        if (extractionNamespace.isCacheEnabled()) {
-            try {
-
-                Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
-                Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
-                Descriptors.FieldDescriptor field = descriptor.findFieldByName(extractionNamespace.getTsColumn());
-
-                Message newMessage = parser.parseFrom(value);
-                Long newLastUpdated = Long.valueOf(newMessage.getField(field).toString());
-
-                final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
-                if (db != null) {
-                    byte[] cacheValue = db.get(key.getBytes());
-                    if(cacheValue != null) {
-
-                        Message messageInDB = parser.parseFrom(cacheValue);
-                        Long lastUpdatedInDB = Long.valueOf(messageInDB.getField(field).toString());
-
-                        if(newLastUpdated > lastUpdatedInDB) {
-                            db.put(key.getBytes(), value);
-                        }
-                    } else {
-                        db.put(key.getBytes(), value);
-                    }
-                    if(newLastUpdated > extractionNamespace.getLastUpdatedTime()) {
-                        extractionNamespace.setLastUpdatedTime(newLastUpdated);
-                    }
-                    emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_SUCCESS, 1));
-                }
-            } catch (Exception e) {
-                LOG.error(e, "Caught exception while updating cache");
-                emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_FAILURE, 1));
-            }
-        }
+        extractionNamespace.cacheActionRunner.updateCache(protobufSchemaFactory, key, value, cache, rocksDBManager, emitter);
     }
 
     @Override
     public byte[] getCacheValue(final RocksDBExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key, String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
 
-        return extractionNamespace.doFunctionClass.doStuff(extractionNamespace, cache, key, valueColumn, decodeConfigOptional, LOG, rocksDBManager, protobufSchemaFactory, lookupService, emitter);
+        return extractionNamespace.cacheActionRunner.getCacheValue(cache, key, valueColumn, decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, emitter);
     }
 
     @Override
