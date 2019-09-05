@@ -149,7 +149,7 @@ public class RocksDBExtractionNamespaceCacheFactoryTest {
             obj.getCachePopulator("ad_lookup", extractionNamespace, "32309719080", new HashMap<>());
             obj.updateCache(extractionNamespace, new HashMap<>(), "32309719080", msgFromKafka.toByteArray());
             byte[] cacheVal = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "", Optional.empty());
-            Assert.assertEquals(null, cacheVal);
+            Assert.assertNull(cacheVal);
         } finally {
             if(db != null) {
                 db.close();
