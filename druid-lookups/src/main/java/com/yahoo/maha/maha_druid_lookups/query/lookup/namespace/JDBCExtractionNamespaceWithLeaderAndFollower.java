@@ -59,6 +59,22 @@ public class JDBCExtractionNamespaceWithLeaderAndFollower extends JDBCExtraction
         this.setPreviousLastUpdateTimestamp(new Timestamp(0L));
     }
 
+    public JDBCExtractionNamespaceWithLeaderAndFollower(
+            final MetadataStorageConnectorConfig connectorConfig,
+            final String table,
+            final ArrayList<String> columnList,
+            final String primaryKeyColumn,
+            final String tsColumn,
+            final Period pollPeriod,
+            final boolean cacheEnabled,
+            final String lookupName,
+            final String kafkaTopic,
+            final boolean isLeader,
+            final Properties kafkaProperties
+    ) {
+        this(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, kafkaTopic, isLeader, kafkaProperties, new Properties());
+    }
+
     @Override
     public String toString() {
         return "JDBCExtractionNamespaceWithLeaderAndFollower{" +

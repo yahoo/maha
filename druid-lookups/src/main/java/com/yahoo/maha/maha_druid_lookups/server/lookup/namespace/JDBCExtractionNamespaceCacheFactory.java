@@ -8,6 +8,7 @@ import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CustomizedTimestampMapper;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.RowMapper;
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.Handle;
@@ -118,34 +119,26 @@ public class JDBCExtractionNamespaceCacheFactory
     protected DBI ensureDBI(String id, JDBCExtractionNamespace namespace) {
         final String key = id;
         DBI dbi = null;
+
         if (dbiCache.containsKey(key)) {
             dbi = dbiCache.get(key);
         }
+
         if (dbi == null) {
             if (!namespace.hasKerberosProperties()) {
-                dbi = createDBIWithPassword(namespace);
+                dbi = new DBI(
+                        namespace.getConnectorConfig().getConnectURI(),
+                        namespace.getConnectorConfig().getUser(),
+                        namespace.getConnectorConfig().getPassword()
+                );
             } else {
-                dbi = createDBIWithKerberos(namespace);
+                dbi = new DBI(
+                        namespace.getConnectorConfig().getConnectURI(),
+                        namespace.getKerberosProperties()
+                );
             }
             dbiCache.putIfAbsent(key, dbi);
         }
-        return dbi;
-    }
-
-    protected DBI createDBIWithPassword(JDBCExtractionNamespace namespace) {
-        final DBI dbi = new DBI(
-                namespace.getConnectorConfig().getConnectURI(),
-                namespace.getConnectorConfig().getUser(),
-                namespace.getConnectorConfig().getPassword()
-        );
-        return dbi;
-    }
-
-    protected DBI createDBIWithKerberos(JDBCExtractionNamespace namespace) {
-        final DBI dbi = new DBI(
-                namespace.getConnectorConfig().getConnectURI(),
-                namespace.getKerberosProperties()
-        );
         return dbi;
     }
 
@@ -168,7 +161,7 @@ public class JDBCExtractionNamespaceCacheFactory
                     );
                     return handle
                             .createQuery(query)
-                            .map(TimestampMapper.FIRST)
+                            .map(CustomizedTimestampMapper.FIRST)
                             .first();
                 }
         );

@@ -130,7 +130,7 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     }
 
     public boolean hasKerberosProperties() {
-        return kerberosProperties == null || kerberosProperties.size() == 0;
+        return kerberosProperties != null && kerberosProperties.size() != 0;
     }
 
     public boolean isFirstTimeCaching() {
