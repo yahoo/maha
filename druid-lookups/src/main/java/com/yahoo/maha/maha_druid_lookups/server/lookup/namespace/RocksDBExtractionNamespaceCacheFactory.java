@@ -14,6 +14,7 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamesp
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
+import org.apache.commons.lang.StringUtils;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
@@ -77,12 +78,10 @@ public class RocksDBExtractionNamespaceCacheFactory
 
     public void tryResetRunnerOrLog(RocksDBExtractionNamespace extractionNamespace) {
         try {
-            if (!extractionNamespace.cacheActionRunner.isEmpty() && Objects.isNull(cacheActionRunner)) {
+            if (cacheActionRunner == null) {
                 cacheActionRunner = CacheActionRunner.class.cast(
                         Class.forName(extractionNamespace.cacheActionRunner).newInstance());
                 LOG.debug("Populated a new CacheActionRunner with description " + cacheActionRunner.toString());
-            } else if (Objects.isNull(cacheActionRunner)) {
-                cacheActionRunner = new CacheActionRunner();
             } else {
                 LOG.info("Runner is already defined.  Found " + cacheActionRunner.getClass().getName());
             }

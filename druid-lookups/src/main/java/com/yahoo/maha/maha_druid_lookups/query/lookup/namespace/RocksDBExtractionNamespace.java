@@ -7,12 +7,14 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.base.Preconditions;
 import com.metamx.common.logger.Logger;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.Period;
 
 import javax.annotation.Nullable;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Null;
 import java.util.Objects;
 
 @JsonTypeName("maharocksdb")
@@ -71,15 +73,19 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         this.lookupName = lookupName;
         this.tsColumn = tsColumn;
 
-        try {
-            if(StringUtils.isNotBlank(cacheActionRunner) && Objects.nonNull(Class.forName(cacheActionRunner)))
-                this.cacheActionRunner = cacheActionRunner;
-            else {
-                this.cacheActionRunner = "";
+        //cacheActionRunner = "."
+        if(StringUtils.isBlank(cacheActionRunner)) //no runner is passed, use Default Class String
+            this.cacheActionRunner = CacheActionRunner.class.getName();
+        else {
+            try { //Check if the passed in runner is valid, else throw an exception to stop the program.
+                Class actionRunner = Class.forName(cacheActionRunner);
+                Preconditions.checkArgument(actionRunner.isInstance(CacheActionRunner.class),
+                        "Passed in runner should be a CacheActionRunner, but got a " + cacheActionRunner + " of class " + actionRunner);
+                this.cacheActionRunner =  cacheActionRunner;
+            } catch (Throwable t) {
+                LOG.error("Found a blank or invalid CacheActionRunner, logging error and throwing Runtime ", t);
+                throw new RuntimeException("Found invalid passed in CacheActionRunner with String " + cacheActionRunner, t);
             }
-        } catch (Exception e) {
-            LOG.error("Found a blank or invalid CacheActionRunner, logging error ", e);
-            this.cacheActionRunner = "";
         }
     }
 
