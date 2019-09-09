@@ -78,9 +78,9 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
             this.cacheActionRunner = CacheActionRunner.class.getName();
         else {
             try { //Check if the passed in runner is valid, else throw an exception to stop the program.
-                Class actionRunner = Class.forName(cacheActionRunner);
-                Preconditions.checkArgument(actionRunner.isInstance(CacheActionRunner.class),
-                        "Passed in runner should be a CacheActionRunner, but got a " + cacheActionRunner + " of class " + actionRunner);
+                Object actionRunner = Class.forName(cacheActionRunner).newInstance();
+                Preconditions.checkArgument(actionRunner instanceof CacheActionRunner,
+                        "Passed in runner should be a CacheActionRunner, but got a " + cacheActionRunner + " of class " + actionRunner.getClass().getName());
                 this.cacheActionRunner =  cacheActionRunner;
             } catch (Throwable t) {
                 LOG.error("Found a blank or invalid CacheActionRunner, logging error and throwing Runtime ", t);
