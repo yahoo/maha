@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.base.Preconditions;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
+import com.metamx.common.logger.Logger;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.Period;
 
@@ -17,6 +17,8 @@ import java.util.Objects;
 
 @JsonTypeName("maharocksdb")
 public class RocksDBExtractionNamespace implements ExtractionNamespace {
+
+    Logger LOG = new Logger(RocksDBExtractionNamespace.class);
 
     @JsonProperty
     private final String rocksDbInstanceHDFSPath;
@@ -76,6 +78,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 this.cacheActionRunner = "";
             }
         } catch (Exception e) {
+            LOG.error("Found a blank or invalid CacheActionRunner, logging error ", e);
             this.cacheActionRunner = "";
         }
     }

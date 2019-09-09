@@ -83,6 +83,8 @@ public class RocksDBExtractionNamespaceCacheFactory
                 LOG.debug("Populated a new CacheActionRunner with description " + cacheActionRunner.toString());
             } else if (Objects.isNull(cacheActionRunner)) {
                 cacheActionRunner = new CacheActionRunner();
+            } else {
+                LOG.info("Runner is already defined.  Found " + cacheActionRunner.getClass().getName());
             }
         } catch(Exception e){
             LOG.error("Failed to get a valid cacheActionRunner.", e);
