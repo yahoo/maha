@@ -43,7 +43,7 @@ public class RocksDBLookupExtractorTest {
         ServiceEmitter serviceEmitter = mock(ServiceEmitter.class);
         RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                 "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-        );
+        , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopCacheActionRunner");
         Map<String, String> map = new HashMap<>();
         RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, new TestProtobufSchemaFactory(), serviceEmitter);
         String lookupValue = RocksDBLookupExtractor.apply("");
@@ -58,7 +58,7 @@ public class RocksDBLookupExtractorTest {
         ServiceEmitter serviceEmitter = mock(ServiceEmitter.class);
         RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                 "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-        );
+        , null);
         Map<String, String> map = new HashMap<>();
         RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
         String lookupValue = RocksDBLookupExtractor.apply(null);
@@ -78,7 +78,7 @@ public class RocksDBLookupExtractorTest {
         MissingLookupConfig missingLookupConfig = new MissingLookupConfig(new MetadataStorageConnectorConfig(), "", "", "some_missing_topic");
         RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                 "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", missingLookupConfig
-        );
+        , null);
         Map<String, String> map = new HashMap<>();
         RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
         MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
@@ -104,7 +104,7 @@ public class RocksDBLookupExtractorTest {
 
         RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                 "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-        );
+        , null);
         Map<String, String> map = new HashMap<>();
         RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
         MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
@@ -145,7 +145,7 @@ public class RocksDBLookupExtractorTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            );
+            , null);
             Map<String, String> map = new HashMap<>();
             RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
             MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
@@ -198,7 +198,7 @@ public class RocksDBLookupExtractorTest {
 
             MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
             RocksDBExtractionNamespace extractionNamespace =
-                new RocksDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null);
+                new RocksDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null, null);
             Map<String, List<String>> map = new HashMap<>();
             map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
             RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
@@ -227,7 +227,7 @@ public class RocksDBLookupExtractorTest {
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = objectMapper.readValue("{ \"createTables\": false,\"connectURI\": \"jdbc:oracle:thin:@testdb\",\"user\": \"test_user\",\"password\":\"test_user.db.prod.pwd\"}", MetadataStorageConnectorConfig.class);
         RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                 "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic")
-        );
+        , null);
         byte[] b = objectMapper.writeValueAsBytes(extractionNamespace);
         Map<String, String> map = new HashMap<>();
         RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
@@ -280,7 +280,7 @@ public class RocksDBLookupExtractorTest {
 
             MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
             RocksDBExtractionNamespace extractionNamespace =
-                new RocksDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"));
+                new RocksDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"), null);
             Map<String, List<String>> map = new HashMap<>();
             map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
             RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
@@ -355,7 +355,7 @@ public class RocksDBLookupExtractorTest {
 
             MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
             RocksDBExtractionNamespace extractionNamespace =
-                new RocksDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"));
+                new RocksDBExtractionNamespace("ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"), null);
             Map<String, List<String>> map = new HashMap<>();
             map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
             RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, new TestProtobufSchemaFactory(), serviceEmitter);
