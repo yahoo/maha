@@ -46,9 +46,10 @@ public class JDBCExtractionNamespaceWithLeaderAndFollower extends JDBCExtraction
             @JsonProperty(value = "kafkaTopic", required = true) final String kafkaTopic,
             @JsonProperty(value = "isLeader", required = true) final boolean isLeader,
             @JsonProperty(value = "kafkaProperties", required = true) final Properties kafkaProperties,
-            @JsonProperty(value = "kerberosProperties", required = false) final Properties kerberosProperties
+            @JsonProperty(value = "kerberosProperties", required = false) final Properties kerberosProperties,
+            @JsonProperty(value = "tsColumnConfig", required = false) final TsColumnConfig tsColumnConfig
             ) {
-        super(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, kerberosProperties);
+        super(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, kerberosProperties, tsColumnConfig);
 
         this.kafkaTopic = Objects.nonNull(kafkaTopic) ? kafkaTopic : "unassigned";
 
@@ -72,7 +73,7 @@ public class JDBCExtractionNamespaceWithLeaderAndFollower extends JDBCExtraction
             final boolean isLeader,
             final Properties kafkaProperties
     ) {
-        this(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, kafkaTopic, isLeader, kafkaProperties, new Properties());
+        this(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, kafkaTopic, isLeader, kafkaProperties, null, null);
     }
 
     @Override
@@ -90,7 +91,8 @@ public class JDBCExtractionNamespaceWithLeaderAndFollower extends JDBCExtraction
                 ", previousLastUpdateTimestamp=" + getPreviousLastUpdateTimestamp() +
                 ", kafkaProperties" + kafkaProperties.toString() +
                 ", isLeader=" + isLeader +
-                ", kafkaTopic=" + kafkaTopic +
+                ", kerberosProperties=" + getKerberosProperties() +
+                ", tsColumnConfig=" + getTsColumnConfig() +
                 '}';
     }
 

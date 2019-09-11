@@ -40,6 +40,8 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     private final String lookupName;
     @JsonProperty
     private final Properties kerberosProperties;
+    @JsonProperty
+    private final TsColumnConfig tsColumnConfig;
 
     private boolean firstTimeCaching = true;
     private Timestamp previousLastUpdateTimestamp;
@@ -55,7 +57,8 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
             @Min(0) @Nullable @JsonProperty(value = "pollPeriod", required = false) final Period pollPeriod,
             @JsonProperty(value = "cacheEnabled", required = false) final boolean cacheEnabled,
             @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName,
-            @JsonProperty(value = "kerberosProperties", required = false) final Properties kerberosProperties
+            @JsonProperty(value = "kerberosProperties", required = false) final Properties kerberosProperties,
+            @JsonProperty(value = "tsColumnConfig", required = false) final TsColumnConfig tsColumnConfig
     ) {
         this.connectorConfig = Preconditions.checkNotNull(connectorConfig, "connectorConfig");
         Preconditions.checkNotNull(connectorConfig.getConnectURI(), "connectorConfig.connectURI");
@@ -67,6 +70,7 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
         this.cacheEnabled = cacheEnabled;
         this.lookupName = lookupName;
         this.kerberosProperties = kerberosProperties;
+        this.tsColumnConfig = tsColumnConfig;
         int index = 0;
         ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
         for (String col : columnList) {
@@ -77,7 +81,7 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     }
 
     public JDBCExtractionNamespace(MetadataStorageConnectorConfig connectorConfig, String table, ArrayList<String> columnList, String primaryKeyColumn, String tsColumn, Period pollPeriod, boolean cacheEnabled, String lookupName) {
-        this(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, new Properties());
+        this(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, null, null);
     }
 
     public int getColumnIndex(String valueColumn) {
@@ -133,6 +137,15 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
         return kerberosProperties != null && kerberosProperties.size() != 0;
     }
 
+    public TsColumnConfig getTsColumnConfig() {
+        return tsColumnConfig;
+    }
+
+    public boolean hasTsColumnConfig() {
+        return tsColumnConfig != null;
+    }
+
+
     public boolean isFirstTimeCaching() {
         return firstTimeCaching;
     }
@@ -166,6 +179,8 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
                 ", lookupName='" + lookupName + '\'' +
                 ", firstTimeCaching=" + firstTimeCaching +
                 ", previousLastUpdateTimestamp=" + previousLastUpdateTimestamp +
+                ", kerberosProperties=" + kerberosProperties +
+                ", tsColumnConfig=" + tsColumnConfig +
                 '}';
     }
 
@@ -181,12 +196,14 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
                 Objects.equals(pollPeriod, that.pollPeriod) &&
                 Objects.equals(getColumnList(), that.getColumnList()) &&
                 Objects.equals(getPrimaryKeyColumn(), that.getPrimaryKeyColumn()) &&
-                Objects.equals(getLookupName(), that.getLookupName());
+                Objects.equals(getLookupName(), that.getLookupName()) &&
+                Objects.equals(getKerberosProperties(), that.getKerberosProperties()) &&
+                Objects.equals(getTsColumnConfig(), that.getTsColumnConfig());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getConnectorConfig(), getTable(), getTsColumn(), pollPeriod, getColumnList(), getPrimaryKeyColumn(), isCacheEnabled(), getLookupName());
+        return Objects.hash(getConnectorConfig(), getTable(), getTsColumn(), pollPeriod, getColumnList(), getPrimaryKeyColumn(), isCacheEnabled(), getLookupName(), getKerberosProperties(), getTsColumnConfig());
     }
 }
 
