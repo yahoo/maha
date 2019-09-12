@@ -196,13 +196,11 @@ public class JDBCExtractionNamespaceCacheFactory
     protected Timestamp lastUpdates(String id, JDBCExtractionNamespace namespace, Boolean isFollower) {
         final String table = namespace.getTable();
         final String tsColumn = namespace.getTsColumn();
+
         if (tsColumn == null) {
             return null;
         }
-        if (!namespace.isFirstTimeCaching() && isFollower)
-            return namespace.getPreviousLastUpdateTimestamp();
 
-        final DBI dbi = ensureDBI(id, namespace);
         if (!namespace.isFirstTimeCaching() && isFollower)
             return namespace.getPreviousLastUpdateTimestamp();
 
