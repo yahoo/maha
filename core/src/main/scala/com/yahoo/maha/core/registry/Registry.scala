@@ -595,8 +595,17 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
         makeObj(
           ("name" -> toJSON(publicDim.name))
             :: ("fields" -> toJSON(publicDim.columnsByAliasMap.filter(rec => !rec._2.hiddenFromJson).keySet.toList))
-            :: Nil
-        )
+            :: ("fieldsWithSchemas" -> JArray(
+                  publicDim.columnsByAliasMap.filter(rec => !rec._2.hiddenFromJson).keySet.map(colName => {
+                  makeObj(
+                    "name" -> toJSON(colName)
+                    ::"allowedSchemas" -> toJSON(publicDim.columnsByAliasMap(colName).restrictedSchemas.map(_.entryName).toList)
+                    ::Nil
+                  )
+            }).toList
+            )
+            ::Nil
+        ))
       }.toList
     )
 
