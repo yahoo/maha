@@ -20,7 +20,7 @@
 
     <properties>
         <jersey.version>2.27</jersey.version>
-        <jetty.version>9.4.17.v20190418</jetty.version>
+        <jetty.version>9.4.18.v20190429</jetty.version>
     </properties>
 
     <dependencies>
@@ -85,6 +85,7 @@
         <dependency>
             <groupId>com.jsuereth</groupId>
             <artifactId>scala-arm_${scala.major.version}</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -247,7 +248,7 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>test</scope>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.scalatest</groupId>
