@@ -32,7 +32,7 @@ public class JDBCExtractionNamespaceCacheFactory
     private static final Logger LOG = new Logger(JDBCExtractionNamespaceCacheFactory.class);
     private static final String COMMA_SEPARATOR = ",";
     private static final String FIRST_TIME_CACHING_WHERE_CLAUSE = " WHERE %s <= %s";
-    private static final String FIRST_TIME_CACHING_WHERE_CLAUSE_EXTENSION = " AND %s %s %s";
+    private static final String WHERE_CLAUSE_EXTENSION = " AND %s %s %s";
     private static final String SUBSEQUENT_CACHING_WHERE_CLAUSE = " WHERE %s > %s";
     private static final String LAST_UPDATED_TIMESTAMP = ":lastUpdatedTimeStamp";
     private static final int FETCH_SIZE = 10000;
@@ -114,7 +114,8 @@ public class JDBCExtractionNamespaceCacheFactory
         } else {
             query = String.format("%s %s",
                     query,
-                    getBaseWhereClause(SUBSEQUENT_CACHING_WHERE_CLAUSE, extractionNamespace)
+                    getBaseWhereClause(SUBSEQUENT_CACHING_WHERE_CLAUSE, extractionNamespace),
+                    whereClauseExtension
             );
             updateTS = extractionNamespace.getPreviousLastUpdateTimestamp();
         }
@@ -132,7 +133,7 @@ public class JDBCExtractionNamespaceCacheFactory
         String whereClauseExtension = "";
         if (extractionNamespace.hasTsColumnConfig() && extractionNamespace.getTsColumnConfig().hasSecondaryTsColumn()) {
             String maxVal = (String) getMaxValFromColumn(id, extractionNamespace, StringMapper.FIRST, extractionNamespace.getTsColumnConfig().getSecondaryTsColumn(), extractionNamespace.getTable());
-            whereClauseExtension = String.format(FIRST_TIME_CACHING_WHERE_CLAUSE_EXTENSION,
+            whereClauseExtension = String.format(WHERE_CLAUSE_EXTENSION,
                     extractionNamespace.getTsColumnConfig().getSecondaryTsColumn(),
                     extractionNamespace.getTsColumnConfig().getSecondaryTsColumnCondition(),
                     StringUtil.quoteStringLiteral(maxVal)
