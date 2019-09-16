@@ -130,11 +130,11 @@ public class JDBCExtractionNamespaceCacheFactory
 
     protected String getWhereClauseExtension(String id, JDBCExtractionNamespace extractionNamespace) {
         String whereClauseExtension = "";
-        if (extractionNamespace.hasTsColumnConfig() && extractionNamespace.getTsColumnConfig().hasFirstTimeCacheCol()) {
-            String maxVal = (String) getMaxValFromColumn(id, extractionNamespace, StringMapper.FIRST, extractionNamespace.getTsColumnConfig().getFirstTimeCacheCol(), extractionNamespace.getTable());
+        if (extractionNamespace.hasTsColumnConfig() && extractionNamespace.getTsColumnConfig().hasSecondaryTsColumn()) {
+            String maxVal = (String) getMaxValFromColumn(id, extractionNamespace, StringMapper.FIRST, extractionNamespace.getTsColumnConfig().getSecondaryTsColumn(), extractionNamespace.getTable());
             whereClauseExtension = String.format(FIRST_TIME_CACHING_WHERE_CLAUSE_EXTENSION,
-                    extractionNamespace.getTsColumnConfig().getFirstTimeCacheCol(),
-                    extractionNamespace.getTsColumnConfig().getFirstTimeCacheCondition(),
+                    extractionNamespace.getTsColumnConfig().getSecondaryTsColumn(),
+                    extractionNamespace.getTsColumnConfig().getSecondaryTsColumnCondition(),
                     StringUtil.quoteStringLiteral(maxVal)
             );
         }

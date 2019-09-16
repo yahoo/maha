@@ -17,9 +17,9 @@ public class TsColumnConfig {
     @JsonProperty
     private String format;
     @JsonProperty
-    private String firstTimeCacheCol;
+    private String secondaryTsColumn;
     @JsonProperty
-    private String firstTimeCacheCondition;
+    private String secondaryTsColumnCondition;
 
     public String getName() {
         return name;
@@ -41,20 +41,20 @@ public class TsColumnConfig {
         return format;
     }
 
-    public String getFirstTimeCacheCol() {
-        return firstTimeCacheCol;
+    public String getSecondaryTsColumn() {
+        return secondaryTsColumn;
     }
 
-    public String getFirstTimeCacheCondition() {
-        return firstTimeCacheCondition;
+    public String getSecondaryTsColumnCondition() {
+        return secondaryTsColumnCondition;
     }
 
-    public boolean hasFirstTimeCacheCol() {
-        return StringUtils.isNotEmpty(firstTimeCacheCol);
+    public boolean hasSecondaryTsColumn() {
+        return StringUtils.isNotEmpty(secondaryTsColumn);
     }
 
-    public boolean hasFirstTimeCacheCondition() {
-        return StringUtils.isNotEmpty(firstTimeCacheCondition);
+    public boolean hasSecondaryTsColumnCondition() {
+        return StringUtils.isNotEmpty(secondaryTsColumnCondition);
     }
 
     @Override
@@ -63,8 +63,8 @@ public class TsColumnConfig {
                 "name='" + getName() + '\'' +
                 ", type='" + getType() + '\'' +
                 ", format='" + getFormat() + '\'' +
-                ", firstTimeCacheCol='" + getFirstTimeCacheCol() + '\'' +
-                ", firstTimeCacheCondition='" + getFirstTimeCacheCondition() + '\'' +
+                ", secondaryTsColumn='" + getSecondaryTsColumn() + '\'' +
+                ", secondaryTsColumnCondition='" + getSecondaryTsColumnCondition() + '\'' +
                 '}';
     }
 
@@ -91,6 +91,6 @@ public class TsColumnConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getName(), getType(), getFormat(), getFirstTimeCacheCol(), getFirstTimeCacheCondition());
+        return Objects.hash(getName(), getType(), getFormat(), getSecondaryTsColumn(), getSecondaryTsColumnCondition());
     }
 }
