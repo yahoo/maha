@@ -11,7 +11,7 @@ import org.scalatest.FunSuite
 class ExampleTest extends FunSuite {
 
   test("Test for Example Test") {
-    val mahaService = ExampleMahaService.getMahaService("main")
+    val mahaService = ExampleMahaService.getMahaService
     val baseRequest = ExampleRequest.getRequest
     assert(mahaService.getDomain("wiki").isDefined)
     assert(mahaService.getDomain("student").isDefined)

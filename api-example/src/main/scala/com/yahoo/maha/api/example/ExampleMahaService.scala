@@ -2,15 +2,15 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.api.example
 
-import java.io.File
 import java.util.UUID
 
+import com.google.common.base.Charsets
+import com.google.common.io.Resources
 import com.yahoo.maha.core.ddl.OracleDDLGenerator
 import com.yahoo.maha.jdbc._
 import com.yahoo.maha.service.{DefaultMahaService, MahaService, MahaServiceConfig}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import grizzled.slf4j.Logging
-import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 
@@ -33,9 +33,9 @@ object ExampleMahaService extends Logging {
     assert(jdbcConnection.isDefined, "Failed to connect to h2 local server")
   }
 
-  def getMahaService(scope: String = "main"): MahaService = {
-    val jsonString = FileUtils.readFileToString(new File(s"src/$scope/resources/maha-service-config.json"))
-      .replaceAll("h2dbId", s"$h2dbId")
+  def getMahaService: MahaService = {
+    val url = Resources.getResource("maha-service-config.json")
+    val jsonString = Resources.toString(url, Charsets.UTF_8).replaceAll("h2dbId", s"$h2dbId")
 
     initJdbcToH2()
 

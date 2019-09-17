@@ -5,9 +5,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
                         http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <bean id="mahaService" class="com.yahoo.maha.api.example.ExampleMahaService" factory-method="getMahaService">
-        <constructor-arg value="main"/>
-    </bean>
+    <bean id="mahaService" class="com.yahoo.maha.api.example.ExampleMahaService" factory-method="getMahaService"/>
 
     <bean id="baseRequest" class="com.yahoo.maha.api.example.ExampleRequest" factory-method="getRequest"/>
     <bean id="exceptionHandler" class="com.yahoo.maha.api.jersey.GenericExceptionMapper" scope="singleton" />
