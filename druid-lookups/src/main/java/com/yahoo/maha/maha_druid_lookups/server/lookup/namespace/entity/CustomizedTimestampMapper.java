@@ -53,7 +53,7 @@ public class CustomizedTimestampMapper extends TimestampMapper {
         try {
             parsedDate = dateFormat.parse(date);
         } catch (ParseException e) {
-            throw new IllegalArgumentException(e);//ParseException must be handled
+            throw new IllegalArgumentException(e); //ParseException must be handled
         }
 
         result = new Timestamp(parsedDate.getTime());
