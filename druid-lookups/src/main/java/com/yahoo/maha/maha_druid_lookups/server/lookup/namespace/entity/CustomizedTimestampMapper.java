@@ -10,10 +10,6 @@ import java.text.SimpleDateFormat;
 
 public class CustomizedTimestampMapper extends TimestampMapper {
 
-    private static final String ERROR_MSG_PRE = "Expected column to be a timestamp type but is ";
-    private static final String VARCHAR_ERROR_MSG = ERROR_MSG_PRE + "varchar";
-    private static final String BIGINT_ERROR_MSG = ERROR_MSG_PRE + "BIGINT";
-
     private static final String DEFAULT_TIMESTAMP_FORMAT = "yyyyMMddhhmm";
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat(DEFAULT_TIMESTAMP_FORMAT);
 
@@ -26,17 +22,16 @@ public class CustomizedTimestampMapper extends TimestampMapper {
     @Override
     protected Timestamp extractByIndex(ResultSet r, int index) throws SQLException {
         Timestamp result;
+        Object timestamp = r.getObject(index);
 
-        try {
+        if (timestamp instanceof Timestamp) {
             result = r.getTimestamp(index);
-        } catch (Exception e) {
-            if (e.getMessage().contains(BIGINT_ERROR_MSG)) {
-                result = new Timestamp(r.getLong(index));
-            } else if (e.getMessage().contains(VARCHAR_ERROR_MSG)) {
-                result = getTimestampFromString(r, index);
-            } else {
-                throw e;
-            }
+        } else if (timestamp instanceof Long) {
+            result = new Timestamp(r.getLong(index));
+        } else if (timestamp instanceof String) {
+            result = getTimestampFromString(r, index);
+        } else {
+            throw new IllegalArgumentException(String.format("Unable to parse timestamp [%s]. Unknown data type [%s]", timestamp, timestamp.getClass()));
         }
 
         return result;
