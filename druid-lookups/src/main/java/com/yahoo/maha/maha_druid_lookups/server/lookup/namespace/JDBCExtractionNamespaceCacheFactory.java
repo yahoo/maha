@@ -112,7 +112,7 @@ public class JDBCExtractionNamespaceCacheFactory
             updateTS = lastDBUpdate;
 
         } else {
-            query = String.format("%s %s",
+            query = String.format("%s %s %s",
                     query,
                     getBaseWhereClause(SUBSEQUENT_CACHING_WHERE_CLAUSE, extractionNamespace),
                     whereClauseExtension
