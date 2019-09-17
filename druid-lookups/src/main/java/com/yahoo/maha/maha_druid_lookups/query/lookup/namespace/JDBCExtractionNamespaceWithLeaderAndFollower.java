@@ -47,9 +47,10 @@ public class JDBCExtractionNamespaceWithLeaderAndFollower extends JDBCExtraction
             @JsonProperty(value = "isLeader", required = true) final boolean isLeader,
             @JsonProperty(value = "kafkaProperties", required = true) final Properties kafkaProperties,
             @JsonProperty(value = "kerberosProperties", required = false) final Properties kerberosProperties,
-            @JsonProperty(value = "tsColumnConfig", required = false) final TsColumnConfig tsColumnConfig
+            @JsonProperty(value = "tsColumnConfig", required = false) final TsColumnConfig tsColumnConfig,
+            @JsonProperty(value = "kerberosPropertiesEnabled", required = false) final boolean kerberosPropertiesEnabled
             ) {
-        super(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, kerberosProperties, tsColumnConfig);
+        super(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, kerberosProperties, tsColumnConfig, kerberosPropertiesEnabled);
 
         this.kafkaTopic = Objects.nonNull(kafkaTopic) ? kafkaTopic : "unassigned";
 
@@ -73,7 +74,7 @@ public class JDBCExtractionNamespaceWithLeaderAndFollower extends JDBCExtraction
             final boolean isLeader,
             final Properties kafkaProperties
     ) {
-        this(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, kafkaTopic, isLeader, kafkaProperties, null, null);
+        this(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, kafkaTopic, isLeader, kafkaProperties, null, null, false);
     }
 
     @Override

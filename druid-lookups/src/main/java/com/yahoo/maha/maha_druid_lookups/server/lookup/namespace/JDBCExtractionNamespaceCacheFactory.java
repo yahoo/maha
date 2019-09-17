@@ -175,18 +175,21 @@ public class JDBCExtractionNamespaceCacheFactory
         }
 
         if (dbi == null) {
-            if (!namespace.hasKerberosProperties()) {
+            if (namespace.isKerberosPropertiesEnabled() && namespace.hasKerberosProperties()) {
+                LOG.info("Connecting %s using Kerberos", namespace.getConnectorConfig().getConnectURI());
+                dbi = new DBI(
+                        namespace.getConnectorConfig().getConnectURI(),
+                        namespace.getKerberosProperties()
+                );
+            } else {
+                if (namespace.isKerberosPropertiesEnabled() && !namespace.hasKerberosProperties()) {
+                    LOG.warn("KerberosProperties cannot be empty when it's enabled! Failing over to create DBI using user and password.");
+                }
                 LOG.info("Connecting %s using user and password", namespace.getConnectorConfig().getConnectURI());
                 dbi = new DBI(
                         namespace.getConnectorConfig().getConnectURI(),
                         namespace.getConnectorConfig().getUser(),
                         namespace.getConnectorConfig().getPassword()
-                );
-            } else {
-                LOG.info("Connecting %s using Kerberos", namespace.getConnectorConfig().getConnectURI());
-                dbi = new DBI(
-                        namespace.getConnectorConfig().getConnectURI(),
-                        namespace.getKerberosProperties()
                 );
             }
             dbiCache.putIfAbsent(key, dbi);
@@ -205,7 +208,10 @@ public class JDBCExtractionNamespaceCacheFactory
         if (!namespace.isFirstTimeCaching() && isFollower)
             return namespace.getPreviousLastUpdateTimestamp();
 
-        final Timestamp lastUpdatedTimeStamp = (Timestamp) getMaxValFromColumn(id, namespace, CustomizedTimestampMapper.FIRST, tsColumn, table);
+        final Timestamp lastUpdatedTimeStamp =
+                (Timestamp) getMaxValFromColumn(id, namespace,
+                        namespace.hasTsColumnConfig() && namespace.getTsColumnConfig().getFormat() != null ? new CustomizedTimestampMapper(1, namespace.getTsColumnConfig().getFormat()) : CustomizedTimestampMapper.FIRST
+                        , tsColumn, table);
         return lastUpdatedTimeStamp;
 
     }
