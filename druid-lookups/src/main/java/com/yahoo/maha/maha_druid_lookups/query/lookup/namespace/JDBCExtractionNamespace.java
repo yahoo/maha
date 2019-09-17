@@ -21,7 +21,7 @@ import java.util.Objects;
 import java.util.Properties;
 
 @JsonTypeName("mahajdbc")
-public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespace {
+public class gJDBCExtractionNamespace implements OnlineDatastoreExtractionNamespace {
     @JsonProperty
     private final MetadataStorageConnectorConfig connectorConfig;
     @JsonProperty
