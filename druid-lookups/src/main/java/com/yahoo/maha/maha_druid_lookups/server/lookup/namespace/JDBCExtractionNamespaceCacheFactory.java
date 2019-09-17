@@ -183,7 +183,7 @@ public class JDBCExtractionNamespaceCacheFactory
                 );
             } else {
                 if (namespace.isKerberosPropertiesEnabled() && !namespace.hasKerberosProperties()) {
-                    LOG.warn("KerberosProperties cannot be empty when it's enabled! Failing over to create DBI using user and password.");
+                    LOG.warn("KerberosProperties cannot be empty when KerberosPropertiesEnabled is true! Failing over to create DBI using user and password.");
                 }
                 LOG.info("Connecting %s using user and password", namespace.getConnectorConfig().getConnectURI());
                 dbi = new DBI(
