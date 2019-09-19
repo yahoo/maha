@@ -23,7 +23,7 @@ public class CacheActionRunner {
     private static final Logger LOG = new Logger(CacheActionRunner.class);
 
     public byte[] getCacheValue(final String key
-            , String valueColumn
+            , Optional<String> valueColumn
             , final Optional<DecodeConfig> decodeConfigOptional
             , RocksDBManager rocksDBManager
             , ProtobufSchemaFactory protobufSchemaFactory
@@ -31,8 +31,8 @@ public class CacheActionRunner {
             , ServiceEmitter emitter
             , RocksDBExtractionNamespace extractionNamespace){
         try {
-            if (!extractionNamespace.isCacheEnabled()) {
-                return lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn, decodeConfigOptional));
+            if (!extractionNamespace.isCacheEnabled() && valueColumn.isPresent()) {
+                return lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn.get(), decodeConfigOptional));
             }
 
             final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
@@ -43,9 +43,13 @@ public class CacheActionRunner {
                     return new byte[0];
                 }
                 Message message = parser.parseFrom(cacheByteValue);
-                Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
-                Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn);
-                return (field == null) ? new byte[0] : message.getField(field).toString().getBytes();
+                if (valueColumn.isPresent() && !decodeConfigOptional.isPresent()) {
+                    Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
+                    Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn.get());
+                    return (field == null) ? new byte[0] : message.getField(field).toString().getBytes();
+                } else {
+                    return message.toByteArray();
+                }
             }
         } catch (Exception e) {
             LOG.error(e, "Caught exception while getting cache value");

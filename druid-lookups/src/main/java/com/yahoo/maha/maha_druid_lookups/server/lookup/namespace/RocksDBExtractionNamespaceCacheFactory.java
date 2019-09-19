@@ -102,7 +102,7 @@ public class RocksDBExtractionNamespaceCacheFactory
     public byte[] getCacheValue(final RocksDBExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key, String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
         tryResetRunnerOrLog(extractionNamespace);
 
-        return cacheActionRunner.getCacheValue(key, valueColumn, decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, emitter, extractionNamespace);
+        return cacheActionRunner.getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, emitter, extractionNamespace);
     }
 
     @Override

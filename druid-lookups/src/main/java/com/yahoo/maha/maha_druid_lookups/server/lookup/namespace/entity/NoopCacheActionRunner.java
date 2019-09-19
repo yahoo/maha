@@ -22,7 +22,7 @@ public class NoopCacheActionRunner extends CacheActionRunner {
 
     @Override
     public byte[] getCacheValue(final String key
-            , String valueColumn
+            , Optional<String> valueColumn
             , final Optional<DecodeConfig> decodeConfigOptional
             , RocksDBManager rocksDBManager
             , ProtobufSchemaFactory protobufSchemaFactory
