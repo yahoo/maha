@@ -15,6 +15,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
+import com.google.protobuf.Option;
 import com.google.protobuf.Parser;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
@@ -24,6 +25,7 @@ import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.KafkaManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.MonitoringConstants;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import org.rocksdb.RocksDB;
 
@@ -50,6 +52,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
     private ServiceEmitter serviceEmitter;
     private Cache<String, byte[]> missingLookupCache;
     private final byte[] extractionNamespaceAsByteArray;
+    private CacheActionRunner cacheActionRunner;
 
     public RocksDBLookupExtractor(RocksDBExtractionNamespace extractionNamespace, Map<String, U> map,
                                   LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
@@ -90,8 +93,8 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                 return Strings.emptyToNull(dimensionOverrideMap.get(key));
             }
 
+            Optional<DecodeConfig> decodeConfigOptional = (decodeConfig == null) ? Optional.empty() : Optional.of(decodeConfig);
             if (!extractionNamespace.isCacheEnabled()) {
-                Optional<DecodeConfig> decodeConfigOptional = (decodeConfig == null) ? Optional.empty() : Optional.of(decodeConfig);
                 byte[] cacheByteValue = lookupService.lookup(new LookupService.LookupData(extractionNamespace,
                         key, valueColumn, decodeConfigOptional));
                 return (cacheByteValue == null || cacheByteValue.length == 0) ? null : new String(cacheByteValue, UTF_8);
@@ -101,7 +104,9 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                     LOG.error("RocksDB instance is null");
                     return null;
                 }
-                byte[] cacheByteValue = db.get(key.getBytes());
+                //byte[] cacheByteValue = db.get(key.getBytes());
+                tryResetRunnerOrLog(extractionNamespace);
+                byte[] cacheByteValue = cacheActionRunner.getCacheValue(key, Optional.empty(), decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, serviceEmitter, extractionNamespace);
                 if (cacheByteValue == null || cacheByteValue.length == 0) {
                     // No need to call handleMissingLookup if missing dimension is already present in missingLookupCache
                     if (extractionNamespace.getMissingLookupConfig() != null
@@ -169,6 +174,20 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
         } catch (IOException ex) {
             // If ByteArrayOutputStream.write has problems, that is a very bad thing
             throw Throwables.propagate(ex);
+        }
+    }
+
+    public void tryResetRunnerOrLog(RocksDBExtractionNamespace extractionNamespace) {
+        try {
+            if (cacheActionRunner == null) {
+                cacheActionRunner = CacheActionRunner.class.cast(
+                        Class.forName(extractionNamespace.cacheActionRunner).newInstance());
+                LOG.info("Populated a new CacheActionRunner with description " + cacheActionRunner.toString());
+            } else {
+                LOG.info("Runner is already defined.  Found " + cacheActionRunner.getClass().getName());
+            }
+        } catch(Exception e){
+            LOG.error("Failed to get a valid cacheActionRunner.", e);
         }
     }
 
