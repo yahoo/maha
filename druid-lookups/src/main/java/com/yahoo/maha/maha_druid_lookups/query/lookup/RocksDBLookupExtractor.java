@@ -15,7 +15,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
-import com.google.protobuf.Option;
 import com.google.protobuf.Parser;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
@@ -184,10 +183,10 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                         Class.forName(extractionNamespace.cacheActionRunner).newInstance());
                 LOG.info("Populated a new CacheActionRunner with description " + cacheActionRunner.toString());
             } else {
-                LOG.info("Runner is already defined.  Found " + cacheActionRunner.getClass().getName());
+                LOG.debug("Runner is already defined.  Found " + cacheActionRunner.getClass().getName());
             }
         } catch(Exception e){
-            LOG.error("Failed to get a valid cacheActionRunner.", e);
+            LOG.error(e,"Failed to get a valid cacheActionRunner.");
         }
     }
 
