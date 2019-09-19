@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.protobuf.Descriptors;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
 import com.metamx.common.logger.Logger;
@@ -105,7 +106,8 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                 }
                 //byte[] cacheByteValue = db.get(key.getBytes());
                 tryResetRunnerOrLog(extractionNamespace);
-                byte[] cacheByteValue = cacheActionRunner.getCacheValue(key, Optional.empty(), decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, serviceEmitter, extractionNamespace);
+                byte[] cacheByteValue = cacheActionRunner.getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, serviceEmitter, extractionNamespace);
+
                 if (cacheByteValue == null || cacheByteValue.length == 0) {
                     // No need to call handleMissingLookup if missing dimension is already present in missingLookupCache
                     if (extractionNamespace.getMissingLookupConfig() != null
@@ -122,7 +124,6 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                 }
 
                 return handleDecode(decodeConfig, cacheByteValue, valueColumn);
-
             }
 
         } catch (Exception e) {
@@ -132,24 +133,30 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
     }
 
     private String handleDecode(DecodeConfig decodeConfig, byte[] cacheByteValue, String valueColumn) throws Exception {
-        Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
-        Message message = parser.parseFrom(cacheByteValue);
-        Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
 
-        if (decodeConfig != null) {
-            Descriptors.FieldDescriptor columnToCheckField = descriptor.findFieldByName(decodeConfig.getColumnToCheck());
+        try {
+            Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
+            Message message = parser.parseFrom(cacheByteValue);
+            Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
 
-            if (decodeConfig.getValueToCheck().equals(message.getField(columnToCheckField).toString())) {
-                Descriptors.FieldDescriptor columnIfValueMatchedField = descriptor.findFieldByName(decodeConfig.getColumnIfValueMatched());
-                return Strings.emptyToNull(message.getField(columnIfValueMatchedField).toString());
+            if (decodeConfig != null) {
+                Descriptors.FieldDescriptor columnToCheckField = descriptor.findFieldByName(decodeConfig.getColumnToCheck());
+                if (decodeConfig.getValueToCheck().equals(message.getField(columnToCheckField).toString())) {
+                    Descriptors.FieldDescriptor columnIfValueMatchedField = descriptor.findFieldByName(decodeConfig.getColumnIfValueMatched());
+                    return Strings.emptyToNull(message.getField(columnIfValueMatchedField).toString());
+                } else {
+                    Descriptors.FieldDescriptor columnIfValueNotMatched = descriptor.findFieldByName(decodeConfig.getColumnIfValueNotMatched());
+                    return Strings.emptyToNull(message.getField(columnIfValueNotMatched).toString());
+                }
             } else {
-                Descriptors.FieldDescriptor columnIfValueNotMatched = descriptor.findFieldByName(decodeConfig.getColumnIfValueNotMatched());
-                return Strings.emptyToNull(message.getField(columnIfValueNotMatched).toString());
+                Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn);
+                return Strings.emptyToNull(message.getField(field).toString());
             }
-        } else {
-            Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn);
-            return Strings.emptyToNull(message.getField(field).toString());
+        } catch (InvalidProtocolBufferException e ) {
+            LOG.debug("Message is not a protobuf, returning String");
+            return Strings.emptyToNull(new String(cacheByteValue));
         }
+
     }
 
     @Override

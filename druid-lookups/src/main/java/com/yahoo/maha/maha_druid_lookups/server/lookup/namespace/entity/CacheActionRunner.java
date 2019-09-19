@@ -43,7 +43,7 @@ public class CacheActionRunner {
                     return new byte[0];
                 }
                 Message message = parser.parseFrom(cacheByteValue);
-                if (valueColumn.isPresent()) {
+                if (valueColumn.isPresent() && !decodeConfigOptional.isPresent()) {
                     Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
                     Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn.get());
                     return (field == null) ? new byte[0] : message.getField(field).toString().getBytes();
