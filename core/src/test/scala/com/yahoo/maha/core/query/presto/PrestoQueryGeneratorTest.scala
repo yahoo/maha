@@ -369,8 +369,7 @@ ORDER BY mang_impressions ASC
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-
-    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(!queryPipelineTry.isSuccess, "QueryPipeline creation should fail")
     assert(queryPipelineTry.errorMessage("").contains("Outer Group by in Presto Engine is not yet supported"))
   }
