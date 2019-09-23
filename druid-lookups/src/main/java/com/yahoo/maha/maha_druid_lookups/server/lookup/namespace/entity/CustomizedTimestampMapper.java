@@ -22,6 +22,7 @@ public class CustomizedTimestampMapper extends TimestampMapper {
         super(index);
         this.dateFormat = DEFAULT_DATE_FORMAT;
     }
+
     public CustomizedTimestampMapper(int index, String dateFormat) {
         super(index);
         this.dateFormat = new SimpleDateFormat(dateFormat);
