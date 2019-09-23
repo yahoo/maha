@@ -8,11 +8,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-<<<<<<< HEAD
-        <version>5.296</version>
-=======
         <version>5.298-SNAPSHOT</version>
->>>>>>> master
     </parent>
 
     <name>maha worker</name>
