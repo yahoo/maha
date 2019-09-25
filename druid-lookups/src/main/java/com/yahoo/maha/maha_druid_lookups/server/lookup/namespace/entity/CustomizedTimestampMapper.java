@@ -33,14 +33,12 @@ public class CustomizedTimestampMapper extends TimestampMapper {
         Timestamp result;
         Object timestamp = r.getObject(index);
 
-        if (timestamp instanceof Timestamp) {
-            result = r.getTimestamp(index);
-        } else if (timestamp instanceof Long) {
+        if (timestamp instanceof Long) {
             result = new Timestamp(r.getLong(index));
         } else if (timestamp instanceof String) {
             result = getTimestampFromString(r, index, dateFormat);
-        } else {
-            throw new IllegalArgumentException(String.format("Unable to parse timestamp [%s]. Unknown data type [%s]", timestamp, timestamp.getClass()));
+        } else { // Timestamp by default
+            result = r.getTimestamp(index);
         }
 
         return result;
