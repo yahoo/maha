@@ -259,6 +259,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           , PrestoDerFactCol("average_cpc", DecType(0, 2, "0"), "{spend}" / "{clicks}")
           , FactCol("CTR", DecType(5, 2, "0"), PrestoCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , PrestoDerFactCol("CTR Percentage", DecType(), "{clicks}" /- "{impressions}" * "100")
+          , FactCol("Count", IntType(), rollupExpression = CountRollup)
         ),
         annotations = Set()
       )
@@ -283,7 +284,8 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           PublicFactCol("max_bid", "Max Bid", Set.empty),
           PublicFactCol("average_cpc", "Average CPC", InBetweenEquality),
           PublicFactCol("CTR Percentage", "CTR Percentage", Set.empty),
-          PublicFactCol("CTR", "CTR", InBetweenEquality)
+          PublicFactCol("CTR", "CTR", InBetweenEquality),
+          PublicFactCol("Count", "Count", Set.empty)
         ),
         Set(EqualityFilter("Source", "2", isForceFilter = true)),
         getMaxDaysWindow, getMaxDaysLookBack
@@ -519,6 +521,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                           "selectFields": [
                             {"field": "Day"},
                             {"field": "Ad ID"},
+                            {"field": "Count"},
                             {"field": "Impressions"}
                           ],
                           "filterExpressions": [
@@ -568,6 +571,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                           "selectFields": [
                             {"field": "Day"},
                             {"field": "Ad ID"},
+                            {"field": "Count"},
                             {"field": "Impressions"}
                           ],
                           "filterExpressions": [

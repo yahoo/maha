@@ -51,6 +51,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
         case AverageRollup => s"AVG($expression)"
         case PrestoCustomRollup(exp) => s"(${exp.render(expression, Map.empty, renderedColExp)})"
         case NoopRollup => s"($expression)"
+        case CountRollup => s"COUNT(*)"
         case any => throw new UnsupportedOperationException(s"Unhandled rollup expression : $any")
       }
     }
