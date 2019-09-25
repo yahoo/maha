@@ -239,6 +239,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           , OracleDerFactCol("average_cpc", DecType(0, 2, "0"), "{spend}" / "{clicks}")
           , FactCol("CTR", DecType(5, 2, "0"), OracleCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , OracleDerFactCol("CTR Percentage", DecType(), "{clicks}" /- "{impressions}" * "100")
+          , FactCol("Count", IntType(), rollupExpression = CountRollup)
         ),
         annotations = Set()
       )
@@ -262,7 +263,8 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           PublicFactCol("max_bid", "Max Bid", Set.empty),
           PublicFactCol("average_cpc", "Average CPC", InBetweenEquality),
           PublicFactCol("CTR Percentage", "CTR Percentage", Set.empty),
-          PublicFactCol("CTR", "CTR", InBetweenEquality)
+          PublicFactCol("CTR", "CTR", InBetweenEquality),
+          PublicFactCol("Count", "Count", InBetweenEquality)
         ),
         Set(EqualityFilter("Source", "2", isForceFilter = true)),
         getMaxDaysWindow, getMaxDaysLookBack
@@ -599,7 +601,8 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                             {"field": "Spend"},
                             {"field": "CTR Percentage"},
                             {"field": "CTR"},
-                            {"field": "Year"}
+                            {"field": "Year"},
+                            {"field": "Count"}
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
@@ -653,7 +656,8 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                             {"field": "Max Bid"},
                             {"field": "Average CPC"},
                             {"field": "Spend"},
-                            {"field": "CTR"}
+                            {"field": "CTR"},
+                            {"field": "Count"}
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},

@@ -429,7 +429,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                               {"field": "Campaign ID"},
                               {"field": "Impressions"},
                               {"field": "Ad Group Status"},
-                              {"field": "Campaign Status"}
+                              {"field": "Campaign Status"},
+                              {"field": "Count"}
                           ],
                           "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
@@ -455,9 +456,9 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
         |SELECT *
-        |FROM (SELECT t3.id "Keyword ID", ago2.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ago2."Ad Group Status" "Ad Group Status", co1."Campaign Status" "Campaign Status"
+        |FROM (SELECT t3.id "Keyword ID", ago2.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ago2."Ad Group Status" "Ad Group Status", co1."Campaign Status" "Campaign Status", f0."Count" "Count"
         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
-        |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions"
+        |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", COUNT(*) AS "Count"
         |            FROM fact2 FactAlias
         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
         |            GROUP BY ad_group_id, campaign_id, keyword_id
@@ -468,7 +469,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
         |            FROM targetingattribute
         |            WHERE (advertiser_id = 12345)
         |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) t3
-        |           INNER JOIN
+        |          INNER JOIN
         |            (SELECT  campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id, advertiser_id
         |            FROM ad_group_oracle
         |            WHERE (advertiser_id = 12345)
@@ -482,9 +483,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
         |              ON( ago2.advertiser_id = co1.advertiser_id AND ago2.campaign_id = co1.id )
         |               )  ON (f0.keyword_id = t3.id)
         |
-        |
-        |
-        |) ORDER BY "Campaign Status" ASC NULLS LAST
+        |)
+        |   ORDER BY "Campaign Status" ASC NULLS LAST
       """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }

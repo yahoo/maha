@@ -74,6 +74,7 @@ trait BaseOracleQueryGeneratorTest
           , FactCol("Average CPC", DecType(), OracleCustomRollup("{spend}" / "{clicks}"))
           , FactCol("CTR", DecType(), OracleCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), OracleCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
+          , FactCol("Count", IntType(), rollupExpression = CountRollup)
         ),
         annotations = Set(
           OracleFactStaticHint("PARALLEL_INDEX(cb_campaign_k_stats 4)"),
@@ -122,7 +123,8 @@ trait BaseOracleQueryGeneratorTest
           PublicFactCol("avg_pos", "Average Position", FieldEquality),
           PublicFactCol("max_bid", "Max Bid", Set.empty),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
-          PublicFactCol("CTR", "CTR", InBetweenEquality)
+          PublicFactCol("CTR", "CTR", InBetweenEquality),
+          PublicFactCol("Count", "Count", InBetweenEquality)
         ),
         Set(EqualityFilter("Source", "2", true, true)),
         getMaxDaysWindow, getMaxDaysLookBack

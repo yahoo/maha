@@ -136,6 +136,7 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
       case AverageRollup => s"AVG(${renderedColExp.getOrElse(expression)})"
       case OracleCustomRollup(exp) => s"(${exp.render(expression, Map.empty, renderedColExp)})"
       case NoopRollup => s"(${renderedColExp.getOrElse(expression)})"
+      case CountRollup => s"COUNT(*)"
       case any => throw new UnsupportedOperationException(s"Unhandled rollup expression : $any")
     }
   }
