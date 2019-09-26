@@ -4,6 +4,7 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.io.Files;
 import com.google.protobuf.Message;
 import com.metamx.emitter.service.ServiceEmitter;
@@ -228,6 +229,7 @@ public class RocksDBLookupExtractorTest {
         RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                 "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic")
         , null);
+        objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         byte[] b = objectMapper.writeValueAsBytes(extractionNamespace);
         Map<String, String> map = new HashMap<>();
         RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
