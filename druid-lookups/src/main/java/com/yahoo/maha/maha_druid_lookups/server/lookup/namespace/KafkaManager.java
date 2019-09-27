@@ -158,7 +158,7 @@ public class KafkaManager {
                 }
             }));
         }
-     /*   try {
+       try {
             countDownLatch.await(30, TimeUnit.MINUTES);
             futureList.forEach(future -> {
                 if(!future.isDone()) {
@@ -168,7 +168,7 @@ public class KafkaManager {
             Thread.sleep(5000);
         } catch (InterruptedException e) {
             log.info("Done with waiting for all consumers [%s]", topic);
-        }*/
+        }
         log.info("Applied all the changes since the beginning [%s]", topic);
     }
 
