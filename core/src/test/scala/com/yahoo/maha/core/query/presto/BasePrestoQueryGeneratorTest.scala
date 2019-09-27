@@ -75,6 +75,7 @@ trait BasePrestoQueryGeneratorTest
           , PrestoDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100", rollupExpression = NoopRollup)
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
           , ConstFactCol("constantFact", IntType(), "0")
+          , FactCol("Count", IntType(), rollupExpression = CountRollup)
         ),underlyingTableName = Some("s_stats_fact_underlying")
       )
     }
@@ -106,7 +107,8 @@ trait BasePrestoQueryGeneratorTest
           PublicFactCol("constantFact", "Constant Fact", Set.empty),
           PublicFactCol("max_bid", "Max Bid", FieldEquality),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
-          PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality)
+          PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
+          PublicFactCol("Count", "Count", InBetweenEquality)
         ),
         Set(),
         getMaxDaysWindow, getMaxDaysLookBack

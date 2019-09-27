@@ -301,6 +301,7 @@ ORDER BY mang_impressions ASC
                           "cube": "s_stats",
                           "selectFields": [
                               {"field": "Advertiser ID"},
+                              {"field": "Count"},
                               {"field": "Impressions"}
                           ],
                           "filterExpressions": [
@@ -328,10 +329,10 @@ ORDER BY mang_impressions ASC
 
     val expected =
       s"""
-         |SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_count as VARCHAR) AS mang_count, CAST(mang_impressions as VARCHAR) AS mang_impressions
          |FROM(
-         |SELECT COALESCE(account_id, 0) advertiser_id, COALESCE(impressions, 0) mang_impressions
-         |FROM(SELECT account_id, SUM(impressions) impressions
+         |SELECT COALESCE(account_id, 0) advertiser_id, COALESCE(Count, 0) mang_count, COALESCE(impressions, 0) mang_impressions
+         |FROM(SELECT account_id, SUM(impressions) impressions, COUNT(*) Count
          |FROM s_stats_fact_underlying
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
          |GROUP BY account_id
