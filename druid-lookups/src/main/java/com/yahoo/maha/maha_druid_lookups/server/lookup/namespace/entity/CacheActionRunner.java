@@ -106,13 +106,4 @@ public class CacheActionRunner {
         return "CacheActionRunner{}";
     }
 
-    @Override
-    public boolean equals(Object o) {
-        return this == o;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(this);
-    }
 }

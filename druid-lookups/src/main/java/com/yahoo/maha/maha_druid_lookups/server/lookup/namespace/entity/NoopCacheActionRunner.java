@@ -47,14 +47,5 @@ public class NoopCacheActionRunner extends CacheActionRunner {
     public String toString() {
         return "NoopCacheActionRunner{}";
     }
-
-    @Override
-    public boolean equals(Object o) {
-        return this == o;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(this);
-    }
+    
 }
