@@ -64,7 +64,10 @@ public class KafkaManager {
     public KafkaManager(Provider<MahaNamespaceExtractionCacheManager> namespaceExtractionCacheManager,
                         final MahaNamespaceExtractionConfig mahaNamespaceExtractionConfig,
                         ProtobufSchemaFactory protobufSchemaFactory) {
-        this.kafkaProperties.putAll(mahaNamespaceExtractionConfig.getKafkaProperties());
+        //this.kafkaProperties.putAll(mahaNamespaceExtractionConfig.getKafkaProperties());
+        String bootstrapServers = mahaNamespaceExtractionConfig.getKafkaProperties().getProperty("bootstrap_servers");
+        log.info("bootstrap.servers : [%s]", bootstrapServers);
+        this.kafkaProperties.put("bootstrap.servers", bootstrapServers);
         this.namespaceExtractionCacheManager = namespaceExtractionCacheManager;
         this.protobufSchemaFactory = protobufSchemaFactory;
     }
@@ -158,7 +161,7 @@ public class KafkaManager {
                 }
             }));
         }
-        try {
+       try {
             countDownLatch.await(30, TimeUnit.MINUTES);
             futureList.forEach(future -> {
                 if(!future.isDone()) {

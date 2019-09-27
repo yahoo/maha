@@ -15,6 +15,7 @@ import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
 import com.metamx.common.logger.Logger;
 import org.rocksdb.RocksDB;
 
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.Optional;
 

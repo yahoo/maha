@@ -46,7 +46,9 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     private Long lastUpdatedTime = -1L;
 
     @JsonProperty
-    public String cacheActionRunner = "";
+    public String cacheActionRunnerName = "";
+
+    private CacheActionRunner cacheActionRunner = null;
 
     @JsonCreator
     public RocksDBExtractionNamespace(@NotNull @JsonProperty(value = "namespace", required = true)
@@ -61,7 +63,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                                       @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName,
                                       @Nullable @JsonProperty(value = "tsColumn", required = false) final String tsColumn,
                                       @NotNull @JsonProperty(value = "missingLookupConfig", required = false) final MissingLookupConfig missingLookupConfig,
-                                      @JsonProperty(value = "cacheActionRunner", required = false) final String cacheActionRunner) {
+                                      @JsonProperty(value = "cacheActionRunner", required = false) final String cacheActionRunnerName) {
         this.rocksDbInstanceHDFSPath = Preconditions.checkNotNull(rocksDbInstanceHDFSPath, "rocksDbInstanceHDFSPath");
         this.lookupAuditingHDFSPath = Preconditions.checkNotNull(lookupAuditingHDFSPath, "lookupAuditingHDFSPath");
         this.namespace = Preconditions.checkNotNull(namespace, "namespace");
@@ -74,14 +76,14 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         this.tsColumn = tsColumn;
 
         //cacheActionRunner = "."
-        if(StringUtils.isBlank(cacheActionRunner)) //no runner is passed, use Default Class String
-            this.cacheActionRunner = CacheActionRunner.class.getName();
+        if(StringUtils.isBlank(cacheActionRunnerName)) //no runner is passed, use Default Class String
+            this.cacheActionRunnerName = CacheActionRunner.class.getName();
         else {
             try { //Check if the passed in runner is valid, else throw an exception to stop the program.
-                Object actionRunner = Class.forName(cacheActionRunner).newInstance();
+                Object actionRunner = Class.forName(cacheActionRunnerName).newInstance();
                 Preconditions.checkArgument(actionRunner instanceof CacheActionRunner,
-                        "Passed in runner should be a CacheActionRunner, but got a " + cacheActionRunner + " of class " + actionRunner.getClass().getName());
-                this.cacheActionRunner =  cacheActionRunner;
+                        "Passed in runner should be a CacheActionRunner, but got a " + cacheActionRunnerName + " of class " + actionRunner.getClass().getName());
+                this.cacheActionRunnerName =  cacheActionRunnerName;
             } catch (Throwable t) {
                 LOG.error("Found a blank or invalid CacheActionRunner, logging error and throwing Runtime ", t);
                 throw new RuntimeException("Found invalid passed in CacheActionRunner with String " + cacheActionRunner, t);
@@ -141,7 +143,23 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         return tsColumn;
     }
 
-    public String getCacheActionRunner() { return cacheActionRunner; }
+    public String getCacheActionRunnerName() { return cacheActionRunnerName; }
+
+    public CacheActionRunner getCacheActionRunner() {
+        try {
+            if (cacheActionRunner == null) {
+                cacheActionRunner = CacheActionRunner.class.cast(
+                        Class.forName(cacheActionRunnerName).newInstance());
+                LOG.debug("Populated a new CacheActionRunner with description " + cacheActionRunner.toString());
+            } else {
+                LOG.info("Runner is already defined.  Found " + cacheActionRunner.getClass().getName());
+            }
+        } catch(Exception e){
+            LOG.error("Failed to get a valid cacheActionRunner.", e);
+        }
+        return cacheActionRunner;
+
+    }
 
     @Override
     public String toString() {

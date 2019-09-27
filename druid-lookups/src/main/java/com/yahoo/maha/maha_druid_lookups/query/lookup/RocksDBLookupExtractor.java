@@ -2,8 +2,11 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
@@ -52,7 +55,6 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
     private ServiceEmitter serviceEmitter;
     private Cache<String, byte[]> missingLookupCache;
     private final byte[] extractionNamespaceAsByteArray;
-    private CacheActionRunner cacheActionRunner;
 
     public RocksDBLookupExtractor(RocksDBExtractionNamespace extractionNamespace, Map<String, U> map,
                                   LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
@@ -70,6 +72,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                 .expireAfterWrite(1, TimeUnit.HOURS)
                 .build();
         try {
+            objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
             this.extractionNamespaceAsByteArray = objectMapper.writeValueAsBytes(extractionNamespace);
         } catch (JsonProcessingException ex) {
             throw new RuntimeException(ex);
@@ -105,8 +108,8 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                     return null;
                 }
                 //byte[] cacheByteValue = db.get(key.getBytes());
-                tryResetRunnerOrLog(extractionNamespace);
-                byte[] cacheByteValue = cacheActionRunner.getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, serviceEmitter, extractionNamespace);
+                //tryResetRunnerOrLog(extractionNamespace);
+                byte[] cacheByteValue = extractionNamespace.getCacheActionRunner().getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, serviceEmitter, extractionNamespace);
 
                 if (cacheByteValue == null || cacheByteValue.length == 0) {
                     // No need to call handleMissingLookup if missing dimension is already present in missingLookupCache
@@ -183,11 +186,11 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
         }
     }
 
-    public void tryResetRunnerOrLog(RocksDBExtractionNamespace extractionNamespace) {
+   /* public void tryResetRunnerOrLog(RocksDBExtractionNamespace extractionNamespace) {
         try {
             if (cacheActionRunner == null) {
                 cacheActionRunner = CacheActionRunner.class.cast(
-                        Class.forName(extractionNamespace.cacheActionRunner).newInstance());
+                        Class.forName(extractionNamespace.getCacheActionRunner()).newInstance());
                 LOG.info("Populated a new CacheActionRunner with description " + cacheActionRunner.toString());
             } else {
                 LOG.debug("Runner is already defined.  Found " + cacheActionRunner.getClass().getName());
@@ -195,7 +198,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
         } catch(Exception e){
             LOG.error(e,"Failed to get a valid cacheActionRunner.");
         }
-    }
+    }*/
 
     @Override
     public boolean equals(Object o) {

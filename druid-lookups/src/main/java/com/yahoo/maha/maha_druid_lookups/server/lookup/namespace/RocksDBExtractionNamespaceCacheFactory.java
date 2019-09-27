@@ -3,23 +3,17 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.google.inject.Inject;
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.Message;
-import com.google.protobuf.Parser;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.metamx.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
-import org.apache.commons.lang.StringUtils;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -40,7 +34,6 @@ public class RocksDBExtractionNamespaceCacheFactory
     @Inject
     ServiceEmitter emitter;
 
-    private CacheActionRunner cacheActionRunner;
 
     @Override
     public Callable<String> getCachePopulator(
@@ -50,8 +43,6 @@ public class RocksDBExtractionNamespaceCacheFactory
             final Map<String, String> cache
     )
     {
-        tryResetRunnerOrLog(extractionNamespace);
-
         if(!extractionNamespace.isCacheEnabled()) {
             return new Callable<String>() {
                 @Override
@@ -76,33 +67,17 @@ public class RocksDBExtractionNamespaceCacheFactory
         };
     }
 
-    public void tryResetRunnerOrLog(RocksDBExtractionNamespace extractionNamespace) {
-        try {
-            if (cacheActionRunner == null) {
-                cacheActionRunner = CacheActionRunner.class.cast(
-                        Class.forName(extractionNamespace.cacheActionRunner).newInstance());
-                LOG.debug("Populated a new CacheActionRunner with description " + cacheActionRunner.toString());
-            } else {
-                LOG.info("Runner is already defined.  Found " + cacheActionRunner.getClass().getName());
-            }
-        } catch(Exception e){
-            LOG.error("Failed to get a valid cacheActionRunner.", e);
-        }
-    }
 
     @Override
     public void updateCache(final RocksDBExtractionNamespace extractionNamespace,
                             final Map<String, String> cache, final String key, final byte[] value) {
-        tryResetRunnerOrLog(extractionNamespace);
 
-        cacheActionRunner.updateCache(protobufSchemaFactory, key, value, rocksDBManager, emitter, extractionNamespace);
+        extractionNamespace.getCacheActionRunner().updateCache(protobufSchemaFactory, key, value, rocksDBManager, emitter, extractionNamespace);
     }
 
     @Override
     public byte[] getCacheValue(final RocksDBExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key, String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
-        tryResetRunnerOrLog(extractionNamespace);
-
-        return cacheActionRunner.getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, emitter, extractionNamespace);
+        return extractionNamespace.getCacheActionRunner().getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, emitter, extractionNamespace);
     }
 
     @Override

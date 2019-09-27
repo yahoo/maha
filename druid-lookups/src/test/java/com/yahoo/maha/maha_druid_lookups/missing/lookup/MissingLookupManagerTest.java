@@ -4,6 +4,7 @@ package com.yahoo.maha.maha_druid_lookups.missing.lookup;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.MissingLookupConfig;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestPasswordProvider;
@@ -52,6 +53,7 @@ public class MissingLookupManagerTest {
         RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                 "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"), "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopCacheActionRunner"
         );
+        objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         byte[] byteArray = objectMapper.writeValueAsBytes(extractionNamespace);
         ConsumerRecord<String, byte[]> cr = new ConsumerRecord("abc", 1, 1, "123", byteArray);
         records.add(cr);
