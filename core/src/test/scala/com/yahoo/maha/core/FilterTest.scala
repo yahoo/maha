@@ -526,11 +526,6 @@ class FilterTest extends FunSuite with Matchers {
   }
 
   test("Druid Filter Dim should be valid") {
-    val thrown = intercept[UnsupportedOperationException] {
-      FilterDruid.renderFilterDim(IsNotNullFilter("field1"), Map("field1"->"field1"), Map("field1"->col), Some(DailyGrain))
-    }
-    assert(thrown.getMessage.contains("Unhandled filter operation"))
-
     val pdThrown = intercept[UnsupportedOperationException] {
       val pdFilter = PushDownFilter(BetweenFilter("field1", "1", "2"))
       FilterDruid.renderFilterDim(pdFilter, Map("field1" -> "field1"), Map("field1" -> col), Option(DailyGrain))

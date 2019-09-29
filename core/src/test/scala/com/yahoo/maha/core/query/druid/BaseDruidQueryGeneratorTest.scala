@@ -313,7 +313,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PubCol("source_name", "Source Name", InEquality, incompatibleColumns = Set("Source")),
           PubCol("price_type", "Pricing Type", In),
           PubCol("Derived Pricing Type", "Derived Pricing Type", InEquality),
-          PubCol("landing_page_url", "Destination URL", Set.empty),
+          PubCol("landing_page_url", "Destination URL", InNotInEqualityNotEqualsLikeNullNotNull),
           PubCol("Landing URL Translation", "Landing URL Translation", Set.empty),
           PubCol("Week", "Week", InBetweenEquality),
           PubCol("Month", "Month", InBetweenEquality),
@@ -432,7 +432,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PubCol("stats_source", "Source", Equality),
           PubCol("price_type", "Pricing Type", In),
           PubCol("Derived Pricing Type", "Derived Pricing Type", InEquality),
-          PubCol("landing_page_url", "Destination URL", Set.empty),
+          PubCol("landing_page_url", "Destination URL", InNotInEqualityNotEqualsLikeNullNotNull),
           PubCol("Week", "Week", InBetweenEquality)
           //PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality)
         ),
