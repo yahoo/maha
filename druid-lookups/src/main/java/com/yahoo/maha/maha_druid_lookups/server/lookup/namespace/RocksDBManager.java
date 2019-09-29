@@ -108,18 +108,18 @@ public class RocksDBManager {
         final String hdfsPath = String.format("%s/load_time=%s/rocksdb.zip",
                 extractionNamespace.getRocksDbInstanceHDFSPath(), loadTime);
 
-        LOG.info(String.format("hdfsPath [%s]", hdfsPath));
+        LOG.error(String.format("hdfsPath [%s]", hdfsPath));
 
         if(!isRocksDBInstanceCreated(hdfsPath)) {
             serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_ROCKSDB_INSTANCE_NOT_PRESENT, 1));
             return String.valueOf(lastUpdate);
         }
 
-        if(lastUpdate != 0) {
-            // this is non deployment time
+        if(lastUpdate != 0 && !Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
+            // this is non deployment time and kafka is configured to get real time updates, so rocksdb instance download can be delayed
             try {
                 int waitTime = RANDOM.nextInt(BOUND);
-                LOG.info("Going to sleep for [%s] ms before RocksDB instance is downloaded and kafka messages are applied", waitTime);
+                LOG.error("Going to sleep for [%s] ms before RocksDB instance is downloaded and kafka messages are applied for [%s]", waitTime, extractionNamespace.getNamespace());
                 Thread.sleep(waitTime);
             } catch (InterruptedException e) {
             }
@@ -132,7 +132,7 @@ public class RocksDBManager {
 
         final String localZippedFileNameWithPath = String.format("%s/%s/rocksdb_%s.zip",
                 localStorageDirectory, extractionNamespace.getNamespace(), loadTime);
-        LOG.info(String.format("localZippedFileNameWithPath [%s]", localZippedFileNameWithPath));
+        LOG.error(String.format("localZippedFileNameWithPath [%s]", localZippedFileNameWithPath));
 
         final String localPath = FilenameUtils.removeExtension(localZippedFileNameWithPath);
 
