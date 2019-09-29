@@ -896,6 +896,11 @@ object FilterDruid {
       case f @ JavaScriptFilter(alias, func, _, _) => {
         new JavaScriptDimFilter(alias, func, null, JavaScriptConfig.getEnabledInstance)
       }
+      case f @ IsNullFilter(alias, _, _) =>
+        getDruidFilter(grainOption, column, columnAlias, null, columnsByNameMap)
+      case f @ IsNotNullFilter(alias, _, _) =>
+        val selector = getDruidFilter(grainOption, column, columnAlias, null, columnsByNameMap)
+        new NotDimFilter(selector)
       case f =>
         throw new UnsupportedOperationException(s"Unhandled filter operation $f")
     }
