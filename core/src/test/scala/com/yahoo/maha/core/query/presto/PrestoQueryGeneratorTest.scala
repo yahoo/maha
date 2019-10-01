@@ -347,32 +347,4 @@ ORDER BY mang_impressions ASC
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }
-
-  test("generating presto query with outer group should fail") {
-    val jsonString =
-      s"""{
-          "cube": "s_stats",
-          "selectFields": [
-              {"field": "Campaign Name"},
-              {"field": "Average CPC"},
-              {"field": "Average Position"},
-              {"field": "Impressions"}
-          ],
-          "filterExpressions": [
-              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
-              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
-          ]
-      }"""
-
-    val request: ReportingRequest = getReportingRequestAsync(jsonString)
-    val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
-
-    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
-
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-    assert(!queryPipelineTry.isSuccess, "QueryPipeline creation should fail")
-    assert(queryPipelineTry.errorMessage("").contains("Outer Group by in Presto Engine is not yet supported"))
-  }
-
 }
