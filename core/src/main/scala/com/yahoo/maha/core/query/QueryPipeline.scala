@@ -728,14 +728,7 @@ class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGene
                                     requestModel: RequestModel,
                                     queryAttributes: QueryAttributes,
                                     queryGenVersion: Version): Query = {
-    val isOgb = isOuterGroupByQuery(bestDimCandidates, bestFactCandidate, requestModel)
-
-    if (bestFactCandidate.fact.engine == PrestoEngine && isOgb) {
-      //TODO : Remove this once Presto OGB is implemented
-      throw new IllegalArgumentException("Outer Group by in Presto Engine is not yet supported!")
-    }
-
-    val queryType = if (isOgb) {
+    val queryType = if (isOuterGroupByQuery(bestDimCandidates, bestFactCandidate, requestModel)) {
       DimFactOuterGroupByQuery
     } else DimFactQuery
 
@@ -796,11 +789,10 @@ OuterGroupBy operation has to be applied only in the following cases
         && bestDimCandidates.nonEmpty
         && !requestModel.isDimDriven
         && !allSubQueryCandidates
-        && (bestFactCandidate.fact.engine == OracleEngine || bestFactCandidate.fact.engine == HiveEngine  || bestFactCandidate.fact.engine == PrestoEngine)
+        && (bestFactCandidate.fact.engine == OracleEngine || bestFactCandidate.fact.engine == HiveEngine)
         && bestDimCandidates.forall(candidate => {
         candidate.dim.engine == OracleEngine ||
-          candidate.dim.engine == HiveEngine ||
-          candidate.dim.engine == PrestoEngine
+          candidate.dim.engine == HiveEngine
       })) // Group by Feature is only implemented for oracle engine right now
 
     hasOuterGroupBy
