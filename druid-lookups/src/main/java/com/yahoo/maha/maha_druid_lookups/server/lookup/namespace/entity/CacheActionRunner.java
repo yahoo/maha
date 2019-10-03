@@ -59,7 +59,7 @@ public class CacheActionRunner {
         return null;
     }
 
-    public void updateCache(ProtobufSchemaFactory protobufSchemaFactory
+    synchronized public void updateCache(ProtobufSchemaFactory protobufSchemaFactory
             , final String key
             , final byte[] value
             , RocksDBManager rocksDBManager

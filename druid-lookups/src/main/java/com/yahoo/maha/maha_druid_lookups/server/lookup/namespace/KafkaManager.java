@@ -72,7 +72,7 @@ public class KafkaManager {
         this.protobufSchemaFactory = protobufSchemaFactory;
     }
 
-    private void updateRocksDB(final Parser<Message> parser, final Descriptors.Descriptor descriptor,
+    synchronized private void updateRocksDB(final Parser<Message> parser, final Descriptors.Descriptor descriptor,
                                final Descriptors.FieldDescriptor tsField, final RocksDB rocksDB, final String key,
                                final byte[] value) throws RocksDBException,
             InvalidProtocolBufferException {
@@ -123,7 +123,7 @@ public class KafkaManager {
                 public Boolean call() {
                     final KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(properties);
                     consumer.subscribe(Arrays.asList(topic));
-                    log.info("Listening to topic [%s] with groupid [%s] for namespace [%s] to apply changes since the beginning", topic, groupId, namespace);
+                    log.error("Listening to topic [%s] with groupid [%s] for namespace [%s] to apply changes since the beginning", topic, groupId, namespace);
                     long recordCount = 0;
                     while (!cancelled && !Thread.currentThread().isInterrupted()) {
                         final ConsumerRecords<String, byte[]> records = consumer.poll(20000);
@@ -142,10 +142,8 @@ public class KafkaManager {
                                 continue;
                             }
                             try {
-                                synchronized (this) {
                                     updateRocksDB(parser, descriptor, tsField, rocksDB, key, message);
                                     kafkaPartitionOffset.put(record.partition(), record.offset());
-                                }
                             } catch (RocksDBException | InvalidProtocolBufferException e) {
                                 log.error("Caught exception while applying changes to RocksDB", e);
                             }
@@ -157,7 +155,7 @@ public class KafkaManager {
                         }
                     }
                     consumer.close();
-                    log.info("Applied all the changes since the beginning for this consumer and topic [%s]", topic);
+                    log.error("Applied all the changes since the beginning for this consumer and topic [%s]", topic);
                     countDownLatch.countDown();
                     return true;
                 }
