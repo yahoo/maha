@@ -142,8 +142,10 @@ public class KafkaManager {
                                 continue;
                             }
                             try {
-                                updateRocksDB(parser, descriptor, tsField, rocksDB, key, message);
-                                kafkaPartitionOffset.put(record.partition(), record.offset());
+                                synchronized (this) {
+                                    updateRocksDB(parser, descriptor, tsField, rocksDB, key, message);
+                                    kafkaPartitionOffset.put(record.partition(), record.offset());
+                                }
                             } catch (RocksDBException | InvalidProtocolBufferException e) {
                                 log.error("Caught exception while applying changes to RocksDB", e);
                             }
