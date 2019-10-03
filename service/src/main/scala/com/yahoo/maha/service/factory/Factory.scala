@@ -78,6 +78,11 @@ trait OracleLiteralMapperFactory extends BaseFactory {
   def supportedProperties: List[(String, Boolean)]
 }
 
+trait PostgresLiteralMapperFactory extends BaseFactory {
+  def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[PostgresLiteralMapper]
+  def supportedProperties: List[(String, Boolean)]
+}
+
 trait DruidLiteralMapperFactory extends BaseFactory {
   def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[DruidLiteralMapper]
   def supportedProperties: List[(String, Boolean)]

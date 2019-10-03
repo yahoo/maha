@@ -159,7 +159,7 @@ b. Dim Driven
 
 
       val supportingRenderedDimension: Option[RenderedDimension] = {
-        val dimPKIndex : Option[PKCompositeIndex] = getDimOptionalPkIndex(dimBundle.dim)
+        val dimPKIndex : Option[OraclePKCompositeIndex] = getDimOptionalPkIndex(dimBundle.dim)
 
         if (shouldSelfJoinWithSupportingDrivingDim && dimPKIndex.isDefined) {
           val innerFields = dimBundle.fields.filter(f => f.equals(dimBundle.publicDim.primaryKeyByAlias) ||

@@ -75,6 +75,8 @@ case class FactCol(name: String,
         de.sourceColumns.foreach((name: String) => columnContext.render(name, Map.empty))
       case OracleCustomRollup(de) =>
         de.sourceColumns.foreach((name: String) => columnContext.render(name, Map.empty))
+      case PostgresCustomRollup(de) =>
+        de.sourceColumns.foreach((name: String) => columnContext.render(name, Map.empty))
       case DruidCustomRollup(de) =>
         de.sourceColumns.foreach((name: String) => columnContext.render(name, Map.empty))
       case DruidFilteredRollup(filter, de, delegateAggregatorRollupExpression) =>
@@ -227,6 +229,36 @@ object OracleDerFactCol {
             rollupExpression: RollupExpression = SumRollup,
             filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) : OracleDerFactCol = {
     OracleDerFactCol(name, alias, dataType, cc, derivedExpression, annotations, rollupExpression, filterOperationOverrides)
+  }
+}
+
+case class PostgresDerFactCol(name: String,
+                              alias: Option[String],
+                              dataType: DataType,
+                              columnContext: ColumnContext,
+                              derivedExpression: PostgresDerivedExpression,
+                              annotations: Set[ColumnAnnotation],
+                              rollupExpression: RollupExpression,
+                              filterOperationOverrides: Set[FilterOperation]
+                             ) extends BaseDerivedFactCol with WithPostgresEngine {
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : FactColumn = {
+    if(resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name), derivedExpression = derivedExpression.copyWith(columnContext))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias), derivedExpression = derivedExpression.copyWith(columnContext))
+    }
+  }
+}
+
+object PostgresDerFactCol {
+  def apply(name: String,
+            dataType: DataType,
+            derivedExpression: PostgresDerivedExpression,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            rollupExpression: RollupExpression = SumRollup,
+            filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) : PostgresDerFactCol = {
+    PostgresDerFactCol(name, alias, dataType, cc, derivedExpression, annotations, rollupExpression, filterOperationOverrides)
   }
 }
 

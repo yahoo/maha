@@ -2,8 +2,6 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
-import scala.collection.concurrent.TrieMap
-
 /**
  * Created by hiral on 3/28/16.
  */
@@ -23,5 +21,9 @@ object Schema {
 
   def withNameInsensitiveOption(name: String) : Option[Schema] = {
     schemaMap.get(name.toLowerCase)
+  }
+
+  implicit def orderingByName[A <: Schema]: Ordering[A] = {
+    Ordering.by(s => s.entryName)
   }
 }

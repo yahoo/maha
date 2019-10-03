@@ -26,6 +26,223 @@ trait Expression[T] {
   def /-(that: Expression[T]) : Expression[T]
 }
 
+sealed trait PostgresExpression extends Expression[String] {
+  def render(insideDerived: Boolean) = insideDerived match {
+    case true if hasNumericOperation =>
+      s"($asString)"
+    case _ =>
+      asString
+  }
+}
+
+object PostgresExpression {
+  type PostgresExp = Expression[String]
+
+  trait BasePostgresExpression extends PostgresExpression {
+    def *(that: PostgresExp) : PostgresExp = {
+      val expression = if(that.hasNumericOperation) {
+        s"$asString * (${that.asString})"
+      } else {
+        s"$asString * ${that.asString}"
+      }
+      COL(expression, hasRollupExpression || that.hasRollupExpression, hasNumericOperation = true)
+    }
+
+    def /(that: PostgresExp) : PostgresExp = {
+      val expression = if(that.hasNumericOperation) {
+        s"$asString / (${that.asString})"
+      } else {
+        s"$asString / ${that.asString}"
+      }
+      COL(expression, hasRollupExpression || that.hasRollupExpression, hasNumericOperation = true)
+    }
+
+    def ++(that: PostgresExp) : PostgresExp = {
+      COL(s"$asString + ${that.asString}", hasRollupExpression || that.hasRollupExpression, hasNumericOperation = true)
+    }
+
+    def -(that: PostgresExp) : PostgresExp = {
+      COL(s"$asString - ${that.asString}", hasRollupExpression || that.hasRollupExpression, hasNumericOperation = true)
+    }
+
+    def /-(that: PostgresExp) : PostgresExp = {
+      val safeExpression = if(that.hasNumericOperation) {
+        s"CASE WHEN ${that.asString} = 0 THEN 0.0 ELSE $asString / (${that.asString}) END"
+      } else {
+        s"CASE WHEN ${that.asString} = 0 THEN 0.0 ELSE $asString / ${that.asString} END"
+      }
+      COL(safeExpression, hasRollupExpression || that.hasRollupExpression, hasNumericOperation = true)
+    }
+  }
+
+  case class COL(s: String, hasRollupExpression: Boolean = false, hasNumericOperation: Boolean = false) extends BasePostgresExpression {
+    def asString : String = s
+  }
+
+  case class SUM(s: PostgresExp) extends BasePostgresExpression {
+    val hasRollupExpression = true
+    val hasNumericOperation = true
+    def asString : String = s"SUM(${s.asString})"
+  }
+
+  case class ROUND(s: PostgresExp, format: Int) extends BasePostgresExpression {
+    def hasRollupExpression = s.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation
+    def asString : String = s"ROUND(${s.asString}, $format)"
+  }
+
+  case class MAX(s: PostgresExp) extends BasePostgresExpression {
+    val hasRollupExpression = true
+    val hasNumericOperation = true
+    def asString : String = s"MAX(${s.asString})"
+  }
+
+  case class MIN(s: PostgresExp) extends BasePostgresExpression {
+    val hasRollupExpression = true
+    val hasNumericOperation = true
+    def asString : String = s"MIN(${s.asString})"
+  }
+
+  case class TIMESTAMP_TO_FORMATTED_DATE(s: PostgresExp, fmt: String) extends BasePostgresExpression {
+    def hasRollupExpression = s.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation
+    // NVL(TO_CHAR(DATE '1970-01-01' + ( 1 / 24 / 60 / 60 / 1000)*CAST(MOD(start_time, 32503680000000) AS NUMBER) , 'YYYY-MM-DD'), 'NULL')
+    def asString : String = s"NVL(TO_CHAR(DATE '1970-01-01' + ( 1 / 24 / 60 / 60 / 1000)*CAST(MOD(${s.asString}}, 32503680000000) AS NUMBER) , '$fmt'), 'NULL')"
+  }
+
+  case class FORMAT_DATE(s: PostgresExp, fmt: String) extends BasePostgresExpression {
+    def hasRollupExpression = s.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation
+    def asString : String = s"NVL(TO_CHAR(${s.asString}, '$fmt'), 'NULL')"
+  }
+
+  case class FORMAT_DATE_WITH_LEAST(s: PostgresExp, fmt: String) extends BasePostgresExpression {
+    def hasRollupExpression = s.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation
+    def asString : String = s"NVL(TO_CHAR(LEAST(${s.asString},TO_DATE('01-Jan-3000','dd-Mon-YYYY')), '$fmt'), 'NULL')"
+  }
+
+  case class NVL(s: PostgresExp, default: String) extends BasePostgresExpression {
+    def hasRollupExpression = s.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation
+    def asString : String = s"NVL(${s.asString}, ${default.asString})"
+  }
+
+  case class TRUNC(s: PostgresExp) extends BasePostgresExpression {
+    def hasRollupExpression = s.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation
+    def asString : String = s"TRUNC(${s.asString})"
+  }
+
+  case class GET_INTERVAL_DATE(s: PostgresExp, fmt: String) extends BasePostgresExpression {
+
+    // args should be stats_date and d|w|m
+    GET_INTERVAL_DATE.checkFormat(fmt)
+
+    def hasRollupExpression = s.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation
+    def asString : String = GET_INTERVAL_DATE.getIntervalDate(s.asString, fmt)
+  }
+
+  object GET_INTERVAL_DATE {
+    val regex = """[dwmDWM]|[dD][aA][yY]|[yY][rR]""".r
+
+    def checkFormat(fmt: String):  Unit = {
+      regex.findFirstIn(fmt) match {
+        case Some(f) =>
+        case _ => throw new IllegalArgumentException(s"Format for get_interval_date must be d|w|m|day|yr not $fmt")
+      }
+    }
+
+    def getIntervalDate(exp: String, fmt: String):  String = {
+      fmt.toLowerCase match {
+        case "d" =>
+          // TRUNC(DateString,"DD") does not work for Hive
+          s"TRUNC($exp)"
+        case "w" =>
+          //TRUNC(stats_date, 'IW') "Week"
+          s"TRUNC($exp, 'IW')"
+        case "m" =>
+          //TRUNC(stats_date, 'MM') "Month"
+          s"TRUNC($exp, 'MM')"
+        case "day" =>
+          s"TO_CHAR($exp, 'DAY')"
+        case "yr" =>
+          s"TO_CHAR($exp, 'yyyy')"
+        case s => throw new IllegalArgumentException(s"Format for get_interval_date must be d|w|m|day|yr not $fmt")
+      }
+    }
+  }
+
+  case class DECODE_DIM(args: PostgresExp*) extends BasePostgresExpression {
+    if (args.length < 3) throw new IllegalArgumentException("Usage: DECODE( expression , search , result [, search , result]... [, default] )")
+    require(!args.exists(_.hasRollupExpression), s"DECODE_DIM cannot rely on expression with rollup ${args.mkString(", ")}")
+
+    val strArgs = args.map(_.asString).mkString(", ")
+    val hasRollupExpression = false
+    val hasNumericOperation = args.exists(_.hasNumericOperation)
+    def asString: String = s"DECODE($strArgs)"
+  }
+
+  case class DECODE(args: PostgresExp*) extends BasePostgresExpression {
+    if (args.length < 3) throw new IllegalArgumentException("Usage: DECODE( expression , search , result [, search , result]... [, default] )")
+    val strArgs = args.map(_.asString).mkString(", ")
+
+    val hasRollupExpression = true
+    val hasNumericOperation = args.exists(_.hasNumericOperation)
+    def asString: String = s"DECODE($strArgs)"
+  }
+
+  case class COMPARE_PERCENTAGE(arg1: PostgresExp, arg2: PostgresExp, percentage: Int, value: String, nextExp: PostgresExpression) extends BasePostgresExpression {
+    val hasRollupExpression = false
+    val hasNumericOperation = false
+    def asString: String = {
+      val ELSE_END = if (nextExp.isInstanceOf[PostgresExpression.COL]) ("ELSE", "END") else ("", "") // Add ELSE if nextExp is last
+
+      s"CASE WHEN ${arg1.asString} < ${percentage/100.0} * ${arg2.asString} THEN '${value}' ${ELSE_END._1} ${nextExp.render(false)} ${ELSE_END._2}"
+        .replaceAll(" CASE", "") // replace all CASE other than the first
+    }
+  }
+
+  case class COALESCE(s: PostgresExp, default: PostgresExp) extends BasePostgresExpression {
+    def hasRollupExpression = s.hasRollupExpression || default.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation || default.hasNumericOperation
+    def asString : String = s"COALESCE(${s.asString}, ${default.asString})"
+  }
+
+  case class TO_CHAR(s: PostgresExp, fmt: String) extends BasePostgresExpression {
+    def hasRollupExpression = s.hasRollupExpression
+    def hasNumericOperation = s.hasNumericOperation
+    def asString : String = s"TO_CHAR(${s.asString}, '$fmt')"
+  }
+
+  implicit def from(s: String): PostgresExpression = {
+    COL(s, false)
+  }
+
+  implicit def fromExpression(e: PostgresExp) : PostgresExpression = {
+    e.asInstanceOf[PostgresExpression]
+  }
+
+  implicit class StringHelper(s: String) {
+    def *(s2: String) : PostgresExpression = {
+      COL(s, false) * COL(s2, false)
+    }
+    def ++(s2: String) : PostgresExpression = {
+      COL(s, false) ++ COL(s2, false)
+    }
+    def -(s2: String) : PostgresExpression = {
+      COL(s, false) - COL(s2, false)
+    }
+    def /(s2: String) : PostgresExpression = {
+      COL(s, false) / COL(s2, false)
+    }
+    def /-(s2: String) : PostgresExpression = {
+      COL(s, false) /- COL(s2, false)
+    }
+  }
+}
+
 trait PrestoExpression extends Expression[String] {
   def render(insideDerived: Boolean) = insideDerived match {
     case true if hasNumericOperation =>
@@ -707,6 +924,33 @@ object OracleDerivedExpression {
   }
 
   implicit def fromString(s: String)(implicit  cc: ColumnContext) : OracleDerivedExpression = {
+    apply(s)
+  }
+}
+
+case class PostgresDerivedExpression (columnContext: ColumnContext, expression: PostgresExpression) extends DerivedExpression[String] with WithPostgresEngine {
+  type ConcreteType = PostgresDerivedExpression
+  def copyWith(columnContext: ColumnContext) : PostgresDerivedExpression = {
+    this.copy(columnContext = columnContext)
+  }
+}
+
+object PostgresDerivedExpression {
+  import PostgresExpression.PostgresExp
+
+  def apply(expression: PostgresExpression)(implicit cc: ColumnContext) : PostgresDerivedExpression = {
+    PostgresDerivedExpression(cc, expression)
+  }
+
+  implicit def fromPostgresExpression(expression: PostgresExpression)(implicit  cc: ColumnContext) : PostgresDerivedExpression = {
+    apply(expression)
+  }
+
+  implicit def fromExpression(expression: PostgresExp)(implicit  cc: ColumnContext) : PostgresDerivedExpression = {
+    apply(expression)
+  }
+
+  implicit def fromString(s: String)(implicit  cc: ColumnContext) : PostgresDerivedExpression = {
     apply(s)
   }
 }

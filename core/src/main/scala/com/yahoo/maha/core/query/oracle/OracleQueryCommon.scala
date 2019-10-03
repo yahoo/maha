@@ -1,7 +1,7 @@
 package com.yahoo.maha.core.query.oracle
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{DimCol, Dimension, OracleHashPartitioning, PKCompositeIndex}
+import com.yahoo.maha.core.dimension.{DimCol, Dimension, OracleHashPartitioning, OraclePKCompositeIndex}
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
 
@@ -71,8 +71,8 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
     }
   }
 
-  protected[this] def getDimOptionalPkIndex(dim: Dimension): Option[PKCompositeIndex] = {
-    dim.annotations.find(_.isInstanceOf[PKCompositeIndex]).map(_.asInstanceOf[PKCompositeIndex])
+  protected[this] def getDimOptionalPkIndex(dim: Dimension): Option[OraclePKCompositeIndex] = {
+    dim.annotations.find(_.isInstanceOf[OraclePKCompositeIndex]).map(_.asInstanceOf[OraclePKCompositeIndex])
   }
 
   protected[this] def getFactOptionalHint(factualContext: FactualQueryContext, requestModel: RequestModel): Option[String] = {

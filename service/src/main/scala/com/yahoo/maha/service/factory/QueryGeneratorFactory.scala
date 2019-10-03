@@ -7,6 +7,7 @@ import com.yahoo.maha.core.query.{QueryGenerator, Version}
 import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, DruidQueryOptimizer}
 import com.yahoo.maha.core.query.hive.{HiveQueryGenerator, HiveQueryGeneratorV2}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
+import com.yahoo.maha.core.query.postgres.PostgresQueryGenerator
 import com.yahoo.maha.core.query.presto.PrestoQueryGenerator
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
@@ -185,6 +186,47 @@ class PrestoQueryGeneratorFactory extends QueryGeneratorFactory {
 
     (partitionColumnRenderer |@| udfStatements) {
       (renderer, stmt) => new PrestoQueryGenerator(renderer, stmt)
+    }
+  }
+
+  override def supportedProperties: List[(String, Boolean)] = List.empty
+}
+
+class PostgresQueryGeneratorFactory extends QueryGeneratorFactory {
+
+  """
+    |{
+    |"partitionColumnRendererClass" : "DefaultPartitionColumnRendererFactory",
+    |"partitionColumnRendererConfig" : [{"key": "value"}],
+    |"literalMapperClass" : "PostgresLiteralMapper",
+    |"literalMapperConfig": {}
+    |}
+  """.stripMargin
+
+  override def fromJson(configJson: org.json4s.JValue)(implicit context: MahaServiceConfigContext): MahaServiceConfig.MahaConfigResult[QueryGenerator[_ <: EngineRequirement]] = {
+    import org.json4s.scalaz.JsonScalaz._
+    val partitionColumnRendererClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("partitionColumnRendererClass")(configJson)
+    val partitionColumnRendererConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("partitionColumnRendererConfig")(configJson)
+    val literalMapperClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("literalMapperClass")(configJson)
+    val literalMapperConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("literalMapperConfig")(configJson)
+
+    val partitionColumnRenderer: MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] = for {
+      partitionColumnRendererClass <- partitionColumnRendererClassResult
+      partitionColumnRendererFactory <- getFactory[PartitionColumnRendererFactory](partitionColumnRendererClass, this.closer)
+      partitionColumnRendererConfig <- partitionColumnRendererConfigResult
+      partitionColumnRenderer <- partitionColumnRendererFactory.fromJson(partitionColumnRendererConfig)
+    } yield partitionColumnRenderer
+
+    val literalMapper: MahaServiceConfig.MahaConfigResult[PostgresLiteralMapper] = for {
+      literalMapperClass <- literalMapperClassResult
+      literalMapperFactory <- getFactory[PostgresLiteralMapperFactory](literalMapperClass, this.closer)
+      literalMapperConfig <- literalMapperConfigResult
+      literalMapper <- literalMapperFactory.fromJson(literalMapperConfig)
+
+    } yield literalMapper
+
+    (partitionColumnRenderer |@| literalMapper) {
+      (psr, lm) => new PostgresQueryGenerator(psr, lm)
     }
   }
 

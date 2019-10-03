@@ -288,6 +288,36 @@ object OracleDerDimCol {
   }
 }
 
+case class PostgresDerDimCol(name: String,
+                             dataType: DataType,
+                             columnContext: ColumnContext,
+                             derivedExpression: PostgresDerivedExpression,
+                             alias: Option[String],
+                             annotations: Set[ColumnAnnotation],
+                             filterOperationOverrides: Set[FilterOperation]) extends BaseDerivedDimCol with WithPostgresEngine {
+  require(derivedExpression != null,
+    s"Derived expression should be defined for a derived column $name")
+  require(!derivedExpression.expression.hasRollupExpression, s"Cannot have rollup expression for dimension column : $name - $derivedExpression")
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : DimensionColumn = {
+    if(resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name), derivedExpression = derivedExpression.copyWith(columnContext))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias), derivedExpression = derivedExpression.copyWith(columnContext))
+    }
+  }
+}
+
+object PostgresDerDimCol {
+  def apply(name: String,
+            dataType: DataType,
+            derivedExpression: PostgresDerivedExpression,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            filterOperationOverrides: Set[FilterOperation] = Set.empty)(implicit cc: ColumnContext) : PostgresDerDimCol = {
+    PostgresDerDimCol(name, dataType, cc, derivedExpression, alias, annotations, filterOperationOverrides)
+  }
+}
+
 case class DruidFuncDimCol(name: String,
                            dataType: DataType,
                            columnContext: ColumnContext,
@@ -378,6 +408,33 @@ object OraclePartDimCol {
             annotations: Set[ColumnAnnotation] = Set.empty,
             partitionLevel: PartitionLevel = NoPartitionLevel )(implicit cc: ColumnContext) : OraclePartDimCol = {
     OraclePartDimCol(name, dataType, cc, alias, annotations, partitionLevel)
+  }
+}
+
+case class PostgresPartDimCol(name: String,
+                            dataType: DataType,
+                            columnContext: ColumnContext,
+                            alias: Option[String],
+                            annotations: Set[ColumnAnnotation],
+                            partitionLevel: PartitionLevel) extends BaseDimCol with WithPostgresEngine with PartitionColumn {
+  override val filterOperationOverrides: Set[FilterOperation] = Set.empty
+  override val isDerivedColumn: Boolean = false
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : DimensionColumn = {
+    if(resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias))
+    }
+  }
+}
+
+object PostgresPartDimCol {
+  def apply(name: String,
+            dataType: DataType,
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty,
+            partitionLevel: PartitionLevel = NoPartitionLevel )(implicit cc: ColumnContext) : PostgresPartDimCol = {
+    PostgresPartDimCol(name, dataType, cc, alias, annotations, partitionLevel)
   }
 }
 

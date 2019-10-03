@@ -78,6 +78,7 @@
         <module>druid</module>
         <module>oracle</module>
         <module>presto</module>
+        <module>postgres</module>
         <module>service</module>
         <module>worker</module>
         <module>api-jersey</module>

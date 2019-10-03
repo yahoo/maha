@@ -207,6 +207,10 @@ trait BaseRequest {
     reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.QueryEngine -> QueryEngineValue(OracleEngine)))
   }
 
+  def forcePostgres(reportingRequest: ReportingRequest) : ReportingRequest = {
+    reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.QueryEngine -> QueryEngineValue(PostgresEngine)))
+  }
+
   def forceDruid(reportingRequest: ReportingRequest) : ReportingRequest = {
     reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.QueryEngine -> QueryEngineValue(DruidEngine)))
   }
