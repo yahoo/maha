@@ -22,6 +22,7 @@ trait BasePrestoQueryGeneratorTest
 
   override protected def beforeAll(): Unit = {
     PrestoQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestPrestoUDFRegistrationFactory())
+    PrestoQueryGeneratorV1.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestPrestoUDFRegistrationFactory())
   }
 
   override protected[this] def getDefaultRegistry(forcedFilters: Set[ForcedFilter] = Set.empty): Registry = {

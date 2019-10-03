@@ -123,7 +123,7 @@ class PrestoQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, ud
           case (column, alias) =>
             val name = column.name
             val nameOrAlias = column.alias.getOrElse(name)
-            renderColumnWithAlias(fact, column, alias, Set.empty, queryContext, queryBuilderContext, queryBuilder)
+            renderColumnWithAlias(fact, column, alias, Set.empty, isOuterColumn = false, queryContext, queryBuilderContext, queryBuilder)
             if (column.isDerivedColumn) {
               val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
               queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
@@ -148,7 +148,7 @@ class PrestoQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, ud
         nonDerivedCols.foreach {
           case (column, alias) =>
             val renderedAlias = s""""$alias""""
-            renderColumnWithAlias(fact, column, alias, Set.empty, queryContext, queryBuilderContext, queryBuilder)
+            renderColumnWithAlias(fact, column, alias, Set.empty, isOuterColumn = false, queryContext, queryBuilderContext, queryBuilder)
         }
       }
 
@@ -159,7 +159,7 @@ class PrestoQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, ud
         derivedCols.foreach {
           case (column, alias) =>
             val renderedAlias = s""""$alias""""
-            renderColumnWithAlias(fact, column, alias, requiredInnerCols, queryContext, queryBuilderContext, queryBuilder)
+            renderColumnWithAlias(fact, column, alias, requiredInnerCols, isOuterColumn = false, queryContext, queryBuilderContext, queryBuilder)
         }
       }
 
@@ -361,7 +361,7 @@ object PrestoQueryGeneratorV1 extends Logging {
   def register(queryGeneratorRegistry: QueryGeneratorRegistry, partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) = {
     if(!queryGeneratorRegistry.isEngineRegistered(PrestoEngine, Option(Version.v1))) {
       val generator = new PrestoQueryGeneratorV1(partitionDimensionColumnRenderer:PartitionColumnRenderer, udfStatements)
-      queryGeneratorRegistry.register(PrestoEngine, generator)
+      queryGeneratorRegistry.register(PrestoEngine, generator, generator.version)
     } else {
       queryGeneratorRegistry.getDefaultGenerator(PrestoEngine).foreach {
         qg =>

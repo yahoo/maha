@@ -271,6 +271,7 @@ abstract class PrestoQueryGeneratorCommon(partitionColumnRenderer:PartitionColum
                             column: Column,
                             alias: String,
                             requiredInnerCols: Set[String],
+                            isOuterColumn: Boolean,
                             queryContext: QueryContext,
                             queryBuilderContext: QueryBuilderContext,
                             queryBuilder: QueryBuilder): Unit = {
@@ -325,7 +326,7 @@ abstract class PrestoQueryGeneratorCommon(partitionColumnRenderer:PartitionColum
             //val renderedAlias = renderColumnAlias(sourceCol.name)
             val renderedAlias = sourceCol.alias.getOrElse(sourceCol.name)
 
-            renderColumnWithAlias(fact, sourceCol, renderedAlias, requiredInnerCols, queryContext, queryBuilderContext, queryBuilder)
+            renderColumnWithAlias(fact, sourceCol, renderedAlias, requiredInnerCols, isOuterColumn, queryContext, queryBuilderContext, queryBuilder)
           case _ => //do nothing if we reference ourselves
         }
         val renderedAlias = renderColumnAlias(alias)

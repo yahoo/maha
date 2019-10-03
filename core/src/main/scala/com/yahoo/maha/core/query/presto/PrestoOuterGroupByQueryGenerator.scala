@@ -1,10 +1,10 @@
 package com.yahoo.maha.core.query.presto
 
-import com.yahoo.maha.core.HiveExpression.{COALESCE, COL, NVL, ROUND}
+import com.yahoo.maha.core.PrestoExpression.{COALESCE, COL, NVL, ROUND}
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
-import com.yahoo.maha.core.{HiveExpression, _}
+import com.yahoo.maha.core._
 import grizzled.slf4j.Logging
 
 import scala.collection.mutable
@@ -66,7 +66,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
                              queryBuilder: QueryBuilder,
                              queryBuilderContext: QueryBuilderContext,
                              renderRollupExpression: (String, RollupExpression, Option[String]) => String,
-                             renderColumnWithAlias: (Fact, Column, String, Set[String], QueryContext, QueryBuilderContext, QueryBuilder) => Unit,
+                             renderColumnWithAlias: (Fact, Column, String, Set[String], Boolean, QueryContext, QueryBuilderContext, QueryBuilder) => Unit,
                              primitiveColsSet: mutable.LinkedHashSet[(String, Column)],
                              noopRollupColSet: mutable.LinkedHashSet[(String, Column)]) : String = { // base: query common
 
