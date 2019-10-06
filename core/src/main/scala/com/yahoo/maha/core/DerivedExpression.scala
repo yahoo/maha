@@ -107,25 +107,25 @@ object PostgresExpression {
     def hasRollupExpression = s.hasRollupExpression
     def hasNumericOperation = s.hasNumericOperation
     // NVL(TO_CHAR(DATE '1970-01-01' + ( 1 / 24 / 60 / 60 / 1000)*CAST(MOD(start_time, 32503680000000) AS NUMBER) , 'YYYY-MM-DD'), 'NULL')
-    def asString : String = s"NVL(TO_CHAR(DATE '1970-01-01' + ( 1 / 24 / 60 / 60 / 1000)*CAST(MOD(${s.asString}}, 32503680000000) AS NUMBER) , '$fmt'), 'NULL')"
+    def asString : String = s"COALESCE(TO_CHAR(TIMESTAMP '1970-01-01' + ( 1 / 24 / 60 / 60 / 1000)*CAST(MOD(${s.asString}}, 32503680000000) AS NUMERIC) , '$fmt'), 'NULL')"
   }
 
   case class FORMAT_DATE(s: PostgresExp, fmt: String) extends BasePostgresExpression {
     def hasRollupExpression = s.hasRollupExpression
     def hasNumericOperation = s.hasNumericOperation
-    def asString : String = s"NVL(TO_CHAR(${s.asString}, '$fmt'), 'NULL')"
+    def asString : String = s"COALESCE(TO_CHAR(${s.asString}, '$fmt'), 'NULL')"
   }
 
   case class FORMAT_DATE_WITH_LEAST(s: PostgresExp, fmt: String) extends BasePostgresExpression {
     def hasRollupExpression = s.hasRollupExpression
     def hasNumericOperation = s.hasNumericOperation
-    def asString : String = s"NVL(TO_CHAR(LEAST(${s.asString},TO_DATE('01-Jan-3000','dd-Mon-YYYY')), '$fmt'), 'NULL')"
+    def asString : String = s"COALESCE(TO_CHAR(LEAST(${s.asString},TO_DATE('01-Jan-3000','dd-Mon-YYYY')), '$fmt'), 'NULL')"
   }
 
   case class NVL(s: PostgresExp, default: String) extends BasePostgresExpression {
     def hasRollupExpression = s.hasRollupExpression
     def hasNumericOperation = s.hasNumericOperation
-    def asString : String = s"NVL(${s.asString}, ${default.asString})"
+    def asString : String = s"COALESCE(${s.asString}, ${default.asString})"
   }
 
   case class TRUNC(s: PostgresExp) extends BasePostgresExpression {
@@ -178,19 +178,73 @@ object PostgresExpression {
     if (args.length < 3) throw new IllegalArgumentException("Usage: DECODE( expression , search , result [, search , result]... [, default] )")
     require(!args.exists(_.hasRollupExpression), s"DECODE_DIM cannot rely on expression with rollup ${args.mkString(", ")}")
 
-    val strArgs = args.map(_.asString).mkString(", ")
+    def buildExp(): String = {
+      val exp = args(0).asString
+      val default = if (args.length % 2 == 0) {
+        s"ELSE ${args.last.asString} "
+      } else {
+        ""
+      }
+      var i = 1
+      val end = if (args.length % 2 == 0) {
+        args.length - 1
+      } else {
+        args.length
+      }
+
+      val builder = new StringBuilder
+      builder.append("CASE ")
+      while (i < end) {
+        val search = args(i).asString
+        val result = args(i+1).asString
+        builder.append(s"WHEN $exp = $search THEN $result ")
+        i += 2
+      }
+      builder.append(default)
+      builder.append("END")
+      builder.mkString
+    }
+    val caseExpression = buildExp()
     val hasRollupExpression = false
     val hasNumericOperation = args.exists(_.hasNumericOperation)
-    def asString: String = s"DECODE($strArgs)"
+    def asString: String = caseExpression
   }
 
   case class DECODE(args: PostgresExp*) extends BasePostgresExpression {
     if (args.length < 3) throw new IllegalArgumentException("Usage: DECODE( expression , search , result [, search , result]... [, default] )")
-    val strArgs = args.map(_.asString).mkString(", ")
+
+    def buildExp(): String = {
+      val exp = args(0).asString
+      val default = if (args.length % 2 == 0) {
+        s"ELSE ${args.last.asString} "
+      } else {
+        ""
+      }
+      var i = 1
+      val end = if (args.length % 2 == 0) {
+        args.length - 1
+      } else {
+        args.length
+      }
+
+      val builder = new StringBuilder
+      builder.append("CASE ")
+      while (i < end) {
+        val search = args(i).asString
+        val result = args(i+1).asString
+        builder.append(s"WHEN $exp = $search THEN $result ")
+        i += 2
+      }
+      builder.append(default)
+      builder.append("END")
+      builder.mkString
+    }
+    val caseExpression = buildExp()
 
     val hasRollupExpression = true
     val hasNumericOperation = args.exists(_.hasNumericOperation)
-    def asString: String = s"DECODE($strArgs)"
+    //def asString: String = s"DECODE($strArgs)"
+    def asString: String = caseExpression
   }
 
   case class COMPARE_PERCENTAGE(arg1: PostgresExp, arg2: PostgresExp, percentage: Int, value: String, nextExp: PostgresExpression) extends BasePostgresExpression {

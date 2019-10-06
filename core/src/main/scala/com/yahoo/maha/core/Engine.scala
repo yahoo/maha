@@ -22,7 +22,7 @@ case object PrestoEngine extends Engine {
 }
 case object PostgresEngine extends Engine {
   override def toString = "Postgres"
-  val MAX_SIZE_IN_FILTER = 999
+  val MAX_SIZE_IN_FILTER = 32766
 }
 
 object Engine {

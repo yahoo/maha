@@ -52,7 +52,8 @@ class RegistryBuilder{
              factEstimator: FactCostEstimator=new DefaultFactEstimator,
              defaultPublicFactRevisionMap: Map[String, Int] = Map.empty,
              defaultPublicDimRevisionMap: Map[String, Int] = Map.empty,
-             defaultFactEngine: Engine = OracleEngine
+             defaultFactEngine: Engine = OracleEngine,
+             druidMultiQueryEngineList: Seq[Engine] = Seq(OracleEngine)
            ) : Registry = {
 
     val keySet:Set[String] = dimColToKeySetMap.values.flatten.toSet
@@ -100,6 +101,7 @@ class RegistryBuilder{
       , defaultPublicFactRevisionMap ++ missingDefaultRevision
       , defaultPublicDimRevisionMap ++ missingDimDefaultRevision
       , defaultFactEngine = defaultFactEngine
+      , druidMultiQueryEngineList = druidMultiQueryEngineList
     )
   }
 
@@ -120,6 +122,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
                                       , defaultPublicFactRevisionMap: Map[String, Int]
                                       , defaultPublicDimRevisionMap: Map[String, Int]
                                       , defaultFactEngine: Engine
+                                      , druidMultiQueryEngineList: Seq[Engine]
                                      ) extends Logging {
 
   private[this] val schemaToFactMap: Map[Schema, Set[PublicFact]] = factMap.values

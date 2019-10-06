@@ -627,7 +627,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -880,7 +880,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator)//do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -912,7 +912,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator)//do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1429,7 +1429,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1469,7 +1469,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1515,7 +1515,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1551,7 +1551,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1589,7 +1589,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1627,7 +1627,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1667,7 +1667,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1702,7 +1702,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1857,7 +1857,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1891,7 +1891,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1925,7 +1925,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -1960,7 +1960,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -2211,7 +2211,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -2425,7 +2425,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -2600,7 +2600,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
 
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("query pipeline should fail"))
@@ -2722,7 +2722,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val druidQueryGenerator =  new DruidQueryGenerator(new SyncDruidQueryOptimizer(timeout = 5000), 40000, shouldLimitInnerQueries = false)
 
     altQueryGeneratorRegistry.register(DruidEngine, druidQueryGenerator)
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -2757,7 +2757,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -2791,7 +2791,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -2829,7 +2829,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
     altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
-    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
@@ -2898,5 +2898,32 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(result.contains(json))
   }
 
+  test("Successfully set query priority for async request") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Average Bid"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
 
+    val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestAsync(jsonString))
+    val requestModel = RequestModel.from(request, defaultRegistry)
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator(new AsyncDruidQueryOptimizer())) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+
+    val json = """"priority":-1"""
+    assert(result.contains(json), json)
+  }
 }

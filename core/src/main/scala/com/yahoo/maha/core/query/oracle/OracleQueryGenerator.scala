@@ -18,7 +18,7 @@ import scala.util.Try
  * Created by hiral on 11/13/15.
  */
 
-class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, literalMapper: OracleLiteralMapper = new OracleLiteralMapper) extends OuterGroupByQueryGenerator(partitionColumnRenderer, literalMapper) with Logging {
+class OracleQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, literalMapper: OracleLiteralMapper = new OracleLiteralMapper) extends OracleOuterGroupByQueryGenerator(partitionColumnRenderer, literalMapper) with Logging {
 
   override val engine: Engine = OracleEngine
 

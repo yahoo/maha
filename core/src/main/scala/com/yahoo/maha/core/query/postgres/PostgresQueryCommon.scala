@@ -32,14 +32,14 @@ trait PostgresQueryCommon extends  BaseQueryGenerator[WithPostgresEngine] {
   final protected[this] val ADDITIONAL_PAGINATION_COLUMN: IndexedSeq[String] = IndexedSeq(PostgresQueryGenerator.ROW_COUNT_ALIAS)
   final protected[this] val PAGINATION_ROW_COUNT: String = s"""Count(*) OVER() ${PostgresQueryGenerator.ROW_COUNT_ALIAS}"""
   final protected[this] val supportingDimPostfix: String = "_indexed"
-  final protected[this] val PAGINATION_WRAPPER: String = "SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (%s) %s) D ) WHERE %s"
+  final protected[this] val PAGINATION_WRAPPER: String = "SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (%s) %s %s) D ) %s WHERE %s"
   final protected[this] val OUTER_PAGINATION_WRAPPER: String = "%s WHERE %s"
   final protected[this] val OUTER_PAGINATION_WRAPPER_WITH_FILTERS: String = "%s AND %s"
-  final protected[this] val PAGINATION_WRAPPER_UNION: String = "SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (%s) D )"
+  final protected[this] val PAGINATION_WRAPPER_UNION: String = "SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (%s) D ) %s"
   final protected[this] val PAGINATION_ROW_COUNT_COL = ColumnContext.withColumnContext { implicit cc =>
     DimCol(PostgresQueryGenerator.ROW_COUNT_ALIAS, IntType())
   }
-  final protected[this] val ROW_NUMBER_ALIAS = "ROW_NUMBER() OVER() as ROWNUM"
+  final protected[this] val ROW_NUMBER_ALIAS = "ROW_NUMBER() OVER() AS ROWNUM"
 
   // Definition Prototypes
   def generateDimensionSql(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext, includePagination: Boolean): DimensionSql
@@ -128,7 +128,8 @@ trait PostgresQueryCommon extends  BaseQueryGenerator[WithPostgresEngine] {
     }
   }
 
-  protected[this] def renderRollupExpression(expression: String, rollupExpression: RollupExpression, renderedColExp: Option[String] = None): String = {
+  protected[this] def renderRollupExpression(expression: String, rollupExpression: RollupExpression
+                                             , renderedColExp: Option[String] = None, isOuterGroupBy: Boolean = false): String = {
     rollupExpression match {
       case SumRollup => s"SUM(${renderedColExp.getOrElse(expression)})"
       case MaxRollup => s"MAX(${renderedColExp.getOrElse(expression)})"
@@ -136,7 +137,12 @@ trait PostgresQueryCommon extends  BaseQueryGenerator[WithPostgresEngine] {
       case AverageRollup => s"AVG(${renderedColExp.getOrElse(expression)})"
       case PostgresCustomRollup(exp) => s"(${exp.render(expression, Map.empty, renderedColExp)})"
       case NoopRollup => s"(${renderedColExp.getOrElse(expression)})"
-      case CountRollup => s"COUNT(*)"
+      case CountRollup =>
+        if(isOuterGroupBy) {
+          s"SUM(${renderedColExp.getOrElse(expression)})"
+        } else {
+          s"COUNT(*)"
+        }
       case any => throw new UnsupportedOperationException(s"Unhandled rollup expression : $any")
     }
   }
@@ -145,7 +151,8 @@ trait PostgresQueryCommon extends  BaseQueryGenerator[WithPostgresEngine] {
     s"/*+ $hint */"
   }
 
-  protected[this] def addPaginationWrapper(queryString: String, mr: Int, si: Int, includePagination: Boolean): String = {
+  protected[this] def addPaginationWrapper(queryString: String, mr: Int, si: Int, includePagination: Boolean
+                                           , queryBuilderContext: QueryBuilderContext): String = {
     if(includePagination) {
       val paginationPredicates: ListBuffer[String] = new ListBuffer[String]()
       val minPosition: Int = if (si < 0) 1 else si + 1
@@ -158,7 +165,9 @@ trait PostgresQueryCommon extends  BaseQueryGenerator[WithPostgresEngine] {
           s"LIMIT $maxPosition"
         } else  s""
       }
-      String.format(PAGINATION_WRAPPER, queryString, stopKeyPredicate, paginationPredicates.toList.mkString(" AND "))
+      //"SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (%s) %s %s) D ) %s WHERE %s"
+      String.format(PAGINATION_WRAPPER, queryString, queryBuilderContext.getSubqueryAlias, stopKeyPredicate
+        , queryBuilderContext.getSubqueryAlias, paginationPredicates.toList.mkString(" AND "))
     } else {
       queryString
     }
@@ -179,11 +188,18 @@ trait PostgresQueryCommon extends  BaseQueryGenerator[WithPostgresEngine] {
         }
         s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
       case StrType(_, sm, _) if sm.isDefined =>
-        val defaultValue = sm.get.default
-        val decodeValues = sm.get.tToStringMap.map {
-          case (from, to) => s"'$from', '$to'"
+        val exp = nameOrAlias
+        val default = s"ELSE '${sm.get.default}' "
+
+        val builder = new StringBuilder
+        builder.append("CASE ")
+        sm.get.tToStringMap.foreach {
+          case (search, result) =>
+            builder.append(s"WHEN $exp = '$search' THEN '$result' ")
         }
-        s"""DECODE(${nameOrAlias}, ${decodeValues.mkString(", ")}, '$defaultValue')"""
+        builder.append(default)
+        builder.append("END")
+        builder.mkString
       case _ =>
         nameOrAlias
     }

@@ -174,6 +174,7 @@ case class JsonRegistryConfig(factRegistrationdFactoryClass: String
                               , defaultPublicFactRevisionMap: Map[String, Int]
                               , defaultPublicDimRevisionMap: Map[String, Int]
                               , defaultFactEngine: String
+                              , druidMultiEngineQueryList: Seq[String]
                              )
 
 object JsonRegistryConfig {
@@ -197,16 +198,17 @@ object JsonRegistryConfig {
       val defaultPublicFactRevisionMapResult: Result[Map[String, Int]] = fieldExtended[Map[String, Int]]("defaultPublicFactRevisionMap")(json)
       val defaultPublicDimRevisionMapResult: Result[Map[String, Int]] = fieldExtended[Map[String, Int]]("defaultPublicDimRevisionMap")(json)
       val defaultFactEngine: Result[String] = fieldExtended[String]("defaultFactEngine")(json).map(_.toLowerCase)
+      val druidMultiEngineQueryList: Result[List[String]] = fieldExtended[List[String]]("druidMultiEngineQueryList")(json).map(_.map(_.toLowerCase))
 
 
-      val builderConfig = (dimEstimatorFactoryClassResult |@| dimEstimatorFactoryConfigResult |@| factEstimatorFactoryClassResult |@| factEstimatorFactoryConfigResult |@|  defaultPublicFactRevisionMapResult |@|  defaultPublicDimRevisionMapResult |@| defaultFactEngine) {
-        (a, b, c, d, f, g, h) => (a, b, c, d, f, g, h)
+      val builderConfig = (dimEstimatorFactoryClassResult |@| dimEstimatorFactoryConfigResult |@| factEstimatorFactoryClassResult |@| factEstimatorFactoryConfigResult |@|  defaultPublicFactRevisionMapResult |@|  defaultPublicDimRevisionMapResult |@| defaultFactEngine |@| druidMultiEngineQueryList) {
+        (a, b, c, d, f, g, h, i) => (a, b, c, d, f, g, h, i)
       }
 
       (factRegistrationClass |@| dimensionRegistrationClass |@| executors |@| generators |@| bucketingConfigName |@| utcTimeProviderName |@| parallelServiceExecutorName
       |@| builderConfig
       ){
-        case (a, b, c, d, e, f, g, (h, i, j, k, m, n, o)) => JsonRegistryConfig(a, b, c, d, e, f, g, h, i, j, k, m, n, o)
+        case (a, b, c, d, e, f, g, (h, i, j, k, m, n, o, p)) => JsonRegistryConfig(a, b, c, d, e, f, g, h, i, j, k, m, n, o, p)
       }
     }
   }

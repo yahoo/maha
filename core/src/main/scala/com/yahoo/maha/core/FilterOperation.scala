@@ -368,10 +368,10 @@ object SqlBetweenFilterRenderer extends BetweenFilterRenderer[SqlResult] {
                 case HourlyGrain  =>
                   DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
                 case _=>
-                  DefaultResult(s"""$name >= trunc($renderedFrom) AND $name <= trunc($renderedTo)""")
+                  DefaultResult(s"""$name >= DATE_TRUNC('DAY', $renderedFrom) AND $name <= DATE_TRUNC('DAY', $renderedTo)""")
               }
             } else {
-              DefaultResult(s"""$name >= trunc($renderedFrom) AND $name <= trunc($renderedTo)""")
+              DefaultResult(s"""$name >= DATE_TRUNC('DAY', $renderedFrom) AND $name <= DATE_TRUNC('DAY', $renderedTo)""")
             }
           case i: IntType if column.annotations.contains(DayColumn.instance) =>
             column.annotations.find(_.isInstanceOf[DayColumn]).fold(throw new IllegalStateException("Failed to find DayColumn when expected")){
@@ -382,7 +382,7 @@ object SqlBetweenFilterRenderer extends BetweenFilterRenderer[SqlResult] {
                   case Some(HourlyGrain) =>
                     DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
                   case _ =>
-                    DefaultResult(s"""$name >= to_number(to_char(trunc($renderedFrom), '$fmt')) AND $name <= to_number(to_char(trunc($renderedTo), '$fmt'))""")
+                    DefaultResult(s"""$name >= to_number(to_char(DATE_TRUNC('DAY', $renderedFrom), '$fmt')) AND $name <= to_number(to_char(DATE_TRUNC('DAY', $renderedTo), '$fmt'))""")
                 }
             }
           case i: StrType if column.annotations.contains(DayColumn.instance) =>
@@ -394,7 +394,7 @@ object SqlBetweenFilterRenderer extends BetweenFilterRenderer[SqlResult] {
                   case Some(HourlyGrain) =>
                     DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
                   case _ =>
-                    DefaultResult(s"""$name >= to_char(trunc($renderedFrom), '$fmt') AND $name <= to_char(trunc($renderedTo), '$fmt')""")
+                    DefaultResult(s"""$name >= to_char(DATE_TRUNC('DAY', $renderedFrom), '$fmt') AND $name <= to_char(DATE_TRUNC('DAY', $renderedTo), '$fmt')""")
                 }
             }
           case _ =>

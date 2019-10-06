@@ -18,7 +18,7 @@ import scala.util.Try
  * Created by hiral on 11/13/15.
  */
 
-class PostgresQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, literalMapper: PostgresLiteralMapper = new PostgresLiteralMapper) extends OuterGroupByQueryGenerator(partitionColumnRenderer, literalMapper) with Logging {
+class PostgresQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, literalMapper: PostgresLiteralMapper = new PostgresLiteralMapper) extends PostgresOuterGroupByQueryGenerator(partitionColumnRenderer, literalMapper) with Logging {
 
   override val engine: Engine = PostgresEngine
 
@@ -45,7 +45,8 @@ class PostgresQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, li
     }
   }
 
-  def generateSubqueryFilter(primaryTableFkCol: String, primaryTableFilters: SortedSet[Filter], subqueryBundle: DimensionBundle) : String = {
+  def generateSubqueryFilter(primaryTableFkCol: String, primaryTableFilters: SortedSet[Filter]
+                             , subqueryBundle: DimensionBundle, queryBuilderContext: QueryBuilderContext) : String = {
 
     val aliasToNameMapFull = subqueryBundle.publicDim.aliasToNameMapFull
     val columnsByNameMap = subqueryBundle.dim.columnsByNameMap
@@ -103,7 +104,7 @@ b. Dim Driven
           require(dimBundle.publicDim.columnsByAlias(subqueryBundle.publicDim.primaryKeyByAlias),
             s"subquery dim primary key not found in primary dimension, dim=${dimBundle.publicDim.name}, subquery dim=${subqueryBundle.publicDim.name}")
 
-          val sql = generateSubqueryFilter(dimBundle.dim.publicDimToForeignKeyMap(subqueryBundle.publicDim.name), dimBundle.filters, subqueryBundle)
+          val sql = generateSubqueryFilter(dimBundle.dim.publicDimToForeignKeyMap(subqueryBundle.publicDim.name), dimBundle.filters, subqueryBundle, queryBuilderContext)
           dimBundleFilters += sql
       }
       val aliasToNameMapFull = dimBundle.publicDim.aliasToNameMapFull
@@ -393,7 +394,7 @@ b. Dim Driven
             FROM ${dimension.name}
             $dimWhere
             $dimOrderBy """
-      RenderedDimension(dimAlias, addPaginationWrapper(sql, requestModel.maxRows, requestModel.startIndex, includePagination),
+      RenderedDimension(dimAlias, addPaginationWrapper(sql, requestModel.maxRows, requestModel.startIndex, includePagination, queryBuilderContext),
         onCondition, hasPagination = includePagination, hasTotalRows = false)
     }
 
@@ -562,7 +563,7 @@ b. Dim Driven
               hasPagination = hasPagination || shouldIncludePagination
               String.format(wrapDimJoinsTemplate
                 , String.format(dimJoinsTemplate
-                  , addPaginationWrapper(renderedPrimaryDim.sql, requestModel.maxRows, requestModel.startIndex, shouldIncludePagination)
+                  , addPaginationWrapper(renderedPrimaryDim.sql, requestModel.maxRows, requestModel.startIndex, shouldIncludePagination, queryBuilderContext)
                   , dimAlias
                   , parentJoinsLOJBuilder.result()
                 )
@@ -570,7 +571,7 @@ b. Dim Driven
             } else {
               hasPagination = true
               String.format(dimJoinsTemplate
-                , addPaginationWrapper(renderedPrimaryDim.sql, requestModel.maxRows, requestModel.startIndex, includePagination)
+                , addPaginationWrapper(renderedPrimaryDim.sql, requestModel.maxRows, requestModel.startIndex, includePagination, queryBuilderContext)
                 , dimAlias
                 , parentJoinsLOJBuilder.result()
               )
@@ -594,10 +595,10 @@ b. Dim Driven
     if(includePagination) {
       val paginationPredicates: ListBuffer[String] = new ListBuffer[String]()
       val minPosition: Int = if (si < 0) 1 else si + 1
-      paginationPredicates += ("ROW_NUMBER >= " + minPosition)
+      paginationPredicates += ("ROWNUM >= " + minPosition)
       if (mr > 0) {
         val maxPosition: Int = if (si <= 0) mr else minPosition - 1 + mr
-        paginationPredicates += ("ROW_NUMBER <= " + maxPosition)
+        paginationPredicates += ("ROWNUM <= " + maxPosition)
       }
       if (outerFiltersPresent)
         String.format(OUTER_PAGINATION_WRAPPER_WITH_FILTERS, queryString, paginationPredicates.toList.mkString(" AND "))
@@ -643,13 +644,13 @@ b. Dim Driven
         s"""SELECT $dimDrivenFirstRowOptimization *
       FROM (SELECT %s
             FROM %s
-           )
+           ) %s
             %s"""
       } else {
         s"""SELECT *
       FROM (SELECT DISTINCT %s
             FROM %s
-           )
+           ) %s
             %s"""
       }
     }
@@ -717,15 +718,18 @@ b. Dim Driven
       }
 
       dimQueryNotInOption.fold {
-        addPaginationWrapper(String.format(queryStringTemplate, outerColumns.mkString(", "), dimQueryIn, outerWhereClause), maxRows, 0, includePagination)
+        addPaginationWrapper(String.format(queryStringTemplate, outerColumns.mkString(", "), dimQueryIn, queryBuilderContext.getSubqueryAlias, outerWhereClause)
+          , maxRows, 0, includePagination, queryBuilderContext)
       } {
         dimQueryNotIn =>
           val unionTemplate = s" (%s) UNION ALL (%s) "
           String.format(unionTemplate
             , String.format(PAGINATION_WRAPPER_UNION
-              , String.format(queryStringTemplate, outerColumns.mkString(", "), dimQueryIn, outerWhereClause)
+              , String.format(queryStringTemplate, outerColumns.mkString(", "), dimQueryIn, queryBuilderContext.getSubqueryAlias, outerWhereClause)
+              , queryBuilderContext.getSubqueryAlias
             )
-            , addPaginationWrapper(String.format(queryStringTemplate,outerColumns.mkString(", "),dimQueryNotIn, outerWhereClause),maxRows, 0, includePagination)
+            , addPaginationWrapper(String.format(queryStringTemplate,outerColumns.mkString(", "),dimQueryNotIn, queryBuilderContext.getSubqueryAlias, outerWhereClause)
+              ,maxRows, 0, includePagination, queryBuilderContext)
           )
       }
     }
@@ -781,7 +785,7 @@ b. Dim Driven
         outerColumns+=ROW_NUMBER_ALIAS
       }
 
-      val finalQueryString = String.format(queryStringTemplate, outerColumns.mkString(", "), dimQueryString, outerWhereClause)
+      val finalQueryString = String.format(queryStringTemplate, outerColumns.mkString(", "), dimQueryString, queryBuilderContext.getSubqueryAlias, outerWhereClause)
       //there should be no pagination in the dimension sql since we disabled paginiation generation in above dimensionSql call
       val queryString = addOuterPaginationWrapper(finalQueryString
         , queryContext.requestModel.maxRows
@@ -1041,7 +1045,7 @@ b. Dim Driven
                 None
               }
             }
-            val sql = generateSubqueryFilter(factFkColAlias.getOrElse(factFKCol), filters, subqueryBundle)
+            val sql = generateSubqueryFilter(factFkColAlias.getOrElse(factFKCol), filters, subqueryBundle, queryBuilderContext)
             whereFilters += sql
         }
       }
@@ -1231,7 +1235,7 @@ FROM (SELECT ${queryBuilder.getOuterColumns}
             ${queryBuilder.getHavingClause}
            ) ${queryBuilderContext.getAliasForTable(queryContext.factBestCandidate.fact.name)}
 ${queryBuilder.getJoinExpressions}
-) ${queryBuilder.getOuterWhereClause}
+) ${queryBuilderContext.getSubqueryAlias} ${queryBuilder.getOuterWhereClause}
    $orderByClause"""
 
       if (requestModel.isSyncRequest &&
@@ -1239,7 +1243,7 @@ ${queryBuilder.getJoinExpressions}
           requestModel.isFactDriven ||
           (includePaginationOnDimensions && !queryBuilder.getHasDimensionPagination))) {
       //if (requestModel.isSyncRequest && (requestModel.isFactDriven || requestModel.hasFactSortBy)) {
-        addPaginationWrapper(queryString, queryContext.requestModel.maxRows, queryContext.requestModel.startIndex, true)
+        addPaginationWrapper(queryString, queryContext.requestModel.maxRows, queryContext.requestModel.startIndex, true, queryBuilderContext)
       } else {
         queryString
       }

@@ -518,7 +518,7 @@ object MahaServiceConfig {
             }
             (regName -> DefaultRegistryConfig(regName,
               registry,
-              new DefaultQueryPipelineFactory(defaultFactEngine = registry.defaultFactEngine),
+              new DefaultQueryPipelineFactory(defaultFactEngine = registry.defaultFactEngine, druidMultiQueryEngineList = registry.druidMultiQueryEngineList),
               queryExecutorContext,
               new BucketSelector(registry, bucketConfigMap.get(registryConfig.bucketConfigName).get),
               utcTimeProviderMap.get(registryConfig.utcTimeProviderName).get,
@@ -661,11 +661,14 @@ object MahaServiceConfig {
               factEstimator <- factEstimatorFactory.fromJson(jsonConfig.factEstimatorFactoryConfig)
               defaultFactEngine <- Engine.from(jsonConfig.defaultFactEngine).toMahaConfigResult(
                 ServiceConfigurationError(s"Unknown default fact engine : ${jsonConfig.defaultFactEngine}"))
+              druidMultiEngineQueryList = jsonConfig.druidMultiEngineQueryList.map(Engine.from).flatten
             } yield {
               val registryBuilder = new RegistryBuilder
               factRegistrationFactory.register(registryBuilder)
               dimRegistrationFactory.register(registryBuilder)
-              (name, registryBuilder.build(dimEstimator, factEstimator, jsonConfig.defaultPublicFactRevisionMap, jsonConfig.defaultPublicDimRevisionMap, defaultFactEngine))
+              (name, registryBuilder.build(dimEstimator, factEstimator, jsonConfig.defaultPublicFactRevisionMap
+                , jsonConfig.defaultPublicDimRevisionMap, defaultFactEngine, druidMultiEngineQueryList))
+
             }
         }
       }
@@ -835,7 +838,7 @@ object DynamicMahaServiceConfig {
           }
           (regName -> new DynamicRegistryConfig(regName,
             registry,
-            new DefaultQueryPipelineFactory(defaultFactEngine = registry.defaultFactEngine),
+            new DefaultQueryPipelineFactory(defaultFactEngine = registry.defaultFactEngine, druidMultiQueryEngineList = registry.druidMultiQueryEngineList),
             queryExecutorContext,
             new BucketSelector(registry, bucketConfigMap.get(registryConfig.bucketConfigName).get),
             utcTimeProviderMap.get(registryConfig.utcTimeProviderName).get,

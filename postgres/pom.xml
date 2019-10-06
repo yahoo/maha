@@ -10,12 +10,16 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.302-SNAPSHOT</version>
+        <version>5.304-SNAPSHOT</version>
     </parent>
 
     <name>maha postgres executor</name>
     <url>http://maven.apache.org</url>
 
+    <properties>
+        <pg.embedded.version>0.13.1</pg.embedded.version>
+        <postgres.jdbc.version>42.2.8</postgres.jdbc.version>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -117,6 +121,17 @@
             <artifactId>grizzled-slf4j_${scala.major.version}</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgres.jdbc.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.opentable.components</groupId>
+            <artifactId>otj-pg-embedded</artifactId>
+            <version>${pg.embedded.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <scope>test</scope>
@@ -134,11 +149,6 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

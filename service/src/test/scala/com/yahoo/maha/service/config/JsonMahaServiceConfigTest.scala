@@ -29,7 +29,9 @@ class JsonMahaServiceConfigTest extends FunSuite with Matchers {
                        |			"factEstimatorFactoryClass": "factEstFactoryClass",
                        |			"factEstimatorFactoryConfig": "factEstFactoryConfig",
                        |			"defaultPublicFactRevisionMap": {"a": 1, "b": 2},
-                       |			"defaultPublicDimRevisionMap": {"a": 1, "b": 2}
+                       |			"defaultPublicDimRevisionMap": {"a": 1, "b": 2},
+                       |      "defaultFactEngine": "oracle",
+                       |      "druidMultiEngineQueryList": ["oracle"]
                        |		},
                        |		"ir": {
                        |			"factRegistrationClass": "irFact",
@@ -44,8 +46,10 @@ class JsonMahaServiceConfigTest extends FunSuite with Matchers {
                        |			"factEstimatorFactoryClass": "factEstFactoryClass",
                        |			"factEstimatorFactoryConfig": "factEstFactoryConfig",
                        |			"defaultPublicFactRevisionMap": {"a": 1, "b": 2},
-                       |			"defaultPublicDimRevisionMap": {"a": 1, "b": 2}
-                       |		}
+                       |			"defaultPublicDimRevisionMap": {"a": 1, "b": 2},
+                       |      "defaultFactEngine": "oracle",
+                       |      "druidMultiEngineQueryList": ["oracle"]
+                       |    }
                        |	},
                        |	"executorMap": {
                        |		"e1": {

@@ -95,7 +95,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val select = """SELECT agp1.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", agp1."Ad Group Status" "Ad Group Status""""
     assert(result.contains(select), result)
-    assert(result.contains("campaign_id IN (SELECT id FROM campaign_postgres WHERE (DECODE(status, 'ON', 'ON', 'OFF') IN ('ON'))"),result)
+    assert(result.contains("campaign_id IN (SELECT id FROM campaign_postgres WHERE (CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END IN ('ON'))"),result)
   }
 
   test("dim fact async fact driven query with dim filters should use INNER JOIN") {
@@ -162,7 +162,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("RIGHT OUTER JOIN"), "Query should use RIGHT OUTER JOIN")
     assert(result.contains("TOTALROWS"), "Query should have total row column")
-    assert(result.contains("ROW_NUMBER"), "Query should have pagination wrapper")
+    assert(result.contains("ROWNUM "), "Query should have pagination wrapper")
   }
 
   test("dim fact sync dimension driven query without total rows should use RIGHT OUTER JOIN") {
@@ -180,9 +180,9 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("RIGHT OUTER JOIN"), "Query should use RIGHT OUTER JOIN")
     assert(!result.contains("TOTALROWS"), "Query should not have total row column")
-    assert(result.contains("ROW_NUMBER"), "Query should have pagination wrapper")
-    assert(result.contains("ROW_NUMBER >= 21"), "Min position should be 21")
-    assert(result.contains("ROW_NUMBER <= 120"), "Max position should be 120")
+    assert(result.contains("ROWNUM"), "Query should have pagination wrapper")
+    assert(result.contains("ROWNUM >= 21"), "Min position should be 21")
+    assert(result.contains("ROWNUM <= 120"), "Max position should be 120")
   }
 
   test("dim fact async fact driven query without dim filters should use LEFT OUTER JOIN and has no pagination") {
@@ -199,7 +199,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
-    assert(!result.contains("ROW_NUMBER"), "Query should not have pagination")
+    assert(!result.contains("ROWNUM"), "Query should not have pagination")
   }
 
   test("dim fact async fact driven query with dim filters should use INNER JOIN and has no pagination") {
@@ -216,7 +216,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("INNER JOIN"), "Query should use INNER JOIN if requested dim filters")
-    assert(!result.contains("ROW_NUMBER"), "Query should not have pagination")
+    assert(!result.contains("ROWNUM"), "Query should not have pagination")
   }
 
   test("dim fact async fact driven query without dim sort should use LEFT OUTER JOIN and has no pagination") {
@@ -233,7 +233,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
-    assert(!result.contains("ROW_NUMBER"), "Query should not have pagination")
+    assert(!result.contains("ROWNUM"), "Query should not have pagination")
   }
 
   test("dim fact async fact driven query with dim sort should use JOIN and has no pagination") {
@@ -250,7 +250,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
-    assert(!result.contains("ROW_NUMBER"), "Query should not have pagination")
+    assert(!result.contains("ROWNUM"), "Query should not have pagination")
   }
 
   test("dim fact sync fact driven with fact column sort with total rows should use LEFT OUTER JOIN with pagination and total row column") {
@@ -267,7 +267,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
-    assert(result.contains("ROW_NUMBER"), "Query should have pagination")
+    assert(result.contains("ROWNUM"), "Query should have pagination")
     assert(result.contains("TOTALROWS"), "Query should have total row column")
   }
 
@@ -285,9 +285,9 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
-    assert(result.contains("ROW_NUMBER"), "Query should have pagination")
-    assert(result.contains("ROW_NUMBER >= 21"), "Min position should be 21")
-    assert(result.contains("ROW_NUMBER <= 120"), "Max position should be 120")
+    assert(result.contains("ROWNUM"), "Query should have pagination")
+    assert(result.contains("ROWNUM >= 21"), "Min position should be 21")
+    assert(result.contains("ROWNUM <= 120"), "Max position should be 120")
     assert(!result.contains("TOTALROWS"), "Query should not have total row column")
   }
 
@@ -305,7 +305,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
-    assert(result.contains("ROW_NUMBER"), "Query should have pagination")
+    assert(result.contains("ROWNUM"), "Query should have pagination")
     assert(result.contains("TOTALROWS"), "Query should have total row column")
   }
 
@@ -323,9 +323,9 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
-    assert(result.contains("ROW_NUMBER"), "Query should have pagination")
-    assert(result.contains("ROW_NUMBER >= 21"), "Min position should be 21")
-    assert(result.contains("ROW_NUMBER <= 120"), "Max position should be 120")
+    assert(result.contains("ROWNUM"), "Query should have pagination")
+    assert(result.contains("ROWNUM >= 21"), "Min position should be 21")
+    assert(result.contains("ROWNUM <= 120"), "Max position should be 120")
     assert(!result.contains("TOTALROWS"), "Query should not have total row column")
   }
 
@@ -344,9 +344,9 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
-    assert(result.contains("ROW_NUMBER"), "Query should have pagination")
-    assert(result.contains("ROW_NUMBER >= 21"), "Min position should be 21")
-    assert(result.contains("ROW_NUMBER <= 120"), "Max position should be 120")
+    assert(result.contains("ROWNUM"), "Query should have pagination")
+    assert(result.contains("ROWNUM >= 21"), "Min position should be 21")
+    assert(result.contains("ROWNUM <= 120"), "Max position should be 120")
     assert(!result.contains("TOTALROWS"), "Query should not have total row column")
     assert(result.contains("pricing_type IN (-10,2)"), "Query should contain filter on price_type")
     val pricingTypeInnerColum = """CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END pricing_type"""
@@ -368,9 +368,9 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
-    assert(result.contains("ROW_NUMBER"), "Query should have pagination")
-    assert(result.contains("ROW_NUMBER >= 21"), "Min position should be 21")
-    assert(result.contains("ROW_NUMBER <= 120"), "Max position should be 120")
+    assert(result.contains("ROWNUM"), "Query should have pagination")
+    assert(result.contains("ROWNUM >= 21"), "Min position should be 21")
+    assert(result.contains("ROWNUM <= 120"), "Max position should be 120")
     assert(!result.contains("TOTALROWS"), "Query should not have total row column")
     assert(result.contains("coalesce(f0.\"impressions\", 1)"), "Query should contain default value")
     assert(result.contains("coalesce(ROUND(f0.\"spend\", 10), 0.0) "), "Query should contain default value")
@@ -412,9 +412,9 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
-    assert(result.contains("ROW_NUMBER"), "Query should have pagination")
-    assert(result.contains("ROW_NUMBER >= 21"), "Min position should be 21")
-    assert(result.contains("ROW_NUMBER <= 120"), "Max position should be 120")
+    assert(result.contains("ROWNUM"), "Query should have pagination")
+    assert(result.contains("ROWNUM >= 21"), "Min position should be 21")
+    assert(result.contains("ROWNUM <= 120"), "Max position should be 120")
     assert(!result.contains("TOTALROWS"), "Query should not have total row column")
     assert(result.contains(
       "(SUM(impressions) >= 0 AND SUM(impressions) <= 300)"),
@@ -460,30 +460,30 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
         |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", COUNT(*) AS "Count"
         |            FROM fact2 FactAlias
-        |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+        |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
         |            GROUP BY ad_group_id, campaign_id, keyword_id
         |
         |           ) f0
         |           RIGHT OUTER JOIN
-        |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  parent_id, id, advertiser_id
+        |               ( (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  parent_id, id, advertiser_id
         |            FROM pg_targetingattribute
         |            WHERE (advertiser_id = 12345)
-        |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) pt3
+        |             ) sqalias1 LIMIT 120) D ) sqalias2 WHERE ROWNUM >= 21 AND ROWNUM <= 120) pt3
         |          INNER JOIN
-        |            (SELECT  campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id, advertiser_id
+        |            (SELECT  campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id, advertiser_id
         |            FROM ad_group_postgres
         |            WHERE (advertiser_id = 12345)
         |             ) agp2
         |              ON( pt3.advertiser_id = agp2.advertiser_id AND pt3.parent_id = agp2.id )
         |               INNER JOIN
-        |            (SELECT /*+ CampaignHint */ DECODE(status, 'ON', 'ON', 'OFF') AS "Campaign Status", id, advertiser_id
+        |            (SELECT /*+ CampaignHint */ CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Campaign Status", id, advertiser_id
         |            FROM campaign_postgres
         |            WHERE (advertiser_id = 12345)
         |             ) cp1
         |              ON( agp2.advertiser_id = cp1.advertiser_id AND agp2.campaign_id = cp1.id )
         |               )  ON (f0.keyword_id = pt3.id)
         |
-        |)
+        |) sqalias3
         |   ORDER BY "Campaign Status" ASC NULLS LAST
       """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -526,12 +526,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected =
-      s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+      s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
          |FROM (SELECT pt4.id "Keyword ID", pt4.value "Keyword Value", agp3.campaign_id "Campaign ID", cp2.campaign_name "Campaign Name", ap1.currency "Advertiser Currency", coalesce(f0."impressions", 1) "Impressions", coalesce(ROUND(f0."spend", 10), 0.0) "Spend"
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   ad_group_id, advertiser_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", SUM(spend) AS "spend"
          |            FROM fact2 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY ad_group_id, advertiser_id, campaign_id, keyword_id
          |
          |           ) f0
@@ -543,13 +543,13 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |          INNER JOIN
          |            (SELECT  advertiser_id, campaign_id, id
          |            FROM ad_group_postgres
-         |            WHERE (advertiser_id = 12345) AND (DECODE(status, 'ON', 'ON', 'OFF') NOT IN ('OFF'))
+         |            WHERE (advertiser_id = 12345) AND (CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END NOT IN ('OFF'))
          |             ) agp3
          |              ON( pt4.advertiser_id = agp3.advertiser_id AND pt4.parent_id = agp3.id )
          |               INNER JOIN
          |            (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
          |            FROM campaign_postgres
-         |            WHERE (advertiser_id = 12345) AND (DECODE(status, 'ON', 'ON', 'OFF') NOT IN ('OFF'))
+         |            WHERE (advertiser_id = 12345) AND (CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END NOT IN ('OFF'))
          |             ) cp2
          |              ON( agp3.advertiser_id = cp2.advertiser_id AND agp3.campaign_id = cp2.id )
          |               INNER JOIN
@@ -561,8 +561,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |               )  ON (f0.keyword_id = pt4.id)
          |
          |
-         |)
-         |   ORDER BY "Spend" DESC NULLS LAST) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120
+         |) sqalias1
+         |   ORDER BY "Spend" DESC NULLS LAST) sqalias2 LIMIT 120) D ) sqalias3 WHERE ROWNUM >= 21 AND ROWNUM <= 120
          |
       """.stripMargin
 
@@ -607,17 +607,17 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |SELECT *
          |FROM (SELECT pt3.id "Keyword ID", coalesce(f0."impressions", 1) "Impressions", COALESCE(f0.device_id, 'UNKNOWN') "Device ID", COALESCE(f0.network_type, 'NONE') "Network Type", COALESCE(f0.pricing_type, 'NONE') "Pricing Type", cp1."Campaign Status" "Campaign Status"
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
-         |                   CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END device_id, DECODE(network_type, 'TEST_PUBLISHER', 'Test Publisher', 'CONTENT_SYNDICATION', 'Content Syndication', 'EXTERNAL', 'Yahoo Partners', 'INTERNAL', 'Yahoo Properties', 'NONE') network_type, CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END pricing_type, campaign_id, keyword_id, SUM(impressions) AS "impressions"
+         |                   CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END device_id, CASE WHEN network_type = 'TEST_PUBLISHER' THEN 'Test Publisher' WHEN network_type = 'CONTENT_SYNDICATION' THEN 'Content Syndication' WHEN network_type = 'EXTERNAL' THEN 'Yahoo Partners' WHEN network_type = 'INTERNAL' THEN 'Yahoo Properties' ELSE 'NONE' END network_type, CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END pricing_type, campaign_id, keyword_id, SUM(impressions) AS "impressions"
          |            FROM fact2 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_source IN (1,2)) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END, DECODE(network_type, 'TEST_PUBLISHER', 'Test Publisher', 'CONTENT_SYNDICATION', 'Content Syndication', 'EXTERNAL', 'Yahoo Partners', 'INTERNAL', 'Yahoo Properties', 'NONE'), CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END, campaign_id, keyword_id
+         |            WHERE (advertiser_id = 12345) AND (stats_source IN (1,2)) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END, CASE WHEN network_type = 'TEST_PUBLISHER' THEN 'Test Publisher' WHEN network_type = 'CONTENT_SYNDICATION' THEN 'Content Syndication' WHEN network_type = 'EXTERNAL' THEN 'Yahoo Partners' WHEN network_type = 'INTERNAL' THEN 'Yahoo Properties' ELSE 'NONE' END, CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END, campaign_id, keyword_id
          |
          |           ) f0
          |           RIGHT OUTER JOIN
-         |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  id, advertiser_id
+         |               ( (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  id, advertiser_id
          |            FROM pg_targetingattribute
          |            WHERE (advertiser_id = 12345)
-         |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) pt3
+         |             ) sqalias1 LIMIT 120) D ) sqalias2 WHERE ROWNUM >= 21 AND ROWNUM <= 120) pt3
          |           INNER JOIN
          |            (SELECT  id, campaign_id, advertiser_id
          |            FROM ad_group_postgres
@@ -625,14 +625,14 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |             ) agp2
          |              ON( pt3.advertiser_id = agp2.advertiser_id AND pt3.parent_id = agp2.id )
          |               INNER JOIN
-         |            (SELECT /*+ CampaignHint */ DECODE(status, 'ON', 'ON', 'OFF') AS "Campaign Status", id, advertiser_id
+         |            (SELECT /*+ CampaignHint */ CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Campaign Status", id, advertiser_id
          |            FROM campaign_postgres
          |            WHERE (advertiser_id = 12345)
          |             ) cp1
          |              ON( agp2.advertiser_id = cp1.advertiser_id AND agp2.campaign_id = cp1.id )
          |               )  ON (f0.keyword_id = pt3.id)
          |
- |)
+ |) sqalias3
          |   ORDER BY "Campaign Status" ASC NULLS LAST
       """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -1193,7 +1193,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
          |                   ad_group_id, advertiser_id, ad_id, campaign_id, keyword_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions
          |            FROM fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY ad_group_id, advertiser_id, ad_id, campaign_id, keyword_id
          |
          |           ) f0
@@ -1223,7 +1223,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           pt4 ON ( f0.advertiser_id = pt4.advertiser_id AND f0.keyword_id = pt4.id)
          |
          |          GROUP BY f0.keyword_id, pt4.value, cp1.campaign_name, agp2.name, adp3.title
-         |)
+         |) sqalias1
          |   ORDER BY "Campaign Name" ASC NULLS LAST
         |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -1269,7 +1269,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
          |                   advertiser_id, frequency, campaign_id, keyword_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions, SUM(spend) AS spend
          |            FROM k_stats_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, frequency, campaign_id, keyword_id
          |
          |           ) ksf0
@@ -1287,7 +1287,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           pt2 ON ( ksf0.advertiser_id = pt2.advertiser_id AND ksf0.keyword_id = pt2.id)
          |
  |          GROUP BY ksf0.frequency, ksf0.keyword_id, pt2.value, cp1.campaign_name
-         |)
+         |) sqalias1
          |   ORDER BY "Spend" DESC NULLS LAST
          |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -1332,7 +1332,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
          |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", SUM(spend) AS "spend", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
          |            FROM fact2 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY ad_group_id, campaign_id, keyword_id
          |
          |           ) f0
@@ -1355,7 +1355,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |             )
          |           pt3 ON (f0.keyword_id = pt3.id)
          |
-         |)
+         |) sqalias1
          |   ORDER BY "Spend" DESC NULLS LAST
          |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -1433,15 +1433,15 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
          |            FROM fact2 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |GROUP BY ad_group_id, campaign_id, keyword_id
          |
          |           ) f0
          |           RIGHT OUTER JOIN
-         |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  parent_id, value, id, advertiser_id
+         |               ( (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  parent_id, value, id, advertiser_id
          |            FROM pg_targetingattribute
          |            WHERE (advertiser_id = 12345)
-         |             ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) pt3
+         |             ) sqalias1 LIMIT 100) D ) sqalias2 WHERE ROWNUM >= 1 AND ROWNUM <= 100) pt3
          |           INNER JOIN
          |            (SELECT  campaign_id, name, id, advertiser_id
          |            FROM ad_group_postgres
@@ -1456,7 +1456,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |              ON( agp2.advertiser_id = cp1.advertiser_id AND agp2.campaign_id = cp1.id )
          |               )  ON (f0.keyword_id = pt3.id)
          |
- |)
+ |) sqalias3
        """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -1499,15 +1499,15 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   ad_group_id, advertiser_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
          |            FROM fact2 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY ad_group_id, advertiser_id, campaign_id, keyword_id
          |
          |           ) f0
          |           RIGHT OUTER JOIN
-         |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  parent_id, advertiser_id, value, id
+         |               ( (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  parent_id, advertiser_id, value, id
          |            FROM pg_targetingattribute
          |            WHERE (advertiser_id = 12345)
-         |             ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) pt4
+         |             ) sqalias1 LIMIT 100) D ) sqalias2 WHERE ROWNUM >= 1 AND ROWNUM <= 100) pt4
          |           INNER JOIN
          |            (SELECT  advertiser_id, campaign_id, name, id
          |            FROM ad_group_postgres
@@ -1530,7 +1530,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |
          |
          |
-         |)
+         |) sqalias3
          |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -1567,15 +1567,15 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
                       |                   keyword_id, campaign_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
                       |            FROM fact2 FactAlias
-                      |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+                      |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
                       |            GROUP BY keyword_id, campaign_id
                       |
                       |           ) f0
                       |           RIGHT OUTER JOIN
-                      |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  id, advertiser_id
+                      |               ( (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  id, advertiser_id
                       |            FROM pg_targetingattribute
                       |            WHERE (advertiser_id = 12345)
-                      |             ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) pt3
+                      |             ) sqalias1 LIMIT 100) D ) sqalias2 WHERE ROWNUM >= 1 AND ROWNUM <= 100) pt3
                       |           INNER JOIN
                       |            (SELECT  id, campaign_id, advertiser_id
                       |            FROM ad_group_postgres
@@ -1592,7 +1592,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |
                       |
                       |
-                      |)
+                      |) sqalias3
                      |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -1647,15 +1647,15 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   ad_group_id, advertiser_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
          |            FROM fact2 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY ad_group_id, advertiser_id, campaign_id, keyword_id
          |
          |           ) f0
          |           RIGHT OUTER JOIN
-         |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  value, parent_id, id, advertiser_id
+         |               ( (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  value, parent_id, id, advertiser_id
          |            FROM pg_targetingattribute
          |            WHERE (advertiser_id = 12345)
-         |            ORDER BY 1 ASC NULLS LAST, 2 DESC , 3 DESC , 4 DESC  ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) pt4
+         |            ORDER BY 1 ASC NULLS LAST, 2 DESC , 3 DESC , 4 DESC  ) sqalias1 LIMIT 100) D ) sqalias2 WHERE ROWNUM >= 1 AND ROWNUM <= 100) pt4
          |           INNER JOIN
          |            (SELECT  name, id, campaign_id, advertiser_id
          |            FROM ad_group_postgres
@@ -1678,7 +1678,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |
          |
          |
-         |)
+         |) sqalias3
          |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -1715,19 +1715,19 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = s"""
-                      |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+                      |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
                       |FROM (SELECT f0.keyword_id "Keyword ID", f0.campaign_id "Campaign ID", f0."Month" "Month", f0.ad_group_id "Ad Group ID", f0."Week" "Week", to_char(f0.stats_date, 'YYYY-MM-DD') "Day", coalesce(f0."impressions", 1) "Impressions", coalesce(f0."clicks", 0) "Clicks", ROUND(f0."CTR", 10) "CTR"
                       |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
                       |                   stats_date, ad_group_id, campaign_id, keyword_id, TRUNC(stats_date, 'MM') AS "Month", TRUNC(stats_date, 'IW') AS "Week", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
                       |            FROM fact2
-                      |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+                      |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
                       |            GROUP BY stats_date, ad_group_id, campaign_id, keyword_id, TRUNC(stats_date, 'MM'), TRUNC(stats_date, 'IW')
                       |
                       |           ) f0
                       |
                       |
                       |
-                      |) ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
+                      |) sqalias1 ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100
                       |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -1822,19 +1822,19 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = s"""
-                      |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+                      |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
                       |FROM (SELECT f0."Month" "Month", f0.advertiser_id "Advertiser ID"
                       |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
                       |                   advertiser_id, TRUNC(stats_date, 'MM') AS "Month"
                       |            FROM fact2
-                      |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+                      |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
                       |            GROUP BY advertiser_id, TRUNC(stats_date, 'MM')
                       |            HAVING (SUM(clicks) >= 1 AND SUM(clicks) <= 9007199254740991)
                       |           ) f0
                       |
                       |
                       |
-                      |) ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200""".stripMargin
+                      |) sqalias1 ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200""".stripMargin
 
 
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -1888,7 +1888,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = """SELECT  *
-                     |      FROM (SELECT cp1.id "Campaign ID", adp2.ad_group_id "Ad Group ID", ap0."Advertiser Status" "Advertiser Status", cp1.campaign_name "Campaign Name", adp2.id "Ad ID", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
+                     |      FROM (SELECT cp1.id "Campaign ID", adp2.ad_group_id "Ad Group ID", ap0."Advertiser Status" "Advertiser Status", cp1.campaign_name "Campaign Name", adp2.id "Ad ID", Count(*) OVER() TOTALROWS, ROW_NUMBER() OVER() AS ROWNUM
                      |            FROM
                      |               ( (SELECT  advertiser_id, campaign_id, ad_group_id, id
                      |            FROM ad_dim_postgres
@@ -1901,15 +1901,15 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                      |             ) cp1
                      |              ON( adp2.advertiser_id = cp1.advertiser_id AND adp2.campaign_id = cp1.id )
                      |               INNER JOIN
-                     |            (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+                     |            (SELECT  CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Advertiser Status", id
                      |            FROM advertiser_postgres
-                     |            WHERE (id = 12345) AND (DECODE(status, 'ON', 'ON', 'OFF') IN ('ON'))
+                     |            WHERE (id = 12345) AND (CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END IN ('ON'))
                      |             ) ap0
                      |              ON( cp1.advertiser_id = ap0.id )
                      |               )
                      |
                      |           )
-                     |             WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
+                     |             sqalias1 WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -1960,12 +1960,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
-    val expected = s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+    val expected = s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
                      |FROM (SELECT adp1.campaign_id "Campaign ID", adp1.ad_group_id "Ad Group ID", f0.landing_page_url "Destination URL", f0.target_page_url "Source URL", adp1.id "Ad ID", Count(*) OVER() TOTALROWS
                      |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
                      |                   target_page_url, landing_page_url, ad_group_id, ad_id, campaign_id
                      |            FROM fact1 FactAlias
-                     |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (lower(target_page_url) = landing_page_url) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+                     |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (lower(target_page_url) = landing_page_url) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
                      |            GROUP BY target_page_url, landing_page_url, ad_group_id, ad_id, campaign_id
                      |
                      |           ) f0
@@ -1976,8 +1976,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                      |             ) adp1
                      |            ON (f0.ad_id = adp1.id)
                      |
-                     |)
-                     |   ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
+                     |) sqalias1
+                     |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -2028,12 +2028,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
-    val expected = s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+    val expected = s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
                      |FROM (SELECT adp1.campaign_id "Campaign ID", adp1.ad_group_id "Ad Group ID", f0.landing_page_url "Destination URL", f0.target_page_url "Source URL", adp1.id "Ad ID", Count(*) OVER() TOTALROWS
                      |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
                      |                   target_page_url, landing_page_url, ad_group_id, ad_id, campaign_id
                      |            FROM fact1 FactAlias
-                     |            WHERE (advertiser_id = 12345) AND (landing_page_url = lower(target_page_url)) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+                     |            WHERE (advertiser_id = 12345) AND (landing_page_url = lower(target_page_url)) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
                      |            GROUP BY target_page_url, landing_page_url, ad_group_id, ad_id, campaign_id
                      |
                      |           ) f0
@@ -2044,8 +2044,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                      |             ) adp1
                      |            ON (f0.ad_id = adp1.id)
                      |
-                     |)
-                     |   ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
+                     |) sqalias1
+                     |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -2353,12 +2353,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
-    val expected = s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+    val expected = s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
                       |FROM (SELECT agp1.campaign_id "Campaign ID", agp1.id "Ad Group ID", f0.landing_page_url "Destination URL", f0.target_page_url "Source URL", coalesce(ROUND(CASE WHEN ((f0."avg_pos" >= 0.1) AND (f0."avg_pos" <= 500)) THEN f0."avg_pos" ELSE 0.0 END, 10), 0.0) "Average Position", coalesce(ROUND(f0."spend", 10), 0.0) "Spend", Count(*) OVER() TOTALROWS
                       |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
                       |                   target_page_url, landing_page_url, ad_group_id, campaign_id, SUM(spend) AS "spend", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS "avg_pos"
                       |            FROM fact2 FactAlias
-                      |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+                      |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
                       |            GROUP BY target_page_url, landing_page_url, ad_group_id, campaign_id
                       |            HAVING ((CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) = SUM(spend))
                       |           ) f0
@@ -2369,8 +2369,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |             ) agp1
                       |            ON (f0.ad_group_id = agp1.id)
                       |
- |)
-                      |   ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
+ |) sqalias1
+                      |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100
                       |            """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -2410,16 +2410,16 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val expected =
       """
         |SELECT *
-        |      FROM (SELECT DISTINCT ap0."Advertiser Status" "Advertiser Status", ROWNUM as ROW_NUMBER
+        |      FROM (SELECT DISTINCT ap0."Advertiser Status" "Advertiser Status", ROW_NUMBER() OVER() AS ROWNUM
         |            FROM
-        |                (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+        |                (SELECT  CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Advertiser Status", id
         |            FROM advertiser_postgres
         |            WHERE (id = 12345)
         |             ) ap0
         |
         |
-        |           )
-        |             WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
+        |           ) sqalias1
+        |             WHERE ROWNUM >= 1 AND ROWNUM <= 100
       """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -2448,7 +2448,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                                "field": "Campaign Name",
                                "alias": null,
                                "value": null
-                             }
+                             },
+                             { "field" : "Source", "value" : "2", "alias" : "Source"}
                            ],
                           "filterExpressions": [
                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
@@ -2473,7 +2474,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = """
                      |SELECT  *
-                     |      FROM (SELECT agp2.campaign_id "Campaign ID", agp2.id "Ad Group ID", ap0."Advertiser Status" "Advertiser Status", cp1.campaign_name "Campaign Name", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
+                     |      FROM (SELECT agp2.campaign_id "Campaign ID", agp2.id "Ad Group ID", ap0."Advertiser Status" "Advertiser Status", cp1.campaign_name "Campaign Name", '2' AS "Source", Count(*) OVER() TOTALROWS, ROW_NUMBER() OVER() AS ROWNUM
                      |            FROM
                      |               ( (SELECT  campaign_id, advertiser_id, id
                      |            FROM ad_group_postgres
@@ -2486,15 +2487,15 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                      |             ) cp1
                      |              ON( agp2.advertiser_id = cp1.advertiser_id AND agp2.campaign_id = cp1.id )
                      |               INNER JOIN
-                     |            (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+                     |            (SELECT  CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Advertiser Status", id
                      |            FROM advertiser_postgres
                      |            WHERE (id = 12345)
                      |             ) ap0
                      |              ON( cp1.advertiser_id = ap0.id )
                      |               )
                      |
-                     |           )
-                     |             WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
+                     |           ) sqalias1
+                     |             WHERE ROWNUM >= 1 AND ROWNUM <= 100
                      |""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -2530,6 +2531,11 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                                "value": null
                              },
                              {
+                               "field": "Custom",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
                                "field": "CTR",
                                "alias": null,
                                "value": null
@@ -2552,17 +2558,17 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = s"""
-                      |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
-                      |FROM (SELECT cp2.id "Campaign ID", af0.ad_group_id "Ad Group ID", ap1."Advertiser Status" "Advertiser Status", cp2.campaign_name "Campaign Name", coalesce(af0."impressions", 1) "Impressions", ROUND(af0."CTR", 10) "CTR"
+                      |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
+                      |FROM (SELECT cp2.id "Campaign ID", af0.ad_group_id "Ad Group ID", ap1."Advertiser Status" "Advertiser Status", cp2.campaign_name "Campaign Name", coalesce(af0."impressions", 1) "Impressions", coalesce(ROUND(CASE WHEN ((af0."custom_col" >= 0) AND (af0."custom_col" <= 10)) THEN af0."custom_col" ELSE 0 END, 10), 0) "Custom", ROUND(af0."CTR", 10) "CTR"
                       |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-                      |                   advertiser_id, campaign_id, ad_group_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
+                      |                   advertiser_id, campaign_id, ad_group_id, SUM(impressions) AS "impressions", (SUM(clicks * max_bid)) AS "custom_col", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
                       |            FROM ad_fact1 FactAlias
-                      |            WHERE (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+                      |            WHERE (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
                       |            GROUP BY advertiser_id, campaign_id, ad_group_id
                       |
                       |           ) af0
                       |           INNER JOIN
-                      |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+                      |           (SELECT  CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Advertiser Status", id
                       |            FROM advertiser_postgres
                       |            WHERE (managed_by = 12345)
                       |             )
@@ -2576,7 +2582,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |
                       |
                       |
-                      |) ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+                      |) sqalias1 ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
                      |""".stripMargin
 
 
@@ -2637,12 +2643,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, stats_date, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions
          |            FROM ad_fact1 FactAlias
-         |            WHERE (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id, stats_date
          |
          |           ) af0
          |                     INNER JOIN
-         |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+         |           (SELECT  CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Advertiser Status", id
          |            FROM advertiser_postgres
          |            WHERE (managed_by = 12345)
          |             )
@@ -2655,7 +2661,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           cp2 ON ( af0.advertiser_id = cp2.advertiser_id AND af0.campaign_id = cp2.id)
          |
          |          GROUP BY to_char(af0.stats_date, 'YYYY-MM-DD'), ap1."Advertiser Status", cp2.campaign_name
-         |)
+         |) sqalias1
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
@@ -2715,12 +2721,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, stats_date, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id, stats_date
          |
          |           ) af0
          |                     LEFT OUTER JOIN
-         |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+         |           (SELECT  CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Advertiser Status", id
          |            FROM advertiser_postgres
          |            WHERE (id = 12345)
          |             )
@@ -2733,7 +2739,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           cp2 ON ( af0.advertiser_id = cp2.advertiser_id AND af0.campaign_id = cp2.id)
          |
          |          GROUP BY to_char(af0.stats_date, 'YYYY-MM-DD'), ap1."Advertiser Status", cp2.campaign_name
-         |)
+         |) sqalias1
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
@@ -2780,19 +2786,19 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_ad_stats 4) */
          |                   ad_id, campaign_id, ad_group_id, SUM(impressions) AS "impressions"
          |            FROM ad_fact1 FactAlias
-         |            WHERE (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY ad_id, campaign_id, ad_group_id
          |
          |           ) af0
          |           RIGHT OUTER JOIN
-         |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  id, ad_group_id, campaign_id, title, advertiser_id
-         |            FROM ad_dim_postgres INNER JOIN ( SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT /*+  INDEX(ad_dim_postgres AD_ID)  */ advertiser_id adp3_advertiser_id, id adp3_id
+         |               ( (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  id, ad_group_id, campaign_id, title, advertiser_id
+         |            FROM ad_dim_postgres INNER JOIN ( SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT /*+  INDEX(ad_dim_postgres AD_ID)  */ advertiser_id adp3_advertiser_id, id adp3_id
          |            FROM ad_dim_postgres
          |            WHERE (advertiser_id = 12345)
-         |            ORDER BY 2 DESC  ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100 ) adpi4
+         |            ORDER BY 2 DESC  ) sqalias1 LIMIT 100) D ) sqalias2 WHERE ROWNUM >= 1 AND ROWNUM <= 100 ) adpi4
          |            ON( ad_dim_postgres.advertiser_id = adpi4.adp3_advertiser_id AND ad_dim_postgres.id = adpi4.adp3_id )
          |            WHERE (advertiser_id = 12345)
-         |            ORDER BY 1 DESC  ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) adp3
+         |            ORDER BY 1 DESC  ) sqalias3 LIMIT 100) D ) sqalias4 WHERE ROWNUM >= 1 AND ROWNUM <= 100) adp3
          |           INNER JOIN
          |            (SELECT  campaign_id, name, id, advertiser_id
          |            FROM ad_group_postgres
@@ -2809,7 +2815,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |
          |
          |
-         |) ORDER BY "Ad ID" DESC
+         |) sqalias5 ORDER BY "Ad ID" DESC
          |""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -2875,19 +2881,19 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
 
     val expected =
-      s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+      s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
          |FROM (SELECT to_char(af0.stats_date, 'YYYY-MM-DD') "Day", ROUND(af0."Average CPC", 10) "Average CPC", ROUND((af0."Average CPC" * 100), 10) "Average CPC Cents", coalesce(ROUND(CASE WHEN ((af0."avg_pos" >= 0.1) AND (af0."avg_pos" <= 500)) THEN af0."avg_pos" ELSE 0.0 END, 10), 0.0) "Average Position", coalesce(af0."impressions", 1) "Impressions", coalesce(ROUND(af0."max_bid", 10), 0.0) "Max Bid", coalesce(ROUND(af0."spend", 10), 0.0) "Spend", ROUND(af0."CTR", 10) "CTR"
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   stats_date, SUM(impressions) AS "impressions", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS "avg_pos", SUM(spend) AS "spend", MAX(max_bid) AS "max_bid", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR", SUM(CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) AS "Average CPC"
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id IN (SELECT id FROM advertiser_postgres WHERE (managed_by = 12345))) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id IN (SELECT id FROM advertiser_postgres WHERE (managed_by = 12345))) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY stats_date
          |
          |           ) af0
          |
          |
          |
-         |) ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |) sqalias1 ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
        """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -2934,19 +2940,19 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
          |                   stats_date, ad_group_id, keyword_id, TRUNC(stats_date, 'MM') AS "Month", TRUNC(stats_date, 'IW') AS "Week", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
          |            FROM k_stats_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY stats_date, ad_group_id, keyword_id, TRUNC(stats_date, 'MM'), TRUNC(stats_date, 'IW')
          |
          |           ) ksf0
          |           RIGHT OUTER JOIN
-         |                (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  parent_id, id, advertiser_id
+         |                (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  parent_id, id, advertiser_id
          |            FROM pg_targetingattribute
          |            WHERE (advertiser_id = 12345)
-         |             ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) pt1
+         |             ) sqalias1 LIMIT 100) D ) sqalias2 WHERE ROWNUM >= 1 AND ROWNUM <= 100) pt1
          |            ON (ksf0.keyword_id = pt1.id)
          |
          |
-         |)
+         |) sqalias3
        """.stripMargin
 
 
@@ -2984,24 +2990,24 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
 
     val expected =
-      s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+      s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
          |FROM (SELECT cp1.id "Campaign ID", coalesce(af0."impressions", 1) "Impressions", cp1."Campaign Status" "Campaign Status", Count(*) OVER() TOTALROWS
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_ad_stats 4) */
          |                   campaign_id, SUM(impressions) AS "impressions"
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY campaign_id
          |            HAVING (SUM(impressions) = 12345)
          |           ) af0
          |           INNER JOIN
-         |                (SELECT /*+ CampaignHint */ DECODE(status, 'ON', 'ON', 'OFF') AS "Campaign Status", id, advertiser_id
+         |                (SELECT /*+ CampaignHint */ CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Campaign Status", id, advertiser_id
          |            FROM campaign_postgres
          |            WHERE (advertiser_id = 12345)
          |             ) cp1
          |            ON (af0.campaign_id = cp1.id)
          |
- |)
-         |   ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
+ |) sqalias1
+         |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100
        """.stripMargin
 
     println(result)
@@ -3048,19 +3054,19 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_ad_stats 4) */
          |                   ad_id, campaign_id, ad_group_id, SUM(impressions) AS "impressions"
          |            FROM ad_fact1 FactAlias
-         |            WHERE (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY ad_id, campaign_id, ad_group_id
          |
          |           ) af0
          |           RIGHT OUTER JOIN
-         |                (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  id, title, ad_group_id, campaign_id, advertiser_id
+         |                (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  id, title, ad_group_id, campaign_id, advertiser_id
          |            FROM ad_dim_postgres
          |            WHERE (advertiser_id = 12345)
-         |            ORDER BY 1 DESC , 2 DESC NULLS LAST ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) adp1
+         |            ORDER BY 1 DESC , 2 DESC NULLS LAST ) sqalias1 LIMIT 100) D ) sqalias2 WHERE ROWNUM >= 1 AND ROWNUM <= 100) adp1
          |            ON (af0.ad_id = adp1.id)
          |
          |
-         |)
+         |) sqalias3
        """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -3122,19 +3128,19 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
 
     val expected =
-      s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+      s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
           |FROM (SELECT to_char(af0.stats_date, 'YYYY-MM-DD') "Day", ROUND((CASE WHEN af0."clicks" = 0 THEN 0.0 ELSE af0."spend" / af0."clicks" END), 10) "Average CPC", coalesce(ROUND(CASE WHEN ((af0."avg_pos" >= 0.1) AND (af0."avg_pos" <= 500)) THEN af0."avg_pos" ELSE 0.0 END, 10), 0.0) "Average Position", coalesce(af0."impressions", 1) "Impressions", coalesce(ROUND(af0."max_bid", 10), 0.0) "Max Bid", coalesce(ROUND(af0."spend", 10), 0.0) "Spend", ROUND(af0."CTR", 10) "CTR"
           |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
           |                   stats_date, SUM(impressions) AS "impressions", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS "avg_pos", SUM(spend) AS "spend", MAX(max_bid) AS "max_bid", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks"
           |            FROM ad_fact1 FactAlias
-          |            WHERE (advertiser_id IN (SELECT id FROM advertiser_postgres WHERE (managed_by = 12345))) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+          |            WHERE (advertiser_id IN (SELECT id FROM advertiser_postgres WHERE (managed_by = 12345))) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
           |            GROUP BY stats_date
           |
           |           ) af0
           |
           |
           |
-          |) ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+          |) sqalias1 ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
        """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -3200,19 +3206,19 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val expected =
       s"""
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
          |FROM (SELECT ksnpo0.ad_id "Ad ID", to_char(ksnpo0.stats_date, 'YYYY-MM-DD') "Day", ROUND(ksnpo0."Average CPC", 10) "Average CPC", coalesce(ROUND(CASE WHEN ((ksnpo0."avg_pos" >= 0.1) AND (ksnpo0."avg_pos" <= 500)) THEN ksnpo0."avg_pos" ELSE 0.0 END, 10), 0.0) "Average Position", coalesce(ksnpo0."impressions", 1) "Impressions", coalesce(ROUND(ksnpo0."max_bid", 10), 0.0) "Max Bid", coalesce(ROUND(ksnpo0."spend", 10), 0.0) "Spend", ROUND(ksnpo0."CTR", 10) "CTR"
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
          |                   ad_id, stats_date, SUM(impressions) AS "impressions", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS "avg_pos", SUM(spend) AS "spend", MAX(max_bid) AS "max_bid", (spend / clicks) AS "Average CPC", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
          |            FROM k_stats_new_partitioning_one
-         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY ad_id, stats_date
          |
          |           ) ksnpo0
          |
          |
          |
-         |) ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |) sqalias1 ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
        """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -3326,18 +3332,18 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
 
-    val expected = s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+    val expected = s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
                       |FROM (SELECT vps0.publisher_id "Publisher ID", coalesce(ROUND(vps0."spend", 10), 0.0) "Spend"
                       |      FROM (SELECT
                       |                   publisher_id, SUM(spend) AS "spend"
                       |            FROM v_publisher_stats
-                      |            WHERE (publisher_id = 12345) AND (date_sid >= to_number(to_char(trunc(to_date('$fromDate', 'YYYY-MM-DD')), 'YYYYMMDD')) AND date_sid <= to_number(to_char(trunc(to_date('$toDate', 'YYYY-MM-DD')), 'YYYYMMDD')))
+                      |            WHERE (publisher_id = 12345) AND (date_sid >= to_number(to_char(DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')), 'YYYYMMDD')) AND date_sid <= to_number(to_char(DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')), 'YYYYMMDD')))
                       |            GROUP BY publisher_id
                       |
                      |           ) vps0
                       |
-                     |)
-                      |   ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
+                     |) sqalias1
+                      |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -3373,18 +3379,18 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
 
-    val expected = s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+    val expected = s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
                      |FROM (SELECT vps0.publisher_id "Publisher ID", coalesce(ROUND(vps0."spend", 10), 0.0) "Spend"
                      |      FROM (SELECT
                      |                   publisher_id, SUM(spend) AS "spend"
                      |            FROM v_publisher_stats
-                     |            WHERE (publisher_id = 12345) AND (date_sid >= to_char(trunc(to_date('$fromDate', 'YYYY-MM-DD')), 'YYYYMMDD') AND date_sid <= to_char(trunc(to_date('$toDate', 'YYYY-MM-DD')), 'YYYYMMDD'))
+                     |            WHERE (publisher_id = 12345) AND (date_sid >= to_char(DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')), 'YYYYMMDD') AND date_sid <= to_char(DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')), 'YYYYMMDD'))
                      |            GROUP BY publisher_id
                      |
                      |           ) vps0
                      |
-                     |)
-                     |   ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
+                     |) sqalias1
+                     |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -3450,17 +3456,17 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = s"""
-                      |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+                      |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
                       |FROM (SELECT agp3.campaign_id "Campaign ID", agp3.id "Ad Group ID", agp3."Ad Group Status" "Ad Group Status", ap1."Advertiser Status" "Advertiser Status", cp2.campaign_name "Campaign Name", coalesce(af0."impressions", 1) "Impressions", ROUND(af0."CTR", 10) "CTR"
                       |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
                       |                   advertiser_id, campaign_id, ad_group_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
                       |            FROM ad_fact1 FactAlias
-                      |            WHERE (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+                      |            WHERE (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
                       |            GROUP BY advertiser_id, campaign_id, ad_group_id
                       |
                       |           ) af0
                       |           INNER JOIN
-                      |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+                      |           (SELECT  CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Advertiser Status", id
                       |            FROM advertiser_postgres
                       |            WHERE (managed_by = 12345)
                       |             )
@@ -3472,14 +3478,14 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |             )
                       |           cp2 ON ( af0.advertiser_id = cp2.advertiser_id AND af0.campaign_id = cp2.id)
                       |           INNER JOIN
-                      |           (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
+                      |           (SELECT  advertiser_id, campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id
                       |            FROM ad_group_postgres
                       |
                       |             )
                       |           agp3 ON ( af0.advertiser_id = agp3.advertiser_id AND af0.ad_group_id = agp3.id)
                       |
-                      |) WHERE ( "Ad Group ID"   IS NULL) AND ( "Ad Group Status"   = 'ON')
-                      |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+                      |) sqalias1 WHERE ( "Ad Group ID"   IS NULL) AND ( "Ad Group Status"   = 'ON')
+                      |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
                       |""".stripMargin
 
 
@@ -3494,8 +3500,9 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                              { "field": "Campaign ID" },
                              { "field": "Campaign Name" },
                              { "field": "Ad Group ID" },
-                             { "field": "Ad Group Status" }
-                           ],
+                             { "field": "Ad Group Status" },
+                             { "field" : "Source", "value" : "2", "alias" : "Source"}
+                          ],
                           "filterExpressions": [
                              {"operator": "outer", "outerFilters": [
                                   {"field": "Ad Group ID", "operator": "isnull"}
@@ -3523,9 +3530,9 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = """
                      |SELECT  *
-                     |      FROM (SELECT ap0.id "Advertiser ID", cp1.id "Campaign ID", cp1.campaign_name "Campaign Name", agp2.id "Ad Group ID", agp2."Ad Group Status" "Ad Group Status", ROWNUM as ROW_NUMBER
+                     |      FROM (SELECT ap0.id "Advertiser ID", cp1.id "Campaign ID", cp1.campaign_name "Campaign Name", agp2.id "Ad Group ID", agp2."Ad Group Status" "Ad Group Status", '2' AS "Source", ROW_NUMBER() OVER() AS ROWNUM
                      |            FROM
-                     |               ( (SELECT  campaign_id, advertiser_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
+                     |               ( (SELECT  campaign_id, advertiser_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id
                      |            FROM ad_group_postgres
                      |            WHERE (advertiser_id = 12345)
                      |            ORDER BY 1 ASC  ) agp2
@@ -3538,13 +3545,13 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                      |               INNER JOIN
                      |            (SELECT  id
                      |            FROM advertiser_postgres
-                     |            WHERE (id = 12345) AND (DECODE(status, 'ON', 'ON', 'OFF') = 'ON')
+                     |            WHERE (id = 12345) AND (CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END = 'ON')
                      |             ) ap0
                      |              ON( cp1.advertiser_id = ap0.id )
                      |               )
                      |
-                     |           )
-                     |            WHERE ( "Ad Group ID"   IS NULL) AND ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
+                     |           ) sqalias1
+                     |            WHERE ( "Ad Group ID"   IS NULL) AND ROWNUM >= 1 AND ROWNUM <= 100
                      |           """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -3597,7 +3604,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
          |                   ad_group_id, advertiser_id, ad_id, campaign_id, keyword_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(impressions) AS impressions
          |            FROM fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY ad_group_id, advertiser_id, ad_id, campaign_id, keyword_id
          |
          |           ) f0
@@ -3608,7 +3615,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |             )
          |           cp1 ON ( f0.advertiser_id = cp1.advertiser_id AND f0.campaign_id = cp1.id)
          |           LEFT OUTER JOIN
-         |           (SELECT  campaign_id, name, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id, advertiser_id
+         |           (SELECT  campaign_id, name, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id, advertiser_id
          |            FROM ad_group_postgres
          |            WHERE (advertiser_id = 12345)
          |             )
@@ -3627,7 +3634,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           pt4 ON ( f0.advertiser_id = pt4.advertiser_id AND f0.keyword_id = pt4.id)
          |
  |          GROUP BY f0.keyword_id, pt4.value, cp1.campaign_name, f0.ad_group_id, agp2."Ad Group Status", agp2.name, adp3.title
-         |) WHERE ( "Ad Group ID"   IS NULL) AND ( "Ad Group Status"   = 'ON')
+         |) sqalias1 WHERE ( "Ad Group ID"   IS NULL) AND ( "Ad Group Status"   = 'ON')
          |   ORDER BY "Campaign Name" ASC NULLS LAST
          |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -3670,24 +3677,24 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = s"""
-                      |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+                      |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
                       |FROM (SELECT f0.keyword_id "Keyword ID", agp1.campaign_id "Campaign ID", f0."Month" "Month", agp1.id "Ad Group ID", agp1."Ad Group Status" "Ad Group Status", f0."Week" "Week", to_char(f0.stats_date, 'YYYY-MM-DD') "Day", coalesce(f0."impressions", 1) "Impressions", coalesce(f0."clicks", 0) "Clicks", ROUND(f0."CTR", 10) "CTR"
                       |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
                       |                   stats_date, ad_group_id, campaign_id, keyword_id, TRUNC(stats_date, 'MM') AS "Month", TRUNC(stats_date, 'IW') AS "Week", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
                       |            FROM fact2 FactAlias
-                      |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+                      |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
                       |            GROUP BY stats_date, ad_group_id, campaign_id, keyword_id, TRUNC(stats_date, 'MM'), TRUNC(stats_date, 'IW')
                       |
                       |           ) f0
                       |           LEFT OUTER JOIN
-                      |           (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", campaign_id, id, advertiser_id
+                      |           (SELECT  CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", campaign_id, id, advertiser_id
                       |            FROM ad_group_postgres
                       |            WHERE (advertiser_id = 12345)
                       |             )
                       |           agp1 ON (f0.ad_group_id = agp1.id)
                       |
-                      |) WHERE ( "Ad Group ID"   IS NULL) AND ( "Ad Group Status"   = 'ON')
-                      |   ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
+                      |) sqalias1 WHERE ( "Ad Group ID"   IS NULL) AND ( "Ad Group Status"   = 'ON')
+                      |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100
                       |""".stripMargin
 
 
@@ -3738,7 +3745,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = s"""
                       |SELECT  *
-                      |      FROM (SELECT cp0.id "Campaign ID", cp0.campaign_name "Campaign Name", agp1.id "Ad Group ID", ROWNUM as ROW_NUMBER
+                      |      FROM (SELECT cp0.id "Campaign ID", cp0.campaign_name "Campaign Name", agp1.id "Ad Group ID", ROW_NUMBER() OVER() AS ROWNUM
                       |            FROM
                       |               ( (SELECT  campaign_id, id, advertiser_id
                       |            FROM ad_group_postgres
@@ -3747,13 +3754,13 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |          INNER JOIN
                       |            (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
                       |            FROM campaign_postgres
-                      |            WHERE (advertiser_id = 12345) AND (DECODE(status, 'ON', 'ON', 'OFF') = 'ON')
+                      |            WHERE (advertiser_id = 12345) AND (CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END = 'ON')
                       |             ) cp0
                       |              ON( agp1.advertiser_id = cp0.advertiser_id AND agp1.campaign_id = cp0.id )
                       |               )
                       |
-                      |           )
-                      |            WHERE ( "Ad Group ID"   IS NULL) AND ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+                      |           ) sqalias1
+                      |            WHERE ( "Ad Group ID"   IS NULL) AND ROWNUM >= 1 AND ROWNUM <= 200
                       |""".stripMargin
 
 
@@ -3800,17 +3807,17 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |SELECT *
          |FROM (SELECT pt3.id "Keyword ID", coalesce(f0."impressions", 1) "Impressions", COALESCE(f0.device_id, 'UNKNOWN') "Device ID", COALESCE(f0.network_type, 'NONE') "Network Type", COALESCE(f0.pricing_type, 'NONE') "Pricing Type", cp1."Campaign Status" "Campaign Status"
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
-         |                   CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END device_id, DECODE(network_type, 'TEST_PUBLISHER', 'Test Publisher', 'CONTENT_SYNDICATION', 'Content Syndication', 'EXTERNAL', 'Yahoo Partners', 'INTERNAL', 'Yahoo Properties', 'NONE') network_type, CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END pricing_type, campaign_id, keyword_id, SUM(impressions) AS "impressions"
+         |                   CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END device_id, CASE WHEN network_type = 'TEST_PUBLISHER' THEN 'Test Publisher' WHEN network_type = 'CONTENT_SYNDICATION' THEN 'Content Syndication' WHEN network_type = 'EXTERNAL' THEN 'Yahoo Partners' WHEN network_type = 'INTERNAL' THEN 'Yahoo Properties' ELSE 'NONE' END network_type, CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END pricing_type, campaign_id, keyword_id, SUM(impressions) AS "impressions"
          |            FROM fact2 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_source IN (1,2)) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END, DECODE(network_type, 'TEST_PUBLISHER', 'Test Publisher', 'CONTENT_SYNDICATION', 'Content Syndication', 'EXTERNAL', 'Yahoo Partners', 'INTERNAL', 'Yahoo Properties', 'NONE'), CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END, campaign_id, keyword_id
+         |            WHERE (advertiser_id = 12345) AND (stats_source IN (1,2)) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END, CASE WHEN network_type = 'TEST_PUBLISHER' THEN 'Test Publisher' WHEN network_type = 'CONTENT_SYNDICATION' THEN 'Content Syndication' WHEN network_type = 'EXTERNAL' THEN 'Yahoo Partners' WHEN network_type = 'INTERNAL' THEN 'Yahoo Properties' ELSE 'NONE' END, CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END, campaign_id, keyword_id
          |
          |           ) f0
          |           RIGHT OUTER JOIN
-         |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  id, advertiser_id
+         |               ( (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  id, advertiser_id
          |            FROM pg_targetingattribute
          |            WHERE (advertiser_id = 12345)
-         |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) pt3
+         |             ) sqalias1 LIMIT 120) D ) sqalias2 WHERE ROWNUM >= 21 AND ROWNUM <= 120) pt3
          |           INNER JOIN
          |            (SELECT  id, campaign_id, advertiser_id
          |            FROM ad_group_postgres
@@ -3818,14 +3825,14 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |             ) agp2
          |              ON( pt3.advertiser_id = agp2.advertiser_id AND pt3.parent_id = agp2.id )
          |               INNER JOIN
-         |            (SELECT /*+ CampaignHint */ DECODE(status, 'ON', 'ON', 'OFF') AS "Campaign Status", id, advertiser_id
+         |            (SELECT /*+ CampaignHint */ CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Campaign Status", id, advertiser_id
          |            FROM campaign_postgres
          |            WHERE (advertiser_id = 12345)
          |             ) cp1
          |              ON( agp2.advertiser_id = cp1.advertiser_id AND agp2.campaign_id = cp1.id )
          |               )  ON (f0.keyword_id = pt3.id)
          |
- |)
+ |) sqalias3
          |   ORDER BY "Campaign Status" ASC NULLS LAST
       """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -3865,18 +3872,18 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
           |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_ad_stats 4) */
           |                   advertiser_id, SUM(impressions) AS "impressions"
           |            FROM ad_fact1 FactAlias
-          |            WHERE (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+          |            WHERE (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
           |            GROUP BY advertiser_id
           |
           |           ) af0
           |           RIGHT OUTER JOIN
-          |                (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  address, id
+          |                (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  address, id
           |            FROM restaurant_postgres
           |            WHERE (id = 12345)
-          |             ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) rp1
+          |             ) sqalias1 LIMIT 100) D ) sqalias2 WHERE ROWNUM >= 1 AND ROWNUM <= 100) rp1
           |            ON (af0.advertiser_id = rp1.id)
           |
-          |)
+          |) sqalias3
        """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -3920,12 +3927,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val expected =
       s"""
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", spend AS "Spend"
+         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT "Campaign Name", spend AS "Spend"
          |FROM (SELECT cp1.campaign_name "Campaign Name", SUM(spend) AS spend
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id
          |
          |           ) af0
@@ -3937,8 +3944,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           cp1 ON ( af0.advertiser_id = cp1.advertiser_id AND af0.campaign_id = cp1.id)
          |
  |          GROUP BY cp1.campaign_name
-         |)
-         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |) sqalias1
+         |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
@@ -3985,12 +3992,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val expected =
       s"""
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Source", DECODE(stats_source, 1, spend, 0.0) AS "N Spend"
+         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT "Campaign Name", "Source", CASE WHEN stats_source = 1 THEN spend ELSE 0.0 END AS "N Spend"
          |FROM (SELECT cp1.campaign_name "Campaign Name", af0.stats_source "Source", SUM(spend) AS spend, stats_source AS stats_source
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, stats_source, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id, stats_source
          |
          |           ) af0
@@ -4003,7 +4010,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |
  |          GROUP BY cp1.campaign_name, af0.stats_source, stats_source
          |)
-         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |   sqalias1 ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
@@ -4050,12 +4057,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val expected =
       s"""
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Day", "Campaign Name", spend AS "Spend"
+         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT "Day", "Campaign Name", spend AS "Spend"
          |FROM (SELECT to_char(af0.stats_date, 'YYYY-MM-DD') "Day", cp1.campaign_name "Campaign Name", SUM(spend) AS spend
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, stats_date, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id, stats_date
          |
          |           ) af0
@@ -4067,8 +4074,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           cp1 ON ( af0.advertiser_id = cp1.advertiser_id AND af0.campaign_id = cp1.id)
          |
  |          GROUP BY to_char(af0.stats_date, 'YYYY-MM-DD'), cp1.campaign_name
-         |)
-         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |) sqalias1
+         |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
@@ -4117,12 +4124,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val expected =
       s"""
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", "spend" AS "Spend"
+         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", "spend" AS "Spend"
          |FROM (SELECT cp2.campaign_name "Campaign Name", ap1.currency "Advertiser Currency", SUM(spend) AS spend
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, SUM(spend) AS "spend"
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id
          |
          |           ) af0
@@ -4140,8 +4147,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           cp2 ON (af0.campaign_id = cp2.id)
          |
  |          GROUP BY "Campaign Name", "Advertiser Currency"
-         |)
-         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |) sqalias1
+         |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
        """.stripMargin
   }
 
@@ -4193,12 +4200,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val expected =
       s"""
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
          |FROM (SELECT cp2.campaign_name "Campaign Name", ap1.currency "Advertiser Currency", af0.ad_group_id "Ad Group ID", coalesce(ROUND(af0."spend", 10), 0.0) "Spend"
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, ad_group_id, SUM(spend) AS "spend"
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id, ad_group_id
          |
          |           ) af0
@@ -4215,8 +4222,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |             )
          |           cp2 ON ( af0.advertiser_id = cp2.advertiser_id AND af0.campaign_id = cp2.id)
          |
- |)
-         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+ |) sqalias1
+         |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
          |
        """.stripMargin
     result should equal (expected)(after being whiteSpaceNormalised)
@@ -4233,6 +4240,31 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                              },
                              {
                                "field": "Advertiser Currency",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Count",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Custom",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Avg",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Max",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Min",
                                "alias": null,
                                "value": null
                              },
@@ -4271,18 +4303,18 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     
 
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend","Advertiser Currency", "Average CPC Cents", "Average CPC", "Campaign Name"))
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Custom", "Max", "Min", "Avg", "Spend","Advertiser Currency"
+      , "Average CPC Cents", "Count", "Average CPC", "Campaign Name"))
 
 
     val expected =
       s"""
-         |
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS "Average CPC Cents", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend"
-         |FROM (SELECT cp2.campaign_name "Campaign Name", ap1.currency "Advertiser Currency", SUM(spend) AS spend, SUM(clicks) AS clicks
+         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", Count AS "Count", custom_col AS "Custom", avg_col AS "Avg", max_col AS "Max", min_col AS "Min", (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS "Average CPC Cents", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend"
+         |FROM (SELECT cp2.campaign_name "Campaign Name", ap1.currency "Advertiser Currency", SUM(Count) AS Count, (SUM(clicks * max_bid)) AS custom_col, AVG(avg_col) AS avg_col, MAX(max_col) AS max_col, MIN(min_col) AS min_col, SUM(spend) AS spend, MAX(max_bid) AS max_bid, SUM(clicks) AS clicks
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   advertiser_id, campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend
+         |                   advertiser_id, campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, MAX(max_bid) AS max_bid, SUM(spend) AS spend, MIN(min_col) AS min_col, MAX(max_col) AS max_col, AVG(CASE WHEN ((avg_col >= 0) AND (avg_col <= 100000)) THEN avg_col ELSE 0 END) AS avg_col, COUNT(*) AS Count
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id
          |
          |           ) af0
@@ -4300,12 +4332,117 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           cp2 ON ( af0.advertiser_id = cp2.advertiser_id AND af0.campaign_id = cp2.id)
          |
  |          GROUP BY cp2.campaign_name, ap1.currency
-         |)
-         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |) sqalias1
+         |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
          |
        """
        .stripMargin
     
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Successfully generated Outer Group By Query with mutlifield fact and dim filters") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Advertiser Currency",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Business Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Business Name 2",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Average CPC Cents",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Average CPC",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "N Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"},
+                              {"field": "Spend", "operator": "==", "compareTo": "N Spend"},
+                              {"field": "Business Name", "operator": "==", "compareTo": "Business Name 2"}
+                           ]
+                           }""".stripMargin
+
+    val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request.toOption.get, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    queryPipelineTry.get.bestDimCandidates.foreach{db=> assert(db.hasPKRequested == false)}
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
+
+
+    val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Business Name 2", "Business Name", "N Spend", "Spend","Advertiser Currency"
+      , "Average CPC Cents", "Average CPC", "Campaign Name"))
+
+
+    val expected =
+      s"""
+         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", "Business Name", "Business Name 2", (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS "Average CPC Cents", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend", CASE WHEN stats_source = 1 THEN spend ELSE 0.0 END AS "N Spend"
+         |FROM (SELECT cp2.campaign_name "Campaign Name", ap1.currency "Advertiser Currency", af0."Business Name" "Business Name", af0."Business Name 2" "Business Name 2", SUM(spend) AS spend, SUM(clicks) AS clicks, af0.stats_source stats_source
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   advertiser_id, campaign_id, CASE WHEN stats_source = 1 THEN Native WHEN stats_source = 2 THEN Search ELSE Unknown END AS "Business Name", CASE WHEN stats_source = 1 THEN Expensive WHEN stats_source = 2 THEN Cheap ELSE Unknown END AS "Business Name 2", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend, stats_source
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (CASE WHEN stats_source = 1 THEN Native WHEN stats_source = 2 THEN Search ELSE Unknown END = CASE WHEN stats_source = 1 THEN Native WHEN stats_source = 2 THEN Search ELSE Unknown END) AND (stats_date >= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY advertiser_id, campaign_id, CASE WHEN stats_source = 1 THEN Native WHEN stats_source = 2 THEN Search ELSE Unknown END, CASE WHEN stats_source = 1 THEN Expensive WHEN stats_source = 2 THEN Cheap ELSE Unknown END, stats_source
+         |            HAVING (SUM(spend) = SUM(CASE WHEN stats_source = 1 THEN spend ELSE 0.0 END))
+         |           ) af0
+         |                     LEFT OUTER JOIN
+         |           (SELECT  currency, id
+         |            FROM advertiser_postgres
+         |            WHERE (id = 12345)
+         |             )
+         |           ap1 ON (af0.advertiser_id = ap1.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
+         |            FROM campaign_postgres
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           cp2 ON ( af0.advertiser_id = cp2.advertiser_id AND af0.campaign_id = cp2.id)
+         |
+ |          GROUP BY cp2.campaign_name, ap1.currency, af0."Business Name", af0."Business Name 2", af0.stats_source
+         |) sqalias1
+         |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
+         |
+       """
+        .stripMargin
+
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -4356,12 +4493,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val expected =
       s"""
          |
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Status", "Advertiser Name", "Advertiser ID", spend AS "Spend"
+         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT "Campaign Status", "Advertiser Name", "Advertiser ID", spend AS "Spend"
          |FROM (SELECT cp2."Campaign Status" "Campaign Status", ap1.name "Advertiser Name", cp2.advertiser_id "Advertiser ID", SUM(spend) AS spend
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id
          |
          |           ) af0
@@ -4372,15 +4509,15 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |             )
          |           ap1 ON (af0.advertiser_id = ap1.id)
          |           LEFT OUTER JOIN
-         |           (SELECT /*+ CampaignHint */ advertiser_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Campaign Status", id
+         |           (SELECT /*+ CampaignHint */ advertiser_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Campaign Status", id
          |            FROM campaign_postgres
          |            WHERE (advertiser_id = 12345)
          |             )
          |           cp2 ON ( af0.advertiser_id = cp2.advertiser_id AND af0.campaign_id = cp2.id)
          |
  |          GROUP BY cp2."Campaign Status", ap1.name, cp2.advertiser_id
-         |)
-         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |) sqalias1
+         |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
          |
          |
        """
@@ -4435,7 +4572,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                            ],
                            "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
-                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"},
+                              {"field": "User Count", "operator": "==", "compareTo": "Impressions"}
                            ]
                            }""".stripMargin
 
@@ -4454,14 +4592,14 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val expected =
       s"""
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Ad Status", "Ad User Count Flag", "Ad Impressions Flag", "Campaign Name", "Pricing Type", spend AS "Spend", user_count AS "User Count", impressions AS "Impressions"
+         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT "Ad Status", "Ad User Count Flag", "Ad Impressions Flag", "Campaign Name", "Pricing Type", spend AS "Spend", user_count AS "User Count", impressions AS "Impressions"
          |FROM (SELECT adp2."Ad Status" "Ad Status", adp2.user_count "Ad User Count Flag", adp2.impressions "Ad Impressions Flag", cp1.campaign_name "Campaign Name", af0.price_type "Pricing Type", SUM(af0.spend) AS spend, SUM(af0.user_count) AS user_count, SUM(af0.impressions) AS impressions
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, advertiser_id, ad_id, campaign_id, SUM(impressions) AS impressions, SUM(spend) AS spend, SUM(user_count) AS user_count
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, advertiser_id, ad_id, campaign_id
-         |
+         |            HAVING (SUM(user_count) = SUM(impressions))
          |           ) af0
          |                     LEFT OUTER JOIN
          |           (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
@@ -4470,15 +4608,15 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |             )
          |           cp1 ON ( af0.advertiser_id = cp1.advertiser_id AND af0.campaign_id = cp1.id)
          |           LEFT OUTER JOIN
-         |           (SELECT  campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Status", id, user_count, impressions, advertiser_id
+         |           (SELECT  campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Status", id, user_count, impressions, advertiser_id
          |            FROM ad_dim_postgres
          |            WHERE (advertiser_id = 12345)
          |             )
          |           adp2 ON ( af0.advertiser_id = adp2.advertiser_id AND af0.ad_id = adp2.id)
          |
  |          GROUP BY adp2."Ad Status", adp2.user_count, adp2.impressions, cp1.campaign_name, af0.price_type
-         |)
-         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |) sqalias1
+         |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
@@ -4525,12 +4663,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val expected =
       s"""
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend"
+         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT "Campaign Name", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend"
          |FROM (SELECT cp1.campaign_name "Campaign Name", SUM(spend) AS spend, SUM(clicks) AS clicks
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id
          |
          |           ) af0
@@ -4542,8 +4680,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           cp1 ON ( af0.advertiser_id = cp1.advertiser_id AND af0.campaign_id = cp1.id)
          |
  |          GROUP BY cp1.campaign_name
-         |)
-         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |) sqalias1
+         |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
        """
         .stripMargin
     result should equal (expected)(after being whiteSpaceNormalised)
@@ -4592,12 +4730,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val expected =
       s"""
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", avg_pos AS "Average Position", spend AS "Spend"
+         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT "Campaign Name", avg_pos AS "Average Position", spend AS "Spend"
          |FROM (SELECT cp1.campaign_name "Campaign Name", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(impressions) AS impressions
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id
          |
          |           ) af0
@@ -4609,8 +4747,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           cp1 ON ( af0.advertiser_id = cp1.advertiser_id AND af0.campaign_id = cp1.id)
          |
  |          GROUP BY cp1.campaign_name
-         |)
-         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |) sqalias1
+         |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
          |
        """
         .stripMargin
@@ -4660,12 +4798,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val expected =
       s"""
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", avg_pos AS "Average Position", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend"
+         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT "Campaign Name", avg_pos AS "Average Position", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend"
          |FROM (SELECT cp1.campaign_name "Campaign Name", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(impressions) AS impressions, SUM(clicks) AS clicks
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id
          |
          |           ) af0
@@ -4677,8 +4815,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           cp1 ON ( af0.advertiser_id = cp1.advertiser_id AND af0.campaign_id = cp1.id)
          |
  |          GROUP BY cp1.campaign_name
-         |)
-         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |) sqalias1
+         |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
        """
         .stripMargin
 
@@ -4728,12 +4866,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val expected =
       s"""
          |
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser ID", CASE WHEN DECODE(stats_source, 1, clicks, 0.0) = 0 THEN 0.0 ELSE DECODE(stats_source, 1, spend, 0.0) / DECODE(stats_source, 1, clicks, 0.0) END AS "N Average CPC", spend AS "Spend"
+         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser ID", CASE WHEN CASE WHEN stats_source = 1 THEN clicks ELSE 0.0 END = 0 THEN 0.0 ELSE CASE WHEN stats_source = 1 THEN spend ELSE 0.0 END / CASE WHEN stats_source = 1 THEN clicks ELSE 0.0 END END AS "N Average CPC", spend AS "Spend"
          |FROM (SELECT cp1.campaign_name "Campaign Name", cp1.advertiser_id "Advertiser ID", SUM(spend) AS spend, SUM(clicks) AS clicks, af0.stats_source stats_source
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, stats_source, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id, stats_source
          |
          |           ) af0
@@ -4745,8 +4883,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           cp1 ON ( af0.advertiser_id = cp1.advertiser_id AND af0.campaign_id = cp1.id)
          |
  |          GROUP BY cp1.campaign_name, cp1.advertiser_id, af0.stats_source
-         |)
-         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |) sqalias1
+         |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
          |
        """
         .stripMargin
@@ -4794,12 +4932,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val expected =
       s"""
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "impression_share_rounded" AS "Impression Share", spend AS "Spend"
-         |FROM (SELECT cp1.campaign_name "Campaign Name", SUM(spend) AS spend, SUM(impressions) AS impressions, SUM(s_impressions) AS s_impressions, af0.show_flag show_flag, (ROUND((DECODE(MAX(show_flag), 1, ROUND(CASE WHEN SUM(s_impressions) = 0 THEN 0.0 ELSE SUM(impressions) / (SUM(s_impressions)) END, 4), NULL)), 5)) AS "impression_share_rounded"
+         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT "Campaign Name", "impression_share_rounded" AS "Impression Share", spend AS "Spend"
+         |FROM (SELECT cp1.campaign_name "Campaign Name", SUM(spend) AS spend, SUM(impressions) AS impressions, SUM(s_impressions) AS s_impressions, af0.show_flag show_flag, (ROUND((CASE WHEN MAX(show_flag) = 1 THEN ROUND(CASE WHEN SUM(s_impressions) = 0 THEN 0.0 ELSE SUM(impressions) / (SUM(s_impressions)) END, 4) ELSE NULL END), 5)) AS "impression_share_rounded"
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, SUM(impressions) AS impressions, SUM(s_impressions) AS s_impressions, show_flag, SUM(spend) AS spend
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id, show_flag
          |
          |           ) af0
@@ -4811,8 +4949,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           cp1 ON ( af0.advertiser_id = cp1.advertiser_id AND af0.campaign_id = cp1.id)
          |
  |          GROUP BY cp1.campaign_name, af0.show_flag
-         |)
-         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |) sqalias1
+         |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
        """
         .stripMargin
 
@@ -4866,18 +5004,18 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, ad_group_id, SUM(impressions) AS "impressions", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(spend) AS "spend"
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (campaign_id IN (22222)) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (campaign_id IN (22222)) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, ad_group_id
          |
          |           ) af0
          |           INNER JOIN
          |           (SELECT  id, advertiser_id
          |            FROM ad_group_postgres
-         |            WHERE (advertiser_id = 12345) AND (campaign_id IN (22222)) AND (DECODE(status, 'ON', 'ON', 'OFF') = 'ON')
+         |            WHERE (advertiser_id = 12345) AND (campaign_id IN (22222)) AND (CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END = 'ON')
          |             )
          |           agp1 ON ( af0.advertiser_id = agp1.advertiser_id AND af0.ad_group_id = agp1.id)
          |
-         |)
+         |) sqalias1
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
@@ -4927,7 +5065,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
                       |                   advertiser_id, campaign_id, ad_group_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend, SUM(impressions) AS impressions
                       |            FROM ad_fact1 FactAlias
-                      |            WHERE (campaign_id IN (22222)) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+                      |            WHERE (campaign_id IN (22222)) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
                       |            GROUP BY advertiser_id, campaign_id, ad_group_id
                       |
                       |           ) af0
@@ -4940,12 +5078,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |           INNER JOIN
                       |           (SELECT  advertiser_id, id
                       |            FROM ad_group_postgres
-                      |            WHERE (campaign_id IN (22222)) AND (DECODE(status, 'ON', 'ON', 'OFF') = 'ON')
+                      |            WHERE (campaign_id IN (22222)) AND (CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END = 'ON')
                       |             )
                       |           agp2 ON ( af0.advertiser_id = agp2.advertiser_id AND af0.ad_group_id = agp2.id)
                       |
  |          GROUP BY af0.advertiser_id
-                      |)
+                      |) sqalias1
                       |""".stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
@@ -4999,18 +5137,18 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
 
-    val expected = s"""SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
+    val expected = s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
                       |FROM (SELECT vps0.publisher_id "Publisher ID", coalesce(ROUND(vps0."spend", 10), 0.0) "Spend"
                       |      FROM (SELECT
                       |                   publisher_id, SUM(spend) AS "spend"
                       |            FROM v_publisher_stats2
-                      |            WHERE (publisher_id = 12345) AND (date_sid >= to_number(to_char(trunc(to_date('$fromDate', 'YYYY-MM-DD')), 'YYYYMMDD')) AND date_sid <= to_number(to_char(trunc(to_date('$toDate', 'YYYY-MM-DD')), 'YYYYMMDD')))
+                      |            WHERE (publisher_id = 12345) AND (date_sid >= to_number(to_char(DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')), 'YYYYMMDD')) AND date_sid <= to_number(to_char(DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')), 'YYYYMMDD')))
                       |            GROUP BY publisher_id
                       |            HAVING (SUM(clicks) <> 777) AND (SUM(impressions) IS NOT NULL)
                      |           ) vps0
                       |
-                     |)
-                      |   ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
+                     |) sqalias1
+                      |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -5029,7 +5167,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                               {"field": "Clicks"},
                               {"field": "Advertiser Currency"},
                               {"field": "Campaign Device ID"},
-                              {"field": "Campaign ID"}
+                              {"field": "Campaign ID"},
+                              { "field" : "Country WOEID", "value" : "2", "alias" : "Country WOEID"}
                           ],
                           "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "213"},
@@ -5078,10 +5217,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val expected =
       s"""
-         | (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
-         |      FROM (SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
+         | (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT  *
+         |      FROM (SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID", '2' AS "Country WOEID"
          |            FROM
-         |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
+         |               ( (SELECT  advertiser_id, campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id
          |            FROM ad_group_postgres
          |            WHERE (advertiser_id = 213) AND (id IN (10))
          |             ) agp2
@@ -5099,11 +5238,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |              ON( cp1.advertiser_id = ap0.id )
          |               )
          |
- |           )
-         |            ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
-         |      FROM (SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
+         |           ) sqalias1 ) D ) sqalias2) UNION ALL (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  *
+         |      FROM (SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID", '2' AS "Country WOEID"
          |            FROM
-         |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
+         |               ( (SELECT  advertiser_id, campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id
          |            FROM ad_group_postgres
          |            WHERE (advertiser_id = 213) AND (id NOT IN (10))
          |             ) agp2
@@ -5121,8 +5259,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |              ON( cp1.advertiser_id = ap0.id )
          |               )
          |
- |           )
-         |            ) WHERE ROWNUM <= 10) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 10)
+         |           ) sqalias3 ) sqalias4 LIMIT 10) D ) sqalias5 WHERE ROWNUM >= 1 AND ROWNUM <= 10)
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -5196,10 +5333,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val expected =
       s"""
-         | SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+         | SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  *
          |      FROM (SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
          |            FROM
-         |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
+         |               ( (SELECT  advertiser_id, campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id
          |            FROM ad_group_postgres
          |            WHERE (advertiser_id = 213) AND (id IN (12,19,15,11,13,16,17,14,20,18))
          |             ) agp2
@@ -5217,8 +5354,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |              ON( cp1.advertiser_id = ap0.id )
          |               )
          |
-         |           )
-         |            ) WHERE ROWNUM <= 10) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 10
+         |           ) sqalias1 ) sqalias2 LIMIT 10) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 10
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -5291,10 +5427,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val expected =
       s"""
-         | SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+         | SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  *
          |      FROM (SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
          |            FROM
-         |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
+         |               ( (SELECT  advertiser_id, campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id
          |            FROM ad_group_postgres
          |            WHERE (advertiser_id = 213) AND (id IN (45,34,12,51,19,23,40,15,11,44,33,22,55,26,50,37,13,46,24,35,16,48,21,54,43,32,49,36,39,17,25,14,47,31,53,42,20,27,38,18,30,29,41,52,28))
          |             ) agp2
@@ -5312,8 +5448,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |              ON( cp1.advertiser_id = ap0.id )
          |               )
          |
-         |           )
-         |            ) WHERE ROWNUM <= 45) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 45
+         |           ) sqalias1 ) sqalias2 LIMIT 45) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 45
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -5385,10 +5520,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val expected =
       s"""
-         |(SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
+         |(SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT  *
          |      FROM (SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
          |            FROM
-         |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
+         |               ( (SELECT  advertiser_id, campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id
          |            FROM ad_group_postgres
          |            WHERE (advertiser_id = 213) AND (id IN (12,19,23,15,11,22,13,24,16,21,17,25,14,20,18))
          |             ) agp2
@@ -5407,10 +5542,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |               )
          |
          |           )
-         |            ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+         |            sqalias1 ) D ) sqalias2) UNION ALL (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  *
          |      FROM (SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
          |            FROM
-         |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
+         |               ( (SELECT  advertiser_id, campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id
          |            FROM ad_group_postgres
          |            WHERE (advertiser_id = 213) AND (id NOT IN (12,19,23,15,11,22,13,24,16,21,17,25,14,20,18))
          |             ) agp2
@@ -5428,8 +5563,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |              ON( cp1.advertiser_id = ap0.id )
          |               )
          |
-         |           )
-         |            ) WHERE ROWNUM <= 20) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 20)
+         |           ) sqalias3 ) sqalias4 LIMIT 20) D ) sqalias5 WHERE ROWNUM >= 1 AND ROWNUM <= 20)
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -5467,17 +5601,17 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   campaign_id, SUM(impressions) AS "impressions"
          |            FROM fact2 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY campaign_id
          |            HAVING (SUM(impressions) > 1608)
          |           ) f0
          |           INNER JOIN
-         |                (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT /*+ CampaignHint */ id, advertiser_id
+         |                (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT /*+ CampaignHint */ id, advertiser_id
          |            FROM campaign_postgres
          |            WHERE (advertiser_id = 12345)
-         |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) cp1
+         |             ) sqalias1 LIMIT 120) D ) sqalias2 WHERE ROWNUM >= 21 AND ROWNUM <= 120) cp1
          |            ON (f0.campaign_id = cp1.id)
-         |)
+         |) sqalias3
       """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -5515,17 +5649,17 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
          |                   campaign_id, SUM(impressions) AS "impressions"
          |            FROM fact2 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY campaign_id
          |            HAVING (SUM(impressions) < 1608)
          |           ) f0
          |           INNER JOIN
-         |                (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT /*+ CampaignHint */ id, advertiser_id
+         |                (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT /*+ CampaignHint */ id, advertiser_id
          |            FROM campaign_postgres
          |            WHERE (advertiser_id = 12345)
-         |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) cp1
+         |             ) sqalias1 LIMIT 120) D ) sqalias2 WHERE ROWNUM >= 21 AND ROWNUM <= 120) cp1
          |            ON (f0.campaign_id = cp1.id)
-         |)
+         |) sqalias3
       """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -5595,10 +5729,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val expected =
       s"""
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  *
          |      FROM (SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
          |            FROM
-         |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
+         |               ( (SELECT  advertiser_id, campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id
          |            FROM ad_group_postgres
          |            WHERE (advertiser_id = 213) AND (id IN (10))
          |             ) agp2
@@ -5616,8 +5750,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |              ON( cp1.advertiser_id = ap0.id )
          |               )
          |
- |           )
-         |            ) WHERE ROWNUM <= 10) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 10
+         |           ) sqalias1 ) sqalias2 LIMIT 10) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 10
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -5677,16 +5810,16 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val expected =
       s"""
          |SELECT  *
-         |      FROM (SELECT cp0.campaign_name "Campaign Name", cp0.id "Campaign ID", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
+         |      FROM (SELECT cp0.campaign_name "Campaign Name", cp0.id "Campaign ID", Count(*) OVER() TOTALROWS, ROW_NUMBER() OVER() AS ROWNUM
          |            FROM
          |                (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
          |            FROM campaign_postgres
-         |            WHERE (advertiser_id = 213) AND (DECODE(status, 'ON', 'ON', 'OFF') NOT IN ('DELETED'))
+         |            WHERE (advertiser_id = 213) AND (CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END NOT IN ('DELETED'))
          |            ORDER BY 1 DESC NULLS LAST, 2 DESC  ) cp0
          |
          |
          |           )
-         |             WHERE ROW_NUMBER >= 3 AND ROW_NUMBER <= 42
+         |             sqalias1 WHERE ROWNUM >= 3 AND ROWNUM <= 42
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -5736,7 +5869,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, SUM(impressions) AS "impressions", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(spend) AS "spend"
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            WHERE (advertiser_id = 12345) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id
          |
          |           ) af0
@@ -5747,7 +5880,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |             )
          |           ap1 ON (af0.advertiser_id = ap1.id)
          |
-         |)
+         |) sqalias1
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)

@@ -24,11 +24,11 @@ class PostgresDDLGenerator {
     def renderType(dataType: DataType) : String = {
       dataType match {
         case IntType(length, _, _, _, _) =>
-          s"""NUMBER($length)"""
+          s"""NUMERIC($length)"""
         case DecType(length, scale, _, _, _, _) =>
-          s"""NUMBER($length, $scale)"""
+          s"""NUMERIC($length, $scale)"""
         case StrType(length, _, _) =>
-          s"""VARCHAR2($length CHAR)"""
+          s"""VARCHAR($length)"""
         case _ =>
           s"""${dataType.jsonDataType.toUpperCase}"""
       }

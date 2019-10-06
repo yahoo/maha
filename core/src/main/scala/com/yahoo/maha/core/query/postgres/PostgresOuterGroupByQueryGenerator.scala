@@ -13,7 +13,7 @@ import scala.collection.mutable.ArrayBuffer
 /**
  * Created by pranavbhole on 22/11/17.
  */
-abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, literalMapper: PostgresLiteralMapper = new PostgresLiteralMapper) extends PostgresQueryCommon with Logging {
+abstract class PostgresOuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, literalMapper: PostgresLiteralMapper = new PostgresLiteralMapper) extends PostgresQueryCommon with Logging {
 
   protected[this] def generateOuterWhereClause(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext) : WhereClause = {
     val outerFilters = new mutable.LinkedHashSet[String]
@@ -112,9 +112,9 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
               val nameOrAlias = column.alias.getOrElse(name1)
               val exp = column match {
                 case FactCol(_, dt, cc, rollup, _, annotations, _) =>
-                  s"""${renderRollupExpression(nameOrAlias, rollup)}"""
+                  s"""${renderRollupExpression(nameOrAlias, rollup, isOuterGroupBy = true)}"""
                 case PostgresDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-                  s"""${renderRollupExpression(de.render(nameOrAlias, Map.empty), rollup)}"""
+                  s"""${renderRollupExpression(de.render(nameOrAlias, Map.empty), rollup, isOuterGroupBy = true)}"""
                 case any =>
                   throw new UnsupportedOperationException(s"Found non fact column : $any")
               }
@@ -136,9 +136,9 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
                 val nameOrAlias2 = column2.alias.getOrElse(name2)
                 val exp2 = column2 match {
                   case FactCol(_, dt, cc, rollup, _, annotations, _) =>
-                    s"""${renderRollupExpression(nameOrAlias2, rollup)}"""
+                    s"""${renderRollupExpression(nameOrAlias2, rollup, isOuterGroupBy = true)}"""
                   case PostgresDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-                    s"""${renderRollupExpression(de.render(nameOrAlias2, Map.empty), rollup)}"""
+                    s"""${renderRollupExpression(de.render(nameOrAlias2, Map.empty), rollup, isOuterGroupBy = true)}"""
                   case any =>
                     throw new UnsupportedOperationException(s"Found non fact column : $any")
                 }
@@ -488,22 +488,24 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
               } else {
                 s""""$alias"""
               }
-            case FactColumnInfo(alias) =>
-              val column  = if(queryBuilderContext.containsFactAliasToColumnMap(alias)) {
-                queryBuilderContext.getFactColByAlias(alias)
-              } else {
-                // Case to handle CustomRollup Columns
-                val aliasToColNameMap: Map[String, String] = factBest.factColMapping.map {
-                  case (factColName, factAlias) =>
-                    val col = factBest.fact.columnsByNameMap(factColName)
-                    val name:String = col.alias.getOrElse(col.name)
-                    factAlias -> name
-                }
-                require(aliasToColNameMap.contains(alias), s"Can not find the alias $alias in aliasToColNameMap")
-                val colName = aliasToColNameMap(alias)
-                queryBuilderContext.getFactColByAlias(colName)
-              }
+            case FactColumnInfo(alias) if queryBuilderContext.containsFactAliasToColumnMap(alias) =>
+              val column = queryBuilderContext.getFactColByAlias(alias)
               renderParentOuterDerivedFactCols(alias, column)
+//              val column  = if(queryBuilderContext.containsFactAliasToColumnMap(alias)) {
+//                queryBuilderContext.getFactColByAlias(alias)
+//              } else {
+//                // Case to handle CustomRollup Columns
+//                val aliasToColNameMap: Map[String, String] = factBest.factColMapping.map {
+//                  case (factColName, factAlias) =>
+//                    val col = factBest.fact.columnsByNameMap(factColName)
+//                    val name:String = col.alias.getOrElse(col.name)
+//                    factAlias -> name
+//                }
+//                require(aliasToColNameMap.contains(alias), s"Can not find the alias $alias in aliasToColNameMap")
+//                val colName = aliasToColNameMap(alias)
+//                queryBuilderContext.getFactColByAlias(colName)
+//              }
+//              renderParentOuterDerivedFactCols(alias, column)
             case DimColumnInfo(alias) => s""""$alias""""
             case ConstantColumnInfo(alias, value) =>
               s"""'$value' AS "$alias""""
@@ -621,9 +623,9 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
       def renderPreOuterFactCol(qualifiedColInnerAlias: String, colInnerAlias: String, finalAlias: String, innerSelectCol: Column): Unit = {
         val preOuterFactColRendered = innerSelectCol match {
           case FactCol(_, dt, cc, rollup, _, annotations, _) =>
-            s"""${renderRollupExpression(qualifiedColInnerAlias, rollup)} AS $colInnerAlias"""
+            s"""${renderRollupExpression(qualifiedColInnerAlias, rollup, isOuterGroupBy = true)} AS $colInnerAlias"""
           case PostgresDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-            s"""${renderRollupExpression(de.render(qualifiedColInnerAlias, Map.empty), rollup)} AS "$colInnerAlias""""
+            s"""${renderRollupExpression(de.render(qualifiedColInnerAlias, Map.empty), rollup, isOuterGroupBy = true)} AS "$colInnerAlias""""
           case _=> throw new IllegalArgumentException(s"Unexpected Col $innerSelectCol found in FactColumnInfo ")
         }
         val colInnerAliasQuoted = if(innerSelectCol.isDerivedColumn) {
@@ -671,11 +673,11 @@ FROM (SELECT ${queryBuilder.getPreOuterColumns}
            ) ${queryBuilderContext.getAliasForTable(queryContext.factBestCandidate.fact.name)}
           ${queryBuilder.getJoinExpressions}
           ${queryBuilder.getOuterGroupByClause}
-) ${queryBuilder.getOuterWhereClause}
+) ${queryBuilderContext.getSubqueryAlias} ${queryBuilder.getOuterWhereClause}
    $orderByClause"""
 
       if (requestModel.isSyncRequest && (requestModel.isFactDriven || requestModel.hasFactSortBy)) {
-        addPaginationWrapper(queryString, queryContext.requestModel.maxRows, queryContext.requestModel.startIndex, true)
+        addPaginationWrapper(queryString, queryContext.requestModel.maxRows, queryContext.requestModel.startIndex, true, queryBuilderContext)
       } else {
         queryString
       }

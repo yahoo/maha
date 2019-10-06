@@ -5,6 +5,7 @@ package com.yahoo.maha.executor.postgres
 import java.sql.{Date, ResultSet, Timestamp}
 import java.util.UUID
 
+import com.opentable.db.postgres.embedded.EmbeddedPostgres
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
@@ -25,7 +26,9 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
  * Created by hiral on 1/25/16.
  */
 class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest {
-  
+
+  override protected def defaultFactEngine: Engine = PostgresEngine
+
   private var dataSource: Option[HikariDataSource] = None
   private var jdbcConnection: Option[JdbcConnection] = None
   private var postgresQueryExecutor : Option[PostgresQueryExecutor] = None
@@ -33,13 +36,17 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
   private val queryExecutorContext : QueryExecutorContext = new QueryExecutorContext
   private val staticTimestamp = new Timestamp(System.currentTimeMillis())
   private val staticTimestamp2 = new Timestamp(System.currentTimeMillis() + 1)
+  private val pg = EmbeddedPostgres.start()
+  private val db = UUID.randomUUID().toString.replace("-", "")
 
   override protected def beforeAll(): Unit = {
     val config = new HikariConfig()
-    config.setJdbcUrl("jdbc:h2:mem:" + UUID.randomUUID().toString.replace("-",
-      "") + ";MODE=PostgreSQL;DB_CLOSE_DELAY=-1")
-    config.setUsername("sa")
-    config.setPassword("sa")
+    val jdbcUrl = pg.getJdbcUrl("postgres", "postgres")
+    config.setJdbcUrl(jdbcUrl)
+//    config.setJdbcUrl("jdbc:h2:mem:" + UUID.randomUUID().toString.replace("-",
+//      "") + ";MODE=PostgreSQL;DB_CLOSE_DELAY=-1")
+    config.setUsername("postgres")
+    config.setPassword("")
     config.setMaximumPoolSize(1)
     PostgresQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer)
     DruidQueryGenerator.register(queryGeneratorRegistry)
@@ -229,7 +236,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
           , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
           , DimCol("stats_date", DateType())
           , PostgresDerDimCol("Year", StrType(), GET_INTERVAL_DATE("{stats_date}", "YR"))
-          , PostgresDerDimCol("Hour", DateType("YYYY-MM-DD HH24"), "concat({stats_date},' 00')")
+          , PostgresDerDimCol("Hour", DateType("YYYY-MM-DD HH24"), "{stats_date}")
         ),
         Set(
           FactCol("impressions", IntType(3, 1))
@@ -404,28 +411,27 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
 
     val resultAds = jdbcConnection.get.execute(
       """
-        //CREATE TABLE ad_postgres (id VARCHAR2(244), num INT, decimalValue DECIMAL, dt DATE, ts TIMESTAMP)
         CREATE TABLE ad_postgres (
-          id NUMBER
-          , title VARCHAR2(255 CHAR)
-          , advertiser_id NUMBER
-          , campaign_id NUMBER
-          , ad_group_id NUMBER
-          , status VARCHAR2(255 CHAR)
+          id NUMERIC
+          , title VARCHAR(255)
+          , advertiser_id NUMERIC
+          , campaign_id NUMERIC
+          , ad_group_id NUMERIC
+          , status VARCHAR(255)
           , created_date TIMESTAMP
           , last_updated TIMESTAMP)
       """
     )
-    assert(resultAds.isSuccess && resultAds.toOption.get === false)
+    assert(resultAds.isSuccess && resultAds.toOption.get === false, resultAds)
 
     val resultAdGroup = jdbcConnection.get.execute(
       """
         CREATE TABLE ad_group_postgres (
-          id NUMBER
-          , name  VARCHAR2(255 CHAR)
-          , advertiser_id NUMBER
-          , campaign_id NUMBER
-          , status VARCHAR2(255 CHAR)
+          id NUMERIC
+          , name  VARCHAR(255)
+          , advertiser_id NUMERIC
+          , campaign_id NUMERIC
+          , status VARCHAR(255)
           , created_date TIMESTAMP
           , last_updated TIMESTAMP)
       """
@@ -435,10 +441,10 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
     val resultCampaign = jdbcConnection.get.execute(
       """
         CREATE TABLE campaign_postgres (
-          id NUMBER
-          , name  VARCHAR2(255 CHAR)
-          , advertiser_id NUMBER
-          , status VARCHAR2(255 CHAR)
+          id NUMERIC
+          , name  VARCHAR(255)
+          , advertiser_id NUMERIC
+          , status VARCHAR(255)
           , created_date TIMESTAMP
           , last_updated TIMESTAMP)
       """
@@ -448,9 +454,9 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
     val resultAdvertiser = jdbcConnection.get.execute(
       """
         CREATE TABLE advertiser_postgres (
-          id NUMBER
-          , name  VARCHAR2(255 CHAR)
-          , status VARCHAR2(255 CHAR)
+          id NUMERIC
+          , name  VARCHAR(255)
+          , status VARCHAR(255)
           , created_date TIMESTAMP
           , last_updated TIMESTAMP)
       """
@@ -460,17 +466,17 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
     val resultAdsStats = jdbcConnection.get.execute(
       """
         CREATE TABLE ad_stats_postgres (
-          stats_date DATE
-          , ad_id NUMBER
-          , ad_group_id NUMBER
-          , campaign_id NUMBER
-          , advertiser_id NUMBER
-          , stats_source NUMBER(3)
-          , price_type NUMBER(3)
-          , impressions NUMBER(19)
-          , clicks NUMBER(19)
-          , spend NUMBER(21,6)
-          , max_bid NUMBER(21,6))
+          stats_date TIMESTAMP
+          , ad_id NUMERIC
+          , ad_group_id NUMERIC
+          , campaign_id NUMERIC
+          , advertiser_id NUMERIC
+          , stats_source NUMERIC(3)
+          , price_type NUMERIC(3)
+          , impressions NUMERIC(19)
+          , clicks NUMERIC(19)
+          , spend NUMERIC(21,6)
+          , max_bid NUMERIC(21,6))
       """
     )
     assert(resultAdsStats.isSuccess && resultAdsStats.toOption.get === false)
@@ -1031,7 +1037,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
     
     val result = queryPipeline.execute(queryExecutorContext)
     assert(result.isFailure)
-    assert(result.failed.get.getMessage.contains("""Column "UNKNOWN" not found"""))
+    assert(result.failed.get.getMessage.contains("""ERROR: column "unknown" does not exist"""))
   }
 
 
@@ -1072,7 +1078,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
     println(sqlQuery)
     val result = queryPipeline.execute(queryExecutorContext)
     assert(result.isFailure)
-    assert(result.failed.get.getMessage.contains("""Column "IMPRESSIONS_INVALID" not found"""))
+    assert(result.failed.get.getMessage.contains("""column "impressions_invalid" does not exist"""))
   }
 
   test("test null result") {
