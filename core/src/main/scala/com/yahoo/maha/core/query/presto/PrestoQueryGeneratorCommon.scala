@@ -254,19 +254,6 @@ abstract class PrestoQueryGeneratorCommon(partitionColumnRenderer:PartitionColum
     }
   }
 
-  protected[this] def nvl(name:String) :String = {
-    s"""NVL($name,'')"""
-  }
-
-  protected[this] def to_string(col:String) : String = {
-    s"""CAST($col AS STRING)"""
-  }
-
-  protected[this] def concat_ws(csvCol:String) : String = {
-    s"""CONCAT_WS(',', $csvCol)"""
-  }
-
-
   def renderColumnWithAlias(fact: Fact,
                             column: Column,
                             alias: String,

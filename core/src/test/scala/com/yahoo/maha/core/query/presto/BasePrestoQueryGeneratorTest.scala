@@ -38,6 +38,7 @@ trait BasePrestoQueryGeneratorTest
     registryBuilder.register(ce_stats(forcedFilters))
     registryBuilder.register(bidReco())
     registryBuilder.register(pubfact5())
+    registryBuilder.register(pubfact2(forcedFilters))
   }
 
   protected[this] def s_stats_fact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
@@ -436,5 +437,145 @@ trait BasePrestoQueryGeneratorTest
           PublicFactCol("spend", "Spend", Set.empty)
         ), Set(),  getMaxDaysWindow, getMaxDaysLookBack
       )
+  }
+
+  def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    import PrestoExpression._
+    import UDFPrestoExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      Fact.newFact(
+        "ad_fact1", DailyGrain, PrestoEngine, Set(AdvertiserSchema, ResellerSchema),
+        Set(
+          DimCol("ad_id", IntType(), annotations = Set(ForeignKey("ad")))
+          , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
+          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+          , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("stats_source", IntType(3))
+          , DimCol("restaurant_id", IntType(), alias = Option("advertiser_id"), annotations = Set(ForeignKey("restaurant")))
+          , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
+          , DimCol("start_time", IntType())
+          , DimCol("stats_date", DateType("YYYY-MM-dd"))
+          , DimCol("show_flag", IntType())
+          , PrestoDerDimCol("Month", DateType(), TEST_DATE_UDF("{stats_date}", "M"))
+          , PrestoDerDimCol("Week", DateType(), TEST_DATE_UDF("{stats_date}", "W"))
+        ),
+        Set(
+          FactCol("impressions", IntType(3, 1))
+          , FactCol("s_impressions", IntType(3, 1))
+          , FactCol("clicks", IntType(3, 0, 1, 800))
+          , FactCol("engagement_count", IntType(10))
+          , FactCol("spend", DecType(0, "0.0"))
+          , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
+          //          , FactCol("Average CPC", DecType(), OracleCustomRollup("{spend}" / "{clicks}"))
+          , FactCol("CTR", DecType(), PrestoCustomRollup(SUM("{clicks}" /- "{impressions}")))
+          , PrestoDerFactCol("Engagement Rate", DecType(), "100" * TEST_MATH_UDF("{engagement_count}", "{impressions}"), rollupExpression = NoopRollup)
+          , PrestoDerFactCol("Paid Engagement Rate", DecType(), "100" * TEST_MATH_UDAF("{engagement_count}", "0", "0", "{clicks}", "{impressions}"), rollupExpression = NoopRollup)
+          , PrestoDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}")
+          , PrestoDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100")
+          , PrestoDerFactCol("N Spend", DecType(), DECODE("{stats_source}", "1", "{spend}", "0.0"))
+          , PrestoDerFactCol("N Clicks", DecType(), DECODE("{stats_source}", "1", "{clicks}", "0.0"))
+          , PrestoDerFactCol("N Average CPC", DecType(), "{N Spend}" /- "{N Clicks}")
+          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
+          , PrestoDerFactCol("impression_share", IntType(), DECODE(MAX("{show_flag}"), "1", ROUND(SUM("{impressions}") /- SUM("{s_impressions}"), 4), "NULL"), rollupExpression = NoopRollup)
+          , PrestoDerFactCol("impression_share_rounded", IntType(), ROUND("{impression_share}", 5), rollupExpression = NoopRollup)
+          , PrestoDerFactCol("Click Rate", IntType(), SUM("{clicks}") /- SUM("{impressions}"), rollupExpression = NoopRollup)
+        ),
+        annotations = Set(
+        )
+      )
+    }
+      .toPublicFact("performance_stats",
+        Set(
+          PubCol("stats_date", "Day", InBetweenEquality),
+          PubCol("ad_id", "Ad ID", InEquality),
+          PubCol("ad_group_id", "Ad Group ID", InEquality),
+          PubCol("campaign_id", "Campaign ID", InEquality),
+          PubCol("advertiser_id", "Advertiser ID", InEquality),
+          PubCol("restaurant_id", "Restaurant ID", InEquality),
+          PubCol("stats_source", "Source", Equality),
+          PubCol("price_type", "Pricing Type", In),
+          PubCol("Month", "Month", Equality),
+          PubCol("Week", "Week", Equality)
+        ),
+        Set(
+          PublicFactCol("impressions", "Impressions", InBetweenEquality),
+          PublicFactCol("clicks", "Clicks", InBetweenEquality),
+          PublicFactCol("spend", "Spend", Set.empty),
+          PublicFactCol("avg_pos", "Average Position", Set.empty),
+          PublicFactCol("max_bid", "Max Bid", Set.empty),
+          PublicFactCol("Engagement Rate", "Engagement Rate", InBetweenEquality),
+          PublicFactCol("Paid Engagement Rate", "Paid Engagement Rate", InBetweenEquality),
+          PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
+          PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
+          PublicFactCol("CTR", "CTR", InBetweenEquality),
+          PublicFactCol("N Spend", "N Spend", InBetweenEquality),
+          PublicFactCol("Click Rate", "Click Rate", Set.empty),
+          PublicFactCol("N Clicks", "N Clicks", InBetweenEquality),
+          PublicFactCol("N Average CPC", "N Average CPC", InBetweenEquality),
+          PublicFactCol("impression_share_rounded", "Impression Share", InBetweenEquality)
+        ),
+        forcedFilters,
+        getMaxDaysWindow, getMaxDaysLookBack
+      )
+  }
+
+  case object TestDateUDFRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION dateUDF as 'com.yahoo.maha.query.presto.udf.TestDateUDF';"
+  }
+
+  case object TestDecodeUDFRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION decodeUDF as 'com.yahoo.maha.query.presto.udf.TestDecodeUDF';"
+  }
+
+  case object TestMathUDFRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION mathUDF as 'com.yahoo.maha.query.presto.udf.TestMathUDF';"
+  }
+
+  case object TestMathUDAFRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION mathUDAF as 'com.yahoo.maha.query.presto.udf.TestMathUDAF';"
+  }
+
+  object UDFPrestoExpression {
+
+    import PrestoExpression._
+
+    implicit val uDFRegistrationFactory = DefaultUDFRegistrationFactory
+
+    uDFRegistrationFactory.register(TestDateUDFRegistration)
+    uDFRegistrationFactory.register(TestDecodeUDFRegistration)
+    uDFRegistrationFactory.register(TestMathUDFRegistration)
+    uDFRegistrationFactory.register(TestMathUDAFRegistration)
+
+
+    case class TEST_DATE_UDF(s: PrestoExp, fmt: String) extends UDFPrestoExpression(TestDateUDFRegistration) {
+      def hasRollupExpression = s.hasRollupExpression
+
+      def hasNumericOperation = s.hasNumericOperation
+
+      def asString: String = s"dateUDF(${s.asString}, '$fmt')"
+    }
+
+    case class DECODE(args: PrestoExp*) extends UDFPrestoExpression(TestDecodeUDFRegistration) {
+      val hasRollupExpression = args.exists(_.hasRollupExpression)
+      val hasNumericOperation = args.exists(_.hasNumericOperation)
+      if (args.length < 3) throw new IllegalArgumentException("Usage: DECODE( expression , search , result [, search , result]... [, default] )")
+      val argStrs = args.map(_.asString).mkString(", ")
+      def asString: String = s"decodeUDF($argStrs)"
+    }
+
+    case class TEST_MATH_UDF(args: PrestoExp*) extends UDFPrestoExpression(TestDecodeUDFRegistration) {
+      val hasRollupExpression = args.exists(_.hasRollupExpression)
+      val hasNumericOperation = args.exists(_.hasNumericOperation)
+      val argStrs = args.map(_.asString).mkString(", ")
+      def asString: String = s"mathUDF($argStrs)"
+    }
+
+    case class TEST_MATH_UDAF(args: PrestoExp*) extends UDFPrestoExpression(TestDecodeUDFRegistration) {
+      val hasRollupExpression = args.exists(_.hasRollupExpression)
+      val hasNumericOperation = args.exists(_.hasNumericOperation)
+      val argStrs = args.map(_.asString).mkString(", ")
+      def asString: String = s"mathUDAF($argStrs)"
+    }
+
   }
 }

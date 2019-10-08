@@ -238,21 +238,6 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
       */
     val factQueryFragment = generateFactOGBQuery(queryContext, queryBuilder, queryBuilderContext, renderRollupExpression, renderColumnWithAlias, primitiveColsSet, noopRollupColSet)
 
-    ogbGeneratePreOuterColumns(primitiveColsSet.toMap, noopRollupColsMap = noopRollupColSet.toMap, queryContext.factBestCandidate, queryContext, queryBuilder, queryBuilderContext)
-
-    generateOrderByClause(queryContext, queryBuilder)
-
-    val outerCols = queryBuilder.getPreOuterColumns  //generateOuterColumns(queryContext, queryBuilderContext, queryBuilder, renderOuterColumn)
-
-    ogbGenerateOuterColumns(queryContext, queryBuilder, queryBuilderContext, aliasColumnMapOfRequestCols)
-
-    val concatenatedCols = queryBuilder.getOuterColumns //generateConcatenatedCols()
-
-    val projectedOuterCols:String = {
-      requestModel.requestCols.map(colInfo =>
-        s"""CAST(${colInfo.alias} as VARCHAR) AS ${colInfo.alias}""").mkString(", ")
-    }
-
     dims.foreach {
       dimBundle =>
         dimBundle.fields.foreach {
@@ -287,6 +272,21 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
     dims.foreach {
       dim =>
         queryBuilder.addDimensionJoin(generateDimJoinQuery(queryBuilderContext, dim, fact, requestModel, factViewAlias))
+    }
+
+    ogbGeneratePreOuterColumns(primitiveColsSet.toMap, noopRollupColsMap = noopRollupColSet.toMap, queryContext.factBestCandidate, queryContext, queryBuilder, queryBuilderContext)
+
+    generateOrderByClause(queryContext, queryBuilder)
+
+    val outerCols = queryBuilder.getPreOuterColumns  //generateOuterColumns(queryContext, queryBuilderContext, queryBuilder, renderOuterColumn)
+
+    ogbGenerateOuterColumns(queryContext, queryBuilder, queryBuilderContext, aliasColumnMapOfRequestCols)
+
+    val concatenatedCols = queryBuilder.getOuterColumns //generateConcatenatedCols()
+
+    val projectedOuterCols:String = {
+      requestModel.requestCols.map(colInfo =>
+        s"""CAST(${renderColumnAlias(colInfo.alias)} as VARCHAR) AS ${renderColumnAlias(colInfo.alias)}""").mkString(", ")
     }
 
     val outerOrderByClause = queryBuilder.getOrderByClause
@@ -664,7 +664,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
           case _ => s"""COALESCE($finalAlias, 'NA')"""
         }
         if (column.annotations.contains(EscapingRequired)) {
-          s"""getCsvEscapedString(CAST(NVL($finalAlias, '') AS STRING))"""
+          s"""getCsvEscapedString(CAST(COALESCE($finalAlias, '') AS VARCHAR))"""
         } else {
           renderedCol
         }
