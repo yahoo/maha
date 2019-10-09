@@ -9,7 +9,6 @@ package com.yahoo.maha.core
 import java.util.concurrent.atomic.AtomicLong
 
 import com.google.common.collect.Lists
-import com.yahoo.maha.core.HiveExpression.{BaseHiveExpression, HiveExp}
 import com.yahoo.maha.core.ThetaSketchSetOp.ThetaSketchSetOp
 import io.druid.query.aggregation.PostAggregator
 import io.druid.query.aggregation.datasketches.theta.{SketchEstimatePostAggregator, SketchSetPostAggregator}
@@ -129,7 +128,7 @@ object PrestoExpression {
     def asString: String = s"trim(${s.asString})"
   }
 
-  case class REGEX_EXTRACT(s: HiveExp, regex: String, index: Int, replaceMissingValue: Boolean, replaceMissingValueWith: String) extends BasePrestoExpression {
+  case class REGEX_EXTRACT(s: PrestoExp, regex: String, index: Int, replaceMissingValue: Boolean, replaceMissingValueWith: String) extends BasePrestoExpression {
     val hasRollupExpression = s.hasRollupExpression
     val hasNumericOperation = s.hasNumericOperation
     def asString: String = if(replaceMissingValue) {
