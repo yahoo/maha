@@ -2,9 +2,6 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query.presto
 
-import java.nio.charset.StandardCharsets
-
-import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.ReportingRequest
@@ -1478,5 +1475,326 @@ ORDER BY mang_impressions ASC
 //         |
 //       """.stripMargin
 //    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("generating presto outer group by query with greater than filter") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser Name"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                          "sortBy": [{"field": "Advertiser Name", "order": "Desc"},  {"field": "Impressions", "order": "DESC"}]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(result)
+
+//    val expected =
+//      s"""
+//         |SELECT CONCAT_WS(',', CAST(NVL(mang_advertiser_name,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING))
+//         |FROM(
+//         |SELECT mang_advertiser_name AS mang_advertiser_name, impressions AS mang_impressions
+//         |FROM(
+//         |SELECT COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, SUM(impressions) AS impressions
+//         |FROM(SELECT account_id, SUM(impressions) impressions
+//         |FROM s_stats_fact
+//         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+//         |GROUP BY account_id
+//         |HAVING (SUM(impressions) > 1608)
+//         |       )
+//         |ssf0
+//         |LEFT OUTER JOIN (
+//         |SELECT name AS mang_advertiser_name, id a1_id
+//         |FROM advertiser_hive
+//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+//         |)
+//         |a1
+//         |ON
+//         |ssf0.account_id = a1.a1_id
+//         |
+//         |GROUP BY COALESCE(a1.mang_advertiser_name, 'NA')
+//         |ORDER BY mang_advertiser_name DESC, impressions DESC) OgbQueryAlias
+//         |) queryAlias LIMIT 200
+//         |
+//       """.stripMargin
+//
+//    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("generating presto query with outer group containing derived columns of level 2") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Campaign Name"},
+                              {"field": "Average CPC"},
+                              {"field": "Average Position"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(result)
+
+//    val expected =
+//      s"""
+//         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_average_cpc,'') AS STRING),CAST(NVL(mang_average_position,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING))
+//         |FROM(
+//         |SELECT mang_campaign_name AS mang_campaign_name, CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS mang_average_cpc, avg_pos AS mang_average_position, impressions AS mang_impressions
+//         |FROM(
+//         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend
+//         |FROM(SELECT campaign_id, SUM(impressions) impressions, SUM(clicks) clicks, SUM(spend) spend
+//         |FROM s_stats_fact
+//         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+//         |GROUP BY campaign_id
+//         |
+//         |       )
+//         |ssf0
+//         |LEFT OUTER JOIN (
+//         |SELECT campaign_name AS mang_campaign_name, id c1_id
+//         |FROM campaing_hive
+//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+//         |)
+//         |c1
+//         |ON
+//         |ssf0.campaign_id = c1.c1_id
+//         |
+//         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING))
+//         |) OgbQueryAlias
+//         |) queryAlias LIMIT 200
+//         |
+//       """.stripMargin
+//
+//    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("generating presto query with outer group by, 2 dim joins and sorting") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Campaign Name"},
+                              {"field": "Advertiser Name"},
+                              {"field": "Average CPC"},
+                              {"field": "Average Position"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                          {"field": "Impressions", "order": "Desc"},  {"field": "Advertiser Name", "order": "DESC"}]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(result)
+
+//    val expected =
+//      s"""
+//         |SELECT CONCAT_WS(',', CAST(NVL(advertiser_id,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_advertiser_name,'') AS STRING),CAST(NVL(mang_average_cpc,'') AS STRING),CAST(NVL(mang_average_position,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING))
+//         |FROM(
+//         |SELECT advertiser_id AS advertiser_id, mang_campaign_name AS mang_campaign_name, mang_advertiser_name AS mang_advertiser_name, CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS mang_average_cpc, avg_pos AS mang_average_position, impressions AS mang_impressions
+//         |FROM(
+//         |SELECT COALESCE(c2.advertiser_id, 0L) advertiser_id, getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend
+//         |FROM(SELECT account_id, campaign_id, SUM(impressions) impressions, SUM(clicks) clicks, SUM(spend) spend
+//         |FROM s_stats_fact
+//         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+//         |GROUP BY account_id, campaign_id
+//         |
+//         |       )
+//         |ssf0
+//         |LEFT OUTER JOIN (
+//         |SELECT name AS mang_advertiser_name, id a1_id
+//         |FROM advertiser_hive
+//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+//         |)
+//         |a1
+//         |ON
+//         |ssf0.account_id = a1.a1_id
+//         |       LEFT OUTER JOIN (
+//         |SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
+//         |FROM campaing_hive
+//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+//         |)
+//         |c2
+//         |ON
+//         |ssf0.campaign_id = c2.c2_id
+//         |
+//         |GROUP BY COALESCE(c2.advertiser_id, 0L), getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)), COALESCE(a1.mang_advertiser_name, 'NA')
+//         |ORDER BY impressions DESC, mang_advertiser_name DESC) OgbQueryAlias
+//         |) queryAlias LIMIT 200
+//         |
+//       """.stripMargin
+//
+//    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("generating presto query with outer group by,  Noop rollup cols") {
+    val jsonString =
+      s"""{
+                          "cube": "performance_stats",
+                          "selectFields": [
+                              {"field": "Campaign Name"},
+                              {"field": "Clicks"},
+                              {"field": "Impressions"},
+                              {"field": "Click Rate"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(result)
+
+//    val expected =
+//      s"""
+//         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_clicks,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING),CAST(NVL(mang_click_rate,'') AS STRING))
+//         |FROM(
+//         |SELECT mang_campaign_name AS mang_campaign_name, clicks AS mang_clicks, impressions AS mang_impressions, mang_click_rate AS mang_click_rate
+//         |FROM(
+//         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, SUM(clicks) AS clicks, SUM(impressions) AS impressions, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(clicks) / (SUM(impressions)) END) AS mang_click_rate
+//         |FROM(SELECT campaign_id, SUM(clicks) clicks, SUM(impressions) impressions
+//         |FROM ad_fact1
+//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+//         |GROUP BY campaign_id
+//         |
+//         |       )
+//         |af0
+//         |LEFT OUTER JOIN (
+//         |SELECT campaign_name AS mang_campaign_name, id c1_id
+//         |FROM campaing_hive
+//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+//         |)
+//         |c1
+//         |ON
+//         |af0.campaign_id = c1.c1_id
+//         |
+//         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING))
+//         |) OgbQueryAlias
+//         |) queryAlias LIMIT 200
+//       """.stripMargin
+//
+//    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("generating hive query with outer group by, derived cols") {
+    val jsonString =
+      s"""{
+                          "cube": "performance_stats",
+                          "selectFields": [
+                              {"field": "Campaign Name"},
+                              {"field": "N Clicks"},
+                              {"field": "Pricing Type"},
+                              {"field": "Impressions"},
+                              {"field": "N Spend"},
+                              {"field": "Month"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                          {"field": "Campaign Name", "order": "Desc"},  {"field": "Impressions", "order": "DESC"}]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(result)
+
+//    val expected =
+//      s"""
+//         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_n_clicks,'') AS STRING),CAST(NVL(mang_pricing_type,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING),CAST(NVL(mang_n_spend,'') AS STRING),CAST(NVL(mang_month,'') AS STRING),CAST(NVL(mang_clicks,'') AS STRING))
+//         |FROM(
+//         |SELECT mang_campaign_name AS mang_campaign_name, decodeUDF(stats_source, 1, clicks, 0.0) AS mang_n_clicks, mang_pricing_type AS mang_pricing_type, impressions AS mang_impressions, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend, mang_month, clicks AS mang_clicks
+//         |FROM(
+//         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(price_type, 0L) mang_pricing_type, SUM(impressions) AS impressions, getFormattedDate(mang_month) mang_month, SUM(clicks) AS clicks, COALESCE(stats_source, 0L) stats_source, SUM(spend) AS spend
+//         |FROM(SELECT CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, campaign_id, dateUDF(stats_date, 'M') mang_month, SUM(clicks) clicks, SUM(impressions) impressions, stats_source, SUM(spend) spend
+//         |FROM ad_fact1
+//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+//         |GROUP BY CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, campaign_id, dateUDF(stats_date, 'M'), stats_source
+//         |
+//         |       )
+//         |af0
+//         |LEFT OUTER JOIN (
+//         |SELECT campaign_name AS mang_campaign_name, id c1_id
+//         |FROM campaing_hive
+//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+//         |)
+//         |c1
+//         |ON
+//         |af0.campaign_id = c1.c1_id
+//         |
+//         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(price_type, 0L), getFormattedDate(mang_month), COALESCE(stats_source, 0L)
+//         |ORDER BY mang_campaign_name DESC, impressions DESC) OgbQueryAlias
+//         |) queryAlias LIMIT 200
+//         |
+//       """.stripMargin
+//
+//    result should equal (expected) (after being whiteSpaceNormalised)
   }
 }
