@@ -1,11 +1,9 @@
 package com.yahoo.maha.core.query.presto
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{BaseDerivedAggregateDimCol, _}
+import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query.{FactualQueryContext, _}
-
-import scala.collection.{SortedSet, mutable}
 
 abstract class PrestoQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends BaseQueryGenerator[WithPrestoEngine] {
 
@@ -277,10 +275,18 @@ abstract class PrestoQueryGeneratorCommon(partitionColumnRenderer:PartitionColum
         val renderedAlias = renderColumnAlias(alias)
         queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
         name
+      case ConstDimCol(_, dt, value, _, _, _, _) =>
+        val renderedAlias = renderColumnAlias(alias)
+        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
+        s"'$value' AS $name"
       case PrestoDerDimCol(_, dt, _, de, _, _, _) =>
         val renderedAlias = renderColumnAlias(alias)
         queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
         s"""${de.render(name, Map.empty)} $renderedAlias"""
+      case PrestoPartDimCol(_, dt, _, _, _, _) =>
+        val renderedAlias = renderColumnAlias(alias)
+        queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
+        name
       case FactCol(_, dt, _, rollup, _, _, _) =>
         dt match {
           case DecType(_, _, Some(default), Some(min), Some(max), _) =>

@@ -58,10 +58,6 @@ class PrestoQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, ud
       renderedExp.append(colAlias).toString().replaceAll("[^a-zA-Z0-9\\s_]", "").replaceAll("\\s", "_").toLowerCase
     }
 
-    def getConstantColAlias(alias: String) : String = {
-      renderColumnAlias(alias.replaceAll("[^a-zA-Z0-9_]", ""))
-    }
-
     def generateConcatenatedCols(): String = {
       val renderedConcateColumns = queryContext.requestModel.requestCols.map {
         case ConstantColumnInfo(alias, _) =>

@@ -18,7 +18,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
       queryGeneratorRegistry.register(PrestoEngine, dummyQueryGenerator)
     }
   }
-  
+
   test("generating presto query") {
     val jsonString = scala.io.Source.fromFile(getBaseDir + "presto_query_generator_test.json")
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
@@ -58,7 +58,6 @@ ORDER BY mang_impressions ASC
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }
-
 
   test("generating presto query with greater than filter") {
     val jsonString =
@@ -127,7 +126,6 @@ ORDER BY mang_impressions ASC
     val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
-
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
 
     val expected = s"""SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_impressions as VARCHAR) AS mang_impressions
@@ -171,7 +169,6 @@ ORDER BY mang_impressions ASC
     val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
-
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     val expected = s"""SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_impressions as VARCHAR) AS mang_impressions, CAST(network_id as VARCHAR) AS network_id
                       |FROM(
@@ -200,7 +197,6 @@ ORDER BY mang_impressions ASC
 
     val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
 
@@ -271,7 +267,6 @@ ORDER BY mang_impressions ASC
     val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
-
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
 
     val expected =
@@ -324,7 +319,6 @@ ORDER BY mang_impressions ASC
     val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
-
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
 
     val expected =
@@ -346,6 +340,103 @@ ORDER BY mang_impressions ASC
        """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("Query with constant requested fields should have constant columns") {
+    val jsonString =
+      s"""{
+              "cube" : "s_stats",
+              "selectFields" : [
+                  { "field" : "Day" },
+                  { "field" : "Advertiser ID" },
+                  { "field" : "Campaign ID" },
+                  { "field" : "Impressions" },
+                  { "field" : "Source", "value" : "2", "alias" : "Source"}
+              ],
+              "filterExpressions":[
+                  { "field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate" },
+                  { "field":"Advertiser ID", "operator":"=", "value":"12345" }
+              ],
+              "sortBy": [
+                  { "field": "Impressions", "order": "Asc" }
+              ],
+              "paginationStartIndex":0,
+              "rowsPerPage":100
+      }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(result)
+
+    assert(result.contains("'2' mang_source"), "No constant field in outer columns")
+  }
+
+  test("generating presto query with sort on dimension") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Advertiser Name"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                          "sortBy": [{"field": "Advertiser Name", "order": "Desc"},  {"field": "Impressions", "order": "DESC"}]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(result)
+
+        val expected =
+          s"""
+             |SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_advertiser_name as VARCHAR) AS mang_advertiser_name, CAST(mang_impressions as VARCHAR) AS mang_impressions
+             |FROM(
+             |SELECT COALESCE(ssfu0.account_id, 0) advertiser_id, COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, COALESCE(impressions, 0) mang_impressions
+             |FROM(SELECT account_id, SUM(impressions) impressions
+             |FROM s_stats_fact_underlying
+             |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+             |GROUP BY account_id
+             |HAVING (SUM(impressions) > 1608)
+             |       )
+             |ssfu0
+             |LEFT OUTER JOIN (
+             |SELECT name AS mang_advertiser_name, id a1_id
+             |FROM advertiser_presto
+             |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+             |)
+             |a1
+             |ON
+             |ssfu0.account_id = a1.a1_id
+             |
+             |ORDER BY mang_advertiser_name DESC, mang_impressions DESC
+             |          )
+             |        queryAlias LIMIT 200
+             """.stripMargin
+
+        result should equal (expected) (after being whiteSpaceNormalised)
   }
 
   // Outer Group By
@@ -384,34 +475,35 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_campaign_name AS mang_campaign_name, spend AS mang_spend
-//         |FROM(
-//         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, SUM(spend) AS spend
-//         |FROM(SELECT campaign_id, SUM(spend) spend
-//         |FROM ad_fact1
-//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY campaign_id
-//         |
-//         |       )
-//         |af0
-//         |LEFT OUTER JOIN (
-//         |SELECT campaign_name AS mang_campaign_name, id c1_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c1
-//         |ON
-//         |af0.campaign_id = c1.c1_id
-//         |
-//         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING))
-//         |) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//         """.stripMargin
-//    result should equal(expected)(after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_spend as VARCHAR) AS mang_spend
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, spend AS mang_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, SUM(spend) AS spend
+         |FROM(SELECT campaign_id, SUM(spend) spend
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id
+         |
+         |)
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR))
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Successfully generated Outer Group By Query with dim non id field and derived fact field having dim source col") {
@@ -452,35 +544,35 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_source,'') AS STRING),CAST(NVL(mang_n_spend,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_campaign_name AS mang_campaign_name, mang_source AS mang_source, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend
-//         |FROM(
-//         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(stats_source, 0L) mang_source, SUM(spend) AS spend, stats_source AS stats_source
-//         |FROM(SELECT campaign_id, stats_source, SUM(spend) spend
-//         |FROM ad_fact1
-//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY campaign_id, stats_source
-//         |
-//         |       )
-//         |af0
-//         |LEFT OUTER JOIN (
-//         |SELECT campaign_name AS mang_campaign_name, id c1_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c1
-//         |ON
-//         |af0.campaign_id = c1.c1_id
-//         |
-//         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(stats_source, 0L), stats_source
-//         |) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//         |
-//       """.stripMargin
-//    result should equal(expected)(after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_source as VARCHAR) AS mang_source, CAST(mang_n_spend as VARCHAR) AS mang_n_spend
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, mang_source AS mang_source, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(stats_source, 0) mang_source, SUM(spend) AS spend, stats_source AS stats_source
+         |FROM(SELECT campaign_id, stats_source, SUM(spend) spend
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id, stats_source
+         |
+ |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(stats_source, 0), stats_source
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Successfully generated timeseries Outer Group By Query with dim non id field and fact field") {
@@ -523,34 +615,35 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_day,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_day AS mang_day, mang_campaign_name AS mang_campaign_name, spend AS mang_spend
-//         |FROM(
-//         |SELECT getFormattedDate(stats_date) mang_day, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, SUM(spend) AS spend
-//         |FROM(SELECT campaign_id, stats_date, SUM(spend) spend
-//         |FROM ad_fact1
-//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY campaign_id, stats_date
-//         |
-//         |       )
-//         |af0
-//         |LEFT OUTER JOIN (
-//         |SELECT campaign_name AS mang_campaign_name, id c1_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c1
-//         |ON
-//         |af0.campaign_id = c1.c1_id
-//         |
-//         |GROUP BY getFormattedDate(stats_date), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING))
-//         |) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//       """.stripMargin
-//    result should equal(expected)(after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_day as VARCHAR) AS mang_day, CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_spend as VARCHAR) AS mang_spend
+         |FROM(
+         |SELECT mang_day AS mang_day, mang_campaign_name AS mang_campaign_name, spend AS mang_spend
+         |FROM(
+         |SELECT getFormattedDate(stats_date) mang_day, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, SUM(spend) AS spend
+         |FROM(SELECT campaign_id, stats_date, SUM(spend) spend
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id, stats_date
+         |
+ |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getFormattedDate(stats_date), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR))
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Successfully generated Outer Group By Query with 2 dimension non id fields") {
@@ -593,42 +686,43 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_advertiser_currency,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_campaign_name AS mang_campaign_name, mang_advertiser_currency AS mang_advertiser_currency, spend AS mang_spend
-//         |FROM(
-//         |SELECT getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a1.mang_advertiser_currency, 'NA') mang_advertiser_currency, SUM(spend) AS spend
-//         |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend
-//         |FROM ad_fact1
-//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY advertiser_id, campaign_id
-//         |
-//         |       )
-//         |af0
-//         |LEFT OUTER JOIN (
-//         |SELECT currency AS mang_advertiser_currency, id a1_id
-//         |FROM advertiser_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
-//         |)
-//         |a1
-//         |ON
-//         |af0.advertiser_id = a1.a1_id
-//         |       LEFT OUTER JOIN (
-//         |SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c2
-//         |ON
-//         |af0.campaign_id = c2.c2_id
-//         |
-//         |GROUP BY getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)), COALESCE(a1.mang_advertiser_currency, 'NA')
-//         |) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//       """.stripMargin
-//    result should equal(expected)(after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_advertiser_currency as VARCHAR) AS mang_advertiser_currency, CAST(mang_spend as VARCHAR) AS mang_spend
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, mang_advertiser_currency AS mang_advertiser_currency, spend AS mang_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a1.mang_advertiser_currency, 'NA') mang_advertiser_currency, SUM(spend) AS spend
+         |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY advertiser_id, campaign_id
+         |
+ |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT currency AS mang_advertiser_currency, id a1_id
+         |FROM advertiser_presto
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |af0.advertiser_id = a1.a1_id
+         |       LEFT OUTER JOIN (
+         |SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c2
+         |ON
+         |af0.campaign_id = c2.c2_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), COALESCE(a1.mang_advertiser_currency, 'NA')
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Should not generate Outer Group By Query context with 2 dimension non id fields and one fact higher level ID field than best dims") {
@@ -677,12 +771,6 @@ ORDER BY mang_impressions ASC
     println(result)
 
     assert(!result.contains("OgbQueryAlias"))
-
-    println(result)
-    val expected =
-      """
-        |
-      """.stripMargin
   }
 
   test("Successfully generated Outer Group By Query with 2 dimension non id fields and and two fact transitively dependent cols") {
@@ -735,42 +823,43 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_advertiser_currency,'') AS STRING),CAST(NVL(mang_average_cpc_cents,'') AS STRING),CAST(NVL(mang_average_cpc,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_campaign_name AS mang_campaign_name, mang_advertiser_currency AS mang_advertiser_currency, (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS mang_average_cpc_cents, CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS mang_average_cpc, spend AS mang_spend
-//         |FROM(
-//         |SELECT getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a1.mang_advertiser_currency, 'NA') mang_advertiser_currency, SUM(spend) AS spend, SUM(clicks) AS clicks
-//         |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks
-//         |FROM ad_fact1
-//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY advertiser_id, campaign_id
-//         |
-//         |       )
-//         |af0
-//         |LEFT OUTER JOIN (
-//         |SELECT currency AS mang_advertiser_currency, id a1_id
-//         |FROM advertiser_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
-//         |)
-//         |a1
-//         |ON
-//         |af0.advertiser_id = a1.a1_id
-//         |       LEFT OUTER JOIN (
-//         |SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c2
-//         |ON
-//         |af0.campaign_id = c2.c2_id
-//         |
-//         |GROUP BY getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)), COALESCE(a1.mang_advertiser_currency, 'NA')
-//         |) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//       """.stripMargin
-//    result should equal(expected)(after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_advertiser_currency as VARCHAR) AS mang_advertiser_currency, CAST(mang_average_cpc_cents as VARCHAR) AS mang_average_cpc_cents, CAST(mang_average_cpc as VARCHAR) AS mang_average_cpc, CAST(mang_spend as VARCHAR) AS mang_spend
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, mang_advertiser_currency AS mang_advertiser_currency, (CASE WHEN clicks = 0 THEN 0.0 ELSE CAST(spend AS DOUBLE) / clicks END) * 100 AS mang_average_cpc_cents, CASE WHEN clicks = 0 THEN 0.0 ELSE CAST(spend AS DOUBLE) / clicks END AS mang_average_cpc, spend AS mang_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a1.mang_advertiser_currency, 'NA') mang_advertiser_currency, SUM(spend) AS spend, SUM(clicks) AS clicks
+         |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY advertiser_id, campaign_id
+         |
+ |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT currency AS mang_advertiser_currency, id a1_id
+         |FROM advertiser_presto
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |af0.advertiser_id = a1.a1_id
+         |       LEFT OUTER JOIN (
+         |SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c2
+         |ON
+         |af0.campaign_id = c2.c2_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), COALESCE(a1.mang_advertiser_currency, 'NA')
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Successfully generated Outer Group By Query if fk col one level less than Highest dim candidate level is requested") {
@@ -816,42 +905,43 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_ad_status,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(campaign_id,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend
-//         |FROM(
-//         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a2.campaign_id, 0L) campaign_id, SUM(spend) AS spend
-//         |FROM(SELECT campaign_id, ad_id, SUM(spend) spend
-//         |FROM ad_fact1
-//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY campaign_id, ad_id
-//         |
-//         |       )
-//         |af0
-//         |LEFT OUTER JOIN (
-//         |SELECT campaign_name AS mang_campaign_name, id c1_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c1
-//         |ON
-//         |af0.campaign_id = c1.c1_id
-//         |       LEFT OUTER JOIN (
-//         |SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
-//         |FROM ad_dim_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |a2
-//         |ON
-//         |af0.ad_id = a2.a2_id
-//         |
-//         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(a2.campaign_id, 0L)
-//         |) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//       """.stripMargin
-//    result should equal(expected)(after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_ad_status as VARCHAR) AS mang_ad_status, CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(campaign_id as VARCHAR) AS campaign_id, CAST(mang_spend as VARCHAR) AS mang_spend
+         |FROM(
+         |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend
+         |FROM(
+         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a2.campaign_id, 0) campaign_id, SUM(spend) AS spend
+         |FROM(SELECT campaign_id, ad_id, SUM(spend) spend
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id, ad_id
+         |
+ |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |       LEFT OUTER JOIN (
+         |SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
+         |FROM ad_dim_presto
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |a2
+         |ON
+         |af0.ad_id = a2.a2_id
+         |
+         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(a2.campaign_id, 0)
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Successfully generated Outer Group By Query if CustomRollup col is requested") {
@@ -892,34 +982,35 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_average_cpc,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_campaign_name AS mang_campaign_name, CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS mang_average_cpc, spend AS mang_spend
-//         |FROM(
-//         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, SUM(spend) AS spend, SUM(clicks) AS clicks
-//         |FROM(SELECT campaign_id, SUM(spend) spend, SUM(clicks) clicks
-//         |FROM ad_fact1
-//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY campaign_id
-//         |
-//         |       )
-//         |af0
-//         |LEFT OUTER JOIN (
-//         |SELECT campaign_name AS mang_campaign_name, id c1_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c1
-//         |ON
-//         |af0.campaign_id = c1.c1_id
-//         |
-//         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING))
-//         |) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//       """.stripMargin
-//    result should equal(expected)(after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_average_cpc as VARCHAR) AS mang_average_cpc, CAST(mang_spend as VARCHAR) AS mang_spend
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, CASE WHEN clicks = 0 THEN 0.0 ELSE CAST(spend AS DOUBLE) / clicks END AS mang_average_cpc, spend AS mang_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, SUM(spend) AS spend, SUM(clicks) AS clicks
+         |FROM(SELECT campaign_id, SUM(spend) spend, SUM(clicks) clicks
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id
+         |
+ |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR))
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Successfully generated Outer Group By Query if CustomRollup col with Derived Expression having rollups is requested") {
@@ -960,34 +1051,35 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_average_position,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_campaign_name AS mang_campaign_name, avg_pos AS mang_average_position, spend AS mang_spend
-//         |FROM(
-//         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(impressions) AS impressions
-//         |FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions
-//         |FROM ad_fact1
-//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY campaign_id
-//         |
-//         |       )
-//         |af0
-//         |LEFT OUTER JOIN (
-//         |SELECT campaign_name AS mang_campaign_name, id c1_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c1
-//         |ON
-//         |af0.campaign_id = c1.c1_id
-//         |
-//         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING))
-//         |) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//       """.stripMargin
-//    result should equal(expected)(after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_average_position as VARCHAR) AS mang_average_position, CAST(mang_spend as VARCHAR) AS mang_spend
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, avg_pos AS mang_average_position, spend AS mang_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE CAST(SUM(weighted_position * impressions) AS DOUBLE) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(impressions) AS impressions, SUM(weighted_position) AS weighted_position
+         |FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions, SUM(weighted_position) weighted_position
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id
+         |
+ |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR))
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Successfully generated Outer Group By Query if OracleCustomRollup col with Derived Expression having CustomRollup and DerCol are requested") {
@@ -1031,34 +1123,35 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_average_position,'') AS STRING),CAST(NVL(mang_average_cpc,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_campaign_name AS mang_campaign_name, avg_pos AS mang_average_position, CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS mang_average_cpc, spend AS mang_spend
-//         |FROM(
-//         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(impressions) AS impressions
-//         |FROM(SELECT campaign_id, SUM(spend) spend, SUM(clicks) clicks, SUM(impressions) impressions
-//         |FROM ad_fact1
-//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY campaign_id
-//         |
-//         |       )
-//         |af0
-//         |LEFT OUTER JOIN (
-//         |SELECT campaign_name AS mang_campaign_name, id c1_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c1
-//         |ON
-//         |af0.campaign_id = c1.c1_id
-//         |
-//         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING))
-//         |) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//       """.stripMargin
-//    result should equal(expected)(after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_average_position as VARCHAR) AS mang_average_position, CAST(mang_average_cpc as VARCHAR) AS mang_average_cpc, CAST(mang_spend as VARCHAR) AS mang_spend
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, avg_pos AS mang_average_position, CASE WHEN clicks = 0 THEN 0.0 ELSE CAST(spend AS DOUBLE) / clicks END AS mang_average_cpc, spend AS mang_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE CAST(SUM(weighted_position * impressions) AS DOUBLE) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(impressions) AS impressions, SUM(weighted_position) AS weighted_position
+         |FROM(SELECT campaign_id, SUM(spend) spend, SUM(clicks) clicks, SUM(impressions) impressions, SUM(weighted_position) weighted_position
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id
+         |
+ |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR))
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Successfully generated Outer Group By Query if column is derived from dim column") {
@@ -1102,34 +1195,35 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(advertiser_id,'') AS STRING),CAST(NVL(mang_n_average_cpc,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_campaign_name AS mang_campaign_name, advertiser_id AS advertiser_id, CASE WHEN decodeUDF(stats_source, 1, clicks, 0.0) = 0 THEN 0.0 ELSE decodeUDF(stats_source, 1, spend, 0.0) / decodeUDF(stats_source, 1, clicks, 0.0) END AS mang_n_average_cpc, spend AS mang_spend
-//         |FROM(
-//         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(advertiser_id, 0L) advertiser_id, SUM(spend) AS spend, SUM(clicks) AS clicks, COALESCE(stats_source, 0L) stats_source
-//         |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks, stats_source
-//         |FROM ad_fact1
-//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY advertiser_id, campaign_id, stats_source
-//         |
-//         |       )
-//         |af0
-//         |LEFT OUTER JOIN (
-//         |SELECT campaign_name AS mang_campaign_name, id c1_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c1
-//         |ON
-//         |af0.campaign_id = c1.c1_id
-//         |
-//         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(advertiser_id, 0L), COALESCE(stats_source, 0L)
-//         |) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//       """.stripMargin
-//    result should equal(expected)(after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_n_average_cpc as VARCHAR) AS mang_n_average_cpc, CAST(mang_spend as VARCHAR) AS mang_spend
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, advertiser_id AS advertiser_id, CASE WHEN decodeUDF(stats_source, 1, clicks, 0.0) = 0 THEN 0.0 ELSE CAST(decodeUDF(stats_source, 1, spend, 0.0) AS DOUBLE) / decodeUDF(stats_source, 1, clicks, 0.0) END AS mang_n_average_cpc, spend AS mang_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(advertiser_id, 0) advertiser_id, SUM(spend) AS spend, SUM(clicks) AS clicks, COALESCE(stats_source, 0) stats_source
+         |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks, stats_source
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY advertiser_id, campaign_id, stats_source
+         |
+ |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(advertiser_id, 0), COALESCE(stats_source, 0)
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Successfully generated Outer Group By Query if NoopRollupp column requested") {
@@ -1170,34 +1264,35 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_impression_share,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_campaign_name AS mang_campaign_name, impression_share_rounded AS mang_impression_share, spend AS mang_spend
-//         |FROM(
-//         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, SUM(spend) AS spend, SUM(impressions) AS impressions, SUM(s_impressions) AS s_impressions, COALESCE(show_flag, 0L) show_flag, (ROUND((decodeUDF(MAX(show_flag), 1, ROUND(CASE WHEN SUM(s_impressions) = 0 THEN 0.0 ELSE SUM(impressions) / (SUM(s_impressions)) END, 4), NULL)), 5)) AS impression_share_rounded
-//         |FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions, SUM(s_impressions) s_impressions, show_flag
-//         |FROM ad_fact1
-//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY campaign_id, show_flag
-//         |
-//         |       )
-//         |af0
-//         |LEFT OUTER JOIN (
-//         |SELECT campaign_name AS mang_campaign_name, id c1_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c1
-//         |ON
-//         |af0.campaign_id = c1.c1_id
-//         |
-//         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(show_flag, 0L)
-//         |) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//       """.stripMargin
-//    result should equal(expected)(after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_impression_share as VARCHAR) AS mang_impression_share, CAST(mang_spend as VARCHAR) AS mang_spend
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, impression_share_rounded AS mang_impression_share, spend AS mang_spend
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, SUM(spend) AS spend, SUM(impressions) AS impressions, SUM(s_impressions) AS s_impressions, COALESCE(show_flag, 0) show_flag, (ROUND((decodeUDF(MAX(show_flag), 1, ROUND(CASE WHEN SUM(s_impressions) = 0 THEN 0.0 ELSE CAST(SUM(impressions) AS DOUBLE) / (SUM(s_impressions)) END, 4), NULL)), 5)) AS impression_share_rounded
+         |FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions, SUM(s_impressions) s_impressions, show_flag
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id, show_flag
+         |
+ |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(show_flag, 0)
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Successfully generated Outer Group By Query if NoopRollupp derived column is requested for non-derived source fields") {
@@ -1248,42 +1343,43 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_ad_status,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(campaign_id,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING),CAST(NVL(mang_engagement_rate,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate
-//         |FROM(
-//         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a2.campaign_id, 0L) campaign_id, SUM(spend) AS spend, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
-//         |FROM(SELECT ad_id, campaign_id, SUM(spend) spend, SUM(engagement_count) engagement_count, SUM(impressions) impressions
-//         |FROM ad_fact1
-//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY ad_id, campaign_id
-//         |
-//           |       )
-//         |af0
-//         |LEFT OUTER JOIN (
-//         |SELECT campaign_name AS mang_campaign_name, id c1_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c1
-//         |ON
-//         |af0.campaign_id = c1.c1_id
-//         |       LEFT OUTER JOIN (
-//         |SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
-//         |FROM ad_dim_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |a2
-//         |ON
-//         |af0.ad_id = a2.a2_id
-//         |
-//           |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(a2.campaign_id, 0L)
-//         |) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//         """.stripMargin
-//    result should equal(expected)(after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_ad_status as VARCHAR) AS mang_ad_status, CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(campaign_id as VARCHAR) AS campaign_id, CAST(mang_spend as VARCHAR) AS mang_spend, CAST(mang_engagement_rate as VARCHAR) AS mang_engagement_rate
+         |FROM(
+         |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate
+         |FROM(
+         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a2.campaign_id, 0) campaign_id, SUM(spend) AS spend, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
+         |FROM(SELECT ad_id, campaign_id, SUM(spend) spend, SUM(engagement_count) engagement_count, SUM(impressions) impressions
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY ad_id, campaign_id
+         |
+ |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |       LEFT OUTER JOIN (
+         |SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
+         |FROM ad_dim_presto
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |a2
+         |ON
+         |af0.ad_id = a2.a2_id
+         |
+         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(a2.campaign_id, 0)
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Successfully generated Outer Group By Query if aggregate derived column (eg UDAF) is requested") {
@@ -1339,43 +1435,43 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_ad_status,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(campaign_id,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING),CAST(NVL(mang_engagement_rate,'') AS STRING),CAST(NVL(mang_paid_engagement_rate,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate, 100 * mathUDAF(engagement_count, 0, 0, clicks, impressions) AS mang_paid_engagement_rate
-//         |FROM(
-//         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a2.campaign_id, 0L) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
-//         |FROM(SELECT ad_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks, SUM(engagement_count) engagement_count, SUM(impressions) impressions
-//         |FROM ad_fact1
-//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY ad_id, campaign_id
-//         |
-//         |       )
-//         |af0
-//         |LEFT OUTER JOIN (
-//         |SELECT campaign_name AS mang_campaign_name, id c1_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c1
-//         |ON
-//         |af0.campaign_id = c1.c1_id
-//         |       LEFT OUTER JOIN (
-//         |SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
-//         |FROM ad_dim_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |a2
-//         |ON
-//         |af0.ad_id = a2.a2_id
-//         |
-//         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(a2.campaign_id, 0L)
-//         |) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//         |
-//       """.stripMargin
-//    result should equal(expected)(after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_ad_status as VARCHAR) AS mang_ad_status, CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(campaign_id as VARCHAR) AS campaign_id, CAST(mang_spend as VARCHAR) AS mang_spend, CAST(mang_engagement_rate as VARCHAR) AS mang_engagement_rate, CAST(mang_paid_engagement_rate as VARCHAR) AS mang_paid_engagement_rate
+         |FROM(
+         |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate, 100 * mathUDAF(engagement_count, 0, 0, clicks, impressions) AS mang_paid_engagement_rate
+         |FROM(
+         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a2.campaign_id, 0) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
+         |FROM(SELECT ad_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks, SUM(engagement_count) engagement_count, SUM(impressions) impressions
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY ad_id, campaign_id
+         |
+ |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |       LEFT OUTER JOIN (
+         |SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
+         |FROM ad_dim_presto
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |a2
+         |ON
+         |af0.ad_id = a2.a2_id
+         |
+         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(a2.campaign_id, 0)
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("Successfully generated Outer Group By Query with id cols requested from dims") {
@@ -1437,44 +1533,43 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_ad_status,'') AS STRING),CAST(NVL(ad_group_id,'') AS STRING),CAST(NVL(advertiser_id,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(campaign_id,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING),CAST(NVL(mang_engagement_rate,'') AS STRING),CAST(NVL(mang_paid_engagement_rate,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_ad_status AS mang_ad_status, ad_group_id AS ad_group_id, advertiser_id AS advertiser_id, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate, 100 * mathUDAF(engagement_count, 0, 0, clicks, impressions) AS mang_paid_engagement_rate
-//         |FROM(
-//         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, COALESCE(ad_group_id, 0L) ad_group_id, COALESCE(advertiser_id, 0L) advertiser_id, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a2.campaign_id, 0L) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
-//         |FROM(SELECT advertiser_id, ad_id, campaign_id, ad_group_id, SUM(spend) spend, SUM(clicks) clicks, SUM(engagement_count) engagement_count, SUM(impressions) impressions
-//         |FROM ad_fact1
-//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY advertiser_id, ad_id, campaign_id, ad_group_id
-//         |
-//         |       )
-//         |af0
-//         |LEFT OUTER JOIN (
-//         |SELECT campaign_name AS mang_campaign_name, id c1_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c1
-//         |ON
-//         |af0.campaign_id = c1.c1_id
-//         |       LEFT OUTER JOIN (
-//         |SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
-//         |FROM ad_dim_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |a2
-//         |ON
-//         |af0.ad_id = a2.a2_id
-//         |
-//         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), COALESCE(ad_group_id, 0L), COALESCE(advertiser_id, 0L), getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(a2.campaign_id, 0L)
-//         |) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//         |
-//         |
-//       """.stripMargin
-//    result should equal(expected)(after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_ad_status as VARCHAR) AS mang_ad_status, CAST(ad_group_id as VARCHAR) AS ad_group_id, CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(campaign_id as VARCHAR) AS campaign_id, CAST(mang_spend as VARCHAR) AS mang_spend, CAST(mang_engagement_rate as VARCHAR) AS mang_engagement_rate, CAST(mang_paid_engagement_rate as VARCHAR) AS mang_paid_engagement_rate
+         |FROM(
+         |SELECT mang_ad_status AS mang_ad_status, ad_group_id AS ad_group_id, advertiser_id AS advertiser_id, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate, 100 * mathUDAF(engagement_count, 0, 0, clicks, impressions) AS mang_paid_engagement_rate
+         |FROM(
+         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, COALESCE(ad_group_id, 0) ad_group_id, COALESCE(advertiser_id, 0) advertiser_id, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a2.campaign_id, 0) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
+         |FROM(SELECT advertiser_id, ad_id, campaign_id, ad_group_id, SUM(spend) spend, SUM(clicks) clicks, SUM(engagement_count) engagement_count, SUM(impressions) impressions
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY advertiser_id, ad_id, campaign_id, ad_group_id
+         |
+ |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |       LEFT OUTER JOIN (
+         |SELECT campaign_id AS campaign_id, decodeUDF(status, 'ON', 'ON', 'OFF') AS mang_ad_status, id a2_id
+         |FROM ad_dim_presto
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |a2
+         |ON
+         |af0.ad_id = a2.a2_id
+         |
+         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), COALESCE(ad_group_id, 0), COALESCE(advertiser_id, 0), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(a2.campaign_id, 0)
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
   }
 
   test("generating presto outer group by query with greater than filter") {
@@ -1506,36 +1601,36 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_advertiser_name,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_advertiser_name AS mang_advertiser_name, impressions AS mang_impressions
-//         |FROM(
-//         |SELECT COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, SUM(impressions) AS impressions
-//         |FROM(SELECT account_id, SUM(impressions) impressions
-//         |FROM s_stats_fact
-//         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY account_id
-//         |HAVING (SUM(impressions) > 1608)
-//         |       )
-//         |ssf0
-//         |LEFT OUTER JOIN (
-//         |SELECT name AS mang_advertiser_name, id a1_id
-//         |FROM advertiser_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
-//         |)
-//         |a1
-//         |ON
-//         |ssf0.account_id = a1.a1_id
-//         |
-//         |GROUP BY COALESCE(a1.mang_advertiser_name, 'NA')
-//         |ORDER BY mang_advertiser_name DESC, impressions DESC) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//         |
-//       """.stripMargin
-//
-//    result should equal (expected) (after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_advertiser_name as VARCHAR) AS mang_advertiser_name, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |FROM(
+         |SELECT mang_advertiser_name AS mang_advertiser_name, impressions AS mang_impressions
+         |FROM(
+         |SELECT COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, SUM(impressions) AS impressions
+         |FROM(SELECT account_id, SUM(impressions) impressions
+         |FROM s_stats_fact
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id
+         |HAVING (SUM(impressions) > 1608)
+         |       )
+         |ssf0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM advertiser_presto
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |ssf0.account_id = a1.a1_id
+         |
+         |GROUP BY COALESCE(a1.mang_advertiser_name, 'NA')
+         |ORDER BY mang_advertiser_name DESC, impressions DESC) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
   }
 
   test("generating presto query with outer group containing derived columns of level 2") {
@@ -1567,36 +1662,36 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_average_cpc,'') AS STRING),CAST(NVL(mang_average_position,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_campaign_name AS mang_campaign_name, CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS mang_average_cpc, avg_pos AS mang_average_position, impressions AS mang_impressions
-//         |FROM(
-//         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend
-//         |FROM(SELECT campaign_id, SUM(impressions) impressions, SUM(clicks) clicks, SUM(spend) spend
-//         |FROM s_stats_fact
-//         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY campaign_id
-//         |
-//         |       )
-//         |ssf0
-//         |LEFT OUTER JOIN (
-//         |SELECT campaign_name AS mang_campaign_name, id c1_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c1
-//         |ON
-//         |ssf0.campaign_id = c1.c1_id
-//         |
-//         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING))
-//         |) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//         |
-//       """.stripMargin
-//
-//    result should equal (expected) (after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_average_cpc as VARCHAR) AS mang_average_cpc, CAST(mang_average_position as VARCHAR) AS mang_average_position, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, CASE WHEN clicks = 0 THEN 0.0 ELSE CAST(spend AS DOUBLE) / clicks END AS mang_average_cpc, avg_pos AS mang_average_position, impressions AS mang_impressions
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE CAST(SUM(weighted_position * impressions) AS DOUBLE) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend, SUM(weighted_position) AS weighted_position
+         |FROM(SELECT campaign_id, SUM(impressions) impressions, SUM(clicks) clicks, SUM(spend) spend, SUM(weighted_position) weighted_position
+         |FROM s_stats_fact
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id
+         |
+ |       )
+         |ssf0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |CAST(ssf0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
+         |
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR))
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
   }
 
   test("generating presto query with outer group by, 2 dim joins and sorting") {
@@ -1632,44 +1727,44 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(advertiser_id,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_advertiser_name,'') AS STRING),CAST(NVL(mang_average_cpc,'') AS STRING),CAST(NVL(mang_average_position,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING))
-//         |FROM(
-//         |SELECT advertiser_id AS advertiser_id, mang_campaign_name AS mang_campaign_name, mang_advertiser_name AS mang_advertiser_name, CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS mang_average_cpc, avg_pos AS mang_average_position, impressions AS mang_impressions
-//         |FROM(
-//         |SELECT COALESCE(c2.advertiser_id, 0L) advertiser_id, getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend
-//         |FROM(SELECT account_id, campaign_id, SUM(impressions) impressions, SUM(clicks) clicks, SUM(spend) spend
-//         |FROM s_stats_fact
-//         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY account_id, campaign_id
-//         |
-//         |       )
-//         |ssf0
-//         |LEFT OUTER JOIN (
-//         |SELECT name AS mang_advertiser_name, id a1_id
-//         |FROM advertiser_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
-//         |)
-//         |a1
-//         |ON
-//         |ssf0.account_id = a1.a1_id
-//         |       LEFT OUTER JOIN (
-//         |SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c2
-//         |ON
-//         |ssf0.campaign_id = c2.c2_id
-//         |
-//         |GROUP BY COALESCE(c2.advertiser_id, 0L), getCsvEscapedString(CAST(NVL(c2.mang_campaign_name, '') AS STRING)), COALESCE(a1.mang_advertiser_name, 'NA')
-//         |ORDER BY impressions DESC, mang_advertiser_name DESC) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//         |
-//       """.stripMargin
-//
-//    result should equal (expected) (after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_advertiser_name as VARCHAR) AS mang_advertiser_name, CAST(mang_average_cpc as VARCHAR) AS mang_average_cpc, CAST(mang_average_position as VARCHAR) AS mang_average_position, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |FROM(
+         |SELECT advertiser_id AS advertiser_id, mang_campaign_name AS mang_campaign_name, mang_advertiser_name AS mang_advertiser_name, CASE WHEN clicks = 0 THEN 0.0 ELSE CAST(spend AS DOUBLE) / clicks END AS mang_average_cpc, avg_pos AS mang_average_position, impressions AS mang_impressions
+         |FROM(
+         |SELECT COALESCE(c2.advertiser_id, 0) advertiser_id, getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE CAST(SUM(weighted_position * impressions) AS DOUBLE) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend, SUM(weighted_position) AS weighted_position
+         |FROM(SELECT account_id, campaign_id, SUM(impressions) impressions, SUM(clicks) clicks, SUM(spend) spend, SUM(weighted_position) weighted_position
+         |FROM s_stats_fact
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY account_id, campaign_id
+         |
+ |       )
+         |ssf0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM advertiser_presto
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |ssf0.account_id = a1.a1_id
+         |       LEFT OUTER JOIN (
+         |SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c2
+         |ON
+         |CAST(ssf0.campaign_id AS VARCHAR) = CAST(c2.c2_id AS VARCHAR)
+         |
+         |GROUP BY COALESCE(c2.advertiser_id, 0), getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), COALESCE(a1.mang_advertiser_name, 'NA')
+         |ORDER BY impressions DESC, mang_advertiser_name DESC) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
   }
 
   test("generating presto query with outer group by,  Noop rollup cols") {
@@ -1701,38 +1796,39 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_clicks,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING),CAST(NVL(mang_click_rate,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_campaign_name AS mang_campaign_name, clicks AS mang_clicks, impressions AS mang_impressions, mang_click_rate AS mang_click_rate
-//         |FROM(
-//         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, SUM(clicks) AS clicks, SUM(impressions) AS impressions, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(clicks) / (SUM(impressions)) END) AS mang_click_rate
-//         |FROM(SELECT campaign_id, SUM(clicks) clicks, SUM(impressions) impressions
-//         |FROM ad_fact1
-//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY campaign_id
-//         |
-//         |       )
-//         |af0
-//         |LEFT OUTER JOIN (
-//         |SELECT campaign_name AS mang_campaign_name, id c1_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c1
-//         |ON
-//         |af0.campaign_id = c1.c1_id
-//         |
-//         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING))
-//         |) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//       """.stripMargin
-//
-//    result should equal (expected) (after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_clicks as VARCHAR) AS mang_clicks, CAST(mang_impressions as VARCHAR) AS mang_impressions, CAST(mang_click_rate as VARCHAR) AS mang_click_rate
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, clicks AS mang_clicks, impressions AS mang_impressions, mang_click_rate AS mang_click_rate
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, SUM(clicks) AS clicks, SUM(impressions) AS impressions, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE CAST(SUM(clicks) AS DOUBLE) / (SUM(impressions)) END) AS mang_click_rate
+         |FROM(SELECT campaign_id, SUM(clicks) clicks, SUM(impressions) impressions
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id
+         |
+ |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR))
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
   }
 
-  test("generating hive query with outer group by, derived cols") {
+  test("generating presto query with outer group by, derived cols") {
     val jsonString =
       s"""{
                           "cube": "performance_stats",
@@ -1766,35 +1862,148 @@ ORDER BY mang_impressions ASC
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
     println(result)
 
-//    val expected =
-//      s"""
-//         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_n_clicks,'') AS STRING),CAST(NVL(mang_pricing_type,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING),CAST(NVL(mang_n_spend,'') AS STRING),CAST(NVL(mang_month,'') AS STRING),CAST(NVL(mang_clicks,'') AS STRING))
-//         |FROM(
-//         |SELECT mang_campaign_name AS mang_campaign_name, decodeUDF(stats_source, 1, clicks, 0.0) AS mang_n_clicks, mang_pricing_type AS mang_pricing_type, impressions AS mang_impressions, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend, mang_month, clicks AS mang_clicks
-//         |FROM(
-//         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(price_type, 0L) mang_pricing_type, SUM(impressions) AS impressions, getFormattedDate(mang_month) mang_month, SUM(clicks) AS clicks, COALESCE(stats_source, 0L) stats_source, SUM(spend) AS spend
-//         |FROM(SELECT CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, campaign_id, dateUDF(stats_date, 'M') mang_month, SUM(clicks) clicks, SUM(impressions) impressions, stats_source, SUM(spend) spend
-//         |FROM ad_fact1
-//         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-//         |GROUP BY CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, campaign_id, dateUDF(stats_date, 'M'), stats_source
-//         |
-//         |       )
-//         |af0
-//         |LEFT OUTER JOIN (
-//         |SELECT campaign_name AS mang_campaign_name, id c1_id
-//         |FROM campaing_hive
-//         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
-//         |)
-//         |c1
-//         |ON
-//         |af0.campaign_id = c1.c1_id
-//         |
-//         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), COALESCE(price_type, 0L), getFormattedDate(mang_month), COALESCE(stats_source, 0L)
-//         |ORDER BY mang_campaign_name DESC, impressions DESC) OgbQueryAlias
-//         |) queryAlias LIMIT 200
-//         |
-//       """.stripMargin
-//
-//    result should equal (expected) (after being whiteSpaceNormalised)
+    val expected =
+      s"""
+         |SELECT CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_n_clicks as VARCHAR) AS mang_n_clicks, CAST(mang_pricing_type as VARCHAR) AS mang_pricing_type, CAST(mang_impressions as VARCHAR) AS mang_impressions, CAST(mang_n_spend as VARCHAR) AS mang_n_spend, CAST(mang_month as VARCHAR) AS mang_month, CAST(mang_clicks as VARCHAR) AS mang_clicks
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, decodeUDF(stats_source, 1, clicks, 0.0) AS mang_n_clicks, mang_pricing_type AS mang_pricing_type, impressions AS mang_impressions, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend, mang_month, clicks AS mang_clicks
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(CAST(price_type as varchar), 'NA') mang_pricing_type, SUM(impressions) AS impressions, getFormattedDate(mang_month) mang_month, SUM(clicks) AS clicks, COALESCE(stats_source, 0) stats_source, SUM(spend) AS spend
+         |FROM(SELECT CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, campaign_id, dateUDF(stats_date, 'M') mang_month, SUM(clicks) clicks, SUM(impressions) impressions, stats_source, SUM(spend) spend
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, campaign_id, dateUDF(stats_date, 'M'), stats_source
+         |
+ |       )
+         |af0
+         |LEFT OUTER JOIN (
+         |SELECT campaign_name AS mang_campaign_name, id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(price_type as varchar), 'NA'), getFormattedDate(mang_month), COALESCE(stats_source, 0)
+         |ORDER BY mang_campaign_name DESC, impressions DESC) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("generating presto query with outer group by, having and partitioning scheme, test part col renderer") {
+    val jsonString =
+      s"""{
+                          "cube": "bid_reco",
+                          "selectFields": [
+                              {"field": "Campaign Name"},
+                              {"field": "Bid Strategy"},
+                              {"field": "Advertiser Name"},
+                              {"field": "Advertiser ID"},
+                              {"field": "Impressions"},
+                              {"field": "Test Constant Col"},
+                              {"field": "Load Time"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                          "sortBy": [
+                             {"field": "Campaign Name", "order": "Desc"},  {"field": "Impressions", "order": "DESC"}]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_bid_strategy as VARCHAR) AS mang_bid_strategy, CAST(mang_advertiser_name as VARCHAR) AS mang_advertiser_name, CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_impressions as VARCHAR) AS mang_impressions, CAST(mang_test_constant_col as VARCHAR) AS mang_test_constant_col, CAST(mang_load_time as VARCHAR) AS mang_load_time
+         |FROM(
+         |SELECT mang_campaign_name AS mang_campaign_name, mang_bid_strategy AS mang_bid_strategy, mang_advertiser_name AS mang_advertiser_name, advertiser_id AS advertiser_id, actual_impressions AS mang_impressions, mang_test_constant_col AS mang_test_constant_col, mang_load_time
+         |FROM(
+         |SELECT getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(CAST(bid_strategy as varchar), 'NA') mang_bid_strategy, COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, COALESCE(c2.advertiser_id, 0) advertiser_id, SUM(actual_impressions) AS actual_impressions, ROUND(COALESCE(test_constant_col, 0), 10) mang_test_constant_col, COALESCE(mang_load_time, 'NA') mang_load_time
+         |FROM(SELECT CASE WHEN (bid_strategy IN (1)) THEN 'Max Click' WHEN (bid_strategy IN (2)) THEN 'Inflection Point' ELSE 'NONE' END bid_strategy, account_id, load_time, 'test_constant_col_value' AS test_constant_col, campaign_id, SUM(actual_impressions) actual_impressions
+         |FROM bidreco_complete
+         |WHERE (account_id = 12345) AND (status = 'Valid') AND (factPartCol = 123)
+         |GROUP BY CASE WHEN (bid_strategy IN (1)) THEN 'Max Click' WHEN (bid_strategy IN (2)) THEN 'Inflection Point' ELSE 'NONE' END, account_id, load_time, test_constant_col, campaign_id
+         |HAVING (SUM(actual_impressions) > 1608)
+         |       )
+         |bc0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM advertiser_presto
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |bc0.account_id = a1.a1_id
+         |       LEFT OUTER JOIN (
+         |SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+         |)
+         |c2
+         |ON
+         |bc0.campaign_id = c2.c2_id
+         |
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(bid_strategy as varchar), 'NA'), COALESCE(a1.mang_advertiser_name, 'NA'), COALESCE(c2.advertiser_id, 0), ROUND(COALESCE(test_constant_col, 0), 10), COALESCE(mang_load_time, 'NA')
+         |ORDER BY mang_campaign_name DESC, actual_impressions DESC) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
+  test("Test constant requested fields with Outer Group By") {
+    val jsonString =
+      s"""{
+              "cube" : "s_stats",
+              "selectFields" : [
+                  { "field" : "Day" },
+                  { "field" : "Advertiser ID" },
+                  { "field" : "Campaign Name" },
+                  { "field" : "Impressions" },
+                  { "field" : "Source", "value" : "2", "alias" : "Source"}
+              ],
+              "filterExpressions":[
+                  { "field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate" },
+                  { "field":"Advertiser ID", "operator":"=", "value":"12345" }
+              ],
+              "sortBy": [
+                  { "field": "Impressions", "order": "Asc" }
+              ],
+              "paginationStartIndex":0,
+              "rowsPerPage":100
+      }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(result)
+
+    assert(result.contains("'2' AS mang_source"), "No constant field in outer columns")
   }
 }

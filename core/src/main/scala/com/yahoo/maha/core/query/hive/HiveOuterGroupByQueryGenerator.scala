@@ -470,7 +470,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
           }
           case ConstantColumnInfo(alias, value) =>
             val renderedAlias = renderColumnAlias(alias)
-            s"""'$value' AS $alias"""
+            s"""'$value' AS $renderedAlias"""
           case _ => throw new UnsupportedOperationException("Unsupported Column Type")
         }
         queryBuilder.addOuterColumn(renderedCol)

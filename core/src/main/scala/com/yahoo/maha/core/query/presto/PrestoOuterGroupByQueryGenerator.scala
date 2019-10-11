@@ -510,7 +510,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
           }
           case ConstantColumnInfo(alias, value) =>
             val renderedAlias = renderColumnAlias(alias)
-            s"""'$value' AS $alias"""
+            s"""'$value' AS $renderedAlias"""
           case _ => throw new UnsupportedOperationException("Unsupported Column Type")
         }
         queryBuilder.addOuterColumn(renderedCol)
@@ -654,9 +654,13 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
           case DecType(_, _, Some(default), _, _, _) =>
             s"""ROUND(COALESCE($finalAlias, ${default}), 10)"""
           case DecType(_, _, _, _, _, _) =>
-            s"""ROUND(COALESCE($finalAlias, 0L), 10)"""
+            s"""ROUND(COALESCE($finalAlias, 0), 10)"""
           case IntType(_,sm,_,_,_) =>
-            s"""COALESCE($finalAlias, 0L)"""
+            if (sm.isDefined) {
+              s"""COALESCE(CAST($finalAlias as varchar), 'NA')"""
+            } else {
+              s"""COALESCE($finalAlias, 0)"""
+            }
           case DateType(_) => s"""getFormattedDate($finalAlias)"""
           case StrType(_, sm, df) =>
             val defaultValue = df.getOrElse("NA")
@@ -700,9 +704,9 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
           }
         case DimColumnInfo(alias) =>
           renderDimCol(alias)
-        case ConstantColumnInfo(alias, value) =>
-          val finalAlias = getConstantColAlias(alias)
-          (s"'$value'", finalAlias)
+//        case ConstantColumnInfo(alias, value) =>
+//          val finalAlias = getConstantColAlias(alias)
+//          (s"'$value'", finalAlias)
         case _ => throw new UnsupportedOperationException("Unsupported Column Type")
       }
   }
@@ -803,5 +807,4 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
       }
     }
   }
-
 }

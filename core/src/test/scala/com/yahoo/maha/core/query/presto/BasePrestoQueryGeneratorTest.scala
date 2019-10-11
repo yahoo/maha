@@ -9,6 +9,7 @@ import com.yahoo.maha.core.ddl.PrestoDDLAnnotation
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.lookup.LongRangeLookup
+import com.yahoo.maha.core.query.hive.TestPartitionRenderer
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.registry.{Registry, RegistryBuilder}
 import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
@@ -22,7 +23,7 @@ trait BasePrestoQueryGeneratorTest
 
   override protected def beforeAll(): Unit = {
     PrestoQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestPrestoUDFRegistrationFactory())
-    PrestoQueryGeneratorV1.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestPrestoUDFRegistrationFactory())
+    PrestoQueryGeneratorV1.register(queryGeneratorRegistry, TestPartitionRenderer, TestPrestoUDFRegistrationFactory())
   }
 
   override protected[this] def getDefaultRegistry(forcedFilters: Set[ForcedFilter] = Set.empty): Registry = {
@@ -73,9 +74,10 @@ trait BasePrestoQueryGeneratorTest
           , FactCol("clicks", IntType(3, 0, 1, 800))
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
+          , FactCol("weighted_position", DecType(0, "0.0"))
           , PrestoDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}", rollupExpression = NoopRollup)
           , PrestoDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100", rollupExpression = NoopRollup)
-          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
+          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
           , ConstFactCol("constantFact", IntType(), "0")
           , FactCol("Count", IntType(), rollupExpression = CountRollup)
         ),underlyingTableName = Some("s_stats_fact_underlying")
@@ -140,8 +142,9 @@ trait BasePrestoQueryGeneratorTest
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
           , FactCol("ad_extn_spend", DecType())
+          , FactCol("weighted_position", DecType(0, "0.0"))
           , PrestoDerFactCol("average_cpc", DecType(), "{spend}" /- "{clicks}")
-          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
+          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
         )
         , forceFilters =  Set(ForceFilter(EqualityFilter("Source", "2", isForceFilter = true, isOverridable = true)))
       )
@@ -189,6 +192,7 @@ trait BasePrestoQueryGeneratorTest
             , DimCol("last_updated", IntType(10))
             , DimCol("current_bid", DecType(0, "0.0"))
             , DimCol("modified_bid", DecType(0, "0.0"))
+            , ConstDimCol("test_constant_col", DecType(), "test_constant_col_value")
             , PrestoDerDimCol("bid_modifier", DecType(0, "0.0"), PrestoDerivedExpression("({modified_bid}" - "{current_bid})" / "{current_bid}" * "100"))
             , PrestoDerDimCol("Day", DateType("YYYYMMdd"), PrestoDerivedExpression("SUBSTRING({load_time}, 1, 8)"))
             , PrestoPartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
@@ -232,7 +236,8 @@ trait BasePrestoQueryGeneratorTest
                   "spend",
                   "budget",
                   "forecasted_budget",
-                  "last_updated"
+                  "last_updated",
+                  "test_constant_col"
                 ))), annotations = Set(PrestoPartitioningScheme("frequency"))
         )
       }
@@ -241,7 +246,7 @@ trait BasePrestoQueryGeneratorTest
     val publicFact = builder.toPublicFact(
       "bid_reco",
       Set(
-        PubCol("ad_group_id", "Ad Group ID",InNotInEquality, required = true)
+        PubCol("ad_group_id", "Ad Group ID",InNotInEquality)
         , PubCol("account_id", "Advertiser ID", InNotInEquality, required = true)
         , PubCol("campaign_id", "Campaign ID", InNotInEquality)
         , PubCol("supply_group", "Supply Group Name", InNotInEquality)
@@ -251,12 +256,14 @@ trait BasePrestoQueryGeneratorTest
         , PubCol("bid_modifier", "Bid Modifier", InBetweenEquality)
         , PubCol("status", "Status", InNotInEquality)
         , PubCol("Day", "Day", BetweenEquality)
+        , PubCol("test_constant_col", "Test Constant Col", Set.empty)
+        , PubCol("load_time", "Load Time", Set.empty) // Projecting Part Col, to cover tests
       ),
       Set(
         PublicFactCol("recommended_bid", "Recommended Bid", InBetweenEquality)
         , PublicFactCol("actual_clicks", "Clicks", InBetweenEquality)
         , PublicFactCol("forecasted_clicks", "Forecasted Clicks", InBetweenEquality)
-        , PublicFactCol("actual_impressions", "Impressions", InBetweenEquality)
+        , PublicFactCol("actual_impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser)
         , PublicFactCol("forecasted_impr", "Forecasted Impressions", InBetweenEquality)
         , PublicFactCol("budget", "Budget", InBetweenEquality)
         , PublicFactCol("spend", "Spend", InBetweenEquality)
@@ -468,6 +475,7 @@ trait BasePrestoQueryGeneratorTest
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
           //          , FactCol("Average CPC", DecType(), OracleCustomRollup("{spend}" / "{clicks}"))
           , FactCol("CTR", DecType(), PrestoCustomRollup(SUM("{clicks}" /- "{impressions}")))
+          , FactCol("weighted_position", DecType(0, "0.0"))
           , PrestoDerFactCol("Engagement Rate", DecType(), "100" * TEST_MATH_UDF("{engagement_count}", "{impressions}"), rollupExpression = NoopRollup)
           , PrestoDerFactCol("Paid Engagement Rate", DecType(), "100" * TEST_MATH_UDAF("{engagement_count}", "0", "0", "{clicks}", "{impressions}"), rollupExpression = NoopRollup)
           , PrestoDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}")
@@ -475,7 +483,7 @@ trait BasePrestoQueryGeneratorTest
           , PrestoDerFactCol("N Spend", DecType(), DECODE("{stats_source}", "1", "{spend}", "0.0"))
           , PrestoDerFactCol("N Clicks", DecType(), DECODE("{stats_source}", "1", "{clicks}", "0.0"))
           , PrestoDerFactCol("N Average CPC", DecType(), "{N Spend}" /- "{N Clicks}")
-          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
+          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
           , PrestoDerFactCol("impression_share", IntType(), DECODE(MAX("{show_flag}"), "1", ROUND(SUM("{impressions}") /- SUM("{s_impressions}"), 4), "NULL"), rollupExpression = NoopRollup)
           , PrestoDerFactCol("impression_share_rounded", IntType(), ROUND("{impression_share}", 5), rollupExpression = NoopRollup)
           , PrestoDerFactCol("Click Rate", IntType(), SUM("{clicks}") /- SUM("{impressions}"), rollupExpression = NoopRollup)
