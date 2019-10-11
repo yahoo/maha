@@ -392,7 +392,8 @@ ORDER BY mang_impressions ASC
                           "selectFields": [
                               {"field": "Advertiser ID"},
                               {"field": "Advertiser Name"},
-                              {"field": "Impressions"}
+                              {"field": "Impressions"},
+                              {"field": "Average Position"}
                           ],
                           "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
@@ -417,10 +418,10 @@ ORDER BY mang_impressions ASC
 
         val expected =
           s"""
-             |SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_advertiser_name as VARCHAR) AS mang_advertiser_name, CAST(mang_impressions as VARCHAR) AS mang_impressions
+             |SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_advertiser_name as VARCHAR) AS mang_advertiser_name, CAST(mang_impressions as VARCHAR) AS mang_impressions, CAST(mang_average_position as VARCHAR) AS mang_average_position
              |FROM(
-             |SELECT COALESCE(ssfu0.account_id, 0) advertiser_id, COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, COALESCE(impressions, 0) mang_impressions
-             |FROM(SELECT account_id, SUM(impressions) impressions
+             |SELECT COALESCE(ssfu0.account_id, 0) advertiser_id, COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, COALESCE(impressions, 0) mang_impressions, ROUND(COALESCE(CASE WHEN ((mang_average_position >= 0.1) AND (mang_average_position <= 500)) THEN mang_average_position ELSE 0.0 END, 0.0), 10) mang_average_position
+             |FROM(SELECT account_id, SUM(impressions) impressions, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE CAST(SUM(weighted_position * impressions) AS DOUBLE) / (SUM(impressions)) END) mang_average_position
              |FROM s_stats_fact_underlying
              |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
              |GROUP BY account_id
