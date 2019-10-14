@@ -1610,7 +1610,7 @@ ORDER BY mang_impressions ASC
          |FROM(
          |SELECT COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, SUM(impressions) AS impressions
          |FROM(SELECT account_id, SUM(impressions) impressions
-         |FROM s_stats_fact
+         |FROM s_stats_fact_underlying
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
          |GROUP BY account_id
          |HAVING (SUM(impressions) > 1608)
@@ -1671,7 +1671,7 @@ ORDER BY mang_impressions ASC
          |FROM(
          |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE CAST(SUM(weighted_position * impressions) AS DOUBLE) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend, SUM(weighted_position) AS weighted_position
          |FROM(SELECT campaign_id, SUM(impressions) impressions, SUM(clicks) clicks, SUM(spend) spend, SUM(weighted_position) weighted_position
-         |FROM s_stats_fact
+         |FROM s_stats_fact_underlying
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
          |GROUP BY campaign_id
          |
@@ -1736,7 +1736,7 @@ ORDER BY mang_impressions ASC
          |FROM(
          |SELECT COALESCE(c2.advertiser_id, 0) advertiser_id, getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE CAST(SUM(weighted_position * impressions) AS DOUBLE) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend, SUM(weighted_position) AS weighted_position
          |FROM(SELECT account_id, campaign_id, SUM(impressions) impressions, SUM(clicks) clicks, SUM(spend) spend, SUM(weighted_position) weighted_position
-         |FROM s_stats_fact
+         |FROM s_stats_fact_underlying
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
          |GROUP BY account_id, campaign_id
          |

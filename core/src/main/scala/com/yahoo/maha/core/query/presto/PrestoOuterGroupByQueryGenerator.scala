@@ -72,7 +72,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
 
       val fact = queryContext.factBestCandidate.fact
       val publicFact = queryContext.factBestCandidate.publicFact
-      val factViewName = fact.name
+      val factViewName = fact.underlyingTableName.getOrElse(fact.name)
       val dimCols = queryContext.factBestCandidate.dimColMapping.toList.collect {
         case (dimCol, alias) if queryContext.factBestCandidate.requestCols(dimCol) =>
           val column = fact.columnsByNameMap(dimCol)
