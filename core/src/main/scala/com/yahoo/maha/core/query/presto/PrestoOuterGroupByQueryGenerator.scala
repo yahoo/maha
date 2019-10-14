@@ -25,7 +25,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
     val factCandidate = queryContext.factBestCandidate
     val publicFact = queryContext.factBestCandidate.publicFact
     val fact = factCandidate.fact
-    val factViewName = fact.name
+    val factViewName = fact.underlyingTableName.getOrElse(fact.name)
     val factViewAlias = queryBuilderContext.getAliasForTable(factViewName)
     val dims = queryContext.dims
     val partitionCols = new mutable.HashSet[Column]()

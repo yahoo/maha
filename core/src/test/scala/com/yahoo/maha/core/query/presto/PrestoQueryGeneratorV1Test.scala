@@ -1615,7 +1615,7 @@ ORDER BY mang_impressions ASC
          |GROUP BY account_id
          |HAVING (SUM(impressions) > 1608)
          |       )
-         |ssf0
+         |ssfu0
          |LEFT OUTER JOIN (
          |SELECT name AS mang_advertiser_name, id a1_id
          |FROM advertiser_presto
@@ -1623,7 +1623,7 @@ ORDER BY mang_impressions ASC
          |)
          |a1
          |ON
-         |ssf0.account_id = a1.a1_id
+         |ssfu0.account_id = a1.a1_id
          |
          |GROUP BY COALESCE(a1.mang_advertiser_name, 'NA')
          |ORDER BY mang_advertiser_name DESC, impressions DESC) OgbQueryAlias
@@ -1676,7 +1676,7 @@ ORDER BY mang_impressions ASC
          |GROUP BY campaign_id
          |
  |       )
-         |ssf0
+         |ssfu0
          |LEFT OUTER JOIN (
          |SELECT campaign_name AS mang_campaign_name, id c1_id
          |FROM campaign_presto_underlying
@@ -1684,7 +1684,7 @@ ORDER BY mang_impressions ASC
          |)
          |c1
          |ON
-         |CAST(ssf0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
+         |CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c1.c1_id AS VARCHAR)
          |
          |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR))
          |) OgbQueryAlias
@@ -1741,7 +1741,7 @@ ORDER BY mang_impressions ASC
          |GROUP BY account_id, campaign_id
          |
  |       )
-         |ssf0
+         |ssfu0
          |LEFT OUTER JOIN (
          |SELECT name AS mang_advertiser_name, id a1_id
          |FROM advertiser_presto
@@ -1749,7 +1749,7 @@ ORDER BY mang_impressions ASC
          |)
          |a1
          |ON
-         |ssf0.account_id = a1.a1_id
+         |ssfu0.account_id = a1.a1_id
          |       LEFT OUTER JOIN (
          |SELECT advertiser_id AS advertiser_id, campaign_name AS mang_campaign_name, id c2_id
          |FROM campaign_presto_underlying
@@ -1757,7 +1757,7 @@ ORDER BY mang_impressions ASC
          |)
          |c2
          |ON
-         |CAST(ssf0.campaign_id AS VARCHAR) = CAST(c2.c2_id AS VARCHAR)
+         |CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c2.c2_id AS VARCHAR)
          |
          |GROUP BY COALESCE(c2.advertiser_id, 0), getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), COALESCE(a1.mang_advertiser_name, 'NA')
          |ORDER BY impressions DESC, mang_advertiser_name DESC) OgbQueryAlias
