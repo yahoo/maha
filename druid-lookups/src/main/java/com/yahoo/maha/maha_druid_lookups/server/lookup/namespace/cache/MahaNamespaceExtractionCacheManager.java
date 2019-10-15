@@ -382,7 +382,7 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
     }
 
     private LookupExtractor getLookupExtractor(final ExtractionNamespace extractionNamespace, Map<String, U> map) {
-        log.error("Passed through namespace: " + extractionNamespace.toString() + "\nwith concrete className: " + extractionNamespace.getClass().getName());
+        log.info("Passed through namespace: " + extractionNamespace.toString() + "\nwith concrete className: " + extractionNamespace.getClass().getName());
         if(extractionNamespace instanceof  JDBCExtractionNamespaceWithLeaderAndFollower) {
             return new JDBCLookupExtractorWithLeaderAndFollower((JDBCExtractionNamespaceWithLeaderAndFollower) extractionNamespace, map, lookupService);
         } else if (extractionNamespace instanceof JDBCExtractionNamespace) {
