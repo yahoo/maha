@@ -693,7 +693,7 @@ ORDER BY mang_impressions ASC
          |FROM(
          |SELECT mang_campaign_name AS mang_campaign_name, mang_advertiser_currency AS mang_advertiser_currency, spend AS mang_spend
          |FROM(
-         |SELECT getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a1.mang_advertiser_currency, 'NA') mang_advertiser_currency, SUM(spend) AS spend
+         |SELECT getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(CAST(a1.mang_advertiser_currency as VARCHAR), 'NA') mang_advertiser_currency, SUM(spend) AS spend
          |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -718,7 +718,7 @@ ORDER BY mang_impressions ASC
          |ON
          |af0.campaign_id = c2.c2_id
          |
-         |GROUP BY getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), COALESCE(a1.mang_advertiser_currency, 'NA')
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(a1.mang_advertiser_currency as VARCHAR), 'NA')
          |) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -830,7 +830,7 @@ ORDER BY mang_impressions ASC
          |FROM(
          |SELECT mang_campaign_name AS mang_campaign_name, mang_advertiser_currency AS mang_advertiser_currency, (CASE WHEN clicks = 0 THEN 0.0 ELSE CAST(spend AS DOUBLE) / clicks END) * 100 AS mang_average_cpc_cents, CASE WHEN clicks = 0 THEN 0.0 ELSE CAST(spend AS DOUBLE) / clicks END AS mang_average_cpc, spend AS mang_spend
          |FROM(
-         |SELECT getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a1.mang_advertiser_currency, 'NA') mang_advertiser_currency, SUM(spend) AS spend, SUM(clicks) AS clicks
+         |SELECT getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(CAST(a1.mang_advertiser_currency as VARCHAR), 'NA') mang_advertiser_currency, SUM(spend) AS spend, SUM(clicks) AS clicks
          |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -855,7 +855,7 @@ ORDER BY mang_impressions ASC
          |ON
          |af0.campaign_id = c2.c2_id
          |
-         |GROUP BY getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), COALESCE(a1.mang_advertiser_currency, 'NA')
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(a1.mang_advertiser_currency as VARCHAR), 'NA')
          |) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -912,7 +912,7 @@ ORDER BY mang_impressions ASC
          |FROM(
          |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend
          |FROM(
-         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a2.campaign_id, 0) campaign_id, SUM(spend) AS spend
+         |SELECT COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA') mang_ad_status, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a2.campaign_id, 0) campaign_id, SUM(spend) AS spend
          |FROM(SELECT campaign_id, ad_id, SUM(spend) spend
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -937,7 +937,7 @@ ORDER BY mang_impressions ASC
          |ON
          |af0.ad_id = a2.a2_id
          |
-         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(a2.campaign_id, 0)
+         |GROUP BY COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA'), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(a2.campaign_id, 0)
          |) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -1350,7 +1350,7 @@ ORDER BY mang_impressions ASC
          |FROM(
          |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate
          |FROM(
-         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a2.campaign_id, 0) campaign_id, SUM(spend) AS spend, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
+         |SELECT COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA') mang_ad_status, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a2.campaign_id, 0) campaign_id, SUM(spend) AS spend, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
          |FROM(SELECT ad_id, campaign_id, SUM(spend) spend, SUM(engagement_count) engagement_count, SUM(impressions) impressions
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -1375,7 +1375,7 @@ ORDER BY mang_impressions ASC
          |ON
          |af0.ad_id = a2.a2_id
          |
-         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(a2.campaign_id, 0)
+         |GROUP BY COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA'), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(a2.campaign_id, 0)
          |) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -1442,7 +1442,7 @@ ORDER BY mang_impressions ASC
          |FROM(
          |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate, 100 * mathUDAF(engagement_count, 0, 0, clicks, impressions) AS mang_paid_engagement_rate
          |FROM(
-         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a2.campaign_id, 0) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
+         |SELECT COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA') mang_ad_status, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a2.campaign_id, 0) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
          |FROM(SELECT ad_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks, SUM(engagement_count) engagement_count, SUM(impressions) impressions
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -1467,7 +1467,7 @@ ORDER BY mang_impressions ASC
          |ON
          |af0.ad_id = a2.a2_id
          |
-         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(a2.campaign_id, 0)
+         |GROUP BY COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA'), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(a2.campaign_id, 0)
          |) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -1540,7 +1540,7 @@ ORDER BY mang_impressions ASC
          |FROM(
          |SELECT mang_ad_status AS mang_ad_status, ad_group_id AS ad_group_id, advertiser_id AS advertiser_id, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate, 100 * mathUDAF(engagement_count, 0, 0, clicks, impressions) AS mang_paid_engagement_rate
          |FROM(
-         |SELECT COALESCE(a2.mang_ad_status, 'NA') mang_ad_status, COALESCE(ad_group_id, 0) ad_group_id, COALESCE(advertiser_id, 0) advertiser_id, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a2.campaign_id, 0) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
+         |SELECT COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA') mang_ad_status, COALESCE(ad_group_id, 0) ad_group_id, COALESCE(advertiser_id, 0) advertiser_id, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a2.campaign_id, 0) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
          |FROM(SELECT advertiser_id, ad_id, campaign_id, ad_group_id, SUM(spend) spend, SUM(clicks) clicks, SUM(engagement_count) engagement_count, SUM(impressions) impressions
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -1565,7 +1565,7 @@ ORDER BY mang_impressions ASC
          |ON
          |af0.ad_id = a2.a2_id
          |
-         |GROUP BY COALESCE(a2.mang_ad_status, 'NA'), COALESCE(ad_group_id, 0), COALESCE(advertiser_id, 0), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(a2.campaign_id, 0)
+         |GROUP BY COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA'), COALESCE(ad_group_id, 0), COALESCE(advertiser_id, 0), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(a2.campaign_id, 0)
          |) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -1608,7 +1608,7 @@ ORDER BY mang_impressions ASC
          |FROM(
          |SELECT mang_advertiser_name AS mang_advertiser_name, impressions AS mang_impressions
          |FROM(
-         |SELECT COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, SUM(impressions) AS impressions
+         |SELECT COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, SUM(impressions) AS impressions
          |FROM(SELECT account_id, SUM(impressions) impressions
          |FROM s_stats_fact_underlying
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -1625,7 +1625,7 @@ ORDER BY mang_impressions ASC
          |ON
          |ssfu0.account_id = a1.a1_id
          |
-         |GROUP BY COALESCE(a1.mang_advertiser_name, 'NA')
+         |GROUP BY COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA')
          |ORDER BY mang_advertiser_name DESC, impressions DESC) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -1734,7 +1734,7 @@ ORDER BY mang_impressions ASC
          |FROM(
          |SELECT advertiser_id AS advertiser_id, mang_campaign_name AS mang_campaign_name, mang_advertiser_name AS mang_advertiser_name, CASE WHEN clicks = 0 THEN 0.0 ELSE CAST(spend AS DOUBLE) / clicks END AS mang_average_cpc, avg_pos AS mang_average_position, impressions AS mang_impressions
          |FROM(
-         |SELECT COALESCE(c2.advertiser_id, 0) advertiser_id, getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE CAST(SUM(weighted_position * impressions) AS DOUBLE) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend, SUM(weighted_position) AS weighted_position
+         |SELECT COALESCE(c2.advertiser_id, 0) advertiser_id, getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE CAST(SUM(weighted_position * impressions) AS DOUBLE) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend, SUM(weighted_position) AS weighted_position
          |FROM(SELECT account_id, campaign_id, SUM(impressions) impressions, SUM(clicks) clicks, SUM(spend) spend, SUM(weighted_position) weighted_position
          |FROM s_stats_fact_underlying
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -1759,7 +1759,7 @@ ORDER BY mang_impressions ASC
          |ON
          |CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c2.c2_id AS VARCHAR)
          |
-         |GROUP BY COALESCE(c2.advertiser_id, 0), getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), COALESCE(a1.mang_advertiser_name, 'NA')
+         |GROUP BY COALESCE(c2.advertiser_id, 0), getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA')
          |ORDER BY impressions DESC, mang_advertiser_name DESC) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -1936,7 +1936,7 @@ ORDER BY mang_impressions ASC
          |FROM(
          |SELECT mang_campaign_name AS mang_campaign_name, mang_bid_strategy AS mang_bid_strategy, mang_advertiser_name AS mang_advertiser_name, advertiser_id AS advertiser_id, actual_impressions AS mang_impressions, mang_test_constant_col AS mang_test_constant_col, mang_load_time
          |FROM(
-         |SELECT getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(CAST(bid_strategy as varchar), 'NA') mang_bid_strategy, COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, COALESCE(c2.advertiser_id, 0) advertiser_id, SUM(actual_impressions) AS actual_impressions, ROUND(COALESCE(test_constant_col, 0), 10) mang_test_constant_col, COALESCE(mang_load_time, 'NA') mang_load_time
+         |SELECT getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(CAST(bid_strategy as varchar), 'NA') mang_bid_strategy, COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, COALESCE(c2.advertiser_id, 0) advertiser_id, SUM(actual_impressions) AS actual_impressions, ROUND(COALESCE(test_constant_col, 0), 10) mang_test_constant_col, COALESCE(CAST(mang_load_time as VARCHAR), 'NA') mang_load_time
          |FROM(SELECT CASE WHEN (bid_strategy IN (1)) THEN 'Max Click' WHEN (bid_strategy IN (2)) THEN 'Inflection Point' ELSE 'NONE' END bid_strategy, account_id, load_time, 'test_constant_col_value' AS test_constant_col, campaign_id, SUM(actual_impressions) actual_impressions
          |FROM bidreco_complete
          |WHERE (account_id = 12345) AND (status = 'Valid') AND (factPartCol = 123)
@@ -1961,7 +1961,7 @@ ORDER BY mang_impressions ASC
          |ON
          |bc0.campaign_id = c2.c2_id
          |
-         |GROUP BY getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(bid_strategy as varchar), 'NA'), COALESCE(a1.mang_advertiser_name, 'NA'), COALESCE(c2.advertiser_id, 0), ROUND(COALESCE(test_constant_col, 0), 10), COALESCE(mang_load_time, 'NA')
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(bid_strategy as varchar), 'NA'), COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA'), COALESCE(c2.advertiser_id, 0), ROUND(COALESCE(test_constant_col, 0), 10), COALESCE(CAST(mang_load_time as VARCHAR), 'NA')
          |ORDER BY mang_campaign_name DESC, actual_impressions DESC) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200

@@ -664,8 +664,8 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
           case DateType(_) => s"""getFormattedDate($finalAlias)"""
           case StrType(_, sm, df) =>
             val defaultValue = df.getOrElse("NA")
-            s"""COALESCE($finalAlias, '$defaultValue')"""
-          case _ => s"""COALESCE($finalAlias, 'NA')"""
+            s"""COALESCE(CAST($finalAlias as VARCHAR), '$defaultValue')"""
+          case _ => s"""COALESCE(cast($finalAlias as VARCHAR), 'NA')"""
         }
         if (column.annotations.contains(EscapingRequired)) {
           s"""getCsvEscapedString(CAST(COALESCE($finalAlias, '') AS VARCHAR))"""
