@@ -253,6 +253,11 @@ public class JdbcH2QueryTest {
         doCallRealMethod().when(myJdbcEncFactory).updateLocalCache(any(), any(), any());
         doCallRealMethod().when(myJdbcEncFactory).getCacheValue(any(), any(), any(), any(), any());
         doCallRealMethod().when(myJdbcEncFactory).populateLastUpdatedTime(any(), any());
+        doCallRealMethod().when(myJdbcEncFactory).getBaseWhereClause(any(), any());
+        doCallRealMethod().when(myJdbcEncFactory).populateRowListFromJDBC(any(), any(), any(), any(), any(), any());
+        doCallRealMethod().when(myJdbcEncFactory).getWhereClauseExtension(any(), any());
+        doCallRealMethod().when(myJdbcEncFactory).getMaxValFromColumn(any(), any(), any(), any());
+        doCallRealMethod().when(myJdbcEncFactory).getMaxValFromColumn(any(), any(), any(), any(), any());
 
         Whitebox.setInternalState(myJdbcEncFactory, "dbiCache", new ConcurrentHashMap<>());
 

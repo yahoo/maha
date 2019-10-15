@@ -25,29 +25,6 @@ import java.util.Properties;
 @JsonTypeName("mahajdbcleaderfollower")
 public class JDBCExtractionNamespaceWithLeaderAndFollower extends JDBCExtractionNamespace {
     @JsonProperty
-    private final MetadataStorageConnectorConfig connectorConfig;
-    @JsonProperty
-    private final String table;
-    @JsonProperty
-    private final String tsColumn;
-    @JsonProperty
-    private final Period pollPeriod;
-    @JsonProperty
-    private final ImmutableList<String> columnList;
-    @JsonProperty
-    private final String primaryKeyColumn;
-
-    @JsonProperty
-    private boolean cacheEnabled = true;
-
-    @JsonProperty
-    private final String lookupName;
-
-    private boolean firstTimeCaching = true;
-    private Timestamp previousLastUpdateTimestamp;
-    private final ImmutableMap<String, Integer> columnIndexMap;
-
-    @JsonProperty
     private final String kafkaTopic;
 
     @JsonProperty
@@ -68,29 +45,12 @@ public class JDBCExtractionNamespaceWithLeaderAndFollower extends JDBCExtraction
             @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName,
             @JsonProperty(value = "kafkaTopic", required = true) final String kafkaTopic,
             @JsonProperty(value = "isLeader", required = true) final boolean isLeader,
-            @JsonProperty(value = "kafkaProperties", required = true) final Properties kafkaProperties
+            @JsonProperty(value = "kafkaProperties", required = true) final Properties kafkaProperties,
+            @JsonProperty(value = "kerberosProperties", required = false) final Properties kerberosProperties,
+            @JsonProperty(value = "tsColumnConfig", required = false) final TsColumnConfig tsColumnConfig,
+            @JsonProperty(value = "kerberosPropertiesEnabled", required = false) final boolean kerberosPropertiesEnabled
             ) {
-        super(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName);
-
-        this.connectorConfig = Preconditions.checkNotNull(connectorConfig, "connectorConfig");
-        Preconditions.checkNotNull(connectorConfig.getConnectURI(), "connectorConfig.connectURI");
-        this.table = Preconditions.checkNotNull(table, "table");
-        ArrayList<String> allColumnsWithTS = columnList;
-        allColumnsWithTS.add(tsColumn);
-        this.columnList = ImmutableList.copyOf(Preconditions.checkNotNull(allColumnsWithTS, "columnList"));
-        this.primaryKeyColumn = Preconditions.checkNotNull(primaryKeyColumn, "primaryKeyColumn");
-        this.tsColumn = tsColumn;
-        this.pollPeriod = pollPeriod == null ? new Period(0L) : pollPeriod;
-        this.cacheEnabled = cacheEnabled;
-        this.lookupName = lookupName;
-        int index = 0;
-        ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
-        for (String col : columnList) {
-            builder.put(col, index);
-            index += 1;
-        }
-
-        this.columnIndexMap = builder.build();
+        super(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, kerberosProperties, tsColumnConfig, kerberosPropertiesEnabled);
 
         this.kafkaTopic = Objects.nonNull(kafkaTopic) ? kafkaTopic : "unassigned";
 
@@ -101,22 +61,39 @@ public class JDBCExtractionNamespaceWithLeaderAndFollower extends JDBCExtraction
         this.setPreviousLastUpdateTimestamp(new Timestamp(0L));
     }
 
+    public JDBCExtractionNamespaceWithLeaderAndFollower(
+            final MetadataStorageConnectorConfig connectorConfig,
+            final String table,
+            final ArrayList<String> columnList,
+            final String primaryKeyColumn,
+            final String tsColumn,
+            final Period pollPeriod,
+            final boolean cacheEnabled,
+            final String lookupName,
+            final String kafkaTopic,
+            final boolean isLeader,
+            final Properties kafkaProperties
+    ) {
+        this(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, kafkaTopic, isLeader, kafkaProperties, null, null, false);
+    }
+
     @Override
     public String toString() {
         return "JDBCExtractionNamespaceWithLeaderAndFollower{" +
-                "connectorConfig=" + connectorConfig +
-                ", table='" + table + '\'' +
-                ", tsColumn='" + tsColumn + '\'' +
-                ", pollPeriod=" + pollPeriod +
-                ", columnList=" + columnList +
-                ", primaryKeyColumn='" + primaryKeyColumn + '\'' +
-                ", cacheEnabled=" + cacheEnabled +
-                ", lookupName='" + lookupName + '\'' +
-                ", firstTimeCaching=" + firstTimeCaching +
-                ", previousLastUpdateTimestamp=" + previousLastUpdateTimestamp +
+                "connectorConfig=" + getConnectorConfig() +
+                ", table='" + getTable() + '\'' +
+                ", tsColumn='" + getTsColumn() + '\'' +
+                ", pollPeriod=" + getPollPeriod() +
+                ", columnList=" + getColumnList() +
+                ", primaryKeyColumn='" + getPrimaryKeyColumn() + '\'' +
+                ", cacheEnabled=" + isCacheEnabled() +
+                ", lookupName='" + getLookupName() + '\'' +
+                ", firstTimeCaching=" + isFirstTimeCaching() +
+                ", previousLastUpdateTimestamp=" + getPreviousLastUpdateTimestamp() +
                 ", kafkaProperties" + kafkaProperties.toString() +
                 ", isLeader=" + isLeader +
-                ", kafkaTopic=" + kafkaTopic +
+                ", kerberosProperties=" + getKerberosProperties() +
+                ", tsColumnConfig=" + getTsColumnConfig() +
                 '}';
     }
 
@@ -126,31 +103,6 @@ public class JDBCExtractionNamespaceWithLeaderAndFollower extends JDBCExtraction
 
     public boolean getIsLeader() {
         return isLeader;
-    }
-
-    @Override
-    public ImmutableList<String> getColumnList() {
-        return columnList;
-    }
-
-    @Override
-    public void setPreviousLastUpdateTimestamp(Timestamp previousLastUpdateTimestamp) {
-        this.previousLastUpdateTimestamp = previousLastUpdateTimestamp;
-    }
-
-    @Override
-    public Timestamp getPreviousLastUpdateTimestamp() {
-        return previousLastUpdateTimestamp;
-    }
-
-    @Override
-    public void setFirstTimeCaching(boolean value) {
-        this.firstTimeCaching = value;
-    }
-
-    @Override
-    public boolean isFirstTimeCaching() {
-        return firstTimeCaching;
     }
 
     public Properties getKafkaProperties() { return kafkaProperties; }

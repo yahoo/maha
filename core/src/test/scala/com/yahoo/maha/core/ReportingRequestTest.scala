@@ -5,13 +5,12 @@ package com.yahoo.maha.core
 import java.nio.charset.StandardCharsets
 
 import com.yahoo.maha.core.CoreSchema.AdvertiserSchema
-import com.yahoo.maha.core.request.ReportFormatType.{CSVFormat, JsonFormat}
+import com.yahoo.maha.core.request.ReportFormatType.{CSVFormat, ExcelFormat, JsonFormat}
 import com.yahoo.maha.core.request._
 import org.apache.commons.lang3.StringUtils.EMPTY
 import org.joda.time.DateTimeZone
 import org.json4s.scalaz.JsonScalaz
 import org.scalatest.FlatSpec
-
 import scalaz.{IList, ValidationNel}
 
 /**
@@ -1510,6 +1509,16 @@ class ReportingRequestTest extends FlatSpec {
       assert(request.toOption.get.schema === AdvertiserSchema)
       assert(request.toOption.get.additionalParameters.contains(Parameter.ReportFormat))
       assert(request.toOption.get.additionalParameters(Parameter.ReportFormat) === ReportFormatValue(CSVFormat))
+    }
+
+    //check excel format
+    {
+      val serializeRequest = new String(ReportingRequest.serialize(ReportingRequest.withExcelReportFormat(getReportingRequest(jsonString))))
+      val request = getReportingRequestValidationAsyncWithAdditionalParameters(serializeRequest, None)
+      assert(request.isSuccess)
+      assert(request.toOption.get.schema === AdvertiserSchema)
+      assert(request.toOption.get.additionalParameters.contains(Parameter.ReportFormat))
+      assert(request.toOption.get.additionalParameters(Parameter.ReportFormat) === ReportFormatValue(ExcelFormat))
     }
   }
 

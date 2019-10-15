@@ -50,6 +50,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
     /**
      * Populate cache or write to Kafka topic.  Validates Kafka and protobuf.
+     *
      * @param id
      * @param extractionNamespace
      * @param lastVersion
@@ -66,11 +67,12 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
         LOG.info("Calling Leader or Follower populator with variables: " +
                 "id=" + id + ", namespace=" + extractionNamespace.toString() + ", lastVers=" + lastVersion);
 
-        return getCachePopulator(id, (JDBCExtractionNamespaceWithLeaderAndFollower)extractionNamespace, lastVersion, cache);
+        return getCachePopulator(id, (JDBCExtractionNamespaceWithLeaderAndFollower) extractionNamespace, lastVersion, cache);
     }
 
     /**
      * Populate cache or write to Kafka topic.
+     *
      * @param id
      * @param extractionNamespace
      * @param lastVersion
@@ -100,9 +102,9 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 }
             };
         }
-        if(extractionNamespace.isFirstTimeCaching()) {
+        if (extractionNamespace.isFirstTimeCaching()) {
             return super.getCachePopulator(id, extractionNamespace, lastVersion, cache);
-        }else if(extractionNamespace.getIsLeader()) {
+        } else if (extractionNamespace.getIsLeader()) {
             return doLeaderOperations(id, extractionNamespace, cache, kafkaProperties, lastDBUpdate);
         } else {
             return doFollowerOperations(id, extractionNamespace, cache, kafkaProperties);
@@ -111,6 +113,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
     /**
      * Use the active JDBC to populate a rowList & send it to the open Kafka topic.
+     *
      * @param id
      * @param extractionNamespace
      * @param cache
@@ -163,6 +166,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
     /**
      * Poll the Kafka topic & populate the local cache.
+     *
      * @param id
      * @param extractionNamespace
      * @param cache
@@ -181,7 +185,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
                 ensureKafkaConsumer(kafkaProperties, kafkaProducerTopic);
 
-                if(lookupConsumerMap.get(kafkaProducerTopic).subscription().size() < 1)
+                if (lookupConsumerMap.get(kafkaProducerTopic).subscription().size() < 1)
                     lookupConsumerMap.get(kafkaProducerTopic).subscribe(Collections.singletonList(kafkaProducerTopic));
                 else
                     LOG.info("Continuing with subscription to topic: " + kafkaProducerTopic);
@@ -197,7 +201,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 populateLastUpdatedTime(polledLastUpdatedTS, extractionNamespace);
 
 
-                LOG.info("Follower operation on kafkaTopic [%s] num records returned [%d] with final cache size of [%d]: ", extractionNamespace.getKafkaTopic() , totalNumRowsUpdated, cache.size());
+                LOG.info("Follower operation on kafkaTopic [%s] num records returned [%d] with final cache size of [%d]: ", extractionNamespace.getKafkaTopic(), totalNumRowsUpdated, cache.size());
 
                 long lastUpdatedTS = Objects.nonNull(extractionNamespace.getPreviousLastUpdateTimestamp()) ? extractionNamespace.getPreviousLastUpdateTimestamp().getTime() : 0L;
                 return String.format("%d", lastUpdatedTS);
@@ -207,11 +211,11 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
     }
 
     private Tuple2<Integer, Timestamp> pollKafkaTopicForUpdates(long consumerPollPeriod,
-                                                               String kafkaProducerTopic,
-                                                               final JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace,
-                                                               final Map<String, List<String>> cache
-                                                               ) {
-        long tenPercentPollPeriod = consumerPollPeriod/10;
+                                                                String kafkaProducerTopic,
+                                                                final JDBCExtractionNamespaceWithLeaderAndFollower extractionNamespace,
+                                                                final Map<String, List<String>> cache
+    ) {
+        long tenPercentPollPeriod = consumerPollPeriod / 10;
 
         int i = 0;
         Timestamp latestTSFromRows = new Timestamp(0L);
@@ -234,7 +238,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
                 if (singleRowUpdateTS.after(latestTSFromRows))
                     latestTSFromRows = singleRowUpdateTS;
 
-                if(singleRowUpdateTS.getTime() > 0L)
+                if (singleRowUpdateTS.getTime() > 0L)
                     ++i;
             }
         } catch (Exception e) {
@@ -246,7 +250,6 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
     }
 
     /**
-     *
      * @param lastUpdatedTS
      * @param extractionNamespace
      */
@@ -267,37 +270,38 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
      * Parse the received message into the local cache.
      * Return the current row's last updated TS.
      * Cache is only updated if the record is new (in parent)
+     *
      * @param extractionNamespace
      * @param cache
      * @param value
      */
     public Timestamp updateLocalCache(final JDBCExtractionNamespace extractionNamespace, Map<String, List<String>> cache,
-                            final byte[] value) {
+                                      final byte[] value) {
 
         try {
             String keyColname = extractionNamespace.getPrimaryKeyColumn();
             ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(value));
-            Map<String, Object> allColumnsMap = (Map<String, Object>)ois.readObject();
+            Map<String, Object> allColumnsMap = (Map<String, Object>) ois.readObject();
             String pkValue = allColumnsMap.getOrDefault(keyColname, null).toString();
 
             List<String> columnsInOrder = new ArrayList<>();
             Long rowTS = 0L;
-            for(String str: extractionNamespace.getColumnList()) {
+            for (String str : extractionNamespace.getColumnList()) {
                 Object retVal = allColumnsMap.getOrDefault(str, "");
                 columnsInOrder.add(String.valueOf(retVal));
                 boolean isTS = Objects.nonNull(retVal) && str.equals(extractionNamespace.getTsColumn());
 
-                if(isTS) {
+                if (isTS) {
                     rowTS = Timestamp.valueOf(retVal.toString()).getTime();
                 }
             }
 
-            if(Objects.nonNull(pkValue) && !Objects.nonNull(cache.get(pkValue))) {
+            if (Objects.nonNull(pkValue) && !Objects.nonNull(cache.get(pkValue))) {
                 cache.put(pkValue, columnsInOrder);
             } else {
                 List<String> cachedRow = cache.get(pkValue);
-                Long cachedLastUpdateTS = Timestamp.valueOf((cachedRow.get(cachedRow.size()-1))).getTime();
-                if(cachedLastUpdateTS < rowTS) {
+                Long cachedLastUpdateTS = Timestamp.valueOf((cachedRow.get(cachedRow.size() - 1))).getTime();
+                if (cachedLastUpdateTS < rowTS) {
                     cache.put(pkValue, columnsInOrder);
                 } else {
                     LOG.debug("No Valid Primary Key parsed for column (or old record passed).  Refusing to update.  Failed row  in lookup [%s] is: [%s]", extractionNamespace.getLookupName(), columnsInOrder);
@@ -316,6 +320,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
     /**
      * If the follower is cache-disabled, don't update it.
+     *
      * @param lastCheck
      * @return
      */
@@ -325,11 +330,12 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
 
     /**
      * Safe KafkaProducer create/call.
+     *
      * @param kafkaProperties
      * @return
      */
     synchronized Producer<String, byte[]> ensureKafkaProducer(Properties kafkaProperties) {
-        if(kafkaProducer == null) {
+        if (kafkaProducer == null) {
             kafkaProducer = new KafkaProducer<>(kafkaProperties, new StringSerializer(), new ByteArraySerializer());
         }
         return kafkaProducer;
@@ -340,6 +346,7 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
      * The properties set in here will overwrite your passed in properties,
      * and correspond to the properties in RocksDB-based lookups.
      * If a Producer bootstrap writes 25M records, expect a startup backlog of 5 minutes.
+     *
      * @param kafkaProperties
      * @return
      */
@@ -352,12 +359,12 @@ public class JDBCExtractionNamespaceCacheFactoryWithLeaderAndFollower
      * End leader || follower actions on the current node.
      */
     public void stop() {
-        if(kafkaProducer != null) {
+        if (kafkaProducer != null) {
             kafkaProducer.flush();
             kafkaProducer.close();
         }
 
-        if(!lookupConsumerMap.isEmpty()) {
+        if (!lookupConsumerMap.isEmpty()) {
             lookupConsumerMap.values().forEach(kafkaConsumer -> {
                 kafkaConsumer.unsubscribe();
                 kafkaConsumer.close();

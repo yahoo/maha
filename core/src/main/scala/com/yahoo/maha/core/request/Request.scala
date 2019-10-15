@@ -125,6 +125,7 @@ object ReportFormatType extends Enum[ReportFormatType] {
   val values = findValues
   case object CSVFormat extends ReportFormatType("csv")
   case object JsonFormat extends ReportFormatType("json")
+  case object ExcelFormat extends ReportFormatType("excel")
 }
 
 case class ReportFormatValue(value: ReportFormatType) extends ParameterValue[ReportFormatType]
