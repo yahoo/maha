@@ -5,12 +5,12 @@ package com.yahoo.maha.core.request
 import java.nio.charset.StandardCharsets
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.request.ReportFormatType.{CSVFormat, JsonFormat}
+import com.yahoo.maha.core.request.ReportFormatType.{CSVFormat, ExcelFormat, JsonFormat}
 import org.joda.time.DateTime
 import org.json4s.jackson.JsonMethods._
 import org.json4s.scalaz.JsonScalaz
-
 import _root_.scalaz._
+
 import scala.collection.mutable.ArrayBuffer
 import org.json4s._
 import org.json4s.scalaz.JsonScalaz._
@@ -242,6 +242,10 @@ trait BaseRequest {
 
   def withCSVReportFormat(reportingRequest: ReportingRequest) : ReportingRequest = {
     reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.ReportFormat -> ReportFormatValue(CSVFormat)))
+  }
+
+  def withExcelReportFormat(reportingRequest: ReportingRequest) : ReportingRequest = {
+    reportingRequest.copy(additionalParameters = reportingRequest.additionalParameters ++ Map(Parameter.ReportFormat -> ReportFormatValue(ExcelFormat)))
   }
 
   def withLabels(reportingRequest: ReportingRequest, labels: List[String]) : ReportingRequest = {
