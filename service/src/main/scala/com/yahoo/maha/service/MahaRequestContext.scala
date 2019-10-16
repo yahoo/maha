@@ -19,12 +19,9 @@ case class MahaRequestContext(registryName: String
                               , requestStartTime: Long = System.currentTimeMillis()
                              ) {
   lazy val mutableState = new TrieMap[String, Any]()
-  val requestHashOption = {
-    if(rawJson!=null) {
+  lazy val requestHashOption: Option[String] = if(rawJson!=null) {
       Some(DigestUtils.md5Hex(rawJson))
     } else {
       None
     }
-  }
-
 }
