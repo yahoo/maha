@@ -30,7 +30,7 @@ trait PostgresQueryCommon extends  BaseQueryGenerator[WithPostgresEngine] {
 
   final protected[this] val MAX_SNAPSHOT_TS_ALIAS: String = "max_snapshot_ts_"
   final protected[this] val ADDITIONAL_PAGINATION_COLUMN: IndexedSeq[String] = IndexedSeq(PostgresQueryGenerator.ROW_COUNT_ALIAS)
-  final protected[this] val PAGINATION_ROW_COUNT: String = s"""Count(*) OVER() ${PostgresQueryGenerator.ROW_COUNT_ALIAS}"""
+  final protected[this] val PAGINATION_ROW_COUNT: String = s"""Count(*) OVER() "${PostgresQueryGenerator.ROW_COUNT_ALIAS}""""
   final protected[this] val supportingDimPostfix: String = "_indexed"
   final protected[this] val PAGINATION_WRAPPER: String = "SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (%s) %s %s) D ) %s WHERE %s"
   final protected[this] val OUTER_PAGINATION_WRAPPER: String = "%s WHERE %s"

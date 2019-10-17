@@ -42,7 +42,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
-    val select = """SELECT f0.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ap1.name "Advertiser Name", ap1."Advertiser Status" "Advertiser Status", Count(*) OVER() TOTALROWS"""
+    val select = """SELECT f0.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ap1.name "Advertiser Name", ap1."Advertiser Status" "Advertiser Status", Count(*) OVER() "TOTALROWS""""
     assert(result.contains(select), result)
   }
 
@@ -59,7 +59,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
-    val select = """SELECT cp2.id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ap1.name "Advertiser Name", cp2."Campaign Status" "Campaign Status", Count(*) OVER() TOTALROWS"""
+    val select = """SELECT cp2.id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ap1.name "Advertiser Name", cp2."Campaign Status" "Campaign Status", Count(*) OVER() "TOTALROWS""""
     assert(result.contains(select), result)
   }
 
@@ -1888,7 +1888,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = """SELECT  *
-                     |      FROM (SELECT cp1.id "Campaign ID", adp2.ad_group_id "Ad Group ID", ap0."Advertiser Status" "Advertiser Status", cp1.campaign_name "Campaign Name", adp2.id "Ad ID", Count(*) OVER() TOTALROWS, ROW_NUMBER() OVER() AS ROWNUM
+                     |      FROM (SELECT cp1.id "Campaign ID", adp2.ad_group_id "Ad Group ID", ap0."Advertiser Status" "Advertiser Status", cp1.campaign_name "Campaign Name", adp2.id "Ad ID", Count(*) OVER() "TOTALROWS", ROW_NUMBER() OVER() AS ROWNUM
                      |            FROM
                      |               ( (SELECT  advertiser_id, campaign_id, ad_group_id, id
                      |            FROM ad_dim_postgres
@@ -1961,7 +1961,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
-                     |FROM (SELECT adp1.campaign_id "Campaign ID", adp1.ad_group_id "Ad Group ID", f0.landing_page_url "Destination URL", f0.target_page_url "Source URL", adp1.id "Ad ID", Count(*) OVER() TOTALROWS
+                     |FROM (SELECT adp1.campaign_id "Campaign ID", adp1.ad_group_id "Ad Group ID", f0.landing_page_url "Destination URL", f0.target_page_url "Source URL", adp1.id "Ad ID", Count(*) OVER() "TOTALROWS"
                      |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
                      |                   target_page_url, landing_page_url, ad_group_id, ad_id, campaign_id
                      |            FROM fact1 FactAlias
@@ -2029,7 +2029,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
-                     |FROM (SELECT adp1.campaign_id "Campaign ID", adp1.ad_group_id "Ad Group ID", f0.landing_page_url "Destination URL", f0.target_page_url "Source URL", adp1.id "Ad ID", Count(*) OVER() TOTALROWS
+                     |FROM (SELECT adp1.campaign_id "Campaign ID", adp1.ad_group_id "Ad Group ID", f0.landing_page_url "Destination URL", f0.target_page_url "Source URL", adp1.id "Ad ID", Count(*) OVER() "TOTALROWS"
                      |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
                      |                   target_page_url, landing_page_url, ad_group_id, ad_id, campaign_id
                      |            FROM fact1 FactAlias
@@ -2354,7 +2354,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
-                      |FROM (SELECT agp1.campaign_id "Campaign ID", agp1.id "Ad Group ID", f0.landing_page_url "Destination URL", f0.target_page_url "Source URL", coalesce(ROUND(CASE WHEN ((f0."avg_pos" >= 0.1) AND (f0."avg_pos" <= 500)) THEN f0."avg_pos" ELSE 0.0 END, 10), 0.0) "Average Position", coalesce(ROUND(f0."spend", 10), 0.0) "Spend", Count(*) OVER() TOTALROWS
+                      |FROM (SELECT agp1.campaign_id "Campaign ID", agp1.id "Ad Group ID", f0.landing_page_url "Destination URL", f0.target_page_url "Source URL", coalesce(ROUND(CASE WHEN ((f0."avg_pos" >= 0.1) AND (f0."avg_pos" <= 500)) THEN f0."avg_pos" ELSE 0.0 END, 10), 0.0) "Average Position", coalesce(ROUND(f0."spend", 10), 0.0) "Spend", Count(*) OVER() "TOTALROWS"
                       |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
                       |                   target_page_url, landing_page_url, ad_group_id, campaign_id, SUM(spend) AS "spend", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS "avg_pos"
                       |            FROM fact2 FactAlias
@@ -2474,7 +2474,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = """
                      |SELECT  *
-                     |      FROM (SELECT agp2.campaign_id "Campaign ID", agp2.id "Ad Group ID", ap0."Advertiser Status" "Advertiser Status", cp1.campaign_name "Campaign Name", '2' AS "Source", Count(*) OVER() TOTALROWS, ROW_NUMBER() OVER() AS ROWNUM
+                     |      FROM (SELECT agp2.campaign_id "Campaign ID", agp2.id "Ad Group ID", ap0."Advertiser Status" "Advertiser Status", cp1.campaign_name "Campaign Name", '2' AS "Source", Count(*) OVER() "TOTALROWS", ROW_NUMBER() OVER() AS ROWNUM
                      |            FROM
                      |               ( (SELECT  campaign_id, advertiser_id, id
                      |            FROM ad_group_postgres
@@ -2991,7 +2991,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val expected =
       s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
-         |FROM (SELECT cp1.id "Campaign ID", coalesce(af0."impressions", 1) "Impressions", cp1."Campaign Status" "Campaign Status", Count(*) OVER() TOTALROWS
+         |FROM (SELECT cp1.id "Campaign ID", coalesce(af0."impressions", 1) "Impressions", cp1."Campaign Status" "Campaign Status", Count(*) OVER() "TOTALROWS"
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_ad_stats 4) */
          |                   campaign_id, SUM(impressions) AS "impressions"
          |            FROM ad_fact1 FactAlias
@@ -5810,7 +5810,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val expected =
       s"""
          |SELECT  *
-         |      FROM (SELECT cp0.campaign_name "Campaign Name", cp0.id "Campaign ID", Count(*) OVER() TOTALROWS, ROW_NUMBER() OVER() AS ROWNUM
+         |      FROM (SELECT cp0.campaign_name "Campaign Name", cp0.id "Campaign ID", Count(*) OVER() "TOTALROWS", ROW_NUMBER() OVER() AS ROWNUM
          |            FROM
          |                (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
          |            FROM campaign_postgres
