@@ -107,7 +107,7 @@ object PostgresExpression {
     def hasRollupExpression = s.hasRollupExpression
     def hasNumericOperation = s.hasNumericOperation
     // NVL(TO_CHAR(DATE '1970-01-01' + ( 1 / 24 / 60 / 60 / 1000)*CAST(MOD(start_time, 32503680000000) AS NUMBER) , 'YYYY-MM-DD'), 'NULL')
-    def asString : String = s"COALESCE(TO_CHAR(TIMESTAMP '1970-01-01' + ( 1 / 24 / 60 / 60 / 1000)*CAST(MOD(${s.asString}}, 32503680000000) AS NUMERIC) , '$fmt'), 'NULL')"
+    def asString : String = s"COALESCE(TO_CHAR(TIMESTAMP '1970-01-01' + ( 1 / 24 / 60 / 60 / 1000)*CAST(MOD(${s.asString}, 32503680000000) AS NUMERIC) , '$fmt'), 'NULL')"
   }
 
   case class FORMAT_DATE(s: PostgresExp, fmt: String) extends BasePostgresExpression {

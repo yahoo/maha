@@ -216,7 +216,7 @@ class ExpressionTest extends FunSuite with Matchers {
   test("generate Postgres expression with TIMESTAMP_TO_FORMATTED_DATE") {
     import PostgresExpression._
     val exp: PostgresExp = TIMESTAMP_TO_FORMATTED_DATE("{created_date}", "YYYY-MM-dd")
-    exp.asString should equal("COALESCE(TO_CHAR(TIMESTAMP '1970-01-01' + ( 1 / 24 / 60 / 60 / 1000)*CAST(MOD({created_date}}, 32503680000000) AS NUMERIC) , 'YYYY-MM-dd'), 'NULL')")
+    exp.asString should equal("COALESCE(TO_CHAR(TIMESTAMP '1970-01-01' + ( 1 / 24 / 60 / 60 / 1000)*CAST(MOD({created_date}, 32503680000000) AS NUMERIC) , 'YYYY-MM-dd'), 'NULL')")
   }
   test("generate Postgres expression with GET_INTERVAL_DATE") {
     import PostgresExpression._
