@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query.presto
 
+import com.yahoo.maha.core.BasePrestoExpressionTest.GET_A_BY_B
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
@@ -9,7 +10,6 @@ import com.yahoo.maha.core.ddl.PrestoDDLAnnotation
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.lookup.LongRangeLookup
-import com.yahoo.maha.core.query.hive.TestPartitionRenderer
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.registry.{Registry, RegistryBuilder}
 import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
@@ -215,6 +215,10 @@ trait BasePrestoQueryGeneratorTest
             , PrestoDerFactCol("avg_rollup_spend", DecType(0, "0.0"), PrestoDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = AverageRollup)
             , PrestoDerFactCol("custom_rollup_spend", DecType(0, "0.0"), PrestoDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = PrestoCustomRollup(""))
             , PrestoDerFactCol("noop_rollup_spend", DecType(0, "0.0"), PrestoDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = NoopRollup)
+            , PrestoDerFactCol("Average Bid", DecType(8, 2, "0.0"), GET_A_BY_B("{recommended_bid}", "{actual_impressions}"), rollupExpression = NoopRollup)
+            , PrestoDerFactCol("Bid Mod", DecType(8, 5, "0.0"), GET_A_BY_B("{recommended_bid}",  "{actual_clicks}"), rollupExpression = NoopRollup)
+            , PrestoDerFactCol("Bid Modifier Fact", DecType(8, 5), COALESCE("CASE WHEN {Bid Mod} = 0 THEN 1 WHEN IS_NAN({Bid Mod}) THEN 1 ELSE {Bid Mod} END", "1"), rollupExpression = NoopRollup )
+            , PrestoDerFactCol("Modified Bid Fact", DecType(8, 5), COALESCE("CASE WHEN {Bid Modifier Fact} = 0 THEN 1 WHEN IS_NAN({Bid Modifier Fact}) THEN 1 ELSE {Bid Modifier Fact} END", "1") * "{Average Bid}")
           )
           , ddlAnnotation = Option(
             PrestoDDLAnnotation(Map(),
@@ -273,6 +277,9 @@ trait BasePrestoQueryGeneratorTest
         , PublicFactCol("avg_rollup_spend", "Avg Rollup Spend", InBetweenEquality)
         , PublicFactCol("custom_rollup_spend", "Custom Rollup Spend", InBetweenEquality)
         , PublicFactCol("noop_rollup_spend", "Noop Rollup Spend", InBetweenEquality)
+        , PublicFactCol("Average Bid", "Average Bid", InNotInBetweenEqualityNotEqualsGreaterLesser)
+        , PublicFactCol("Bid Modifier Fact", "Bid Modifier Fact", InNotInBetweenEqualityNotEqualsGreaterLesser)
+        , PublicFactCol("Modified Bid Fact", "Modified Bid Fact", InNotInBetweenEqualityNotEqualsGreaterLesser)
       ),
       Set(EqualityFilter("Status","Valid", isForceFilter = true)),
       Map(

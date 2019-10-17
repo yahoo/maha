@@ -737,15 +737,23 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
         // Matching case for non rollup expression recursively
         expression match {
           case col@COL(colName, _, _) =>
-            val colNameParsed = colName.replaceFirst("\\{", "").replaceFirst("\\}", "").trim
-            val colOption = fact.columnsByNameMap.get(colNameParsed)
-            if(colOption.isDefined) {
-              colOption.get match {
-                case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-                  grepHasRollupExpression(fact, de.expression)
-                case _=> expression.hasRollupExpression
+            val pattern = "\\{([^}]+)\\}".r
+            val colNames = pattern.findAllIn(colName).toSet
+            for (colName <- colNames) {
+              val colNameParsed = colName.replaceFirst("\\{", "").replaceFirst("\\}", "").trim
+              val colOption = fact.columnsByNameMap.get(colNameParsed)
+              val hasRollupExpr = if(colOption.isDefined) {
+                colOption.get match {
+                  case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
+                    grepHasRollupExpression(fact, de.expression)
+                  case _=> expression.hasRollupExpression
+                }
+              } else expression.hasRollupExpression
+              if (!hasRollupExpr) {
+                return false
               }
-            } else expression.hasRollupExpression
+            }
+            true
           case ROUND(hiveExp, _)=> grepHasRollupExpression(fact, hiveExp)
           case COALESCE(hiveExp, _)=> grepHasRollupExpression(fact, hiveExp)
           case NVL(hiveExp, _)=> grepHasRollupExpression(fact, hiveExp)
