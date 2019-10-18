@@ -12,7 +12,7 @@ import scala.collection.mutable
 /*
     Created by ritvikj on 10/2/19
 */
-abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends PrestoQueryGeneratorCommon(partitionColumnRenderer, udfStatements)  with Logging {
+abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends PrestoQueryGeneratorCommon(partitionColumnRenderer, udfStatements) with HivePrestoQueryCommon with Logging {
 
   protected def generateOuterGroupByQuery(queryContext: DimFactOuterGroupByQueryQueryContext): Query = {
 
@@ -38,22 +38,22 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
 
     val aliasColumnMapOfRequestCols = new mutable.HashMap[String, Column]()
 
-    def generateOrderByClause(queryContext: DimFactOuterGroupByQueryQueryContext,
-                              queryBuilder: QueryBuilder): Unit = {
-      val model = queryContext.requestModel
-      model.requestSortByCols.map {
-        case FactSortByColumnInfo(alias, order) if queryBuilderContext.containsPreOuterFinalAliasToAliasMap(alias) =>
-          val preOuterAliasOption = queryBuilderContext.getPreOuterFinalAliasToAliasMap(alias)
-          s"${preOuterAliasOption.get} ${order}"
-        case FactSortByColumnInfo(alias, order) =>
-          val colExpression = queryBuilderContext.getFactColNameForAlias(alias)
-          s"$colExpression ${order}"
-        case DimSortByColumnInfo(alias, order) =>
-          val dimColName = queryBuilderContext.getDimensionColNameForAlias(alias)
-          s"$dimColName ${order}"
-        case a => throw new IllegalArgumentException(s"Unhandled SortByColumnInfo $a")
-      }.foreach(queryBuilder.addOrderBy(_))
-    }
+//    def generateOrderByClause(queryContext: DimFactOuterGroupByQueryQueryContext,
+//                              queryBuilder: QueryBuilder): Unit = {
+//      val model = queryContext.requestModel
+//      model.requestSortByCols.map {
+//        case FactSortByColumnInfo(alias, order) if queryBuilderContext.containsPreOuterFinalAliasToAliasMap(alias) =>
+//          val preOuterAliasOption = queryBuilderContext.getPreOuterFinalAliasToAliasMap(alias)
+//          s"${preOuterAliasOption.get} ${order}"
+//        case FactSortByColumnInfo(alias, order) =>
+//          val colExpression = queryBuilderContext.getFactColNameForAlias(alias)
+//          s"$colExpression ${order}"
+//        case DimSortByColumnInfo(alias, order) =>
+//          val dimColName = queryBuilderContext.getDimensionColNameForAlias(alias)
+//          s"$dimColName ${order}"
+//        case a => throw new IllegalArgumentException(s"Unhandled SortByColumnInfo $a")
+//      }.foreach(queryBuilder.addOrderBy(_))
+//    }
 
     /**
       * Inner Fact query generator which select only primitive columns from the fact.
@@ -66,7 +66,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
                              queryBuilder: QueryBuilder,
                              queryBuilderContext: QueryBuilderContext,
                              renderRollupExpression: (String, RollupExpression, Option[String]) => String,
-                             renderColumnWithAlias: (Fact, Column, String, Set[String], Boolean, QueryContext, QueryBuilderContext, QueryBuilder) => Unit,
+                             renderColumnWithAlias: (Fact, Column, String, Set[String], Boolean, QueryContext, QueryBuilderContext, QueryBuilder, Engine) => Unit,
                              primitiveColsSet: mutable.LinkedHashSet[(String, Column)],
                              noopRollupColSet: mutable.LinkedHashSet[(String, Column)]) : String = { // base: query common
 
@@ -86,7 +86,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
           case (column, alias) =>
             val name = column.name
             val nameOrAlias = column.alias.getOrElse(name)
-            renderColumnWithAlias(fact, column, alias, Set.empty, false, queryContext, queryBuilderContext, queryBuilder)
+            renderColumnWithAlias(fact, column, alias, Set.empty, false, queryContext, queryBuilderContext, queryBuilder, PrestoEngine)
             val isAggregatedDimCol = isAggregateDimCol(column)
             if (!isAggregatedDimCol) {
               if (column.isDerivedColumn) {
@@ -94,7 +94,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
                 queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
               } else {
                 if(column.dataType.hasStaticMapping) {
-                  queryBuilder.addGroupBy(renderStaticMappedDimension(column))
+                  queryBuilder.addGroupBy(renderStaticMappedDimension(column, PrestoEngine))
                 } else {
                   queryBuilder.addGroupBy(nameOrAlias)
                 }
@@ -127,13 +127,13 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
 
       groupedFactCols.get(true).map {
         derivedFactCols =>
-          dfsGetPrimitiveCols(fact, derivedFactCols.map(_._1).toIndexedSeq, primitiveColsSet)
+          dfsGetPrimitiveCols(fact, derivedFactCols.map(_._1).toIndexedSeq, primitiveColsSet, PrestoEngine)
       }
 
       //
       val customRollupSet = getCustomRollupColsSet(groupedFactCols, queryBuilderContext)
       if(customRollupSet.nonEmpty) {
-        dfsGetPrimitiveCols(fact, customRollupSet.map(_._1).toIndexedSeq, primitiveColsSet)
+        dfsGetPrimitiveCols(fact, customRollupSet.map(_._1).toIndexedSeq, primitiveColsSet, PrestoEngine)
       }
 
       // Find out all the NoopRollup cols recursively
@@ -142,7 +142,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
       // Render Primitive columns
       primitiveColsSet.foreach {
         case (alias:String, column: Column) =>
-          renderColumnWithAlias(fact, column, alias, Set.empty, false, queryContext, queryBuilderContext, queryBuilder)
+          renderColumnWithAlias(fact, column, alias, Set.empty, false, queryContext, queryBuilderContext, queryBuilder, PrestoEngine)
           val colName= column.alias.getOrElse(column.name)
           // If recursively found primitive col is dimension column then add it to group by clause
           if (fact.dimColMap.contains(colName)) {
@@ -276,7 +276,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
 
     ogbGeneratePreOuterColumns(primitiveColsSet.toMap, noopRollupColsMap = noopRollupColSet.toMap, queryContext.factBestCandidate, queryContext, queryBuilder, queryBuilderContext)
 
-    generateOrderByClause(queryContext, queryBuilder)
+    generateOrderByClause(queryContext, queryBuilder, queryBuilderContext)
 
     val outerCols = queryBuilder.getPreOuterColumns  //generateOuterColumns(queryContext, queryBuilderContext, queryBuilder, renderOuterColumn)
 
@@ -527,49 +527,49 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
   /*
   Recursively visits all the derived columns and store the primitive columns in the set.
    */
-  def dfsGetPrimitiveCols(fact:Fact, derivedCols: IndexedSeq[Column], primitiveColsSet:mutable.LinkedHashSet[(String, Column)]): Unit = {
-    derivedCols.foreach {
-      case derCol:DerivedColumn =>
-        derCol.derivedExpression.sourceColumns.toList.sorted.foreach {
-          sourceCol =>
-            val colOption = fact.columnsByNameMap.get(sourceCol)
-            require(colOption.isDefined, s"Failed to find the sourceColumn $sourceCol in fact ${fact.name}")
-            val col = colOption.get
-            if(col.isDerivedColumn) {
-              dfsGetPrimitiveCols(fact, IndexedSeq(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
-            } else {
-              val name = col.alias.getOrElse(col.name)
-              if (!primitiveColsSet.contains((name, col))) {
-                primitiveColsSet.add((name, col))
-              }
-            }
-        }
-      case derCol : FactCol =>
-        require(derCol.rollupExpression.isInstanceOf[PrestoCustomRollup], s"Unexpected Rollup expression ${derCol.rollupExpression} in finding primitive cols")
-        val customRollup = derCol.rollupExpression.asInstanceOf[PrestoCustomRollup]
-        customRollup.expression.sourceColumns.toList.sorted.foreach {
-          sourceCol =>
-            val colOption = fact.columnsByNameMap.get(sourceCol)
-            require(colOption.isDefined, s"Failed to find the sourceColumn $sourceCol in fact ${fact.name}")
-            val col = colOption.get
-            if(col.isDerivedColumn) {
-              dfsGetPrimitiveCols(fact, IndexedSeq(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
-            } else {
-              col match {
-                case fcol:FactCol if !fcol.rollupExpression.isInstanceOf[PrestoCustomRollup] =>
-                  val name = col.alias.getOrElse(col.name)
-                  if(!primitiveColsSet.contains((name, col))) {
-                    primitiveColsSet.add((name, col))
-                  }
-                case _=>
-              }
-            }
-        }
-
-      case e =>
-        throw new IllegalArgumentException(s"Unexpected column case found in the dfsGetPrimitiveCols $e")
-    }
-  }
+//  def dfsGetPrimitiveCols(fact:Fact, derivedCols: IndexedSeq[Column], primitiveColsSet:mutable.LinkedHashSet[(String, Column)]): Unit = {
+//    derivedCols.foreach {
+//      case derCol:DerivedColumn =>
+//        derCol.derivedExpression.sourceColumns.toList.sorted.foreach {
+//          sourceCol =>
+//            val colOption = fact.columnsByNameMap.get(sourceCol)
+//            require(colOption.isDefined, s"Failed to find the sourceColumn $sourceCol in fact ${fact.name}")
+//            val col = colOption.get
+//            if(col.isDerivedColumn) {
+//              dfsGetPrimitiveCols(fact, IndexedSeq(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
+//            } else {
+//              val name = col.alias.getOrElse(col.name)
+//              if (!primitiveColsSet.contains((name, col))) {
+//                primitiveColsSet.add((name, col))
+//              }
+//            }
+//        }
+//      case derCol : FactCol =>
+//        require(derCol.rollupExpression.isInstanceOf[PrestoCustomRollup], s"Unexpected Rollup expression ${derCol.rollupExpression} in finding primitive cols")
+//        val customRollup = derCol.rollupExpression.asInstanceOf[PrestoCustomRollup]
+//        customRollup.expression.sourceColumns.toList.sorted.foreach {
+//          sourceCol =>
+//            val colOption = fact.columnsByNameMap.get(sourceCol)
+//            require(colOption.isDefined, s"Failed to find the sourceColumn $sourceCol in fact ${fact.name}")
+//            val col = colOption.get
+//            if(col.isDerivedColumn) {
+//              dfsGetPrimitiveCols(fact, IndexedSeq(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
+//            } else {
+//              col match {
+//                case fcol:FactCol if !fcol.rollupExpression.isInstanceOf[PrestoCustomRollup] =>
+//                  val name = col.alias.getOrElse(col.name)
+//                  if(!primitiveColsSet.contains((name, col))) {
+//                    primitiveColsSet.add((name, col))
+//                  }
+//                case _=>
+//              }
+//            }
+//        }
+//
+//      case e =>
+//        throw new IllegalArgumentException(s"Unexpected column case found in the dfsGetPrimitiveCols $e")
+//    }
+//  }
 
   /*
    Find the Custom Rollup columns, and also sets non dependent primitive cols in the query builder context
@@ -592,49 +592,49 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
     }
     customRollupSet
   }
-
-  /*
-     Commonly used method
-   */
-  def renderParentOuterDerivedFactCols(queryBuilderContext:QueryBuilderContext, projectedAlias:String, column:Column): String = {
-    val renderedAlias = projectedAlias
-
-    column match {
-      case PrestoDerDimCol(_, dt, cc, de, _, annotations, _) =>
-        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        s"""$renderedAlias"""
-      case PrestoPartDimCol(_, dt, cc, _, annotations, _) =>
-        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        s"""$renderedAlias"""
-      case DimCol(_, dt, cc, _, annotations, _) if queryBuilderContext.isDimensionCol(projectedAlias) =>
-        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        val innerColAlias = queryBuilderContext.getDimensionColNameForAlias(projectedAlias)
-        s"""$innerColAlias AS $renderedAlias"""
-      case DimCol(_, dt, cc, _, annotations, _) =>
-        val innerAlias = renderColumnAlias(projectedAlias)
-        val renderedAlias = s"""$innerAlias AS $projectedAlias"""
-        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        renderedAlias
-      case ConstDimCol(_, dt, value, cc, _, annotations, _) =>
-        val innerAlias = renderColumnAlias(projectedAlias)
-        val renderedAlias = s"""$innerAlias AS $projectedAlias"""
-        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        renderedAlias
-      case factCol@FactCol(_, dt, cc, rollup, _, annotations, _) if factCol.rollupExpression.isInstanceOf[PrestoCustomRollup]=>
-        val name = factCol.alias.getOrElse(factCol.name)
-        val de = factCol.rollupExpression.asInstanceOf[PrestoCustomRollup].expression
-        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        s"""${de.render(name, Map.empty)} AS $renderedAlias"""
-      case FactCol(_, dt, cc, rollup, _, annotations, _) =>
-        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        s"""$renderedAlias"""
-      case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-        val name = column.alias.getOrElse(column.name)
-        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        s"""${de.render(name, Map.empty)} AS $renderedAlias"""
-      case _=> throw new IllegalArgumentException(s"Unexpected fact derived column found in outer select $column")
-    }
-  }
+//
+//  /*
+//     Commonly used method
+//   */
+//  def renderParentOuterDerivedFactCols(queryBuilderContext:QueryBuilderContext, projectedAlias:String, column:Column): String = {
+//    val renderedAlias = projectedAlias
+//
+//    column match {
+//      case PrestoDerDimCol(_, dt, cc, de, _, annotations, _) =>
+//        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+//        s"""$renderedAlias"""
+//      case PrestoPartDimCol(_, dt, cc, _, annotations, _) =>
+//        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+//        s"""$renderedAlias"""
+//      case DimCol(_, dt, cc, _, annotations, _) if queryBuilderContext.isDimensionCol(projectedAlias) =>
+//        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+//        val innerColAlias = queryBuilderContext.getDimensionColNameForAlias(projectedAlias)
+//        s"""$innerColAlias AS $renderedAlias"""
+//      case DimCol(_, dt, cc, _, annotations, _) =>
+//        val innerAlias = renderColumnAlias(projectedAlias)
+//        val renderedAlias = s"""$innerAlias AS $projectedAlias"""
+//        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+//        renderedAlias
+//      case ConstDimCol(_, dt, value, cc, _, annotations, _) =>
+//        val innerAlias = renderColumnAlias(projectedAlias)
+//        val renderedAlias = s"""$innerAlias AS $projectedAlias"""
+//        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+//        renderedAlias
+//      case factCol@FactCol(_, dt, cc, rollup, _, annotations, _) if factCol.rollupExpression.isInstanceOf[PrestoCustomRollup]=>
+//        val name = factCol.alias.getOrElse(factCol.name)
+//        val de = factCol.rollupExpression.asInstanceOf[PrestoCustomRollup].expression
+//        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+//        s"""${de.render(name, Map.empty)} AS $renderedAlias"""
+//      case FactCol(_, dt, cc, rollup, _, annotations, _) =>
+//        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+//        s"""$renderedAlias"""
+//      case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
+//        val name = column.alias.getOrElse(column.name)
+//        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
+//        s"""${de.render(name, Map.empty)} AS $renderedAlias"""
+//      case _=> throw new IllegalArgumentException(s"Unexpected fact derived column found in outer select $column")
+//    }
+//  }
 
 
   /*
@@ -710,109 +710,244 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
         case _ => throw new UnsupportedOperationException("Unsupported Column Type")
       }
   }
+//
+//  /*
+//method to crawl the NoopRollup fact cols recursively and fill up the parent column
+// whose dependent source columns is/are NoopRollup column.
+// All such parent noop rollup columns has to be rendered at OuterGroupBy layer
+// */
+//  def dfsNoopRollupCols(fact:Fact, cols: Set[(Column, String)], parentList: List[(Column, String)], noopRollupColSet: mutable.LinkedHashSet[(String, Column)]): Unit = {
+//    cols.foreach {
+//      case (col, alias)=>
+//        col match {
+//          case factCol@FactCol(_, dt, cc, rollup, _, annotations, _) =>
+//            rollup match {
+//              case PrestoCustomRollup(e) =>
+//                parseCustomRollup(e, col, alias)
+//              case NoopRollup =>
+//                pickupLeaf(col, alias)
+//              case _=> //ignore all other rollup cases
+//            }
+//          case derCol@PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
+//            rollup match {
+//              case PrestoCustomRollup(e) =>
+//                parseCustomRollup(e, col, alias)
+//              case NoopRollup if grepHasRollupExpression(fact, de.expression) =>
+//                // If NoopRollup column has Aggregate/rollup Expression then push it inside for OGB
+//                pickupLeaf(col, alias)
+//              case _=> //ignore all other rollup cases
+//            }
+//            if (rollup != NoopRollup) {
+//              de.sourceColumns.toList.sorted.foreach {
+//                sourceColName =>
+//                  val colOption = fact.columnsByNameMap.get(sourceColName)
+//                  require(colOption.isDefined, s"Failed to find the sourceColumn $sourceColName in fact ${fact.name}")
+//                  val sourceCol = colOption.get
+//                  val sourceColAlias = sourceCol.alias.getOrElse(sourceCol.name)
+//                  if (col.alias.getOrElse(col.name) != sourceColAlias) {
+//                    // avoid adding self dependent columns
+//                    dfsNoopRollupCols(fact, Set((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
+//                  }
+//              }
+//            }
+//          case _=>
+//          //ignore all dim cols cases
+//        }
+//    }
+//    def parseCustomRollup(expression: PrestoDerivedExpression, col : Column, alias : String): Unit = {
+//      expression.sourceColumns.toList.sorted.foreach {
+//        case sourceColName =>
+//          val colOption = fact.columnsByNameMap.get(sourceColName)
+//          require(colOption.isDefined, s"Failed to find the sourceColumn $sourceColName in fact ${fact.name}")
+//          val sourceCol = colOption.get
+//          val sourceColAlias = sourceCol.alias.getOrElse(sourceCol.name)
+//          if (col.alias.getOrElse(col.name) != sourceColAlias) {
+//            // avoid adding self dependent columns
+//            dfsNoopRollupCols(fact, Set((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
+//          }
+//      }
+//    }
+//
+//    /*
+//    Grep hasRollupExpression recursively in the all the N Derived level dependent columns
+//     */
+//    def grepHasRollupExpression(fact:Fact, expression: PrestoExpression): Boolean = {
+//      if(expression.hasRollupExpression) {
+//        true
+//      } else  {
+//        // Matching case for non rollup expression recursively
+//        expression match {
+//          case col@COL(colName, _, _) =>
+//            val pattern = "\\{([^}]+)\\}".r
+//            val colNames = pattern.findAllIn(colName).toSet
+//            for (colName <- colNames) {
+//              val colNameParsed = colName.replaceFirst("\\{", "").replaceFirst("\\}", "").trim
+//              val colOption = fact.columnsByNameMap.get(colNameParsed)
+//              val hasRollupExpr = if(colOption.isDefined) {
+//                colOption.get match {
+//                  case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
+//                    grepHasRollupExpression(fact, de.expression)
+//                  case _=> expression.hasRollupExpression
+//                }
+//              } else expression.hasRollupExpression
+//              if (!hasRollupExpr) {
+//                return false
+//              }
+//            }
+//            true
+//          case ROUND(prestoExp, _)=> grepHasRollupExpression(fact, prestoExp)
+//          case COALESCE(prestoExp, _)=> grepHasRollupExpression(fact, prestoExp)
+//          case NVL(prestoExp, _)=> grepHasRollupExpression(fact, prestoExp)
+//          case any => any.hasRollupExpression
+//        }
+//      }
+//    }
+//
+//    /*
+//       Pick up the root of the NoopRollup dependent column
+//     */
+//    def pickupLeaf(col : Column, alias : String): Unit = {
+//      val parentCol =  parentList.reverse.headOption
+//      if(parentCol.isDefined) {
+//        noopRollupColSet.add(parentCol.get._2, parentCol.get._1)
+//      } else {
+//        noopRollupColSet.add(alias, col)
+//      }
+//    }
+//  }
 
+  override val prestoLiteralMapper = new HiveLiteralMapper()
+  override def renderColumnAlias(colAlias: String) : String = {
+    val renderedExp = new StringBuilder
+    // Mangle Aliases, Derived expressions except Id's
+    if (!colAlias.toLowerCase.endsWith("id") && (Character.isUpperCase(colAlias.charAt(0)) || colAlias.contains(" "))) {
+      // All aliases are prefixed with _to relieve namespace collisions with pre-defined columns with same name.
+      renderedExp.append("mang_")
+    }
+    // remove everything that is not a letter, a digit or space
+    // replace any whitespace with "_"
+    renderedExp.append(colAlias).toString().replaceAll("[^a-zA-Z0-9\\s_]", "").replaceAll("\\s", "_").toLowerCase
+  }
+  override def getConstantColAlias(alias: String) : String = {
+    renderColumnAlias(alias.replaceAll("[^a-zA-Z0-9_]", ""))
+  }
+  override def getPkFinalAliasForDim (queryBuilderContext: QueryBuilderContext, dimBundle: DimensionBundle) : String = {
+    val pkColName = dimBundle.dim.primaryKey
+    val dimAlias = queryBuilderContext.getAliasForTable(dimBundle.publicDim.name)
+    s"${dimAlias}_$pkColName"
+  }
   /*
-method to crawl the NoopRollup fact cols recursively and fill up the parent column
- whose dependent source columns is/are NoopRollup column.
- All such parent noop rollup columns has to be rendered at OuterGroupBy layer
+  concat column and alias
  */
-  def dfsNoopRollupCols(fact:Fact, cols: Set[(Column, String)], parentList: List[(Column, String)], noopRollupColSet: mutable.LinkedHashSet[(String, Column)]): Unit = {
-    cols.foreach {
-      case (col, alias)=>
-        col match {
-          case factCol@FactCol(_, dt, cc, rollup, _, annotations, _) =>
-            rollup match {
-              case PrestoCustomRollup(e) =>
-                parseCustomRollup(e, col, alias)
-              case NoopRollup =>
-                pickupLeaf(col, alias)
-              case _=> //ignore all other rollup cases
-            }
-          case derCol@PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-            rollup match {
-              case PrestoCustomRollup(e) =>
-                parseCustomRollup(e, col, alias)
-              case NoopRollup if grepHasRollupExpression(fact, de.expression) =>
-                // If NoopRollup column has Aggregate/rollup Expression then push it inside for OGB
-                pickupLeaf(col, alias)
-              case _=> //ignore all other rollup cases
-            }
-            if (rollup != NoopRollup) {
-              de.sourceColumns.toList.sorted.foreach {
-                sourceColName =>
-                  val colOption = fact.columnsByNameMap.get(sourceColName)
-                  require(colOption.isDefined, s"Failed to find the sourceColumn $sourceColName in fact ${fact.name}")
-                  val sourceCol = colOption.get
-                  val sourceColAlias = sourceCol.alias.getOrElse(sourceCol.name)
-                  if (col.alias.getOrElse(col.name) != sourceColAlias) {
-                    // avoid adding self dependent columns
-                    dfsNoopRollupCols(fact, Set((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
-                  }
-              }
-            }
-          case _=>
-          //ignore all dim cols cases
-        }
+  override protected[this] def concat(tuple: (String, String)): String = {
+    if (tuple._2.isEmpty) {
+      s"""${tuple._1}"""
+    } else {
+      s"""${tuple._1} ${tuple._2}"""
     }
-    def parseCustomRollup(expression: PrestoDerivedExpression, col : Column, alias : String): Unit = {
-      expression.sourceColumns.toList.sorted.foreach {
-        case sourceColName =>
-          val colOption = fact.columnsByNameMap.get(sourceColName)
-          require(colOption.isDefined, s"Failed to find the sourceColumn $sourceColName in fact ${fact.name}")
-          val sourceCol = colOption.get
-          val sourceColAlias = sourceCol.alias.getOrElse(sourceCol.name)
-          if (col.alias.getOrElse(col.name) != sourceColAlias) {
-            // avoid adding self dependent columns
-            dfsNoopRollupCols(fact, Set((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
-          }
+  }
+  override def getFactBest(queryContext: QueryContext): FactBestCandidate = {
+    queryContext match {
+      case fcq: FactualQueryContext=>
+        fcq.factBestCandidate
+      case _=> throw new IllegalArgumentException(s"Trying to extract FactBestCandidate in the non factual query context ${queryContext.getClass}")
+    }
+  }
+  override def renderRollupExpression(expression: String, rollupExpression: RollupExpression, renderedColExp: Option[String] = None) : String = {
+    rollupExpression match {
+      case SumRollup => s"SUM($expression)"
+      case MaxRollup => s"MAX($expression)"
+      case MinRollup => s"MIN($expression)"
+      case AverageRollup => s"AVG($expression)"
+      case PrestoCustomRollup(exp) => s"(${exp.render(expression, Map.empty, renderedColExp)})"
+      case NoopRollup => s"($expression)"
+      case CountRollup => s"COUNT(*)"
+      case any => throw new UnsupportedOperationException(s"Unhandled rollup expression : $any")
+    }
+  }
+
+  override def generateDimJoinQuery(queryBuilderContext: QueryBuilderContext, dimBundle: DimensionBundle, fact: Fact, requestModel: RequestModel, factViewAlias: String) : String = {
+
+    /**
+      *  render fact/dim columns with derived/rollup expression
+      */
+    def renderColumn(column: Column, alias: String): String = {
+      val name = column.alias.getOrElse(column.name)
+      column match {
+        case DimCol(_, dt, _, _, _, _) =>
+          name
+        case PrestoDerDimCol(_, dt, _, de, _, _, _) =>
+          s"""${de.render(name, Map.empty)}"""
+        case other => throw new IllegalArgumentException(s"Unhandled column type for dimension cols : $other")
       }
     }
 
-    /*
-    Grep hasRollupExpression recursively in the all the N Derived level dependent columns
-     */
-    def grepHasRollupExpression(fact:Fact, expression: PrestoExpression): Boolean = {
-      if(expression.hasRollupExpression) {
-        true
-      } else  {
-        // Matching case for non rollup expression recursively
-        expression match {
-          case col@COL(colName, _, _) =>
-            val pattern = "\\{([^}]+)\\}".r
-            val colNames = pattern.findAllIn(colName).toSet
-            for (colName <- colNames) {
-              val colNameParsed = colName.replaceFirst("\\{", "").replaceFirst("\\}", "").trim
-              val colOption = fact.columnsByNameMap.get(colNameParsed)
-              val hasRollupExpr = if(colOption.isDefined) {
-                colOption.get match {
-                  case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-                    grepHasRollupExpression(fact, de.expression)
-                  case _=> expression.hasRollupExpression
-                }
-              } else expression.hasRollupExpression
-              if (!hasRollupExpr) {
-                return false
-              }
-            }
-            true
-          case ROUND(prestoExp, _)=> grepHasRollupExpression(fact, prestoExp)
-          case COALESCE(prestoExp, _)=> grepHasRollupExpression(fact, prestoExp)
-          case NVL(prestoExp, _)=> grepHasRollupExpression(fact, prestoExp)
-          case any => any.hasRollupExpression
+    val requestDimCols = dimBundle.fields
+    val publicDimName = dimBundle.publicDim.name
+    val dimTableName = dimBundle.dim.underlyingTableName.getOrElse(dimBundle.dim.name)
+    val dimFilters = dimBundle.filters
+    val fkColName = fact.publicDimToForeignKeyMap(publicDimName)
+    val fkCol = fact.columnsByNameMap(fkColName)
+    val pkColName = dimBundle.dim.primaryKey
+    val dimAlias = queryBuilderContext.getAliasForTable(publicDimName)
+
+    val dimCols = requestDimCols map {
+      colAlias =>
+        if (dimBundle.publicDim.isPrimaryKeyAlias(colAlias)) {
+          s"""$pkColName ${getPkFinalAliasForDim(queryBuilderContext, dimBundle)}"""
+        } else {
+          val colName = dimBundle.publicDim.aliasToNameMapFull(colAlias)
+          val column = dimBundle.dim.dimensionColumnsByNameMap(colName)
+          val finalAlias : String = queryBuilderContext.getDimensionColNameForAlias(colAlias)
+          s"${renderColumn(column, finalAlias)} AS $finalAlias"
         }
-      }
     }
 
-    /*
-       Pick up the root of the NoopRollup dependent column
-     */
-    def pickupLeaf(col : Column, alias : String): Unit = {
-      val parentCol =  parentList.reverse.headOption
-      if(parentCol.isDefined) {
-        noopRollupColSet.add(parentCol.get._2, parentCol.get._1)
+    val aliasToNameMapFull = dimBundle.publicDim.aliasToNameMapFull
+    val columnsByNameMap = dimBundle.dim.columnsByNameMap
+
+    val wheres = dimFilters map {
+      filter =>
+        FilterSql.renderFilter(
+          filter,
+          aliasToNameMapFull,
+          Map.empty,
+          columnsByNameMap,
+          PrestoEngine,
+          prestoLiteralMapper
+        ).filter
+    }
+
+    val partitionFilters = partitionColumnRenderer.renderDim(requestModel, dimBundle, prestoLiteralMapper, PrestoEngine)
+    val renderedFactFk = renderColumn(fkCol, "")
+
+    val dimWhere = s"""WHERE ${RenderedAndFilter(wheres + partitionFilters).toString}"""
+
+    val joinType = if (requestModel.anyDimHasNonFKNonForceFilter) {
+      "JOIN"
+    } else {
+      "LEFT OUTER JOIN"
+    }
+
+    // Columns on which join is done must be of the same type. Add explicit CAST otherwise.
+    val joinCondition = {
+      require(dimBundle.dim.columnsByNameMap.contains(pkColName), s"Dim: ${dimBundle.dim.name} does not contain $pkColName")
+      if (fkCol.dataType.getClass.equals(dimBundle.dim.columnsByNameMap(pkColName).dataType.getClass)) {
+        s"$factViewAlias.$renderedFactFk = $dimAlias.${dimAlias}_$pkColName"
       } else {
-        noopRollupColSet.add(alias, col)
+        s"CAST($factViewAlias.$renderedFactFk AS VARCHAR) = CAST($dimAlias.${dimAlias}_$pkColName AS VARCHAR)"
       }
     }
+
+    s"""$joinType (
+       |SELECT ${dimCols.mkString(", ")}
+       |FROM $dimTableName
+       |$dimWhere
+       |)
+       |$dimAlias
+       |ON
+       |$joinCondition
+       """.stripMargin
+
   }
 }
