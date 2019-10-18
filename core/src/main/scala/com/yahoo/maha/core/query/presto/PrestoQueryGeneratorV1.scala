@@ -119,7 +119,7 @@ class PrestoQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, ud
           case (column, alias) =>
             val name = column.name
             val nameOrAlias = column.alias.getOrElse(name)
-            renderColumnWithAlias(fact, column, alias, Set.empty, isOuterColumn = false, queryContext, queryBuilderContext, queryBuilder)
+            renderColumnWithAlias(fact, column, alias, Set.empty, isOuterColumn = false, queryContext, queryBuilderContext, queryBuilder, PrestoEngine)
             if (column.isDerivedColumn) {
               val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
               queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
@@ -144,7 +144,7 @@ class PrestoQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, ud
         nonDerivedCols.foreach {
           case (column, alias) =>
             val renderedAlias = s""""$alias""""
-            renderColumnWithAlias(fact, column, alias, Set.empty, isOuterColumn = false, queryContext, queryBuilderContext, queryBuilder)
+            renderColumnWithAlias(fact, column, alias, Set.empty, isOuterColumn = false, queryContext, queryBuilderContext, queryBuilder, PrestoEngine)
         }
       }
 
@@ -155,7 +155,7 @@ class PrestoQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, ud
         derivedCols.foreach {
           case (column, alias) =>
             val renderedAlias = s""""$alias""""
-            renderColumnWithAlias(fact, column, alias, requiredInnerCols, isOuterColumn = false, queryContext, queryBuilderContext, queryBuilder)
+            renderColumnWithAlias(fact, column, alias, requiredInnerCols, isOuterColumn = false, queryContext, queryBuilderContext, queryBuilder, PrestoEngine)
         }
       }
 

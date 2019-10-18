@@ -1,10 +1,9 @@
 package com.yahoo.maha.core.query.hive
 
-import com.yahoo.maha.core.HiveExpression.{COALESCE, COL, NVL, ROUND}
+import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
-import com.yahoo.maha.core.{HiveExpression, _}
 import grizzled.slf4j.Logging
 
 import scala.collection.mutable
@@ -774,138 +773,138 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
 //      }
 //    }
 //  }
-
-  override val hiveLiteralMapper = new HiveLiteralMapper()
-  override def renderColumnAlias(colAlias: String) : String = {
-    val renderedExp = new StringBuilder
-    // Mangle Aliases, Derived expressions except Id's
-    if (!colAlias.toLowerCase.endsWith("id") && (Character.isUpperCase(colAlias.charAt(0)) || colAlias.contains(" "))) {
-      // All aliases are prefixed with _to relieve namespace collisions with pre-defined columns with same name.
-      renderedExp.append("mang_")
-    }
-    // remove everything that is not a letter, a digit or space
-    // replace any whitespace with "_"
-    renderedExp.append(colAlias).toString().replaceAll("[^a-zA-Z0-9\\s_]", "").replaceAll("\\s", "_").toLowerCase
-  }
-  override def getConstantColAlias(alias: String) : String = {
-    renderColumnAlias(alias.replaceAll("[^a-zA-Z0-9_]", ""))
-  }
-  override def getPkFinalAliasForDim (queryBuilderContext: QueryBuilderContext, dimBundle: DimensionBundle) : String = {
-    val pkColName = dimBundle.dim.primaryKey
-    val dimAlias = queryBuilderContext.getAliasForTable(dimBundle.publicDim.name)
-    s"${dimAlias}_$pkColName"
-  }
-  /*
-  concat column and alias
- */
-  override protected[this] def concat(tuple: (String, String)): String = {
-    if (tuple._2.isEmpty) {
-      s"""${tuple._1}"""
-    } else {
-      s"""${tuple._1} ${tuple._2}"""
-    }
-  }
-  override protected[this] def nvl(name:String) :String = {
-    s"""NVL($name,'')"""
-  }
-  override protected[this] def to_string(col:String) : String = {
-    s"""CAST($col AS STRING)"""
-  }
-  override protected[this] def concat_ws(csvCol:String) : String = {
-    s"""CONCAT_WS(',', $csvCol)"""
-  }
-  override def getFactBest(queryContext: QueryContext): FactBestCandidate = {
-    queryContext match {
-      case fcq: FactualQueryContext=>
-        fcq.factBestCandidate
-      case _=> throw new IllegalArgumentException(s"Trying to extract FactBestCandidate in the non factual query context ${queryContext.getClass}")
-    }
-  }
-  override def renderRollupExpression(expression: String, rollupExpression: RollupExpression, renderedColExp: Option[String] = None) : String = {
-    rollupExpression match {
-      case SumRollup => s"SUM($expression)"
-      case MaxRollup => s"MAX($expression)"
-      case MinRollup => s"MIN($expression)"
-      case AverageRollup => s"AVG($expression)"
-      case HiveCustomRollup(exp) =>
-        s"(${exp.render(expression, Map.empty, renderedColExp)})"
-      case NoopRollup => s"($expression)"
-      case any => throw new UnsupportedOperationException(s"Unhandled rollup expression : $any")
-    }
-  }
-
-  override def generateDimJoinQuery(queryBuilderContext: QueryBuilderContext, dimBundle: DimensionBundle, fact: Fact, requestModel: RequestModel, factViewAlias: String) : String = {
-
-    /**
-      *  render fact/dim columns with derived/rollup expression
-      */
-    def renderColumn(column: Column, alias: String): String = {
-      val name = column.alias.getOrElse(column.name)
-      column match {
-        case DimCol(_, dt, _, _, _, _) =>
-          name
-        case HiveDerDimCol(_, dt, _, de, _, _, _) =>
-          s"""${de.render(name, Map.empty)}"""
-        case other => throw new IllegalArgumentException(s"Unhandled column type for dimension cols : $other")
-      }
-    }
-
-    val requestDimCols = dimBundle.fields
-    val publicDimName = dimBundle.publicDim.name
-    val dimTableName = dimBundle.dim.name
-    val dimFilters = dimBundle.filters
-    val fkColName = fact.publicDimToForeignKeyMap(publicDimName)
-    val fkCol = fact.columnsByNameMap(fkColName)
-    val pkColName = dimBundle.dim.primaryKey
-    val dimAlias = queryBuilderContext.getAliasForTable(publicDimName)
-
-    val dimCols = requestDimCols map {
-      colAlias =>
-        if (dimBundle.publicDim.isPrimaryKeyAlias(colAlias)) {
-          s"""$pkColName ${getPkFinalAliasForDim(queryBuilderContext, dimBundle)}"""
-        } else {
-          val colName = dimBundle.publicDim.aliasToNameMapFull(colAlias)
-          val column = dimBundle.dim.dimensionColumnsByNameMap(colName)
-          val finalAlias : String = queryBuilderContext.getDimensionColNameForAlias(colAlias)
-          s"${renderColumn(column, finalAlias)} AS $finalAlias"
-        }
-    }
-
-    val aliasToNameMapFull = dimBundle.publicDim.aliasToNameMapFull
-    val columnsByNameMap = dimBundle.dim.columnsByNameMap
-
-    val wheres = dimFilters map {
-      filter =>
-        FilterSql.renderFilter(
-          filter,
-          aliasToNameMapFull,
-          Map.empty,
-          columnsByNameMap,
-          HiveEngine,
-          hiveLiteralMapper
-        ).filter
-    }
-
-    val partitionFilters = partitionColumnRenderer.renderDim(requestModel, dimBundle, hiveLiteralMapper, HiveEngine)
-    val renderedFactFk = renderColumn(fkCol, "")
-
-    val dimWhere = s"""WHERE ${RenderedAndFilter(wheres + partitionFilters).toString}"""
-
-    val joinType = if (requestModel.anyDimHasNonFKNonForceFilter) {
-      "JOIN"
-    } else {
-      "LEFT OUTER JOIN"
-    }
-    // pkColName ?? alias ?? cc3_id
-    s"""$joinType (
-       |SELECT ${dimCols.mkString(", ")}
-       |FROM $dimTableName
-       |$dimWhere
-       |)
-       |$dimAlias
-       |ON
-       |$factViewAlias.$renderedFactFk = $dimAlias.${dimAlias}_$pkColName
-       """.stripMargin
-
-  }
+//
+//  override val hiveLiteralMapper = new HiveLiteralMapper()
+//  override def renderColumnAlias(colAlias: String) : String = {
+//    val renderedExp = new StringBuilder
+//    // Mangle Aliases, Derived expressions except Id's
+//    if (!colAlias.toLowerCase.endsWith("id") && (Character.isUpperCase(colAlias.charAt(0)) || colAlias.contains(" "))) {
+//      // All aliases are prefixed with _to relieve namespace collisions with pre-defined columns with same name.
+//      renderedExp.append("mang_")
+//    }
+//    // remove everything that is not a letter, a digit or space
+//    // replace any whitespace with "_"
+//    renderedExp.append(colAlias).toString().replaceAll("[^a-zA-Z0-9\\s_]", "").replaceAll("\\s", "_").toLowerCase
+//  }
+//  override def getConstantColAlias(alias: String) : String = {
+//    renderColumnAlias(alias.replaceAll("[^a-zA-Z0-9_]", ""))
+//  }
+//  override def getPkFinalAliasForDim (queryBuilderContext: QueryBuilderContext, dimBundle: DimensionBundle) : String = {
+//    val pkColName = dimBundle.dim.primaryKey
+//    val dimAlias = queryBuilderContext.getAliasForTable(dimBundle.publicDim.name)
+//    s"${dimAlias}_$pkColName"
+//  }
+//  /*
+//  concat column and alias
+// */
+//  override protected[this] def concat(tuple: (String, String)): String = {
+//    if (tuple._2.isEmpty) {
+//      s"""${tuple._1}"""
+//    } else {
+//      s"""${tuple._1} ${tuple._2}"""
+//    }
+//  }
+//  override protected[this] def nvl(name:String) :String = {
+//    s"""NVL($name,'')"""
+//  }
+//  override protected[this] def to_string(col:String) : String = {
+//    s"""CAST($col AS STRING)"""
+//  }
+//  override protected[this] def concat_ws(csvCol:String) : String = {
+//    s"""CONCAT_WS(',', $csvCol)"""
+//  }
+//  override def getFactBest(queryContext: QueryContext): FactBestCandidate = {
+//    queryContext match {
+//      case fcq: FactualQueryContext=>
+//        fcq.factBestCandidate
+//      case _=> throw new IllegalArgumentException(s"Trying to extract FactBestCandidate in the non factual query context ${queryContext.getClass}")
+//    }
+//  }
+//  override def renderRollupExpression(expression: String, rollupExpression: RollupExpression, renderedColExp: Option[String] = None) : String = {
+//    rollupExpression match {
+//      case SumRollup => s"SUM($expression)"
+//      case MaxRollup => s"MAX($expression)"
+//      case MinRollup => s"MIN($expression)"
+//      case AverageRollup => s"AVG($expression)"
+//      case HiveCustomRollup(exp) =>
+//        s"(${exp.render(expression, Map.empty, renderedColExp)})"
+//      case NoopRollup => s"($expression)"
+//      case any => throw new UnsupportedOperationException(s"Unhandled rollup expression : $any")
+//    }
+//  }
+//
+//  override def generateDimJoinQuery(queryBuilderContext: QueryBuilderContext, dimBundle: DimensionBundle, fact: Fact, requestModel: RequestModel, factViewAlias: String) : String = {
+//
+//    /**
+//      *  render fact/dim columns with derived/rollup expression
+//      */
+//    def renderColumn(column: Column, alias: String): String = {
+//      val name = column.alias.getOrElse(column.name)
+//      column match {
+//        case DimCol(_, dt, _, _, _, _) =>
+//          name
+//        case HiveDerDimCol(_, dt, _, de, _, _, _) =>
+//          s"""${de.render(name, Map.empty)}"""
+//        case other => throw new IllegalArgumentException(s"Unhandled column type for dimension cols : $other")
+//      }
+//    }
+//
+//    val requestDimCols = dimBundle.fields
+//    val publicDimName = dimBundle.publicDim.name
+//    val dimTableName = dimBundle.dim.name
+//    val dimFilters = dimBundle.filters
+//    val fkColName = fact.publicDimToForeignKeyMap(publicDimName)
+//    val fkCol = fact.columnsByNameMap(fkColName)
+//    val pkColName = dimBundle.dim.primaryKey
+//    val dimAlias = queryBuilderContext.getAliasForTable(publicDimName)
+//
+//    val dimCols = requestDimCols map {
+//      colAlias =>
+//        if (dimBundle.publicDim.isPrimaryKeyAlias(colAlias)) {
+//          s"""$pkColName ${getPkFinalAliasForDim(queryBuilderContext, dimBundle)}"""
+//        } else {
+//          val colName = dimBundle.publicDim.aliasToNameMapFull(colAlias)
+//          val column = dimBundle.dim.dimensionColumnsByNameMap(colName)
+//          val finalAlias : String = queryBuilderContext.getDimensionColNameForAlias(colAlias)
+//          s"${renderColumn(column, finalAlias)} AS $finalAlias"
+//        }
+//    }
+//
+//    val aliasToNameMapFull = dimBundle.publicDim.aliasToNameMapFull
+//    val columnsByNameMap = dimBundle.dim.columnsByNameMap
+//
+//    val wheres = dimFilters map {
+//      filter =>
+//        FilterSql.renderFilter(
+//          filter,
+//          aliasToNameMapFull,
+//          Map.empty,
+//          columnsByNameMap,
+//          HiveEngine,
+//          hiveLiteralMapper
+//        ).filter
+//    }
+//
+//    val partitionFilters = partitionColumnRenderer.renderDim(requestModel, dimBundle, hiveLiteralMapper, HiveEngine)
+//    val renderedFactFk = renderColumn(fkCol, "")
+//
+//    val dimWhere = s"""WHERE ${RenderedAndFilter(wheres + partitionFilters).toString}"""
+//
+//    val joinType = if (requestModel.anyDimHasNonFKNonForceFilter) {
+//      "JOIN"
+//    } else {
+//      "LEFT OUTER JOIN"
+//    }
+//    // pkColName ?? alias ?? cc3_id
+//    s"""$joinType (
+//       |SELECT ${dimCols.mkString(", ")}
+//       |FROM $dimTableName
+//       |$dimWhere
+//       |)
+//       |$dimAlias
+//       |ON
+//       |$factViewAlias.$renderedFactFk = $dimAlias.${dimAlias}_$pkColName
+//       """.stripMargin
+//
+//  }
 }

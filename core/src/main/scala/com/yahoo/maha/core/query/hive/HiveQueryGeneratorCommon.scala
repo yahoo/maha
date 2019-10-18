@@ -1,31 +1,29 @@
 package com.yahoo.maha.core.query.hive
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension.{BaseDerivedAggregateDimCol, _}
+import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
-import com.yahoo.maha.core.query.{FactualQueryContext, _}
+import com.yahoo.maha.core.query._
 
 import scala.collection.{SortedSet, mutable}
 
-abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends BaseQueryGenerator[WithHiveEngine] {
+abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends BaseQueryGenerator[WithHiveEngine] with HivePrestoQueryCommon {
+//
+//  def renderColumnAlias(colAlias: String) : String = {
+//    val renderedExp = new StringBuilder
+//    // Mangle Aliases, Derived expressions except Id's
+//    if (!colAlias.toLowerCase.endsWith("id") && (Character.isUpperCase(colAlias.charAt(0)) || colAlias.contains(" "))) {
+//      // All aliases are prefixed with _to relieve namespace collisions with pre-defined columns with same name.
+//      renderedExp.append("mang_")
+//    }
+//    // remove everything that is not a letter, a digit or space
+//    // replace any whitespace with "_"
+//    renderedExp.append(colAlias).toString().replaceAll("[^a-zA-Z0-9\\s_]", "").replaceAll("\\s", "_").toLowerCase
+//  }
 
-  val hiveLiteralMapper = new HiveLiteralMapper()
-
-  def renderColumnAlias(colAlias: String) : String = {
-    val renderedExp = new StringBuilder
-    // Mangle Aliases, Derived expressions except Id's
-    if (!colAlias.toLowerCase.endsWith("id") && (Character.isUpperCase(colAlias.charAt(0)) || colAlias.contains(" "))) {
-      // All aliases are prefixed with _to relieve namespace collisions with pre-defined columns with same name.
-      renderedExp.append("mang_")
-    }
-    // remove everything that is not a letter, a digit or space
-    // replace any whitespace with "_"
-    renderedExp.append(colAlias).toString().replaceAll("[^a-zA-Z0-9\\s_]", "").replaceAll("\\s", "_").toLowerCase
-  }
-
-  def getConstantColAlias(alias: String) : String = {
-    renderColumnAlias(alias.replaceAll("[^a-zA-Z0-9_]", ""))
-  }
+//  def getConstantColAlias(alias: String) : String = {
+//    renderColumnAlias(alias.replaceAll("[^a-zA-Z0-9_]", ""))
+//  }
 
   // render outercols with column expression
   def generateOuterColumns(queryContext: CombinedQueryContext,
@@ -40,29 +38,29 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
     }
     queryBuilder.getOuterColumns
   }
-
-  /**
-    *  render fact/dim columns with derived/rollup expression
-    */
-  def renderStaticMappedDimension(column: Column) : String = {
-    val nameOrAlias = renderColumnAlias(column.alias.getOrElse(column.name))
-    column.dataType match {
-      case IntType(_, sm, _, _, _) if sm.isDefined =>
-        val defaultValue = sm.get.default
-        val whenClauses = sm.get.tToStringMap.map {
-          case (from, to) => s"WHEN ($nameOrAlias IN ($from)) THEN '$to'"
-        }
-        s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
-      case StrType(_, sm, _) if sm.isDefined =>
-        val defaultValue = sm.get.default
-        val decodeValues = sm.get.tToStringMap.map {
-          case (from, to) => s"'$from', '$to'"
-        }
-        s"""decodeUDF($nameOrAlias, ${decodeValues.mkString(", ")}, '$defaultValue')"""
-      case _ =>
-        s"""COALESCE($nameOrAlias, "NA")"""
-    }
-  }
+//
+//  /**
+//    *  render fact/dim columns with derived/rollup expression
+//    */
+//  def renderStaticMappedDimension(column: Column) : String = {
+//    val nameOrAlias = renderColumnAlias(column.alias.getOrElse(column.name))
+//    column.dataType match {
+//      case IntType(_, sm, _, _, _) if sm.isDefined =>
+//        val defaultValue = sm.get.default
+//        val whenClauses = sm.get.tToStringMap.map {
+//          case (from, to) => s"WHEN ($nameOrAlias IN ($from)) THEN '$to'"
+//        }
+//        s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
+//      case StrType(_, sm, _) if sm.isDefined =>
+//        val defaultValue = sm.get.default
+//        val decodeValues = sm.get.tToStringMap.map {
+//          case (from, to) => s"'$from', '$to'"
+//        }
+//        s"""decodeUDF($nameOrAlias, ${decodeValues.mkString(", ")}, '$defaultValue')"""
+//      case _ =>
+//        s"""COALESCE($nameOrAlias, "NA")"""
+//    }
+//  }
 
   /**
     * Fact select
@@ -79,7 +77,7 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
                                 queryBuilder: QueryBuilder,
                                 renderDerivedFactCols: (List[(Column, String)] => Unit),
                                 renderRollupExpression: (String, RollupExpression, Option[String]) => String,
-                                renderColumnWithAlias: (Fact, Column, String, Set[String], Boolean, QueryContext, QueryBuilderContext, QueryBuilder) => Unit) : String = {
+                                renderColumnWithAlias: (Fact, Column, String, Set[String], Boolean, QueryContext, QueryBuilderContext, QueryBuilder, Engine) => Unit) : String = {
 
     val fact = queryContext.factBestCandidate.fact
     val publicFact = queryContext.factBestCandidate.publicFact
@@ -97,7 +95,7 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
         case (column, alias) =>
           val name = column.name
           val nameOrAlias = column.alias.getOrElse(name)
-          renderColumnWithAlias(fact, column, alias, Set.empty, false, queryContext, queryBuilderContext, queryBuilder)
+          renderColumnWithAlias(fact, column, alias, Set.empty, false, queryContext, queryBuilderContext, queryBuilder, HiveEngine)
           val isAggregatedDimCol = isAggregateDimCol(column)
           if (!isAggregatedDimCol) {
             if (column.isDerivedColumn) {
@@ -105,7 +103,7 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
               queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
             } else {
               if(column.dataType.hasStaticMapping) {
-                queryBuilder.addGroupBy(renderStaticMappedDimension(column))
+                queryBuilder.addGroupBy(renderStaticMappedDimension(column, HiveEngine))
               } else {
                 queryBuilder.addGroupBy(nameOrAlias)
               }
@@ -131,7 +129,7 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
       nonDerivedCols.foreach {
         case (column, alias) =>
           val renderedAlias = s""""$alias""""
-          renderColumnWithAlias(fact, column, alias, Set.empty, false, queryContext, queryBuilderContext, queryBuilder)
+          renderColumnWithAlias(fact, column, alias, Set.empty, false, queryContext, queryBuilderContext, queryBuilder, HiveEngine)
       }
     }
 
@@ -221,12 +219,12 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
        |$havingClause
        """.stripMargin
   }
-
-  def getPkFinalAliasForDim (queryBuilderContext: QueryBuilderContext, dimBundle: DimensionBundle) : String = {
-    val pkColName = dimBundle.dim.primaryKey
-    val dimAlias = queryBuilderContext.getAliasForTable(dimBundle.publicDim.name)
-    s"${dimAlias}_$pkColName"
-  }
+//
+//  def getPkFinalAliasForDim (queryBuilderContext: QueryBuilderContext, dimBundle: DimensionBundle) : String = {
+//    val pkColName = dimBundle.dim.primaryKey
+//    val dimAlias = queryBuilderContext.getAliasForTable(dimBundle.publicDim.name)
+//    s"${dimAlias}_$pkColName"
+//  }
 
   def generateDimJoinQuery(queryBuilderContext: QueryBuilderContext, dimBundle: DimensionBundle, fact: Fact, requestModel: RequestModel, factViewAlias: String) : String = {
 
@@ -349,134 +347,134 @@ abstract class HiveQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnR
       s"""$QueryAlias"""
     }
   }
+//
+//  /*
+//  concat column and alias
+// */
+//  protected[this] def concat(tuple: (String, String)): String = {
+//    if (tuple._2.isEmpty) {
+//      s"""${tuple._1}"""
+//    } else {
+//      s"""${tuple._1} ${tuple._2}"""
+//    }
+//  }
+//
+//  protected[this] def nvl(name:String) :String = {
+//    s"""NVL($name,'')"""
+//  }
+//
+//  protected[this] def to_string(col:String) : String = {
+//    s"""CAST($col AS STRING)"""
+//  }
+//
+//  protected[this] def concat_ws(csvCol:String) : String = {
+//    s"""CONCAT_WS(',', $csvCol)"""
+//  }
 
-  /*
-  concat column and alias
- */
-  protected[this] def concat(tuple: (String, String)): String = {
-    if (tuple._2.isEmpty) {
-      s"""${tuple._1}"""
-    } else {
-      s"""${tuple._1} ${tuple._2}"""
-    }
-  }
-
-  protected[this] def nvl(name:String) :String = {
-    s"""NVL($name,'')"""
-  }
-
-  protected[this] def to_string(col:String) : String = {
-    s"""CAST($col AS STRING)"""
-  }
-
-  protected[this] def concat_ws(csvCol:String) : String = {
-    s"""CONCAT_WS(',', $csvCol)"""
-  }
-
-
-  def renderColumnWithAlias(fact: Fact,
-                            column: Column,
-                            alias: String,
-                            requiredInnerCols: Set[String],
-                            isOuterColumn: Boolean,
-                            queryContext: QueryContext,
-                            queryBuilderContext: QueryBuilderContext,
-                            queryBuilder: QueryBuilder): Unit = {
-    val factBestCandidate = getFactBest(queryContext)
-
-    val name = column.alias.getOrElse(column.name)
-    val exp = column match {
-      case any if queryBuilderContext.containsColByName(name) =>
-        //do nothing, we've already processed it
-        ""
-      case DimCol(_, dt, _, _, _, _) if dt.hasStaticMapping =>
-        val renderedAlias = renderColumnAlias(alias)
-        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
-        s"${renderStaticMappedDimension(column)} $name"
-      case DimCol(_, dt, _, _, _, _) =>
-        val renderedAlias = renderColumnAlias(alias)
-        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
-        name
-      case ConstDimCol(_, dt, value, _, _, _, _) =>
-        val renderedAlias = renderColumnAlias(alias)
-        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
-        s"'$value' AS $name"
-      case HiveDerDimCol(_, dt, _, de, _, _, _) =>
-        val renderedAlias = renderColumnAlias(alias)
-        queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-        s"""${de.render(name, Map.empty)} $renderedAlias"""
-      case HivePartDimCol(_, dt, _, _, _, _) =>
-        val renderedAlias = renderColumnAlias(alias)
-        queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-        name
-      case FactCol(_, dt, _, rollup, _, _, _) =>
-        dt match {
-          case DecType(_, _, Some(default), Some(min), Some(max), _) =>
-            val renderedAlias = renderColumnAlias(alias)
-            val minMaxClause = s"CASE WHEN (($name >= $min) AND ($name <= $max)) THEN $name ELSE $default END"
-            queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-            s"""${renderRollupExpression(name, rollup, Option(minMaxClause))} $renderedAlias"""
-          case IntType(_, _, Some(default), Some(min), Some(max)) =>
-            val renderedAlias = renderColumnAlias(alias)
-            val minMaxClause = s"CASE WHEN (($name >= $min) AND ($name <= $max)) THEN $name ELSE $default END"
-            queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-            s"""${renderRollupExpression(name, rollup, Option(minMaxClause))} $renderedAlias"""
-          case _ =>
-            val renderedAlias = renderColumnAlias(alias)
-            queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
-            s"""${renderRollupExpression(name, rollup)} $name"""
-        }
-      case HiveDerDimAggregateCol(_, dt, cc, de, _, _, _) =>
-        // this col always has rollup expresion in derived expression as requirement
-        val renderedAlias = renderColumnAlias(alias)
-        queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-        s"""${renderRollupExpression(de.render(name, Map.empty), NoopRollup)} $renderedAlias"""
-      case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
-        if factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)
-          || de.isDimensionDriven =>
-        val renderedAlias = renderColumnAlias(alias)
-        queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-        s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} $renderedAlias"""
-      case HiveDerFactCol(_, _, dt, cc, de, annotations, _, _) =>
-        //means no fact operation on this column, push expression outside
-        de.sourceColumns.foreach {
-          case src if src != name =>
-            val sourceCol = fact.columnsByNameMap(src)
-            //val renderedAlias = renderColumnAlias(sourceCol.name)
-            val renderedAlias = sourceCol.alias.getOrElse(sourceCol.name)
-            renderColumnWithAlias(fact, sourceCol, renderedAlias, requiredInnerCols, isOuterColumn, queryContext, queryBuilderContext, queryBuilder)
-          case _ => //do nothing if we reference ourselves
-        }
-        //val renderedAlias = renderColumnAlias(alias)
-        val renderedAlias = renderColumnAlias(alias)
-        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${de.render(renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = false)})"""))
-        ""
-    }
-
-    queryBuilder.addFactViewColumn(exp)
-  }
-
-  def getFactBest(queryContext: QueryContext): FactBestCandidate = {
-      queryContext match {
-        case fcq: FactualQueryContext=>
-          fcq.factBestCandidate
-        case _=> throw new IllegalArgumentException(s"Trying to extract FactBestCandidate in the non factual query context ${queryContext.getClass}")
-      }
-  }
-
-  def renderRollupExpression(expression: String, rollupExpression: RollupExpression, renderedColExp: Option[String] = None) : String = {
-    rollupExpression match {
-      case SumRollup => s"SUM($expression)"
-      case MaxRollup => s"MAX($expression)"
-      case MinRollup => s"MIN($expression)"
-      case AverageRollup => s"AVG($expression)"
-      case HiveCustomRollup(exp) => {
-        s"(${exp.render(expression, Map.empty, renderedColExp)})"
-      }
-      case NoopRollup => s"($expression)"
-      case any => throw new UnsupportedOperationException(s"Unhandled rollup expression : $any")
-    }
-  }
+//
+//  def renderColumnWithAlias(fact: Fact,
+//                            column: Column,
+//                            alias: String,
+//                            requiredInnerCols: Set[String],
+//                            isOuterColumn: Boolean,
+//                            queryContext: QueryContext,
+//                            queryBuilderContext: QueryBuilderContext,
+//                            queryBuilder: QueryBuilder): Unit = {
+//    val factBestCandidate = getFactBest(queryContext)
+//
+//    val name = column.alias.getOrElse(column.name)
+//    val exp = column match {
+//      case any if queryBuilderContext.containsColByName(name) =>
+//        //do nothing, we've already processed it
+//        ""
+//      case DimCol(_, dt, _, _, _, _) if dt.hasStaticMapping =>
+//        val renderedAlias = renderColumnAlias(alias)
+//        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
+//        s"${renderStaticMappedDimension(column)} $name"
+//      case DimCol(_, dt, _, _, _, _) =>
+//        val renderedAlias = renderColumnAlias(alias)
+//        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
+//        name
+//      case ConstDimCol(_, dt, value, _, _, _, _) =>
+//        val renderedAlias = renderColumnAlias(alias)
+//        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
+//        s"'$value' AS $name"
+//      case HiveDerDimCol(_, dt, _, de, _, _, _) =>
+//        val renderedAlias = renderColumnAlias(alias)
+//        queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
+//        s"""${de.render(name, Map.empty)} $renderedAlias"""
+//      case HivePartDimCol(_, dt, _, _, _, _) =>
+//        val renderedAlias = renderColumnAlias(alias)
+//        queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
+//        name
+//      case FactCol(_, dt, _, rollup, _, _, _) =>
+//        dt match {
+//          case DecType(_, _, Some(default), Some(min), Some(max), _) =>
+//            val renderedAlias = renderColumnAlias(alias)
+//            val minMaxClause = s"CASE WHEN (($name >= $min) AND ($name <= $max)) THEN $name ELSE $default END"
+//            queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
+//            s"""${renderRollupExpression(name, rollup, Option(minMaxClause))} $renderedAlias"""
+//          case IntType(_, _, Some(default), Some(min), Some(max)) =>
+//            val renderedAlias = renderColumnAlias(alias)
+//            val minMaxClause = s"CASE WHEN (($name >= $min) AND ($name <= $max)) THEN $name ELSE $default END"
+//            queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
+//            s"""${renderRollupExpression(name, rollup, Option(minMaxClause))} $renderedAlias"""
+//          case _ =>
+//            val renderedAlias = renderColumnAlias(alias)
+//            queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
+//            s"""${renderRollupExpression(name, rollup)} $name"""
+//        }
+//      case HiveDerDimAggregateCol(_, dt, cc, de, _, _, _) =>
+//        // this col always has rollup expresion in derived expression as requirement
+//        val renderedAlias = renderColumnAlias(alias)
+//        queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
+//        s"""${renderRollupExpression(de.render(name, Map.empty), NoopRollup)} $renderedAlias"""
+//      case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
+//        if factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)
+//          || de.isDimensionDriven =>
+//        val renderedAlias = renderColumnAlias(alias)
+//        queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
+//        s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} $renderedAlias"""
+//      case HiveDerFactCol(_, _, dt, cc, de, annotations, _, _) =>
+//        //means no fact operation on this column, push expression outside
+//        de.sourceColumns.foreach {
+//          case src if src != name =>
+//            val sourceCol = fact.columnsByNameMap(src)
+//            //val renderedAlias = renderColumnAlias(sourceCol.name)
+//            val renderedAlias = sourceCol.alias.getOrElse(sourceCol.name)
+//            renderColumnWithAlias(fact, sourceCol, renderedAlias, requiredInnerCols, isOuterColumn, queryContext, queryBuilderContext, queryBuilder)
+//          case _ => //do nothing if we reference ourselves
+//        }
+//        //val renderedAlias = renderColumnAlias(alias)
+//        val renderedAlias = renderColumnAlias(alias)
+//        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${de.render(renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = false)})"""))
+//        ""
+//    }
+//
+//    queryBuilder.addFactViewColumn(exp)
+//  }
+//
+//  def getFactBest(queryContext: QueryContext): FactBestCandidate = {
+//      queryContext match {
+//        case fcq: FactualQueryContext=>
+//          fcq.factBestCandidate
+//        case _=> throw new IllegalArgumentException(s"Trying to extract FactBestCandidate in the non factual query context ${queryContext.getClass}")
+//      }
+//  }
+//
+//  def renderRollupExpression(expression: String, rollupExpression: RollupExpression, renderedColExp: Option[String] = None) : String = {
+//    rollupExpression match {
+//      case SumRollup => s"SUM($expression)"
+//      case MaxRollup => s"MAX($expression)"
+//      case MinRollup => s"MIN($expression)"
+//      case AverageRollup => s"AVG($expression)"
+//      case HiveCustomRollup(exp) => {
+//        s"(${exp.render(expression, Map.empty, renderedColExp)})"
+//      }
+//      case NoopRollup => s"($expression)"
+//      case any => throw new UnsupportedOperationException(s"Unhandled rollup expression : $any")
+//    }
+//  }
 
 
 }

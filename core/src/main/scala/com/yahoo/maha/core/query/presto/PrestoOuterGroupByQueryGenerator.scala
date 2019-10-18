@@ -1,10 +1,9 @@
 package com.yahoo.maha.core.query.presto
 
-import com.yahoo.maha.core.PrestoExpression.{COALESCE, COL, NVL, ROUND}
+import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
-import com.yahoo.maha.core._
 import grizzled.slf4j.Logging
 
 import scala.collection.mutable
@@ -815,139 +814,139 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
 //      }
 //    }
 //  }
-
-  override val prestoLiteralMapper = new HiveLiteralMapper()
-  override def renderColumnAlias(colAlias: String) : String = {
-    val renderedExp = new StringBuilder
-    // Mangle Aliases, Derived expressions except Id's
-    if (!colAlias.toLowerCase.endsWith("id") && (Character.isUpperCase(colAlias.charAt(0)) || colAlias.contains(" "))) {
-      // All aliases are prefixed with _to relieve namespace collisions with pre-defined columns with same name.
-      renderedExp.append("mang_")
-    }
-    // remove everything that is not a letter, a digit or space
-    // replace any whitespace with "_"
-    renderedExp.append(colAlias).toString().replaceAll("[^a-zA-Z0-9\\s_]", "").replaceAll("\\s", "_").toLowerCase
-  }
-  override def getConstantColAlias(alias: String) : String = {
-    renderColumnAlias(alias.replaceAll("[^a-zA-Z0-9_]", ""))
-  }
-  override def getPkFinalAliasForDim (queryBuilderContext: QueryBuilderContext, dimBundle: DimensionBundle) : String = {
-    val pkColName = dimBundle.dim.primaryKey
-    val dimAlias = queryBuilderContext.getAliasForTable(dimBundle.publicDim.name)
-    s"${dimAlias}_$pkColName"
-  }
-  /*
-  concat column and alias
- */
-  override protected[this] def concat(tuple: (String, String)): String = {
-    if (tuple._2.isEmpty) {
-      s"""${tuple._1}"""
-    } else {
-      s"""${tuple._1} ${tuple._2}"""
-    }
-  }
-  override def getFactBest(queryContext: QueryContext): FactBestCandidate = {
-    queryContext match {
-      case fcq: FactualQueryContext=>
-        fcq.factBestCandidate
-      case _=> throw new IllegalArgumentException(s"Trying to extract FactBestCandidate in the non factual query context ${queryContext.getClass}")
-    }
-  }
-  override def renderRollupExpression(expression: String, rollupExpression: RollupExpression, renderedColExp: Option[String] = None) : String = {
-    rollupExpression match {
-      case SumRollup => s"SUM($expression)"
-      case MaxRollup => s"MAX($expression)"
-      case MinRollup => s"MIN($expression)"
-      case AverageRollup => s"AVG($expression)"
-      case PrestoCustomRollup(exp) => s"(${exp.render(expression, Map.empty, renderedColExp)})"
-      case NoopRollup => s"($expression)"
-      case CountRollup => s"COUNT(*)"
-      case any => throw new UnsupportedOperationException(s"Unhandled rollup expression : $any")
-    }
-  }
-
-  override def generateDimJoinQuery(queryBuilderContext: QueryBuilderContext, dimBundle: DimensionBundle, fact: Fact, requestModel: RequestModel, factViewAlias: String) : String = {
-
-    /**
-      *  render fact/dim columns with derived/rollup expression
-      */
-    def renderColumn(column: Column, alias: String): String = {
-      val name = column.alias.getOrElse(column.name)
-      column match {
-        case DimCol(_, dt, _, _, _, _) =>
-          name
-        case PrestoDerDimCol(_, dt, _, de, _, _, _) =>
-          s"""${de.render(name, Map.empty)}"""
-        case other => throw new IllegalArgumentException(s"Unhandled column type for dimension cols : $other")
-      }
-    }
-
-    val requestDimCols = dimBundle.fields
-    val publicDimName = dimBundle.publicDim.name
-    val dimTableName = dimBundle.dim.underlyingTableName.getOrElse(dimBundle.dim.name)
-    val dimFilters = dimBundle.filters
-    val fkColName = fact.publicDimToForeignKeyMap(publicDimName)
-    val fkCol = fact.columnsByNameMap(fkColName)
-    val pkColName = dimBundle.dim.primaryKey
-    val dimAlias = queryBuilderContext.getAliasForTable(publicDimName)
-
-    val dimCols = requestDimCols map {
-      colAlias =>
-        if (dimBundle.publicDim.isPrimaryKeyAlias(colAlias)) {
-          s"""$pkColName ${getPkFinalAliasForDim(queryBuilderContext, dimBundle)}"""
-        } else {
-          val colName = dimBundle.publicDim.aliasToNameMapFull(colAlias)
-          val column = dimBundle.dim.dimensionColumnsByNameMap(colName)
-          val finalAlias : String = queryBuilderContext.getDimensionColNameForAlias(colAlias)
-          s"${renderColumn(column, finalAlias)} AS $finalAlias"
-        }
-    }
-
-    val aliasToNameMapFull = dimBundle.publicDim.aliasToNameMapFull
-    val columnsByNameMap = dimBundle.dim.columnsByNameMap
-
-    val wheres = dimFilters map {
-      filter =>
-        FilterSql.renderFilter(
-          filter,
-          aliasToNameMapFull,
-          Map.empty,
-          columnsByNameMap,
-          PrestoEngine,
-          prestoLiteralMapper
-        ).filter
-    }
-
-    val partitionFilters = partitionColumnRenderer.renderDim(requestModel, dimBundle, prestoLiteralMapper, PrestoEngine)
-    val renderedFactFk = renderColumn(fkCol, "")
-
-    val dimWhere = s"""WHERE ${RenderedAndFilter(wheres + partitionFilters).toString}"""
-
-    val joinType = if (requestModel.anyDimHasNonFKNonForceFilter) {
-      "JOIN"
-    } else {
-      "LEFT OUTER JOIN"
-    }
-
-    // Columns on which join is done must be of the same type. Add explicit CAST otherwise.
-    val joinCondition = {
-      require(dimBundle.dim.columnsByNameMap.contains(pkColName), s"Dim: ${dimBundle.dim.name} does not contain $pkColName")
-      if (fkCol.dataType.getClass.equals(dimBundle.dim.columnsByNameMap(pkColName).dataType.getClass)) {
-        s"$factViewAlias.$renderedFactFk = $dimAlias.${dimAlias}_$pkColName"
-      } else {
-        s"CAST($factViewAlias.$renderedFactFk AS VARCHAR) = CAST($dimAlias.${dimAlias}_$pkColName AS VARCHAR)"
-      }
-    }
-
-    s"""$joinType (
-       |SELECT ${dimCols.mkString(", ")}
-       |FROM $dimTableName
-       |$dimWhere
-       |)
-       |$dimAlias
-       |ON
-       |$joinCondition
-       """.stripMargin
-
-  }
+//
+//  override val prestoLiteralMapper = new HiveLiteralMapper()
+//  override def renderColumnAlias(colAlias: String) : String = {
+//    val renderedExp = new StringBuilder
+//    // Mangle Aliases, Derived expressions except Id's
+//    if (!colAlias.toLowerCase.endsWith("id") && (Character.isUpperCase(colAlias.charAt(0)) || colAlias.contains(" "))) {
+//      // All aliases are prefixed with _to relieve namespace collisions with pre-defined columns with same name.
+//      renderedExp.append("mang_")
+//    }
+//    // remove everything that is not a letter, a digit or space
+//    // replace any whitespace with "_"
+//    renderedExp.append(colAlias).toString().replaceAll("[^a-zA-Z0-9\\s_]", "").replaceAll("\\s", "_").toLowerCase
+//  }
+//  override def getConstantColAlias(alias: String) : String = {
+//    renderColumnAlias(alias.replaceAll("[^a-zA-Z0-9_]", ""))
+//  }
+//  override def getPkFinalAliasForDim (queryBuilderContext: QueryBuilderContext, dimBundle: DimensionBundle) : String = {
+//    val pkColName = dimBundle.dim.primaryKey
+//    val dimAlias = queryBuilderContext.getAliasForTable(dimBundle.publicDim.name)
+//    s"${dimAlias}_$pkColName"
+//  }
+//  /*
+//  concat column and alias
+// */
+//  override protected[this] def concat(tuple: (String, String)): String = {
+//    if (tuple._2.isEmpty) {
+//      s"""${tuple._1}"""
+//    } else {
+//      s"""${tuple._1} ${tuple._2}"""
+//    }
+//  }
+//  override def getFactBest(queryContext: QueryContext): FactBestCandidate = {
+//    queryContext match {
+//      case fcq: FactualQueryContext=>
+//        fcq.factBestCandidate
+//      case _=> throw new IllegalArgumentException(s"Trying to extract FactBestCandidate in the non factual query context ${queryContext.getClass}")
+//    }
+//  }
+//  override def renderRollupExpression(expression: String, rollupExpression: RollupExpression, renderedColExp: Option[String] = None) : String = {
+//    rollupExpression match {
+//      case SumRollup => s"SUM($expression)"
+//      case MaxRollup => s"MAX($expression)"
+//      case MinRollup => s"MIN($expression)"
+//      case AverageRollup => s"AVG($expression)"
+//      case PrestoCustomRollup(exp) => s"(${exp.render(expression, Map.empty, renderedColExp)})"
+//      case NoopRollup => s"($expression)"
+//      case CountRollup => s"COUNT(*)"
+//      case any => throw new UnsupportedOperationException(s"Unhandled rollup expression : $any")
+//    }
+//  }
+//
+//  override def generateDimJoinQuery(queryBuilderContext: QueryBuilderContext, dimBundle: DimensionBundle, fact: Fact, requestModel: RequestModel, factViewAlias: String) : String = {
+//
+//    /**
+//      *  render fact/dim columns with derived/rollup expression
+//      */
+//    def renderColumn(column: Column, alias: String): String = {
+//      val name = column.alias.getOrElse(column.name)
+//      column match {
+//        case DimCol(_, dt, _, _, _, _) =>
+//          name
+//        case PrestoDerDimCol(_, dt, _, de, _, _, _) =>
+//          s"""${de.render(name, Map.empty)}"""
+//        case other => throw new IllegalArgumentException(s"Unhandled column type for dimension cols : $other")
+//      }
+//    }
+//
+//    val requestDimCols = dimBundle.fields
+//    val publicDimName = dimBundle.publicDim.name
+//    val dimTableName = dimBundle.dim.underlyingTableName.getOrElse(dimBundle.dim.name)
+//    val dimFilters = dimBundle.filters
+//    val fkColName = fact.publicDimToForeignKeyMap(publicDimName)
+//    val fkCol = fact.columnsByNameMap(fkColName)
+//    val pkColName = dimBundle.dim.primaryKey
+//    val dimAlias = queryBuilderContext.getAliasForTable(publicDimName)
+//
+//    val dimCols = requestDimCols map {
+//      colAlias =>
+//        if (dimBundle.publicDim.isPrimaryKeyAlias(colAlias)) {
+//          s"""$pkColName ${getPkFinalAliasForDim(queryBuilderContext, dimBundle)}"""
+//        } else {
+//          val colName = dimBundle.publicDim.aliasToNameMapFull(colAlias)
+//          val column = dimBundle.dim.dimensionColumnsByNameMap(colName)
+//          val finalAlias : String = queryBuilderContext.getDimensionColNameForAlias(colAlias)
+//          s"${renderColumn(column, finalAlias)} AS $finalAlias"
+//        }
+//    }
+//
+//    val aliasToNameMapFull = dimBundle.publicDim.aliasToNameMapFull
+//    val columnsByNameMap = dimBundle.dim.columnsByNameMap
+//
+//    val wheres = dimFilters map {
+//      filter =>
+//        FilterSql.renderFilter(
+//          filter,
+//          aliasToNameMapFull,
+//          Map.empty,
+//          columnsByNameMap,
+//          PrestoEngine,
+//          prestoLiteralMapper
+//        ).filter
+//    }
+//
+//    val partitionFilters = partitionColumnRenderer.renderDim(requestModel, dimBundle, prestoLiteralMapper, PrestoEngine)
+//    val renderedFactFk = renderColumn(fkCol, "")
+//
+//    val dimWhere = s"""WHERE ${RenderedAndFilter(wheres + partitionFilters).toString}"""
+//
+//    val joinType = if (requestModel.anyDimHasNonFKNonForceFilter) {
+//      "JOIN"
+//    } else {
+//      "LEFT OUTER JOIN"
+//    }
+//
+//    // Columns on which join is done must be of the same type. Add explicit CAST otherwise.
+//    val joinCondition = {
+//      require(dimBundle.dim.columnsByNameMap.contains(pkColName), s"Dim: ${dimBundle.dim.name} does not contain $pkColName")
+//      if (fkCol.dataType.getClass.equals(dimBundle.dim.columnsByNameMap(pkColName).dataType.getClass)) {
+//        s"$factViewAlias.$renderedFactFk = $dimAlias.${dimAlias}_$pkColName"
+//      } else {
+//        s"CAST($factViewAlias.$renderedFactFk AS VARCHAR) = CAST($dimAlias.${dimAlias}_$pkColName AS VARCHAR)"
+//      }
+//    }
+//
+//    s"""$joinType (
+//       |SELECT ${dimCols.mkString(", ")}
+//       |FROM $dimTableName
+//       |$dimWhere
+//       |)
+//       |$dimAlias
+//       |ON
+//       |$joinCondition
+//       """.stripMargin
+//
+//  }
 }
