@@ -30,7 +30,7 @@ import io.druid.query.filter.{AndDimFilter, DimFilter, SelectorDimFilter}
 import io.druid.query.groupby.GroupByQuery
 import io.druid.query.groupby.GroupByQuery.Builder
 import io.druid.query.groupby.having.{AndHavingSpec, HavingSpec}
-import io.druid.query.groupby.orderby.{DefaultLimitSpec, OrderByColumnSpec}
+import io.druid.query.groupby.orderby.{DefaultLimitSpec, NoopLimitSpec, OrderByColumnSpec}
 import io.druid.query.lookup.LookupExtractionFn
 import io.druid.query.ordering.{StringComparator, StringComparators}
 import io.druid.query.select.{PagingSpec, SelectResultValue}
@@ -508,10 +508,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             new DefaultLimitSpec(null, threshold)
           }
 
-          if(shouldLimitInnerQueries && queryContext.requestModel.dimFilters.filter(
-            filter => dims.exists(bundle => bundle.publicDim.containsHighCardinalityFilter(filter))).isEmpty) {
-            builder.setLimitSpec(limitSpec)
-          }
+          builder.setLimitSpec(limitSpec)
 
           val ephemeralAliasColumns: Map[String, Column] = ephemeralAliasColumnMap(queryContext)
 
@@ -664,6 +661,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     val hasExpensiveDateDimFilter = FilterDruid.isExpensiveDateDimFilter(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, queryContext.factBestCandidate.fact.columnsByNameMap)
 
     if (hasDimFilterOnLookupColumn || hasLookupWithDecodeColumn || hasExpensiveDateDimFilter) {
+
+      //this is nested groupBy query so reset limitSpec inside inner query
+      innerGroupByQueryBuilder.setLimitSpec(NoopLimitSpec.INSTANCE)
 
       if(!hasExpensiveDateDimFilter) {
         val dimWithDateTimeFilterList = getDateTimeFilters(queryContext) ++ dimFilterList
