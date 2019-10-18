@@ -7,22 +7,6 @@ import com.yahoo.maha.core.query._
 
 abstract class PrestoQueryGeneratorCommon(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends BaseQueryGenerator[WithPrestoEngine] with HivePrestoQueryCommon {
 
-//  def renderColumnAlias(colAlias: String) : String = {
-//    val renderedExp = new StringBuilder
-//    // Mangle Aliases, Derived expressions except Id's
-//    if (!colAlias.toLowerCase.endsWith("id") && (Character.isUpperCase(colAlias.charAt(0)) || colAlias.contains(" "))) {
-//      // All aliases are prefixed with _to relieve namespace collisions with pre-defined columns with same name.
-//      renderedExp.append("mang_")
-//    }
-//    // remove everything that is not a letter, a digit or space
-//    // replace any whitespace with "_"
-//    renderedExp.append(colAlias).toString().replaceAll("[^a-zA-Z0-9\\s_]", "").replaceAll("\\s", "_").toLowerCase
-//  }
-//
-//  def getConstantColAlias(alias: String) : String = {
-//    renderColumnAlias(alias.replaceAll("[^a-zA-Z0-9_]", ""))
-//  }
-
   // render outercols with column expression
   def generateOuterColumns(queryContext: CombinedQueryContext,
                            queryBuilderContext: QueryBuilderContext,
@@ -124,35 +108,6 @@ abstract class PrestoQueryGeneratorCommon(partitionColumnRenderer:PartitionColum
       renderedCol
     }
   }
-//
-//  /**
-//    *  render fact/dim columns with derived/rollup expression
-//    */
-//  def renderStaticMappedDimension(column: Column) : String = {
-//    val nameOrAlias = renderColumnAlias(column.alias.getOrElse(column.name))
-//    column.dataType match {
-//      case IntType(_, sm, _, _, _) if sm.isDefined =>
-//        val defaultValue = sm.get.default
-//        val whenClauses = sm.get.tToStringMap.map {
-//          case (from, to) => s"WHEN ($nameOrAlias IN ($from)) THEN '$to'"
-//        }
-//        s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
-//      case StrType(_, sm, _) if sm.isDefined =>
-//        val defaultValue = sm.get.default
-//        val whenClauses = sm.get.tToStringMap.map {
-//          case (from, to) => s"WHEN ($nameOrAlias IN ('$from')) THEN '$to'"
-//        }
-//        s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
-//      case _ =>
-//        s"""COALESCE($nameOrAlias, "NA")"""
-//    }
-//  }
-//
-//  def getPkFinalAliasForDim (queryBuilderContext: QueryBuilderContext, dimBundle: DimensionBundle) : String = {
-//    val pkColName = dimBundle.dim.primaryKey
-//    val dimAlias = queryBuilderContext.getAliasForTable(dimBundle.publicDim.name)
-//    s"${dimAlias}_$pkColName"
-//  }
 
   def generateDimJoinQuery(queryBuilderContext: QueryBuilderContext, dimBundle: DimensionBundle, fact: Fact, requestModel: RequestModel, factViewAlias: String) : String = {
 
@@ -238,117 +193,4 @@ abstract class PrestoQueryGeneratorCommon(partitionColumnRenderer:PartitionColum
        """.stripMargin
 
   }
-//
-//  /*
-//  concat column and alias
-// */
-//  protected[this] def concat(tuple: (String, String)): String = {
-//    if (tuple._2.isEmpty) {
-//      s"""${tuple._1}"""
-//    } else {
-//      s"""${tuple._1} ${tuple._2}"""
-//    }
-//  }
-//
-//  def renderColumnWithAlias(fact: Fact,
-//                            column: Column,
-//                            alias: String,
-//                            requiredInnerCols: Set[String],
-//                            isOuterColumn: Boolean,
-//                            queryContext: QueryContext,
-//                            queryBuilderContext: QueryBuilderContext,
-//                            queryBuilder: QueryBuilder): Unit = {
-//
-//    val factBestCandidate = getFactBest(queryContext)
-//    val name = column.alias.getOrElse(column.name)
-//    val exp = column match {
-//      case any if queryBuilderContext.containsColByName(name) =>
-//        //do nothing, we've already processed it
-//        ""
-//      case DimCol(_, dt, _, _, _, _) if dt.hasStaticMapping =>
-//        val renderedAlias = renderColumnAlias(alias)
-//        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
-//        s"${renderStaticMappedDimension(column)} $name"
-//      case DimCol(_, dt, _, _, _, _) =>
-//        val renderedAlias = renderColumnAlias(alias)
-//        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
-//        name
-//      case ConstDimCol(_, dt, value, _, _, _, _) =>
-//        val renderedAlias = renderColumnAlias(alias)
-//        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
-//        s"'$value' AS $name"
-//      case PrestoDerDimCol(_, dt, _, de, _, _, _) =>
-//        val renderedAlias = renderColumnAlias(alias)
-//        queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-//        s"""${de.render(name, Map.empty)} $renderedAlias"""
-//      case PrestoPartDimCol(_, dt, _, _, _, _) =>
-//        val renderedAlias = renderColumnAlias(alias)
-//        queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-//        name
-//      case FactCol(_, dt, _, rollup, _, _, _) =>
-//        dt match {
-//          case DecType(_, _, Some(default), Some(min), Some(max), _) =>
-//            val renderedAlias = renderColumnAlias(alias)
-//            val minMaxClause = s"CASE WHEN (($name >= $min) AND ($name <= $max)) THEN $name ELSE $default END"
-//            queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-//            s"""${renderRollupExpression(name, rollup, Option(minMaxClause))} $renderedAlias"""
-//          case IntType(_, _, Some(default), Some(min), Some(max)) =>
-//            val renderedAlias = renderColumnAlias(alias)
-//            val minMaxClause = s"CASE WHEN (($name >= $min) AND ($name <= $max)) THEN $name ELSE $default END"
-//            queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-//            s"""${renderRollupExpression(name, rollup, Option(minMaxClause))} $renderedAlias"""
-//          case _ =>
-//            val renderedAlias = renderColumnAlias(alias)
-//            queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
-//            s"""${renderRollupExpression(name, rollup)} $name"""
-//        }
-//      case PrestoDerFactCol(_, _, dt, cc, de, annotations, rollup, _)
-//        if factBestCandidate.filterCols.contains(name) || de.expression.hasRollupExpression || requiredInnerCols(name)
-//          || de.isDimensionDriven =>
-//        val renderedAlias = renderColumnAlias(alias)
-//        queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-//        s"""${renderRollupExpression(de.render(name, Map.empty), rollup)} $renderedAlias"""
-//
-//      case PrestoDerFactCol(_, _, dt, cc, de, annotations, _, _) =>
-//        //means no fact operation on this column, push expression outside
-//        de.sourceColumns.foreach {
-//          case src if src != name =>
-//            val sourceCol = fact.columnsByNameMap(src)
-//            //val renderedAlias = renderColumnAlias(sourceCol.name)
-//            val renderedAlias = sourceCol.alias.getOrElse(sourceCol.name)
-//
-//            renderColumnWithAlias(fact, sourceCol, renderedAlias, requiredInnerCols, isOuterColumn, queryContext, queryBuilderContext, queryBuilder)
-//          case _ => //do nothing if we reference ourselves
-//        }
-//        val renderedAlias = renderColumnAlias(alias)
-//        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(s"""(${de.render(renderedAlias, queryBuilderContext.getColAliasToFactColNameMap, expandDerivedExpression = false)})"""))
-//        ""
-//      case ConstFactCol(_, _, v, _, _, _, _, _) =>
-//        val renderedAlias = renderColumnAlias(alias)
-//        queryBuilderContext.setFactColAlias(alias, renderedAlias, column)
-//        s"'$v' $name"
-//    }
-//    queryBuilder.addFactViewColumn(exp)
-//  }
-//
-//  def getFactBest(queryContext: QueryContext): FactBestCandidate = {
-//    queryContext match {
-//      case fcq: FactualQueryContext=>
-//        fcq.factBestCandidate
-//      case _=> throw new IllegalArgumentException(s"Trying to extract FactBestCandidate in the non factual query context ${queryContext.getClass}")
-//    }
-//  }
-//
-//  def renderRollupExpression(expression: String, rollupExpression: RollupExpression, renderedColExp: Option[String] = None) : String = {
-//    rollupExpression match {
-//      case SumRollup => s"SUM($expression)"
-//      case MaxRollup => s"MAX($expression)"
-//      case MinRollup => s"MIN($expression)"
-//      case AverageRollup => s"AVG($expression)"
-//      case PrestoCustomRollup(exp) => s"(${exp.render(expression, Map.empty, renderedColExp)})"
-//      case NoopRollup => s"($expression)"
-//      case CountRollup => s"COUNT(*)"
-//      case any => throw new UnsupportedOperationException(s"Unhandled rollup expression : $any")
-//    }
-//  }
 }
