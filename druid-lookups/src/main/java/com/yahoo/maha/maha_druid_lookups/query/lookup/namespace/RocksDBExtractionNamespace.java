@@ -145,7 +145,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
 
     public String getCacheActionRunnerName() { return cacheActionRunnerName; }
 
-    public CacheActionRunner getCacheActionRunner() {
+    synchronized public CacheActionRunner getCacheActionRunner() {
         try {
             if (cacheActionRunner == null) {
                 cacheActionRunner = CacheActionRunner.class.cast(
@@ -180,7 +180,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     }
 
     @Override
-    public boolean equals(Object o) {
+    synchronized public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         RocksDBExtractionNamespace that = (RocksDBExtractionNamespace) o;
@@ -198,7 +198,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     }
 
     @Override
-    public int hashCode() {
+    synchronized public int hashCode() {
 
         return Objects.hash(rocksDbInstanceHDFSPath,
                 lookupAuditingHDFSPath,
