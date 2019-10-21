@@ -2282,7 +2282,6 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    println(result)
 
     val json = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\},\{"type":"or","fields":\[\{"type":"selector","dimension":"ageBucket","value":"18-24"\},\{"type":"selector","dimension":"ageBucket","value":"25-35"\}\]\},\{"type":"or","fields":\[\{"type":"selector","dimension":"woeids","value":"12345"\},\{"type":"selector","dimension":"woeids","value":"6789"\}\]\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"\},\{"type":"default","dimension":"ad_id","outputName":"Ad ID","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Clicks","fieldName":"clicks"\},\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"filtered","aggregator":\{"type":"thetaSketch","name":"ageBucket_unique_users","fieldName":"uniqueUserCount","size":16384,"shouldFinalize":true,"isInputThetaSketch":false\},"filter":\{"type":"or","fields":\[\{"type":"selector","dimension":"ageBucket","value":"18-24"\},\{"type":"selector","dimension":"ageBucket","value":"25-35"\}\]\},"name":"ageBucket_unique_users"\},\{"type":"filtered","aggregator":\{"type":"thetaSketch","name":"woeids_unique_users","fieldName":"uniqueUserCount","size":16384,"shouldFinalize":true,"isInputThetaSketch":false\},"filter":\{"type":"or","fields":\[\{"type":"selector","dimension":"woeids","value":"12345"\},\{"type":"selector","dimension":"woeids","value":"6789"\}\]\},"name":"woeids_unique_users"\}\],"postAggregations":\[\{"type":"thetaSketchEstimate","name":"Total Unique User Count","field":\{"type":"thetaSketchSetOp","name":"Total Unique User Count","func":"INTERSECT","size":16384,"fields":\[\{"type":"fieldAccess","name":"ageBucket_unique_users","fieldName":"ageBucket_unique_users"\},\{"type":"fieldAccess","name":"woeids_unique_users","fieldName":"woeids_unique_users"\}\]\}\}\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Impressions","direction":"ascending","dimensionOrder":\{"type":"numeric"\}\},\{"dimension":"Keyword ID","direction":"ascending","dimensionOrder":\{"type":"numeric"\}\},\{"dimension":"Ad ID","direction":"descending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":101\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}"""
 
@@ -2314,13 +2313,91 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    println(result)
 
     val json = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"ad_id","outputName":"Ad ID","outputType":"STRING"\},\{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":101\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}"""
 
-    println(json)
     result should fullyMatch regex json
   }
+
+
+  test("Support for Async View Multi Query, API Side Join") {
+    val jsonString =
+      s"""{ "cube": "a_stats",
+         |   "selectFields": [
+         |      {
+         |         "field": "Advertiser ID"
+         |      },
+         |      {
+         |         "field": "Day"
+         |      },
+         |      {
+         |         "field": "Is Adjustment"
+         |      },
+         |      {
+         |         "field": "Impressions"
+         |      },
+         |      {
+         |         "field": "Spend"
+         |      },
+         |      {
+         |         "field": "Const Der Fact Col A"
+         |      }
+         |   ],
+         |   "filterExpressions": [
+         |      {
+         |         "field": "Advertiser ID",
+         |         "operator": "=",
+         |         "value": "12345"
+         |      },
+         |      {
+         |         "field": "Is Adjustment",
+         |         "operator": "=",
+         |         "value": "Y"
+         |      },
+         |      {
+         |         "field": "Day",
+         |         "operator": "=",
+         |         "value": "$fromDate"
+         |      }
+         |   ],
+         |   "sortBy": [
+         |      {
+         |          "field": "Impressions",
+         |          "order": "Asc"
+         |      },
+         |      {
+         |          "field": "Spend",
+         |          "order": "Desc"
+         |      },
+         |      {
+         |          "field": "Const Der Fact Col A",
+         |          "order": "Desc"
+         |      }
+         |   ]
+         |}
+      """.stripMargin
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    require(requestModel.isSuccess, requestModel)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    assert(queryPipelineTry.get.queryChain.isInstanceOf[MultiQuery], "Failed to create MultiQuery for Async")
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val expectedJson = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"account_stats"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"advertiser_id","value":"1035663"\},\{"type":"selector","dimension":"\{test_flag\}","value":"0"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"advertiser_id","outputName":"Advertiser ID","outputType":"STRING"\},\{"type":"default","dimension":"stats_date","outputName":"Day","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"roundingDoubleSum","name":"Spend","fieldName":"spend","scale":10,"enableRoundingDoubleSumAggregatorFactory":true\},\{"type":"longSum","name":"clicks","fieldName":"clicks"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Const Der Fact Col A","fn":"/","fields":\[\{"type":"fieldAccess","name":"clicks","fieldName":"clicks"\},\{"type":"fieldAccess","name":"impressions","fieldName":"Impressions"\}\]\}\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Impressions","direction":"ascending","dimensionOrder":\{"type":"numeric"\}\},\{"dimension":"Spend","direction":"descending","dimensionOrder":\{"type":"numeric"\}\},\{"dimension":"Const Der Fact Col A","direction":"descending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":100000\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}"""
+    result should fullyMatch regex expectedJson
+
+    val subSequentQuery = queryPipelineTry.toOption.get.queryChain.subsequentQueryList.head.asString
+    val expectedSubQueryJson = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"a_adjustments"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"advertiser_id","value":"1035663"\},\{"type":"selector","dimension":"\{test_flag\}","value":"0"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"advertiser_id","outputName":"Advertiser ID","outputType":"STRING"\},\{"type":"default","dimension":"stats_date","outputName":"Day","outputType":"STRING"\}\],"aggregations":\[\{"type":"roundingDoubleSum","name":"Spend","fieldName":"spend","scale":10,"enableRoundingDoubleSumAggregatorFactory":true\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Spend","direction":"descending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":100000\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}"""
+    subSequentQuery should fullyMatch regex expectedSubQueryJson
+  }
+
 
   test("Fact View Query Tests Adjustment Stats with constant column filter and sorting on const fact columns") {
     val jsonString =
@@ -2391,14 +2468,10 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     val expectedJson = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"account_stats"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"advertiser_id","value":"1035663"\},\{"type":"selector","dimension":"\{test_flag\}","value":"0"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"advertiser_id","outputName":"Advertiser ID","outputType":"STRING"\},\{"type":"default","dimension":"stats_date","outputName":"Day","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"roundingDoubleSum","name":"Spend","fieldName":"spend","scale":10,"enableRoundingDoubleSumAggregatorFactory":true\},\{"type":"longSum","name":"clicks","fieldName":"clicks"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Const Der Fact Col A","fn":"/","fields":\[\{"type":"fieldAccess","name":"clicks","fieldName":"clicks"\},\{"type":"fieldAccess","name":"impressions","fieldName":"Impressions"\}\]\}\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Impressions","direction":"ascending","dimensionOrder":\{"type":"numeric"\}\},\{"dimension":"Spend","direction":"descending","dimensionOrder":\{"type":"numeric"\}\},\{"dimension":"Const Der Fact Col A","direction":"descending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":200\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}"""
-    println(result)
-    println(expectedJson)
     result should fullyMatch regex expectedJson
 
     val subSequentQuery = queryPipelineTry.toOption.get.queryChain.subsequentQueryList.head.asString
     val expectedSubQueryJson = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"a_adjustments"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"stats_date","value":".*"\},\{"type":"selector","dimension":"advertiser_id","value":"1035663"\},\{"type":"selector","dimension":"\{test_flag\}","value":"0"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"advertiser_id","outputName":"Advertiser ID","outputType":"STRING"\},\{"type":"default","dimension":"stats_date","outputName":"Day","outputType":"STRING"\}\],"aggregations":\[\{"type":"roundingDoubleSum","name":"Spend","fieldName":"spend","scale":10,"enableRoundingDoubleSumAggregatorFactory":true\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Spend","direction":"descending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":200\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}"""
-    println(subSequentQuery)
-    println(expectedSubQueryJson)
     subSequentQuery should fullyMatch regex expectedSubQueryJson
   }
 
@@ -2431,7 +2504,6 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
 
-    println(result)
     val json =
         """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\}\]\},\{"type":"selector","dimension":"advertiser_id","value":"123"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"extraction","dimension":"ad_id","outputName":"Derived Ad ID","outputType":"STRING","extractionFn":\{"type":"lookup","lookup":\{"type":"map","map":\{"0":"EMPTY","-3":"EMPTY"\},"isOneToOne":false\},"retainMissingValue":true,"injective":false,"optimize":true\}\},\{"type":"default","dimension":"advertiser_id","outputName":"Advertiser ID","outputType":"STRING"\}\],"aggregations":\[\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":120\},"context":\{"groupByStrategy":"v2","applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}"""
     result should fullyMatch regex json
