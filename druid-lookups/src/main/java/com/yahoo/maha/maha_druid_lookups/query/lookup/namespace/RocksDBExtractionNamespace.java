@@ -180,7 +180,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     }
 
     @Override
-    synchronized public boolean equals(Object o) {
+    public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         RocksDBExtractionNamespace that = (RocksDBExtractionNamespace) o;
@@ -194,11 +194,11 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 Objects.equals(lookupName, that.lookupName) &&
                 Objects.equals(tsColumn, that.tsColumn) &&
                 Objects.equals(missingLookupConfig, that.missingLookupConfig) &&
-                Objects.equals(cacheActionRunner, that.cacheActionRunner);
+                Objects.equals(cacheActionRunnerName, that.cacheActionRunnerName);
     }
 
     @Override
-    synchronized public int hashCode() {
+    public int hashCode() {
 
         return Objects.hash(rocksDbInstanceHDFSPath,
                 lookupAuditingHDFSPath,
@@ -210,6 +210,6 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 lookupName,
                 tsColumn,
                 missingLookupConfig,
-                cacheActionRunner);
+                cacheActionRunnerName);
     }
 }
