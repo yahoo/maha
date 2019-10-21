@@ -106,4 +106,16 @@ public class CacheActionRunner {
         return "CacheActionRunner{}";
     }
 
+    @Override
+    synchronized public boolean equals(Object o) {
+        if (this == o) return true;
+        return false;
+    }
+    @Override
+    synchronized public int hashCode() {
+
+        return Objects.hash(
+                this.getClass().getName());
+    }
+
 }
