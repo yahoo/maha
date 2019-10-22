@@ -145,7 +145,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
 
     public String getCacheActionRunnerName() { return cacheActionRunnerName; }
 
-    public CacheActionRunner getCacheActionRunner() {
+    synchronized public CacheActionRunner getCacheActionRunner() {
         try {
             if (cacheActionRunner == null) {
                 cacheActionRunner = CacheActionRunner.class.cast(
@@ -194,7 +194,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 Objects.equals(lookupName, that.lookupName) &&
                 Objects.equals(tsColumn, that.tsColumn) &&
                 Objects.equals(missingLookupConfig, that.missingLookupConfig) &&
-                Objects.equals(cacheActionRunner, that.cacheActionRunner);
+                Objects.equals(cacheActionRunnerName, that.cacheActionRunnerName);
     }
 
     @Override
@@ -210,6 +210,6 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 lookupName,
                 tsColumn,
                 missingLookupConfig,
-                cacheActionRunner);
+                cacheActionRunnerName);
     }
 }
