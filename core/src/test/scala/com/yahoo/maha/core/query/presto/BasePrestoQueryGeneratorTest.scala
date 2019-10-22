@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query.presto
 
+import com.yahoo.maha.core.BasePrestoExpressionTest.GET_A_BY_B
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
@@ -22,6 +23,7 @@ trait BasePrestoQueryGeneratorTest
 
   override protected def beforeAll(): Unit = {
     PrestoQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestPrestoUDFRegistrationFactory())
+    PrestoQueryGeneratorV1.register(queryGeneratorRegistry, TestPartitionRenderer, TestPrestoUDFRegistrationFactory())
   }
 
   override protected[this] def getDefaultRegistry(forcedFilters: Set[ForcedFilter] = Set.empty): Registry = {
@@ -37,6 +39,7 @@ trait BasePrestoQueryGeneratorTest
     registryBuilder.register(ce_stats(forcedFilters))
     registryBuilder.register(bidReco())
     registryBuilder.register(pubfact5())
+    registryBuilder.register(pubfact2(forcedFilters))
   }
 
   protected[this] def s_stats_fact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
@@ -71,9 +74,10 @@ trait BasePrestoQueryGeneratorTest
           , FactCol("clicks", IntType(3, 0, 1, 800))
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
+          , FactCol("weighted_position", DecType(0, "0.0"))
           , PrestoDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}", rollupExpression = NoopRollup)
           , PrestoDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100", rollupExpression = NoopRollup)
-          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
+          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
           , ConstFactCol("constantFact", IntType(), "0")
           , FactCol("Count", IntType(), rollupExpression = CountRollup)
         ),underlyingTableName = Some("s_stats_fact_underlying")
@@ -138,8 +142,9 @@ trait BasePrestoQueryGeneratorTest
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
           , FactCol("ad_extn_spend", DecType())
+          , FactCol("weighted_position", DecType(0, "0.0"))
           , PrestoDerFactCol("average_cpc", DecType(), "{spend}" /- "{clicks}")
-          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
+          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
         )
         , forceFilters =  Set(ForceFilter(EqualityFilter("Source", "2", isForceFilter = true, isOverridable = true)))
       )
@@ -187,6 +192,7 @@ trait BasePrestoQueryGeneratorTest
             , DimCol("last_updated", IntType(10))
             , DimCol("current_bid", DecType(0, "0.0"))
             , DimCol("modified_bid", DecType(0, "0.0"))
+            , ConstDimCol("test_constant_col", DecType(), "test_constant_col_value")
             , PrestoDerDimCol("bid_modifier", DecType(0, "0.0"), PrestoDerivedExpression("({modified_bid}" - "{current_bid})" / "{current_bid}" * "100"))
             , PrestoDerDimCol("Day", DateType("YYYYMMdd"), PrestoDerivedExpression("SUBSTRING({load_time}, 1, 8)"))
             , PrestoPartDimCol("load_time", StrType(), partitionLevel = FirstPartitionLevel)
@@ -209,6 +215,10 @@ trait BasePrestoQueryGeneratorTest
             , PrestoDerFactCol("avg_rollup_spend", DecType(0, "0.0"), PrestoDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = AverageRollup)
             , PrestoDerFactCol("custom_rollup_spend", DecType(0, "0.0"), PrestoDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = PrestoCustomRollup(""))
             , PrestoDerFactCol("noop_rollup_spend", DecType(0, "0.0"), PrestoDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = NoopRollup)
+            , PrestoDerFactCol("Average Bid", DecType(8, 2, "0.0"), GET_A_BY_B("{recommended_bid}", "{actual_impressions}"), rollupExpression = NoopRollup)
+            , PrestoDerFactCol("Bid Mod", DecType(8, 5, "0.0"), GET_A_BY_B("{recommended_bid}",  "{actual_clicks}"), rollupExpression = NoopRollup)
+            , PrestoDerFactCol("Bid Modifier Fact", DecType(8, 5), COALESCE("CASE WHEN {Bid Mod} = 0 THEN 1 WHEN IS_NAN({Bid Mod}) THEN 1 ELSE {Bid Mod} END", "1"), rollupExpression = NoopRollup )
+            , PrestoDerFactCol("Modified Bid Fact", DecType(8, 5), COALESCE("CASE WHEN {Bid Modifier Fact} = 0 THEN 1 WHEN IS_NAN({Bid Modifier Fact}) THEN 1 ELSE {Bid Modifier Fact} END", "1") * "{Average Bid}")
           )
           , ddlAnnotation = Option(
             PrestoDDLAnnotation(Map(),
@@ -230,7 +240,8 @@ trait BasePrestoQueryGeneratorTest
                   "spend",
                   "budget",
                   "forecasted_budget",
-                  "last_updated"
+                  "last_updated",
+                  "test_constant_col"
                 ))), annotations = Set(PrestoPartitioningScheme("frequency"))
         )
       }
@@ -239,7 +250,7 @@ trait BasePrestoQueryGeneratorTest
     val publicFact = builder.toPublicFact(
       "bid_reco",
       Set(
-        PubCol("ad_group_id", "Ad Group ID",InNotInEquality, required = true)
+        PubCol("ad_group_id", "Ad Group ID",InNotInEquality)
         , PubCol("account_id", "Advertiser ID", InNotInEquality, required = true)
         , PubCol("campaign_id", "Campaign ID", InNotInEquality)
         , PubCol("supply_group", "Supply Group Name", InNotInEquality)
@@ -249,12 +260,14 @@ trait BasePrestoQueryGeneratorTest
         , PubCol("bid_modifier", "Bid Modifier", InBetweenEquality)
         , PubCol("status", "Status", InNotInEquality)
         , PubCol("Day", "Day", BetweenEquality)
+        , PubCol("test_constant_col", "Test Constant Col", Set.empty)
+        , PubCol("load_time", "Load Time", Set.empty) // Projecting Part Col, to cover tests
       ),
       Set(
         PublicFactCol("recommended_bid", "Recommended Bid", InBetweenEquality)
         , PublicFactCol("actual_clicks", "Clicks", InBetweenEquality)
         , PublicFactCol("forecasted_clicks", "Forecasted Clicks", InBetweenEquality)
-        , PublicFactCol("actual_impressions", "Impressions", InBetweenEquality)
+        , PublicFactCol("actual_impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser)
         , PublicFactCol("forecasted_impr", "Forecasted Impressions", InBetweenEquality)
         , PublicFactCol("budget", "Budget", InBetweenEquality)
         , PublicFactCol("spend", "Spend", InBetweenEquality)
@@ -264,6 +277,9 @@ trait BasePrestoQueryGeneratorTest
         , PublicFactCol("avg_rollup_spend", "Avg Rollup Spend", InBetweenEquality)
         , PublicFactCol("custom_rollup_spend", "Custom Rollup Spend", InBetweenEquality)
         , PublicFactCol("noop_rollup_spend", "Noop Rollup Spend", InBetweenEquality)
+        , PublicFactCol("Average Bid", "Average Bid", InNotInBetweenEqualityNotEqualsGreaterLesser)
+        , PublicFactCol("Bid Modifier Fact", "Bid Modifier Fact", InNotInBetweenEqualityNotEqualsGreaterLesser)
+        , PublicFactCol("Modified Bid Fact", "Modified Bid Fact", InNotInBetweenEqualityNotEqualsGreaterLesser)
       ),
       Set(EqualityFilter("Status","Valid", isForceFilter = true)),
       Map(
@@ -435,5 +451,146 @@ trait BasePrestoQueryGeneratorTest
           PublicFactCol("spend", "Spend", Set.empty)
         ), Set(),  getMaxDaysWindow, getMaxDaysLookBack
       )
+  }
+
+  def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    import PrestoExpression._
+    import UDFPrestoExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      Fact.newFact(
+        "ad_fact1", DailyGrain, PrestoEngine, Set(AdvertiserSchema, ResellerSchema),
+        Set(
+          DimCol("ad_id", IntType(), annotations = Set(ForeignKey("ad")))
+          , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
+          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+          , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("stats_source", IntType(3))
+          , DimCol("restaurant_id", IntType(), alias = Option("advertiser_id"), annotations = Set(ForeignKey("restaurant")))
+          , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
+          , DimCol("start_time", IntType())
+          , DimCol("stats_date", DateType("YYYY-MM-dd"))
+          , DimCol("show_flag", IntType())
+          , PrestoDerDimCol("Month", DateType(), TEST_DATE_UDF("{stats_date}", "M"))
+          , PrestoDerDimCol("Week", DateType(), TEST_DATE_UDF("{stats_date}", "W"))
+        ),
+        Set(
+          FactCol("impressions", IntType(3, 1))
+          , FactCol("s_impressions", IntType(3, 1))
+          , FactCol("clicks", IntType(3, 0, 1, 800))
+          , FactCol("engagement_count", IntType(10))
+          , FactCol("spend", DecType(0, "0.0"))
+          , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
+          //          , FactCol("Average CPC", DecType(), OracleCustomRollup("{spend}" / "{clicks}"))
+          , FactCol("CTR", DecType(), PrestoCustomRollup(SUM("{clicks}" /- "{impressions}")))
+          , FactCol("weighted_position", DecType(0, "0.0"))
+          , PrestoDerFactCol("Engagement Rate", DecType(), "100" * TEST_MATH_UDF("{engagement_count}", "{impressions}"), rollupExpression = NoopRollup)
+          , PrestoDerFactCol("Paid Engagement Rate", DecType(), "100" * TEST_MATH_UDAF("{engagement_count}", "0", "0", "{clicks}", "{impressions}"), rollupExpression = NoopRollup)
+          , PrestoDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}")
+          , PrestoDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100")
+          , PrestoDerFactCol("N Spend", DecType(), DECODE("{stats_source}", "1", "{spend}", "0.0"))
+          , PrestoDerFactCol("N Clicks", DecType(), DECODE("{stats_source}", "1", "{clicks}", "0.0"))
+          , PrestoDerFactCol("N Average CPC", DecType(), "{N Spend}" /- "{N Clicks}")
+          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
+          , PrestoDerFactCol("impression_share", IntType(), DECODE(MAX("{show_flag}"), "1", ROUND(SUM("{impressions}") /- SUM("{s_impressions}"), 4), "NULL"), rollupExpression = NoopRollup)
+          , PrestoDerFactCol("impression_share_rounded", IntType(), ROUND("{impression_share}", 5), rollupExpression = NoopRollup)
+          , PrestoDerFactCol("Click Rate", IntType(), SUM("{clicks}") /- SUM("{impressions}"), rollupExpression = NoopRollup)
+        ),
+        annotations = Set(
+        )
+      )
+    }
+      .toPublicFact("performance_stats",
+        Set(
+          PubCol("stats_date", "Day", InBetweenEquality),
+          PubCol("ad_id", "Ad ID", InEquality),
+          PubCol("ad_group_id", "Ad Group ID", InEquality),
+          PubCol("campaign_id", "Campaign ID", InEquality),
+          PubCol("advertiser_id", "Advertiser ID", InEquality),
+          PubCol("restaurant_id", "Restaurant ID", InEquality),
+          PubCol("stats_source", "Source", Equality),
+          PubCol("price_type", "Pricing Type", In),
+          PubCol("Month", "Month", Equality),
+          PubCol("Week", "Week", Equality)
+        ),
+        Set(
+          PublicFactCol("impressions", "Impressions", InBetweenEquality),
+          PublicFactCol("clicks", "Clicks", InBetweenEquality),
+          PublicFactCol("spend", "Spend", Set.empty),
+          PublicFactCol("avg_pos", "Average Position", Set.empty),
+          PublicFactCol("max_bid", "Max Bid", Set.empty),
+          PublicFactCol("Engagement Rate", "Engagement Rate", InBetweenEquality),
+          PublicFactCol("Paid Engagement Rate", "Paid Engagement Rate", InBetweenEquality),
+          PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
+          PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
+          PublicFactCol("CTR", "CTR", InBetweenEquality),
+          PublicFactCol("N Spend", "N Spend", InBetweenEquality),
+          PublicFactCol("Click Rate", "Click Rate", Set.empty),
+          PublicFactCol("N Clicks", "N Clicks", InBetweenEquality),
+          PublicFactCol("N Average CPC", "N Average CPC", InBetweenEquality),
+          PublicFactCol("impression_share_rounded", "Impression Share", InBetweenEquality)
+        ),
+        forcedFilters,
+        getMaxDaysWindow, getMaxDaysLookBack
+      )
+  }
+
+  case object TestDateUDFRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION dateUDF as 'com.yahoo.maha.query.presto.udf.TestDateUDF';"
+  }
+
+  case object TestDecodeUDFRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION decodeUDF as 'com.yahoo.maha.query.presto.udf.TestDecodeUDF';"
+  }
+
+  case object TestMathUDFRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION mathUDF as 'com.yahoo.maha.query.presto.udf.TestMathUDF';"
+  }
+
+  case object TestMathUDAFRegistration extends UDF {
+    val statement: String = "CREATE TEMPORARY FUNCTION mathUDAF as 'com.yahoo.maha.query.presto.udf.TestMathUDAF';"
+  }
+
+  object UDFPrestoExpression {
+
+    import PrestoExpression._
+
+    implicit val uDFRegistrationFactory = DefaultUDFRegistrationFactory
+
+    uDFRegistrationFactory.register(TestDateUDFRegistration)
+    uDFRegistrationFactory.register(TestDecodeUDFRegistration)
+    uDFRegistrationFactory.register(TestMathUDFRegistration)
+    uDFRegistrationFactory.register(TestMathUDAFRegistration)
+
+
+    case class TEST_DATE_UDF(s: PrestoExp, fmt: String) extends UDFPrestoExpression(TestDateUDFRegistration) {
+      def hasRollupExpression = s.hasRollupExpression
+
+      def hasNumericOperation = s.hasNumericOperation
+
+      def asString: String = s"dateUDF(${s.asString}, '$fmt')"
+    }
+
+    case class DECODE(args: PrestoExp*) extends UDFPrestoExpression(TestDecodeUDFRegistration) {
+      val hasRollupExpression = args.exists(_.hasRollupExpression)
+      val hasNumericOperation = args.exists(_.hasNumericOperation)
+      if (args.length < 3) throw new IllegalArgumentException("Usage: DECODE( expression , search , result [, search , result]... [, default] )")
+      val argStrs = args.map(_.asString).mkString(", ")
+      def asString: String = s"decodeUDF($argStrs)"
+    }
+
+    case class TEST_MATH_UDF(args: PrestoExp*) extends UDFPrestoExpression(TestDecodeUDFRegistration) {
+      val hasRollupExpression = args.exists(_.hasRollupExpression)
+      val hasNumericOperation = args.exists(_.hasNumericOperation)
+      val argStrs = args.map(_.asString).mkString(", ")
+      def asString: String = s"mathUDF($argStrs)"
+    }
+
+    case class TEST_MATH_UDAF(args: PrestoExp*) extends UDFPrestoExpression(TestDecodeUDFRegistration) {
+      val hasRollupExpression = args.exists(_.hasRollupExpression)
+      val hasNumericOperation = args.exists(_.hasNumericOperation)
+      val argStrs = args.map(_.asString).mkString(", ")
+      def asString: String = s"mathUDAF($argStrs)"
+    }
+
   }
 }

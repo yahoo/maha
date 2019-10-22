@@ -806,6 +806,8 @@ OuterGroupBy operation has to be applied only in the following cases
 
     val allSubQueryCandidates = bestDimCandidates.forall(_.isSubQueryCandidate)
 
+    val ogbSupportedEngines:Set[Engine] = Set(OracleEngine, HiveEngine, PrestoEngine, PostgresEngine)
+
     val hasOuterGroupBy = (//nonKeyRequestedDimCols.isEmpty
       ((!isRequestedHigherDimLevelKey && !isHighestDimPkIDRequested)
         || unrelatedDimensionsRequested
@@ -813,12 +815,8 @@ OuterGroupBy operation has to be applied only in the following cases
         && bestDimCandidates.nonEmpty
         && !requestModel.isDimDriven
         && !allSubQueryCandidates
-        && (bestFactCandidate.fact.engine == OracleEngine || bestFactCandidate.fact.engine == HiveEngine || bestFactCandidate.fact.engine == PostgresEngine)
-        && bestDimCandidates.forall(candidate => {
-        candidate.dim.engine == OracleEngine ||
-          candidate.dim.engine == HiveEngine ||
-          candidate.dim.engine == PostgresEngine
-      })) // Group by Feature is only implemented for oracle engine right now
+        && (ogbSupportedEngines.contains(bestFactCandidate.fact.engine))
+        && bestDimCandidates.forall(candidate => ogbSupportedEngines.contains(candidate.dim.engine)))
 
     hasOuterGroupBy
   }
@@ -1119,6 +1117,13 @@ OuterGroupBy operation has to be applied only in the following cases
           case AsyncRequest =>
             if (isMultiEngineQuery) {
               throw new UnsupportedOperationException("multi engine async request not supported!")
+            } else
+            if (isMetricsOnlyViewQuery && requestModel.maxRows > 0) {
+              // Allow Async API side join query on when maxRows is set
+              // Buffer limit on machine and max allowed rows on the Async request has to additionally checked before running async multi query
+
+              info(s"Running Async View Multi Query for cube ${requestModel.cube}")
+              runViewMultiQuery(requestModel, factBestCandidateOption, bestDimCandidates, queryGenVersion)
             } else {
               if (factBestCandidateOption.isDefined) {
                 val query = getDimFactQuery(bestDimCandidates, factBestCandidateOption.get, requestModel, queryAttributes, queryGenVersion)
