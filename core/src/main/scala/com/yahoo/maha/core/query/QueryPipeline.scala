@@ -789,11 +789,12 @@ OuterGroupBy operation has to be applied only in the following cases
         && bestDimCandidates.nonEmpty
         && !requestModel.isDimDriven
         && !allSubQueryCandidates
-        && (bestFactCandidate.fact.engine == OracleEngine || bestFactCandidate.fact.engine == HiveEngine)
+        && (bestFactCandidate.fact.engine == OracleEngine || bestFactCandidate.fact.engine == HiveEngine  || bestFactCandidate.fact.engine == PrestoEngine)
         && bestDimCandidates.forall(candidate => {
         candidate.dim.engine == OracleEngine ||
-          candidate.dim.engine == HiveEngine
-      })) // Group by Feature is only implemented for oracle engine right now
+          candidate.dim.engine == HiveEngine ||
+          candidate.dim.engine == PrestoEngine
+      })) // Group by Feature is implemented for oracle, hive and presto engines
 
     hasOuterGroupBy
   }

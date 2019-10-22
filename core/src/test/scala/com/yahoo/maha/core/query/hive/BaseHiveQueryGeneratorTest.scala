@@ -4,6 +4,7 @@ package com.yahoo.maha.core.query.hive
 
 import java.nio.charset.StandardCharsets
 
+import com.yahoo.maha.core.BaseExpressionTest.GET_A_BY_B
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
@@ -73,10 +74,11 @@ trait BaseHiveQueryGeneratorTest
           , FactCol("clicks", IntType(3, 0, 1, 800))
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
+          , FactCol("weighted_position", DecType(0, "0.0"))
           , HiveDerFactCol("max_price_type", IntType(), "{price_type}", rollupExpression = MaxRollup)
           , HiveDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}", rollupExpression = NoopRollup)
           , HiveDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100", rollupExpression = NoopRollup)
-          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), HiveCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
+          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), HiveCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
         )
       )
     }
@@ -143,8 +145,9 @@ trait BaseHiveQueryGeneratorTest
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
           , FactCol("ad_extn_spend", DecType())
+          , FactCol("weighted_position", DecType(0, "0.0"))
           , HiveDerFactCol("average_cpc", DecType(), "{spend}" /- "{clicks}")
-          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), HiveCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
+          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), HiveCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
         )
         , forceFilters =  Set(ForceFilter(EqualityFilter("Source", "2", isForceFilter = true, isOverridable = true)))
       )
@@ -215,6 +218,10 @@ trait BaseHiveQueryGeneratorTest
             , HiveDerFactCol("avg_rollup_spend", DecType(0, "0.0"), HiveDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = AverageRollup)
             , HiveDerFactCol("custom_rollup_spend", DecType(0, "0.0"), HiveDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = HiveCustomRollup(""))
             , HiveDerFactCol("noop_rollup_spend", DecType(0, "0.0"), HiveDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = NoopRollup)
+            , HiveDerFactCol("Average Bid", DecType(8, 2, "0.0"), GET_A_BY_B("{recommended_bid}", "{actual_impressions}"), rollupExpression = NoopRollup)
+            , HiveDerFactCol("Bid Mod", DecType(8, 5, "0.0"), GET_A_BY_B("{recommended_bid}",  "{actual_clicks}"), rollupExpression = NoopRollup)
+            , HiveDerFactCol("Bid Modifier Fact", DecType(8, 5), COALESCE("CASE WHEN {Bid Mod} = 0 THEN 1 WHEN IS_NAN({Bid Mod}) THEN 1 ELSE {Bid Mod} END", "1"), rollupExpression = NoopRollup )
+            , HiveDerFactCol("Modified Bid Fact", DecType(8, 5), COALESCE("CASE WHEN {Bid Modifier Fact} = 0 THEN 1 WHEN IS_NAN({Bid Modifier Fact}) THEN 1 ELSE {Bid Modifier Fact} END", "1") * "{Average Bid}")
           )
           , ddlAnnotation = Option(
             HiveDDLAnnotation(Map(),
@@ -273,6 +280,9 @@ trait BaseHiveQueryGeneratorTest
         , PublicFactCol("avg_rollup_spend", "Avg Rollup Spend", InBetweenEquality)
         , PublicFactCol("custom_rollup_spend", "Custom Rollup Spend", InBetweenEquality)
         , PublicFactCol("noop_rollup_spend", "Noop Rollup Spend", InBetweenEquality)
+        , PublicFactCol("Average Bid", "Average Bid", InNotInBetweenEqualityNotEqualsGreaterLesser)
+        , PublicFactCol("Bid Modifier Fact", "Bid Modifier Fact", InNotInBetweenEqualityNotEqualsGreaterLesser)
+        , PublicFactCol("Modified Bid Fact", "Modified Bid Fact", InNotInBetweenEqualityNotEqualsGreaterLesser)
       ),
       Set(EqualityFilter("Status","Valid", isForceFilter = true)),
       Map(
@@ -387,6 +397,7 @@ trait BaseHiveQueryGeneratorTest
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
           //          , FactCol("Average CPC", DecType(), OracleCustomRollup("{spend}" / "{clicks}"))
           , FactCol("CTR", DecType(), HiveCustomRollup(SUM("{clicks}" /- "{impressions}")))
+          , FactCol("weighted_position", DecType(0, "0.0"))
           , HiveDerFactCol("Engagement Rate", DecType(), "100" * TEST_MATH_UDF("{engagement_count}", "{impressions}"), rollupExpression = NoopRollup)
           , HiveDerFactCol("Paid Engagement Rate", DecType(), "100" * TEST_MATH_UDAF("{engagement_count}", "0", "0", "{clicks}", "{impressions}"), rollupExpression = NoopRollup)
           , HiveDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}")
@@ -394,7 +405,7 @@ trait BaseHiveQueryGeneratorTest
           , HiveDerFactCol("N Spend", DecType(), DECODE("{stats_source}", "1", "{spend}", "0.0"))
           , HiveDerFactCol("N Clicks", DecType(), DECODE("{stats_source}", "1", "{clicks}", "0.0"))
           , HiveDerFactCol("N Average CPC", DecType(), "{N Spend}" /- "{N Clicks}")
-          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), HiveCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
+          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), HiveCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
           , HiveDerFactCol("impression_share", IntType(), DECODE(MAX("{show_flag}"), "1", ROUND(SUM("{impressions}") /- SUM("{s_impressions}"), 4), "NULL"), rollupExpression = NoopRollup)
           , HiveDerFactCol("impression_share_rounded", IntType(), ROUND("{impression_share}", 5), rollupExpression = NoopRollup)
           , HiveDerFactCol("Click Rate", IntType(), SUM("{clicks}") /- SUM("{impressions}"), rollupExpression = NoopRollup)
