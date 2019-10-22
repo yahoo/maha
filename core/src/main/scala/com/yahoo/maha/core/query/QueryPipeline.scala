@@ -1094,6 +1094,13 @@ OuterGroupBy operation has to be applied only in the following cases
           case AsyncRequest =>
             if (isMultiEngineQuery) {
               throw new UnsupportedOperationException("multi engine async request not supported!")
+            } else
+            if (isMetricsOnlyViewQuery && requestModel.maxRows > 0) {
+              // Allow Async API side join query on when maxRows is set
+              // Buffer limit on machine and max allowed rows on the Async request has to additionally checked before running async multi query
+
+              info(s"Running Async View Multi Query for cube ${requestModel.cube}")
+              runViewMultiQuery(requestModel, factBestCandidateOption, bestDimCandidates, queryGenVersion)
             } else {
               if (factBestCandidateOption.isDefined) {
                 val query = getDimFactQuery(bestDimCandidates, factBestCandidateOption.get, requestModel, queryAttributes, queryGenVersion)
