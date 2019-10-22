@@ -2162,7 +2162,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
          |      {
          |         "field": "Advertiser ID",
          |         "operator": "=",
-         |         "value": "1035663"
+         |         "value": "12345"
          |      },
          |      {
          |         "field": "Day",
@@ -2212,6 +2212,84 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     }
   }
 
+  test("Async Fact View Query Tests A Stats Api Side join") {
+    val jsonString =
+      s"""{ "cube": "a_stats",
+         |   "selectFields": [
+         |      {
+         |         "field": "Advertiser ID"
+         |      },
+         |      {
+         |         "field": "Day"
+         |      },
+         |      {
+         |         "field": "Is Adjustment"
+         |      },
+         |      {
+         |         "field": "Impressions"
+         |      },
+         |      {
+         |         "field": "Spend"
+         |      },
+         |      {
+         |         "field": "Der Fact Col A"
+         |      }
+         |   ],
+         |   "filterExpressions": [
+         |      {
+         |         "field": "Advertiser ID",
+         |         "operator": "=",
+         |         "value": "12345"
+         |      },
+         |      {
+         |         "field": "Day",
+         |         "operator": "Between",
+         |         "from": "$fromDate",
+         |         "to": "$toDate"
+         |      }
+         |   ]
+         |}
+      """.stripMargin
+
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory()(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    assert(queryPipelineTry.get.queryChain.isInstanceOf[MultiQuery])
+
+    withDruidQueryExecutor("http://localhost:6667/mock/adjustmentStatsGroupBy") {
+      druidExecutor =>
+
+        val queryExecContext: QueryExecutorContext = new QueryExecutorContext
+        queryExecContext.register(druidExecutor)
+
+        val result = queryPipelineTry.toOption.get.execute(queryExecContext)
+        assert(result.isSuccess)
+
+        val expectedSet = Set(
+          "Row(Map(Is Adjustment -> 2, Der Fact Col A -> 5, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(184, 2012-01-01, N, 100, 15, 1))"
+          , "Row(Map(Is Adjustment -> 2, Der Fact Col A -> 5, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(199, 2012-01-01, N, 100, 10, 1))"
+          , "Row(Map(Is Adjustment -> 2, Der Fact Col A -> 5, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(184, 2012-01-01, Y, 100, 15, 0))"
+          , "Row(Map(Is Adjustment -> 2, Der Fact Col A -> 5, Day -> 1, Impressions -> 3, Advertiser ID -> 0, Spend -> 4),ArrayBuffer(199, 2012-01-01, Y, 100, 10, 0))"
+        )
+        var count = 0
+        result.get.rowList.foreach {
+          row =>
+
+            assert(expectedSet.contains(row.toString))
+            count += 1
+        }
+        assert(expectedSet.size == count)
+    }
+  }
 
   test("Successfully get the result if result rowCount exceeds maxRowLimit, if allowPartialIfResultExceedsMaxRowLimit is set") {
     val jsonString =
@@ -2234,7 +2312,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
          |      {
          |         "field": "Advertiser ID",
          |         "operator": "=",
-         |         "value": "1035663"
+         |         "value": "12345"
          |      },
          |      {
          |         "field": "Day",
@@ -2258,9 +2336,15 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
-    val query = queryPipelineTry.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
+    val queryPipeline = queryPipelineTry.get
+
+    val query = queryPipeline.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
 
     assert(query.maxRows == 3)
+
+    assert(queryPipeline.queryChain.isInstanceOf[MultiQuery])
+
+    assert(queryPipeline.queryChain.asInstanceOf[MultiQuery].unionQueryList.nonEmpty)
 
     withDruidQueryExecutor("http://localhost:6667/mock/maxRowTest", allowPartialIfResultExceedsMaxRowLimit = true) {
       druidExecutor =>
@@ -2272,18 +2356,19 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         assert(result.isSuccess)
 
         val expectedSet = Set(
-          "Row(Map(Advertiser ID -> 0, Day -> 1, Impressions -> 2, Spend -> 3),ArrayBuffer(184, 2012-01-01, 100, 15))" ,
-            "Row(Map(Advertiser ID -> 0, Day -> 1, Impressions -> 2, Spend -> 3),ArrayBuffer(199, 2012-01-01, 100, 10))",
-            "Row(Map(Advertiser ID -> 0, Day -> 1, Impressions -> 2, Spend -> 3),ArrayBuffer(199, 2012-01-01, 100, 10))",
-            "Row(Map(Advertiser ID -> 0, Day -> 1, Impressions -> 2, Spend -> 3),ArrayBuffer(199, 2012-01-01, 100, 10))"
+          "Row(Map(Advertiser ID -> 0, Day -> 1, Impressions -> 2, Spend -> 3),ArrayBuffer(184, 2012-01-01, 200, 30.0))" ,
+            "Row(Map(Advertiser ID -> 0, Day -> 1, Impressions -> 2, Spend -> 3),ArrayBuffer(199, 2012-01-01, 600, 60.0))"
         )
+
+        assert(result.get.rowList.isInstanceOf[UnionViewRowList])
+
         var count = 0
         result.get.rowList.foreach {
           row =>
             assert(expectedSet.contains(row.toString))
             count += 1
         }
-        assert(count == 4)
+        assert(count == 2)
     }
   }
 

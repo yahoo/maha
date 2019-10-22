@@ -347,4 +347,101 @@ ORDER BY mang_impressions ASC
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }
+
+  test("Query with constant requested fields should have constant columns") {
+    val jsonString =
+      s"""{
+              "cube" : "s_stats",
+              "selectFields" : [
+                  { "field" : "Day" },
+                  { "field" : "Advertiser ID" },
+                  { "field" : "Campaign ID" },
+                  { "field" : "Impressions" },
+                  { "field" : "Source", "value" : "2", "alias" : "Source"}
+              ],
+              "filterExpressions":[
+                  { "field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate" },
+                  { "field":"Advertiser ID", "operator":"=", "value":"12345" }
+              ],
+              "sortBy": [
+                  { "field": "Impressions", "order": "Asc" }
+              ],
+              "paginationStartIndex":0,
+              "rowsPerPage":100
+      }"""
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(result)
+
+    assert(result.contains("'2' mang_source"), "No constant field in outer columns")
+  }
+
+  test("generating presto query with sort on dimension") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Advertiser Name"},
+                              {"field": "Impressions"},
+                              {"field": "Average Position"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                          "sortBy": [{"field": "Advertiser Name", "order": "Desc"},  {"field": "Impressions", "order": "DESC"}]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(result)
+
+        val expected =
+          s"""
+             |SELECT CAST(advertiser_id as VARCHAR) AS advertiser_id, CAST(mang_advertiser_name as VARCHAR) AS mang_advertiser_name, CAST(mang_impressions as VARCHAR) AS mang_impressions, CAST(mang_average_position as VARCHAR) AS mang_average_position
+             |FROM(
+             |SELECT COALESCE(ssfu0.account_id, 0) advertiser_id, COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, COALESCE(impressions, 0) mang_impressions, ROUND(COALESCE(CASE WHEN ((mang_average_position >= 0.1) AND (mang_average_position <= 500)) THEN mang_average_position ELSE 0.0 END, 0.0), 10) mang_average_position
+             |FROM(SELECT account_id, SUM(impressions) impressions, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE CAST(SUM(weighted_position * impressions) AS DOUBLE) / (SUM(impressions)) END) mang_average_position
+             |FROM s_stats_fact_underlying
+             |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+             |GROUP BY account_id
+             |HAVING (SUM(impressions) > 1608)
+             |       )
+             |ssfu0
+             |LEFT OUTER JOIN (
+             |SELECT name AS mang_advertiser_name, id a1_id
+             |FROM advertiser_presto
+             |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+             |)
+             |a1
+             |ON
+             |ssfu0.account_id = a1.a1_id
+             |
+             |ORDER BY mang_advertiser_name DESC, mang_impressions DESC
+             |          )
+             |        queryAlias LIMIT 200
+             """.stripMargin
+
+        result should equal (expected) (after being whiteSpaceNormalised)
+  }
 }
