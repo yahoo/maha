@@ -7,7 +7,7 @@ import com.yahoo.maha.core.query.{QueryGenerator, Version}
 import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, DruidQueryOptimizer}
 import com.yahoo.maha.core.query.hive.{HiveQueryGenerator, HiveQueryGeneratorV2}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
-import com.yahoo.maha.core.query.presto.PrestoQueryGenerator
+import com.yahoo.maha.core.query.presto.{PrestoQueryGenerator, PrestoQueryGeneratorV1}
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
 import org.json4s.JValue
@@ -159,7 +159,8 @@ class PrestoQueryGeneratorFactory extends QueryGeneratorFactory {
     |"partitionColumnRendererClass" : "DefaultPartitionColumnRendererFactory",
     |"partitionColumnRendererConfig" : [{"key": "value"}],
     |"udfRegistrationFactoryName" : "",
-    |"udfRegistrationFactoryConfig" : []
+    |"udfRegistrationFactoryConfig" : [],
+    |"version": 0
     |}
   """.stripMargin
 
@@ -169,6 +170,7 @@ class PrestoQueryGeneratorFactory extends QueryGeneratorFactory {
     val partitionColumnRendererConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("partitionColumnRendererConfig")(configJson)
     val udfRegistrationFactoryNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("udfRegistrationFactoryName")(configJson)
     val udfRegistrationFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("udfRegistrationFactoryConfig")(configJson)
+    val versionResult: MahaServiceConfig.MahaConfigResult[Int] = fieldExtended[Int]("version")(configJson)
 
     val partitionColumnRenderer: MahaServiceConfig.MahaConfigResult[PartitionColumnRenderer] = for {
       partitionColumnRendererClass <- partitionColumnRendererClassResult
@@ -183,8 +185,23 @@ class PrestoQueryGeneratorFactory extends QueryGeneratorFactory {
       udfStatements <- udfStatementsFactory.fromJson(udfRegistrationFactoryConfig)
     } yield udfStatements
 
+    val version: Version = {
+      if (versionResult.isSuccess) {
+        Version.from(versionResult.toOption.get).getOrElse(Version.DEFAULT)
+      } else {
+        Version.DEFAULT
+      }
+    }
+
     (partitionColumnRenderer |@| udfStatements) {
-      (renderer, stmt) => new PrestoQueryGenerator(renderer, stmt)
+      (renderer, stmt) => {
+        version match {
+          case Version.v1 =>
+            new PrestoQueryGeneratorV1(renderer, stmt)
+          case _ =>
+            new PrestoQueryGenerator(renderer, stmt)
+        }
+      }
     }
   }
 
