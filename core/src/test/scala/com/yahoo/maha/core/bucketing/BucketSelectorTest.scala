@@ -3,8 +3,8 @@
 package com.yahoo.maha.core.bucketing
 
 import com.yahoo.maha.core.query.Version
-import com.yahoo.maha.core.{DruidEngine, Engine, HiveEngine, OracleEngine}
 import com.yahoo.maha.core.registry.Registry
+import com.yahoo.maha.core.{DruidEngine, Engine, HiveEngine, OracleEngine}
 import org.mockito.Mockito._
 import org.scalatest.FunSuite
 

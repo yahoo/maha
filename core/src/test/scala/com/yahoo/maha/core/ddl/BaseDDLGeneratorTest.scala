@@ -2,13 +2,13 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.ddl
 
-import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core.CoreSchema._
-import com.yahoo.maha.core.dimension._
+import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
-import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest, RequestType}
-import org.scalatest.{BeforeAndAfterAll, Matchers, FunSuite}
+import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
+import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 /**
  * Created by shengyao on 3/10/16.
@@ -26,8 +26,8 @@ class BaseDDLGeneratorTest extends FunSuite with Matchers with BeforeAndAfterAll
   }
 
   val factBuilder : FactBuilder = {
-    import com.yahoo.maha.core.HiveExpression._
     import com.yahoo.maha.core.BaseExpressionTest._
+    import com.yahoo.maha.core.HiveExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "ad_k_stats", DailyGrain, HiveEngine, Set(AdvertiserSchema, AdvertiserLowLatencySchema, ResellerSchema),
