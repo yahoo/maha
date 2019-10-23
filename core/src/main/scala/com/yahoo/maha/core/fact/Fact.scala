@@ -328,6 +328,33 @@ object DruidPostResultDerivedFactCol {
   }
 }
 
+case class DruidRowCountFactCol(name: String,
+                                dataType: DataType,
+                                alias: Option[String],
+                                columnContext: ColumnContext
+                               ) extends BaseFactCol {
+  override val isDerivedColumn: Boolean = false
+  override val annotations: Set[ColumnAnnotation] = Set.empty
+  override val filterOperationOverrides: Set[FilterOperation] = Set.empty
+  override val rollupExpression: RollupExpression = CountRollup
+
+  def copyWith(columnContext: ColumnContext, columnAliasMap: Map[String, String], resetAliasIfNotPresent: Boolean) : FactColumn = {
+    if(resetAliasIfNotPresent) {
+      this.copy(columnContext = columnContext, alias = columnAliasMap.get(name))
+    } else {
+      this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias))
+    }
+  }
+}
+
+object DruidRowCountFactCol {
+  def apply(name: String,
+            dataType: DataType,
+            alias: Option[String] = None)(implicit cc: ColumnContext): DruidRowCountFactCol = {
+    DruidRowCountFactCol(name, dataType, alias, cc)
+  }
+}
+
 case class CostMultiplier(rows: LongRangeLookup[BigDecimal])
 object CostMultiplier {
   val default : CostMultiplier = CostMultiplier(
