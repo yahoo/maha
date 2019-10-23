@@ -76,18 +76,21 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         this.tsColumn = tsColumn;
 
         //cacheActionRunner = "."
-        if(StringUtils.isBlank(cacheActionRunnerName)) //no runner is passed, use Default Class String
-            this.cacheActionRunnerName = CacheActionRunner.class.getName();
-        else {
-            try { //Check if the passed in runner is valid, else throw an exception to stop the program.
+        try {
+            if(StringUtils.isBlank(cacheActionRunnerName)) //no runner is passed, use Default Class String
+                this.cacheActionRunnerName = CacheActionRunner.class.getName();
+            else {
+                //Check if the passed in runner is valid, else throw an exception to stop the program.
                 Object actionRunner = Class.forName(cacheActionRunnerName).newInstance();
                 Preconditions.checkArgument(actionRunner instanceof CacheActionRunner,
                         "Passed in runner should be a CacheActionRunner, but got a " + cacheActionRunnerName + " of class " + actionRunner.getClass().getName());
                 this.cacheActionRunnerName =  cacheActionRunnerName;
-            } catch (Throwable t) {
-                LOG.error("Found a blank or invalid CacheActionRunner, logging error and throwing Runtime ", t);
-                throw new RuntimeException("Found invalid passed in CacheActionRunner with String " + cacheActionRunner, t);
             }
+            this.cacheActionRunner = CacheActionRunner.class.cast(
+                Class.forName(this.cacheActionRunnerName).newInstance());
+        } catch (Throwable t) {
+            LOG.error("Found a blank or invalid CacheActionRunner, logging error and throwing Runtime ", t);
+            throw new RuntimeException("Found invalid passed in CacheActionRunner with String " + cacheActionRunner, t);
         }
     }
 
@@ -145,20 +148,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
 
     public String getCacheActionRunnerName() { return cacheActionRunnerName; }
 
-    synchronized public CacheActionRunner getCacheActionRunner() {
-        try {
-            if (cacheActionRunner == null) {
-                cacheActionRunner = CacheActionRunner.class.cast(
-                        Class.forName(cacheActionRunnerName).newInstance());
-                LOG.debug("Populated a new CacheActionRunner with description " + cacheActionRunner.toString());
-            } else {
-                LOG.info("Runner is already defined.  Found " + cacheActionRunner.getClass().getName());
-            }
-        } catch(Exception e){
-            LOG.error("Failed to get a valid cacheActionRunner.", e);
-        }
+    public CacheActionRunner getCacheActionRunner() {
         return cacheActionRunner;
-
     }
 
     @Override
