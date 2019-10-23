@@ -4264,6 +4264,11 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                                "value": null
                              },
                              {
+                               "field": "Duplicate Spend",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
                                "field": "Min",
                                "alias": null,
                                "value": null
@@ -4303,13 +4308,14 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     
 
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet == Set("Custom", "Min", "Max", "Avg", "Count", "Spend","Advertiser Currency", "Average CPC Cents", "Average CPC", "Campaign Name"))
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Custom", "Duplicate Spend", "Max", "Min", "Avg", "Spend","Advertiser Currency"
+      , "Average CPC Cents", "Count", "Average CPC", "Campaign Name"))
 
 
     val expected =
       s"""
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", Count AS "Count", custom_col AS "Custom", avg_col AS "Avg", max_col AS "Max", min_col AS "Min", (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS "Average CPC Cents", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend"
-         |FROM (SELECT co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", COUNT(*) AS Count, (SUM(clicks * max_bid)) AS custom_col, AVG(avg_col) AS avg_col, MAX(max_col) AS max_col, MIN(min_col) AS min_col, SUM(spend) AS spend, MAX(max_bid) AS max_bid, SUM(clicks) AS clicks
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", Count AS "Count", custom_col AS "Custom", avg_col AS "Avg", max_col AS "Max", spend AS "Duplicate Spend", min_col AS "Min", (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS "Average CPC Cents", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend"
+         |FROM (SELECT co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", COUNT(*) AS Count, (SUM(clicks * max_bid)) AS custom_col, AVG(avg_col) AS avg_col, MAX(max_col) AS max_col, SUM(spend) AS spend, MIN(min_col) AS min_col, MAX(max_bid) AS max_bid, SUM(clicks) AS clicks
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
          |                   advertiser_id, campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, MAX(max_bid) AS max_bid, SUM(spend) AS spend, MIN(min_col) AS min_col, MAX(max_col) AS max_col, AVG(CASE WHEN ((avg_col >= 0) AND (avg_col <= 100000)) THEN avg_col ELSE 0 END) AS avg_col, COUNT(*) AS Count
          |            FROM ad_fact1 FactAlias

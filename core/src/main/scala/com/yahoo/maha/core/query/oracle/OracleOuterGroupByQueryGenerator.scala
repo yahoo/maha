@@ -1,3 +1,5 @@
+// Copyright 2017, Yahoo Holdings Inc.
+// Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query.oracle
 
 import com.yahoo.maha.core._
@@ -467,12 +469,6 @@ abstract class OracleOuterGroupByQueryGenerator(partitionColumnRenderer:Partitio
         columnInfo =>
           if (!columnInfo.isInstanceOf[ConstantColumnInfo] && queryBuilderContext.containsFactAliasToColumnMap(columnInfo.alias)) {
             aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.getFactColByAlias(columnInfo.alias))
-          } else if (queryContext.factBestCandidate.duplicateAliasMapping.contains(columnInfo.alias)) {
-            val sourceAliases = queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)
-            val sourceAlias = sourceAliases.find(queryBuilderContext.aliasColumnMap.contains)
-            require(sourceAlias.isDefined
-              , s"Failed to find source column for duplicate alias mapping : ${queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)}")
-            aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.aliasColumnMap(sourceAlias.get))
           } else if (queryBuilderContext.isDimensionCol(columnInfo.alias)) {
             aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.getDimensionColByAlias(columnInfo.alias))
           } else if (queryBuilderContext.containsPreOuterAlias(columnInfo.alias)) {

@@ -320,6 +320,7 @@ trait BasePostgresQueryGeneratorTest
           PublicFactCol("Custom", "Custom", InBetweenEquality),
           PublicFactCol("Avg", "Avg", InBetweenEquality),
           PublicFactCol("Max", "Max", InBetweenEquality),
+          PublicFactCol("spend", "Duplicate Spend", InBetweenEquality),
           PublicFactCol("Min", "Min", InBetweenEquality)
         ),
         forcedFilters,
