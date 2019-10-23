@@ -11,7 +11,7 @@ import com.yahoo.maha.core.lookup.LongRangeLookup
 import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, SyncDruidQueryOptimizer}
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.registry.RegistryBuilder
-import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
+import com.yahoo.maha.core.request.AsyncRequest
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 /**

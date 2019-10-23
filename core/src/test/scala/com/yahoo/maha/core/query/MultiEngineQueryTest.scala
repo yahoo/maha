@@ -3,7 +3,7 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core.{DruidEngine, OracleEngine}
-import org.scalatest.{Matchers, FunSuite}
+import org.scalatest.{FunSuite, Matchers}
 
 /**
  * Created by hiral on 2/18/16.

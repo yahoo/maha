@@ -2,10 +2,10 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.executor
 
-import com.yahoo.maha.core.{DruidEngine, Engine, HiveEngine, OracleEngine, PostgresEngine}
 import com.yahoo.maha.core.query._
+import com.yahoo.maha.core.{DruidEngine, Engine, HiveEngine, OracleEngine, PostgresEngine}
 
-import scala.util.{Success, Try}
+import scala.util.Try
 
 /**
  * Created by pranavbhole on 08/04/16.
