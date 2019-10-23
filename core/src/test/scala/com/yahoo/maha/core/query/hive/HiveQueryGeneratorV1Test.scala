@@ -9,8 +9,8 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.query.{QueryGeneratorRegistry, _}
 import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.request.ReportingRequest
-import org.mockito.Mockito._
 import org.mockito.Matchers._
+import org.mockito.Mockito._
 
 import scala.util.Try
 

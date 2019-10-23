@@ -2,8 +2,6 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query.hive
 
-import java.nio.charset.StandardCharsets
-
 import com.yahoo.maha.core.BaseExpressionTest.GET_A_BY_B
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.FilterOperation._
@@ -16,8 +14,6 @@ import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
-
-import scala.util.Try
 
 /**
  * Created by hiral on 1/19/16.

@@ -1,6 +1,5 @@
 package com.yahoo.maha.core.query.druid
 
-import com.yahoo.maha.core
 import com.yahoo.maha.core.CoreSchema.{AdvertiserSchema, InternalSchema, ResellerSchema}
 import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.{POST_RESULT_DECODE, START_OF_THE_MONTH, START_OF_THE_WEEK}
@@ -8,8 +7,8 @@ import com.yahoo.maha.core.FilterOperation._
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact.{PublicFactCol, _}
-import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
+import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.registry.RegistryBuilder
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
@@ -115,8 +114,6 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
   }
 
   private[this] def factBuilderWithExpensiveDateTime(annotations: Set[FactAnnotation]): FactBuilder = {
-    import DruidExpression._
-    import ThetaSketchSetOp._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "fact1", HourlyGrain, DruidEngine, Set(AdvertiserSchema, InternalSchema),
@@ -233,8 +230,6 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
   }
 
   private[this] def factBuilder4(annotations: Set[FactAnnotation]): FactBuilder = {
-    import DruidExpression._
-    import ThetaSketchSetOp._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "fact1", HourlyGrain, DruidEngine, Set(AdvertiserSchema, InternalSchema),
@@ -265,8 +260,6 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
   }
 
   private[this] def factBuilder5(annotations: Set[FactAnnotation]): FactBuilder = {
-    import DruidExpression._
-    import ThetaSketchSetOp._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "fact5", HourlyGrain, DruidEngine, Set(AdvertiserSchema, InternalSchema),

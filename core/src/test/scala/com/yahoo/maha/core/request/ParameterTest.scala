@@ -2,11 +2,11 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.request
 
-import com.yahoo.maha.core.{HiveEngine, Engine}
 import com.yahoo.maha.core.request.ReportFormatType.CSVFormat
+import com.yahoo.maha.core.{Engine, HiveEngine}
 import org.json4s._
 import org.json4s.jackson.JsonMethods
-import org.scalatest.{Matchers, FunSuite}
+import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.mutable.HashMap
 
