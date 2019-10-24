@@ -660,7 +660,13 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
     val hasExpensiveDateDimFilter = FilterDruid.isExpensiveDateDimFilter(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, queryContext.factBestCandidate.fact.columnsByNameMap)
 
-    if (hasDimFilterOnLookupColumn || hasLookupWithDecodeColumn || hasExpensiveDateDimFilter) {
+    val hasRowCountColumn = queryContext.factBestCandidate.requestCols.map {
+      factCol =>
+        val column = queryContext.factBestCandidate.fact.columnsByNameMap(factCol)
+        column.isInstanceOf[DruidRowCountFactCol]
+    }.foldLeft(false)(_ || _)
+
+    val groupByQuery: GroupByQuery = if (hasDimFilterOnLookupColumn || hasLookupWithDecodeColumn || hasExpensiveDateDimFilter) {
 
       //this is nested groupBy query so reset limitSpec inside inner query
       innerGroupByQueryBuilder.setLimitSpec(NoopLimitSpec.INSTANCE)
@@ -741,7 +747,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         outerQueryBuilder.setHavingSpec(innerGroupByQueryHavingSpec)
       }
 
-      if (innerGroupByQueryLimitSpec != null) {
+      if (innerGroupByQueryLimitSpec != null && !hasRowCountColumn) {
         outerQueryBuilder.setLimitSpec(innerGroupByQueryLimitSpec)
       }
 
@@ -759,7 +765,22 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       val dimWithDateTimeFilterList = getDateTimeFilters(queryContext) ++ dimFilterList
       if (dimWithDateTimeFilterList.nonEmpty)
         innerGroupByQueryBuilder.setDimFilter(new AndDimFilter(dimWithDateTimeFilterList.asJava))
+      if (hasRowCountColumn)
+        innerGroupByQueryBuilder.setLimitSpec(NoopLimitSpec.INSTANCE)
       innerGroupByQueryBuilder.build()
+    }
+
+    if (hasRowCountColumn) {
+      val rowCountQueryBuilder = GroupByQuery.builder()
+        .setDataSource(groupByQuery)
+        .setQuerySegmentSpec(getInterval(queryContext.requestModel))
+        .setGranularity(getGranularity(queryContext))
+        .setContext(context)
+      val countAggregatorFactory: AggregatorFactory = new CountAggregatorFactory("Row Count")
+      rowCountQueryBuilder.addAggregator(countAggregatorFactory)
+      rowCountQueryBuilder.build()
+    } else {
+      groupByQuery
     }
   }
 
@@ -1102,6 +1123,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
           }
 
           postAggregatorList += de.render(alias)(alias, aggregatorNameAliasMap.toMap)
+        case DruidRowCountFactCol(_, _, _, _) =>
+          //Handling row count aggregator when generating groupby query
         case any =>
           throw new UnsupportedOperationException(s"Found unhandled column : $any")
       }

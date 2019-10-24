@@ -73,7 +73,6 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , DruidFuncDimCol("segments", StrType(), JAVASCRIPT("{segments}", "function(x) { return x > 0; }"))
           , DimCol("internal_bucket_id", StrType())
           , DruidFuncDimCol("click_exp_id", StrType(), REGEX("{internal_bucket_id}", "(cl-)(.*?)(,)", 2, replaceMissingValue = true, "-3"))
-
         ),
         Set(
           FactCol("impressions", IntType(3, 1))
@@ -108,6 +107,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , FactCol("segments_unique_users", DecType(), DruidFilteredRollup(InFilter("segments", List("1234")), "uniqueUserCount", DruidThetaSketchRollup))
           , FactCol("conv_unique_users", DecType(), DruidFilteredRollup(JavaScriptFilter("segments", "function(x) { return x > 0; }"), "uniqueUserCount", DruidThetaSketchRollup))
           , DruidDerFactCol("Total Unique User Count", DecType(), ThetaSketchEstimator(INTERSECT, List("{ageBucket_unique_users}", "{woeids_unique_users}", "{segments_unique_users}")))
+          , DruidRowCountFactCol("row_count")
         ),
         annotations = annotations
       )
@@ -352,7 +352,8 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("woeids_unique_users", "woeids_unique_users", InBetweenEquality),
           PublicFactCol("segments_unique_users", "segments_unique_users", InBetweenEquality),
           PublicFactCol("conv_unique_users", "Conversion User Count", InBetweenEquality),
-          PublicFactCol("Total Unique User Count", "Total Unique User Count", InBetweenEquality)
+          PublicFactCol("Total Unique User Count", "Total Unique User Count", InBetweenEquality),
+          PublicFactCol("row_count", "Row Count", InBetweenEquality)
         ),
         //Set(EqualityFilter("Source", "2")),
         Set(),
@@ -410,7 +411,8 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("Reblog Rate", "Reblog Rate", InBetweenEquality),
           PublicFactCol("Click Rate", "Click Rate", InBetweenEquality),
           PublicFactCol("Click Rate Success Case", "Click Rate Success Case", InBetweenEquality),
-          PublicFactCol("CTR", "CTR", InBetweenEquality)
+          PublicFactCol("CTR", "CTR", InBetweenEquality),
+          PublicFactCol("row_count", "Row Count", InBetweenEquality)
         ),
         //Set(EqualityFilter("Source", "2")),
         Set(),

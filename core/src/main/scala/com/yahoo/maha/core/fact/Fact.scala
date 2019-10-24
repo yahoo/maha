@@ -329,12 +329,12 @@ object DruidPostResultDerivedFactCol {
 }
 
 case class DruidRowCountFactCol(name: String,
-                                dataType: DataType,
+                                columnContext: ColumnContext,
                                 alias: Option[String],
-                                columnContext: ColumnContext
-                               ) extends BaseFactCol {
+                                annotations: Set[ColumnAnnotation]
+                               ) extends BaseFactCol with WithDruidEngine {
   override val isDerivedColumn: Boolean = false
-  override val annotations: Set[ColumnAnnotation] = Set.empty
+  override val dataType: DataType = IntType()
   override val filterOperationOverrides: Set[FilterOperation] = Set.empty
   override val rollupExpression: RollupExpression = CountRollup
 
@@ -349,9 +349,9 @@ case class DruidRowCountFactCol(name: String,
 
 object DruidRowCountFactCol {
   def apply(name: String,
-            dataType: DataType,
-            alias: Option[String] = None)(implicit cc: ColumnContext): DruidRowCountFactCol = {
-    DruidRowCountFactCol(name, dataType, alias, cc)
+            alias: Option[String] = None,
+            annotations: Set[ColumnAnnotation] = Set.empty)(implicit cc: ColumnContext): DruidRowCountFactCol = {
+    DruidRowCountFactCol(name, cc, alias, annotations)
   }
 }
 

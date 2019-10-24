@@ -8,6 +8,7 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension.DruidFuncDimCol
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.{ReportingRequest, RequestContext}
+import org.apache.commons.lang.StringUtils
 
 /**
  * Created by hiral on 1/14/16.
@@ -2972,5 +2973,59 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(result.contains(json))
   }
 
+  test("test row count groupby query") {
+    val jsonString_inner =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Advertiser ID"},
+                            {"field": "Impressions"},
+                            {"field": "Row Count"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "mr": 100
+                        }"""
+
+    val request1: ReportingRequest = getReportingRequestSync(jsonString_inner)
+    val requestModel1 = RequestModel.from(request1, getDefaultRegistry())
+    val queryPipelineTry1 = generatePipeline(requestModel1.toOption.get)
+    assert(queryPipelineTry1.isSuccess, queryPipelineTry1.errorMessage("Fail to get the query pipeline"))
+
+    val result1 = queryPipelineTry1.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+//    println(result1)
+    assert(StringUtils.countMatches(result1, """"queryType":"groupBy"""") == 2, "Failed to generate 2-level groupby query")
+    assert(!result1.contains(""""limitSpec":{"type":"default","columns":[],"limit":200}"""), "Failed to remove inner limitSpec")
+    assert(result1.contains(""""aggregations":[{"type":"count","name":"Row Count"}]"""), "Failed to generate row count aggregator")
+
+    val jsonString_outer =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Advertiser ID"},
+                            {"field": "Impressions"},
+                            {"field": "Row Count"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Advertiser Status", "operator": "=", "value": "ON"}
+                          ],
+                          "mr":100
+                        }"""
+
+    val request2: ReportingRequest = getReportingRequestSync(jsonString_outer)
+    val requestModel2 = RequestModel.from(request2, getDefaultRegistry())
+    val queryPipelineTry2 = generatePipeline(requestModel2.toOption.get)
+    assert(queryPipelineTry2.isSuccess, queryPipelineTry2.errorMessage("Fail to get the query pipeline"))
+
+    val result2 = queryPipelineTry2.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+//    println(result2)
+    assert(StringUtils.countMatches(result2, """"queryType":"groupBy"""") == 3, "Failed to generate 3-level groupby query")
+    assert(!result2.contains(""""limitSpec":{"type":"default","columns":[],"limit":200}"""), "Failed to remove limitSpec")
+    assert(result2.contains(""""aggregations":[{"type":"count","name":"Row Count"}]"""), "Failed to generate row count aggregator")
+  }
 
 }
