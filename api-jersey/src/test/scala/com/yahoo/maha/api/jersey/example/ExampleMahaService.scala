@@ -45,7 +45,7 @@ object ExampleMahaService extends Logging {
     if (mahaServiceResult.isFailure) {
       mahaServiceResult.leftMap {
         res=>
-          error(s"Failed to launch Example MahaService, MahaService Error list is: ${res.list.map(er=> er.message -> er.source).toList}")
+          error(s"Failed to launch Example MahaService, MahaService Error list is: ${res.list.toList}")
       }
     }
     val mahaServiceConfig = mahaServiceResult.toOption.get

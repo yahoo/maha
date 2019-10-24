@@ -453,11 +453,18 @@ case class DefaultMahaServiceConfigContext(bucketConfigMap: Map[String, Bucketin
                                           , parallelServiceExecutorMap: Map[String, ParallelServiceExecutor] = Map.empty
                                           , curatorMap: Map[String, Curator] = Map.empty
                                           ) extends MahaServiceConfigContext
+
 object MahaServiceConfig {
 
   private[this] val closer: Closer = Closer.create()
 
   type MahaConfigResult[+A] = scalaz.ValidationNel[MahaServiceError, A]
+
+  implicit class Option2MahaConfigResult[A](option: Option[A]) {
+    def toMahaConfigResult(errFn: => MahaServiceError) : MahaConfigResult[A] = {
+      option.fold(errFn.failureNel[A])(a => a.successNel[MahaServiceError])
+    }
+  }
 
   def fromJson(ba: Array[Byte]): MahaServiceConfig.MahaConfigResult[_<:MahaServiceConfig] = {
     val json = {
@@ -511,7 +518,7 @@ object MahaServiceConfig {
             }
             (regName -> DefaultRegistryConfig(regName,
               registry,
-              new DefaultQueryPipelineFactory(),
+              new DefaultQueryPipelineFactory(defaultFactEngine = registry.defaultFactEngine, druidMultiQueryEngineList = registry.druidMultiQueryEngineList),
               queryExecutorContext,
               new BucketSelector(registry, bucketConfigMap.get(registryConfig.bucketConfigName).get),
               utcTimeProviderMap.get(registryConfig.utcTimeProviderName).get,
@@ -652,11 +659,16 @@ object MahaServiceConfig {
               factEstimatorFactory <- getFactory[FactCostEstimatorFactory](jsonConfig.factEstimatorFactoryClass, closer)
               dimEstimator <- dimEstimatorFactory.fromJson(jsonConfig.dimEstimatorFactoryConfig)
               factEstimator <- factEstimatorFactory.fromJson(jsonConfig.factEstimatorFactoryConfig)
+              defaultFactEngine <- Engine.from(jsonConfig.defaultFactEngine).toMahaConfigResult(
+                ServiceConfigurationError(s"Unknown default fact engine : ${jsonConfig.defaultFactEngine}"))
+              druidMultiEngineQueryList = jsonConfig.druidMultiEngineQueryList.map(Engine.from).flatten
             } yield {
               val registryBuilder = new RegistryBuilder
               factRegistrationFactory.register(registryBuilder)
               dimRegistrationFactory.register(registryBuilder)
-              (name, registryBuilder.build(dimEstimator, factEstimator, jsonConfig.defaultPublicFactRevisionMap, jsonConfig.defaultPublicDimRevisionMap))
+              (name, registryBuilder.build(dimEstimator, factEstimator, jsonConfig.defaultPublicFactRevisionMap
+                , jsonConfig.defaultPublicDimRevisionMap, defaultFactEngine, druidMultiEngineQueryList))
+
             }
         }
       }
@@ -826,7 +838,7 @@ object DynamicMahaServiceConfig {
           }
           (regName -> new DynamicRegistryConfig(regName,
             registry,
-            new DefaultQueryPipelineFactory(),
+            new DefaultQueryPipelineFactory(defaultFactEngine = registry.defaultFactEngine, druidMultiQueryEngineList = registry.druidMultiQueryEngineList),
             queryExecutorContext,
             new BucketSelector(registry, bucketConfigMap.get(registryConfig.bucketConfigName).get),
             utcTimeProviderMap.get(registryConfig.utcTimeProviderName).get,

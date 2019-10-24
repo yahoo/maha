@@ -8,7 +8,7 @@ import com.yahoo.maha.core.query.hive.{HiveQueryGenerator, HiveQueryGeneratorV2}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{BetweenFilter, DefaultPartitionColumnRenderer, EqualityFilter, RequestModel, _}
-import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockHiveQueryExecutor, MockOracleQueryExecutor}
+import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockHiveQueryExecutor, MockOracleQueryExecutor, MockPostgresQueryExecutor}
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 import scala.util.Try
@@ -28,6 +28,11 @@ object DefaultQueryPipelineFactoryTest {
     }
     def withOracleCallback(callback: QueryRowList => Unit) : PipelineRunner = {
       val e = new MockOracleQueryExecutor(callback)
+      queryExecutorContext.register(e)
+      this
+    }
+    def withPostgresCallback(callback: QueryRowList => Unit) : PipelineRunner = {
+      val e = new MockPostgresQueryExecutor(callback)
       queryExecutorContext.register(e)
       this
     }

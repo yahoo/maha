@@ -12,6 +12,7 @@
     <bean id="mahaResource" class="com.yahoo.maha.api.jersey.MahaResource">
         <constructor-arg name="mahaService" ref="mahaService"/>
         <constructor-arg name="baseRequest" ref="baseRequest"/>
+        <constructor-arg name="requestValidator" ref="requestValidator"/>
     </bean>
 
 </beans>

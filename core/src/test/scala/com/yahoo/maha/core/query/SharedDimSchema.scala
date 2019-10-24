@@ -15,7 +15,7 @@ import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
  * Created by hiral on 1/15/16.
  */
 trait SharedDimSchema {
-  
+
   this : BaseQueryGeneratorTest =>
 
   CoreSchema.register()
@@ -94,7 +94,45 @@ trait SharedDimSchema {
             , OracleDerDimCol("Keyword Date Modified", StrType(),FORMAT_DATE("{last_updated}", "YYYY-MM-DD"), annotations = Set.empty)
           )
           , None
-          , annotations = Set(OracleHashPartitioning,PKCompositeIndex("AD_ID"))
+          , annotations = Set(OracleHashPartitioning,OraclePKCompositeIndex("AD_ID"))
+        )
+      }
+    }
+
+    {
+      import PostgresExpression._
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        builder.withAlternateEngine(
+          "pg_targetingattribute",
+          "cache_targeting_attribute",
+          PostgresEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , PostgresPartDimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+            , DimCol("parent_type", StrType(64))
+            , DimCol("parent_id", IntType(), annotations = Set(ForeignKey("ad_group")))
+            , DimCol("value", StrType(255))
+            , DimCol("status", StrType(255))
+            , DimCol("match_type", StrType(64))
+            , DimCol("ad_param_value_1", StrType(2048), annotations = Set(EscapingRequired))
+            , DimCol("ad_param_value_2", StrType(200), annotations = Set(EscapingRequired))
+            , DimCol("ad_param_value_3", StrType(200), annotations = Set(EscapingRequired))
+            , DimCol("editorial_results", StrType(256), annotations = Set(EscapingRequired))
+            , DimCol("cpc", DecType())
+            , DimCol("device_id", IntType(3, (Map(1 -> "Desktop", 2 -> "Tablet", 3 -> "SmartPhone", -1 -> "UNKNOWN"), "UNKNOWN")))
+            , DimCol("landing_url", StrType(2048))
+            , DimCol("deleted_date", TimestampType())
+            , DimCol("modifier", DecType())
+            , DimCol("hidden", IntType())
+            , DimCol("created_by_user", StrType(255))
+            , DimCol("created_date", TimestampType())
+            , DimCol("last_updated_by_user", StrType(255))
+            , DimCol("last_updated", TimestampType())
+            , PostgresDerDimCol("Keyword Date Created", StrType(), FORMAT_DATE("{created_date}", "YYYY-MM-DD"), annotations = Set.empty)
+            , PostgresDerDimCol("Keyword Date Modified", StrType(),FORMAT_DATE("{last_updated}", "YYYY-MM-DD"), annotations = Set.empty)
+          )
+          , None
+          , annotations = Set(PostgresHashPartitioning,PostgresPKCompositeIndex("AD_ID"))
         )
       }
     }
@@ -141,8 +179,30 @@ trait SharedDimSchema {
             , OracleDerDimCol("Ad Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
-          , annotations = Set(OracleHashPartitioning,PKCompositeIndex("AD_ID"))
+          , annotations = Set(OracleHashPartitioning,OraclePKCompositeIndex("AD_ID"))
         )
+      }
+    }
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        import PostgresExpression._
+        builder
+          .withAlternateEngine("ad_dim_postgres", "ad_dim_oracle", PostgresEngine,
+            Set(
+              DimCol("id", IntType(), annotations = Set(PrimaryKey))
+              , DimCol("device_id", IntType(3, (Map(1 -> "Desktop", 2 -> "Tablet", 3 -> "SmartPhone", -1 -> "UNKNOWN"), "UNKNOWN")))
+              , DimCol("title", StrType(), annotations = Set(EscapingRequired, CaseInsensitive))
+              , PostgresPartDimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+              , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+              , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
+              , DimCol("status", StrType())
+              , DimCol("impressions", IntType())
+              , DimCol("user_count", IntType())
+              , PostgresDerDimCol("Ad Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
+            )
+            , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+            , annotations = Set(PostgresHashPartitioning,PostgresPKCompositeIndex("AD_ID"))
+          )
       }
     }
     {
@@ -216,11 +276,31 @@ trait SharedDimSchema {
             , OracleDerDimCol("Ad Group Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
-          , annotations = Set(OracleHashPartitioning,PKCompositeIndex("AD_ID"))
+          , annotations = Set(OracleHashPartitioning,OraclePKCompositeIndex("AD_ID"))
         )
       }
     }
-    
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        import PostgresExpression._
+        builder.withAlternateEngine("ad_group_postgres", "ad_group_oracle", PostgresEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType(), annotations = Set(EscapingRequired, CaseInsensitive))
+            , DimCol("device_id", IntType(3, (Map(1 -> "Desktop", 2 -> "Tablet", 3 -> "SmartPhone", -1 -> "UNKNOWN"), "UNKNOWN")))
+            , PostgresPartDimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+            , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+            , DimCol("status", StrType())
+            , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
+            , PostgresDerDimCol("Ad Group Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(PostgresHashPartitioning,PostgresPKCompositeIndex("AD_ID"))
+        )
+      }
+    }
+
     {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
         import HiveExpression._
@@ -262,7 +342,7 @@ trait SharedDimSchema {
         )
       }
     }
-      
+
     builder
       .toPublicDimension("ad_group","ad_group",
         Set(
@@ -293,11 +373,32 @@ trait SharedDimSchema {
             , OracleDerDimCol("Campaign Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
-          , annotations = Set(OracleHashPartitioning, DimensionOracleStaticHint("CampaignHint"),PKCompositeIndex("AD_ID"))
+          , annotations = Set(OracleHashPartitioning, DimensionOracleStaticHint("CampaignHint"),OraclePKCompositeIndex("AD_ID"))
         )
       }
     }
-    
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        import PostgresExpression._
+        builder.withAlternateEngine("campaign_postgres", "campaign_oracle", PostgresEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , PostgresPartDimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+            , DimCol("device_id", IntType(3, (Map(1 -> "Desktop", 2 -> "Tablet", 3 -> "SmartPhone", -1 -> "UNKNOWN"), "UNKNOWN")))
+            , DimCol("campaign_name", StrType(), annotations = Set(EscapingRequired, CaseInsensitive))
+            , DimCol("campaign_total", StrType())
+            , DimCol("status", StrType())
+            , DimCol("campaign_start_date", StrType())
+            , DimCol("campaign_end_date", StrType())
+            , PostgresDerDimCol("Campaign Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(PostgresHashPartitioning, DimensionPostgresStaticHint("CampaignHint"),PostgresPKCompositeIndex("AD_ID"))
+        )
+      }
+    }
+
     {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
         import HiveExpression._
@@ -353,7 +454,7 @@ trait SharedDimSchema {
         )
       }
     }
-    
+
     builder
       .toPublicDimension("campaign","campaign",
         Set(
@@ -387,11 +488,32 @@ trait SharedDimSchema {
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , schemaColMap = Map(AdvertiserSchema -> "id", ResellerSchema -> "managed_by")
-          , annotations = Set(OracleHashPartitioning,PKCompositeIndex("AD_ID"))
+          , annotations = Set(OracleHashPartitioning,OraclePKCompositeIndex("AD_ID"))
         )
       }
     }
-    
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        import PostgresExpression._
+        builder.withAlternateEngine("advertiser_postgres", "advertiser_oracle", PostgresEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType())
+            , DimCol("status", StrType())
+            , DimCol("managed_by", IntType())
+            , DimCol("currency", StrType())
+            , DimCol("booking_country", StrType())
+            , DimCol("device_id", IntType(3, (Map(1 -> "Desktop", 2 -> "Tablet", 3 -> "SmartPhone", -1 -> "UNKNOWN"), "UNKNOWN")))
+            , PostgresDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
+            , DimCol("last_updated", StrType())
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(PostgresHashPartitioning,PostgresPKCompositeIndex("AD_ID"))
+        )
+      }
+    }
+
     {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
         import HiveExpression._
@@ -449,7 +571,7 @@ trait SharedDimSchema {
         )
       }
     }
-    
+
     builder
       .toPublicDimension("advertiser","advertiser",
         Set(
@@ -481,7 +603,26 @@ trait SharedDimSchema {
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , schemaColMap = Map(AdvertiserSchema -> "id", ResellerSchema -> "managed_by")
-          , annotations = Set(OracleHashPartitioning,PKCompositeIndex("AD_ID"))
+          , annotations = Set(OracleHashPartitioning,OraclePKCompositeIndex("AD_ID"))
+        )
+      }
+    }
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        import PostgresExpression._
+        builder.withAlternateEngine("advertiser_postgres", "advertiser_oracle", PostgresEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType())
+            , DimCol("status", StrType())
+            , DimCol("currency", StrType())
+            , DimCol("managed_by", IntType())
+            , DimCol("timezone", StrType())
+            , PostgresDerDimCol("Advertiser Status", StrType(), DECODE_DIM("{status}", "'ON'", "'ON'", "'OFF'"))
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(PostgresHashPartitioning,PostgresPKCompositeIndex("AD_ID"))
         )
       }
     }
@@ -536,7 +677,7 @@ trait SharedDimSchema {
   }
 
   def non_hash_partitioned_dim: PublicDimension = {
-    ColumnContext.withColumnContext { implicit  cc: ColumnContext =>
+    val builder = ColumnContext.withColumnContext { implicit cc: ColumnContext =>
       Dimension.newDimension("non_hash_paritioned_dim", OracleEngine, LevelTwo, Set(AdvertiserSchema),
         Set(
           DimCol("id", IntType(), annotations = Set(PrimaryKey))
@@ -544,18 +685,33 @@ trait SharedDimSchema {
           , DimCol("status", StrType())
         )
         , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
-      ).toPublicDimension("non_hash_partitioned","non_hash_partitioned",
-          Set(
-            PubCol("id", "Column ID", InEquality)
-            , PubCol("name", "Column Name", Equality)
-            , PubCol("status", "Column Status", InEquality)
-          ), highCardinalityFilters = Set(NotInFilter("Column Status", List("DELETED")))
-        )
+      )
     }
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        import PostgresExpression._
+        builder.withAlternateEngine("pg_non_hash_paritioned_dim", "non_hash_paritioned_dim", PostgresEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType())
+            , DimCol("status", StrType())
+          )
+        )
+      }
+    }
+
+    builder.toPublicDimension("non_hash_partitioned", "non_hash_partitioned",
+      Set(
+        PubCol("id", "Column ID", InEquality)
+        , PubCol("name", "Column Name", Equality)
+        , PubCol("status", "Column Status", InEquality)
+      ), highCardinalityFilters = Set(NotInFilter("Column Status", List("DELETED")))
+    )
   }
 
   def non_hash_partitioned_with_singleton_dim: PublicDimension = {
-    ColumnContext.withColumnContext { implicit  cc: ColumnContext =>
+    val builder = ColumnContext.withColumnContext { implicit cc: ColumnContext =>
       Dimension.newDimension("non_hash_paritioned_with_singleton_dim", OracleEngine, LevelTwo, Set(AdvertiserSchema),
         Set(
           DimCol("id", IntType(), annotations = Set(PrimaryKey))
@@ -564,14 +720,31 @@ trait SharedDimSchema {
         )
         , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
         , annotations = Set(DimensionOracleStaticHint("HintHintHint"))
-      ).toPublicDimension("non_hash_partitioned_with_singleton","non_hash_partitioned_with_singleton",
-          Set(
-            PubCol("id", "Column2 ID", InEquality)
-            , PubCol("name", "Column2 Name", Equality)
-            , PubCol("status", "Column2 Status", InEquality)
-          ), highCardinalityFilters = Set(NotInFilter("Column2 Status", List("DELETED")))
-        )
+      )
     }
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        import PostgresExpression._
+        builder.withAlternateEngine("pg_non_hash_paritioned_with_singleton_dim", "non_hash_paritioned_with_singleton_dim", PostgresEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType(), annotations = Set(PostgresSnapshotTimestamp))
+            , DimCol("status", StrType())
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(DimensionPostgresStaticHint("HintHintHint"))
+        )
+      }
+    }
+
+    builder.toPublicDimension("non_hash_partitioned_with_singleton", "non_hash_partitioned_with_singleton",
+      Set(
+        PubCol("id", "Column2 ID", InEquality)
+        , PubCol("name", "Column2 Name", Equality)
+        , PubCol("status", "Column2 Status", InEquality)
+      ), highCardinalityFilters = Set(NotInFilter("Column2 Status", List("DELETED")))
+    )
   }
 
   def woeidDruidDim : PublicDimension = {
@@ -681,6 +854,35 @@ trait SharedDimSchema {
       }
     }
 
+    {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        builder.withAlternateEngine (
+          "pg_section",
+          "dim_section_complete",
+          PostgresEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey)),
+            DimCol("snapshot_ts", IntType(10)),
+            PostgresPartDimCol("publisher_id", IntType(), annotations = Set(ForeignKey("publishers"))),
+            DimCol("name", StrType(1000),annotations = Set(EscapingRequired)),
+            DimCol("vertical", StrType(1000),annotations = Set(EscapingRequired)),
+            DimCol("status", StrType(255, (Map("ON" -> "ON", "OFF" -> "OFF"),"NONE"))),
+            DimCol("site_id", IntType(), annotations = Set(ForeignKey("sites"))),
+            DimCol("source_tag", StrType(),annotations = Set(EscapingRequired)),
+            DimCol("created_ts", IntType()),
+            DimCol("last_update_ts", IntType()),
+            DimCol("rtb_enabled", IntType()),
+            DimCol("auction_type", StrType(),annotations = Set(EscapingRequired)),
+            DimCol("rtb_section_group", StrType(),annotations = Set(EscapingRequired)),
+            DimCol("rtb_section_group_mobile", StrType(),annotations = Set(EscapingRequired)),
+            DimCol("rtb_section_group_tablet", StrType(),annotations = Set(EscapingRequired))
+          )
+          , None
+          , annotations = Set(PostgresHashPartitioning)
+        )
+      }
+    }
+
     builder.toPublicDimension(
         "sections",
         "section",
@@ -763,6 +965,29 @@ trait SharedDimSchema {
       }
     }
 
+    {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        builder.withAlternateEngine (
+          "pg_publisher",
+          "dim_publisher_complete",
+          PostgresEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey)),
+            DimCol("snapshot_ts", IntType(10)),
+            DimCol("name", StrType(1000)),
+            DimCol("status", StrType(255, (Map("ON" -> "ON", "OFF" -> "OFF"),"NONE"))),
+            DimCol("timezone", StrType()),
+            DimCol("created_ts", IntType()),
+            DimCol("last_update_ts", IntType()),
+            DimCol("rev_share", DecType(12,8)),
+            DimCol("source_type", StrType())
+          )
+          , None
+          , annotations = Set(PostgresHashPartitioning)
+        )
+      }
+    }
+
     builder.toPublicDimension(
         "publishers",
         "publisher",
@@ -841,6 +1066,28 @@ trait SharedDimSchema {
       }
     }
 
+    {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        builder.withAlternateEngine (
+          "pg_site",
+          "dim_site_complete",
+          PostgresEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey)),
+            DimCol("snapshot_ts", IntType(10)),
+            DimCol("name", StrType(1000), annotations = Set(EscapingRequired)),
+            DimCol("status", StrType(255, (Map("ON" -> "ON"),"OFF"))),
+            PostgresPartDimCol("publisher_id", IntType(), annotations = Set(ForeignKey("publishers"))),
+            DimCol("rmx_section_id", IntType()),
+            DimCol("created_ts", IntType()),
+            DimCol("last_update_ts", IntType()),
+            DimCol("platform", StrType(), annotations = Set(EscapingRequired))
+          )
+          , None
+          , annotations = Set(PostgresHashPartitioning)
+        )
+      }
+    }
 
     builder.toPublicDimension(
         "sites",
@@ -915,7 +1162,23 @@ trait SharedDimSchema {
             , DimCol("address", StrType(1000))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
-          , annotations = Set(OracleHashPartitioning, PKCompositeIndex("AD_ID"))
+          , annotations = Set(OracleHashPartitioning, OraclePKCompositeIndex("AD_ID"))
+        )
+      }
+    }
+
+    {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        builder.withAlternateEngine (
+          "restaurant_postgres",
+          "restaurant_oracle",
+          PostgresEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("address", StrType(1000))
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(PostgresHashPartitioning, PostgresPKCompositeIndex("AD_ID"))
         )
       }
     }
@@ -938,7 +1201,23 @@ trait SharedDimSchema {
             , DimCol("address", StrType(1000))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
-          , annotations = Set(OracleHashPartitioning, PKCompositeIndex("AD_ID"))
+          , annotations = Set(OracleHashPartitioning, OraclePKCompositeIndex("AD_ID"))
+        )
+      }
+    }
+
+    {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        builder.withAlternateEngine (
+          "pg_combined_class",
+          "combined_class",
+          PostgresEngine,
+          Set(
+            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            , DimCol("address", StrType(1000))
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+          , annotations = Set(PostgresHashPartitioning, PostgresPKCompositeIndex("AD_ID"))
         )
       }
     }

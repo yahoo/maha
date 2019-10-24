@@ -1,3 +1,5 @@
+// Copyright 2017, Yahoo Holdings Inc.
+// Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query.oracle
 
 import com.yahoo.maha.core._
@@ -13,7 +15,7 @@ import scala.collection.mutable.ArrayBuffer
 /**
  * Created by pranavbhole on 22/11/17.
  */
-abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, literalMapper: OracleLiteralMapper = new OracleLiteralMapper) extends OracleQueryCommon with Logging {
+abstract class OracleOuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, literalMapper: OracleLiteralMapper = new OracleLiteralMapper) extends OracleQueryCommon with Logging {
 
   protected[this] def generateOuterWhereClause(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext) : WhereClause = {
     val outerFilters = new mutable.LinkedHashSet[String]
@@ -467,12 +469,6 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
         columnInfo =>
           if (!columnInfo.isInstanceOf[ConstantColumnInfo] && queryBuilderContext.containsFactAliasToColumnMap(columnInfo.alias)) {
             aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.getFactColByAlias(columnInfo.alias))
-          } else if (queryContext.factBestCandidate.duplicateAliasMapping.contains(columnInfo.alias)) {
-            val sourceAliases = queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)
-            val sourceAlias = sourceAliases.find(queryBuilderContext.aliasColumnMap.contains)
-            require(sourceAlias.isDefined
-              , s"Failed to find source column for duplicate alias mapping : ${queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)}")
-            aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.aliasColumnMap(sourceAlias.get))
           } else if (queryBuilderContext.isDimensionCol(columnInfo.alias)) {
             aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.getDimensionColByAlias(columnInfo.alias))
           } else if (queryBuilderContext.containsPreOuterAlias(columnInfo.alias)) {
@@ -488,22 +484,28 @@ abstract class OuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColum
               } else {
                 s""""$alias"""
               }
-            case FactColumnInfo(alias) =>
-              val column  = if(queryBuilderContext.containsFactAliasToColumnMap(alias)) {
-                queryBuilderContext.getFactColByAlias(alias)
-              } else {
-                // Case to handle CustomRollup Columns
-                val aliasToColNameMap: Map[String, String] = factBest.factColMapping.map {
-                  case (factColName, factAlias) =>
-                    val col = factBest.fact.columnsByNameMap(factColName)
-                    val name:String = col.alias.getOrElse(col.name)
-                    factAlias -> name
-                }
-                require(aliasToColNameMap.contains(alias), s"Can not find the alias $alias in aliasToColNameMap")
-                val colName = aliasToColNameMap(alias)
-                queryBuilderContext.getFactColByAlias(colName)
-              }
+            case FactColumnInfo(alias) if queryBuilderContext.containsFactAliasToColumnMap(alias) =>
+              val column = queryBuilderContext.getFactColByAlias(alias)
               renderParentOuterDerivedFactCols(alias, column)
+              /*TODO: I am unable to generate a test case for the else condition below with any combinations of
+                 derived columns and custom rollup, and there is no existing coverage.  Removing the else condition
+                 until we have a test
+               */
+//              val column  = if(queryBuilderContext.containsFactAliasToColumnMap(alias)) {
+//                queryBuilderContext.getFactColByAlias(alias)
+//              } else {
+//                // Case to handle CustomRollup Columns
+//                val aliasToColNameMap: Map[String, String] = factBest.factColMapping.map {
+//                  case (factColName, factAlias) =>
+//                    val col = factBest.fact.columnsByNameMap(factColName)
+//                    val name:String = col.alias.getOrElse(col.name)
+//                    factAlias -> name
+//                }
+//                require(aliasToColNameMap.contains(alias), s"Can not find the alias $alias in aliasToColNameMap")
+//                val colName = aliasToColNameMap(alias)
+//                queryBuilderContext.getFactColByAlias(colName)
+//              }
+//              renderParentOuterDerivedFactCols(alias, column)
             case DimColumnInfo(alias) => s""""$alias""""
             case ConstantColumnInfo(alias, value) =>
               s"""'$value' AS "$alias""""

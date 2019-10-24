@@ -35,6 +35,13 @@ class QueryBuilderContext {
 
   private[this] val columnNames = new mutable.TreeSet[String]
 
+  private[this] var paginationWrapperAliasCount : Int = 0
+
+  def getSubqueryAlias: String = {
+    paginationWrapperAliasCount += 1
+    s"sqalias$paginationWrapperAliasCount"
+  }
+
   def getAliasForTable(name: String) : String = {
     tableAliasMap.get(name) match {
       case None => {

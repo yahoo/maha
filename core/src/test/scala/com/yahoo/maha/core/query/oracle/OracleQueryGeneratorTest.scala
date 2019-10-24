@@ -2448,7 +2448,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                                "field": "Campaign Name",
                                "alias": null,
                                "value": null
-                             }
+                             },
+                             { "field" : "Source", "value" : "2", "alias" : "Source"}
                            ],
                           "filterExpressions": [
                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
@@ -2473,7 +2474,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = """
                      |SELECT  *
-                     |      FROM (SELECT ago2.campaign_id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
+                     |      FROM (SELECT ago2.campaign_id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", '2' AS "Source", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
                      |            FROM
                      |               ( (SELECT  campaign_id, advertiser_id, id
                      |            FROM ad_group_oracle
@@ -2525,6 +2526,11 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                                "value": null
                              },
                              {
+                               "field": "Custom",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
                                "field": "Impressions",
                                "alias": null,
                                "value": null
@@ -2553,9 +2559,9 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = s"""
                       |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
-                      |FROM (SELECT co2.id "Campaign ID", af0.ad_group_id "Ad Group ID", ao1."Advertiser Status" "Advertiser Status", co2.campaign_name "Campaign Name", coalesce(af0."impressions", 1) "Impressions", ROUND(af0."CTR", 10) "CTR"
+                      |FROM (SELECT co2.id "Campaign ID", af0.ad_group_id "Ad Group ID", ao1."Advertiser Status" "Advertiser Status", co2.campaign_name "Campaign Name", coalesce(ROUND(CASE WHEN ((af0."custom_col" >= 0) AND (af0."custom_col" <= 10)) THEN af0."custom_col" ELSE 0 END, 10), 0) "Custom", coalesce(af0."impressions", 1) "Impressions", ROUND(af0."CTR", 10) "CTR"
                       |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-                      |                   advertiser_id, campaign_id, ad_group_id, SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
+                      |                   advertiser_id, campaign_id, ad_group_id, SUM(impressions) AS "impressions", (SUM(clicks * max_bid)) AS "custom_col", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
                       |            FROM ad_fact1 FactAlias
                       |            WHERE (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
                       |            GROUP BY advertiser_id, campaign_id, ad_group_id
@@ -3494,7 +3500,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                              { "field": "Campaign ID" },
                              { "field": "Campaign Name" },
                              { "field": "Ad Group ID" },
-                             { "field": "Ad Group Status" }
+                             { "field": "Ad Group Status" },
+                             { "field" : "Source", "value" : "2", "alias" : "Source"}
                            ],
                           "filterExpressions": [
                              {"operator": "outer", "outerFilters": [
@@ -3523,7 +3530,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = """
                      |SELECT  *
-                     |      FROM (SELECT ao0.id "Advertiser ID", co1.id "Campaign ID", co1.campaign_name "Campaign Name", ago2.id "Ad Group ID", ago2."Ad Group Status" "Ad Group Status", ROWNUM as ROW_NUMBER
+                     |      FROM (SELECT ao0.id "Advertiser ID", co1.id "Campaign ID", co1.campaign_name "Campaign Name", ago2.id "Ad Group ID", ago2."Ad Group Status" "Ad Group Status", '2' AS "Source", ROWNUM as ROW_NUMBER
                      |            FROM
                      |               ( (SELECT  campaign_id, advertiser_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
                      |            FROM ad_group_oracle
@@ -4237,6 +4244,36 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                                "value": null
                              },
                              {
+                               "field": "Count",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Custom",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Avg",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Max",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Duplicate Spend",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Min",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
                                "field": "Average CPC Cents",
                                "alias": null,
                                "value": null
@@ -4271,16 +4308,16 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     
 
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
-    assert(query.aliasColumnMap.map(_._1).toSet == Set("Spend","Advertiser Currency", "Average CPC Cents", "Average CPC", "Campaign Name"))
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Custom", "Duplicate Spend", "Max", "Min", "Avg", "Spend","Advertiser Currency"
+      , "Average CPC Cents", "Count", "Average CPC", "Campaign Name"))
 
 
     val expected =
       s"""
-         |
-         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS "Average CPC Cents", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend"
-         |FROM (SELECT co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", SUM(spend) AS spend, SUM(clicks) AS clicks
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", Count AS "Count", custom_col AS "Custom", avg_col AS "Avg", max_col AS "Max", spend AS "Duplicate Spend", min_col AS "Min", (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS "Average CPC Cents", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend"
+         |FROM (SELECT co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", COUNT(*) AS Count, (SUM(clicks * max_bid)) AS custom_col, AVG(avg_col) AS avg_col, MAX(max_col) AS max_col, SUM(spend) AS spend, MIN(min_col) AS min_col, MAX(max_bid) AS max_bid, SUM(clicks) AS clicks
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   advertiser_id, campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend
+         |                   advertiser_id, campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, MAX(max_bid) AS max_bid, SUM(spend) AS spend, MIN(min_col) AS min_col, MAX(max_col) AS max_col, AVG(CASE WHEN ((avg_col >= 0) AND (avg_col <= 100000)) THEN avg_col ELSE 0 END) AS avg_col, COUNT(*) AS Count
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id
@@ -4306,6 +4343,111 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
        """
        .stripMargin
     
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Successfully generated Outer Group By Query with mutlifield fact and dim filters") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Advertiser Currency",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Business Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Business Name 2",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Average CPC Cents",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Average CPC",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "N Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"},
+                              {"field": "Spend", "operator": "==", "compareTo": "N Spend"},
+                              {"field": "Business Name", "operator": "==", "compareTo": "Business Name 2"}
+                           ]
+                           }""".stripMargin
+
+    val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request.toOption.get, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    queryPipelineTry.get.bestDimCandidates.foreach{db=> assert(db.hasPKRequested == false)}
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+
+
+    val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
+    assert(query.aliasColumnMap.map(_._1).toSet == Set("Business Name 2", "Business Name", "N Spend", "Spend","Advertiser Currency"
+      , "Average CPC Cents", "Average CPC", "Campaign Name"))
+
+
+    val expected =
+      s"""
+         |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", "Business Name", "Business Name 2", (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS "Average CPC Cents", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend", DECODE(stats_source, 1, spend, 0.0) AS "N Spend"
+         |FROM (SELECT co2.campaign_name "Campaign Name", ao1.currency "Advertiser Currency", af0."Business Name" "Business Name", af0."Business Name 2" "Business Name 2", SUM(spend) AS spend, SUM(clicks) AS clicks, af0.stats_source stats_source
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
+         |                   advertiser_id, campaign_id, DECODE(stats_source, 1, Native, 2, Search, Unknown) AS "Business Name", DECODE(stats_source, 1, Expensive, 2, Cheap, Unknown) AS "Business Name 2", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend, stats_source
+         |            FROM ad_fact1 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (DECODE(stats_source, 1, Native, 2, Search, Unknown) = DECODE(stats_source, 1, Native, 2, Search, Unknown)) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY advertiser_id, campaign_id, DECODE(stats_source, 1, Native, 2, Search, Unknown), DECODE(stats_source, 1, Expensive, 2, Cheap, Unknown), stats_source
+         |            HAVING (SUM(spend) = SUM(DECODE(stats_source, 1, spend, 0.0)))
+         |           ) af0
+         |                     LEFT OUTER JOIN
+         |           (SELECT  currency, id
+         |            FROM advertiser_oracle
+         |            WHERE (id = 12345)
+         |             )
+         |           ao1 ON (af0.advertiser_id = ao1.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           co2 ON ( af0.advertiser_id = co2.advertiser_id AND af0.campaign_id = co2.id)
+         |
+ |          GROUP BY co2.campaign_name, ao1.currency, af0."Business Name", af0."Business Name 2", af0.stats_source
+         |)
+         |   ) WHERE ROWNUM <= 200) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+         |
+       """
+        .stripMargin
+
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -4435,7 +4577,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            ],
                            "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
-                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"},
+                              {"field": "User Count", "operator": "==", "compareTo": "Impressions"}
                            ]
                            }""".stripMargin
 
@@ -4461,7 +4604,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_date >= trunc(to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, advertiser_id, ad_id, campaign_id
-         |
+         |            HAVING (SUM(user_count) = SUM(impressions))
          |           ) af0
          |                     LEFT OUTER JOIN
          |           (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
@@ -5029,7 +5172,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                               {"field": "Clicks"},
                               {"field": "Advertiser Currency"},
                               {"field": "Campaign Device ID"},
-                              {"field": "Campaign ID"}
+                              {"field": "Campaign ID"},
+                              { "field" : "Country WOEID", "value" : "2", "alias" : "Country WOEID"}
                           ],
                           "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "213"},
@@ -5079,7 +5223,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          | (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
-         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
+         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID", '2' AS "Country WOEID"
          |            FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle
@@ -5101,7 +5245,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
  |           )
          |            ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
-         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
+         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID", '2' AS "Country WOEID"
          |            FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle

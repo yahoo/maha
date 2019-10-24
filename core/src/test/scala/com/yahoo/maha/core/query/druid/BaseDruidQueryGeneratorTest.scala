@@ -792,6 +792,10 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
   }
 
   protected[this] def getDruidQueryGenerator: DruidQueryGenerator = {
-    new DruidQueryGenerator(new SyncDruidQueryOptimizer(timeout = 5000), 40000, useCustomRoundingSumAggregator = true)
+    getDruidQueryGenerator()
+  }
+
+  protected[this] def getDruidQueryGenerator(queryOptimizer: DruidQueryOptimizer = new SyncDruidQueryOptimizer(timeout = 5000)): DruidQueryGenerator = {
+    new DruidQueryGenerator(queryOptimizer, 40000, useCustomRoundingSumAggregator = true)
   }
 }

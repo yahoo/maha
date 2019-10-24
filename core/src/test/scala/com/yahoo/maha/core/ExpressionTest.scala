@@ -171,6 +171,88 @@ class ExpressionTest extends FunSuite with Matchers {
     exp.asString should equal("TO_CHAR({stats_date}, 'YYYY-MM-DD')")
   }
 
+  test("generate Postgres expression with +") {
+    import PostgresExpression._
+    val exp : PostgresExp = "{clicks}" ++ "1"
+    exp.asString should equal ("{clicks} + 1")
+  }
+  test("generate Postgres expression with -") {
+    import PostgresExpression._
+    val exp : PostgresExp = "{clicks}" - "1"
+    exp.asString should equal("{clicks} - 1")
+  }
+  test("generate Postgres expression with *") {
+    import PostgresExpression._
+    val exp : PostgresExp = "{clicks}" * "1"
+    exp.asString should equal("{clicks} * 1")
+  }
+  test("generate Postgres expression with /") {
+    import PostgresExpression._
+    val exp : PostgresExp = "{clicks}" / "1"
+    exp.asString should equal("{clicks} / 1")
+  }
+  test("generate Postgres expression with /-") {
+    import PostgresExpression._
+    val exp : PostgresExp = "{clicks}" /- "{impressions}"
+    exp.asString should equal("CASE WHEN {impressions} = 0 THEN 0.0 ELSE {clicks} / {impressions} END")
+  }
+  test("generate Postgres expression with sum") {
+    import PostgresExpression._
+    val exp : PostgresExp = SUM(COL("{avg_pos}") * "{impressions}") /- SUM("{impressions}")
+    exp.asString should equal("CASE WHEN SUM({impressions}) = 0 THEN 0.0 ELSE SUM({avg_pos} * {impressions}) / (SUM({impressions})) END")
+  }
+  test("generate Postgres expression with nested derivation") {
+    import PostgresExpression._
+    val exp0 : PostgresExp = "{clicks}" ++ "1"
+    val exp1 : PostgresExp = "{impressions}" /- exp0
+    exp1.asString should equal("CASE WHEN {clicks} + 1 = 0 THEN 0.0 ELSE {impressions} / ({clicks} + 1) END")
+    exp1.render(true) should equal("(CASE WHEN {clicks} + 1 = 0 THEN 0.0 ELSE {impressions} / ({clicks} + 1) END)")
+  }
+  test("generate Postgres expression with max") {
+    import PostgresExpression._
+    val exp : PostgresExp = MAX("{max_bid}")
+    exp.asString should equal("MAX({max_bid})")
+  }
+  test("generate Postgres expression with TIMESTAMP_TO_FORMATTED_DATE") {
+    import PostgresExpression._
+    val exp: PostgresExp = TIMESTAMP_TO_FORMATTED_DATE("{created_date}", "YYYY-MM-dd")
+    exp.asString should equal("COALESCE(TO_CHAR(TIMESTAMP '1970-01-01' + ( 1 / 24 / 60 / 60 / 1000)*CAST(MOD({created_date}, 32503680000000) AS NUMERIC) , 'YYYY-MM-dd'), 'NULL')")
+  }
+  test("generate Postgres expression with GET_INTERVAL_DATE") {
+    import PostgresExpression._
+    val exp1: PostgresExp = GET_INTERVAL_DATE("{stats_date}", "D")
+    exp1.asString should equal("TRUNC({stats_date})")
+    val exp2: PostgresExp = GET_INTERVAL_DATE("{stats_date}", "W")
+    exp2.asString should equal("TRUNC({stats_date}, 'IW')")
+    val exp3: PostgresExp = GET_INTERVAL_DATE("{stats_date}", "M")
+    exp3.asString should equal("TRUNC({stats_date}, 'MM')")
+  }
+  test("generate Postgres expression with DECODE") {
+    import PostgresExpression._
+    val exp: PostgresExp = DECODE("{engagement_type}", "1", "{engagement_count}", "0")
+    exp.asString should equal("CASE WHEN {engagement_type} = 1 THEN {engagement_count} ELSE 0 END")
+    val exp2: PostgresExp = DECODE("{engagement_type}", "1", "{engagement_count}", "0", "{engagement_count_2}")
+    exp2.asString should equal("CASE WHEN {engagement_type} = 1 THEN {engagement_count} WHEN {engagement_type} = 0 THEN {engagement_count_2} END")
+  }
+  test("generate Postgres expression with DECODE_DIM") {
+    import PostgresExpression._
+    val exp: PostgresExp = DECODE_DIM("{engagement_type}", "1", "{engagement_count}", "0")
+    exp.asString should equal("CASE WHEN {engagement_type} = 1 THEN {engagement_count} ELSE 0 END")
+    val exp2: PostgresExp = DECODE_DIM("{engagement_type}", "1", "{engagement_count}", "0", "{engagement_count_2}")
+    exp2.asString should equal("CASE WHEN {engagement_type} = 1 THEN {engagement_count} WHEN {engagement_type} = 0 THEN {engagement_count_2} END")
+  }
+  test("generate Postgres expression with COALESCE") {
+    import PostgresExpression._
+    val exp: PostgresExp = COALESCE("{conversions}", "0")
+    exp.asString should equal("COALESCE({conversions}, 0)")
+  }
+  test("generate Postgres expression with TO_CHAR") {
+    import PostgresExpression._
+    val exp: PostgresExp = TO_CHAR("{stats_date}", "YYYY-MM-DD")
+    exp.asString should equal("TO_CHAR({stats_date}, 'YYYY-MM-DD')")
+  }
+
+
   test("generate druid expression with ++") {
     import DruidExpression._
     val exp : DruidExp = "{clicks}" ++ "{impressions}"

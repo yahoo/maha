@@ -3,11 +3,11 @@
 package com.yahoo.maha.api.jersey
 
 import java.util.UUID
+
 import javax.servlet.http.HttpServletRequest
-import javax.ws.rs.container.{AsyncResponse, Suspended}
+import javax.ws.rs.container.{AsyncResponse, ContainerRequestContext, Suspended}
 import javax.ws.rs.core.{Context, MediaType}
 import javax.ws.rs.{Path, Produces, _}
-
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request.{BaseRequest, ReportingRequest, RequestContext}
 import com.yahoo.maha.core.{Schema, _}
@@ -24,7 +24,7 @@ import scala.util.Try
 
 @Path("/registry")
 @Component
-class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends Logging {
+class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestValidator: RequestValidator) extends Logging {
 
   private[this] val defaultRequestCoordinator = DefaultRequestCoordinator(mahaService)
   private[this] val mahaRequestProcessorFactory = MahaSyncRequestProcessorFactory(defaultRequestCoordinator
@@ -105,12 +105,13 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
             @QueryParam("testName") testName: String,
             @QueryParam("labels") labels: java.util.List[String],
             @Context httpServletRequest: HttpServletRequest,
+            @Context containerRequestContext: ContainerRequestContext,
             @Suspended response: AsyncResponse) : Unit = {
 
     info(s"registryName: $registryName, schema: $schema, forceEngine: $forceEngine, forceRevision: $forceRevision")
     val schemaOption: Option[Schema] = Schema.withNameInsensitiveOption(schema)
 
-    if(!schemaOption.isDefined) {
+    if(schemaOption.isEmpty) {
       throw NotFoundException(Error(s"schema $schema not found"))
     }
 
@@ -131,6 +132,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest) extends L
 
     val mahaRequestContext: MahaRequestContext = MahaRequestContext(registryName
       , bucketParams, reportingRequest, rawJson, Map.empty, requestId, userId)
+    requestValidator.validate(mahaRequestContext, containerRequestContext)
     val mahaRequestProcessor: MahaSyncRequestProcessor = mahaRequestProcessorFactory
       .create(mahaRequestContext, MahaServiceConstants.MahaRequestLabel)
 
