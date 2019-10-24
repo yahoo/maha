@@ -444,4 +444,66 @@ ORDER BY mang_impressions ASC
 
         result should equal (expected) (after being whiteSpaceNormalised)
   }
+
+  // Outer Group By request should generate normal query in v0
+  test("Successfully generated Outer Group By Query with dim non id field and fact field") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(result)
+
+    val expected =
+      s"""SELECT CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_spend as VARCHAR) AS mang_spend
+FROM(
+SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, ROUND(COALESCE(spend, 0.0), 10) mang_spend
+FROM(SELECT campaign_id, SUM(spend) spend
+FROM ad_fact1
+WHERE (advertiser_id = 12345) AND (stats_date >= '2019-10-17' AND stats_date <= '2019-10-24')
+GROUP BY campaign_id
+
+       )
+af0
+LEFT OUTER JOIN (
+SELECT campaign_name AS mang_campaign_name, id c1_id
+FROM campaign_presto_underlying
+WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345)
+)
+c1
+ON
+af0.campaign_id = c1.c1_id
+
+
+          )
+        queryAlias LIMIT 200""".stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
 }
