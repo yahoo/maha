@@ -51,6 +51,39 @@ class OracleLiteralMapper extends LiteralMapper {
   }
 }
 
+class PostgresLiteralMapper extends LiteralMapper {
+  def getDateFormatFromGrain(grain: Grain): String = {
+    grain match {
+      case DailyGrain => "YYYY-MM-DD"
+      case HourlyGrain => "HH24"
+      case _ => "YYYY-MM-DD"
+    }
+  }
+
+  private def renderDate(value: String, fmt: Option[String], grainOption: Option[Grain]): String = {
+    val grainFormat: String = grainOption.map(getDateFormatFromGrain).getOrElse("YYYY-MM-DD")
+    s"to_date('${getEscapedSqlString(value)}', '${fmt.getOrElse(grainFormat)}')"
+  }
+
+  def toLiteral(column: Column, value: String, grainOption: Option[Grain] = None): String = {
+    column.dataType match {
+      case DateType(fmt) =>
+        //TODO: validate format
+        renderDate(value, fmt, grainOption)
+      case TimestampType(fmt) =>
+        //TODO: validate format
+        s"'${getEscapedSqlString(value)}'"
+      case _ if column.annotations.contains(DayColumn.instance) =>
+        //it's a date column, treat same as date type
+        renderDate(value, None, grainOption)
+      case StrType(_, _, _) =>
+        s"'${getEscapedSqlString(value)}'"
+      case IntType(_, _, _, _, _) => BigInt(value).toString
+      case DecType(_, _, _, _, _, _) => BigDecimal(value).toString
+    }
+  }
+}
+
 class HiveLiteralMapper extends LiteralMapper {
   def getDateFormatFromGrain(grain: Grain): String = {
     grain match {

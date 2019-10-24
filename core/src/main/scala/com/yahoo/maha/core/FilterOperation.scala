@@ -360,6 +360,46 @@ object SqlBetweenFilterRenderer extends BetweenFilterRenderer[SqlResult] {
           case _ =>
             DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
         }
+      case PostgresEngine =>
+        column.dataType match {
+          case DateType(format) =>
+            if(grainOption.isDefined) {
+              grainOption.get match {
+                case HourlyGrain  =>
+                  DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
+                case _=>
+                  DefaultResult(s"""$name >= DATE_TRUNC('DAY', $renderedFrom) AND $name <= DATE_TRUNC('DAY', $renderedTo)""")
+              }
+            } else {
+              DefaultResult(s"""$name >= DATE_TRUNC('DAY', $renderedFrom) AND $name <= DATE_TRUNC('DAY', $renderedTo)""")
+            }
+          case i: IntType if column.annotations.contains(DayColumn.instance) =>
+            column.annotations.find(_.isInstanceOf[DayColumn]).fold(throw new IllegalStateException("Failed to find DayColumn when expected")){
+              ca:ColumnAnnotation =>
+                val dayColumn = ca.asInstanceOf[DayColumn]
+                val fmt = dayColumn.fmt
+                grainOption match {
+                  case Some(HourlyGrain) =>
+                    DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
+                  case _ =>
+                    DefaultResult(s"""$name >= to_number(to_char(DATE_TRUNC('DAY', $renderedFrom), '$fmt')) AND $name <= to_number(to_char(DATE_TRUNC('DAY', $renderedTo), '$fmt'))""")
+                }
+            }
+          case i: StrType if column.annotations.contains(DayColumn.instance) =>
+            column.annotations.find(_.isInstanceOf[DayColumn]).fold(throw new IllegalStateException("Failed to find DayColumn when expected")){
+              ca:ColumnAnnotation =>
+                val dayColumn = ca.asInstanceOf[DayColumn]
+                val fmt = dayColumn.fmt
+                grainOption match {
+                  case Some(HourlyGrain) =>
+                    DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
+                  case _ =>
+                    DefaultResult(s"""$name >= to_char(DATE_TRUNC('DAY', $renderedFrom), '$fmt') AND $name <= to_char(DATE_TRUNC('DAY', $renderedTo), '$fmt')""")
+                }
+            }
+          case _ =>
+            DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
+        }
       case HiveEngine =>
         DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
       case PrestoEngine =>
@@ -381,6 +421,13 @@ object SqlInFilterRenderer extends InFilterRenderer[SqlResult] {
     val renderedValues = filter.values.map(literalMapper.toLiteral(column, _, grainOption))
     engine match {
       case OracleEngine =>
+        column.dataType match {
+          case StrType(_, _, _) if column.caseInSensitive =>
+            DefaultResult(s"""lower($name) IN (${renderedValues.map(l => s"lower($l)").mkString(",")})""")
+          case _ =>
+            DefaultResult(s"""$name IN (${renderedValues.mkString(",")})""")
+        }
+      case PostgresEngine =>
         column.dataType match {
           case StrType(_, _, _) if column.caseInSensitive =>
             DefaultResult(s"""lower($name) IN (${renderedValues.map(l => s"lower($l)").mkString(",")})""")
@@ -417,6 +464,13 @@ object SqlNotInFilterRenderer extends NotInFilterRenderer[SqlResult] {
           case _ =>
             DefaultResult(s"""$name NOT IN (${renderedValues.mkString(",")})""")
         }
+      case PostgresEngine =>
+        column.dataType match {
+          case StrType(_, _, _) if column.caseInSensitive =>
+            DefaultResult(s"""lower($name) NOT IN (${renderedValues.map(l => s"lower($l)").mkString(",")})""")
+          case _ =>
+            DefaultResult(s"""$name NOT IN (${renderedValues.mkString(",")})""")
+        }
       case HiveEngine | PrestoEngine =>
         DefaultResult(s"""$name NOT IN (${renderedValues.mkString(",")})""")
       case _ =>
@@ -436,6 +490,13 @@ object SqlEqualityFilterRenderer extends EqualityFilterRenderer[SqlResult] {
     val renderedValue = literalMapper.toLiteral(column, filter.value, grainOption)
     engine match {
       case OracleEngine =>
+        column.dataType match {
+          case StrType(_, _, _) if column.caseInSensitive =>
+            DefaultResult(s"""lower($name) = lower($renderedValue)""")
+          case _ =>
+            DefaultResult(s"""$name = $renderedValue""")
+        }
+      case PostgresEngine =>
         column.dataType match {
           case StrType(_, _, _) if column.caseInSensitive =>
             DefaultResult(s"""lower($name) = lower($renderedValue)""")
@@ -495,7 +556,7 @@ object SqlFieldEqualityFilterRenderer extends FieldEqualityFilterRenderer[SqlRes
     val compareTo: String = aliasToRenderedSqlMap(filter.compareTo)._1
     val otherColumn: Column = column.columnContext.getColumnByName(compareTo).get
     engine match {
-      case OracleEngine | HiveEngine | PrestoEngine =>
+      case OracleEngine | HiveEngine | PrestoEngine | PostgresEngine =>
         checkTypesCreateResultOrThrow(renderedName, renderedCompareTo, column, otherColumn)
       case _ =>
         throw new IllegalArgumentException(s"Unsupported engine for FieldEqualityFilterRenderer $engine")
@@ -534,7 +595,7 @@ object SqlGreaterThanFilterRenderer extends GreaterThanFilterRenderer[SqlResult]
              engine: Engine,
              grainOption : Option[Grain]) : SqlResult = {
     val name: String = aliasToRenderedSqlMap(filter.field)._2
-    SqlFilterRenderFactory.renderComparisonFilterWithOperator(name, filter, literalMapper, column, engine, grainOption, ">", Set(OracleEngine, HiveEngine, PrestoEngine))
+    SqlFilterRenderFactory.renderComparisonFilterWithOperator(name, filter, literalMapper, column, engine, grainOption, ">", Set(OracleEngine, HiveEngine, PrestoEngine, PostgresEngine))
   }
 }
 
@@ -546,7 +607,7 @@ object SqlLessThanFilterRenderer extends LessThanFilterRenderer[SqlResult] {
              engine: Engine,
              grainOption : Option[Grain]) : SqlResult = {
     val name: String = aliasToRenderedSqlMap(filter.field)._2
-    SqlFilterRenderFactory.renderComparisonFilterWithOperator(name, filter, literalMapper, column, engine, grainOption, "<", Set(OracleEngine, HiveEngine, PrestoEngine))
+    SqlFilterRenderFactory.renderComparisonFilterWithOperator(name, filter, literalMapper, column, engine, grainOption, "<", Set(OracleEngine, HiveEngine, PrestoEngine, PostgresEngine))
   }
 }
 
@@ -594,6 +655,21 @@ object SqlLikeFilterRenderer extends LikeFilterRenderer[SqlResult] {
               DefaultResult( s"""$name LIKE $renderedValue""", escaped = escaped)
             }
         }
+      case PostgresEngine =>
+        column.dataType match {
+          case StrType(_, _, _) if column.caseInSensitive =>
+            if(escaped) {
+              DefaultResult( s"""lower($name) LIKE lower($renderedValue) ESCAPE '\\'""", escaped = escaped)
+            } else {
+              DefaultResult( s"""lower($name) LIKE lower($renderedValue)""", escaped = escaped)
+            }
+          case _ =>
+            if(escaped) {
+              DefaultResult( s"""$name LIKE $renderedValue ESCAPE '\\'""", escaped = escaped)
+            } else {
+              DefaultResult( s"""$name LIKE $renderedValue""", escaped = escaped)
+            }
+        }
       case HiveEngine | PrestoEngine =>
         column.dataType match {
           case StrType(_, _, _) if column.caseInSensitive =>
@@ -624,6 +700,13 @@ object SqlNotEqualToFilterRenderer extends NotEqualToFilterRenderer[SqlResult] {
           case _ =>
             DefaultResult(s"""$name <> $renderedValue""")
         }
+      case PostgresEngine =>
+        column.dataType match {
+          case StrType(_, _, _) if column.caseInSensitive =>
+            DefaultResult(s"""lower($name) <> lower($renderedValue)""")
+          case _ =>
+            DefaultResult(s"""$name <> $renderedValue""")
+        }
       case HiveEngine  | PrestoEngine =>
         DefaultResult(s"""$name <> $renderedValue""")
       case _ =>
@@ -640,7 +723,7 @@ object SqlIsNullFilterRenderer extends IsNullFilterRenderer[SqlResult] {
              grainOption: Option[Grain]) : SqlResult = {
     val name = aliasToRenderedSqlMap(filter.field)._2
     engine match {
-      case OracleEngine | HiveEngine | PrestoEngine =>
+      case OracleEngine | HiveEngine | PrestoEngine | PostgresEngine =>
         DefaultResult(s"""$name IS NULL""")
       case _ =>
         throw new IllegalArgumentException(s"Unsupported engine for IsNullFilterRenderer $engine")
@@ -656,7 +739,7 @@ object SqlIsNotNullFilterRenderer extends IsNotNullFilterRenderer[SqlResult] {
              grainOption: Option[Grain]) : SqlResult = {
     val name = aliasToRenderedSqlMap(filter.field)._2
     engine match {
-      case OracleEngine | HiveEngine | PrestoEngine =>
+      case OracleEngine | HiveEngine | PrestoEngine | PostgresEngine =>
         DefaultResult(s"""$name IS NOT NULL""")
       case _ =>
         throw new IllegalArgumentException(s"Unsupported engine for IsNotNullFilterRenderer $engine")

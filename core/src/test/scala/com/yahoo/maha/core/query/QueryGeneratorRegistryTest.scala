@@ -2,10 +2,10 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query
 
-import com.yahoo.maha.core.{HiveEngine, PrestoEngine}
 import com.yahoo.maha.core.query.hive.HiveQueryGenerator
-import org.scalatest.{FunSuite, Matchers}
+import com.yahoo.maha.core.{HiveEngine, PrestoEngine}
 import org.mockito.Mockito._
+import org.scalatest.{FunSuite, Matchers}
 
 class QueryGeneratorRegistryTest extends FunSuite with Matchers {
   test("Successfully register query generator without version") {

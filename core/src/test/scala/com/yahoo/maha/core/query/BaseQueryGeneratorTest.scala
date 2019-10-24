@@ -22,6 +22,8 @@ trait BaseQueryGeneratorTest {
 
   CoreSchema.register()
 
+  protected[this] def defaultFactEngine: Engine = OracleEngine
+
   protected[this] val druidMultiQueryEngineList = DefaultQueryPipelineFactory.druidMultiQueryEngineList
   protected[this] val fromDate = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7))
   protected[this] val fromDateMinusOne = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(8))
@@ -36,7 +38,7 @@ trait BaseQueryGeneratorTest {
 
   protected[this] implicit val queryGeneratorRegistry = new QueryGeneratorRegistry
   protected[this] implicit val executionContext: ExecutionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(10))
-  protected[this] val queryPipelineFactory = new DefaultQueryPipelineFactory()
+  protected[this] lazy val queryPipelineFactory = new DefaultQueryPipelineFactory(defaultFactEngine = defaultFactEngine, druidMultiQueryEngineList = Seq(defaultFactEngine))
   
   protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder : RegistryBuilder) : Unit
   protected[this] def registerDims(registryBuilder : RegistryBuilder) : Unit

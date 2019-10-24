@@ -10,6 +10,7 @@
     </bean>
     <bean id="baseRequest" class="com.yahoo.maha.api.jersey.example.ExampleRequest" factory-method="getRequest"/>
     <bean id="exceptionHandler" class="com.yahoo.maha.api.jersey.GenericExceptionMapper" scope="singleton" />
+    <bean id="requestValidator" class="com.yahoo.maha.api.jersey.NoopRequestValidator"/>
     <import resource="classpath:maha-jersey-context.xml" />
 
 </beans>

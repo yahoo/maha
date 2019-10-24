@@ -20,10 +20,14 @@ case object DruidEngine extends Engine {
 case object PrestoEngine extends Engine {
   override def toString = "Presto"
 }
+case object PostgresEngine extends Engine {
+  override def toString = "Postgres"
+  val MAX_SIZE_IN_FILTER = 32766
+}
 
 object Engine {
   //keep list in one place and derive from here so we only need to update in one place
-  val engines: IndexedSeq[Engine] = IndexedSeq(DruidEngine, OracleEngine, PrestoEngine, HiveEngine)
+  val engines: IndexedSeq[Engine] = IndexedSeq(DruidEngine, OracleEngine, PrestoEngine, HiveEngine, PostgresEngine)
   require(engines.size == engines.toSet.size, "Engines list must be unique!")
   val enginesMap: Map[String, Engine] = engines.map(e => e.toString.toLowerCase -> e).toMap
   def from(s: String): Option[Engine] = enginesMap.get(s.toLowerCase)
@@ -49,3 +53,8 @@ trait WithDruidEngine extends EngineRequirement {
 trait WithPrestoEngine extends EngineRequirement {
   final val engine: Engine = PrestoEngine
 }
+
+trait WithPostgresEngine extends EngineRequirement {
+  final val engine: Engine = PostgresEngine
+}
+

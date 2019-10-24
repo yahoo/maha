@@ -31,7 +31,9 @@ class MahaServiceTest extends BaseFactoryTest {
                        |			"factEstimatorFactoryClass": "factEstFactoryClass",
                        |			"factEstimatorFactoryConfig": "factEstFactoryConfig",
                        |			"defaultPublicFactRevisionMap": {"a": 1, "b": 2},
-                       |			"defaultPublicDimRevisionMap": {"a": 1, "b": 2}
+                       |			"defaultPublicDimRevisionMap": {"a": 1, "b": 2},
+                       |      "defaultFactEngine": "oracle",
+                       |      "druidMultiEngineQueryList": ["oracle"]
                        |		}
                        |	},
                        |	"executorMap": {
@@ -153,7 +155,9 @@ class MahaServiceTest extends BaseFactoryTest {
                        |			"factEstimatorFactoryClass": "factEstFactoryClass",
                        |			"factEstimatorFactoryConfig": "factEstFactoryConfig",
                        |			"defaultPublicFactRevisionMap": {"a": 1, "b": 2},
-                       |			"defaultPublicDimRevisionMap": {"a": 1, "b": 2}
+                       |			"defaultPublicDimRevisionMap": {"a": 1, "b": 2},
+                       |      "defaultFactEngine": "oracle",
+                       |      "druidMultiEngineQueryList": ["oracle"]
                        |		}
                        |	},
                        |	"executorMap": {
@@ -293,7 +297,9 @@ class MahaServiceTest extends BaseFactoryTest {
                          |         },
                          |         "defaultPublicDimRevisionMap": {
                          |            "student": 0
-                         |         }
+                         |         },
+                         |         "defaultFactEngine": "oracle",
+                         |         "druidMultiEngineQueryList": ["oracle"]
                          |      }
                          |   },
                          |   "executorMap": {
@@ -617,7 +623,9 @@ class MahaServiceTest extends BaseFactoryTest {
 			},
 			"defaultPublicDimRevisionMap": {
 
-			}
+			},
+      "defaultFactEngine": "oracle",
+      "druidMultiEngineQueryList": ["oracle"]
 		}
 	},
 	"executorMap": {

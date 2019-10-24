@@ -2,14 +2,13 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query
 
-import com.yahoo.maha.core._
 import com.yahoo.maha.core.bucketing._
 import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator, SyncDruidQueryOptimizer}
 import com.yahoo.maha.core.query.hive.{HiveQueryGenerator, HiveQueryGeneratorV2}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.core.{BetweenFilter, DefaultPartitionColumnRenderer, EqualityFilter, RequestModel}
-import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockHiveQueryExecutor, MockOracleQueryExecutor}
+import com.yahoo.maha.core.{BetweenFilter, DefaultPartitionColumnRenderer, EqualityFilter, RequestModel, _}
+import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockHiveQueryExecutor, MockOracleQueryExecutor, MockPostgresQueryExecutor}
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 import scala.util.Try
@@ -29,6 +28,11 @@ object DefaultQueryPipelineFactoryTest {
     }
     def withOracleCallback(callback: QueryRowList => Unit) : PipelineRunner = {
       val e = new MockOracleQueryExecutor(callback)
+      queryExecutorContext.register(e)
+      this
+    }
+    def withPostgresCallback(callback: QueryRowList => Unit) : PipelineRunner = {
+      val e = new MockPostgresQueryExecutor(callback)
       queryExecutorContext.register(e)
       this
     }

@@ -173,6 +173,8 @@ case class JsonRegistryConfig(factRegistrationdFactoryClass: String
                               , factEstimatorFactoryConfig : JValue
                               , defaultPublicFactRevisionMap: Map[String, Int]
                               , defaultPublicDimRevisionMap: Map[String, Int]
+                              , defaultFactEngine: String
+                              , druidMultiEngineQueryList: Seq[String]
                              )
 
 object JsonRegistryConfig {
@@ -195,17 +197,18 @@ object JsonRegistryConfig {
       val factEstimatorFactoryConfigResult: Result[JValue] = fieldExtended[JValue]("factEstimatorFactoryConfig")(json)
       val defaultPublicFactRevisionMapResult: Result[Map[String, Int]] = fieldExtended[Map[String, Int]]("defaultPublicFactRevisionMap")(json)
       val defaultPublicDimRevisionMapResult: Result[Map[String, Int]] = fieldExtended[Map[String, Int]]("defaultPublicDimRevisionMap")(json)
+      val defaultFactEngine: Result[String] = fieldExtended[String]("defaultFactEngine")(json).map(_.toLowerCase)
+      val druidMultiEngineQueryList: Result[List[String]] = fieldExtended[List[String]]("druidMultiEngineQueryList")(json).map(_.map(_.toLowerCase))
 
 
-      val builderConfig = (dimEstimatorFactoryClassResult |@| dimEstimatorFactoryConfigResult |@| factEstimatorFactoryClassResult |@| factEstimatorFactoryConfigResult |@|  defaultPublicFactRevisionMapResult |@|  defaultPublicDimRevisionMapResult) {
-        (a, b, c, d, f, g) => (a, b, c, d, f, g)
+      val builderConfig = (dimEstimatorFactoryClassResult |@| dimEstimatorFactoryConfigResult |@| factEstimatorFactoryClassResult |@| factEstimatorFactoryConfigResult |@|  defaultPublicFactRevisionMapResult |@|  defaultPublicDimRevisionMapResult |@| defaultFactEngine |@| druidMultiEngineQueryList) {
+        (a, b, c, d, f, g, h, i) => (a, b, c, d, f, g, h, i)
       }
-
 
       (factRegistrationClass |@| dimensionRegistrationClass |@| executors |@| generators |@| bucketingConfigName |@| utcTimeProviderName |@| parallelServiceExecutorName
       |@| builderConfig
       ){
-        case (a, b, c, d, e, f, g, (h, i, j, k, m, n)) => JsonRegistryConfig(a, b, c, d, e, f, g, h, i, j, k, m, n)
+        case (a, b, c, d, e, f, g, (h, i, j, k, m, n, o, p)) => JsonRegistryConfig(a, b, c, d, e, f, g, h, i, j, k, m, n, o, p)
       }
     }
   }

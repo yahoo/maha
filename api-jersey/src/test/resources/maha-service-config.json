@@ -4,10 +4,12 @@
       "factRegistrationClass": "com.yahoo.maha.api.jersey.example.student.SampleFactSchemaRegistrationFactory",
       "dimensionRegistrationClass": "com.yahoo.maha.api.jersey.example.student.SampleDimensionSchemaRegistrationFactory",
       "executors": [
+        "postgresExec",
         "oracleExec",
         "druidExec"
       ],
       "generators": [
+        "postgres",
         "oracle",
         "druid"
       ],
@@ -23,10 +25,25 @@
       },
       "defaultPublicDimRevisionMap": {
         "student": 0
-      }
+      },
+      "defaultFactEngine": "oracle",
+      "druidMultiEngineQueryList": ["oracle"]
     }
   },
   "executorMap": {
+    "postgresExec": {
+      "factoryClass": "com.yahoo.maha.service.factory.PostgresQueryExecutoryFactory",
+      "config": {
+        "dataSourceName": "postgresDataSource",
+        "jdbcConnectionFetchSize": 10,
+        "lifecycleListenerFactoryClass": "com.yahoo.maha.service.factory.NoopExecutionLifecycleListenerFactory",
+        "lifecycleListenerFactoryConfig": [
+          {
+            "key": "value"
+          }
+        ]
+      }
+    },
     "oracleExec": {
       "factoryClass": "com.yahoo.maha.service.factory.OracleQueryExecutoryFactory",
       "config": {
@@ -87,6 +104,23 @@
     }
   },
   "generatorMap": {
+    "postgres": {
+      "factoryClass": "com.yahoo.maha.service.factory.PostgresQueryGeneratorFactory",
+      "config": {
+        "partitionColumnRendererClass": "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
+        "partitionColumnRendererConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "literalMapperClass": "com.yahoo.maha.service.factory.DefaultPostgresLiteralMapperFactory",
+        "literalMapperConfig": [
+          {
+            "key": "value"
+          }
+        ]
+      }
+    },
     "oracle": {
       "factoryClass": "com.yahoo.maha.service.factory.OracleQueryGeneratorFactory",
       "config": {
@@ -194,6 +228,35 @@
     }
   },
   "datasourceMap" : {
+    "postgresDataSource": {
+      "factoryClass": "com.yahoo.maha.service.factory.HikariDataSourceFactory",
+      "config": {
+        "driverClassName": "org.h2.Driver",
+        "jdbcUrl": "jdbc:h2:mem:h2dbIdPG;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
+        "username": "sa",
+        "passwordProviderFactoryClassName": "com.yahoo.maha.service.factory.PassThroughPasswordProviderFactory",
+        "passwordProviderConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "passwordKey": "h2.test.database.password",
+        "poolName": "test-pool",
+        "maximumPoolSize": 10,
+        "minimumIdle": 3,
+        "autoCommit": true,
+        "connectionTestQuery": "SELECT 1",
+        "validationTimeout": 10000,
+        "idleTimeout": 10000,
+        "maxLifetime": 10000000,
+        "dataSourceProperties": [
+          {
+            "key": "propertyKey",
+            "value": "propertyValue"
+          }
+        ]
+      }
+    },
     "oracleDataSource": {
       "factoryClass": "com.yahoo.maha.service.factory.HikariDataSourceFactory",
       "config": {

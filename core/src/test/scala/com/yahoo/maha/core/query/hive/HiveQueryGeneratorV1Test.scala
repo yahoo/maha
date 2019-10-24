@@ -9,8 +9,8 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.query.{QueryGeneratorRegistry, _}
 import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.request.ReportingRequest
-import org.mockito.Mockito._
 import org.mockito.Matchers._
+import org.mockito.Mockito._
 
 import scala.util.Try
 
@@ -265,7 +265,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    assert(result.contains("CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) mang_average_position"), "Should support “NA” for NULL string")
+    assert(result.contains("ROUND(COALESCE(CASE WHEN ((mang_average_position >= 0.1) AND (mang_average_position <= 500)) THEN mang_average_position ELSE 0.0 END, 0.0), 10) mang_average_position"), "Should support “NA” for NULL string")
   }
 
   test("Query with constant requested fields should have constant columns") {
@@ -1229,8 +1229,8 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |FROM(
          |SELECT mang_campaign_name AS mang_campaign_name, avg_pos AS mang_average_position, spend AS mang_spend
          |FROM(
-         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(impressions) AS impressions
-         |FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions
+         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(weighted_position * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(impressions) AS impressions, SUM(weighted_position) AS weighted_position
+         |FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions, SUM(weighted_position) weighted_position
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
          |GROUP BY campaign_id
@@ -1287,8 +1287,8 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |FROM(
          |SELECT mang_campaign_name AS mang_campaign_name, avg_pos AS mang_average_position, CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS mang_average_cpc, spend AS mang_spend
          |FROM(
-         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(avg_pos * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(impressions) AS impressions
-         |FROM(SELECT campaign_id, SUM(spend) spend, SUM(clicks) clicks, SUM(impressions) impressions
+         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(weighted_position * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(impressions) AS impressions, SUM(weighted_position) AS weighted_position
+         |FROM(SELECT campaign_id, SUM(spend) spend, SUM(clicks) clicks, SUM(impressions) impressions, SUM(weighted_position) weighted_position
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
          |GROUP BY campaign_id

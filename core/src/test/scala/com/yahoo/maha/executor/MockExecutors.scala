@@ -2,10 +2,10 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.executor
 
-import com.yahoo.maha.core.{DruidEngine, Engine, HiveEngine, OracleEngine}
 import com.yahoo.maha.core.query._
+import com.yahoo.maha.core.{DruidEngine, Engine, HiveEngine, OracleEngine, PostgresEngine}
 
-import scala.util.{Success, Try}
+import scala.util.Try
 
 /**
  * Created by pranavbhole on 08/04/16.
@@ -38,6 +38,19 @@ class MockOracleQueryExecutor(callback: QueryRowList => Unit) extends QueryExecu
 
 class MockHiveQueryExecutor(callback: QueryRowList => Unit) extends QueryExecutor {
   override def engine: Engine = HiveEngine
+
+  override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
+    val result = Try(callback(rowList.asInstanceOf[QueryRowList]))
+    if(result.isSuccess) {
+      QueryResult(rowList, queryAttributes, QueryResultStatus.SUCCESS)
+    } else {
+      QueryResult(rowList, queryAttributes, QueryResultStatus.FAILURE)
+    }
+  }
+}
+
+class MockPostgresQueryExecutor(callback: QueryRowList => Unit) extends QueryExecutor {
+  override def engine: Engine = PostgresEngine
 
   override def execute[T <: RowList](query: Query, rowList: T, queryAttributes: QueryAttributes): QueryResult[T] = {
     val result = Try(callback(rowList.asInstanceOf[QueryRowList]))

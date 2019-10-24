@@ -20,15 +20,14 @@ class GenericExceptionMapper extends ExceptionMapper[Throwable] with Logging {
         case iae: IllegalArgumentException => Response.status(Response.Status.BAD_REQUEST).entity(Error(iae.getMessage)).`type`(MediaType.APPLICATION_JSON).build()
         case NotFoundException(error) => Response.status(Response.Status.BAD_REQUEST).entity(error).`type`(MediaType.APPLICATION_JSON).build()
         case MahaServiceBadRequestException(message, source) => Response.status(Response.Status.BAD_REQUEST).entity(Error(message)).`type`(MediaType.APPLICATION_JSON).build()
-        case MahaServiceExecutionException(message, source) => {
+        case MahaServiceExecutionException(message, source) =>
           source match {
             case Some(e) if e.isInstanceOf[IllegalArgumentException] =>
               Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage).`type`(MediaType.APPLICATION_JSON).build()
             case _ =>
               Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(Error(message)).`type`(MediaType.APPLICATION_JSON).build()
           }
-        }
-        case _ => Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(Error(s"${e}")).`type`(MediaType.APPLICATION_JSON).build()
+        case _ => Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(Error(s"$e")).`type`(MediaType.APPLICATION_JSON).build()
       }
     }
 

@@ -4,8 +4,8 @@ package com.yahoo.maha.report
 
 import java.io._
 
-import org.scalatest.{Matchers, FunSuite}
 import com.yahoo.maha.core.query.Row
+import org.scalatest.{FunSuite, Matchers}
 
 import scala.collection.mutable.ArrayBuffer
 

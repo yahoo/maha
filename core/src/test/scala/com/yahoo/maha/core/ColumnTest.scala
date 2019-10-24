@@ -2,9 +2,9 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
+import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol}
 import com.yahoo.maha.core.fact.{ConstFactCol, DruidConstDerFactCol, HiveDerFactCol, NoopRollup}
 import org.scalatest.{FunSuite, Matchers}
-import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol}
 
 /**
  * Created by shengyao on 2/9/16.
