@@ -16,3 +16,5 @@ mvn deploy -Dmaven.test.skip=true -DskipTests -Dscoverage.skip --projects com.ya
 mvn deploy -Dmaven.test.skip=true -DskipTests -Dscoverage.skip --projects com.yahoo.maha:maha-job-service --settings travis/settings-maha-job-service.xml
 mvn deploy -Dmaven.test.skip=true -DskipTests -Dscoverage.skip --projects com.yahoo.maha:maha-worker --settings travis/settings-maha-worker.xml
 mvn deploy -Dmaven.test.skip=true -DskipTests -Dscoverage.skip --projects com.yahoo.maha:maha-request-log --settings travis/settings-maha-request-log.xml
+
+mvn deploy -Dmaven.test.skip=true -DskipTests -Dscoverage.skip --projects com.yahoo.maha:maha-postgres-executor --settings travis/settings-maha-postgres-executor.xml
