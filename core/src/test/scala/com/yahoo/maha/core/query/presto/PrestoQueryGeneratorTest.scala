@@ -487,7 +487,7 @@ FROM(
 SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, ROUND(COALESCE(spend, 0.0), 10) mang_spend
 FROM(SELECT campaign_id, SUM(spend) spend
 FROM ad_fact1
-WHERE (advertiser_id = 12345) AND (stats_date >= '2019-10-17' AND stats_date <= '2019-10-24')
+WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
 GROUP BY campaign_id
 
        )

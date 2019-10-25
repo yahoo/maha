@@ -3013,8 +3013,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "=", "value": "$fromDate"},
-                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
-                            {"field": "Advertiser Status", "operator": "=", "value": "ON"}
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
                           ],
                           "mr": 100
                         }"""
