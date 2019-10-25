@@ -2983,7 +2983,8 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "filterExpressions": [
                             {"field": "Day", "operator": "=", "value": "$fromDate"},
                             {"field": "Advertiser ID", "operator": "=", "value": "12345"}
-                          ],"paginationStartIndex":20,
+                          ],
+                          "paginationStartIndex":20,
                           "rowsPerPage":100
                         }"""
 
@@ -2994,7 +2995,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-        
+
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
 
     val json = """"priority":-1"""
@@ -3009,6 +3010,12 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                             {"field": "Advertiser ID"},
                             {"field": "Impressions"},
                             {"field": "Row Count"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Advertiser Status", "operator": "=", "value": "ON"}
+                          ],
                           "mr": 100
                         }"""
 
