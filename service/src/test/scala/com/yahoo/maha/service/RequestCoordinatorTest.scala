@@ -51,19 +51,26 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       Seq(1, 500, 213, 197, 190, 190, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(10)), "some comment 3", today.toString, 213),
       Seq(1, 100, 213, 200, 125, 125, today.toString, "some comment 1", today.toString, 213),
       Seq(1, 100, 213, 198, 180, 180, yesterday.toString, "some comment 2", today.toString, 213),
-      Seq(1, 200, 213, 199, 175, 175, today.toString, "some comment 3", today.toString, 213)
+      Seq(1, 200, 213, 199, 175, 175, today.toString, "some comment 3", today.toString, 213),
+      Seq(1, 311, 214, 201, 100, 90, DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(4)), "some comment 1", today.toString, 213),
+      Seq(1, 311, 214, 201, 125, 100, today.toString, "some comment 1", today.toString, 213),
+      Seq(1, 311, 214, 198, 180, 150, yesterday.toString, "some comment 2", today.toString, 213),
+      Seq(1, 311, 214, 199, 175, 145, today.toString, "some comment 3", today.toString, 213)
     )
 
     val studentRows: List[Seq[Any]] = List(
-      Seq("www.google.com",213, "ACTIVE", 2017, "ACTIVE", 54321)
+      Seq("www.google.com",213, "ACTIVE", 2017, "ACTIVE", 54321),
+      Seq("www.google2.com",214, "ACTIVE", 2017, "ACTIVE", 54321)
     )
 
     val classRows: List[Seq[Any]] = List(
-      Seq(200, "Class A", 2017, "ACTIVE", 54321, "M. Byson")
+      Seq(200, "Class A", 2017, "ACTIVE", 54321, "M. Byson"),
+      Seq(201, "Class B", 2017, "ACTIVE", 54321, "L. Johnson")
     )
 
     val sectionRows: List[Seq[Any]] = List(
-      Seq(310, "Section A", 213, 200, 2017, "ACTIVE")
+      Seq(310, "Section A", 213, 200, 2017, "ACTIVE"),
+      Seq(311, "Section B", 214, 201, 2017, "ACTIVE")
     )
 
     rows.foreach {
@@ -161,7 +168,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
       defaultCount+=1
     })
 
-    assert(defaultCount == 1)
+    assert(defaultCount == 2)
     val expectedStringList = List(
       "WHERE (student_id >= 0 AND student_id <= 1000)", "WHERE (id >= 0 AND id <= 1000) AND (name = status)")
     for(item <- expectedStringList) assert(requestResultString.contains(item))
@@ -476,6 +483,69 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     var cnt = 0
     timeShiftCuratorRequestResult.queryPipelineResult.rowList.foreach( row => {
       
+      assert(expectedSeq(cnt) === row.toString)
+      cnt+=1
+    })
+
+    assert(expectedSeq.size === cnt)
+  }
+
+  test("Test successful processing of Timeshift curator with days offset") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "test-blah-curator": { "config": {}},
+                            "test-blah_curator2": { "config": {}},
+                            "timeshift" : {
+                              "config" : {
+                                "daysOffset": 1
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"},
+                            {"field": "Class ID", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$yesterday", "to": "$today"},
+                            {"field": "Student ID", "operator": "=", "value": "214"}
+                          ]
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = ReportingRequest.enableDebug(reportingRequestResult.toOption.get)
+
+    assert(reportingRequest.curatorJsonConfigMap.contains(TimeShiftCurator.name))
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+    val timeShiftCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(TimeShiftCurator.name)
+
+    val expectedSeq = IndexedSeq(
+      "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(214, 198, 311, 180, 0, 100.0))",
+      "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(214, 199, 311, 175, 0, 100.0))",
+      "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(214, 201, 311, 125, 100, 25.0))"
+    )
+
+    var cnt = 0
+    timeShiftCuratorRequestResult.queryPipelineResult.rowList.foreach( row => {
       assert(expectedSeq(cnt) === row.toString)
       cnt+=1
     })
