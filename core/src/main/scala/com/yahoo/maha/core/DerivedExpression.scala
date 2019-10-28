@@ -12,7 +12,7 @@ import com.google.common.collect.Lists
 import com.yahoo.maha.core.ThetaSketchSetOp.ThetaSketchSetOp
 import io.druid.query.aggregation.PostAggregator
 import io.druid.query.aggregation.datasketches.theta.{SketchEstimatePostAggregator, SketchSetPostAggregator}
-import io.druid.query.aggregation.post.{ArithmeticPostAggregator, ConstantPostAggregator, FieldAccessPostAggregator}
+import io.druid.query.aggregation.post.{ArithmeticPostAggregator, ConstantPostAggregator, FieldAccessPostAggregator, JavaScriptPostAggregator}
 
 trait Expression[T] {
   def hasNumericOperation: Boolean
@@ -752,6 +752,10 @@ object DruidExpression {
       Arithmetic("/", this, that)
     }
 
+    def javascript(fn: String, fields: Seq[String]) = {
+      JavaScript(fn, fields)
+    }
+
   }
 
   /* TODO: fix later
@@ -771,7 +775,7 @@ object DruidExpression {
     val asString: String = fn
 
     override def render(insideDerived: Boolean) = {
-      ()
+      (s: String, aggregatorNameAliasMap: Map[String, String]) => new JavaScriptPostAggregator(s, fields, fn)
     }
   }
 
