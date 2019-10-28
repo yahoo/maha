@@ -75,6 +75,9 @@ object FilterOperation {
 
   val InNotInEqualityNotEqualsLikeNullNotNull: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation,NotEqualToFilterOperation, NotInFilterOperation,
                                                    LikeFilterOperation, IsNullFilterOperation, IsNotNullFilterOperation)
+  val InNotInEqualityNotEqualsLikeNullNotNullBetween: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation,NotEqualToFilterOperation, NotInFilterOperation,
+    LikeFilterOperation, IsNullFilterOperation, IsNotNullFilterOperation, BetweenFilterOperation)
+
   val InNotInBetweenEqualityNotEqualsGreaterLesser: Set[FilterOperation] = Set(InFilterOperation, NotInFilterOperation, BetweenFilterOperation, EqualityFilterOperation, NotEqualToFilterOperation, GreaterThanFilterOperation, LessThanFilterOperation)
 }
 
