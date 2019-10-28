@@ -1759,6 +1759,7 @@ case class PublicFactTable private[fact](name: String
       .mapValues(_.map(tpl => tpl._2)
       .to[SortedSet])*/
 
+  private val startTime = System.currentTimeMillis()
   private[this] val secondaryDimFactMap: Map[SortedSet[String], SortedSet[Fact]] =
     facts
       .values
@@ -1769,6 +1770,14 @@ case class PublicFactTable private[fact](name: String
       .groupBy(_._1)
       .mapValues(_.map(tpl => tpl._2)
       .to[SortedSet])
+  private val endTime = System.currentTimeMillis()
+
+  private val totalTimeSecs: Long = (endTime - startTime) / 1000
+  private val totalMinsTaken: String = String.valueOf(totalTimeSecs / 60)
+  private val totalSecsTaken: String = String.valueOf(totalTimeSecs % 60)
+
+  if(totalTimeSecs / 60 > 0)
+    logger.info(s"Total time for superset generation for $name: ${totalMinsTaken}m${totalSecsTaken}s ")
 
   private[this] val dimColsByName = dimCols.map(_.name)
 
