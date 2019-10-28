@@ -776,7 +776,14 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         .setQuerySegmentSpec(getInterval(queryContext.requestModel))
         .setGranularity(getGranularity(queryContext))
         .setContext(context)
-      val countAggregatorFactory: AggregatorFactory = new CountAggregatorFactory("Row Count")
+
+      val publicCol = queryContext.factBestCandidate.requestCols.collect{
+        case col if queryContext.factBestCandidate.fact.columnsByNameMap(col).isInstanceOf[DruidRowCountFactCol]
+          => queryContext.factBestCandidate.factColMapping(col)
+      }.toSeq(0)
+
+      val countAggregatorFactory: AggregatorFactory = new CountAggregatorFactory(publicCol)
+
       rowCountQueryBuilder.addAggregator(countAggregatorFactory)
       rowCountQueryBuilder.build()
     } else {
