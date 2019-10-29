@@ -480,16 +480,15 @@ class RowCountCuratorTest  extends BaseMahaServiceTest with BeforeAndAfterAll {
                           "filterExpressions": [
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
                             {"field": "Student ID", "operator": "=", "value": "213"}
-                          ]
+                          ],
+                          "forceFactDriven": true
                         }"""
 
     val reportingRequestResult = ReportingRequest.deserializeSync(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
-//    val reportingRequest = ReportingRequest.forceDruid(reportingRequestResult.toOption.get)
     val reportingRequest = reportingRequestResult.toOption.get
 
     val bucketParams = BucketParams(UserInfo("uid", true), forceRevision = Option(1)) //revision = 1: force to use Druid
-
 
     val mahaRequestContext = MahaRequestContext(REGISTRY,
       bucketParams,
