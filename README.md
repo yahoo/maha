@@ -24,7 +24,7 @@ A centralised library for building reporting APIs on top of multiple data stores
 
 ### Maha Architecture
 
-![Maha Architecture (1)](https://user-images.githubusercontent.com/4935454/67780843-e4be8000-fa23-11e9-935b-2ee8e8ae0711.jpeg)
+![Maha Architecture](https://user-images.githubusercontent.com/4935454/67800990-8c987580-fa45-11e9-8ba4-d78c1f31be8f.jpeg)
 
 ### Modules in maha
   - maha-core : responsible for creating Reporting Request, Request Model (Query Metadata) , Query Generation, Query Pipeline (Engine selection)
