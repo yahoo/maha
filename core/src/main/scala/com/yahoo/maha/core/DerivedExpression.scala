@@ -6,10 +6,12 @@ package com.yahoo.maha.core
  * Created by hiral on 10/2/15.
  */
 
+import java.util
 import java.util.concurrent.atomic.AtomicLong
 
 import com.google.common.collect.Lists
 import com.yahoo.maha.core.ThetaSketchSetOp.ThetaSketchSetOp
+import io.druid.js.JavaScriptConfig
 import io.druid.query.aggregation.PostAggregator
 import io.druid.query.aggregation.datasketches.theta.{SketchEstimatePostAggregator, SketchSetPostAggregator}
 import io.druid.query.aggregation.post.{ArithmeticPostAggregator, ConstantPostAggregator, FieldAccessPostAggregator, JavaScriptPostAggregator}
@@ -1050,10 +1052,6 @@ object DruidExpression {
       Arithmetic("/", this, that)
     }
 
-    def javascript(fn: String, fields: Seq[String]) = {
-      JavaScript(fn, fields)
-    }
-
   }
 
   /* TODO: fix later
@@ -1067,13 +1065,19 @@ object DruidExpression {
     )))
   }*/
 
-  case class JavaScript(fn: String, fields: Seq[String]) extends BaseDruidExpression {
+  case class JavaScript(fn: String, fields: List[String]) extends BaseDruidExpression {
     val hasNumericOperation: Boolean = false
     val hasRollupExpression: Boolean = false
-    val asString: String = fn
-
+    val asString: String = {
+      s"function({${fields.mkString("},{")}})\\{$fn\\}"
+    }
     override def render(insideDerived: Boolean) = {
-      (s: String, aggregatorNameAliasMap: Map[String, String]) => new JavaScriptPostAggregator(s, fields, fn)
+
+      (s: String, aggregatorNameAliasMap: Map[String, String]) => {
+        val listInJava = new util.ArrayList[String]()
+        fields.foreach(f => listInJava.add(aggregatorNameAliasMap.getOrElse(f, f)))
+        new JavaScriptPostAggregator(s, listInJava, s"function(${fields.mkString(",")}){$fn}", JavaScriptConfig.getEnabledInstance)
+      }
     }
   }
 
