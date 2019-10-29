@@ -300,23 +300,57 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
             }
           }
         } else {
-          val model = requestModelResult.model
-          val curatorResult = CuratorResult(this, curatorConfig, None, requestModelResult)
-          if (model.dimCardinalityEstimate.nonEmpty) {
-            if(model.dimCardinalityEstimate.get.intValue <= FACT_ONLY_LIMIT) {
-              val count = model.dimCardinalityEstimate.get.intValue
-              mahaRequestContext.mutableState.put(RowCountCurator.name, count)
-              mahaRequestLogBuilder.logSuccess()
-              withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
+          val sourcePipelineTry = mahaService.generateQueryPipelines(mahaRequestContext.registryName
+            , requestModelResultTry.get.model
+            , mahaRequestContext.bucketParams)._1
+
+          if (sourcePipelineTry.isFailure) {
+            val exception = sourcePipelineTry.failed.get
+            val message = "source pipeline failed"
+            mahaRequestLogBuilder.logFailed(s"$message - ${exception.getMessage}")
+            withError(curatorConfig, GeneralError.from(parRequestLabel, message, exception))
+          } else {
+            val sourcePipeline = sourcePipelineTry.get
+            val totalRowsCountRequestTry =
+              Try {
+                //force fact driven
+                //added row count field
+                //remove all sorts
+                sourcePipeline.requestModel.reportingRequest.copy(
+                  selectFields = sourcePipeline.requestModel.reportingRequest.selectFields ++ IndexedSeq(Field("Row Count", None, None))
+                  , sortBy = IndexedSeq.empty
+                  , forceDimensionDriven = false
+                  , forceFactDriven = true
+                  , paginationStartIndex = 0
+                  , rowsPerPage = 1
+                  , curatorJsonConfigMap = Map.empty
+                )
+              }
+            if (totalRowsCountRequestTry.isFailure) {
+              val exception = totalRowsCountRequestTry.failed.get
+              val message = "total rows request failed to generate"
+              mahaRequestLogBuilder.logFailed(s"${message} - ${exception.getMessage}")
+              withError(curatorConfig, GeneralError.from(parRequestLabel, message, exception))
             } else {
-              mahaRequestContext.mutableState.put(RowCountCurator.name, FACT_ONLY_LIMIT)
-              mahaRequestLogBuilder.logSuccess()
+              val totalRowsRequest = totalRowsCountRequestTry.get
+              val parRequestResult: ParRequestResult = mahaService.executeRequest(mahaRequestContext.registryName
+                , totalRowsRequest, mahaRequestContext.bucketParams, mahaRequestLogBuilder)
+
+              val populateRowCount:ParRequest[RequestResult] = parRequestResult.prodRun.map(parRequestLabel, ParFunction.fromScala {
+                requestResult =>
+                  val rowList = requestResult.queryPipelineResult.rowList
+                  require(rowList.length == 1, s"length not equal to 1: ${rowList.length}")
+                  var count = 0
+                  rowList.foreach(row => count = row.getValue("Row Count").toString.toInt)
+                  mahaRequestContext.mutableState.put(RowCountCurator.name, count)
+                  mahaRequestLogBuilder.logSuccess()
+                  new Right(requestResult)
+              })
+
+              val finalParRequestResult = parRequestResult.copy(prodRun = populateRowCount)
+              val curatorResult = CuratorResult(this, curatorConfig, Option(finalParRequestResult), requestModelResult)
               withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
             }
-          } else {
-            val message = "No row count can be estimated without dim cardinality estimate"
-            mahaRequestLogBuilder.logFailed(message, Option(400))
-            withError(curatorConfig, GeneralError.from(parRequestLabel, message))
           }
         }
       }
