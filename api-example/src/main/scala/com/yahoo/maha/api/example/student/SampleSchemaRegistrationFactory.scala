@@ -51,17 +51,17 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
       }
         .toPublicFact("student_performance",
           Set(
-            PubCol("class_id", "Class ID", Equality),
-            PubCol("student_id", "Student ID", Equality),
-            PubCol("section_id", "Section ID", Equality),
-            PubCol("date", "Day", Equality),
-            PubCol("year", "Year", Equality),
+            PubCol("class_id", "Class ID", InNotInEqualityNotEquals),
+            PubCol("student_id", "Student ID", InNotInEqualityNotEquals),
+            PubCol("section_id", "Section ID", InNotInEqualityNotEquals),
+            PubCol("date", "Day", InNotInBetweenEqualityNotEqualsGreaterLesser),
+            PubCol("year", "Year", InNotInBetweenEqualityNotEqualsGreaterLesser),
             PubCol("comment", "Remarks", InEqualityLike)
           ),
           Set(
-            PublicFactCol("total_marks", "Total Marks", InBetweenEquality),
-            PublicFactCol("obtained_marks", "Marks Obtained", InBetweenEquality),
-            PublicFactCol("Performance Factor", "Performance Factor", InBetweenEquality)
+            PublicFactCol("total_marks", "Total Marks", InNotInBetweenEqualityNotEqualsGreaterLesser),
+            PublicFactCol("obtained_marks", "Marks Obtained", InNotInBetweenEqualityNotEqualsGreaterLesser),
+            PublicFactCol("Performance Factor", "Performance Factor", InNotInBetweenEqualityNotEqualsGreaterLesser)
           ),
           Set.empty,
           getMaxDaysWindow, getMaxDaysLookBack
@@ -87,10 +87,10 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
           , schemaColMap = Map(StudentSchema -> "id")
         ).toPublicDimension("student","student",
           Set(
-            PubCol("id", "Student ID", Equality)
-            , PubCol("name", "Student Name", Equality)
-            , PubCol("admitted_year", "Admitted Year", InEquality, hiddenFromJson = true)
-            , PubCol("status", "Student Status", InEquality)
+            PubCol("id", "Student ID", InNotInBetweenEqualityNotEqualsGreaterLesser)
+            , PubCol("name", "Student Name", InNotInBetweenEqualityNotEqualsGreaterLesser)
+            , PubCol("admitted_year", "Admitted Year", InNotInBetweenEqualityNotEqualsGreaterLesser, hiddenFromJson = true)
+            , PubCol("status", "Student Status", InNotInBetweenEqualityNotEqualsGreaterLesser)
           ), highCardinalityFilters = Set(NotInFilter("Student Status", List("DELETED")))
         )
       }
