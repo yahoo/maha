@@ -3,18 +3,17 @@
 package com.yahoo.maha.service.factory
 
 import javax.sql.DataSource
-
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.druid.{AuthHeaderProvider, DruidQueryExecutor, DruidQueryExecutorConfig}
 import com.yahoo.maha.executor.oracle.OracleQueryExecutor
+import com.yahoo.maha.executor.postgres.PostgresQueryExecutor
 import com.yahoo.maha.executor.presto.{PrestoQueryExecutor, PrestoQueryTemplate}
 import com.yahoo.maha.jdbc.JdbcConnection
 import com.yahoo.maha.service.MahaServiceConfig.MahaConfigResult
 import com.yahoo.maha.service.error.ServiceConfigurationError
 import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
 import org.json4s.JValue
-
 import scalaz.Validation.FlatMap._
 import scalaz.syntax.applicative._
 
@@ -221,4 +220,63 @@ class PrestoQueryExecutoryFactory extends QueryExecutoryFactory {
   }
 
   override def supportedProperties: List[(String, Boolean)] = List.empty
+}
+
+class PostgresQueryExecutoryFactory extends QueryExecutoryFactory {
+  """
+    |{
+    |"dataSourceName": "",
+    |"jdbcConnectionFetchSize" 10,
+    |"lifecycleListenerFactoryClass": "",
+    |"lifecycleListenerFactoryConfig" : []
+    |}
+  """.stripMargin
+  override def fromJson(configJson: JValue)(implicit context:MahaServiceConfigContext): MahaServiceConfig.MahaConfigResult[QueryExecutor] =  {
+    import org.json4s.scalaz.JsonScalaz._
+
+    import scalaz.Validation.FlatMap._
+    import scalaz.syntax.applicative._
+
+    val dataSourceNameResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("dataSourceName")(configJson).map(_.toLowerCase)
+    val jdbcConnectionFetchSizeOptionResult: MahaServiceConfig.MahaConfigResult[Option[Int]] = fieldExtended[Option[Int]]("jdbcConnectionFetchSize")(configJson)
+    val lifecycleListenerFactoryClassResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("lifecycleListenerFactoryClass")(configJson)
+    val lifecycleListenerFactoryConfigResult: MahaServiceConfig.MahaConfigResult[JValue] = fieldExtended[JValue]("lifecycleListenerFactoryConfig")(configJson)
+
+    import _root_.scalaz._
+    import syntax.validation._
+
+    for {
+      dataSourceName <- dataSourceNameResult
+    } yield  {
+      if(!context.dataSourceMap.contains(dataSourceName)) {
+        return Failure(List(ServiceConfigurationError(s"Failed to find Postgres dataSourceName $dataSourceName in dataSourceMap"))).toValidationNel.asInstanceOf[MahaConfigResult[QueryExecutor]]
+      }
+    }
+
+    val jdbcConnetionResult : MahaServiceConfig.MahaConfigResult[JdbcConnection] = for {
+      dataSourceName <- dataSourceNameResult
+      dataSource <- context.dataSourceMap.get(dataSourceName).successNel[Option[DataSource]].asInstanceOf[MahaServiceConfig.MahaConfigResult[Option[DataSource]]]
+      jdbcConnectionFetchSizeOption <- jdbcConnectionFetchSizeOptionResult
+    } yield {
+      if(jdbcConnectionFetchSizeOption.isDefined) {
+        new JdbcConnection(dataSource.get, jdbcConnectionFetchSizeOption.get)
+      } else {
+        new JdbcConnection(dataSource.get)
+      }
+    }
+
+    val lifecycleListener : MahaServiceConfig.MahaConfigResult[ExecutionLifecycleListener] = for {
+      lifecycleListenerFactoryClass <- lifecycleListenerFactoryClassResult
+      lifecycleListenerFactoryConfig <- lifecycleListenerFactoryConfigResult
+      lifecycleListenerFactory <- getFactory[ExecutionLifecycleListenerFactory](lifecycleListenerFactoryClass, this.closer)
+      lifecycleListener <- lifecycleListenerFactory.fromJson(lifecycleListenerFactoryConfig)
+    } yield lifecycleListener
+
+    (jdbcConnetionResult |@| lifecycleListener) {
+      (a, b) =>
+        new PostgresQueryExecutor(a, b)
+    }
+  }
+
+  override def supportedProperties: List[(String, Boolean)] = ???
 }

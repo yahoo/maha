@@ -62,6 +62,18 @@ class DerivedExpressionTest extends FunSuite with Matchers {
     }
   }
 
+  test("successfully derive dependent columns from PostgresDerivedExpression") {
+    import PostgresExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      DimCol("created_date", IntType())
+
+      val col = PostgresDerDimCol("Keyword Date Created", StrType(), FORMAT_DATE_WITH_LEAST("{created_date}", "YYYY-MM-DD"))
+      col.derivedExpression.sourceColumns.contains("created_date") should equal(true)
+      col.derivedExpression.render(col.name) should equal("COALESCE(TO_CHAR(LEAST(created_date,TO_DATE('01-Jan-3000','dd-Mon-YYYY')), 'YYYY-MM-DD'), 'NULL')")
+    }
+  }
+
   test("successfully derive dependent columns from OracleDerivedExpression NVL") {
     import OracleExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
@@ -73,6 +85,17 @@ class DerivedExpressionTest extends FunSuite with Matchers {
     }
   }
 
+  test("successfully derive dependent columns from PostgresDerivedExpression NVL") {
+    import PostgresExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      DimCol("created_date", IntType())
+
+      val col = PostgresDerDimCol("Keyword Date Created", StrType(), NVL("{created_date}", "Default String"))
+      col.derivedExpression.sourceColumns.contains("created_date") should equal(true)
+    }
+  }
+
   test("successfully derive dependent columns from OracleDerivedExpression TRUNC") {
     import OracleExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
@@ -80,6 +103,17 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       DimCol("created_date", IntType())
 
       val col = OracleDerDimCol("Keyword Date Created", StrType(), TRUNC("{created_date}"))
+      col.derivedExpression.sourceColumns.contains("created_date") should equal(true)
+    }
+  }
+
+  test("successfully derive dependent columns from PostgresDerivedExpression TRUNC") {
+    import PostgresExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      DimCol("created_date", IntType())
+
+      val col = PostgresDerDimCol("Keyword Date Created", StrType(), TRUNC("{created_date}"))
       col.derivedExpression.sourceColumns.contains("created_date") should equal(true)
     }
   }
@@ -131,6 +165,30 @@ class DerivedExpressionTest extends FunSuite with Matchers {
     }
   }
 
+  test("successfully derive dependent columns from PostgresDerivedExpression with table alias") {
+    import PostgresExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      DimCol("clicks", IntType())
+      DimCol("impressions", IntType())
+
+
+      val col = PostgresDerFactCol("ctr", DecType(), "{clicks}" /- "{impressions}" * "1000")
+      col.derivedExpression.sourceColumns.contains("clicks") should equal(true)
+      col.derivedExpression.sourceColumns.contains("impressions") should equal(true)
+      col.derivedExpression.render(col.name, columnPrefix = Option("tableAlias.")) should equal(
+        """CASE WHEN tableAlias."impressions" = 0 THEN 0.0 ELSE tableAlias."clicks" / tableAlias."impressions" END * 1000""")
+
+
+
+      val col2 = PostgresDerFactCol("ad_extn_spend", DecType(), DECODE("{ad_extn_spend}", """'\N'""", "NULL", "{ad_extn_spend}"))
+      col2.derivedExpression.sourceColumns.contains("ad_extn_spend") should equal(true)
+      col2.derivedExpression.render(col2.name, columnPrefix = Option("tableAlias.")) should equal(
+        """CASE WHEN tableAlias."ad_extn_spend" = '\N' THEN NULL ELSE tableAlias."ad_extn_spend" END""")
+
+    }
+  }
+
   test("successfully derive dependent columns from OracleDerivedExpressions when expandDerivedExpression is true and false") {
     import OracleExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
@@ -140,6 +198,35 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       OracleDerFactCol("De 1", DecType(), "{clicks}" * "1000")
       OracleDerFactCol("De 2", DecType(), "{impressions}" * "1000")
       val col = OracleDerFactCol("De 3", DecType(), "{De 1}" /- "{De 2}")
+      col.derivedExpression.sourceColumns.contains("De 1") should equal(true)
+      col.derivedExpression.sourceColumns.contains("De 2") should equal(true)
+      col.derivedExpression.render(col.name, columnPrefix = Option("tableAlias."), expandDerivedExpression = false) should equal(
+        """CASE WHEN tableAlias."De 2" = 0 THEN 0.0 ELSE tableAlias."De 1" / tableAlias."De 2" END"""
+      )
+      col.derivedExpression.render(col.name, columnPrefix = Option("tableAlias."), expandDerivedExpression = true) should equal(
+        """CASE WHEN (tableAlias."impressions" * 1000) = 0 THEN 0.0 ELSE (tableAlias."clicks" * 1000) / (tableAlias."impressions" * 1000) END"""
+      )
+
+      val renderedColumnAliasMap : scala.collection.Map[String, String] = Map("De 1" -> """tableAlias."De 1"""", "De 2" -> """tableAlias."De 2"""")
+      col.derivedExpression.render(col.name, renderedColumnAliasMap, expandDerivedExpression = false) should equal(
+        """CASE WHEN tableAlias."De 2" = 0 THEN 0.0 ELSE tableAlias."De 1" / tableAlias."De 2" END"""
+      )
+      col.derivedExpression.render(col.name, renderedColumnAliasMap, expandDerivedExpression = true) should equal(
+        """CASE WHEN (impressions * 1000) = 0 THEN 0.0 ELSE (clicks * 1000) / (impressions * 1000) END"""
+      )
+
+    }
+  }
+
+  test("successfully derive dependent columns from PostgresDerivedExpressions when expandDerivedExpression is true and false") {
+    import PostgresExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      DimCol("clicks", IntType())
+      DimCol("impressions", IntType())
+      PostgresDerFactCol("De 1", DecType(), "{clicks}" * "1000")
+      PostgresDerFactCol("De 2", DecType(), "{impressions}" * "1000")
+      val col = PostgresDerFactCol("De 3", DecType(), "{De 1}" /- "{De 2}")
       col.derivedExpression.sourceColumns.contains("De 1") should equal(true)
       col.derivedExpression.sourceColumns.contains("De 2") should equal(true)
       col.derivedExpression.render(col.name, columnPrefix = Option("tableAlias."), expandDerivedExpression = false) should equal(
@@ -197,6 +284,26 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       DimCol("native_bid", DecType())
 
       val col = OracleDerDimCol("alert_eligible", StrType(),
+        COMPARE_PERCENTAGE("{native_bid}", "{recommended_bid}", 95, "ADGROUP_LOW_BID",
+          COMPARE_PERCENTAGE("{recommended_bid}", "{native_bid}", 100, "CAMPAIGN_BUDGET_CAP", "'NA'")))
+
+      col.derivedExpression.sourceColumns.contains("recommended_bid") should equal(true)
+      col.derivedExpression.sourceColumns.contains("native_bid") should equal(true)
+      val result = col.derivedExpression.render(col.name, columnPrefix = Option("tableAlias."))
+      result should equal(
+        """CASE WHEN tableAlias."native_bid" < 0.95 * tableAlias."recommended_bid" THEN 'ADGROUP_LOW_BID'  WHEN tableAlias."recommended_bid" < 1.0 * tableAlias."native_bid" THEN 'CAMPAIGN_BUDGET_CAP' ELSE 'NA' END """)
+
+    }
+  }
+
+  test("successfully derive dependent columns from PostgresDerivedExpression IS_ALERT_ELIGIBLE") {
+    import PostgresExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      DimCol("recommended_bid", DecType())
+      DimCol("native_bid", DecType())
+
+      val col = PostgresDerDimCol("alert_eligible", StrType(),
         COMPARE_PERCENTAGE("{native_bid}", "{recommended_bid}", 95, "ADGROUP_LOW_BID",
           COMPARE_PERCENTAGE("{recommended_bid}", "{native_bid}", 100, "CAMPAIGN_BUDGET_CAP", "'NA'")))
 
@@ -314,7 +421,7 @@ class DerivedExpressionTest extends FunSuite with Matchers {
     }
   }
 
-  test("GET_INTERVAL_DATE NEGATIVE test") {
+  test("Oracle GET_INTERVAL_DATE NEGATIVE test") {
     //expect string OracleExp and string fmt
     import OracleExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
@@ -357,6 +464,51 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       }
     }
   }
+
+  test("Postgres GET_INTERVAL_DATE NEGATIVE test") {
+    //expect string PostgresExp and string fmt
+    import PostgresExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      DimCol("stats_date", DateType())
+      val _IWregex = """[wW]""".r
+      val _Mregex = """[mM]""".r
+      val _Dregex = """[dD]""".r
+      val _DAYregex = """[dD][aA][yY]""".r
+      val _YRregex = """[Yy][Rr]""".r
+      val inputs = Array("a", "ay", "yd", "yad", "YAD", "DAY", "DA", "SAY", "W", "AW", "dAy", "y", "d", "M", "AM", "WM", "g", "EE", "yR")
+      for (input <- inputs) {
+        if (_DAYregex.pattern.matcher(input).matches) {
+          val col = PostgresDerDimCol(s"$input", DateType(), GET_INTERVAL_DATE("{stats_date}", "DAY"))
+          col.derivedExpression.render(col.name) should equal("TO_CHAR(stats_date, 'DAY')")
+        }
+        else if(_IWregex.pattern.matcher(input).matches) {
+          val col = PostgresDerDimCol(s"$input", DateType(), GET_INTERVAL_DATE("{stats_date}", "W"))
+          col.derivedExpression.render(col.name) should equal(s"TRUNC(stats_date, 'IW')")
+        }
+        else if(_Mregex.pattern.matcher(input).matches) {
+          val col = PostgresDerDimCol(s"$input", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
+          col.derivedExpression.render(col.name) should equal(s"TRUNC(stats_date, 'MM')")
+        }
+        else if(_Dregex.pattern.matcher(input).matches) {
+          val col = PostgresDerDimCol(s"$input", DateType(), GET_INTERVAL_DATE("{stats_date}", "D"))
+          col.derivedExpression.render(col.name) should equal(s"TRUNC(stats_date)")
+        }
+        else if(_YRregex.pattern.matcher(input).matches) {
+          val col = PostgresDerDimCol(s"$input", DateType(), GET_INTERVAL_DATE("{stats_date}", "YR"))
+          col.derivedExpression.render(col.name) should equal("TO_CHAR(stats_date, 'yyyy')")
+        }
+        else {
+          assertThrows[IllegalArgumentException] {
+            //
+            val col = PostgresDerDimCol(s"$input", DateType(), GET_INTERVAL_DATE("{stats_date}", s"$input"))
+            col.derivedExpression.render(col.name) should equal(s"TO_CHAR(stats_date, '$input')")
+          }
+        }
+      }
+    }
+  }
+
 
   /* Presto Expression tests */
 
@@ -453,8 +605,29 @@ class DerivedExpressionTest extends FunSuite with Matchers {
     }
   }
 
+  test("Postgres Column MAX/MIN test") {
+    import PostgresExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      FactCol("input_column", IntType())
+      val minCol = PostgresDerFactCol("Min Col", IntType(), MIN	("input_column"))
+      val maxCol = PostgresDerFactCol("Max Col", IntType(), MAX	("input_column"))
+      minCol.derivedExpression.render(minCol.name) should equal("MIN(input_column)")
+      maxCol.derivedExpression.render(maxCol.name) should equal("MAX(input_column)")
+    }
+  }
+
   test("Create oracle NVL and parse parameters") {
     import OracleExpression._
+    implicit val cc = new ColumnContext
+    val nvlVal = NVL("{col_name}", "{default_str}")
+    assert(!nvlVal.hasRollupExpression)
+    assert(!nvlVal.hasNumericOperation)
+    assert(nvlVal.asString.contains("col_name"))
+  }
+
+  test("Create Postgres NVL and parse parameters") {
+    import PostgresExpression._
     implicit val cc = new ColumnContext
     val nvlVal = NVL("{col_name}", "{default_str}")
     assert(!nvlVal.hasRollupExpression)
@@ -489,8 +662,26 @@ class DerivedExpressionTest extends FunSuite with Matchers {
     assert(truncVal.asString.contains("col_name"))
   }
 
+  test("Create Postgres TRUNC and parse parameters") {
+    import PostgresExpression._
+    implicit val cc = new ColumnContext
+    val truncVal = TRUNC("{col_name}")
+    assert(!truncVal.hasRollupExpression)
+    assert(!truncVal.hasNumericOperation)
+    assert(truncVal.asString.contains("col_name"))
+  }
+
   test("Create oracle COALESCE and parse parameters") {
     import OracleExpression._
+    implicit val cc = new ColumnContext
+    val coalesceVal = COALESCE("{col_name}", "''")
+    assert(!coalesceVal.hasRollupExpression)
+    assert(!coalesceVal.hasNumericOperation)
+    assert(coalesceVal.asString.contains("col_name"))
+  }
+
+  test("Create Postgres COALESCE and parse parameters") {
+    import PostgresExpression._
     implicit val cc = new ColumnContext
     val coalesceVal = COALESCE("{col_name}", "''")
     assert(!coalesceVal.hasRollupExpression)
@@ -525,8 +716,26 @@ class DerivedExpressionTest extends FunSuite with Matchers {
     assert(tocharVal.asString.contains("col_name"))
   }
 
+  test("Create Postgres TO_CHAR and parse parameters") {
+    import PostgresExpression._
+    implicit val cc = new ColumnContext
+    val tocharVal = TO_CHAR("{col_name}", "''")
+    assert(!tocharVal.hasRollupExpression)
+    assert(!tocharVal.hasNumericOperation)
+    assert(tocharVal.asString.contains("col_name"))
+  }
+
   test("Create oracle ROUND and parse parameters") {
     import OracleExpression._
+    implicit val cc = new ColumnContext
+    val roundVal = ROUND("{col_name}", 1)
+    assert(!roundVal.hasRollupExpression)
+    assert(!roundVal.hasNumericOperation)
+    assert(roundVal.asString.contains("col_name"))
+  }
+
+  test("Create Postgres ROUND and parse parameters") {
+    import PostgresExpression._
     implicit val cc = new ColumnContext
     val roundVal = ROUND("{col_name}", 1)
     assert(!roundVal.hasRollupExpression)

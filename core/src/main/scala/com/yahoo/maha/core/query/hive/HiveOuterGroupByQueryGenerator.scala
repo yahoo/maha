@@ -1,10 +1,9 @@
 package com.yahoo.maha.core.query.hive
 
-import com.yahoo.maha.core.HiveExpression.{COALESCE, COL, NVL, ROUND}
+import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
-import com.yahoo.maha.core.{HiveExpression, _}
 import grizzled.slf4j.Logging
 
 import scala.collection.mutable
@@ -12,7 +11,7 @@ import scala.collection.mutable
 /*
     Created by pranavbhole on 5/28/19
 */
-abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends HiveQueryGeneratorCommon(partitionColumnRenderer, udfStatements)  with Logging {
+abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfStatements: Set[UDFRegistration]) extends HiveQueryGeneratorCommon(partitionColumnRenderer, udfStatements) with HivePrestoQueryCommon with Logging {
 
   protected def generateOuterGroupByQuery(queryContext: DimFactOuterGroupByQueryQueryContext): Query = {
 
@@ -37,23 +36,6 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
 
     val aliasColumnMapOfRequestCols = new mutable.HashMap[String, Column]()
 
-    def generateOrderByClause(queryContext: DimFactOuterGroupByQueryQueryContext,
-                              queryBuilder: QueryBuilder): Unit = {
-      val model = queryContext.requestModel
-      model.requestSortByCols.map {
-        case FactSortByColumnInfo(alias, order) if queryBuilderContext.containsPreOuterFinalAliasToAliasMap(alias) =>
-          val preOuterAliasOption = queryBuilderContext.getPreOuterFinalAliasToAliasMap(alias)
-          s"${preOuterAliasOption.get} ${order}"
-        case FactSortByColumnInfo(alias, order) =>
-          val colExpression = queryBuilderContext.getFactColNameForAlias(alias)
-          s"$colExpression ${order}"
-        case DimSortByColumnInfo(alias, order) =>
-          val dimColName = queryBuilderContext.getDimensionColNameForAlias(alias)
-          s"$dimColName ${order}"
-        case a => throw new IllegalArgumentException(s"Unhandled SortByColumnInfo $a")
-      }.foreach(queryBuilder.addOrderBy(_))
-    }
-
     /**
       * Inner most fact query
       */
@@ -63,7 +45,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
 
     ogbGeneratePreOuterColumns(primitiveColsSet.toMap, noopRollupColsMap = noopRollupColSet.toMap, queryContext.factBestCandidate, queryContext, queryBuilder, queryBuilderContext)
 
-    generateOrderByClause(queryContext, queryBuilder)
+    generateOrderByClause(queryContext, queryBuilder, queryBuilderContext)
     val orderByClause = queryBuilder.getOrderByClause
 
     val outerCols = queryBuilder.getPreOuterColumns  //generateOuterColumns(queryContext, queryBuilderContext, queryBuilder, renderOuterColumn)
@@ -124,7 +106,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
                                 queryBuilder: QueryBuilder,
                                 queryBuilderContext: QueryBuilderContext,
                                 renderRollupExpression: (String, RollupExpression, Option[String]) => String,
-                                renderColumnWithAlias: (Fact, Column, String, Set[String], Boolean, QueryContext, QueryBuilderContext, QueryBuilder) => Unit,
+                                renderColumnWithAlias: (Fact, Column, String, Set[String], Boolean, QueryContext, QueryBuilderContext, QueryBuilder, Engine) => Unit,
                                 primitiveColsSet: mutable.LinkedHashSet[(String, Column)],
                                 noopRollupColSet: mutable.LinkedHashSet[(String, Column)]) : String = { // base: query common
 
@@ -144,7 +126,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
         case (column, alias) =>
           val name = column.name
           val nameOrAlias = column.alias.getOrElse(name)
-          renderColumnWithAlias(fact, column, alias, Set.empty, false, queryContext, queryBuilderContext, queryBuilder)
+          renderColumnWithAlias(fact, column, alias, Set.empty, false, queryContext, queryBuilderContext, queryBuilder, HiveEngine)
           val isAggregatedDimCol = isAggregateDimCol(column)
           if (!isAggregatedDimCol) {
             if (column.isDerivedColumn) {
@@ -152,7 +134,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
               queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
             } else {
               if(column.dataType.hasStaticMapping) {
-                queryBuilder.addGroupBy(renderStaticMappedDimension(column))
+                queryBuilder.addGroupBy(renderStaticMappedDimension(column, HiveEngine))
               } else {
                 queryBuilder.addGroupBy(nameOrAlias)
               }
@@ -185,13 +167,13 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
 
     groupedFactCols.get(true).map {
       derivedFactCols =>
-        dfsGetPrimitiveCols(fact, derivedFactCols.map(_._1).toIndexedSeq, primitiveColsSet)
+        dfsGetPrimitiveCols(fact, derivedFactCols.map(_._1).toIndexedSeq, primitiveColsSet, HiveEngine)
     }
 
     //
     val customRollupSet = getCustomRollupColsSet(groupedFactCols, queryBuilderContext)
     if(customRollupSet.nonEmpty) {
-      dfsGetPrimitiveCols(fact, customRollupSet.map(_._1).toIndexedSeq, primitiveColsSet)
+      dfsGetPrimitiveCols(fact, customRollupSet.map(_._1).toIndexedSeq, primitiveColsSet, HiveEngine)
     }
 
     // Find out all the NoopRollup cols recursively
@@ -200,7 +182,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
     // Render Primitive columns
     primitiveColsSet.foreach {
       case (alias:String, column: Column) =>
-        renderColumnWithAlias(fact, column, alias, Set.empty, false, queryContext, queryBuilderContext, queryBuilder)
+        renderColumnWithAlias(fact, column, alias, Set.empty, false, queryContext, queryBuilderContext, queryBuilder, HiveEngine)
         val colName= column.alias.getOrElse(column.name)
         // If recursively found primitive col is dimension column then add it to group by clause
         if (fact.dimColMap.contains(colName)) {
@@ -470,7 +452,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
           }
           case ConstantColumnInfo(alias, value) =>
             val renderedAlias = renderColumnAlias(alias)
-            s"""'$value' AS $alias"""
+            s"""'$value' AS $renderedAlias"""
           case _ => throw new UnsupportedOperationException("Unsupported Column Type")
         }
         queryBuilder.addOuterColumn(renderedCol)
@@ -481,54 +463,6 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
     queryBuilder.setOuterWhereClause(outerWhereClause.toString)
 */
 
-  }
-
-
-  /*
-  Recursively visits all the derived columns and store the primitive columns in the set.
-   */
-  def dfsGetPrimitiveCols(fact:Fact, derivedCols: IndexedSeq[Column], primitiveColsSet:mutable.LinkedHashSet[(String, Column)]): Unit = {
-    derivedCols.foreach {
-      case derCol:DerivedColumn =>
-        derCol.derivedExpression.sourceColumns.toList.sorted.foreach {
-          sourceCol =>
-            val colOption = fact.columnsByNameMap.get(sourceCol)
-            require(colOption.isDefined, s"Failed to find the sourceColumn $sourceCol in fact ${fact.name}")
-            val col = colOption.get
-            if(col.isDerivedColumn) {
-              dfsGetPrimitiveCols(fact, IndexedSeq(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
-            } else {
-              val name = col.alias.getOrElse(col.name)
-              if (!primitiveColsSet.contains((name, col))) {
-                primitiveColsSet.add((name, col))
-              }
-            }
-        }
-      case derCol : FactCol =>
-        require(derCol.rollupExpression.isInstanceOf[HiveCustomRollup], s"Unexpected Rollup expression ${derCol.rollupExpression} in finding primitive cols")
-        val customRollup = derCol.rollupExpression.asInstanceOf[HiveCustomRollup]
-        customRollup.expression.sourceColumns.toList.sorted.foreach {
-          sourceCol =>
-            val colOption = fact.columnsByNameMap.get(sourceCol)
-            require(colOption.isDefined, s"Failed to find the sourceColumn $sourceCol in fact ${fact.name}")
-            val col = colOption.get
-            if(col.isDerivedColumn) {
-              dfsGetPrimitiveCols(fact, IndexedSeq(col.asInstanceOf[DerivedColumn]), primitiveColsSet)
-            } else {
-              col match {
-                case fcol:FactCol if !fcol.rollupExpression.isInstanceOf[HiveCustomRollup] =>
-                  val name = col.alias.getOrElse(col.name)
-                  if(!primitiveColsSet.contains((name, col))) {
-                    primitiveColsSet.add((name, col))
-                  }
-                case _=>
-              }
-            }
-        }
-
-      case e =>
-        throw new IllegalArgumentException(s"Unexpected column case found in the dfsGetPrimitiveCols $e")
-    }
   }
 
   /*
@@ -552,53 +486,6 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
     }
     customRollupSet
   }
-
-  /*
-     Commonly used method
-   */
-  def renderParentOuterDerivedFactCols(queryBuilderContext:QueryBuilderContext, projectedAlias:String, column:Column): String = {
-    val renderedAlias = projectedAlias
-
-    column match {
-      case HiveDerDimAggregateCol(_, dt, cc, de, _, annotations, _) =>
-        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        s"""$renderedAlias"""
-      case HiveDerDimCol(_, dt, cc, de, _, annotations, _) =>
-        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        s"""$renderedAlias"""
-      case HivePartDimCol(_, dt, cc, _, annotations, _) =>
-        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        s"""$renderedAlias"""
-      case DimCol(_, dt, cc, _, annotations, _) if queryBuilderContext.isDimensionCol(projectedAlias) =>
-        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        val innerColAlias = queryBuilderContext.getDimensionColNameForAlias(projectedAlias)
-        s"""$innerColAlias AS $renderedAlias"""
-      case DimCol(_, dt, cc, _, annotations, _) =>
-        val innerAlias = renderColumnAlias(projectedAlias)
-        val renderedAlias = s"""$innerAlias AS $projectedAlias"""
-        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        renderedAlias
-      case ConstDimCol(_, dt, value, cc, _, annotations, _) =>
-        val innerAlias = renderColumnAlias(projectedAlias)
-        val renderedAlias = s"""$innerAlias AS $projectedAlias"""
-        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        renderedAlias
-      case factCol@FactCol(_, dt, cc, rollup, _, annotations, _) if factCol.rollupExpression.isInstanceOf[HiveCustomRollup]=>
-        val name = factCol.alias.getOrElse(factCol.name)
-        val de = factCol.rollupExpression.asInstanceOf[HiveCustomRollup].expression
-        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        s"""${de.render(name, Map.empty)} AS $renderedAlias"""
-      case FactCol(_, dt, cc, rollup, _, annotations, _) =>
-        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        s"""$renderedAlias"""
-      case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-        val name = column.alias.getOrElse(column.name)
-        queryBuilderContext.setFactColAlias(projectedAlias, s"""$renderedAlias""", column)
-        s"""${de.render(name, Map.empty)} AS $renderedAlias"""
-      case _=> throw new IllegalArgumentException(s"Unexpected fact derived column found in outer select $column")
-    }
-  }
-
 
   /*
   Commonly used method
@@ -669,102 +556,4 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
         case _ => throw new UnsupportedOperationException("Unsupported Column Type")
       }
   }
-
-  /*
-method to crawl the NoopRollup fact cols recursively and fill up the parent column
- whose dependent source columns is/are NoopRollup column.
- All such parent noop rollup columns has to be rendered at OuterGroupBy layer
- */
-  def dfsNoopRollupCols(fact:Fact, cols: Set[(Column, String)], parentList: List[(Column, String)], noopRollupColSet: mutable.LinkedHashSet[(String, Column)]): Unit = {
-    cols.foreach {
-      case (col, alias)=>
-        col match {
-          case factCol@FactCol(_, dt, cc, rollup, _, annotations, _) =>
-            rollup match {
-              case HiveCustomRollup(e) =>
-                parseCustomRollup(e, col, alias)
-              case NoopRollup =>
-                pickupLeaf(col, alias)
-              case _=> //ignore all other rollup cases
-            }
-          case derCol@HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-            rollup match {
-              case HiveCustomRollup(e) =>
-                parseCustomRollup(e, col, alias)
-              case NoopRollup if grepHasRollupExpression(fact, de.expression) =>
-                // If NoopRollup column has Aggregate/rollup Expression then push it inside for OGB
-                pickupLeaf(col, alias)
-              case _=> //ignore all other rollup cases
-            }
-            if (rollup != NoopRollup) {
-              de.sourceColumns.toList.sorted.foreach {
-                sourceColName =>
-                  val colOption = fact.columnsByNameMap.get(sourceColName)
-                  require(colOption.isDefined, s"Failed to find the sourceColumn $sourceColName in fact ${fact.name}")
-                  val sourceCol = colOption.get
-                  val sourceColAlias = sourceCol.alias.getOrElse(sourceCol.name)
-                  if (col.alias.getOrElse(col.name) != sourceColAlias) {
-                    // avoid adding self dependent columns
-                    dfsNoopRollupCols(fact, Set((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
-                  }
-              }
-            }
-          case _=>
-          //ignore all dim cols cases
-        }
-    }
-    def parseCustomRollup(expression: HiveDerivedExpression, col : Column, alias : String): Unit = {
-      expression.sourceColumns.toList.sorted.foreach {
-        case sourceColName =>
-          val colOption = fact.columnsByNameMap.get(sourceColName)
-          require(colOption.isDefined, s"Failed to find the sourceColumn $sourceColName in fact ${fact.name}")
-          val sourceCol = colOption.get
-          val sourceColAlias = sourceCol.alias.getOrElse(sourceCol.name)
-          if (col.alias.getOrElse(col.name) != sourceColAlias) {
-            // avoid adding self dependent columns
-            dfsNoopRollupCols(fact, Set((sourceCol, sourceColAlias)), parentList++List((col, alias)), noopRollupColSet)
-          }
-      }
-    }
-
-    /*
-    Grep hasRollupExpression recursively in the all the N Derived level dependent columns
-     */
-    def grepHasRollupExpression(fact:Fact, expression: HiveExpression): Boolean = {
-      if(expression.hasRollupExpression) {
-        true
-      } else  {
-        // Matching case for non rollup expression recursively
-        expression match {
-          case col@COL(colName, _, _) =>
-            val colNameParsed = colName.replaceFirst("\\{", "").replaceFirst("\\}", "").trim
-            val colOption = fact.columnsByNameMap.get(colNameParsed)
-            if(colOption.isDefined) {
-              colOption.get match {
-                case HiveDerFactCol(_, _, dt, cc, de, annotations, rollup, _) =>
-                  grepHasRollupExpression(fact, de.expression)
-                case _=> expression.hasRollupExpression
-              }
-            } else expression.hasRollupExpression
-          case ROUND(hiveExp, _)=> grepHasRollupExpression(fact, hiveExp)
-          case COALESCE(hiveExp, _)=> grepHasRollupExpression(fact, hiveExp)
-          case NVL(hiveExp, _)=> grepHasRollupExpression(fact, hiveExp)
-          case any => any.hasRollupExpression
-        }
-      }
-    }
-
-    /*
-       Pick up the root of the NoopRollup dependent column
-     */
-    def pickupLeaf(col : Column, alias : String): Unit = {
-      val parentCol =  parentList.reverse.headOption
-      if(parentCol.isDefined) {
-        noopRollupColSet.add(parentCol.get._2, parentCol.get._1)
-      } else {
-        noopRollupColSet.add(alias, col)
-      }
-    }
-  }
-
 }

@@ -1,9 +1,9 @@
 package com.yahoo.maha.core.query.oracle
 
-import com.yahoo.maha.core.{OracleEngine, ColumnInfo, Column, Engine}
 import com.yahoo.maha.core.fact.Fact
 import com.yahoo.maha.core.query._
-import org.scalatest.{Matchers, FunSuite}
+import com.yahoo.maha.core.{Column, ColumnInfo, Engine, OracleEngine}
+import org.scalatest.{FunSuite, Matchers}
 
 /**
  * Created by pranavbhole on 15/12/17.

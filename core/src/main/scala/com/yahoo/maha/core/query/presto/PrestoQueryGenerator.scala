@@ -21,6 +21,8 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
         generateQuery(context)
       case FactQueryContext(factBestCandidate, model, indexAliasOption, factGroupByKeys, attributes, _) =>
         generateQuery(CombinedQueryContext(SortedSet.empty, factBestCandidate, model, attributes))
+      case DimFactOuterGroupByQueryQueryContext(dims, factBestCandidate, model, attributes) =>
+        generateQuery(CombinedQueryContext(dims, factBestCandidate, model, attributes))
       case any => throw new UnsupportedOperationException(s"query context not supported : $any")
     }
   }

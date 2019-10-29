@@ -51,7 +51,10 @@ class RegistryBuilder{
   def build( dimEstimator:DimCostEstimator=new DefaultDimEstimator,
              factEstimator: FactCostEstimator=new DefaultFactEstimator,
              defaultPublicFactRevisionMap: Map[String, Int] = Map.empty,
-             defaultPublicDimRevisionMap: Map[String, Int] = Map.empty) : Registry = {
+             defaultPublicDimRevisionMap: Map[String, Int] = Map.empty,
+             defaultFactEngine: Engine = OracleEngine,
+             druidMultiQueryEngineList: Seq[Engine] = Seq(OracleEngine)
+           ) : Registry = {
 
     val keySet:Set[String] = dimColToKeySetMap.values.flatten.toSet
     val dimColToKeyMap = dimColToKeySetMap.collect {
@@ -97,6 +100,8 @@ class RegistryBuilder{
       , factEstimator
       , defaultPublicFactRevisionMap ++ missingDefaultRevision
       , defaultPublicDimRevisionMap ++ missingDimDefaultRevision
+      , defaultFactEngine = defaultFactEngine
+      , druidMultiQueryEngineList = druidMultiQueryEngineList
     )
   }
 
@@ -115,7 +120,10 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
                                       , dimEstimator:DimCostEstimator=new DefaultDimEstimator
                                       , factEstimator: FactCostEstimator=new DefaultFactEstimator
                                       , defaultPublicFactRevisionMap: Map[String, Int]
-                                      , defaultPublicDimRevisionMap: Map[String, Int]) extends Logging {
+                                      , defaultPublicDimRevisionMap: Map[String, Int]
+                                      , defaultFactEngine: Engine
+                                      , druidMultiQueryEngineList: Seq[Engine]
+                                     ) extends Logging {
 
   private[this] val schemaToFactMap: Map[Schema, Set[PublicFact]] = factMap.values
     .flatMap(f => f.factSchemaMap.values.flatten.map(s => (s, f))).groupBy(_._1).mapValues(_.map(_._2).toSet)

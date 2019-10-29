@@ -11,7 +11,7 @@ import com.yahoo.maha.core.lookup.LongRangeLookup
 import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, SyncDruidQueryOptimizer}
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.registry.RegistryBuilder
-import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
+import com.yahoo.maha.core.request.AsyncRequest
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 /**
@@ -75,6 +75,9 @@ trait BaseOracleQueryGeneratorTest
           , FactCol("CTR", DecType(), OracleCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), OracleCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
           , FactCol("Count", IntType(), rollupExpression = CountRollup)
+          , FactCol("Avg", IntType(), rollupExpression = AverageRollup, alias = Option("avg_col"))
+          , FactCol("Max", IntType(), rollupExpression = MaxRollup, alias = Option("max_col"))
+          , FactCol("Min", IntType(), rollupExpression = MinRollup, alias = Option("min_col"))
         ),
         annotations = Set(
           OracleFactStaticHint("PARALLEL_INDEX(cb_campaign_k_stats 4)"),
@@ -124,7 +127,10 @@ trait BaseOracleQueryGeneratorTest
           PublicFactCol("max_bid", "Max Bid", Set.empty),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("CTR", "CTR", InBetweenEquality),
-          PublicFactCol("Count", "Count", InBetweenEquality)
+          PublicFactCol("Count", "Count", InBetweenEquality),
+          PublicFactCol("Avg", "Avg", InBetweenEquality),
+          PublicFactCol("Max", "Max", InBetweenEquality),
+          PublicFactCol("Min", "Min", InBetweenEquality)
         ),
         Set(EqualityFilter("Source", "2", true, true)),
         getMaxDaysWindow, getMaxDaysLookBack
@@ -244,6 +250,8 @@ trait BaseOracleQueryGeneratorTest
           , DimCol("start_time", IntType())
           , DimCol("stats_date", DateType("YYYY-MM-DD"))
           , DimCol("show_flag", IntType())
+          , OracleDerDimCol("Business Name", StrType(), DECODE_DIM("{stats_source}", "1", "Native", "2", "Search", "Unknown"))
+          , OracleDerDimCol("Business Name 2", StrType(), DECODE_DIM("{stats_source}", "1", "Expensive", "2", "Cheap", "Unknown"))
           , OracleDerDimCol("Month", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
           , OracleDerDimCol("Week", DateType(), GET_INTERVAL_DATE("{stats_date}", "W"))
         ),
@@ -264,6 +272,11 @@ trait BaseOracleQueryGeneratorTest
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), OracleCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
           , OracleDerFactCol("impression_share", IntType(), DECODE(MAX("{show_flag}"), "1", ROUND(SUM("{impressions}") /- SUM("{s_impressions}"), 4), "NULL"), rollupExpression = NoopRollup)
           , OracleDerFactCol("impression_share_rounded", IntType(), ROUND("{impression_share}", 5), rollupExpression = NoopRollup)
+          , FactCol("Count", IntType(), rollupExpression = CountRollup)
+          , FactCol("Custom", IntType(6, 0, 0, 10), rollupExpression = OracleCustomRollup(SUM("{clicks}" * "{max_bid}")), alias = Option("custom_col"))
+          , FactCol("Avg", IntType(6, 0, 0, 100000), rollupExpression = AverageRollup, alias = Option("avg_col"))
+          , FactCol("Max", IntType(), rollupExpression = MaxRollup, alias = Option("max_col"))
+          , FactCol("Min", IntType(), rollupExpression = MinRollup, alias = Option("min_col"))
         ),
         annotations = Set(
           OracleFactStaticHint("PARALLEL_INDEX(cb_ad_stats 4)"),
@@ -281,6 +294,8 @@ trait BaseOracleQueryGeneratorTest
           PubCol("restaurant_id", "Restaurant ID", InEquality),
           PubCol("stats_source", "Source", Equality),
           PubCol("price_type", "Pricing Type", In),
+          PubCol("Business Name", "Business Name", InEqualityFieldEquality),
+          PubCol("Business Name 2", "Business Name 2", InEqualityFieldEquality),
           PubCol("Month", "Month", Equality),
           PubCol("Week", "Week", Equality)
         ),
@@ -288,17 +303,23 @@ trait BaseOracleQueryGeneratorTest
           PublicFactCol("impressions", "Impressions", InBetweenEqualityFieldEquality),
           PublicFactCol("impressions", "Total Impressions", InBetweenEquality),
           PublicFactCol("clicks", "Clicks", InBetweenEqualityFieldEquality),
-          PublicFactCol("spend", "Spend", Set.empty),
-          PublicFactCol("User Count", "User Count", Set.empty),
+          PublicFactCol("spend", "Spend", InBetweenEqualityFieldEquality),
+          PublicFactCol("User Count", "User Count", InBetweenEqualityFieldEquality),
           PublicFactCol("avg_pos", "Average Position", Set.empty),
           PublicFactCol("max_bid", "Max Bid", Set.empty),
           PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
           PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
           PublicFactCol("CTR", "CTR", InBetweenEquality),
-          PublicFactCol("N Spend", "N Spend", InBetweenEquality),
+          PublicFactCol("N Spend", "N Spend", InBetweenEqualityFieldEquality),
           PublicFactCol("N Clicks", "N Clicks", InBetweenEquality),
           PublicFactCol("N Average CPC", "N Average CPC", InBetweenEquality),
-          PublicFactCol("impression_share_rounded", "Impression Share", InBetweenEquality)
+          PublicFactCol("impression_share_rounded", "Impression Share", InBetweenEquality),
+          PublicFactCol("Count", "Count", InBetweenEquality),
+          PublicFactCol("Custom", "Custom", InBetweenEquality),
+          PublicFactCol("Avg", "Avg", InBetweenEquality),
+          PublicFactCol("Max", "Max", InBetweenEquality),
+          PublicFactCol("spend", "Duplicate Spend", InBetweenEquality),
+          PublicFactCol("Min", "Min", InBetweenEquality)
         ),
         forcedFilters,
         getMaxDaysWindow, getMaxDaysLookBack

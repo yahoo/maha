@@ -2,8 +2,8 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
-import HiveExpression._
 import com.yahoo.maha.core.BaseExpressionTest.PRESTO_TIMESTAMP_TO_FORMATTED_DATE
+import com.yahoo.maha.core.HiveExpression._
 import org.scalatest.{FunSuite, Matchers}
 
 /**

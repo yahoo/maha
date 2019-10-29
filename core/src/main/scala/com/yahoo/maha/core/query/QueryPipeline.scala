@@ -450,7 +450,7 @@ trait QueryPipelineFactory {
 
 object DefaultQueryPipelineFactory extends Logging {
 
-  val druidMultiQueryEngineList: Seq[Engine] = List(OracleEngine)
+  val druidMultiQueryEngineList: Seq[Engine] = List(OracleEngine, PostgresEngine)
 
   private[this] def aLessThanBByLevelAndCostAndCardinality(a: (String, Engine, Long, Int, Int), b: (String, Engine, Long, Int, Int)): Boolean = {
     if (a._2 == b._2) {
@@ -480,7 +480,7 @@ object DefaultQueryPipelineFactory extends Logging {
         val disqualifySet: Set[Engine] = {
 
           if (!requestModel.outerFilters.isEmpty) {
-            if (requestModel.isDebugEnabled) info(s"Outer filters are supported only Oracle Engine, Adding Druid, Hive to disqualifySet")
+            if (requestModel.isDebugEnabled) info(s"Outer filters are supported by Oracle Engine and Postgres Engine, Adding Druid, Hive to disqualifySet")
             QueryPipeline.syncNonDruidDisqualifyingSet
           } else {
             //is fact query with filter on dim where the dim's primary key is not in the request cols
@@ -632,6 +632,34 @@ object DefaultQueryPipelineFactory extends Logging {
       .foreach(_.foreach(publicDimToConcreteDimMapWhichCanSupportAllDim += _))
 
     val bestDimCandidatesMapping = new mutable.HashMap[String, SortedSet[DimensionBundle]]()
+
+    def processCombination(upperCandidates: List[Dimension], lowerCandidates: List[Dimension], dc: DimensionCandidate
+                           , engine: Engine, upper_dim_engine: Engine, lower_dim_engine: Engine) : Unit = {
+      if (upperCandidates.size == dc.upperCandidates.size
+        && lowerCandidates.size == dc.lowerCandidates.size) {
+        val publicUpperCandidatesMap = dc.upperCandidates.map(pd => publicDimToConcreteDimMapWhichCanSupportAllDim((pd.name, upper_dim_engine)).name -> pd).toMap
+        val publicLowerCandidatesMap = dc.lowerCandidates.map(pd => publicDimToConcreteDimMapWhichCanSupportAllDim((pd.name, lower_dim_engine)).name -> pd).toMap
+        val concreteDimension = publicDimToConcreteDimMapWhichCanSupportAllDim((dc.dim.name, engine))
+        bestDimCandidatesMapping(dc.dim.name) += DimensionBundle(
+          concreteDimension
+          , dc.dim
+          , dc.fields
+          , dc.filters
+          , upperCandidates
+          , publicUpperCandidatesMap
+          , lowerCandidates
+          , publicLowerCandidatesMap
+          , dc.dim.partitionColumns.map(pubCol => pubCol.alias -> concreteDimension.dimensionColumnsByNameMap(pubCol.name)).toMap
+          , isDrivingDimension = dc.isDrivingDimension
+          , hasNonFKOrForcedFilters = dc.hasNonFKOrForcedFilters
+          , hasNonFKSortBy = dc.hasNonFKSortBy
+          , hasNonPushDownFilters = dc.hasNonPushDownFilters
+          , hasPKRequested = dc.hasPKRequested
+          , hasNonFKNonForceFilters = dc.hasNonFKNonForceFilters
+          , hasLowCardinalityFilter = dc.hasLowCardinalityFilter
+        )
+      }
+    }
     dimCandidates.foreach {
       dc =>
         bestDimCandidatesMapping += (dc.dim.name -> SortedSet[DimensionBundle]())
@@ -642,37 +670,33 @@ object DefaultQueryPipelineFactory extends Logging {
               var lower_dim_engine = engine
               var upperCandidates = dc.upperCandidates.flatMap(pd => publicDimToConcreteDimMapWhichCanSupportAllDim.get((pd.name, upper_dim_engine)))
               var lowerCandidates = dc.lowerCandidates.flatMap(pd => publicDimToConcreteDimMapWhichCanSupportAllDim.get((pd.name, lower_dim_engine)))
-              if (engine == DruidEngine && upperCandidates.isEmpty) {
-                upper_dim_engine = OracleEngine
-                upperCandidates = dc.upperCandidates.flatMap(pd => publicDimToConcreteDimMapWhichCanSupportAllDim.get((pd.name, upper_dim_engine)))
-              }
-              if (engine == DruidEngine && lowerCandidates.isEmpty) {
-                lower_dim_engine = OracleEngine
-                lowerCandidates = dc.lowerCandidates.flatMap(pd => publicDimToConcreteDimMapWhichCanSupportAllDim.get((pd.name, lower_dim_engine)))
-              }
-              if (upperCandidates.size == dc.upperCandidates.size
-                && lowerCandidates.size == dc.lowerCandidates.size) {
-                val publicUpperCandidatesMap = dc.upperCandidates.map(pd => publicDimToConcreteDimMapWhichCanSupportAllDim((pd.name, upper_dim_engine)).name -> pd).toMap
-                val publicLowerCandidatesMap = dc.lowerCandidates.map(pd => publicDimToConcreteDimMapWhichCanSupportAllDim((pd.name, lower_dim_engine)).name -> pd).toMap
-                val concreteDimension = publicDimToConcreteDimMapWhichCanSupportAllDim((dc.dim.name, engine))
-                bestDimCandidatesMapping(dc.dim.name) += DimensionBundle(
-                  concreteDimension
-                  , dc.dim
-                  , dc.fields
-                  , dc.filters
-                  , upperCandidates
-                  , publicUpperCandidatesMap
-                  , lowerCandidates
-                  , publicLowerCandidatesMap
-                  , dc.dim.partitionColumns.map(pubCol => pubCol.alias -> concreteDimension.dimensionColumnsByNameMap(pubCol.name)).toMap
-                  , isDrivingDimension = dc.isDrivingDimension
-                  , hasNonFKOrForcedFilters = dc.hasNonFKOrForcedFilters
-                  , hasNonFKSortBy = dc.hasNonFKSortBy
-                  , hasNonPushDownFilters = dc.hasNonPushDownFilters
-                  , hasPKRequested = dc.hasPKRequested
-                  , hasNonFKNonForceFilters = dc.hasNonFKNonForceFilters
-                  , hasLowCardinalityFilter = dc.hasLowCardinalityFilter
-                )
+              if (engine == DruidEngine && (upperCandidates.isEmpty || lowerCandidates.isEmpty)) {
+                if (lowerCandidates.nonEmpty) {
+                  druidMultiQueryEngineList.foreach {
+                    multiQueryEngine =>
+                      upper_dim_engine = multiQueryEngine
+                      upperCandidates = dc.upperCandidates.flatMap(pd => publicDimToConcreteDimMapWhichCanSupportAllDim.get((pd.name, upper_dim_engine)))
+                      processCombination(upperCandidates, lowerCandidates, dc, engine, upper_dim_engine, lower_dim_engine)
+                  }
+                } else if (upperCandidates.nonEmpty) {
+                  druidMultiQueryEngineList.foreach {
+                    multiQueryEngine =>
+                      lower_dim_engine = multiQueryEngine
+                      lowerCandidates = dc.lowerCandidates.flatMap(pd => publicDimToConcreteDimMapWhichCanSupportAllDim.get((pd.name, lower_dim_engine)))
+                      processCombination(upperCandidates, lowerCandidates, dc, engine, upper_dim_engine, lower_dim_engine)
+                  }
+                } else {
+                  druidMultiQueryEngineList.foreach {
+                    multiQueryEngine =>
+                      upper_dim_engine = multiQueryEngine
+                      upperCandidates = dc.upperCandidates.flatMap(pd => publicDimToConcreteDimMapWhichCanSupportAllDim.get((pd.name, upper_dim_engine)))
+                      lower_dim_engine = multiQueryEngine
+                      lowerCandidates = dc.lowerCandidates.flatMap(pd => publicDimToConcreteDimMapWhichCanSupportAllDim.get((pd.name, lower_dim_engine)))
+                      processCombination(upperCandidates, lowerCandidates, dc, engine, upper_dim_engine, lower_dim_engine)
+                  }
+                }
+              } else {
+                processCombination(upperCandidates, lowerCandidates, dc, engine, upper_dim_engine, lower_dim_engine)
               }
             }
         }
@@ -681,7 +705,7 @@ object DefaultQueryPipelineFactory extends Logging {
   }
 }
 
-class DefaultQueryPipelineFactory(implicit val queryGeneratorRegistry: QueryGeneratorRegistry, druidMultiQueryEngineList: Seq[Engine] = DefaultQueryPipelineFactory.druidMultiQueryEngineList) extends QueryPipelineFactory with Logging {
+class DefaultQueryPipelineFactory(defaultFactEngine: Engine = OracleEngine, druidMultiQueryEngineList: Seq[Engine] = DefaultQueryPipelineFactory.druidMultiQueryEngineList)(implicit val queryGeneratorRegistry: QueryGeneratorRegistry) extends QueryPipelineFactory with Logging {
 
   private[this] def getDimOnlyQuery(bestDimCandidates: SortedSet[DimensionBundle], requestModel: RequestModel, queryGenVersion: Version): Query = {
     val dimOnlyContextBuilder = QueryContext
@@ -782,6 +806,8 @@ OuterGroupBy operation has to be applied only in the following cases
 
     val allSubQueryCandidates = bestDimCandidates.forall(_.isSubQueryCandidate)
 
+    val ogbSupportedEngines:Set[Engine] = Set(OracleEngine, HiveEngine, PrestoEngine, PostgresEngine)
+
     val hasOuterGroupBy = (//nonKeyRequestedDimCols.isEmpty
       ((!isRequestedHigherDimLevelKey && !isHighestDimPkIDRequested)
         || unrelatedDimensionsRequested
@@ -789,11 +815,8 @@ OuterGroupBy operation has to be applied only in the following cases
         && bestDimCandidates.nonEmpty
         && !requestModel.isDimDriven
         && !allSubQueryCandidates
-        && (bestFactCandidate.fact.engine == OracleEngine || bestFactCandidate.fact.engine == HiveEngine)
-        && bestDimCandidates.forall(candidate => {
-        candidate.dim.engine == OracleEngine ||
-          candidate.dim.engine == HiveEngine
-      })) // Group by Feature is only implemented for oracle engine right now
+        && (ogbSupportedEngines.contains(bestFactCandidate.fact.engine))
+        && bestDimCandidates.forall(candidate => ogbSupportedEngines.contains(candidate.dim.engine)))
 
     hasOuterGroupBy
   }
@@ -1046,7 +1069,7 @@ OuterGroupBy operation has to be applied only in the following cases
       val dimEngines: Set[Engine] = dimensionCandidatesMapping.flatMap(_._2.map(_.dim.engine)).toSet
       val factBestCandidateOption =
         requestModel.bestCandidates.map(_ => findBestFactCandidate(requestModel, forceDisqualifyEngine, dimEngines))
-      val dimensionCandidates = findBestDimCandidates(requestModel, factBestCandidateOption.map(_.fact.engine).getOrElse(OracleEngine), dimensionCandidatesMapping).filter(db => {
+      val dimensionCandidates = findBestDimCandidates(requestModel, factBestCandidateOption.map(_.fact.engine).getOrElse(defaultFactEngine), dimensionCandidatesMapping).filter(db => {
         val queryGenerator = queryGeneratorRegistry.getDefaultGenerator(db.dim.engine)
         !queryGenerator.isDefined || queryGenerator.get.validateEngineConstraints(requestModel)
       })
@@ -1094,6 +1117,13 @@ OuterGroupBy operation has to be applied only in the following cases
           case AsyncRequest =>
             if (isMultiEngineQuery) {
               throw new UnsupportedOperationException("multi engine async request not supported!")
+            } else
+            if (isMetricsOnlyViewQuery && requestModel.maxRows > 0) {
+              // Allow Async API side join query on when maxRows is set
+              // Buffer limit on machine and max allowed rows on the Async request has to additionally checked before running async multi query
+
+              info(s"Running Async View Multi Query for cube ${requestModel.cube}")
+              runViewMultiQuery(requestModel, factBestCandidateOption, bestDimCandidates, queryGenVersion)
             } else {
               if (factBestCandidateOption.isDefined) {
                 val query = getDimFactQuery(bestDimCandidates, factBestCandidateOption.get, requestModel, queryAttributes, queryGenVersion)

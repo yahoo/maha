@@ -29,6 +29,13 @@ case class OracleQuery(queryContext: QueryContext,
                        additionalColumns: IndexedSeq[String],
                        queryGenVersion: Option[Version] = None) extends Query with WithOracleEngine
 
+case class PostgresQuery(queryContext: QueryContext,
+                       asString: String,
+                       parameters: QueryParameters,
+                       aliasColumnMap: Map[String, Column],
+                       additionalColumns: IndexedSeq[String],
+                       queryGenVersion: Option[Version] = None) extends Query with WithPostgresEngine
+
 case class HiveQuery(queryContext: QueryContext,
                      asString: String, 
                      udfStatements: Option[Set[UDFRegistration]],
