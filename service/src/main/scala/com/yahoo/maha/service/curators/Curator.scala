@@ -3,6 +3,7 @@
 package com.yahoo.maha.service.curators
 
 import com.yahoo.maha.core.RequestModelResult
+import com.yahoo.maha.core.fact.DruidRowCountFactCol
 import com.yahoo.maha.core.request.{CuratorJsonConfig, Field}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest, ParallelServiceExecutor}
@@ -311,45 +312,75 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
             withError(curatorConfig, GeneralError.from(parRequestLabel, message, exception))
           } else {
             val sourcePipeline = sourcePipelineTry.get
-            val totalRowsCountRequestTry =
-              Try {
-                //force fact driven
-                //added row count field
-                //remove all sorts
-                sourcePipeline.requestModel.reportingRequest.copy(
-                  selectFields = sourcePipeline.requestModel.reportingRequest.selectFields ++ IndexedSeq(Field("Row Count", None, None))
-                  , sortBy = IndexedSeq.empty
-                  , forceDimensionDriven = false
-                  , forceFactDriven = true
-                  , paginationStartIndex = 0
-                  , rowsPerPage = 1
-                  , curatorJsonConfigMap = Map.empty
-                )
-              }
-            if (totalRowsCountRequestTry.isFailure) {
-              val exception = totalRowsCountRequestTry.failed.get
-              val message = "total rows request failed to generate"
-              mahaRequestLogBuilder.logFailed(s"${message} - ${exception.getMessage}")
-              withError(curatorConfig, GeneralError.from(parRequestLabel, message, exception))
-            } else {
-              val totalRowsRequest = totalRowsCountRequestTry.get
-              val parRequestResult: ParRequestResult = mahaService.executeRequest(mahaRequestContext.registryName
-                , totalRowsRequest, mahaRequestContext.bucketParams, mahaRequestLogBuilder)
-
-              val populateRowCount:ParRequest[RequestResult] = parRequestResult.prodRun.map(parRequestLabel, ParFunction.fromScala {
-                requestResult =>
-                  val rowList = requestResult.queryPipelineResult.rowList
-                  require(rowList.length == 1, s"length not equal to 1: ${rowList.length}")
-                  var count = 0
-                  rowList.foreach(row => count = row.getValue("Row Count").toString.toInt)
+            val initalFactBestCandidate = sourcePipeline.factBestCandidate.get
+            val rowCountColNameOption: Option[String] = initalFactBestCandidate.fact.factCols.filter {
+              col => col.isInstanceOf[DruidRowCountFactCol]
+            }.foldLeft(Some("")) { (prev, cur) => Some(cur.name) }
+            if (rowCountColNameOption.get.length == 0) { //use legacy code if Druid Row Count column doesn't show up
+              val model = requestModelResult.model
+              val curatorResult = CuratorResult(this, curatorConfig, None, requestModelResult)
+              if (model.dimCardinalityEstimate.nonEmpty) {
+                if(model.dimCardinalityEstimate.get.intValue <= FACT_ONLY_LIMIT) {
+                  val count = model.dimCardinalityEstimate.get.intValue
                   mahaRequestContext.mutableState.put(RowCountCurator.name, count)
                   mahaRequestLogBuilder.logSuccess()
-                  new Right(requestResult)
-              })
+                  withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
+                } else {
+                  mahaRequestContext.mutableState.put(RowCountCurator.name, FACT_ONLY_LIMIT)
+                  mahaRequestLogBuilder.logSuccess()
+                  withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
+                }
+              } else { //if Druid Row Count column show up, inject Row Count column to selectFields
+                val message = "No row count can be estimated without dim cardinality estimate"
+                mahaRequestLogBuilder.logFailed(message, Option(400))
+                withError(curatorConfig, GeneralError.from(parRequestLabel, message))
+              }
+            } else {
+              val rowCountColAlias = initalFactBestCandidate.publicFact.nameToAliasColumnMap(rowCountColNameOption.get).toSeq(0)
+              val totalRowsCountRequestTry =
+                Try {
+                  //force fact driven
+                  //added row count field
+                  //remove all sorts
+                  sourcePipeline.requestModel.reportingRequest.copy(
+                    selectFields = sourcePipeline.requestModel.reportingRequest.selectFields ++ IndexedSeq(Field(rowCountColAlias, None, None))
+                    , sortBy = IndexedSeq.empty
+                    , forceDimensionDriven = false
+                    , forceFactDriven = true
+                    , paginationStartIndex = 0
+                    , rowsPerPage = 1
+                    , curatorJsonConfigMap = Map.empty
+                  )
+                }
+              if (totalRowsCountRequestTry.isFailure) {
+                val exception = totalRowsCountRequestTry.failed.get
+                val message = "total rows request failed to generate"
+                mahaRequestLogBuilder.logFailed(s"${message} - ${exception.getMessage}")
+                withError(curatorConfig, GeneralError.from(parRequestLabel, message, exception))
+              } else {
+                val totalRowsRequest = totalRowsCountRequestTry.get
+                val parRequestResult: ParRequestResult = mahaService.executeRequest(mahaRequestContext.registryName
+                  , totalRowsRequest, mahaRequestContext.bucketParams, mahaRequestLogBuilder)
 
-              val finalParRequestResult = parRequestResult.copy(prodRun = populateRowCount)
-              val curatorResult = CuratorResult(this, curatorConfig, Option(finalParRequestResult), requestModelResult)
-              withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
+                val populateRowCount: ParRequest[RequestResult] = parRequestResult.prodRun.map(parRequestLabel, ParFunction.fromScala {
+                  requestResult =>
+                    var count = 0
+                    val rowList = requestResult.queryPipelineResult.rowList
+                    if (rowList != null && rowList.length == 1) {
+                      rowList.foreach(row => {
+                        count = Option(row.getValue(rowCountColAlias)).getOrElse("0").toString.toInt
+                      })
+
+                    }
+                    mahaRequestContext.mutableState.put(RowCountCurator.name, count)
+                    mahaRequestLogBuilder.logSuccess()
+                    new Right(requestResult)
+                })
+
+                val finalParRequestResult = parRequestResult.copy(prodRun = populateRowCount)
+                val curatorResult = CuratorResult(this, curatorConfig, Option(finalParRequestResult), requestModelResult)
+                withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
+              }
             }
           }
         }
