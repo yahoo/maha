@@ -347,7 +347,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("segments_unique_users", "segments_unique_users", InBetweenEquality),
           PublicFactCol("conv_unique_users", "Conversion User Count", InBetweenEquality),
           PublicFactCol("Total Unique User Count", "Total Unique User Count", InBetweenEquality),
-          PublicFactCol("row_count", "Row Count", InBetweenEquality)
+          PublicFactCol("row_count", "Row Count", InBetweenEquality),
           PublicFactCol("variance", "Variance", InBetweenEquality)
 
         ),
