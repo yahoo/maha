@@ -3,7 +3,7 @@
 package com.yahoo.maha.core.fact
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.query.{FactualQueryContext, Query, QueryContext}
+import com.yahoo.maha.core.query.{FactualQueryContext, QueryContext}
 
 /**
  * Created by hiral on 10/7/15.
@@ -35,6 +35,9 @@ case class OracleFactStaticHint(hint: String) extends FactStaticHint with FactAn
 case class OracleFactDimDrivenHint(hint: String) extends FactDimDrivenHint with FactAnnotationInstance with WithOracleEngine
 
 case class OraclePartitioningScheme(schemeName:String) extends PartitioningScheme  with FactAnnotationInstance with WithOracleEngine
+case class PostgresFactStaticHint(hint: String) extends FactStaticHint with FactAnnotationInstance with WithPostgresEngine
+case class PostgresFactDimDrivenHint(hint: String) extends FactDimDrivenHint with FactAnnotationInstance with WithPostgresEngine
+case class PostgresPartitioningScheme(schemeName:String) extends PartitioningScheme  with FactAnnotationInstance with WithPostgresEngine
 
 case class PrestoPartitioningScheme(schemeName:String) extends PartitioningScheme  with FactAnnotationInstance with WithPrestoEngine
 
@@ -107,6 +110,10 @@ object FactCondition {
   }
 }
 case class OracleFactConditionalHint(cond: FactCondition, hint: String) extends FactConditionalHint with WithOracleEngine {
+  override def conditions: Set[QueryCondition] = cond.conditions
+  override def eval(queryConditions: Set[QueryCondition]): Boolean = cond.eval(queryConditions)
+}
+case class PostgresFactConditionalHint(cond: FactCondition, hint: String) extends FactConditionalHint with WithPostgresEngine {
   override def conditions: Set[QueryCondition] = cond.conditions
   override def eval(queryConditions: Set[QueryCondition]): Boolean = cond.eval(queryConditions)
 }

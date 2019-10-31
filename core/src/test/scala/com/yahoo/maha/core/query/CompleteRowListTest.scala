@@ -7,12 +7,12 @@ import com.yahoo.maha.core.DruidDerivedFunction._
 import com.yahoo.maha.core.DruidPostResultFunction.POST_RESULT_DECODE
 import com.yahoo.maha.core.FilterOperation.{Equality, In, InBetweenEquality, InEquality}
 import com.yahoo.maha.core.dimension.{DimCol, DruidFuncDimCol, PubCol}
-import com.yahoo.maha.core.{ColumnContext, DailyGrain, DateType, DecType, DruidEngine, DruidExpression, EqualityFilter, EscapingRequired, Filter, ForeignKey, IntType, RequestModel, StrType}
 import com.yahoo.maha.core.fact._
-import com.yahoo.maha.core.query.druid.{AsyncDruidQueryOptimizer, DruidQuery, DruidQueryGenerator, SyncDruidQueryOptimizer}
+import com.yahoo.maha.core.query.druid.{AsyncDruidQueryOptimizer, DruidQuery, DruidQueryGenerator}
 import com.yahoo.maha.core.query.oracle.BaseOracleQueryGeneratorTest
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.core.{ColumnContext, DailyGrain, DateType, DecType, DruidEngine, DruidExpression, EqualityFilter, EscapingRequired, Filter, ForeignKey, IntType, RequestModel, StrType}
 
 /**
  * Created by hiral on 1/25/16.

@@ -2,13 +2,12 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query
 
+import java.math.BigDecimal
 import java.sql.{Date, ResultSet, Timestamp}
 import java.time.Instant
 
 import com.yahoo.maha.core.{Column, ColumnAnnotation, ColumnContext, DataType, DateType, DecType, FilterOperation, IntType, StrType, TimestampType}
 import org.joda.time.DateTime
-import java.math.BigDecimal
-
 import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 

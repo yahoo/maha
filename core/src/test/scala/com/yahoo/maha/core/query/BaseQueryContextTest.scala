@@ -2,12 +2,12 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query
 
+import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.DruidDerivedFunction.GET_INTERVAL_DATE
 import com.yahoo.maha.core.FilterOperation._
+import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol, DruidFuncDimCol, PubCol}
 import com.yahoo.maha.core.fact._
-import com.yahoo.maha.core._
-import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.lookup.LongRangeLookup
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.AsyncRequest

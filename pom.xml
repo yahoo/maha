@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>5.309-SNAPSHOT</version>
+    <version>5.317-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -30,7 +30,7 @@
         <json4s.version>3.5.3</json4s.version>
         <scalatest.version>3.0.3</scalatest.version>
         <scalaz.version>7.2.22</scalaz.version>
-        <jackson.version>2.9.9</jackson.version>
+        <jackson.version>2.9.10</jackson.version>
         <httpclient.version>4.5.5</httpclient.version>
         <guava.version>27.1-jre</guava.version>
         <jodatime.version>2.9.9</jodatime.version>
@@ -78,6 +78,7 @@
         <module>druid</module>
         <module>oracle</module>
         <module>presto</module>
+        <module>postgres</module>
         <module>service</module>
         <module>worker</module>
         <module>api-jersey</module>

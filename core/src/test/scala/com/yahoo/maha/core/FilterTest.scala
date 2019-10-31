@@ -6,12 +6,9 @@ import com.yahoo.maha.core.dimension.DimCol
 import com.yahoo.maha.core.fact.ForceFilter
 import io.druid.query.filter.{NotDimFilter, SearchQueryDimFilter}
 import io.druid.query.search.InsensitiveContainsSearchQuerySpec
-import javax.swing.JList
 import org.joda.time.DateTime
-import org.json4s.JsonAST
 import org.json4s.JsonAST.{JArray, JObject, JString, JValue}
 import org.scalatest.{FunSuite, Matchers}
-import scalaz.Success
 
 import scala.collection.immutable.TreeSet
 

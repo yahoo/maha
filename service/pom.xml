@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.309-SNAPSHOT</version>
+        <version>5.317-SNAPSHOT</version>
     </parent>
 
     <name>maha service</name>
@@ -58,6 +58,11 @@
         <dependency>
             <groupId>com.yahoo.maha</groupId>
             <artifactId>maha-presto-executor</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.yahoo.maha</groupId>
+            <artifactId>maha-postgres-executor</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

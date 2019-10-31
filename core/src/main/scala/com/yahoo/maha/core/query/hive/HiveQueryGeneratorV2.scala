@@ -3,7 +3,6 @@
 package com.yahoo.maha.core.query.hive
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
 import grizzled.slf4j.Logging
@@ -60,7 +59,7 @@ class HiveQueryGeneratorV2(partitionColumnRenderer:PartitionColumnRenderer, udfS
         derivedCols.view.map(_._1.asInstanceOf[DerivedColumn]).flatMap(dc => dc.derivedExpression.sourceColumns).toSet
       derivedCols.foreach {
         case (column, alias) =>
-          renderColumnWithAlias(fact: Fact, column, alias, requiredInnerCols, false, queryContext, queryBuilderContext, queryBuilder)
+          renderColumnWithAlias(fact: Fact, column, alias, requiredInnerCols, false, queryContext, queryBuilderContext, queryBuilder, HiveEngine)
       }
     }
 

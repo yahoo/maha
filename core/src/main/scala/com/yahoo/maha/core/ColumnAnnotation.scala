@@ -37,6 +37,7 @@ case object PrimaryKey extends ColumnAnnotation
 case object EscapingRequired extends ColumnAnnotation
 case object HiveSnapshotTimestamp extends ColumnAnnotation with SingletonColumn with WithHiveEngine
 case object OracleSnapshotTimestamp extends ColumnAnnotation with SingletonColumn with WithOracleEngine
+case object PostgresSnapshotTimestamp extends ColumnAnnotation with SingletonColumn with WithPostgresEngine
 case object IsAggregation extends ColumnAnnotation
 case object CaseInsensitive extends ColumnAnnotation
 case class ForeignKey(publicDimName: String) extends ColumnAnnotationInstance {

@@ -5,7 +5,7 @@ package com.yahoo.maha.core.query
 import com.yahoo.maha.core.RequestModel
 import com.yahoo.maha.core.query.oracle.BaseOracleQueryGeneratorTest
 import com.yahoo.maha.core.request.ReportingRequest
-import org.scalatest.{Matchers, FunSuite}
+import org.scalatest.{FunSuite, Matchers}
 
 /**
  * Created by hiral on 3/15/16.

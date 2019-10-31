@@ -27,8 +27,10 @@ object TimeShiftConfig extends Logging {
     val config: JValue = curatorJsonConfig.json
 
     val sortByResult: JsonScalaz.Result[Option[SortBy]] = fieldExtended[Option[SortBy]]("sortBy")(config)
+    val daysOffsetResult: JsonScalaz.Result[Option[Int]] = fieldExtended[Option[Int]]("daysOffset")(config)
 
-    sortByResult.map(sortBy => TimeShiftConfig(sortBy))
+    import _root_.scalaz.syntax.applicative._
+    (sortByResult |@| daysOffsetResult)((a, b) => TimeShiftConfig(a, b))
   }
 
   def from(curatorConfig: CuratorConfig): Option[TimeShiftConfig] = {
@@ -42,7 +44,7 @@ object TimeShiftConfig extends Logging {
   }
 }
 
-case class TimeShiftConfig(sortBy: Option[SortBy]) extends CuratorConfig
+case class TimeShiftConfig(sortBy: Option[SortBy], daysOffset: Option[Int]) extends CuratorConfig
 
 object TimeShiftCurator {
   val name: String = "timeshift"
@@ -73,15 +75,18 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
                                                      reportingRequest: ReportingRequest,
                                                      mahaService: MahaService,
                                                      mahaRequestLogBuilder: CuratorMahaRequestLogBuilder,
-                                                     dimensionAndItsValues: List[(String, Set[String])]) : Try[RequestModelResult] = {
+                                                     dimensionAndItsValues: List[(String, Set[String])],
+                                                     config: Option[TimeShiftConfig]
+                                                    ) : Try[RequestModelResult] = {
 
     val updatedReportingRequest: ReportingRequest = reportingRequest.dayFilter match {
       case BetweenFilter(field, from, to) => {
         val fromDateTime = DailyGrain.fromFormattedString(from)
         val betweenDays = DailyGrain.getDaysBetween(from , to)
+        val offset = 1 + config.flatMap(_.daysOffset).getOrElse(0)
 
-        val fromForPreviousWindow: String = DailyGrain.toFormattedString(fromDateTime.minusDays(betweenDays).minusDays(1))
-        val toForPreviousWindow: String = DailyGrain.toFormattedString(fromDateTime.minusDays(1))
+        val fromForPreviousWindow: String = DailyGrain.toFormattedString(fromDateTime.minusDays(betweenDays).minusDays(offset))
+        val toForPreviousWindow: String = DailyGrain.toFormattedString(fromDateTime.minusDays(offset))
         val previousWindow: BetweenFilter = BetweenFilter(field, fromForPreviousWindow, toForPreviousWindow)
         reportingRequest.copy(dayFilter = previousWindow)
       }
@@ -172,13 +177,16 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
                     }
                 }
 
+                val timeshiftConfig = TimeShiftConfig.from(curatorConfig)
                 val previousWindowRequestModelResultTry: Try[RequestModelResult] =
                   getRequestModelForPreviousWindow(mahaRequestContext.registryName,
                     mahaRequestContext.bucketParams,
                     mahaRequestContext.reportingRequest,
                     mahaService,
                     mahaRequestLogBuilder,
-                    dimensionAndItsValuesMap.map(e => (e._1, e._2.toSet)).toList)
+                    dimensionAndItsValuesMap.map(e => (e._1, e._2.toSet)).toList,
+                    timeshiftConfig
+                  )
 
                 if (previousWindowRequestModelResultTry.isFailure) {
                   val message = previousWindowRequestModelResultTry.failed.get.getMessage
@@ -212,7 +220,7 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
                       , defaultWindowRequestModel
                       , defaultWindowRowList
                       , previousWindowRowList
-                      , dimensionKeySet, TimeShiftConfig.from(curatorConfig))
+                      , dimensionKeySet, timeshiftConfig)
 
                     mahaRequestLogBuilder.logSuccess()
                     new Right(RequestResult(defaultWindowRequestResult.queryPipelineResult.copy(rowList = derivedRowList)))

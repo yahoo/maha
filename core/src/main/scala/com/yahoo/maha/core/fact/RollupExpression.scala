@@ -23,6 +23,7 @@ sealed trait CustomRollup extends RollupExpression
 case class HiveCustomRollup(expression: HiveDerivedExpression) extends CustomRollup with WithHiveEngine
 case class PrestoCustomRollup(expression: PrestoDerivedExpression) extends CustomRollup with WithPrestoEngine
 case class OracleCustomRollup(expression: OracleDerivedExpression) extends CustomRollup with WithOracleEngine
+case class PostgresCustomRollup(expression: PostgresDerivedExpression) extends CustomRollup with WithPostgresEngine
 case class DruidCustomRollup(expression: DruidDerivedExpression) extends CustomRollup with WithDruidEngine
 case class DruidFilteredRollup(filter: Filter, factCol: DruidExpression.FieldAccess,
                                delegateAggregatorRollupExpression: RollupExpression) extends CustomRollup with WithDruidEngine

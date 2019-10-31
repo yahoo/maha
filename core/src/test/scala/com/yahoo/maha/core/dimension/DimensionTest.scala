@@ -3,10 +3,10 @@
 package com.yahoo.maha.core.dimension
 
 import com.yahoo.maha.core.BaseExpressionTest.PRESTO_TIMESTAMP_TO_FORMATTED_DATE
-import com.yahoo.maha.core.FilterOperation._
-import com.yahoo.maha.core._
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core.DruidPostResultFunction.START_OF_THE_WEEK
+import com.yahoo.maha.core.FilterOperation._
+import com.yahoo.maha.core._
 import com.yahoo.maha.core.ddl.{HiveDDLAnnotation, OracleDDLAnnotation}
 import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
 import org.scalatest.{FunSuite, Matchers}
@@ -97,6 +97,31 @@ class DimensionTest extends FunSuite with Matchers {
             , DimCol("discard", IntType())
             , OracleDerDimCol("clicks", StrType(), DECODE_DIM("{decodable}", "7", "6"))
             , OraclePartDimCol("test_col", IntType())
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+        )
+      }
+    }
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        dim.createSubset("dim1_subset", "dim1", Set("discard"), Set.empty, Set.empty, None, Map.empty, resetAliasIfNotPresent = false)
+      }
+    }
+  }
+
+  test("Copy an Postgres dimension without resetAliasIfNotPresent") {
+    val dim : DimensionBuilder = {
+      ColumnContext.withColumnContext { implicit cc =>
+        import PostgresExpression._
+
+        Dimension.newDimension("dim1", PostgresEngine, LevelOne, Set(AdvertiserSchema),
+          Set(
+            DimCol("stats_date", DateType("YYYY-MM-dd"), annotations = Set(PrimaryKey))
+            , DimCol("decodable", IntType(), annotations = Set(EscapingRequired))
+            , DimCol("discard", IntType())
+            , PostgresDerDimCol("clicks", StrType(), DECODE_DIM("{decodable}", "7", "6"))
+            , PostgresPartDimCol("test_col", IntType())
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
         )
@@ -238,11 +263,36 @@ class DimensionTest extends FunSuite with Matchers {
     }
   }
 
+  test("Copy an Postgres dimension with resetAliasIfNotPresent") {
+    val dim : DimensionBuilder = {
+      ColumnContext.withColumnContext { implicit cc =>
+        import PostgresExpression._
+
+        Dimension.newDimension("dim1", PostgresEngine, LevelOne, Set(AdvertiserSchema),
+          Set(
+            DimCol("stats_date", DateType("YYYY-MM-dd"), annotations = Set(PrimaryKey))
+            , DimCol("decodable", IntType(), annotations = Set(EscapingRequired))
+            , DimCol("discard", IntType())
+            , PostgresDerDimCol("clicks", StrType(), DECODE_DIM("{decodable}", "7", "6"))
+            , PostgresPartDimCol("test_col", IntType())
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+        )
+      }
+    }
+
+    {
+      ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+        dim.createSubset("dim1_subset", "dim1", Set("discard"), Set.empty, Set.empty, None, Map.empty, resetAliasIfNotPresent = true)
+      }
+    }
+  }
+
   test("newDimension should fail with derived expression with unknown referenced fields") {
     val thrown = intercept[IllegalArgumentException] {
       {
-        import com.yahoo.maha.core.HiveExpression._
         import com.yahoo.maha.core.BaseExpressionTest._
+        import com.yahoo.maha.core.HiveExpression._
         ColumnContext.withColumnContext { implicit cc =>
           Dimension.newDimension("dim1", HiveEngine, LevelOne, Set(AdvertiserSchema),
             Set(
@@ -280,8 +330,8 @@ class DimensionTest extends FunSuite with Matchers {
   test("newDimension should fail with columns with different engines") {
     intercept[ClassCastException] {
       {
-        import com.yahoo.maha.core.HiveExpression._
         import com.yahoo.maha.core.BaseExpressionTest._
+        import com.yahoo.maha.core.HiveExpression._
         ColumnContext.withColumnContext { implicit cc =>
           Dimension.newDimension("dim1", HiveEngine, LevelOne, Set(AdvertiserSchema),
             Set(
@@ -714,8 +764,8 @@ class DimensionTest extends FunSuite with Matchers {
 
   test("withAlternateEngine druid should, covering Druid dervied expressions") {
     val dim1 = dimBuilder
-    import com.yahoo.maha.core._
     import com.yahoo.maha.core.DruidDerivedFunction.DECODE_DIM
+    import com.yahoo.maha.core._
     ColumnContext.withColumnContext { implicit  cc : ColumnContext =>
       dim1.withAlternateEngine("dim2", "dim", DruidEngine,
         Set(
