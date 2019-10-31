@@ -311,12 +311,15 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
             mahaRequestLogBuilder.logFailed(s"$message - ${exception.getMessage}")
             withError(curatorConfig, GeneralError.from(parRequestLabel, message, exception))
           } else {
+
             val sourcePipeline = sourcePipelineTry.get
             val initalFactBestCandidate = sourcePipeline.factBestCandidate.get
+
+            // check if DruidRowCountFactCol present
             val rowCountColNameOption: Option[String] = initalFactBestCandidate.fact.factCols.filter {
-              col => col.isInstanceOf[DruidRowCountFactCol]
-            }.foldLeft(Some("")) { (prev, cur) => Some(cur.name) }
-            if (rowCountColNameOption.get.length == 0) { //use legacy code if Druid Row Count column doesn't show up
+              col => col.isInstanceOf[DruidRowCountFactCol]}.foldLeft(Some("")) { (prev, cur) => Some(cur.name) }
+
+            if (rowCountColNameOption.get.length == 0) { //use legacy code if DruidRowCountFactCol doesn't present
               val model = requestModelResult.model
               val curatorResult = CuratorResult(this, curatorConfig, None, requestModelResult)
               if (model.dimCardinalityEstimate.nonEmpty) {
@@ -330,12 +333,12 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                   mahaRequestLogBuilder.logSuccess()
                   withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
                 }
-              } else { //if Druid Row Count column show up, inject Row Count column to selectFields
+              } else {
                 val message = "No row count can be estimated without dim cardinality estimate"
                 mahaRequestLogBuilder.logFailed(message, Option(400))
                 withError(curatorConfig, GeneralError.from(parRequestLabel, message))
               }
-            } else {
+            } else { //if Druid Row Count column show up, inject Row Count column to selectFields
               val rowCountColAlias = initalFactBestCandidate.publicFact.nameToAliasColumnMap(rowCountColNameOption.get).toSeq(0)
               val totalRowsCountRequestTry =
                 Try {
@@ -397,5 +400,5 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
 
   override def isSingleton: Boolean = false
 
-  override def requiresDefaultCurator: Boolean = false
+  override def requiresDefaultCurator: Boolean = true
 }

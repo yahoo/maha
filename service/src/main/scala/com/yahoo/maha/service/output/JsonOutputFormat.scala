@@ -36,6 +36,14 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
 
     if(headOption.exists(_.isSingleton)) {
       renderDefault(headOption.get.name, requestCoordinatorResult, jsonGenerator, None)
+    } else if(requestCoordinatorResult.successResults.contains(RowCountCurator.name)) { // for RowCountCurator
+      val rowCountOption = RowCountCurator.getRowCount(requestCoordinatorResult.mahaRequestContext)
+      renderDefault(RowCountCurator.name, requestCoordinatorResult, jsonGenerator, rowCountOption)
+      jsonGenerator.writeFieldName("curators") //"curators" :
+      jsonGenerator.writeStartObject() //{
+      val curatorList = requestCoordinatorResult.orderedList
+      curatorList.foreach(renderCurator(_, requestCoordinatorResult, jsonGenerator, rowCountOption))
+      jsonGenerator.writeEndObject() //}
     } else if(requestCoordinatorResult.successResults.contains(DefaultCurator.name)) {
       val rowCountOption = RowCountCurator.getRowCount(requestCoordinatorResult.mahaRequestContext)
       renderDefault(DefaultCurator.name, requestCoordinatorResult, jsonGenerator, rowCountOption)
@@ -43,14 +51,6 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
       jsonGenerator.writeStartObject() //{
       //remove default render curators
       val curatorList = requestCoordinatorResult.orderedList.filterNot(c => JsonOutputFormat.defaultRenderSet(c.name))
-      curatorList.foreach(renderCurator(_, requestCoordinatorResult, jsonGenerator))
-      jsonGenerator.writeEndObject() //}
-    } else if(requestCoordinatorResult.successResults.contains(RowCountCurator.name)) { // for RowCountCurator
-      val rowCountOption = RowCountCurator.getRowCount(requestCoordinatorResult.mahaRequestContext)
-      renderDefault(RowCountCurator.name, requestCoordinatorResult, jsonGenerator, rowCountOption)
-      jsonGenerator.writeFieldName("curators") //"curators" :
-      jsonGenerator.writeStartObject() //{
-      val curatorList = requestCoordinatorResult.orderedList
       curatorList.foreach(renderCurator(_, requestCoordinatorResult, jsonGenerator, rowCountOption))
       jsonGenerator.writeEndObject() //}
     }
@@ -250,7 +250,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
         jsonGenerator.writeStartArray()
         var i = 0
         while(i < numColumns) {
-          if(druidRowCountAlias.getOrElse(None) != None && rowList.columns(i).alias != druidRowCountAlias.get) {
+          if(druidRowCountAlias.getOrElse(None) == None || rowList.columns(i).alias != druidRowCountAlias.get) {
             jsonGenerator.writeObject(row.getValue(i))
           }
           i+=1

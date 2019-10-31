@@ -2,6 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service
 
+import com.yahoo.maha.core.DruidEngine
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.OracleQuery
 import com.yahoo.maha.core.request.Parameter.Debug
@@ -1509,17 +1510,10 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
+//    println(result)
     val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[213,200,100,99,"ACTIVE",1]],"curators":{}}"""
-    
 
     assert(result.contains(expectedJson))
-
-    //assert on misc variables
-    val tempCurator: RowCountCurator = new RowCountCurator()
-    assert(!tempCurator.isSingleton)
-    assert(!tempCurator.requiresDefaultCurator)
-    assert(tempCurator.level == 1)
-    assert(tempCurator.priority == 1)
 
   }
 
@@ -2020,23 +2014,18 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val executedResult = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
     val requestCoordinatorResult = getRequestCoordinatorResult(executedResult)
-
+    assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
     assert(requestCoordinatorResult.successResults.contains(RowCountCurator.name))
-    assert(!requestCoordinatorResult.successResults.contains(DefaultCurator.name))
 
     val rowcountCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(RowCountCurator.name)
-
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
-
     val stringStream =  new StringStream()
-
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
-    println(result)
+//    println(result)
 
-    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[213,200,100,99]],"curators":{"rowcount":{"result":{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[213,200,100,99]],"rowCount":0}}}}"""
+    val expectedJson = s""""curators":{"rowcount":{"result":{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[213,200,100,99]],"rowCount":"""
     assert(result.contains(expectedJson))
   }
-
 }
 

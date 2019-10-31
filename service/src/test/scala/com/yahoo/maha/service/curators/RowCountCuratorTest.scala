@@ -140,7 +140,6 @@ class RowCountCuratorTest  extends BaseMahaServiceTest with BeforeAndAfterAll {
 
     val bucketParams = BucketParams(UserInfo("uid", true))
 
-
     val mahaRequestContext = MahaRequestContext(REGISTRY,
       bucketParams,
       reportingRequest,
