@@ -6,13 +6,15 @@ package com.yahoo.maha.core
  * Created by hiral on 10/2/15.
  */
 
+import java.util
 import java.util.concurrent.atomic.AtomicLong
 
 import com.google.common.collect.Lists
 import com.yahoo.maha.core.ThetaSketchSetOp.ThetaSketchSetOp
+import io.druid.js.JavaScriptConfig
 import io.druid.query.aggregation.PostAggregator
 import io.druid.query.aggregation.datasketches.theta.{SketchEstimatePostAggregator, SketchSetPostAggregator}
-import io.druid.query.aggregation.post.{ArithmeticPostAggregator, ConstantPostAggregator, FieldAccessPostAggregator}
+import io.druid.query.aggregation.post.{ArithmeticPostAggregator, ConstantPostAggregator, FieldAccessPostAggregator, JavaScriptPostAggregator}
 
 trait Expression[T] {
   def hasNumericOperation: Boolean
@@ -447,7 +449,7 @@ trait HiveExpression extends Expression[String] {
 
 object HiveExpression {
   type HiveExp = Expression[String]
-  
+
   trait BaseHiveExpression extends HiveExpression {
     def *(that: HiveExp) : HiveExp = {
       val expression = if(that.hasNumericOperation) {
@@ -495,7 +497,7 @@ object HiveExpression {
   case class COL(s: String, hasRollupExpression: Boolean = false, hasNumericOperation: Boolean = false) extends BaseHiveExpression {
     def asString : String = s
   }
-  
+
   case class SUM(s: HiveExp) extends BaseHiveExpression {
     val hasRollupExpression = true
     val hasNumericOperation = true
@@ -569,11 +571,11 @@ object HiveExpression {
   implicit def from(s: String): HiveExpression = {
     COL(s, false)
   }
-  
+
   implicit def fromExpression(e: HiveExp) : HiveExpression = {
     e.asInstanceOf[HiveExpression]
   }
-  
+
   implicit class StringHelper(s: String) {
     def *(s2: String) : HiveExpression = {
       COL(s, false) * COL(s2, false)
@@ -604,7 +606,7 @@ sealed trait OracleExpression extends Expression[String] {
 
 object OracleExpression {
   type OracleExp = Expression[String]
-  
+
   trait BaseOracleExpression extends OracleExpression {
     def *(that: OracleExp) : OracleExp = {
       val expression = if(that.hasNumericOperation) {
@@ -710,17 +712,17 @@ object OracleExpression {
     def hasNumericOperation = s.hasNumericOperation
     def asString : String = GET_INTERVAL_DATE.getIntervalDate(s.asString, fmt)
   }
-  
+
   object GET_INTERVAL_DATE {
     val regex = """[dwmDWM]|[dD][aA][yY]|[yY][rR]""".r
-    
+
     def checkFormat(fmt: String):  Unit = {
       regex.findFirstIn(fmt) match {
         case Some(f) =>
         case _ => throw new IllegalArgumentException(s"Format for get_interval_date must be d|w|m|day|yr not $fmt")
       }
     }
-    
+
     def getIntervalDate(exp: String, fmt: String):  String = {
       fmt.toLowerCase match {
         case "d" =>
@@ -754,7 +756,7 @@ object OracleExpression {
   case class DECODE(args: OracleExp*) extends BaseOracleExpression {
     if (args.length < 3) throw new IllegalArgumentException("Usage: DECODE( expression , search , result [, search , result]... [, default] )")
     val strArgs = args.map(_.asString).mkString(", ")
-    
+
     val hasRollupExpression = true
     val hasNumericOperation = args.exists(_.hasNumericOperation)
     def asString: String = s"DECODE($strArgs)"
@@ -798,7 +800,7 @@ object OracleExpression {
   implicit def from(s: String): OracleExpression = {
     COL(s, false)
   }
-  
+
   implicit def fromExpression(e: OracleExp) : OracleExpression = {
     e.asInstanceOf[OracleExpression]
   }
@@ -823,11 +825,11 @@ object OracleExpression {
 }
 
 trait DerivedExpression[T] {
-  
+
   type ConcreteType
-  
+
   private[this] val columnRegex = """(\{[^}\\]+\})""".r
-  
+
   /**
    * The expression with reference to source columns as {colA}
    * * e.g. "timestamp_to_formatted_date({colA}, 'YYYY-MM-DD')"
@@ -835,9 +837,9 @@ trait DerivedExpression[T] {
     * @return
    */
   def expression: Expression[T]
-  
+
   def columnContext: ColumnContext
-  
+
   /**
    * Set of source columns if any, e.g. ("colA", "colB")
     *
@@ -853,7 +855,7 @@ trait DerivedExpression[T] {
         columnContext.isDimensionDriven(sc)
     }
   }
-  
+
   private[this] var rendered: Option[T] = None
   private[this] var renderedInsideDerived: Option[T] = None
 
@@ -899,7 +901,7 @@ trait DerivedExpression[T] {
   }
 
   def copyWith(columnContext: ColumnContext) : ConcreteType
-  
+
   def postRenderHook(columnName: String, rendered: T) : T = rendered
 }
 
@@ -915,7 +917,7 @@ object HiveDerivedExpression {
   def apply(expression: HiveExpression)(implicit cc: ColumnContext) : HiveDerivedExpression = {
     HiveDerivedExpression(cc, expression)
   }
-  
+
   implicit def fromHiveExpression(expression: HiveExpression)(implicit  cc: ColumnContext) : HiveDerivedExpression = {
     apply(expression)
   }
@@ -964,7 +966,7 @@ case class OracleDerivedExpression (columnContext: ColumnContext, expression: Or
 
 object OracleDerivedExpression {
   import OracleExpression.OracleExp
-  
+
   def apply(expression: OracleExpression)(implicit cc: ColumnContext) : OracleDerivedExpression = {
     OracleDerivedExpression(cc, expression)
   }
@@ -1012,7 +1014,7 @@ object PostgresDerivedExpression {
 sealed trait DruidExpression extends Expression[(String, Map[String, String]) => PostAggregator] {
   protected def id: Long
   protected def fieldNamePlaceHolder: String
-  
+
   def postRenderHook(columnName: String, aggregatorNameAliasMap: Map[String, String], rendered: (String, Map[String, String]) => PostAggregator) : PostAggregator = {
     rendered(columnName, aggregatorNameAliasMap)
   }
@@ -1020,16 +1022,16 @@ sealed trait DruidExpression extends Expression[(String, Map[String, String]) =>
 
 object DruidExpression {
   private[this] val CONSTANT_ID  = new AtomicLong(0)
-  
+
   protected def getConstantId : Long = CONSTANT_ID.incrementAndGet()
-  
+
   type DruidExp = Expression[(String, Map[String, String]) => PostAggregator]
 
   trait BaseDruidExpression extends DruidExpression {
-    
+
     val id : Long = 1
     val fieldNamePlaceHolder = "_placeHolder"
-    
+
     def *(that: DruidExp) : DruidExp = {
       Arithmetic("*", this, that)
     }
@@ -1063,10 +1065,26 @@ object DruidExpression {
     )))
   }*/
 
+  case class JavaScript(fn: String, fields: List[String]) extends BaseDruidExpression {
+    val hasNumericOperation: Boolean = false
+    val hasRollupExpression: Boolean = false
+    val asString: String = {
+      s"function({${fields.mkString("},{")}})\\{$fn\\}"
+    }
+    override def render(insideDerived: Boolean) = {
+
+      (s: String, aggregatorNameAliasMap: Map[String, String]) => {
+        val listInJava = new util.ArrayList[String]()
+        fields.foreach(f => listInJava.add(aggregatorNameAliasMap.getOrElse(f, f)))
+        new JavaScriptPostAggregator(s, listInJava, s"function(${fields.mkString(",")}){$fn}", JavaScriptConfig.getEnabledInstance)
+      }
+    }
+  }
+
   case class Arithmetic(fn: String, a: DruidExp, b: DruidExp) extends BaseDruidExpression {
     override val id : Long = Math.max(a.asInstanceOf[DruidExpression].id, b.asInstanceOf[DruidExpression].id) + 1
     override val fieldNamePlaceHolder = s"_placeHolder_$id"
-    
+
     def render(insideDerived: Boolean) = {
       val _a = a.asInstanceOf[DruidExpression]
       val _b = b.asInstanceOf[DruidExpression]
@@ -1079,7 +1097,7 @@ object DruidExpression {
     def asString = {
       s"${a.asString} $fn ${b.asString}"
     }
-    
+
     /*
     def asString = compact(render(makeObj(
       ("type" -> toJSON("arithmetic"))
@@ -1134,7 +1152,7 @@ object DruidExpression {
   case class FieldAccess(name: String) extends BaseDruidExpression {
 
     override val fieldNamePlaceHolder = name.replaceAll("[}{]","")
-    
+
     def render(insideDerived: Boolean) = {
       (s: String, aggregatorNameAliasMap: Map[String, String]) => {
         val fieldName = name.replaceAll("[}{]","")
@@ -1160,7 +1178,7 @@ object DruidExpression {
   object FieldAccess {
     implicit def from(s: String) : FieldAccess = FieldAccess(s)
   }
-  
+
   val regex = """(\{[^}\\]+\})""".r
   implicit def fromString(s: String) : DruidExpression = {
     regex.findFirstIn(s) match {
@@ -1207,7 +1225,7 @@ case class DruidDerivedExpression private(columnContext: ColumnContext, expressi
 
 object DruidDerivedExpression {
   import DruidExpression.DruidExp
-  
+
   def apply(expression: DruidExpression)(implicit cc: ColumnContext) : DruidDerivedExpression = {
     DruidDerivedExpression(cc, expression)
   }

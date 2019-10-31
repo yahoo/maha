@@ -97,6 +97,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
             EqualityFilter("engagement_type", "1"),
             EqualityFilter("campaign_id", "1")), "clicks", SumRollup))
           , DruidDerFactCol("Reblog Rate", DecType(), "{Reblogs}" /- "{impressions}" * "100")
+          , DruidDerFactCol("variance", DecType(), JavaScript("return clicks * Math.sqrt(impressions);", List("clicks", "impressions")))
           , DruidPostResultDerivedFactCol("impression_share", StrType(), "{impressions}" /- "{sov_impressions}", postResultFunction = POST_RESULT_DECODE("{show_sov_flag}", "0", "N/A"))
           , FactCol("uniqueUserCount", DecType(0, "0.0"))
           , FactCol("blarghUserCount", DecType(0, "0.0"))
@@ -347,6 +348,8 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("conv_unique_users", "Conversion User Count", InBetweenEquality),
           PublicFactCol("Total Unique User Count", "Total Unique User Count", InBetweenEquality),
           PublicFactCol("row_count", "Row Count", InBetweenEquality)
+          PublicFactCol("variance", "Variance", InBetweenEquality)
+
         ),
         //Set(EqualityFilter("Source", "2")),
         Set(),

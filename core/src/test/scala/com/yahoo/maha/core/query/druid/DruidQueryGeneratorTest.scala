@@ -820,7 +820,6 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     val json = """{"type":"extraction","dimension":"__time","outputName":"My Date","outputType":"STRING","extractionFn":{"type":"timeFormat","format":"YYYY-MM-dd","timeZone":"UTC","granularity":{"type":"none"},"asMillis":false}}"""
-
     assert(result.contains(json), result)
   }
 
@@ -3024,7 +3023,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry1.isSuccess, queryPipelineTry1.errorMessage("Fail to get the query pipeline"))
 
     val result1 = queryPipelineTry1.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-//    println(result1)
+    //    println(result1)
     assert(StringUtils.countMatches(result1, """"queryType":"groupBy"""") == 2, "Failed to generate 2-level groupby query")
     assert(!result1.contains(""""limitSpec":{"type":"default","columns":[],"limit":200}"""), "Failed to remove inner limitSpec")
     assert(result1.contains(""""aggregations":[{"type":"count","name":"Row Count"}]"""), "Failed to generate row count aggregator")
@@ -3051,9 +3050,42 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry2.isSuccess, queryPipelineTry2.errorMessage("Fail to get the query pipeline"))
 
     val result2 = queryPipelineTry2.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-//    println(result2)
+    //    println(result2)
     assert(StringUtils.countMatches(result2, """"queryType":"groupBy"""") == 3, "Failed to generate 3-level groupby query")
     assert(!result2.contains(""""limitSpec":{"type":"default","columns":[],"limit":200}"""), "Failed to remove limitSpec")
     assert(result2.contains(""""aggregations":[{"type":"count","name":"Row Count"}]"""), "Failed to generate row count aggregator")
+  }
+
+  test("Test generating a query for a request with derived fact column using JavaScript Aggregator") {
+    val jsonString =
+      s"""{
+                        "cube": "k_stats",
+                        "selectFields": [
+                          {"field": "Day"},
+                          {"field": "Impressions"},
+                          {"field": "Clicks"},
+                          {"field": "Variance"},
+
+                          {"field": "Advertiser ID"}
+                        ],
+                        "filterExpressions": [
+                          {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                          {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                        ],
+                        "paginationStartIndex":20,
+                        "rowsPerPage":100
+                      }"""
+
+    val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestSync(jsonString))
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    assert(query.contains(""""postAggregations":[{"type":"javascript","name":"Variance","fieldNames":["Clicks","Impressions"],"function":"function(clicks,impressions){return clicks * Math.sqrt(impressions);}"}]"""))
   }
 }
