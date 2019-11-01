@@ -391,12 +391,12 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
     val factBestCandidate = getFactBest(queryContext)
 
     val name = column.alias.getOrElse(column.name)
+    val isOgbQuery = queryContext.isInstanceOf[DimFactOuterGroupByQueryQueryContext]
     val exp = column match {
       case any if queryBuilderContext.containsColByName(name) =>
         //do nothing, we've already processed it
         ""
-      case DimCol(_, dt, _, _, _, _) if dt.hasStaticMapping && (queryContext.isInstanceOf[DimFactOuterGroupByQueryQueryContext] && isOuterColumn
-                                                                 || !queryContext.isInstanceOf[DimFactOuterGroupByQueryQueryContext]) =>
+      case DimCol(_, dt, _, _, _, _) if dt.hasStaticMapping && (isOgbQuery && isOuterColumn || !isOgbQuery) =>
         val renderedAlias = renderColumnAlias(alias)
         queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
         s"${renderStaticMappedDimension(column, engine)} $name"
