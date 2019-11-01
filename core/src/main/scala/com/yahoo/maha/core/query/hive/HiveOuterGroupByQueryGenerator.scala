@@ -133,11 +133,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
               val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
               queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
             } else {
-//              if(column.dataType.hasStaticMapping) {
-//                queryBuilder.addGroupBy(renderStaticMappedDimension(column, HiveEngine))
-//              } else {
                 queryBuilder.addGroupBy(nameOrAlias)
-//              }
             }
           }
       }

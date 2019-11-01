@@ -75,11 +75,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
                 val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
                 queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
               } else {
-//                if(column.dataType.hasStaticMapping) {
-//                  queryBuilder.addGroupBy(renderStaticMappedDimension(column, PrestoEngine))
-//                } else {
                   queryBuilder.addGroupBy(nameOrAlias)
-//                }
               }
             }
         }
@@ -552,7 +548,6 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
                 case (from, to) => s"WHEN ($finalAlias IN ($from)) THEN '$to'"
               }
               s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
-//              s"""COALESCE(CAST($finalAlias as varchar), 'NA')"""
             } else {
               s"""COALESCE($finalAlias, 0)"""
             }
