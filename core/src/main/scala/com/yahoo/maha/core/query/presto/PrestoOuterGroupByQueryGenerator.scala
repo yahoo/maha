@@ -75,11 +75,11 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
                 val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
                 queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
               } else {
-                if(column.dataType.hasStaticMapping) {
-                  queryBuilder.addGroupBy(renderStaticMappedDimension(column, PrestoEngine))
-                } else {
+//                if(column.dataType.hasStaticMapping) {
+//                  queryBuilder.addGroupBy(renderStaticMappedDimension(column, PrestoEngine))
+//                } else {
                   queryBuilder.addGroupBy(nameOrAlias)
-                }
+//                }
               }
             }
         }
@@ -547,7 +547,12 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
             s"""ROUND(COALESCE($finalAlias, 0), 10)"""
           case IntType(_,sm,_,_,_) =>
             if (sm.isDefined) {
-              s"""COALESCE(CAST($finalAlias as varchar), 'NA')"""
+              val defaultValue = sm.get.default
+              val whenClauses = sm.get.tToStringMap.map {
+                case (from, to) => s"WHEN ($finalAlias IN ($from)) THEN '$to'"
+              }
+              s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
+//              s"""COALESCE(CAST($finalAlias as varchar), 'NA')"""
             } else {
               s"""COALESCE($finalAlias, 0)"""
             }

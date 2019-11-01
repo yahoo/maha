@@ -133,11 +133,11 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
               val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
               queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
             } else {
-              if(column.dataType.hasStaticMapping) {
-                queryBuilder.addGroupBy(renderStaticMappedDimension(column, HiveEngine))
-              } else {
+//              if(column.dataType.hasStaticMapping) {
+//                queryBuilder.addGroupBy(renderStaticMappedDimension(column, HiveEngine))
+//              } else {
                 queryBuilder.addGroupBy(nameOrAlias)
-              }
+//              }
             }
           }
       }
@@ -506,7 +506,16 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
           case DecType(_, _, _, _, _, _) =>
             s"""ROUND(COALESCE($finalAlias, 0L), 10)"""
           case IntType(_,sm,_,_,_) =>
-            s"""COALESCE($finalAlias, 0L)"""
+            if (sm.isDefined && isOuterGroupBy) {
+              val defaultValue = sm.get.default
+              val whenClauses = sm.get.tToStringMap.map {
+                case (from, to) => s"WHEN ($finalAlias IN ($from)) THEN '$to'"
+              }
+              s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
+            }
+            else {
+              s"""COALESCE($finalAlias, 0L)"""
+            }
           case DateType(_) => s"""getFormattedDate($finalAlias)"""
           case StrType(_, sm, df) =>
             val defaultValue = df.getOrElse("NA")
