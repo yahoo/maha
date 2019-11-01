@@ -107,7 +107,6 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , FactCol("segments_unique_users", DecType(), DruidFilteredRollup(InFilter("segments", List("1234")), "uniqueUserCount", DruidThetaSketchRollup))
           , FactCol("conv_unique_users", DecType(), DruidFilteredRollup(JavaScriptFilter("segments", "function(x) { return x > 0; }"), "uniqueUserCount", DruidThetaSketchRollup))
           , DruidDerFactCol("Total Unique User Count", DecType(), ThetaSketchEstimator(INTERSECT, List("{ageBucket_unique_users}", "{woeids_unique_users}", "{segments_unique_users}")))
-          , DruidRowCountFactCol("row_count")
         ),
         annotations = annotations
       )
@@ -347,7 +346,6 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("segments_unique_users", "segments_unique_users", InBetweenEquality),
           PublicFactCol("conv_unique_users", "Conversion User Count", InBetweenEquality),
           PublicFactCol("Total Unique User Count", "Total Unique User Count", InBetweenEquality),
-          PublicFactCol("row_count", "Row Count", InBetweenEquality),
           PublicFactCol("variance", "Variance", InBetweenEquality)
 
         ),
@@ -407,8 +405,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("Reblog Rate", "Reblog Rate", InBetweenEquality),
           PublicFactCol("Click Rate", "Click Rate", InBetweenEquality),
           PublicFactCol("Click Rate Success Case", "Click Rate Success Case", InBetweenEquality),
-          PublicFactCol("CTR", "CTR", InBetweenEquality),
-          PublicFactCol("row_count", "Row Count", InBetweenEquality)
+          PublicFactCol("CTR", "CTR", InBetweenEquality)
         ),
         //Set(EqualityFilter("Source", "2")),
         Set(),

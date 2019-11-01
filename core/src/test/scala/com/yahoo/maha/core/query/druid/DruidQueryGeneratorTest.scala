@@ -3007,14 +3007,14 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "cube": "k_stats",
                           "selectFields": [
                             {"field": "Advertiser ID"},
-                            {"field": "Impressions"},
-                            {"field": "Row Count"}
+                            {"field": "Impressions"}
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "=", "value": "$fromDate"},
                             {"field": "Advertiser ID", "operator": "=", "value": "12345"}
                           ],
-                          "mr": 100
+                          "mr": 100,
+                          "includeRowCount": true
                         }"""
 
     val request1: ReportingRequest = getReportingRequestSync(jsonString_inner)
@@ -3023,7 +3023,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry1.isSuccess, queryPipelineTry1.errorMessage("Fail to get the query pipeline"))
 
     val result1 = queryPipelineTry1.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    //    println(result1)
+//    println(result1)
     assert(StringUtils.countMatches(result1, """"queryType":"groupBy"""") == 2, "Failed to generate 2-level groupby query")
     assert(!result1.contains(""""limitSpec":{"type":"default","columns":[],"limit":200}"""), "Failed to remove inner limitSpec")
     assert(result1.contains(""""aggregations":[{"type":"count","name":"Row Count"}]"""), "Failed to generate row count aggregator")
@@ -3033,15 +3033,15 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           "cube": "k_stats",
                           "selectFields": [
                             {"field": "Advertiser ID"},
-                            {"field": "Impressions"},
-                            {"field": "Row Count"}
+                            {"field": "Impressions"}
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "=", "value": "$fromDate"},
                             {"field": "Advertiser ID", "operator": "=", "value": "12345"},
                             {"field": "Advertiser Status", "operator": "=", "value": "ON"}
                           ],
-                          "mr":100
+                          "mr":100,
+                          "includeRowCount": true
                         }"""
 
     val request2: ReportingRequest = getReportingRequestSync(jsonString_outer)
@@ -3050,7 +3050,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry2.isSuccess, queryPipelineTry2.errorMessage("Fail to get the query pipeline"))
 
     val result2 = queryPipelineTry2.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    //    println(result2)
+//    println(result2)
     assert(StringUtils.countMatches(result2, """"queryType":"groupBy"""") == 3, "Failed to generate 3-level groupby query")
     assert(!result2.contains(""""limitSpec":{"type":"default","columns":[],"limit":200}"""), "Failed to remove limitSpec")
     assert(result2.contains(""""aggregations":[{"type":"count","name":"Row Count"}]"""), "Failed to generate row count aggregator")
