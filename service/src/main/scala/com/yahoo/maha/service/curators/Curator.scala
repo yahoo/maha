@@ -3,7 +3,7 @@
 package com.yahoo.maha.service.curators
 
 import com.yahoo.maha.core.RequestModelResult
-import com.yahoo.maha.core.fact.DruidRowCountFactCol
+import com.yahoo.maha.core.fact.{DruidRowCountFactCol, FactColumn}
 import com.yahoo.maha.core.request.{CuratorJsonConfig, Field}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest, ParallelServiceExecutor}
@@ -316,10 +316,11 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
             val initalFactBestCandidate = sourcePipeline.factBestCandidate.get
 
             // check if DruidRowCountFactCol present
-            val rowCountColNameOption: Option[String] = initalFactBestCandidate.fact.factCols.filter {
-              col => col.isInstanceOf[DruidRowCountFactCol]}.foldLeft(Some("")) { (prev, cur) => Some(cur.name) }
+            val druidRowCountColSet: Set[FactColumn] = initalFactBestCandidate.fact.factCols.filter {
+              col => col.isInstanceOf[DruidRowCountFactCol]
+            }
 
-            if (rowCountColNameOption.get.length == 0) { //use legacy code if DruidRowCountFactCol doesn't present
+            if (druidRowCountColSet.isEmpty) { //use legacy code if DruidRowCountFactCol doesn't present
               val model = requestModelResult.model
               val curatorResult = CuratorResult(this, curatorConfig, None, requestModelResult)
               if (model.dimCardinalityEstimate.nonEmpty) {
@@ -339,14 +340,14 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                 withError(curatorConfig, GeneralError.from(parRequestLabel, message))
               }
             } else { //if Druid Row Count column show up, inject Row Count column to selectFields
-              val rowCountColAlias = initalFactBestCandidate.publicFact.nameToAliasColumnMap(rowCountColNameOption.get).toSeq(0)
+              val druidRowCountColAlias = initalFactBestCandidate.publicFact.nameToAliasColumnMap(druidRowCountColSet.head.name).head
               val totalRowsCountRequestTry =
                 Try {
                   //force fact driven
                   //added row count field
                   //remove all sorts
                   sourcePipeline.requestModel.reportingRequest.copy(
-                    selectFields = sourcePipeline.requestModel.reportingRequest.selectFields ++ IndexedSeq(Field(rowCountColAlias, None, None))
+                    selectFields = sourcePipeline.requestModel.reportingRequest.selectFields ++ IndexedSeq(Field(druidRowCountColAlias, None, None))
                     , sortBy = IndexedSeq.empty
                     , forceDimensionDriven = false
                     , forceFactDriven = true
@@ -368,12 +369,11 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                 val populateRowCount: ParRequest[RequestResult] = parRequestResult.prodRun.map(parRequestLabel, ParFunction.fromScala {
                   requestResult =>
                     var count = 0
-                    val rowList = requestResult.queryPipelineResult.rowList
-                    if (rowList != null && rowList.length == 1) {
-                      rowList.foreach(row => {
-                        count = Option(row.getValue(rowCountColAlias)).getOrElse("0").toString.toInt
+                    val resRowList = requestResult.queryPipelineResult.rowList
+                    if (!resRowList.isEmpty) {
+                      resRowList.foreach(row => {
+                        count = Option(row.getValue(druidRowCountColAlias)).getOrElse("0").toString.toInt
                       })
-
                     }
                     mahaRequestContext.mutableState.put(RowCountCurator.name, count)
                     mahaRequestLogBuilder.logSuccess()

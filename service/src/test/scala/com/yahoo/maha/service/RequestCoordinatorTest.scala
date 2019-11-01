@@ -17,6 +17,7 @@ import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.scalatest.BeforeAndAfterAll
+import org.scalatest.Matchers._
 
 class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
@@ -1511,10 +1512,8 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
 //    println(result)
-    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[213,200,100,99,"ACTIVE",1]],"curators":{}}"""
-
-    assert(result.contains(expectedJson))
-
+    val expectedJson = """\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"Student ID","fieldType":"DIM"\},\{"fieldName":"Class ID","fieldType":"DIM"\},\{"fieldName":"Section ID","fieldType":"DIM"\},\{"fieldName":"Total Marks","fieldType":"FACT"\},\{"fieldName":"Student Name","fieldType":"DIM"\},\{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"\}\],"maxRows":200\},"rows":\[\[213,200,100,99,"ACTIVE",1\]\],"curators":\{.*\}\}"""
+    result should fullyMatch regex expectedJson
   }
 
   test("successful remove of DrillDown curator cross-cube fields when second cube lacks facts from initial request") {
@@ -2017,15 +2016,16 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
     assert(requestCoordinatorResult.successResults.contains(RowCountCurator.name))
 
-    val rowcountCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(RowCountCurator.name)
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
     val stringStream =  new StringStream()
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
-//    println(result)
+    println(result)
 
-    val expectedJson = s""""curators":{"rowcount":{"result":{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[213,200,100,99]],"rowCount":"""
-    assert(result.contains(expectedJson))
+    val expectedJson = """\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"Student ID","fieldType":"DIM"\},\{"fieldName":"Class ID","fieldType":"DIM"\},\{"fieldName":"Section ID","fieldType":"DIM"\},\{"fieldName":"Total Marks","fieldType":"FACT"\}\],"maxRows":200\},"rows":\[\[213,200,100,99\]\],"curators":\{"rowcount":\{"result":\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"Row Count","fieldType":"FACT"\}\],"maxRows":200\},"rows":\[\[.*\]\]\}\}\}\}"""
+
+    result should fullyMatch regex expectedJson
+
   }
 }
 

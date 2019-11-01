@@ -660,11 +660,12 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
     val hasExpensiveDateDimFilter = FilterDruid.isExpensiveDateDimFilter(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, queryContext.factBestCandidate.fact.columnsByNameMap)
 
-    val hasRowCountColumn = queryContext.factBestCandidate.requestCols.map {
-      factCol =>
-        val column = queryContext.factBestCandidate.fact.columnsByNameMap(factCol)
-        column.isInstanceOf[DruidRowCountFactCol]
-    }.foldLeft(false)(_ || _)
+    val RowCountPublicAliasSet = queryContext.factBestCandidate.requestCols.collect{
+      case col if queryContext.factBestCandidate.fact.columnsByNameMap(col).isInstanceOf[DruidRowCountFactCol]
+      => queryContext.factBestCandidate.factColMapping(col)
+    }
+
+    val hasRowCountColumn = RowCountPublicAliasSet.nonEmpty
 
     val groupByQuery: GroupByQuery = if (hasDimFilterOnLookupColumn || hasLookupWithDecodeColumn || hasExpensiveDateDimFilter) {
 
@@ -777,12 +778,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         .setGranularity(getGranularity(queryContext))
         .setContext(context)
 
-      val publicCol = queryContext.factBestCandidate.requestCols.collect{
-        case col if queryContext.factBestCandidate.fact.columnsByNameMap(col).isInstanceOf[DruidRowCountFactCol]
-          => queryContext.factBestCandidate.factColMapping(col)
-      }.toSeq(0)
-
-      val countAggregatorFactory: AggregatorFactory = new CountAggregatorFactory(publicCol)
+      val countAggregatorFactory: AggregatorFactory = new CountAggregatorFactory(RowCountPublicAliasSet.head)
 
       rowCountQueryBuilder.addAggregator(countAggregatorFactory)
       rowCountQueryBuilder.build()

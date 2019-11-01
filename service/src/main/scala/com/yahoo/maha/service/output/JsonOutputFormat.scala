@@ -23,7 +23,7 @@ object JsonOutputFormat {
   val objectMapper: ObjectMapper = new ObjectMapper()
   val logger: Logger = LoggerFactory.getLogger(classOf[JsonOutputFormat])
   val ROW_COUNT : String = "ROW_COUNT"
-  val defaultRenderSet : Set[String] = Set(DefaultCurator.name, RowCountCurator.name)
+  val defaultRenderSet : Set[String] = Set(DefaultCurator.name)
 }
 case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
                             ingestionTimeUpdaterMap : Map[Engine, IngestionTimeUpdater] = Map.empty) {
@@ -36,14 +36,6 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
 
     if(headOption.exists(_.isSingleton)) {
       renderDefault(headOption.get.name, requestCoordinatorResult, jsonGenerator, None)
-    } else if(requestCoordinatorResult.successResults.contains(RowCountCurator.name)) { // for RowCountCurator
-      val rowCountOption = RowCountCurator.getRowCount(requestCoordinatorResult.mahaRequestContext)
-      renderDefault(RowCountCurator.name, requestCoordinatorResult, jsonGenerator, rowCountOption)
-      jsonGenerator.writeFieldName("curators") //"curators" :
-      jsonGenerator.writeStartObject() //{
-      val curatorList = requestCoordinatorResult.orderedList
-      curatorList.foreach(renderCurator(_, requestCoordinatorResult, jsonGenerator, rowCountOption))
-      jsonGenerator.writeEndObject() //}
     } else if(requestCoordinatorResult.successResults.contains(DefaultCurator.name)) {
       val rowCountOption = RowCountCurator.getRowCount(requestCoordinatorResult.mahaRequestContext)
       renderDefault(DefaultCurator.name, requestCoordinatorResult, jsonGenerator, rowCountOption)
@@ -85,9 +77,8 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
         , dimCols
         , true
         , qpr.pagination
-        , druidRowCountAlias
       )
-      writeDataRows(jsonGenerator, qpr.rowList, rowCountOption, curatorResult.requestModelReference.model.reportingRequest, druidRowCountAlias)
+      writeDataRows(jsonGenerator, qpr.rowList, rowCountOption, curatorResult.requestModelReference.model.reportingRequest)
     }
   }
 
@@ -109,24 +100,22 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
       jsonGenerator.writeFieldName("result") // "result":
       jsonGenerator.writeStartObject() //{
 
-      //check if DruidRowCountFactCol is used
+      //check if DruidRowCountFactCol is used, if present then output header should only have row count alias
       val druidRowCountAlias = getDruidRowCountAlias(rowCountOption, requestResult)
+      val columns = if(druidRowCountAlias.nonEmpty) {
+        IndexedSeq(FactColumnInfo(druidRowCountAlias.get))
+      } else qpr.rowList.columns
 
       writeHeader(jsonGenerator
-        , qpr.rowList.columns
+        , columns
         , curatorResult.requestModelReference.model.reportingRequest
         , ingestionTimeUpdater
         , tableName
         , dimCols
         , false
         , qpr.pagination
-        , druidRowCountAlias
       )
-      writeDataRows(jsonGenerator, qpr.rowList, None, curatorResult.requestModelReference.model.reportingRequest, druidRowCountAlias)
-      if (!rowCountOption.isEmpty) {
-        jsonGenerator.writeFieldName("rowCount")
-        jsonGenerator.writeNumber(rowCountOption.get)
-      }
+      writeDataRows(jsonGenerator, qpr.rowList, None, curatorResult.requestModelReference.model.reportingRequest)
       jsonGenerator.writeEndObject() //}
       jsonGenerator.writeEndObject() //}
 
@@ -155,7 +144,6 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
                           , dimCols: Set[String]
                           , isDefault: Boolean
                           , pagination: Map[Engine, JValue]
-                          , druidRowCountAlias: Option[String] = None
                          ) {
     jsonGenerator.writeFieldName("header") // "header":
     jsonGenerator.writeStartObject() // {
@@ -171,8 +159,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
     jsonGenerator.writeFieldName("fields") // "fields":
     jsonGenerator.writeStartArray() // [
 
-
-    columns.filterNot(c => druidRowCountAlias.getOrElse(None).equals(c.alias)).foreach {
+    columns.foreach {
       columnInfo => {
         val columnType: String = {
           if (columnInfo.isInstanceOf[DimColumnInfo] || dimCols.contains(columnInfo.alias) || "Hour".equals(columnInfo.alias) || "Day".equals(columnInfo.alias))
@@ -236,7 +223,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
     jsonGenerator.writeEndObject()
   }
 
-  private def writeDataRows(jsonGenerator: JsonGenerator, rowList: RowList, rowCountOption: Option[Int], reportingRequest:ReportingRequest, druidRowCountAlias: Option[String] = None): Unit = {
+  private def writeDataRows(jsonGenerator: JsonGenerator, rowList: RowList, rowCountOption: Option[Int], reportingRequest:ReportingRequest): Unit = {
     jsonGenerator.writeFieldName("rows") // "rows":
     jsonGenerator.writeStartArray() // [
     val numColumns = rowList.columns.size
@@ -250,9 +237,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
         jsonGenerator.writeStartArray()
         var i = 0
         while(i < numColumns) {
-          if(druidRowCountAlias.getOrElse(None) == None || rowList.columns(i).alias != druidRowCountAlias.get) {
-            jsonGenerator.writeObject(row.getValue(i))
-          }
+          jsonGenerator.writeObject(row.getValue(i))
           i+=1
         }
         if (reportingRequest.includeRowCount && rowCountOption.isDefined) {
@@ -269,14 +254,14 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
   }
 
   private def getDruidRowCountAlias(rowCountOption: Option[Int], requestResult: RequestResult): Option[String] = {
-    if(!rowCountOption.isEmpty) {
+    if(rowCountOption.nonEmpty) {
       val initalFactBestCandidate = requestResult.queryPipelineResult.queryPipeline.factBestCandidate.get
-      val rowCountName = initalFactBestCandidate.fact.factCols.filter {
+      val rowCountNameSet = initalFactBestCandidate.fact.factCols.filter {
         col => col.isInstanceOf[DruidRowCountFactCol]
-      }.foldLeft(Some("")){(_, cur) => Some(cur.name)}
-      val res = initalFactBestCandidate.publicFact.nameToAliasColumnMap(rowCountName.get)
-      if(res.toSeq.size != 0) {
-        Some(res.toSeq(0))
+      }
+      if(rowCountNameSet.nonEmpty) {
+        val res = initalFactBestCandidate.publicFact.nameToAliasColumnMap.get(rowCountNameSet.head.name)
+        Some(res.get.head)
       } else None
     } else None
   }
