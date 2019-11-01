@@ -1837,6 +1837,7 @@ ORDER BY mang_impressions ASC
                               {"field": "Campaign Name"},
                               {"field": "N Clicks"},
                               {"field": "Pricing Type"},
+                              {"field": "Static Mapping String"},
                               {"field": "Impressions"},
                               {"field": "N Spend"},
                               {"field": "Month"},
@@ -1865,15 +1866,15 @@ ORDER BY mang_impressions ASC
 
     val expected =
       s"""
-         |SELECT CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_n_clicks as VARCHAR) AS mang_n_clicks, CAST(mang_pricing_type as VARCHAR) AS mang_pricing_type, CAST(mang_impressions as VARCHAR) AS mang_impressions, CAST(mang_n_spend as VARCHAR) AS mang_n_spend, CAST(mang_month as VARCHAR) AS mang_month, CAST(mang_clicks as VARCHAR) AS mang_clicks
+         |SELECT CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_n_clicks as VARCHAR) AS mang_n_clicks, CAST(mang_pricing_type as VARCHAR) AS mang_pricing_type, CAST(mang_static_mapping_string as VARCHAR) AS mang_static_mapping_string, CAST(mang_impressions as VARCHAR) AS mang_impressions, CAST(mang_n_spend as VARCHAR) AS mang_n_spend, CAST(mang_month as VARCHAR) AS mang_month, CAST(mang_clicks as VARCHAR) AS mang_clicks
          |FROM(
-         |SELECT mang_campaign_name AS mang_campaign_name, decodeUDF(stats_source, 1, clicks, 0.0) AS mang_n_clicks, mang_pricing_type AS mang_pricing_type, impressions AS mang_impressions, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend, mang_month, clicks AS mang_clicks
+         |SELECT mang_campaign_name AS mang_campaign_name, decodeUDF(stats_source, 1, clicks, 0.0) AS mang_n_clicks, mang_pricing_type AS mang_pricing_type, mang_static_mapping_string AS mang_static_mapping_string, impressions AS mang_impressions, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend, mang_month, clicks AS mang_clicks
          |FROM(
-         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END mang_pricing_type, SUM(impressions) AS impressions, getFormattedDate(mang_month) mang_month, SUM(clicks) AS clicks, COALESCE(stats_source, 0) stats_source, SUM(spend) AS spend
-         |FROM(SELECT price_type, campaign_id, dateUDF(stats_date, 'M') mang_month, SUM(clicks) clicks, SUM(impressions) impressions, stats_source, SUM(spend) spend
+         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END mang_pricing_type, CASE WHEN (sm_string IN ('Y')) THEN 'Yes' WHEN (sm_string IN ('N')) THEN 'No' ELSE 'NA' END mang_static_mapping_string, SUM(impressions) AS impressions, getFormattedDate(mang_month) mang_month, SUM(clicks) AS clicks, COALESCE(stats_source, 0) stats_source, SUM(spend) AS spend
+         |FROM(SELECT sm_string, price_type, campaign_id, dateUDF(stats_date, 'M') mang_month, SUM(clicks) clicks, SUM(impressions) impressions, stats_source, SUM(spend) spend
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-         |GROUP BY price_type, campaign_id, dateUDF(stats_date, 'M'), stats_source
+         |GROUP BY sm_string, price_type, campaign_id, dateUDF(stats_date, 'M'), stats_source
          |
  |       )
          |af0
@@ -1886,11 +1887,10 @@ ORDER BY mang_impressions ASC
          |ON
          |af0.campaign_id = c1.c1_id
          |
- |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, getFormattedDate(mang_month), COALESCE(stats_source, 0)
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, CASE WHEN (sm_string IN ('Y')) THEN 'Yes' WHEN (sm_string IN ('N')) THEN 'No' ELSE 'NA' END, getFormattedDate(mang_month), COALESCE(stats_source, 0)
          |ORDER BY mang_campaign_name DESC, impressions DESC) OgbQueryAlias
          |)
-         |        queryAlias LIMIT 200
-       """.stripMargin
+         |        queryAlias LIMIT 200       """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }

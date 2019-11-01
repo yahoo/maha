@@ -1103,6 +1103,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
                               {"field": "Campaign Name"},
                               {"field": "N Clicks"},
                               {"field": "Pricing Type"},
+                              {"field": "Static Mapping String"},
                               {"field": "Impressions"},
                               {"field": "N Spend"},
                               {"field": "Month"},
@@ -1133,15 +1134,15 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
 
     val expected =
       s"""
-         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_n_clicks,'') AS STRING),CAST(NVL(mang_pricing_type,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING),CAST(NVL(mang_n_spend,'') AS STRING),CAST(NVL(mang_month,'') AS STRING),CAST(NVL(mang_clicks,'') AS STRING))
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(mang_n_clicks,'') AS STRING),CAST(NVL(mang_pricing_type,'') AS STRING),CAST(NVL(mang_static_mapping_string,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING),CAST(NVL(mang_n_spend,'') AS STRING),CAST(NVL(mang_month,'') AS STRING),CAST(NVL(mang_clicks,'') AS STRING))
          |FROM(
-         |SELECT mang_campaign_name AS mang_campaign_name, decodeUDF(stats_source, 1, clicks, 0.0) AS mang_n_clicks, mang_pricing_type AS mang_pricing_type, impressions AS mang_impressions, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend, mang_month, clicks AS mang_clicks
+         |SELECT mang_campaign_name AS mang_campaign_name, decodeUDF(stats_source, 1, clicks, 0.0) AS mang_n_clicks, mang_pricing_type AS mang_pricing_type, mang_static_mapping_string AS mang_static_mapping_string, impressions AS mang_impressions, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend, mang_month, clicks AS mang_clicks
          |FROM(
-         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END mang_pricing_type, SUM(impressions) AS impressions, getFormattedDate(mang_month) mang_month, SUM(clicks) AS clicks, COALESCE(stats_source, 0L) stats_source, SUM(spend) AS spend
-         |FROM(SELECT price_type, campaign_id, dateUDF(stats_date, 'M') mang_month, SUM(clicks) clicks, SUM(impressions) impressions, stats_source, SUM(spend) spend
+         |SELECT getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END mang_pricing_type, CASE WHEN (sm_string IN ('Y')) THEN 'Yes' WHEN (sm_string IN ('N')) THEN 'No' ELSE 'NA' END mang_static_mapping_string, SUM(impressions) AS impressions, getFormattedDate(mang_month) mang_month, SUM(clicks) AS clicks, COALESCE(stats_source, 0L) stats_source, SUM(spend) AS spend
+         |FROM(SELECT sm_string, price_type, campaign_id, dateUDF(stats_date, 'M') mang_month, SUM(clicks) clicks, SUM(impressions) impressions, stats_source, SUM(spend) spend
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
-         |GROUP BY price_type, campaign_id, dateUDF(stats_date, 'M'), stats_source
+         |GROUP BY sm_string, price_type, campaign_id, dateUDF(stats_date, 'M'), stats_source
          |
          |       )
          |af0
@@ -1154,7 +1155,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
          |ON
          |af0.campaign_id = c1.c1_id
          |
-         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, getFormattedDate(mang_month), COALESCE(stats_source, 0L)
+         |GROUP BY getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)), CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, CASE WHEN (sm_string IN ('Y')) THEN 'Yes' WHEN (sm_string IN ('N')) THEN 'No' ELSE 'NA' END, getFormattedDate(mang_month), COALESCE(stats_source, 0L)
          |ORDER BY mang_campaign_name DESC, impressions DESC) OgbQueryAlias
          |) queryAlias LIMIT 200
          |

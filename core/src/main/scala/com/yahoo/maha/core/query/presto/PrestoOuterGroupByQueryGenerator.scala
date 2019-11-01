@@ -556,7 +556,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
             val defaultValue = df.getOrElse("NA")
             if (sm.isDefined) {
               val whenClauses = sm.get.tToStringMap.map {
-                case (from, to) => s"WHEN ($finalAlias IN ($from)) THEN '$to'"
+                case (from, to) => s"WHEN ($finalAlias IN ('$from')) THEN '$to'"
               }
               s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
             } else {

@@ -517,7 +517,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
             val defaultValue = df.getOrElse("NA")
             if (sm.isDefined && isOuterGroupBy) {
               val whenClauses = sm.get.tToStringMap.map {
-                case (from, to) => s"WHEN ($finalAlias IN ($from)) THEN '$to'"
+                case (from, to) => s"WHEN ($finalAlias IN ('$from')) THEN '$to'"
               }
               s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
             }
