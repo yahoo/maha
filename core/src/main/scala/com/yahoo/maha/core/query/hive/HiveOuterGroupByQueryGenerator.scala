@@ -515,7 +515,15 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
           case DateType(_) => s"""getFormattedDate($finalAlias)"""
           case StrType(_, sm, df) =>
             val defaultValue = df.getOrElse("NA")
-            s"""COALESCE($finalAlias, '$defaultValue')"""
+            if (sm.isDefined && isOuterGroupBy) {
+              val whenClauses = sm.get.tToStringMap.map {
+                case (from, to) => s"WHEN ($finalAlias IN ($from)) THEN '$to'"
+              }
+              s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
+            }
+            else {
+              s"""COALESCE($finalAlias, '$defaultValue')"""
+            }
           case _ => s"""COALESCE($finalAlias, 'NA')"""
         }
         if (column.annotations.contains(EscapingRequired)) {
