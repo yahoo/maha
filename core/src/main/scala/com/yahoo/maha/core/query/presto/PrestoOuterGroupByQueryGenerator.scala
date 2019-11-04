@@ -543,11 +543,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
             s"""ROUND(COALESCE($finalAlias, 0), 10)"""
           case IntType(_,sm,_,_,_) =>
             if (sm.isDefined) {
-              val defaultValue = sm.get.default
-              val whenClauses = sm.get.tToStringMap.map {
-                case (from, to) => s"WHEN ($finalAlias IN ($from)) THEN '$to'"
-              }
-              s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
+              handleStaticMappingInt(sm, finalAlias)
             } else {
               s"""COALESCE($finalAlias, 0)"""
             }
@@ -555,10 +551,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
           case StrType(_, sm, df) =>
             val defaultValue = df.getOrElse("NA")
             if (sm.isDefined) {
-              val whenClauses = sm.get.tToStringMap.map {
-                case (from, to) => s"WHEN ($finalAlias IN ('$from')) THEN '$to'"
-              }
-              s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
+              handleStaticMappingString(sm, finalAlias, defaultValue)
             } else {
               s"""COALESCE(CAST($finalAlias as VARCHAR), '$defaultValue')"""
             }

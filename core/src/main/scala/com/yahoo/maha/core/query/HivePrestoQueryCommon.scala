@@ -511,4 +511,19 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
       case any => throw new UnsupportedOperationException(s"Unhandled rollup expression : $any")
     }
   }
+
+  def handleStaticMappingInt(sm: Option[StaticMapping[Int]], finalAlias: String): String = {
+    val defaultValue = sm.get.default
+    val whenClauses = sm.get.tToStringMap.map {
+      case (from, to) => s"WHEN ($finalAlias IN ($from)) THEN '$to'"
+    }
+    s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
+  }
+
+  def handleStaticMappingString(sm: Option[StaticMapping[String]], finalAlias: String, defaultValue: String): String = {
+    val whenClauses = sm.get.tToStringMap.map {
+      case (from, to) => s"WHEN ($finalAlias IN ('$from')) THEN '$to'"
+    }
+    s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
+  }
 }
