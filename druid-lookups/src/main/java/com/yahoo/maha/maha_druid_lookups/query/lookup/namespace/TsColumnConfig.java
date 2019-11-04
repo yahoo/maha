@@ -8,7 +8,9 @@ import java.util.Objects;
 public class TsColumnConfig {
 
     public static final String VARCHAR = "varchar";
+    public static final String STRING = "string";
     public static final String BIGINT = "bigint";
+    public static final String LONG = "long";
 
     @JsonProperty
     private String name;
@@ -29,12 +31,12 @@ public class TsColumnConfig {
         return type;
     }
 
-    public boolean isVarchar() {
-        return VARCHAR.equals(type);
+    public boolean isStringOrVarchar() {
+        return VARCHAR.equalsIgnoreCase(type) || STRING.equalsIgnoreCase(type);
     }
 
-    public boolean isBigint() {
-        return BIGINT.equals(type);
+    public boolean isLongOrBigint() {
+        return BIGINT.equalsIgnoreCase(type) || LONG.equalsIgnoreCase(type);
     }
 
     public String getFormat() {

@@ -145,9 +145,9 @@ public class JDBCExtractionNamespaceCacheFactory
     private Object getTsValue(JDBCExtractionNamespace extractionNamespace, Timestamp updateTS) {
         Object tsValue = updateTS;
         if (extractionNamespace.hasTsColumnConfig()) {
-            if (extractionNamespace.getTsColumnConfig().isVarchar()) {
+            if (extractionNamespace.getTsColumnConfig().isStringOrVarchar()) {
                 tsValue = new SimpleDateFormat(extractionNamespace.getTsColumnConfig().getFormat()).format(updateTS);
-            } else if (extractionNamespace.getTsColumnConfig().isBigint()) {
+            } else if (extractionNamespace.getTsColumnConfig().isLongOrBigint()) {
                 tsValue = updateTS.getTime();
             }
         }
@@ -159,7 +159,7 @@ public class JDBCExtractionNamespaceCacheFactory
                 baseClause,
                 namespace.getTsColumn(),
                 namespace.hasTsColumnConfig()?
-                        (namespace.getTsColumnConfig().isVarchar() ?
+                        (namespace.getTsColumnConfig().isStringOrVarchar() ?
                                 StringUtil.quoteStringLiteral(LAST_UPDATED_TIMESTAMP)
                                 : LAST_UPDATED_TIMESTAMP)
                         : LAST_UPDATED_TIMESTAMP
