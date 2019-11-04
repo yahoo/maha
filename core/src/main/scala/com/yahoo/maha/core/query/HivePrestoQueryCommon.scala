@@ -391,11 +391,16 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
     val factBestCandidate = getFactBest(queryContext)
 
     val name = column.alias.getOrElse(column.name)
+    val isOgbQuery = queryContext.isInstanceOf[DimFactOuterGroupByQueryQueryContext]
     val exp = column match {
       case any if queryBuilderContext.containsColByName(name) =>
         //do nothing, we've already processed it
         ""
-      case DimCol(_, dt, _, _, _, _) if dt.hasStaticMapping =>
+      case DimCol(_, dt, _, _, _, _) if dt.hasStaticMapping && !isOgbQuery =>
+        val renderedAlias = renderColumnAlias(alias)
+        queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
+        s"${renderStaticMappedDimension(column, engine)} $name"
+      case DimCol(_, dt, _, _, _, _) if dt.hasStaticMapping && isOgbQuery && isOuterColumn =>
         val renderedAlias = renderColumnAlias(alias)
         queryBuilderContext.setFactColAliasAndExpression(alias, renderedAlias, column, Option(name))
         s"${renderStaticMappedDimension(column, engine)} $name"
@@ -505,5 +510,20 @@ method to crawl the NoopRollup fact cols recursively and fill up the parent colu
       case CountRollup => s"COUNT(*)"
       case any => throw new UnsupportedOperationException(s"Unhandled rollup expression : $any")
     }
+  }
+
+  def handleStaticMappingInt(sm: Option[StaticMapping[Int]], finalAlias: String): String = {
+    val defaultValue = sm.get.default
+    val whenClauses = sm.get.tToStringMap.map {
+      case (from, to) => s"WHEN ($finalAlias IN ($from)) THEN '$to'"
+    }
+    s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
+  }
+
+  def handleStaticMappingString(sm: Option[StaticMapping[String]], finalAlias: String, defaultValue: String): String = {
+    val whenClauses = sm.get.tToStringMap.map {
+      case (from, to) => s"WHEN ($finalAlias IN ('$from')) THEN '$to'"
+    }
+    s"CASE ${whenClauses.mkString(" ")} ELSE '$defaultValue' END"
   }
 }
