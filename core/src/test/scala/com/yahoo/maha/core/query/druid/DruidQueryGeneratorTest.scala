@@ -292,7 +292,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(!queryPipelineTry.isSuccess && queryPipelineTry.errorMessage("").contains("ToUse FilteredListAggregator filterList must have 2 or more filters"), "Query pipeline should have failed, but didn't" + queryPipelineTry.errorMessage(""))
   }
 
-  test("limit should be set to defaultMaxRowsAsync when request is Async") {
+  test("limit should be set to defaultMaxRowsAsync when request is Async and rowsPerPage is <= 0") {
     val jsonString = s"""{
                           "cube": "user_stats",
                           "selectFields": [
@@ -3031,5 +3031,34 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val queryPipeline = queryPipelineTry.toOption.get
     val query =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     assert(query.contains(""""postAggregations":[{"type":"javascript","name":"Variance","fieldNames":["Clicks","Impressions"],"function":"function(clicks,impressions){return clicks * Math.sqrt(impressions);}"}]"""))
+  }
+
+  test("limit should be set when rowsPerPage is specified for Async") {
+    val jsonString = s"""{
+                          "cube": "user_stats",
+                          "selectFields": [
+                            {"field": "Impressions"},
+                            {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "sortBy": [
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":2
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val requestModel = RequestModel.from(request, defaultRegistry)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    println(result)
+    val json = """limit":22"""
+
+    assert(result.contains(json), result)
   }
 }
