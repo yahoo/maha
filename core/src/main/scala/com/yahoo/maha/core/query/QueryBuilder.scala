@@ -143,6 +143,10 @@ class QueryBuilder(val initSize: Int, val orderBySize: Int) {
     whereClause
   }
 
+  def containsFactViewColumns(s: String): Boolean = {
+    factViewColumns.contains(s)
+  }
+
   def setWhereClause(whereClause: String) {
     this.whereClause = whereClause
   }
