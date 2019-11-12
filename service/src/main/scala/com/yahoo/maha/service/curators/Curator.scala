@@ -4,13 +4,14 @@ package com.yahoo.maha.service.curators
 
 import com.yahoo.maha.core.RequestModelResult
 import com.yahoo.maha.core.fact.{DruidRowCountFactCol, FactColumn}
-import com.yahoo.maha.core.request.{CuratorJsonConfig, Field}
+import com.yahoo.maha.core.request.{CuratorJsonConfig, Field, fieldExtended}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest, ParallelServiceExecutor}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
 import com.yahoo.maha.service.utils.CuratorMahaRequestLogBuilder
 import com.yahoo.maha.service.{CuratorInjector, MahaRequestContext, MahaService, ParRequestResult, RequestResult}
 import grizzled.slf4j.Logging
+import org.json4s.{DefaultFormats, JValue}
 import org.json4s.scalaz.JsonScalaz
 
 import scala.util.Try
@@ -189,6 +190,18 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
   }
 }
 
+object RowCountConfig extends Logging {
+  implicit val formats: DefaultFormats.type = DefaultFormats
+
+  def parse(curatorJsonConfig: CuratorJsonConfig) : JsonScalaz.Result[RowCountConfig] = {
+    val config: JValue = curatorJsonConfig.json
+    val isFactDriven: JsonScalaz.Result[Option[Boolean]] = fieldExtended[Option[Boolean]]("isFactDriven")(config)
+    isFactDriven.map(isFactDriven => RowCountConfig(isFactDriven))
+  }
+}
+
+case class RowCountConfig(isFactDriven: Option[Boolean]) extends CuratorConfig
+
 object RowCountCurator {
   val name: String = "rowcount"
 
@@ -209,6 +222,15 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
   override def level: Int = 1
 
   override def priority: Int = 1
+
+  override def parseConfig(config: CuratorJsonConfig): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
+    val rowCountConfigTry : JsonScalaz.Result[RowCountConfig] = RowCountConfig.parse(config)
+    Validation
+      .fromTryCatchNonFatal{
+        require(rowCountConfigTry.isSuccess, "Must succeed in creating a rowCountConfig " + rowCountConfigTry)
+        rowCountConfigTry.toOption.get}
+      .leftMap[JsonScalaz.Error](t => JsonScalaz.UncategorizedError("parseRowCountConfigValidation", t.getMessage, List.empty)).toValidationNel
+  }
 
   override def process(resultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]]
                          , mahaRequestContext: MahaRequestContext
@@ -313,14 +335,15 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
           } else {
 
             val sourcePipeline = sourcePipelineTry.get
-            val initalFactBestCandidate = sourcePipeline.factBestCandidate.get
 
-            // check if DruidRowCountFactCol present
-            val druidRowCountColSet: Set[FactColumn] = initalFactBestCandidate.fact.factCols.filter {
-              col => col.isInstanceOf[DruidRowCountFactCol]
+            val requiredRowCountFlag: Boolean = {
+              curatorConfig match {
+                case RowCountConfig(isFactDriven) if isFactDriven.isDefined => isFactDriven.get
+                case _ => false
+              }
             }
 
-            if (druidRowCountColSet.isEmpty) { //use legacy code if DruidRowCountFactCol doesn't present
+            if (!requiredRowCountFlag) { // use legacy code if didn't specific fact driven query
               val model = requestModelResult.model
               val curatorResult = CuratorResult(this, curatorConfig, None, requestModelResult)
               if (model.dimCardinalityEstimate.nonEmpty) {
@@ -339,16 +362,16 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                 mahaRequestLogBuilder.logFailed(message, Option(400))
                 withError(curatorConfig, GeneralError.from(parRequestLabel, message))
               }
-            } else { //if Druid Row Count column show up, inject Row Count column to selectFields
-              val druidRowCountColAlias = initalFactBestCandidate.publicFact.nameToAliasColumnMap(druidRowCountColSet.head.name).head
+            } else { // if isFactDriven = true is specified in config, includeRowCount = true
               val totalRowsCountRequestTry =
                 Try {
                   //force fact driven
                   //added row count field
                   //remove all sorts
                   sourcePipeline.requestModel.reportingRequest.copy(
-                    selectFields = sourcePipeline.requestModel.reportingRequest.selectFields ++ IndexedSeq(Field(druidRowCountColAlias, None, None))
+                    selectFields = sourcePipeline.requestModel.reportingRequest.selectFields
                     , sortBy = IndexedSeq.empty
+                    , includeRowCount = true
                     , forceDimensionDriven = false
                     , forceFactDriven = true
                     , paginationStartIndex = 0
@@ -372,7 +395,7 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                     val resRowList = requestResult.queryPipelineResult.rowList
                     if (!resRowList.isEmpty) {
                       resRowList.foreach(row => {
-                        count = Option(row.getValue(druidRowCountColAlias)).getOrElse("0").toString.toInt
+                        count = Option(row.getValue(0)).getOrElse("0").toString.toInt
                       })
                     }
                     mahaRequestContext.mutableState.put(RowCountCurator.name, count)

@@ -467,6 +467,7 @@ class RowCountCuratorTest  extends BaseMahaServiceTest with BeforeAndAfterAll {
                           "curators" : {
                             "rowcount" : {
                               "config" : {
+                                "isFactDriven": true
                               }
                             }
                           },
@@ -479,8 +480,7 @@ class RowCountCuratorTest  extends BaseMahaServiceTest with BeforeAndAfterAll {
                           "filterExpressions": [
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
                             {"field": "Student ID", "operator": "=", "value": "213"}
-                          ],
-                          "forceFactDriven": true
+                          ]
                         }"""
 
     val reportingRequestResult = ReportingRequest.deserializeSync(jsonRequest.getBytes, schema = StudentSchema)
@@ -500,10 +500,15 @@ class RowCountCuratorTest  extends BaseMahaServiceTest with BeforeAndAfterAll {
 
 
     val rowCountCurator = RowCountCurator()
-    val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
+    //parse RowCountConfig
+    val parseRowCountConfig = rowCountCurator.parseConfig(reportingRequest.curatorJsonConfigMap(RowCountCurator.name))
+    assert(parseRowCountConfig.isSuccess, s"failed : $parseRowCountConfig")
+    val rowCountConfig: RowCountConfig = parseRowCountConfig.toOption.get.asInstanceOf[RowCountConfig]
+
+    val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
     val rowCountCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = rowCountCurator
-      .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
+      .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper,rowCountConfig, curatorInjector)
 
     assert(rowCountCuratorResult.isRight)
 
