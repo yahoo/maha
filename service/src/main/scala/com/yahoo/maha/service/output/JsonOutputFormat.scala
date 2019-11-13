@@ -6,12 +6,11 @@ import java.io.OutputStream
 
 import com.fasterxml.jackson.core.{JsonEncoding, JsonGenerator}
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.yahoo.maha.core.fact.DruidRowCountFactCol
 import com.yahoo.maha.core.query.{InMemRowList, QueryRowList, RowList}
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{ColumnInfo, DimColumnInfo, Engine, FactColumnInfo}
-import com.yahoo.maha.service.{RequestCoordinatorResult, RequestResult}
-import com.yahoo.maha.service.curators.{Curator, DefaultCurator, RowCountCurator}
+import com.yahoo.maha.service.RequestCoordinatorResult
+import com.yahoo.maha.service.curators.{Curator, DefaultCurator, RowCountConfig, RowCountCurator}
 import com.yahoo.maha.service.datasource.{IngestionTimeUpdater, NoopIngestionTimeUpdater}
 import org.json4s.JValue
 import org.slf4j.{Logger, LoggerFactory}
@@ -66,9 +65,6 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
         curatorResult.requestModelReference.model.bestCandidates.get.publicFact.dimCols.map(_.alias)
       } else Set.empty
 
-      //check if DruidRowCountFactCol is used
-      val druidRowCountAlias = getDruidRowCountAlias(rowCountOption, requestResult)
-
       writeHeader(jsonGenerator
         , qpr.rowList.columns
         , curatorResult.requestModelReference.model.reportingRequest
@@ -95,27 +91,33 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
       val dimCols : Set[String]  = if(curatorResult.requestModelReference.model.bestCandidates.isDefined) {
         curatorResult.requestModelReference.model.bestCandidates.get.publicFact.dimCols.map(_.alias)
       } else Set.empty
+      val reportingRequest: ReportingRequest = curatorResult.requestModelReference.model.reportingRequest
       jsonGenerator.writeFieldName(curatorResult.curator.name) // "curatorName":
       jsonGenerator.writeStartObject() //{
       jsonGenerator.writeFieldName("result") // "result":
       jsonGenerator.writeStartObject() //{
 
-      //check if DruidRowCountFactCol is used, if present then output header should only have row count alias
-      val druidRowCountAlias = getDruidRowCountAlias(rowCountOption, requestResult)
-      val columns = if(druidRowCountAlias.nonEmpty) {
-        IndexedSeq(FactColumnInfo(druidRowCountAlias.get))
+      // check if isFactDriven specified in RowCount Config
+      val isFactDrivenQuery: Boolean = {
+        curatorResult.curatorConfig match {
+          case RowCountConfig(isFactDriven) if isFactDriven.isDefined => isFactDriven.get
+          case _ => false
+        }
+      }
+      val columns = if (isFactDrivenQuery) {
+        Vector(FactColumnInfo("Row Count"))
       } else qpr.rowList.columns
 
       writeHeader(jsonGenerator
         , columns
-        , curatorResult.requestModelReference.model.reportingRequest
+        , reportingRequest
         , ingestionTimeUpdater
         , tableName
         , dimCols
         , false
         , qpr.pagination
       )
-      writeDataRows(jsonGenerator, qpr.rowList, None, curatorResult.requestModelReference.model.reportingRequest)
+      writeDataRows(jsonGenerator, qpr.rowList, None, reportingRequest)
       jsonGenerator.writeEndObject() //}
       jsonGenerator.writeEndObject() //}
 
@@ -251,18 +253,5 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
       }
     }
     jsonGenerator.writeEndArray() // ]
-  }
-
-  private def getDruidRowCountAlias(rowCountOption: Option[Int], requestResult: RequestResult): Option[String] = {
-    if(rowCountOption.nonEmpty) {
-      val initalFactBestCandidate = requestResult.queryPipelineResult.queryPipeline.factBestCandidate.get
-      val rowCountNameSet = initalFactBestCandidate.fact.factCols.filter {
-        col => col.isInstanceOf[DruidRowCountFactCol]
-      }
-      if(rowCountNameSet.nonEmpty) {
-        val res = initalFactBestCandidate.publicFact.nameToAliasColumnMap.get(rowCountNameSet.head.name)
-        Some(res.get.head)
-      } else None
-    } else None
   }
 }

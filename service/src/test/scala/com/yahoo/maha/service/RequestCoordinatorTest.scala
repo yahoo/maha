@@ -1991,10 +1991,11 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                           ],
                           "curators" : {
                             "rowcount" : {
-                              "config" : {}
+                              "config" : {
+                                "isFactDriven": true
+                              }
                             }
-                          },
-                          "forceFactDriven" : true
+                          }
                         }"""
     val reportingRequestResult = ReportingRequest.deserializeSync(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
