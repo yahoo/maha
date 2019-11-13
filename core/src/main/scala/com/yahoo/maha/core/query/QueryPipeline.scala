@@ -906,7 +906,8 @@ OuterGroupBy operation has to be applied only in the following cases
             val values = irl.keys.toList.map(_.toString)
             val filter = InFilter(field, values)
             val injectedFactBestCandidate = factOnlyInjectFilter(factBestCandidateOption.get, filter)
-            val query = getFactQuery(injectedFactBestCandidate, requestModel, indexAlias, List(indexAlias), queryGenVersion, Some(bestDimCandidates))
+            val noRowCountRequestModel = requestModel.copy(includeRowCount = false) //druid doesn't need row count
+            val query = getFactQuery(injectedFactBestCandidate, noRowCountRequestModel, indexAlias, List(indexAlias), queryGenVersion, Some(bestDimCandidates))
             irl.addSubQuery(query)
             query
         }
