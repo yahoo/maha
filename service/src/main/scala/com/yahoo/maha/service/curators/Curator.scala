@@ -3,7 +3,7 @@
 package com.yahoo.maha.service.curators
 
 import com.yahoo.maha.core.RequestModelResult
-import com.yahoo.maha.core.request.{CuratorJsonConfig, Field, fieldExtended}
+import com.yahoo.maha.core.request.{CuratorJsonConfig, Field, ReportingRequest, fieldExtended}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest, ParallelServiceExecutor}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
@@ -290,36 +290,16 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                   , curatorJsonConfigMap = Map.empty
                 )
               }
-            if (totalRowsCountRequestTry.isFailure) {
-              val exception = totalRowsCountRequestTry.failed.get
-              val message = "total rows request failed to generate"
-              mahaRequestLogBuilder.logFailed(s"${message} - ${exception.getMessage}")
-              withError(curatorConfig, GeneralError.from(parRequestLabel, message, exception))
-            } else {
-              val totalRowsRequest = totalRowsCountRequestTry.get
-              val parRequestResult: ParRequestResult = mahaService.executeRequest(mahaRequestContext.registryName
-                , totalRowsRequest, mahaRequestContext.bucketParams, mahaRequestLogBuilder)
 
-              val totalRowsRequestModel = parRequestResult.queryPipeline.get.requestModel
-              if(totalRowsRequest.isDebugEnabled) {
-                info(s"Unfiltered request should not generate any fact candidates!  " +
-                  s" : Request fields : ${totalRowsRequestModel.reportingRequest.selectFields.foreach(field => field.toString + "\t")} " +
-                  s" : generated Model columns and candidate names : ${totalRowsRequestModel.requestCols.foreach(colInfo => colInfo.toString + "\t")} " +
-                  s" : ${totalRowsRequestModel.bestCandidates.foreach(candidate => candidate.requestCols.toString())}")
-              }
-
-              val populateRowCount:ParRequest[RequestResult] = parRequestResult.prodRun.map(parRequestLabel, ParFunction.fromScala {
-                requestResult =>
-                  val count = requestResult.queryPipelineResult.rowList.getTotalRowCount
-                  mahaRequestContext.mutableState.put(RowCountCurator.name, count)
-                  mahaRequestLogBuilder.logSuccess()
-                  new Right(requestResult)
-              })
-
-              val finalParRequestResult = parRequestResult.copy(prodRun = populateRowCount)
-              val curatorResult = CuratorResult(this, curatorConfig, Option(finalParRequestResult), requestModelResult)
-              withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
-            }
+            executeRowCountRequest(
+              mahaRequestContext
+              , mahaService
+              , mahaRequestLogBuilder
+              , parallelServiceExecutor
+              , parRequestLabel
+              , totalRowsCountRequestTry
+              , curatorConfig
+              , requestModelResult)
           }
         } else {
           val sourcePipelineTry = mahaService.generateQueryPipelines(mahaRequestContext.registryName
@@ -378,28 +358,16 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                     , curatorJsonConfigMap = Map.empty
                   )
                 }
-              if (totalRowsCountRequestTry.isFailure) {
-                val exception = totalRowsCountRequestTry.failed.get
-                val message = "total rows request failed to generate"
-                mahaRequestLogBuilder.logFailed(s"${message} - ${exception.getMessage}")
-                withError(curatorConfig, GeneralError.from(parRequestLabel, message, exception))
-              } else {
-                val totalRowsRequest = totalRowsCountRequestTry.get
-                val parRequestResult: ParRequestResult = mahaService.executeRequest(mahaRequestContext.registryName
-                  , totalRowsRequest, mahaRequestContext.bucketParams, mahaRequestLogBuilder)
 
-                val populateRowCount: ParRequest[RequestResult] = parRequestResult.prodRun.map(parRequestLabel, ParFunction.fromScala {
-                  requestResult =>
-                    val count = requestResult.queryPipelineResult.rowList.getTotalRowCount
-                    mahaRequestContext.mutableState.put(RowCountCurator.name, count)
-                    mahaRequestLogBuilder.logSuccess()
-                    new Right(requestResult)
-                })
-
-                val finalParRequestResult = parRequestResult.copy(prodRun = populateRowCount)
-                val curatorResult = CuratorResult(this, curatorConfig, Option(finalParRequestResult), requestModelResult)
-                withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
-              }
+              executeRowCountRequest(
+                mahaRequestContext
+                , mahaService
+                , mahaRequestLogBuilder
+                , parallelServiceExecutor
+                , parRequestLabel
+                , totalRowsCountRequestTry
+                , curatorConfig
+                , requestModelResult)
             }
           }
         }
@@ -417,4 +385,45 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
   override def isSingleton: Boolean = false
 
   override def requiresDefaultCurator: Boolean = true
+
+  private def executeRowCountRequest(mahaRequestContext: MahaRequestContext
+                                     , mahaService: MahaService
+                                     , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
+                                     , parallelServiceExecutor: ParallelServiceExecutor
+                                     , parRequestLabel: String
+                                     , rowCountRequestTry: Try[ReportingRequest]
+                                     , curatorConfig: CuratorConfig
+                                     , requestModelResult: RequestModelResult
+                                    ): Either[CuratorError, ParRequest[CuratorResult]] = {
+    if (rowCountRequestTry.isFailure) {
+      val exception = rowCountRequestTry.failed.get
+      val message = "total rows request failed to generate"
+      mahaRequestLogBuilder.logFailed(s"${message} - ${exception.getMessage}")
+      withError(curatorConfig, GeneralError.from(parRequestLabel, message, exception))
+    } else {
+      val totalRowsRequest = rowCountRequestTry.get
+      val parRequestResult: ParRequestResult = mahaService.executeRequest(mahaRequestContext.registryName
+        , totalRowsRequest, mahaRequestContext.bucketParams, mahaRequestLogBuilder)
+
+      val totalRowsRequestModel = parRequestResult.queryPipeline.get.requestModel
+      if(totalRowsRequest.isDebugEnabled) {
+        info(s"Unfiltered request should not generate any fact candidates!  " +
+          s" : Request fields : ${totalRowsRequestModel.reportingRequest.selectFields.foreach(field => field.toString + "\t")} " +
+          s" : generated Model columns and candidate names : ${totalRowsRequestModel.requestCols.foreach(colInfo => colInfo.toString + "\t")} " +
+          s" : ${totalRowsRequestModel.bestCandidates.foreach(candidate => candidate.requestCols.toString())}")
+      }
+
+      val populateRowCount: ParRequest[RequestResult] = parRequestResult.prodRun.map(parRequestLabel, ParFunction.fromScala {
+        requestResult =>
+          val count = requestResult.queryPipelineResult.rowList.getTotalRowCount
+          mahaRequestContext.mutableState.put(RowCountCurator.name, count)
+          mahaRequestLogBuilder.logSuccess()
+          new Right(requestResult)
+      })
+
+      val finalParRequestResult = parRequestResult.copy(prodRun = populateRowCount)
+      val curatorResult = CuratorResult(this, curatorConfig, Option(finalParRequestResult), requestModelResult)
+      withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
+    }
+  }
 }
