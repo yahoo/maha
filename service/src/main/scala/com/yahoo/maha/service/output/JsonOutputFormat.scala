@@ -105,7 +105,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
         }
       }
       val columns = if (isFactDrivenQuery) {
-        Vector(FactColumnInfo("Row Count"))
+        Vector(FactColumnInfo(JsonOutputFormat.ROW_COUNT))
       } else qpr.rowList.columns
 
       writeHeader(jsonGenerator

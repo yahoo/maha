@@ -390,13 +390,7 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
 
                 val populateRowCount: ParRequest[RequestResult] = parRequestResult.prodRun.map(parRequestLabel, ParFunction.fromScala {
                   requestResult =>
-                    var count = 0
-                    val resRowList = requestResult.queryPipelineResult.rowList
-                    if (!resRowList.isEmpty) {
-                      resRowList.foreach(row => {
-                        count = Option(row.getValue(0)).getOrElse("0").toString.toInt
-                      })
-                    }
+                    val count = requestResult.queryPipelineResult.rowList.getTotalRowCount
                     mahaRequestContext.mutableState.put(RowCountCurator.name, count)
                     mahaRequestLogBuilder.logSuccess()
                     new Right(requestResult)

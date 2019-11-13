@@ -773,7 +773,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         .setGranularity(getGranularity(queryContext))
         .setContext(context)
 
-      val countAggregatorFactory: AggregatorFactory = new CountAggregatorFactory("Row Count")
+      val countAggregatorFactory: AggregatorFactory = new CountAggregatorFactory(QueryRowList.ROW_COUNT_ALIAS)
 
       rowCountQueryBuilder.addAggregator(countAggregatorFactory)
       rowCountQueryBuilder.build()

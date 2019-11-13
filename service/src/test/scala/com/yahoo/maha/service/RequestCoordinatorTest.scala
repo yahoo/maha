@@ -2021,7 +2021,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val result = stringStream.toString()
     println(result)
 
-    val expectedJson = """\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"Student ID","fieldType":"DIM"\},\{"fieldName":"Class ID","fieldType":"DIM"\},\{"fieldName":"Section ID","fieldType":"DIM"\},\{"fieldName":"Total Marks","fieldType":"FACT"\}\],"maxRows":200\},"rows":\[\[213,200,100,99\]\],"curators":\{"rowcount":\{"result":\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"Row Count","fieldType":"FACT"\}\],"maxRows":200\},"rows":\[\[.*\]\]\}\}\}\}"""
+    val expectedJson = """\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"Student ID","fieldType":"DIM"\},\{"fieldName":"Class ID","fieldType":"DIM"\},\{"fieldName":"Section ID","fieldType":"DIM"\},\{"fieldName":"Total Marks","fieldType":"FACT"\}\],"maxRows":200\},"rows":\[\[213,200,100,99\]\],"curators":\{"rowcount":\{"result":\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"ROW_COUNT","fieldType":"FACT"\}\],"maxRows":200\},"rows":\[\[.*\]\]\}\}\}\}"""
 
     result should fullyMatch regex expectedJson
 
