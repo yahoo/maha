@@ -359,7 +359,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         queryContext.factBestCandidate.requestCols
       }
     }
-    val maxRows = if (queryContext.requestModel.isAsyncRequest) {
+    val maxRows = if (queryContext.requestModel.isAsyncRequest && queryContext.requestModel.maxRows <= 0) {
       maximumMaxRowsAsync
     } else if (queryContext.requestModel.maxRows < 1) {
       defaultMaxRows

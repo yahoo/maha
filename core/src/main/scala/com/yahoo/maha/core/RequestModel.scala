@@ -283,6 +283,7 @@ case class RequestModel(cube: String
        hasLowCardinalityDimFilters=$hasLowCardinalityDimFilters
        isFactDriven=$isFactDriven
        forceDimDriven=$forceDimDriven
+       forceFactDriven=$forceFactDriven
        schema=$schema
        utcTimeDayFilter=$utcTimeDayFilter
        localTimeDayFilter=$localTimeDayFilter

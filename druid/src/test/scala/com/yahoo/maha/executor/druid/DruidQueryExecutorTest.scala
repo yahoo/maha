@@ -2294,6 +2294,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
   test("Successfully get the result if result rowCount exceeds maxRowLimit, if allowPartialIfResultExceedsMaxRowLimit is set") {
     val jsonString =
       s"""{ "cube": "a_stats",
+         |  "rowsPerPage":3,
          |   "selectFields": [
          |      {
          |         "field": "Advertiser ID"
@@ -2330,7 +2331,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
-    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator(3)) //do not include local time filter
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
     val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
 
@@ -2592,7 +2593,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
          |                            {"field": "Impressions", "order": "Asc"}
          |                          ],
          |                          "paginationStartIndex":0,
-         |                          "rowsPerPage":2
+         |                          "rowsPerPage":3
          |}
        """.stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
