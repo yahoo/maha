@@ -66,6 +66,9 @@ class PrestoQueryExecutor(jdbcConnection: JdbcConnection,
                   (alias, column) <- aliasColumnMap
                 } {
                   val index = columnIndexMap(alias)
+                  if (debugEnabled) {
+                    info(s"Raw value for column: ${column.name} at index: $index: ${resultSet.getObject(index)}")
+                  }
                   val value = columnValueExtractor.getColumnValue(index, column, resultSet)
                   var transformedValue = value
                   transformers.foreach(transformer => {
