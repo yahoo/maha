@@ -3,7 +3,6 @@
 package com.yahoo.maha.service.curators
 
 import com.yahoo.maha.core.RequestModelResult
-import com.yahoo.maha.core.fact.{DruidRowCountFactCol, FactColumn}
 import com.yahoo.maha.core.request.{CuratorJsonConfig, Field, fieldExtended}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest, ParallelServiceExecutor}

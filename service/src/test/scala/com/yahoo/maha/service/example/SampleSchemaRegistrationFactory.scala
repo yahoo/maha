@@ -108,7 +108,6 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             FactCol("total_marks", IntType())
             ,FactCol("obtained_marks", IntType())
             ,DruidDerFactCol("Performance Factor", DecType(10,2), "{obtained_marks}" /- "{total_marks}")
-            ,DruidRowCountFactCol("row_count")
           )
         )
       }
@@ -126,8 +125,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           Set(
             PublicFactCol("total_marks", "Total Marks", InBetweenEquality),
             PublicFactCol("obtained_marks", "Marks Obtained", InBetweenEquality),
-            PublicFactCol("Performance Factor", "Performance Factor", InBetweenEquality),
-            PublicFactCol("row_count", "Row Count", InBetweenEquality)
+            PublicFactCol("Performance Factor", "Performance Factor", InBetweenEquality)
           ),
           Set.empty,
           getMaxDaysWindow, getMaxDaysLookBack, revision = 1, dimRevision = 0

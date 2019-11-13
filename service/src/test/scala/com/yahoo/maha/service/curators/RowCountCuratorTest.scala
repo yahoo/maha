@@ -2,7 +2,6 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.curators
 
-import com.yahoo.maha.core.{DruidEngine, RequestModel}
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request.{DebugValue, Parameter, ReportingRequest}
 import com.yahoo.maha.jdbc._
