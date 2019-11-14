@@ -3031,9 +3031,16 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                             {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
                             {"field": "Advertiser ID", "operator": "=", "value": "5485"}
                           ],
-                          "includeRowCount":true
+                          "curators" : {
+                            "rowcount" : {
+                              "config" : {
+                                "isFactDriven": true
+                              }
+                            }
+                          }
                         }""".stripMargin
-    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
+    // request from RowCountCurator will flag includeRowCount = true
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString)).copy(includeRowCount = true)
     val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))

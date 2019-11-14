@@ -3014,10 +3014,17 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                             {"field": "Advertiser ID", "operator": "=", "value": "12345"}
                           ],
                           "mr": 100,
-                          "includeRowCount": true
+                          "curators" : {
+                            "rowcount" : {
+                              "config" : {
+                                "isFactDriven": true
+                              }
+                            }
+                          }
                         }"""
 
-    val request1: ReportingRequest = getReportingRequestSync(jsonString_inner)
+    // request from RowCountCurator will flag includeRowCount = true
+    val request1: ReportingRequest = getReportingRequestSync(jsonString_inner).copy(includeRowCount = true)
     val requestModel1 = RequestModel.from(request1, getDefaultRegistry())
     val queryPipelineTry1 = generatePipeline(requestModel1.toOption.get)
     assert(queryPipelineTry1.isSuccess, queryPipelineTry1.errorMessage("Fail to get the query pipeline"))
@@ -3041,10 +3048,17 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                             {"field": "Advertiser Status", "operator": "=", "value": "ON"}
                           ],
                           "mr":100,
-                          "includeRowCount": true
+                          "curators" : {
+                            "rowcount" : {
+                              "config" : {
+                                "isFactDriven": true
+                              }
+                            }
+                          }
                         }"""
 
-    val request2: ReportingRequest = getReportingRequestSync(jsonString_outer)
+    // request from RowCountCurator will flag includeRowCount = true
+    val request2: ReportingRequest = getReportingRequestSync(jsonString_outer).copy(includeRowCount = true)
     val requestModel2 = RequestModel.from(request2, getDefaultRegistry())
     val queryPipelineTry2 = generatePipeline(requestModel2.toOption.get)
     assert(queryPipelineTry2.isSuccess, queryPipelineTry2.errorMessage("Fail to get the query pipeline"))
