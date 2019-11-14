@@ -355,7 +355,7 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                     , forceFactDriven = true
                     , paginationStartIndex = 0
                     , rowsPerPage = 1
-                    , curatorJsonConfigMap = Map.empty
+                    , curatorJsonConfigMap = sourcePipeline.requestModel.reportingRequest.curatorJsonConfigMap
                   )
                 }
 

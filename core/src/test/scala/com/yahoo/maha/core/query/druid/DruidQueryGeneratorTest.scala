@@ -3026,7 +3026,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 //    println(result1)
     assert(StringUtils.countMatches(result1, """"queryType":"groupBy"""") == 2, "Failed to generate 2-level groupby query")
     assert(!result1.contains(""""limitSpec":{"type":"default","columns":[],"limit":200}"""), "Failed to remove inner limitSpec")
-    assert(result1.contains(""""aggregations":[{"type":"count","name":"Row Count"}]"""), "Failed to generate row count aggregator")
+    assert(result1.contains(""""aggregations":[{"type":"count","name":"TOTALROWS"}]"""), "Failed to generate row count aggregator")
 
     val jsonString_outer =
       s"""{
@@ -3053,7 +3053,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 //    println(result2)
     assert(StringUtils.countMatches(result2, """"queryType":"groupBy"""") == 3, "Failed to generate 3-level groupby query")
     assert(!result2.contains(""""limitSpec":{"type":"default","columns":[],"limit":200}"""), "Failed to remove limitSpec")
-    assert(result2.contains(""""aggregations":[{"type":"count","name":"Row Count"}]"""), "Failed to generate row count aggregator")
+    assert(result2.contains(""""aggregations":[{"type":"count","name":"TOTALROWS"}]"""), "Failed to generate row count aggregator")
   }
 
   test("Test generating a query for a request with derived fact column using JavaScript Aggregator") {

@@ -1512,6 +1512,13 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 //    println(result)
     val expectedJson = """\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"Student ID","fieldType":"DIM"\},\{"fieldName":"Class ID","fieldType":"DIM"\},\{"fieldName":"Section ID","fieldType":"DIM"\},\{"fieldName":"Total Marks","fieldType":"FACT"\},\{"fieldName":"Student Name","fieldType":"DIM"\},\{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"\}\],"maxRows":200\},"rows":\[\[213,200,100,99,"ACTIVE",1\]\],"curators":\{.*\}\}"""
     result should fullyMatch regex expectedJson
+
+    //assert on misc variables
+    val tempCurator: RowCountCurator = new RowCountCurator()
+    assert(!tempCurator.isSingleton)
+    assert(tempCurator.requiresDefaultCurator)
+    assert(tempCurator.level == 1)
+    assert(tempCurator.priority == 1)
   }
 
   test("successful remove of DrillDown curator cross-cube fields when second cube lacks facts from initial request") {
@@ -2019,9 +2026,9 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val stringStream =  new StringStream()
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
-    println(result)
+//    println(result)
 
-    val expectedJson = """\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"Student ID","fieldType":"DIM"\},\{"fieldName":"Class ID","fieldType":"DIM"\},\{"fieldName":"Section ID","fieldType":"DIM"\},\{"fieldName":"Total Marks","fieldType":"FACT"\}\],"maxRows":200\},"rows":\[\[213,200,100,99\]\],"curators":\{"rowcount":\{"result":\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"ROW_COUNT","fieldType":"FACT"\}\],"maxRows":200\},"rows":\[\[.*\]\]\}\}\}\}"""
+    val expectedJson = """\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"Student ID","fieldType":"DIM"\},\{"fieldName":"Class ID","fieldType":"DIM"\},\{"fieldName":"Section ID","fieldType":"DIM"\},\{"fieldName":"Total Marks","fieldType":"FACT"\}\],"maxRows":200\},"rows":\[\[213,200,100,99\]\],"curators":\{"rowcount":\{"result":\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"TOTALROWS","fieldType":"FACT"\}\],"maxRows":200\},"rows":\[\[.*\]\]\}\}\}\}"""
 
     result should fullyMatch regex expectedJson
 

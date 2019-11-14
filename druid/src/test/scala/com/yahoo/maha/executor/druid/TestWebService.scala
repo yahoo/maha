@@ -1285,6 +1285,17 @@ trait TestWebService {
     case POST -> Root /"selectunsupported7" =>
       val select = """{}""".stripMargin
       Ok(select)
+
+    case POST -> Root /("groupby_rowcount") =>
+      val groupby ="""[
+                     |  {
+                     |    "timestamp" : "2012-01-01T00:00:00.000Z",
+                     |    "event" : {
+                     |     "TOTALROWS" : 100
+                     |    }
+                     |  }
+                     |  ]""".stripMargin
+      Ok(groupby)
   }
 
 }

@@ -10,7 +10,7 @@ import com.yahoo.maha.core.query.{InMemRowList, QueryRowList, RowList}
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{ColumnInfo, DimColumnInfo, Engine, FactColumnInfo}
 import com.yahoo.maha.service.RequestCoordinatorResult
-import com.yahoo.maha.service.curators.{Curator, DefaultCurator, RowCountConfig, RowCountCurator}
+import com.yahoo.maha.service.curators.{Curator, DefaultCurator, RowCountCurator}
 import com.yahoo.maha.service.datasource.{IngestionTimeUpdater, NoopIngestionTimeUpdater}
 import org.json4s.JValue
 import org.slf4j.{Logger, LoggerFactory}
@@ -42,7 +42,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
       jsonGenerator.writeStartObject() //{
       //remove default render curators
       val curatorList = requestCoordinatorResult.orderedList.filterNot(c => JsonOutputFormat.defaultRenderSet(c.name))
-      curatorList.foreach(renderCurator(_, requestCoordinatorResult, jsonGenerator, rowCountOption))
+      curatorList.foreach(renderCurator(_, requestCoordinatorResult, jsonGenerator))
       jsonGenerator.writeEndObject() //}
     }
 
@@ -61,10 +61,9 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
       val tableName = qpr.queryChain.drivingQuery.tableName
       val ingestionTimeUpdater:IngestionTimeUpdater = ingestionTimeUpdaterMap
         .getOrElse(qpr.queryChain.drivingQuery.engine, NoopIngestionTimeUpdater(engine, engine.toString))
-      val dimCols : Set[String] = if (curatorResult.requestModelReference.model.bestCandidates.isDefined) {
+      val dimCols : Set[String]  = if(curatorResult.requestModelReference.model.bestCandidates.isDefined) {
         curatorResult.requestModelReference.model.bestCandidates.get.publicFact.dimCols.map(_.alias)
       } else Set.empty
-
       writeHeader(jsonGenerator
         , qpr.rowList.columns
         , curatorResult.requestModelReference.model.reportingRequest
@@ -78,7 +77,7 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
     }
   }
 
-  private def renderCurator(curator: Curator, requestCoordinatorResult: RequestCoordinatorResult, jsonGenerator: JsonGenerator, rowCountOption: Option[Int] = None) : Unit = {
+  private def renderCurator(curator: Curator, requestCoordinatorResult: RequestCoordinatorResult, jsonGenerator: JsonGenerator) : Unit = {
     if(requestCoordinatorResult.successResults.contains(curator.name)
       && requestCoordinatorResult.curatorResult.contains(curator.name)) {
       val curatorResult = requestCoordinatorResult.curatorResult(curator.name)
@@ -91,33 +90,20 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
       val dimCols : Set[String]  = if(curatorResult.requestModelReference.model.bestCandidates.isDefined) {
         curatorResult.requestModelReference.model.bestCandidates.get.publicFact.dimCols.map(_.alias)
       } else Set.empty
-      val reportingRequest: ReportingRequest = curatorResult.requestModelReference.model.reportingRequest
       jsonGenerator.writeFieldName(curatorResult.curator.name) // "curatorName":
       jsonGenerator.writeStartObject() //{
       jsonGenerator.writeFieldName("result") // "result":
       jsonGenerator.writeStartObject() //{
-
-      // check if isFactDriven specified in RowCount Config
-      val isFactDrivenQuery: Boolean = {
-        curatorResult.curatorConfig match {
-          case RowCountConfig(isFactDriven) if isFactDriven.isDefined => isFactDriven.get
-          case _ => false
-        }
-      }
-      val columns = if (isFactDrivenQuery) {
-        Vector(FactColumnInfo(JsonOutputFormat.ROW_COUNT))
-      } else qpr.rowList.columns
-
       writeHeader(jsonGenerator
-        , columns
-        , reportingRequest
+        , qpr.rowList.columns
+        , curatorResult.requestModelReference.model.reportingRequest
         , ingestionTimeUpdater
         , tableName
         , dimCols
         , false
         , qpr.pagination
       )
-      writeDataRows(jsonGenerator, qpr.rowList, None, reportingRequest)
+      writeDataRows(jsonGenerator, qpr.rowList, None, curatorResult.requestModelReference.model.reportingRequest)
       jsonGenerator.writeEndObject() //}
       jsonGenerator.writeEndObject() //}
 
@@ -254,4 +240,5 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
     }
     jsonGenerator.writeEndArray() // ]
   }
+
 }

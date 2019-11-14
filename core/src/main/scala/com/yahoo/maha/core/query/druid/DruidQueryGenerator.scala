@@ -512,9 +512,18 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
           val ephemeralAliasColumns: Map[String, Column] = ephemeralAliasColumnMap(queryContext)
 
-          val query: GroupByQuery = generateGroupByQuery(dims, queryContext, dimensionSpecTupleList, dimFilterList, builder, havingSpec, limitSpec, context, ephemeralAliasColumns)
+          // check if it is a rowcount query from "RowCountCurator", overwrites the queryContext, aliasColumnMap
+          val isRowCountRequest = (queryContext.requestModel.includeRowCount && queryContext.requestModel.reportingRequest.curatorJsonConfigMap.contains("rowcount"))
+          val (overrideQueryContext, overrideAliasColumnMap) = if (isRowCountRequest) {
+            val copyRequestModel = queryContext.requestModel.copy(requestCols = IndexedSeq(FactColumnInfo(QueryRowList.ROW_COUNT_ALIAS)))
+            val copyQueryContext = queryContext.copy(requestModel = copyRequestModel)
+            val copyAliasColumnMap = Map[String, Column](QueryRowList.ROW_COUNT_ALIAS -> FactCol(QueryRowList.ROW_COUNT_ALIAS, IntType())(new ColumnContext))
+              (copyQueryContext, copyAliasColumnMap)
+            } else (queryContext, aliasColumnMap)
 
-          new GroupByDruidQuery(queryContext, aliasColumnMap, query, additionalColumns(queryContext), ephemeralAliasColumns, threshold, model.isSyncRequest)
+          val query: GroupByQuery = generateGroupByQuery(dims, queryContext, dimensionSpecTupleList, dimFilterList, builder, havingSpec, limitSpec, context, ephemeralAliasColumns, isRowCountRequest)
+
+          new GroupByDruidQuery(overrideQueryContext, overrideAliasColumnMap, query, additionalColumns(queryContext), ephemeralAliasColumns, threshold, model.isSyncRequest)
         }
 
       case com.yahoo.maha.core.request.SelectQuery =>
@@ -599,7 +608,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                                          innerGroupByQueryHavingSpec: HavingSpec,
                                          innerGroupByQueryLimitSpec: DefaultLimitSpec,
                                          context: java.util.Map[String, AnyRef],
-                                         ephemeralAliasColumns: Map[String, Column]): GroupByQuery = {
+                                         ephemeralAliasColumns: Map[String, Column],
+                                         isRowCountRequest: Boolean): GroupByQuery = {
 
     // If there are DimFilters on lookup column then generate nested groupby query with dim filter pushed to outer query
     val hasDimFilterOnLookupColumn = dims.filter(p => p.dim.engine == DruidEngine).foldLeft(false) {
@@ -659,8 +669,6 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     }
 
     val hasExpensiveDateDimFilter = FilterDruid.isExpensiveDateDimFilter(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, queryContext.factBestCandidate.fact.columnsByNameMap)
-
-    val isRowCountRequest = queryContext.requestModel.includeRowCount
 
     val groupByQuery: GroupByQuery = if (hasDimFilterOnLookupColumn || hasLookupWithDecodeColumn || hasExpensiveDateDimFilter) {
 

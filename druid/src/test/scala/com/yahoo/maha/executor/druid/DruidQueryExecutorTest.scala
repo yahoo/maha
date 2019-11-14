@@ -3017,4 +3017,62 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         assert(thrown.getMessage.contains("DruidQueryExecutor does not support query with engine=Oracle"))
     }
   }
+
+  test("test row count groupby query execution") {
+
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Advertiser ID"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "5485"}
+                          ],
+                          "includeRowCount":true
+                        }""".stripMargin
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
+    println(query.asString)
+
+    withDruidQueryExecutor("http://localhost:6667/mock/groupby_rowcount"){
+      executor =>
+        val rowList = new CompleteRowList(query)
+        val result = executor.execute(query, rowList, QueryAttributes.empty)
+        assert(!result.rowList.isEmpty)
+
+        var str: String = ""
+        var count: Int = 0
+        result.rowList.foreach {
+          row => {
+            count += 1
+            str = str + s"$row"
+          }
+        }
+
+        assert(count == 1)
+        val expected = "Row(Map(TOTALROWS -> 0),ArrayBuffer(100))"
+
+        str should equal(expected)(after being whiteSpaceNormalised)
+
+        result.rowList.foreach { row =>
+          val map = row.aliasMap
+          for ((key, value) <- map) {
+            assert(row.getValue(key) != null)
+          }
+        }
+    }
+  }
 }
