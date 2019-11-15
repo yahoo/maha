@@ -17,7 +17,7 @@ import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.query.druid.{DruidQuery, DruidQueryGenerator, SyncDruidQueryOptimizer}
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.registry.RegistryBuilder
-import com.yahoo.maha.core.request.{DebugValue, Parameter, ReportingRequest, SyncRequest}
+import com.yahoo.maha.core.request.{DebugValue, Parameter, ReportingRequest, RowCountQuery, SyncRequest}
 import com.yahoo.maha.executor.MockOracleQueryExecutor
 import io.druid.query.Result
 import io.druid.query.select.SelectResultValue
@@ -3039,8 +3039,8 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                             }
                           }
                         }""".stripMargin
-    // request from RowCountCurator will flag includeRowCount = true
-    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString)).copy(includeRowCount = true)
+    // request from RowCountCurator has queryType = RowCountQuery
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString)).copy(queryType = RowCountQuery)
     val registry = defaultRegistry
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
