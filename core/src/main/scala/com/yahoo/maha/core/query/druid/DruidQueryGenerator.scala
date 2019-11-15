@@ -94,7 +94,8 @@ class SyncDruidQueryOptimizer(maxSingleThreadedDimCardinality: Long = DruidQuery
   }
 
   def optimize(queryContext: FactQueryContext, context: java.util.Map[String, AnyRef]): Unit = {
-    val isGroupByQuery = queryContext.requestModel.reportingRequest.queryType == com.yahoo.maha.core.request.GroupByQuery
+    val isGroupByQuery = (queryContext.requestModel.reportingRequest.queryType == com.yahoo.maha.core.request.GroupByQuery
+      || queryContext.requestModel.reportingRequest.queryType == com.yahoo.maha.core.request.RowCountQuery)
     queryContext.factBestCandidate.fact.annotations.foreach {
       case DruidQueryPriority(priority) =>
         context.put(QUERY_PRIORITY, priority.asInstanceOf[AnyRef])
@@ -370,7 +371,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     }
 
     queryContext.requestModel.reportingRequest.queryType match {
-      case com.yahoo.maha.core.request.GroupByQuery =>
+      case com.yahoo.maha.core.request.GroupByQuery | com.yahoo.maha.core.request.RowCountQuery =>
         val (dimFilterList, factFilterList) = getFilters(queryContext, dims)
 
         val (aggregatorList, postAggregatorList) = getAggregators(queryContext)
@@ -662,7 +663,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     val hasExpensiveDateDimFilter = FilterDruid.isExpensiveDateDimFilter(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, queryContext.factBestCandidate.fact.columnsByNameMap)
 
     // check if it is a rowcount query from "RowCountCurator", overwrites the queryContext, aliasColumnMap
-    val isRowCountRequest = queryContext.requestModel.reportingRequest.curatorJsonConfigMap.contains("rowcount")
+//    val isRowCountRequest = queryContext.requestModel.reportingRequest.curatorJsonConfigMap.contains("rowcount")
+    val isRowCountRequest = queryContext.requestModel.reportingRequest.queryType == RowCountQuery
 
     val groupByQuery: GroupByQuery = if (hasDimFilterOnLookupColumn || hasLookupWithDecodeColumn || hasExpensiveDateDimFilter) {
 
@@ -791,7 +793,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       (groupByQuery, queryContext, aliasColumnMap)
     }
 
-    new GroupByDruidQuery(finalQueryContext, finalAliasColumnMap, finalQuery, additionalColumns(finalQueryContext), ephemeralAliasColumns, threshold, finalQueryContext.requestModel.isSyncRequest)
+    new GroupByDruidQuery(finalQueryContext, finalAliasColumnMap, finalQuery, additionalColumns(queryContext), ephemeralAliasColumns, threshold, queryContext.requestModel.isSyncRequest)
   }
 
   private[this] def getBetweenDates(model: RequestModel): (DateTime, DateTime) = {

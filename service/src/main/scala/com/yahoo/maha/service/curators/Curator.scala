@@ -3,7 +3,7 @@
 package com.yahoo.maha.service.curators
 
 import com.yahoo.maha.core.RequestModelResult
-import com.yahoo.maha.core.request.{CuratorJsonConfig, Field, ReportingRequest, fieldExtended}
+import com.yahoo.maha.core.request.{CuratorJsonConfig, Field, ReportingRequest, RowCountQuery, fieldExtended}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.parrequest2.future.{ParFunction, ParRequest, ParallelServiceExecutor}
 import com.yahoo.maha.service.error.MahaServiceBadRequestException
@@ -349,13 +349,13 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                   //remove all sorts
                   sourcePipeline.requestModel.reportingRequest.copy(
                     selectFields = sourcePipeline.requestModel.reportingRequest.selectFields
+                    , queryType = RowCountQuery
                     , sortBy = IndexedSeq.empty
-                    , includeRowCount = true
                     , forceDimensionDriven = false
                     , forceFactDriven = true
                     , paginationStartIndex = 0
                     , rowsPerPage = 1
-                    , curatorJsonConfigMap = sourcePipeline.requestModel.reportingRequest.curatorJsonConfigMap
+                    , curatorJsonConfigMap = Map.empty
                   )
                 }
 

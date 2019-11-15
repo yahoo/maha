@@ -7,7 +7,7 @@ import com.yahoo.maha.core.DruidDerivedFunction.TIME_FORMAT_WITH_REQUEST_CONTEXT
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension.DruidFuncDimCol
 import com.yahoo.maha.core.query._
-import com.yahoo.maha.core.request.{ReportingRequest, RequestContext}
+import com.yahoo.maha.core.request.{ReportingRequest, RequestContext, RowCountQuery}
 import org.apache.commons.lang.StringUtils
 
 /**
@@ -3023,8 +3023,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           }
                         }"""
 
-    // request from RowCountCurator will flag includeRowCount = true
-    val request1: ReportingRequest = getReportingRequestSync(jsonString_inner).copy(includeRowCount = true)
+    val request1: ReportingRequest = getReportingRequestSync(jsonString_inner).copy(queryType = RowCountQuery)
     val requestModel1 = RequestModel.from(request1, getDefaultRegistry())
     val queryPipelineTry1 = generatePipeline(requestModel1.toOption.get)
     assert(queryPipelineTry1.isSuccess, queryPipelineTry1.errorMessage("Fail to get the query pipeline"))
@@ -3057,8 +3056,8 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           }
                         }"""
 
-    // request from RowCountCurator will flag includeRowCount = true
-    val request2: ReportingRequest = getReportingRequestSync(jsonString_outer).copy(includeRowCount = true)
+    // request from RowCountCurator will change queryType to RowCountQuery
+    val request2: ReportingRequest = getReportingRequestSync(jsonString_outer).copy(queryType = RowCountQuery)
     val requestModel2 = RequestModel.from(request2, getDefaultRegistry())
     val queryPipelineTry2 = generatePipeline(requestModel2.toOption.get)
     assert(queryPipelineTry2.isSuccess, queryPipelineTry2.errorMessage("Fail to get the query pipeline"))
