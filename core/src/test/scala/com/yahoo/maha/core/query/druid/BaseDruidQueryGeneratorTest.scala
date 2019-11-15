@@ -72,7 +72,6 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , DruidFuncDimCol("segments", StrType(), JAVASCRIPT("{segments}", "function(x) { return x > 0; }"))
           , DimCol("internal_bucket_id", StrType())
           , DruidFuncDimCol("click_exp_id", StrType(), REGEX("{internal_bucket_id}", "(cl-)(.*?)(,)", 2, replaceMissingValue = true, "-3"))
-
         ),
         Set(
           FactCol("impressions", IntType(3, 1))

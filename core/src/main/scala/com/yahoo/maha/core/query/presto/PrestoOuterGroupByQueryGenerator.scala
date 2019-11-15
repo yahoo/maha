@@ -75,11 +75,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
                 val derivedExpressionExpanded: String = column.asInstanceOf[DerivedDimensionColumn].derivedExpression.render(name, Map.empty).asInstanceOf[String]
                 queryBuilder.addGroupBy( s"""$derivedExpressionExpanded""")
               } else {
-                if(column.dataType.hasStaticMapping) {
-                  queryBuilder.addGroupBy(renderStaticMappedDimension(column, PrestoEngine))
-                } else {
                   queryBuilder.addGroupBy(nameOrAlias)
-                }
               }
             }
         }
@@ -547,14 +543,18 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
             s"""ROUND(COALESCE($finalAlias, 0), 10)"""
           case IntType(_,sm,_,_,_) =>
             if (sm.isDefined) {
-              s"""COALESCE(CAST($finalAlias as varchar), 'NA')"""
+              handleStaticMappingInt(sm, finalAlias)
             } else {
               s"""COALESCE($finalAlias, 0)"""
             }
           case DateType(_) => s"""getFormattedDate($finalAlias)"""
           case StrType(_, sm, df) =>
             val defaultValue = df.getOrElse("NA")
-            s"""COALESCE(CAST($finalAlias as VARCHAR), '$defaultValue')"""
+            if (sm.isDefined) {
+              handleStaticMappingString(sm, finalAlias, defaultValue)
+            } else {
+              s"""COALESCE(CAST($finalAlias as VARCHAR), '$defaultValue')"""
+            }
           case _ => s"""COALESCE(cast($finalAlias as VARCHAR), 'NA')"""
         }
         if (column.annotations.contains(EscapingRequired)) {

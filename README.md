@@ -551,6 +551,10 @@ Once your application context is ready, you are good to launch the war file on t
 }
 ```
 
+#### Presentation of 'Maha' at Bay Area Hadoop Meetup held on 29th Oct 2019:
+
+[!['Maha' at Bay Area Hadoop Meetup held on 29th Oct 2019](https://img.youtube.com/vi/5YpAWE-qxac/0.jpg)](https://www.youtube.com/watch?v=5YpAWE-qxac)
+
 ### Contributions 
   - Hiral Patel
   - Pavan Arakere Badarinath

@@ -774,7 +774,7 @@ b. Dim Driven
 
       if (queryContext.requestModel.includeRowCount && !queryContext.requestModel.hasFactSortBy) {
         if(dimensionSql.hasTotalRows) {
-          outerColumns += PostgresQueryGenerator.ROW_COUNT_ALIAS
+          outerColumns += s""""${PostgresQueryGenerator.ROW_COUNT_ALIAS}""""
         } else {
           outerColumns += PAGINATION_ROW_COUNT
         }

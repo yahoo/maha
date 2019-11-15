@@ -167,7 +167,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestVa
                                      , testName: String
                                      , labels: java.util.List[String]) : (ReportingRequest, Array[Byte]) = {
     val rawJson = IOUtils.toByteArray(httpServletRequest.getInputStream)
-    val reportingRequestResult = baseRequest.deserializeSync(rawJson, schema)
+    val reportingRequestResult = baseRequest.deserializeSyncWithFactBias(rawJson, schema)
     require(reportingRequestResult.isSuccess, reportingRequestResult.toString)
     val originalRequest = reportingRequestResult.toOption.get
     val request = {
