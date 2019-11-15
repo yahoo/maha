@@ -35,6 +35,11 @@ sealed trait QueryType {
 case object GroupByQuery extends QueryType {
   val stringValue: String = "groupby"
 }
+
+case object RowCountQuery extends QueryType {
+  val stringValue: String = "rowcount"
+}
+
 case object SelectQuery extends QueryType {
   val stringValue: String = "select"
 }

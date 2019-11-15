@@ -7,7 +7,8 @@ import com.yahoo.maha.core.DruidDerivedFunction.TIME_FORMAT_WITH_REQUEST_CONTEXT
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension.DruidFuncDimCol
 import com.yahoo.maha.core.query._
-import com.yahoo.maha.core.request.{ReportingRequest, RequestContext}
+import com.yahoo.maha.core.request.{ReportingRequest, RequestContext, RowCountQuery}
+import org.apache.commons.lang.StringUtils
 
 /**
  * Created by hiral on 1/14/16.
@@ -3000,25 +3001,93 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(result.contains(json), json)
   }
 
-  test("Test generating a query for a request with derived fact column using JavaScript Aggregator") {
-    val jsonString =
+  test("test row count groupby query") {
+    val jsonString_inner =
       s"""{
                           "cube": "k_stats",
                           "selectFields": [
-                            {"field": "Day"},
-                            {"field": "Impressions"},
-                            {"field": "Clicks"},
-                            {"field": "Variance"},
-
-                            {"field": "Advertiser ID"}
+                            {"field": "Advertiser ID"},
+                            {"field": "Impressions"}
                           ],
                           "filterExpressions": [
-                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
                             {"field": "Advertiser ID", "operator": "=", "value": "12345"}
                           ],
-                          "paginationStartIndex":20,
-                          "rowsPerPage":100
+                          "mr": 100,
+                          "curators" : {
+                            "rowcount" : {
+                              "config" : {
+                                "isFactDriven": true
+                              }
+                            }
+                          }
                         }"""
+
+    val request1: ReportingRequest = getReportingRequestSync(jsonString_inner).copy(queryType = RowCountQuery)
+    val requestModel1 = RequestModel.from(request1, getDefaultRegistry())
+    val queryPipelineTry1 = generatePipeline(requestModel1.toOption.get)
+    assert(queryPipelineTry1.isSuccess, queryPipelineTry1.errorMessage("Fail to get the query pipeline"))
+
+    val result1 = queryPipelineTry1.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+//    println(result1)
+    assert(StringUtils.countMatches(result1, """"queryType":"groupBy"""") == 2, "Failed to generate 2-level groupby query")
+    assert(!result1.contains(""""limitSpec":{"type":"default","columns":[],"limit":200}"""), "Failed to remove inner limitSpec")
+    assert(result1.contains(""""aggregations":[{"type":"count","name":"TOTALROWS"}]"""), "Failed to generate row count aggregator")
+
+    val jsonString_outer =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Advertiser ID"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Advertiser Status", "operator": "=", "value": "ON"}
+                          ],
+                          "mr":100,
+                          "curators" : {
+                            "rowcount" : {
+                              "config" : {
+                                "isFactDriven": true
+                              }
+                            }
+                          }
+                        }"""
+
+    // request from RowCountCurator will change queryType to RowCountQuery
+    val request2: ReportingRequest = getReportingRequestSync(jsonString_outer).copy(queryType = RowCountQuery)
+    val requestModel2 = RequestModel.from(request2, getDefaultRegistry())
+    val queryPipelineTry2 = generatePipeline(requestModel2.toOption.get)
+    assert(queryPipelineTry2.isSuccess, queryPipelineTry2.errorMessage("Fail to get the query pipeline"))
+
+    val result2 = queryPipelineTry2.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+//    println(result2)
+    assert(StringUtils.countMatches(result2, """"queryType":"groupBy"""") == 3, "Failed to generate 3-level groupby query")
+    assert(!result2.contains(""""limitSpec":{"type":"default","columns":[],"limit":200}"""), "Failed to remove limitSpec")
+    assert(result2.contains(""""aggregations":[{"type":"count","name":"TOTALROWS"}]"""), "Failed to generate row count aggregator")
+  }
+
+  test("Test generating a query for a request with derived fact column using JavaScript Aggregator") {
+    val jsonString =
+      s"""{
+                        "cube": "k_stats",
+                        "selectFields": [
+                          {"field": "Day"},
+                          {"field": "Impressions"},
+                          {"field": "Clicks"},
+                          {"field": "Variance"},
+
+                          {"field": "Advertiser ID"}
+                        ],
+                        "filterExpressions": [
+                          {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                          {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                        ],
+                        "paginationStartIndex":20,
+                        "rowsPerPage":100
+                      }"""
 
     val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
@@ -3029,7 +3098,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val queryPipeline = queryPipelineTry.toOption.get
-    val query =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     assert(query.contains(""""postAggregations":[{"type":"javascript","name":"Variance","fieldNames":["Clicks","Impressions"],"function":"function(clicks,impressions){return clicks * Math.sqrt(impressions);}"}]"""))
   }
 

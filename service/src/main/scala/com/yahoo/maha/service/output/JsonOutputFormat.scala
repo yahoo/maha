@@ -22,7 +22,7 @@ object JsonOutputFormat {
   val objectMapper: ObjectMapper = new ObjectMapper()
   val logger: Logger = LoggerFactory.getLogger(classOf[JsonOutputFormat])
   val ROW_COUNT : String = "ROW_COUNT"
-  val defaultRenderSet : Set[String] = Set(DefaultCurator.name, RowCountCurator.name)
+  val defaultRenderSet : Set[String] = Set(DefaultCurator.name)
 }
 case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
                             ingestionTimeUpdaterMap : Map[Engine, IngestionTimeUpdater] = Map.empty) {

@@ -212,7 +212,7 @@ trait InMemRowList extends QueryRowList {
     val listAttempt = Try {
       val firstRow = list.head
 
-      require(firstRow.aliasMap.contains(ROW_COUNT_ALIAS), "TOTALROWS not defined in alias map, only valid in Oracle Queries")
+      require(firstRow.aliasMap.contains(ROW_COUNT_ALIAS), "TOTALROWS not defined in alias map")
       val totalrow_col_num = firstRow.aliasMap(ROW_COUNT_ALIAS)
       val current_totalrows = firstRow.cols(totalrow_col_num).toString.toInt
 

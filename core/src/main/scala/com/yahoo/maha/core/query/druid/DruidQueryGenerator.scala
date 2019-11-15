@@ -94,7 +94,8 @@ class SyncDruidQueryOptimizer(maxSingleThreadedDimCardinality: Long = DruidQuery
   }
 
   def optimize(queryContext: FactQueryContext, context: java.util.Map[String, AnyRef]): Unit = {
-    val isGroupByQuery = queryContext.requestModel.reportingRequest.queryType == com.yahoo.maha.core.request.GroupByQuery
+    val isGroupByQuery = (queryContext.requestModel.reportingRequest.queryType == com.yahoo.maha.core.request.GroupByQuery
+      || queryContext.requestModel.reportingRequest.queryType == com.yahoo.maha.core.request.RowCountQuery)
     queryContext.factBestCandidate.fact.annotations.foreach {
       case DruidQueryPriority(priority) =>
         context.put(QUERY_PRIORITY, priority.asInstanceOf[AnyRef])
@@ -370,7 +371,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     }
 
     queryContext.requestModel.reportingRequest.queryType match {
-      case com.yahoo.maha.core.request.GroupByQuery =>
+      case com.yahoo.maha.core.request.GroupByQuery | com.yahoo.maha.core.request.RowCountQuery =>
         val (dimFilterList, factFilterList) = getFilters(queryContext, dims)
 
         val (aggregatorList, postAggregatorList) = getAggregators(queryContext)
@@ -512,9 +513,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
           val ephemeralAliasColumns: Map[String, Column] = ephemeralAliasColumnMap(queryContext)
 
-          val query: GroupByQuery = generateGroupByQuery(dims, queryContext, dimensionSpecTupleList, dimFilterList, builder, havingSpec, limitSpec, context, ephemeralAliasColumns)
+          generateGroupByQuery(dims, queryContext, dimensionSpecTupleList, dimFilterList, builder, havingSpec, limitSpec, context, ephemeralAliasColumns, aliasColumnMap, threshold)
 
-          new GroupByDruidQuery(queryContext, aliasColumnMap, query, additionalColumns(queryContext), ephemeralAliasColumns, threshold, model.isSyncRequest)
         }
 
       case com.yahoo.maha.core.request.SelectQuery =>
@@ -599,7 +599,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                                          innerGroupByQueryHavingSpec: HavingSpec,
                                          innerGroupByQueryLimitSpec: DefaultLimitSpec,
                                          context: java.util.Map[String, AnyRef],
-                                         ephemeralAliasColumns: Map[String, Column]): GroupByQuery = {
+                                         ephemeralAliasColumns: Map[String, Column],
+                                         aliasColumnMap: Map[String, Column],
+                                         threshold: Int): GroupByDruidQuery = {
 
     // If there are DimFilters on lookup column then generate nested groupby query with dim filter pushed to outer query
     val hasDimFilterOnLookupColumn = dims.filter(p => p.dim.engine == DruidEngine).foldLeft(false) {
@@ -660,7 +662,11 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
     val hasExpensiveDateDimFilter = FilterDruid.isExpensiveDateDimFilter(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, queryContext.factBestCandidate.fact.columnsByNameMap)
 
-    if (hasDimFilterOnLookupColumn || hasLookupWithDecodeColumn || hasExpensiveDateDimFilter) {
+    // check if it is a rowcount query from "RowCountCurator", overwrites the queryContext, aliasColumnMap
+//    val isRowCountRequest = queryContext.requestModel.reportingRequest.curatorJsonConfigMap.contains("rowcount")
+    val isRowCountRequest = queryContext.requestModel.reportingRequest.queryType == RowCountQuery
+
+    val groupByQuery: GroupByQuery = if (hasDimFilterOnLookupColumn || hasLookupWithDecodeColumn || hasExpensiveDateDimFilter) {
 
       //this is nested groupBy query so reset limitSpec inside inner query
       innerGroupByQueryBuilder.setLimitSpec(NoopLimitSpec.INSTANCE)
@@ -741,7 +747,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         outerQueryBuilder.setHavingSpec(innerGroupByQueryHavingSpec)
       }
 
-      if (innerGroupByQueryLimitSpec != null) {
+      if (innerGroupByQueryLimitSpec != null && !isRowCountRequest) {
         outerQueryBuilder.setLimitSpec(innerGroupByQueryLimitSpec)
       }
 
@@ -759,8 +765,35 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       val dimWithDateTimeFilterList = getDateTimeFilters(queryContext) ++ dimFilterList
       if (dimWithDateTimeFilterList.nonEmpty)
         innerGroupByQueryBuilder.setDimFilter(new AndDimFilter(dimWithDateTimeFilterList.asJava))
+      if (isRowCountRequest)
+        innerGroupByQueryBuilder.setLimitSpec(NoopLimitSpec.INSTANCE)
       innerGroupByQueryBuilder.build()
     }
+
+    val (finalQuery, finalQueryContext, finalAliasColumnMap) = if (isRowCountRequest) {
+      //overwrite query
+      val rowCountQueryBuilder = GroupByQuery.builder()
+        .setDataSource(groupByQuery)
+        .setQuerySegmentSpec(getInterval(queryContext.requestModel))
+        .setGranularity(getGranularity(queryContext))
+        .setContext(context)
+      val countAggregatorFactory: AggregatorFactory = new CountAggregatorFactory(QueryRowList.ROW_COUNT_ALIAS)
+      rowCountQueryBuilder.addAggregator(countAggregatorFactory)
+      val rowCountGroupByQuery = rowCountQueryBuilder.build()
+
+      // overwrite queryContext
+      val copyRequestModel = queryContext.requestModel.copy(requestCols = IndexedSeq(FactColumnInfo(QueryRowList.ROW_COUNT_ALIAS)))
+      val copyQueryContext = queryContext.copy(requestModel = copyRequestModel)
+
+      // overwrite aliasColumnMap
+      val copyAliasColumnMap = Map[String, Column](QueryRowList.ROW_COUNT_ALIAS -> FactCol(QueryRowList.ROW_COUNT_ALIAS, IntType())(new ColumnContext))
+
+      (rowCountGroupByQuery, copyQueryContext, copyAliasColumnMap)
+    } else {
+      (groupByQuery, queryContext, aliasColumnMap)
+    }
+
+    new GroupByDruidQuery(finalQueryContext, finalAliasColumnMap, finalQuery, additionalColumns(queryContext), ephemeralAliasColumns, threshold, queryContext.requestModel.isSyncRequest)
   }
 
   private[this] def getBetweenDates(model: RequestModel): (DateTime, DateTime) = {

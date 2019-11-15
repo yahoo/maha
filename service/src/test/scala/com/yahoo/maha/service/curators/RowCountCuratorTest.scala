@@ -2,7 +2,6 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.curators
 
-import com.yahoo.maha.core.RequestModel
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.request.{DebugValue, Parameter, ReportingRequest}
 import com.yahoo.maha.jdbc._
@@ -139,7 +138,6 @@ class RowCountCuratorTest  extends BaseMahaServiceTest with BeforeAndAfterAll {
     val reportingRequest = ReportingRequest.enableDebug(reportingRequestResult.toOption.get)
 
     val bucketParams = BucketParams(UserInfo("uid", true))
-
 
     val mahaRequestContext = MahaRequestContext(REGISTRY,
       bucketParams,
@@ -460,5 +458,60 @@ class RowCountCuratorTest  extends BaseMahaServiceTest with BeforeAndAfterAll {
     assert(rowCountCuratorResult.isLeft)
   }
 
+  test("Test RowCountCurator for fact driven queries in druid") {
 
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "rowcount" : {
+                              "config" : {
+                                "isFactDriven": true
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+
+    val reportingRequestResult = ReportingRequest.deserializeSync(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", true), forceRevision = Option(1)) //revision = 1: force to use Druid
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+    val curatorMahaRequestLogHelper =  CuratorMahaRequestLogHelper(mahaRequestLogHelper)
+
+
+    val rowCountCurator = RowCountCurator()
+
+    //parse RowCountConfig
+    val parseRowCountConfig = rowCountCurator.parseConfig(reportingRequest.curatorJsonConfigMap(RowCountCurator.name))
+    assert(parseRowCountConfig.isSuccess, s"failed : $parseRowCountConfig")
+    val rowCountConfig: RowCountConfig = parseRowCountConfig.toOption.get.asInstanceOf[RowCountConfig]
+
+    val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
+    val rowCountCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = rowCountCurator
+      .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper,rowCountConfig, curatorInjector)
+
+    assert(rowCountCuratorResult.isRight)
+
+    val parRequestCuratorResult = rowCountCuratorResult.right.get.get(1000) //Should be CuratorResult Object
+    assert(parRequestCuratorResult.isRight)
+  }
 }
