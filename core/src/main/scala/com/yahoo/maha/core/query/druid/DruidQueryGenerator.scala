@@ -512,18 +512,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
           val ephemeralAliasColumns: Map[String, Column] = ephemeralAliasColumnMap(queryContext)
 
-          // check if it is a rowcount query from "RowCountCurator", overwrites the queryContext, aliasColumnMap
-          val isRowCountRequest = (queryContext.requestModel.includeRowCount && queryContext.requestModel.reportingRequest.curatorJsonConfigMap.contains("rowcount"))
-          val (overrideQueryContext, overrideAliasColumnMap) = if (isRowCountRequest) {
-            val copyRequestModel = queryContext.requestModel.copy(requestCols = IndexedSeq(FactColumnInfo(QueryRowList.ROW_COUNT_ALIAS)))
-            val copyQueryContext = queryContext.copy(requestModel = copyRequestModel)
-            val copyAliasColumnMap = Map[String, Column](QueryRowList.ROW_COUNT_ALIAS -> FactCol(QueryRowList.ROW_COUNT_ALIAS, IntType())(new ColumnContext))
-              (copyQueryContext, copyAliasColumnMap)
-            } else (queryContext, aliasColumnMap)
+          generateGroupByQuery(dims, queryContext, dimensionSpecTupleList, dimFilterList, builder, havingSpec, limitSpec, context, ephemeralAliasColumns, aliasColumnMap, threshold)
 
-          val query: GroupByQuery = generateGroupByQuery(dims, queryContext, dimensionSpecTupleList, dimFilterList, builder, havingSpec, limitSpec, context, ephemeralAliasColumns, isRowCountRequest)
-
-          new GroupByDruidQuery(overrideQueryContext, overrideAliasColumnMap, query, additionalColumns(queryContext), ephemeralAliasColumns, threshold, model.isSyncRequest)
         }
 
       case com.yahoo.maha.core.request.SelectQuery =>
@@ -609,7 +599,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                                          innerGroupByQueryLimitSpec: DefaultLimitSpec,
                                          context: java.util.Map[String, AnyRef],
                                          ephemeralAliasColumns: Map[String, Column],
-                                         isRowCountRequest: Boolean): GroupByQuery = {
+                                         aliasColumnMap: Map[String, Column],
+                                         threshold: Int): GroupByDruidQuery = {
 
     // If there are DimFilters on lookup column then generate nested groupby query with dim filter pushed to outer query
     val hasDimFilterOnLookupColumn = dims.filter(p => p.dim.engine == DruidEngine).foldLeft(false) {
@@ -669,6 +660,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     }
 
     val hasExpensiveDateDimFilter = FilterDruid.isExpensiveDateDimFilter(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, queryContext.factBestCandidate.fact.columnsByNameMap)
+
+    // check if it is a rowcount query from "RowCountCurator", overwrites the queryContext, aliasColumnMap
+    val isRowCountRequest = queryContext.requestModel.reportingRequest.curatorJsonConfigMap.contains("rowcount")
 
     val groupByQuery: GroupByQuery = if (hasDimFilterOnLookupColumn || hasLookupWithDecodeColumn || hasExpensiveDateDimFilter) {
 
@@ -774,20 +768,30 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       innerGroupByQueryBuilder.build()
     }
 
-    if (isRowCountRequest) {
+    val (finalQuery, finalQueryContext, finalAliasColumnMap) = if (isRowCountRequest) {
+      //overwrite query
       val rowCountQueryBuilder = GroupByQuery.builder()
         .setDataSource(groupByQuery)
         .setQuerySegmentSpec(getInterval(queryContext.requestModel))
         .setGranularity(getGranularity(queryContext))
         .setContext(context)
-
       val countAggregatorFactory: AggregatorFactory = new CountAggregatorFactory(QueryRowList.ROW_COUNT_ALIAS)
-
       rowCountQueryBuilder.addAggregator(countAggregatorFactory)
-      rowCountQueryBuilder.build()
+      val rowCountGroupByQuery = rowCountQueryBuilder.build()
+
+      // overwrite queryContext
+      val copyRequestModel = queryContext.requestModel.copy(requestCols = IndexedSeq(FactColumnInfo(QueryRowList.ROW_COUNT_ALIAS)))
+      val copyQueryContext = queryContext.copy(requestModel = copyRequestModel)
+
+      // overwrite aliasColumnMap
+      val copyAliasColumnMap = Map[String, Column](QueryRowList.ROW_COUNT_ALIAS -> FactCol(QueryRowList.ROW_COUNT_ALIAS, IntType())(new ColumnContext))
+
+      (rowCountGroupByQuery, copyQueryContext, copyAliasColumnMap)
     } else {
-      groupByQuery
+      (groupByQuery, queryContext, aliasColumnMap)
     }
+
+    new GroupByDruidQuery(finalQueryContext, finalAliasColumnMap, finalQuery, additionalColumns(finalQueryContext), ephemeralAliasColumns, threshold, finalQueryContext.requestModel.isSyncRequest)
   }
 
   private[this] def getBetweenDates(model: RequestModel): (DateTime, DateTime) = {
