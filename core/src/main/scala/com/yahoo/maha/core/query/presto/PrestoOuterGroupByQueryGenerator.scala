@@ -105,17 +105,20 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
 
       groupedFactCols.get(true).map {
         derivedFactCols =>
+          derivedFactCols.foreach(derCol => aliasColumnMapOfRequestCols += (renderColumnAlias(derCol._2) -> derCol._1))
           dfsGetPrimitiveCols(fact, derivedFactCols.map(_._1).toIndexedSeq, primitiveColsSet, PrestoEngine)
       }
 
       //
       val customRollupSet = getCustomRollupColsSet(groupedFactCols, queryBuilderContext)
       if(customRollupSet.nonEmpty) {
+        customRollupSet.foreach(derCol => aliasColumnMapOfRequestCols += (renderColumnAlias(derCol._2) -> derCol._1))
         dfsGetPrimitiveCols(fact, customRollupSet.map(_._1).toIndexedSeq, primitiveColsSet, PrestoEngine)
       }
 
       // Find out all the NoopRollup cols recursively
       dfsNoopRollupCols(fact, factCols.toSet, List.empty, noopRollupColSet)
+      noopRollupColSet.foreach(derCol => aliasColumnMapOfRequestCols += (renderColumnAlias(derCol._1) -> derCol._2))
 
       // Render Primitive columns
       primitiveColsSet.foreach {
@@ -304,7 +307,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
       Option(udfStatements),
       paramBuilder.build(),
       queryContext.requestModel.requestCols.map(_.alias),
-      columnAliasToColMap.toMap,
+      aliasColumnMapOfRequestCols.toMap,
       IndexedSeq.empty,
       queryGenVersion = Some(this.version)
     )
@@ -440,21 +443,22 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
     val factBest = queryContext.factBestCandidate
     queryContext.requestModel.requestCols foreach {
       columnInfo =>
+        val renderedAlias = renderColumnAlias(columnInfo.alias)
         if (!columnInfo.isInstanceOf[ConstantColumnInfo] && queryBuilderContext.containsFactAliasToColumnMap(columnInfo.alias)) {
-          aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.getFactColByAlias(columnInfo.alias))
+          aliasColumnMapOfRequestCols += (renderedAlias -> queryBuilderContext.getFactColByAlias(columnInfo.alias))
         } else if (queryContext.factBestCandidate.duplicateAliasMapping.contains(columnInfo.alias)) {
           val sourceAliases = queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)
           val sourceAlias = sourceAliases.find(queryBuilderContext.aliasColumnMap.contains)
           require(sourceAlias.isDefined
             , s"Failed to find source column for duplicate alias mapping : ${queryContext.factBestCandidate.duplicateAliasMapping(columnInfo.alias)}")
-          aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.aliasColumnMap(sourceAlias.get))
+          aliasColumnMapOfRequestCols += (renderedAlias -> queryBuilderContext.aliasColumnMap(sourceAlias.get))
         } else if (queryBuilderContext.isDimensionCol(columnInfo.alias)) {
-          aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.getDimensionColByAlias(columnInfo.alias))
+          aliasColumnMapOfRequestCols += (renderedAlias -> queryBuilderContext.getDimensionColByAlias(columnInfo.alias))
         } else if (queryBuilderContext.containsPreOuterAlias(columnInfo.alias)) {
-          aliasColumnMapOfRequestCols += (columnInfo.alias -> queryBuilderContext.getPreOuterAliasToColumnMap(columnInfo.alias).get)
+          aliasColumnMapOfRequestCols += (renderedAlias -> queryBuilderContext.getPreOuterAliasToColumnMap(columnInfo.alias).get)
+        } else if (columnInfo.isInstanceOf[ConstantColumnInfo]) {
+          aliasColumnMapOfRequestCols += (renderedAlias -> new DimCol(columnInfo.alias, StrType(), new ColumnContext, None, Set.empty, Set.empty))
         }
-
-        val renderedAlias = renderColumnAlias(columnInfo.alias)
 
         val renderedCol = columnInfo match {
           case FactColumnInfo(alias) if queryBuilderContext.containsPreOuterAlias(alias) =>

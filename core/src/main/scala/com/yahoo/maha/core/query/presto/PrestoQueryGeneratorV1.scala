@@ -287,8 +287,7 @@ class PrestoQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, ud
       case DimColumnInfo(alias) =>
         columnAliasToColMap += queryBuilderContext.getDimensionColNameForAlias(alias) -> queryBuilderContext.getDimensionColByAlias(alias)
       case ConstantColumnInfo(alias, value) =>
-      //TODO: fix this
-      //constantColumnsMap += renderColumnAlias(alias) -> value
+        columnAliasToColMap += renderColumnAlias(alias) -> new DimCol(alias, StrType(), new ColumnContext, None, Set.empty, Set.empty)
     }
 
     val concatenatedCols = generateConcatenatedCols()
