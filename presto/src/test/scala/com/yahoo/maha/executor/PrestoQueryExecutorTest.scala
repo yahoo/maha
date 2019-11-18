@@ -858,7 +858,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
         inmem.foreach({ row =>
           assert(row.getValue("Day") == "01-03-2018")
           assert(row.getValue("Advertiser ID") == 1)
-          assert(row.getValue("Source") == "2")
+          assert(row.getValue("Source") == 2)
           if(row.getValue("Campaign ID") == 10) {
             assert(row.getValue("Spend") == 40.8)
           } else {
@@ -913,7 +913,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
         inmem.foreach({ row =>
           assert(row.getValue("Day") == "01-03-2018")
           assert(row.getValue("Advertiser ID") == 1)
-          assert(row.getValue("Source") == "2")
+          assert(row.getValue("Source") == 2)
           if(row.getValue("Campaign Name") == "campaign10") {
             assert(row.getValue("Spend") == 40.8)
           } else {

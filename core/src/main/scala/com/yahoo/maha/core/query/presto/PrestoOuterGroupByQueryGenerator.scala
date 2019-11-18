@@ -441,6 +441,8 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
                               queryBuilderContext: QueryBuilderContext, aliasColumnMapOfRequestCols:mutable.HashMap[String, Column]): Unit = {
     // add requested dim and fact columns, this should include constants
     val factBest = queryContext.factBestCandidate
+    val publicFact = queryContext.factBestCandidate.publicFact
+    val fact = queryContext.factBestCandidate.fact
     queryContext.requestModel.requestCols foreach {
       columnInfo =>
         val renderedAlias = renderColumnAlias(columnInfo.alias)
@@ -457,7 +459,15 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
         } else if (queryBuilderContext.containsPreOuterAlias(columnInfo.alias)) {
           aliasColumnMapOfRequestCols += (renderedAlias -> queryBuilderContext.getPreOuterAliasToColumnMap(columnInfo.alias).get)
         } else if (columnInfo.isInstanceOf[ConstantColumnInfo]) {
-          aliasColumnMapOfRequestCols += (renderedAlias -> new DimCol(columnInfo.alias, StrType(), new ColumnContext, None, Set.empty, Set.empty))
+          val pubDimCol = publicFact.dimCols.filter(pubDimCol => pubDimCol.alias.equals(columnInfo.alias))
+          val pubFactCol = publicFact.factCols.filter(pubFactCol => pubFactCol.alias.equals(columnInfo.alias))
+          if (pubFactCol.isEmpty) {
+            val column = fact.dimColMap(pubDimCol.head.name)
+            aliasColumnMapOfRequestCols += renderColumnAlias(columnInfo.alias) -> column
+          } else {
+            val column = fact.factColMap(pubFactCol.head.name)
+            aliasColumnMapOfRequestCols += renderColumnAlias(columnInfo.alias) -> column
+          }
         }
 
         val renderedCol = columnInfo match {

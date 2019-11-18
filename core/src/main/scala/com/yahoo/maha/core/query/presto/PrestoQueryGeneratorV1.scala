@@ -287,7 +287,15 @@ class PrestoQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, ud
       case DimColumnInfo(alias) =>
         columnAliasToColMap += queryBuilderContext.getDimensionColNameForAlias(alias) -> queryBuilderContext.getDimensionColByAlias(alias)
       case ConstantColumnInfo(alias, value) =>
-        columnAliasToColMap += renderColumnAlias(alias) -> new DimCol(alias, StrType(), new ColumnContext, None, Set.empty, Set.empty)
+        val pubDimCol = publicFact.dimCols.filter(pubDimCol => pubDimCol.alias.equals(alias))
+        val pubFactCol = publicFact.factCols.filter(pubFactCol => pubFactCol.alias.equals(alias))
+        if (pubFactCol.isEmpty) {
+          val column = fact.dimColMap(pubDimCol.head.name)
+          columnAliasToColMap += renderColumnAlias(alias) -> column
+        } else {
+          val column = fact.factColMap(pubFactCol.head.name)
+          columnAliasToColMap += renderColumnAlias(alias) -> column
+        }
     }
 
     val concatenatedCols = generateConcatenatedCols()
