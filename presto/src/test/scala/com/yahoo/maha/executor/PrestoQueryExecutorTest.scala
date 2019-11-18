@@ -12,7 +12,7 @@ import com.yahoo.maha.core.bucketing.BucketParams
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import com.yahoo.maha.core.query._
-import com.yahoo.maha.core.query.presto.PrestoQueryGenerator
+import com.yahoo.maha.core.query.presto.{PrestoQueryGenerator, PrestoQueryGeneratorV1}
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc._
@@ -63,6 +63,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     config.setPassword("sa")
     config.setMaximumPoolSize(1)
     PrestoQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, Set.empty)
+    PrestoQueryGeneratorV1.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, Set.empty)
     dataSource = Option(new HikariDataSource(config))
     jdbcConnection = dataSource.map(new JdbcConnection(_))
     prestoQueryExecutor = jdbcConnection.map(new PrestoQueryExecutor(_, prestoQueryTemplate, new NoopExecutionLifecycleListener, List(woeidTransformer)))
@@ -188,6 +189,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
             , DimCol("name", StrType(), annotations = Set(EscapingRequired, CaseInsensitive))
             , DimCol("status", StrType())
             , PrestoDerDimCol("Campaign Status", StrType(), PrestoDerivedExpression("functionIF(status = 'ON', 'ON', 'OFF')"))
+            , PrestoPartDimCol("load_time", StrType(10, default="2018"), partitionLevel = FirstPartitionLevel)
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
           , annotations = Set()
@@ -375,6 +377,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           , advertiser_id NUMBER
           , status VARCHAR2(255 CHAR)
           , created_date TIMESTAMP
+          , load_time NUMBER
           , last_updated TIMESTAMP)
       """
     )
@@ -426,13 +429,13 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val insertSqlCampaign =
       """
-        INSERT INTO campaign_presto (id, name, advertiser_id, status, created_date, last_updated)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO campaign_presto (id, name, advertiser_id, status, created_date, load_time, last_updated)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       """
 
     val rowsCampaigns: List[Seq[Any]] = List(
-      Seq(10, "campaign10", 1, "ON", staticTimestamp, staticTimestamp2)
-      , Seq(11, "campaign11", 1, "ON", staticTimestamp, staticTimestamp2)
+      Seq(10, "campaign10", 1, "ON", staticTimestamp, "2018", staticTimestamp2)
+      , Seq(11, "campaign11", 1, "ON", staticTimestamp, "2018", staticTimestamp2)
     )
 
     insertRows(insertSqlCampaign, rowsCampaigns, "SELECT * FROM campaign_presto")
@@ -813,5 +816,115 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val result = Try(prestoQueryExecutor.get.execute(query, rowList, QueryAttributes.empty))
     assert(result.isFailure)
     assert(result.failed.get.isInstanceOf[UnsupportedOperationException])
+  }
+
+  test("Non-ogb query for presto_v1 should have aliasColumnMap populated for constant column") {
+    val jsonString = s"""{
+                          "cube": "ad_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Advertiser ID"},
+                            {"field": "Campaign ID"},
+                            {"field": "Source", "alias": "Source", "value": "2"},
+                            {"field": "Spend"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "1"}
+                          ],
+                          "sortBy": [
+                            {"field": "Spend", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val query =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    assert(!query.contains("OgbQueryAlias"))
+    val result = queryPipelineTry.get.execute(queryExecutorContext)
+
+    result match {
+      case scala.util.Success(queryPipelineResult) =>
+        val inmem = queryPipelineResult.rowList
+        assert(!inmem.isEmpty)
+        inmem.foreach({ row =>
+          assert(row.getValue("Day") == "01-03-2018")
+          assert(row.getValue("Advertiser ID") == 1)
+          assert(row.getValue("Source") == "2")
+          if(row.getValue("Campaign ID") == 10) {
+            assert(row.getValue("Spend") == 40.8)
+          } else {
+            assert(row.getValue("Spend") == 72.8)
+            assert(row.getValue("Campaign ID") == 11)
+          }
+        })
+      case any =>
+        any.failed.get.printStackTrace()
+        throw new UnsupportedOperationException(s"unexpected row list : $any")
+    }
+
+  }
+
+  test("ogb query should have aliasColumnMap populated") {
+    val jsonString = s"""{
+                          "cube": "ad_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Advertiser ID"},
+                            {"field": "Campaign Name"},
+                            {"field": "Source", "alias": "Source", "value": "2"},
+                            {"field": "Spend"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "1"}
+                          ],
+                          "sortBy": [
+                            {"field": "Campaign Name", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val query =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    assert(query.contains("OgbQueryAlias"))
+    val result = queryPipelineTry.get.execute(queryExecutorContext)
+
+    result match {
+      case scala.util.Success(queryPipelineResult) =>
+        val inmem = queryPipelineResult.rowList
+        assert(!inmem.isEmpty)
+        inmem.foreach({ row =>
+          assert(row.getValue("Day") == "01-03-2018")
+          assert(row.getValue("Advertiser ID") == 1)
+          assert(row.getValue("Source") == "2")
+          if(row.getValue("Campaign Name") == "campaign10") {
+            assert(row.getValue("Spend") == 40.8)
+          } else {
+            assert(row.getValue("Spend") == 72.8)
+            assert(row.getValue("Campaign Name") == "campaign11")
+          }
+        })
+      case any =>
+        any.failed.get.printStackTrace()
+        throw new UnsupportedOperationException(s"unexpected row list : $any")
+    }
+
   }
 }
