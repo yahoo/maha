@@ -1776,8 +1776,8 @@ case class PublicFactTable private[fact](name: String
   private val totalMinsTaken: String = String.valueOf(totalTimeSecs / 60)
   private val totalSecsTaken: String = String.valueOf(totalTimeSecs % 60)
 
-  if(totalTimeSecs / 60 > 0)
-    logger.info(s"Total time for superset generation for $name: ${totalMinsTaken}m${totalSecsTaken}s ")
+  if(totalTimeSecs > 2)
+    logger.error(s"Total time for superset generation for $name v$revision: ${totalMinsTaken}m${totalSecsTaken}s ")
 
   private[this] val dimColsByName = dimCols.map(_.name)
 
