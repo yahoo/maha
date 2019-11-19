@@ -4292,7 +4292,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                            "filterExpressions": [
                               {"field": "Advertiser ID", "operator": "=", "value": "12345"},
                               {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
-                           ]
+                           ],
+                           "includeRowCount": true
                            }""".stripMargin
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
@@ -4309,15 +4310,15 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery
     assert(query.aliasColumnMap.map(_._1).toSet == Set("Custom", "Duplicate Spend", "Max", "Min", "Avg", "Spend","Advertiser Currency"
-      , "Average CPC Cents", "Count", "Average CPC", "Campaign Name"))
+      , "Average CPC Cents", "Count", "Average CPC", "Campaign Name", "TOTALROWS"))
 
 
     val expected =
       s"""
-         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", Count AS "Count", custom_col AS "Custom", avg_col AS "Avg", max_col AS "Max", spend AS "Duplicate Spend", min_col AS "Min", (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS "Average CPC Cents", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend"
-         |FROM (SELECT cp2.campaign_name "Campaign Name", ap1.currency "Advertiser Currency", SUM(Count) AS Count, (SUM(clicks * max_bid)) AS custom_col, AVG(avg_col) AS avg_col, MAX(max_col) AS max_col, SUM(spend) AS spend, MIN(min_col) AS min_col, MAX(max_bid) AS max_bid, SUM(clicks) AS clicks
+         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", Count AS "Count", custom_col AS "Custom", avg_col AS "Avg", max_col AS "Max", spend AS "Duplicate Spend", min_col AS "Min", (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS "Average CPC Cents", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend", "TOTALROWS"
+         |FROM (SELECT cp2.campaign_name "Campaign Name", ap1.currency "Advertiser Currency", SUM(Count) AS Count, (SUM(clicks * max_bid)) AS custom_col, AVG(avg_col) AS avg_col, MAX(max_col) AS max_col, SUM(spend) AS spend, MIN(min_col) AS min_col, MAX(max_bid) AS max_bid, SUM(clicks) AS clicks, Count(*) OVER() "TOTALROWS"
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   advertiser_id, campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, MAX(max_bid) AS max_bid, SUM(spend) AS spend, MIN(min_col) AS min_col, MAX(max_col) AS max_col, AVG(CASE WHEN ((avg_col >= 0) AND (avg_col <= 100000)) THEN avg_col ELSE 0 END) AS avg_col, COUNT(*) AS Count
+         |                   advertiser_id, campaign_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, MAX(max_bid) AS max_bid, SUM(spend) AS spend, MIN(min_col) AS min_col, MAX(max_col) AS max_col, AVG(CASE WHEN ((avg_col >= 0) AND (avg_col <= 100000)) THEN avg_col ELSE 0 END) AS avg_col, COUNT(*) AS Count, Count(*) OVER() "TOTALROWS"
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (stats_date >= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY advertiser_id, campaign_id

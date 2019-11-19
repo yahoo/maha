@@ -511,7 +511,7 @@ abstract class PostgresOuterGroupByQueryGenerator(partitionColumnRenderer:Partit
       }
 
       if (queryContext.requestModel.includeRowCount) {
-        queryBuilder.addOuterColumn(PostgresQueryGenerator.ROW_COUNT_ALIAS)
+        queryBuilder.addOuterColumn(s""""${PostgresQueryGenerator.ROW_COUNT_ALIAS}"""")
         aliasColumnMapOfRequestCols += (PostgresQueryGenerator.ROW_COUNT_ALIAS -> PAGINATION_ROW_COUNT_COL)
       }
 
@@ -614,6 +614,10 @@ abstract class PostgresOuterGroupByQueryGenerator(partitionColumnRenderer:Partit
           } else col.alias.getOrElse(col.name)
           renderPreOuterFactCol(qualifiedColInnerAlias, colInnerAlias, alias, col)
         case _=> // ignore as it col is already rendered
+      }
+
+      if(queryBuilder.containsFactViewColumns(PAGINATION_ROW_COUNT)) {
+        queryBuilder.addPreOuterColumn(PAGINATION_ROW_COUNT)
       }
 
       def renderPreOuterFactCol(qualifiedColInnerAlias: String, colInnerAlias: String, finalAlias: String, innerSelectCol: Column): Unit = {

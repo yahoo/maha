@@ -20,6 +20,7 @@ import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.MockDruidQueryExecutor
 import com.yahoo.maha.jdbc._
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
+import org.apache.commons.lang3.StringUtils
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 /**
@@ -36,6 +37,10 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
   private val queryExecutorContext : QueryExecutorContext = new QueryExecutorContext
   private val staticTimestamp = new Timestamp(System.currentTimeMillis())
   private val staticTimestamp2 = new Timestamp(System.currentTimeMillis() + 1)
+  val userDir = System.getProperty("user.dir")
+  if (StringUtils.isNotBlank(userDir)) {
+    System.setProperty("java.io.tmpdir", userDir+"/target")
+  }
   private val pg = EmbeddedPostgres.start()
   private val db = UUID.randomUUID().toString.replace("-", "")
 

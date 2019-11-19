@@ -7,7 +7,7 @@ import java.util.UUID
 import com.google.common.base.Charsets
 import com.google.common.io.Resources
 import com.yahoo.maha.core.ddl.OracleDDLGenerator
-import com.yahoo.maha.jdbc._
+import com.yahoo.maha.jdbc.{Seq, _}
 import com.yahoo.maha.service.{DefaultMahaService, MahaService, MahaServiceConfig}
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import grizzled.slf4j.Logging
@@ -21,6 +21,8 @@ object ExampleMahaService extends Logging {
   val h2dbId = UUID.randomUUID().toString.replace("-","")
   val today: String = DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now())
   val yesterday: String = DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(1))
+
+  val daysBack11 = DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(11))
 
   def initJdbcToH2(): Unit = {
     val config = new HikariConfig()
@@ -78,7 +80,9 @@ object ExampleMahaService extends Logging {
 
     val rows: List[Seq[Any]] = List(
       Seq(1, 100, 213, 200, 125, today.toString, "some comment 1"),
-        Seq(2, 100, 213, 198, 120, yesterday.toString, "some comment 2")
+        Seq(2, 100, 213, 198, 120, yesterday.toString, "some comment 2"),
+          Seq(1, 100, 213, 200, 110, daysBack11.toString, "some comment 1"),
+      Seq(2, 100, 213, 198, 98, daysBack11.toString, "some comment 2")
     )
 
     rows.foreach {

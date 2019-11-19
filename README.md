@@ -22,17 +22,23 @@ A centralised library for building reporting APIs on top of multiple data stores
   - MahaRequestLog : Kafka logging of API Statistics
   - Support for high cardinality dimension druid lookups
 
+### Maha Architecture
+
+![Maha Architecture](https://user-images.githubusercontent.com/4935454/67800990-8c987580-fa45-11e9-8ba4-d78c1f31be8f.jpeg)
 
 ### Modules in maha
   - maha-core : responsible for creating Reporting Request, Request Model (Query Metadata) , Query Generation, Query Pipeline (Engine selection)
-  - maha-druid : Druid Query Executor
-  - maha-oracle : Oracle Query Executor 
-  - maha-druid-lookups: Druid Lookup extension for lookup join
+  - maha-druid-executor : Druid Query Executor
+  - maha-oracle-executor : Oracle Query Executor 
+  - maha-presto-executor : Presto Query Executor 
+  - maha-postgres-executor : Postgres Query Executor 
+  - maha-druid-lookups: Druid Lookup extension for high cardinality dimension druid lookups
   - maha-par-request: Library for Parallel Execution, Blocking and Non Blocking Callables using Java utils
   - maha-service : One json config for creating different registries using the fact and dim definitions. 
   - maha-api-jersey : Easy war file helper library for exposing the api using maha-service module
   - maha-api-example : End to end example implementation of maha apis
   - maha-par-request-2: Library for Parallel Execution, Blocking and Non Blocking Callables using Scala utils
+  - maha-request-log: Kafka Events writer about the api usage request stats for given registry in maha
 
 ### Getting Started 
 
@@ -44,7 +50,7 @@ A centralised library for building reporting APIs on top of multiple data stores
 <dependency>
   <groupId>com.yahoo.maha</groupId>
   <artifactId>maha-api-jersey</artifactId>
-  <version>5.2</version>
+  <version>5.316</version>
   <type>pom</type>
 </dependency>
 ```
@@ -79,7 +85,7 @@ A centralised library for building reporting APIs on top of multiple data stores
 ```
           ColumnContext.withColumnContext { implicit dc: ColumnContext =>
         Fact.newFact(
-          "wikiticker_stats_datasource", DailyGrain, DruidEngine, Set(WikiSchema),
+          "wikipedia", DailyGrain, DruidEngine, Set(WikiSchema),
           Set(
             DimCol("channel", StrType())
             , DimCol("cityName", StrType())
@@ -308,6 +314,247 @@ Once your application context is ready, you are good to launch the war file on t
 {"header":{"cube":"wikiticker_stats","fields":[{"fieldName":"Wiki Channel","fieldType":"DIM"},{"fieldName":"Total Count","fieldType":"FACT"},{"fieldName":"Added Count","fieldType":"FACT"},{"fieldName":"Deleted Count","fieldType":"FACT"}],"maxRows":200},"rows":[["#ar.wikipedia",423,153605,2727],["#be.wikipedia",33,46815,1235],["#bg.wikipedia",75,41674,528],["#ca.wikipedia",478,112482,1651],["#ce.wikipedia",60,83925,135],["#cs.wikipedia",222,132768,1443],["#da.wikipedia",96,44879,1097],["#de.wikipedia",2523,522625,35407],["#el.wikipedia",251,31400,9530],["#en.wikipedia",11549,3045299,176483],["#eo.wikipedia",22,13539,2],["#es.wikipedia",1256,634670,15983],["#et.wikipedia",52,2758,483],["#eu.wikipedia",13,6690,43],["#fa.wikipedia",219,74733,2798],["#fi.wikipedia",244,54810,2590],["#fr.wikipedia",2099,642555,22487],["#gl.wikipedia",65,12483,526],["#he.wikipedia",246,51302,3533],["#hi.wikipedia",19,34977,60],["#hr.wikipedia",22,25956,204],["#hu.wikipedia",289,166101,2077],["#hy.wikipedia",153,39099,4230],["#id.wikipedia",110,119317,2245],["#it.wikipedia",1383,711011,12579],["#ja.wikipedia",749,317242,21380],["#kk.wikipedia",9,1316,31],["#ko.wikipedia",533,66075,6281],["#la.wikipedia",33,4478,1542],["#lt.wikipedia",20,14866,242],["#min.wikipedia",1,2,0],["#ms.wikipedia",11,21686,556],["#nl.wikipedia",445,145634,6557],["#nn.wikipedia",26,33745,0],["#no.wikipedia",169,51385,1146],["#pl.wikipedia",565,138931,8459],["#pt.wikipedia",472,229144,8444],["#ro.wikipedia",76,28892,1224],["#ru.wikipedia",1386,640698,19612],["#sh.wikipedia",14,6935,2],["#simple.wikipedia",39,43018,546],["#sk.wikipedia",33,12188,72],["#sl.wikipedia",21,3624,266],["#sr.wikipedia",168,72992,2349],["#sv.wikipedia",244,42145,3116],["#tr.wikipedia",208,67193,1126],["#uk.wikipedia",263,137420,1959],["#uz.wikipedia",983,13486,8],["#vi.wikipedia",9747,295972,1388],["#war.wikipedia",1,0,0],["#zh.wikipedia",1126,191033,7916]]}
 ```
 
+  * POST Maha Reporting Request for example student schema with TimeShift Curator
+  MahaRequest will look like following, you need to pass cube name, list of fields you want to fetch, filters, sorting columns in the base request and timeshift curator configs (daysOffset is an day offset for requesting previous period's to and from dates)
+
+  ```
+{
+   "cube": "student_performance",
+   "selectFields": [
+      {
+         "field": "Student ID"
+      },
+      {
+         "field": "Class ID"
+      },
+      {
+         "field": "Section ID"
+      },
+      {
+         "field": "Total Marks"
+      }
+   ],
+   "filterExpressions": [
+      {
+         "field": "Day",
+         "operator": "between",
+         "from": "2019-10-20",
+         "to": "2019-10-29"
+      },
+      {
+         "field": "Student ID",
+         "operator": "=",
+         "value": "213"
+      }
+   ],
+  "curators": {
+    "timeshift": {
+      "config" : {
+        "daysOffset": 0 
+      }
+    }
+  }
+}    
+  ```
+   please note that we have loaded the test data for demo in current day and day before. For timeshift curator demo, we have loaded data for 11 days back of current date. Please make sure that you update the requested to and from dates according to current dates. 
+
+    
+  Curl command : 
+  ``` 
+  curl -H "Content-Type: application/json" -H "Accept: application/json" -X POST -d @student.json http://localhost:8080/mahademo/registry/student/schemas/student/query?debug=true 
+  ```
+
+  Sync Output : 
+
+``` 
+{
+    "header": {
+        "cube": "student_performance",
+        "fields": [
+            {
+                "fieldName": "Student ID",
+                "fieldType": "DIM"
+            },
+            {
+                "fieldName": "Class ID",
+                "fieldType": "DIM"
+            },
+            {
+                "fieldName": "Section ID",
+                "fieldType": "DIM"
+            },
+            {
+                "fieldName": "Total Marks",
+                "fieldType": "FACT"
+            },
+            {
+                "fieldName": "Total Marks Prev",
+                "fieldType": "FACT"
+            },
+            {
+                "fieldName": "Total Marks Pct Change",
+                "fieldType": "FACT"
+            }
+        ],
+        "maxRows": 200,
+        "debug": {}
+    },
+    "rows": [
+        [
+            213,
+            198,
+            100,
+            120,
+            98,
+            22.45
+        ],
+        [
+            213,
+            200,
+            100,
+            125,
+            110,
+            13.64
+        ]
+    ]
+}
+```
+
+  * POST Maha Reporting Request for example wiki schema with Total metrics curator
+  
+  Request : 
+``` 
+{
+   "cube": "wikiticker_stats",
+   "selectFields": [
+      {
+         "field": "Wiki Channel"
+      },
+      {
+         "field": "Total Count"
+      },
+      {
+         "field": "Added Count"
+      },
+      {
+         "field": "Deleted Count"
+      }
+   ],
+   "filterExpressions": [
+      {
+         "field": "Day",
+         "operator": "between",
+         "from": "2015-09-11",
+         "to": "2015-09-13"
+      }
+   ],
+   "curators": {
+      "totalmetrics": {
+         "config": {}
+      }
+   }
+}
+```
+ In druid quick-start tutorial, wikipedia data is loaded for 
+2015-09-12, thus no change in the requested dates here.  
+
+  Curl : 
+```
+      curl -H "Content-Type: application/json" -H "Accept: application/json" -X POST -d @wikiticker.json http://localhost:8080/mahademo/registry/wiki/schemas/wiki/query?debug=true  
+```
+  
+  Output : 
+```
+{
+    "header": {
+        "cube": "wikiticker_stats",
+        "fields": [
+            {
+                "fieldName": "Wiki Channel",
+                "fieldType": "DIM"
+            },
+            {
+                "fieldName": "Total Count",
+                "fieldType": "FACT"
+            },
+            {
+                "fieldName": "Added Count",
+                "fieldType": "FACT"
+            },
+            {
+                "fieldName": "Deleted Count",
+                "fieldType": "FACT"
+            }
+        ],
+        "maxRows": 200,
+        "debug": {}
+    },
+    "rows": [
+        [
+            "#ar.wikipedia",
+            0,
+            153605,
+            2727
+        ],
+        [
+            "#be.wikipedia",
+            0,
+            46815,
+            1235
+        ],
+        [
+            "#bg.wikipedia",
+            0,
+            41674,
+            528
+        ],
+        [
+            "#ca.wikipedia",
+            0,
+            112482,
+            1651
+        ],
+        ... trimming other rows 
+    ],
+    "curators": {
+        "totalmetrics": {
+            "result": {
+                "header": {
+                    "cube": "wikiticker_stats",
+                    "fields": [
+                        {
+                            "fieldName": "Total Count",
+                            "fieldType": "FACT"
+                        },
+                        {
+                            "fieldName": "Added Count",
+                            "fieldType": "FACT"
+                        },
+                        {
+                            "fieldName": "Deleted Count",
+                            "fieldType": "FACT"
+                        }
+                    ],
+                    "maxRows": -1,
+                    "debug": {}
+                },
+                "rows": [
+                    [
+                        0,
+                        9385573,
+                        394298
+                    ]
+                ]
+            }
+        }
+    }
+}
+```
+
+#### Presentation of 'Maha' at Bay Area Hadoop Meetup held on 29th Oct 2019:
+
+[!['Maha' at Bay Area Hadoop Meetup held on 29th Oct 2019](https://img.youtube.com/vi/5YpAWE-qxac/0.jpg)](https://www.youtube.com/watch?v=5YpAWE-qxac)
+
 ### Contributions 
   - Hiral Patel
   - Pavan Arakere Badarinath
@@ -324,6 +571,13 @@ Once your application context is ready, you are good to launch the war file on t
   - Vivek Chauhan
   - Ravi Chotrani
   - Huiliang Zhang
+  - Abhishek Sarangan
+  - Jay Yang
+  - Ritvik Jaiswal 
+  - Ashwin Tumma
+  - Ann Therese Babu
+  - Kevin Chen
+  - Priyanka Dadlani
  
 ### Acknowledgements
   - Oracle Query Optimizations

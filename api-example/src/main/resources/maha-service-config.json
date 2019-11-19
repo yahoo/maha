@@ -319,8 +319,8 @@
         "rejectedExecutionHandlerConfig": "",
         "poolName": "maha-test-pool",
         "defaultTimeoutMillis": 10000,
-        "threadPoolSize": 3,
-        "queueSize": 3
+        "threadPoolSize": 10,
+        "queueSize": 10
       }
     },
     "wikiParallelExec": {
@@ -330,8 +330,8 @@
         "rejectedExecutionHandlerConfig": "",
         "poolName": "maha-test-pool",
         "defaultTimeoutMillis": 10000,
-        "threadPoolSize": 3,
-        "queueSize": 3
+        "threadPoolSize": 10,
+        "queueSize": 10
       }
     }
   },
@@ -442,6 +442,11 @@
     },
     "drilldown": {
       "factoryClass": "com.yahoo.maha.service.factory.DrillDownCuratorFactory",
+      "config": {
+      }
+    },
+    "totalmetrics": {
+      "factoryClass": "com.yahoo.maha.service.factory.TotalMetricsCuratorFactory",
       "config": {
       }
     }

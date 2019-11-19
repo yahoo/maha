@@ -42,7 +42,7 @@ class WikiFactRegistrationFactory extends FactRegistrationFactory {
     def pubfact: PublicFact = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
         Fact.newFact(
-          "wikiticker", DailyGrain, DruidEngine, Set(WikiSchema),
+          "wikipedia", DailyGrain, DruidEngine, Set(WikiSchema),
           Set(
             DimCol("channel", StrType())
             , DimCol("cityName", StrType())

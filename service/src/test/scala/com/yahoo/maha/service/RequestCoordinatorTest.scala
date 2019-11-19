@@ -4,7 +4,6 @@ package com.yahoo.maha.service
 
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.OracleQuery
-import com.yahoo.maha.core.request.Parameter.Debug
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc.{Seq, _}
 import com.yahoo.maha.parrequest2.future.ParRequest
@@ -16,6 +15,7 @@ import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.scalatest.BeforeAndAfterAll
+import org.scalatest.Matchers._
 
 class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
@@ -1509,19 +1509,16 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
-
-    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200},"rows":[[213,200,100,99,"ACTIVE",1]],"curators":{}}"""
-    
-
-    assert(result.contains(expectedJson))
+//    println(result)
+    val expectedJson = """\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"Student ID","fieldType":"DIM"\},\{"fieldName":"Class ID","fieldType":"DIM"\},\{"fieldName":"Section ID","fieldType":"DIM"\},\{"fieldName":"Total Marks","fieldType":"FACT"\},\{"fieldName":"Student Name","fieldType":"DIM"\},\{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"\}\],"maxRows":200\},"rows":\[\[213,200,100,99,"ACTIVE",1\]\],"curators":\{.*\}\}"""
+    result should fullyMatch regex expectedJson
 
     //assert on misc variables
     val tempCurator: RowCountCurator = new RowCountCurator()
     assert(!tempCurator.isSingleton)
-    assert(!tempCurator.requiresDefaultCurator)
+    assert(tempCurator.requiresDefaultCurator)
     assert(tempCurator.level == 1)
     assert(tempCurator.priority == 1)
-
   }
 
   test("successful remove of DrillDown curator cross-cube fields when second cube lacks facts from initial request") {
@@ -1983,5 +1980,58 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(result === expectedJson)
   }
 
+  test("Test RowCountCurator for Druid fact-driven query") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                          "curators" : {
+                            "rowcount" : {
+                              "config" : {
+                                "isFactDriven": true
+                              }
+                            }
+                          }
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSync(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(1))
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val executedResult = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper)
+    val requestCoordinatorResult = getRequestCoordinatorResult(executedResult)
+    assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
+    assert(requestCoordinatorResult.successResults.contains(RowCountCurator.name))
+
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
+    val stringStream =  new StringStream()
+    jsonStreamingOutput.writeStream(stringStream)
+    val result = stringStream.toString()
+//    println(result)
+
+    val expectedJson = """\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"Student ID","fieldType":"DIM"\},\{"fieldName":"Class ID","fieldType":"DIM"\},\{"fieldName":"Section ID","fieldType":"DIM"\},\{"fieldName":"Total Marks","fieldType":"FACT"\}\],"maxRows":200\},"rows":\[\[213,200,100,99\]\],"curators":\{"rowcount":\{"result":\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"TOTALROWS","fieldType":"FACT"\}\],"maxRows":200\},"rows":\[\[.*\]\]\}\}\}\}"""
+
+    result should fullyMatch regex expectedJson
+
+  }
 }
 

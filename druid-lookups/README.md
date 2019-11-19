@@ -13,7 +13,7 @@ For convenience, we use `/druid` as our druid root path for the following docume
 ### Requirement
 * [druid-0.11.0](http://druid.io/docs/0.11.0/tutorials/quickstart.html)
 * zookeeper
-* your local datasource (mysql, oracle, etc)
+* your local datasource (mysql, oracle, etc.)
 
 ### Zookeeper setup
 #### Download:
@@ -23,13 +23,13 @@ tar -xzf zookeeper-3.4.10.tar.gz
 cd zookeeper-3.4.10
 cp conf/zoo_sample.cfg conf/zoo.cfg
 ```
-#### Start up zookeeper:
+#### Starting up zookeeper:
 ```
 cd zookeeper-3.4.10
 ./bin/zkServer.sh start
 ```
 
-> NOTE: for shutting down the zoopkeeper, please use `./bin/zkServer.sh stop`
+_NOTE: for shutting down the zoopkeeper, please use `./bin/zkServer.sh stop`_
 
 ### Using **maha-druid-lookups** package
 Adding maha druid lookups to druid is simple.  The command below will produce a zip file with all the jars in target directory which you can include in your druid installation's class path.
@@ -50,6 +50,7 @@ Here we take advantage of config files under `/druid/conf-quickstart`, which is 
 
 #### /druid/conf-quickstart/druid/_common/common.runtime.properties
 1. add package name **maha-druid-lookups** to druid.extensions.loadList:
+
 ```druid.extensions.loadList=["extension1", "extension2" , … , "maha-druid-lookups"]```
 
 2. add maha-druid-lookups config:
@@ -81,17 +82,16 @@ add a line for historical lookup tier:
 ```druid.lookup.lookupTier=historicalLookupTier```
 
 #### conf-quickstart/druid/broker/runtime.properties (Optional)
-> Note: If you just want to check the functionality of lookups and won't need to do query, just skip this step.
-
 add a line for broker lookup tier:
 ```druid.lookup.lookupTier=brokerLookupTier```
 
-### Start up Druid
-#### init Druid: creating required repos for log
+_NOTE: skip this setp if you just want to check the functionality of a lookup and don't need to query it via broker._
+
+### Starting up Druid
+#### Init Druid: creating required repos for log
 ```/druid/bin/init```
 
-> NOTE:
-> To reset druid for a clean start, do`rm -rf var/* && rm -rf log && bin/init`
+_NOTE: to reset druid for a clean start, do`rm -rf var/* && rm -rf log && bin/init`_
 
 #### Start coordinator node:
 ```
@@ -104,11 +104,11 @@ java `cat conf-quickstart/druid/historical/jvm.config | xargs` -cp "conf-quickst
 ```
 
 #### Start broker node (Optional):
-> Note: If you just want to check the functionality of lookups and won't need to do query, just skip this step.
-
 ```
 java `cat conf-quickstart/druid/broker/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/broker:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server broker
 ```
+
+_NOTE: skip this setp if you just want to check the functionality of a lookup and don't need to query it via broker._
 
 ### Troubleshooting
 * JDBC Driver
@@ -117,7 +117,9 @@ If encountering the following error:
 org.skife.jdbi.v2.exceptions.UnableToObtainConnectionException: java.sql.SQLException: No suitable driver found for jdbc:mysql://localhost:3306/...
 ```
 
-**Solution:** instead of putting the jar under your package repo, you need to include the jdbc connector for your local datasource to  /druid/lib, for example:
+**Solution:** 
+
+Instead of putting the jar under your package repo, you need to include the jdbc connector for your local datasource to  /druid/lib, for example:
 `/druid/lib/mysql-connector-java-8.0.16.jar`
 
 * HDFS Configuration
@@ -130,7 +132,9 @@ Exception in thread "main" com.google.common.util.concurrent.ExecutionError: com
 ```
 This is caused by lack of Hadoop dependency.  
 
-**Solution:** For Druid-0.11.0, it already has the hadoop client jars under `hadoop-dependencies/hadoop-client/2.7.3/*`.  Just make sure you have included the path in your command when trying to bring up the node, for example:
+**Solution:** 
+
+For Druid-0.11.0, it already has the hadoop client jars under `hadoop-dependencies/hadoop-client/2.7.3/*`.  Just make sure you have included the path in your command when trying to bring up the node, for example:
 ```
 java `cat conf-quickstart/druid/coordinator/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/coordinator:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server coordinator
 ```
@@ -138,10 +142,11 @@ java `cat conf-quickstart/druid/coordinator/jvm.config | xargs` -cp "conf-quicks
 ### Registering Druid Lookups
 Druid lookups are managed using APIs on coordinators.  Refer [here](http://druid.io/docs/latest/querying/lookups.html).
 
-Example POST to /druid/coordinator/v1/lookups/config:
+Example Lookup JSON:
 
 ```
-{ //mahajdbc_lookup_config_for_historical.json
+// mahajdbc_lookup_config_for_historical.json
+{ 
   "historicalLookupTier": { //the tier of the lookup
     "advertiser_lookup": {
       "version": "v0",
@@ -165,16 +170,19 @@ Example POST to /druid/coordinator/v1/lookups/config:
           ],
           "primaryKeyColumn": "id",
           "tsColumn": "last_updated",
-          "pollPeriod": "PT3M", //poll every 3 mins
-          "cacheEnabled": true //enable building cache in node (hashmap), should be true for historical
+          "pollPeriod": "PT3M",
+          "cacheEnabled": true
         },
         "firstCacheTimeout": 0
       }
     }
   }
 }
-
 ```
+
+_NOTE1: for the details of parameters, please check [here](http://druid.io/docs/0.11.0/development/extensions-core/lookups-cached-global.html)._
+
+_NOTE2: set "cacheEnabled" to true for building cache(hasmap) in the node._
 
 ### Sample Commands for lookups
 #### Initialization
@@ -203,20 +211,21 @@ curl -XDELETE http://localhost:8081/druid/coordinator/v1/lookups/config/historic
 curl http://localhost:8081/druid/coordinator/v1/lookups/config/historicalLookupTier/advertiser_lookup
 ```
 
-#### Query lookup hashmap size (get request to historical node)
+#### Query lookup hashmap size (GET request to historical node)
 ```
 curl "http://localhost:8083/druid/v1/namespaces/advertiser_lookup?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace"
 ```
 
-### Query lookup hashmap with key (get request to historical node)
+#### Query lookup with key (GET request to historical node)
 ```
 curl "http://localhost:8083/druid/v1/namespaces/advertiser_lookup?namespaceclass=com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace&key=1&valueColumn=status&debug=true"
 ```
 
-### Example queries using above lookup (require broker)
-Example query using lookup for advertiser's status:
+### Example queries using above lookup (require setup for broker)
+Example query JSON using lookup for advertisers' status:
 
 ```
+// query_groupby_lookup.json
 {
   "queryType": "groupBy",
   "dataSource": "advertiser_stats",
@@ -252,6 +261,10 @@ Example query using lookup for advertiser's status:
   ],
   "intervals": [ "2015-09-12T00:00:00.000/2015-09-13T00:00:00.000" ]
 }
+```
+Send GET request to broker node:
+```
+curl -L -H 'Content-Type:application/json' -XPOST --data-binary '@query_groupby_lookup.json' 'http://localhost:8082/druid/v2/?pretty'
 ```
 
 ## Auditing lookup integrity
