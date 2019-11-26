@@ -1108,6 +1108,21 @@ object DruidExpression {
     )))*/
   }
 
+  case class ThetaSketchEstimateWrapper(name: String) extends BaseDruidExpression {
+
+    def render(insideDerived: Boolean) = {
+      (s: String, aggregatorNameAliasMap: Map[String, String]) =>
+        val fieldName = name.replaceAll("[}{]","")
+        val e = fromString(name)
+        new SketchEstimatePostAggregator(fieldName, e.render(insideDerived)(e.fieldNamePlaceHolder,aggregatorNameAliasMap), null)
+    }
+
+    val hasRollupExpression = false
+    val hasNumericOperation = false
+
+    def asString = name
+  }
+
   case class ThetaSketchEstimator(fn: ThetaSketchSetOp, aggregators: List[String]) extends BaseDruidExpression {
     import scala.collection.JavaConverters._
 
