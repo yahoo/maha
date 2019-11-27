@@ -2361,7 +2361,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
         val expectedSet = Set(
           "Row(Map(Advertiser ID -> 0, Day -> 1, Impressions -> 2, Spend -> 3),ArrayBuffer(184, 2012-01-01, 200, 30.0))" ,
-            "Row(Map(Advertiser ID -> 0, Day -> 1, Impressions -> 2, Spend -> 3),ArrayBuffer(199, 2012-01-01, 600, 60.0))"
+            "Row(Map(Advertiser ID -> 0, Day -> 1, Impressions -> 2, Spend -> 3),ArrayBuffer(199, 2012-01-01, 400, 40.0))"
         )
 
         assert(result.get.rowList.isInstanceOf[UnionViewRowList])
