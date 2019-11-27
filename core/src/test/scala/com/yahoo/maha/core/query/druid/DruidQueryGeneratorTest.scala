@@ -3166,8 +3166,4 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     print(query)
     assert(query.contains(s""""postAggregations":[{"type":"arithmetic","name":"Conv Segments Unique User Count","fn":"+","fields":[{"type":"thetaSketchEstimate","name":"conv_unique_users","field":{"type":"fieldAccess","name":"conv_unique_users","fieldName":"Conversion User Count"}},{"type":"thetaSketchEstimate","name":"segments_unique_users","field":{"type":"fieldAccess","name":"segments_unique_users","fieldName":"segments_unique_users"}}]}]"""))
   }
-
-  test ("test") {
-
-  }
 }
