@@ -1080,8 +1080,8 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
           }
         }
 
-        assert(count == 4)
-        val expected = "Row(Map(Bid Modifier -> 5, Average Bid -> 4, Day -> 0, Modified Bid -> 6, Device Type -> 7, Impressions -> 3, Advertiser ID -> 1, Spend -> 2),ArrayBuffer(2017-08-07, 5430, 5793.1630783081, 2884485, 0.30467536, 9, 2.74208, 'Desktop'))Row(Map(Bid Modifier -> 5, Average Bid -> 4, Day -> 0, Modified Bid -> 6, Device Type -> 7, Impressions -> 3, Advertiser ID -> 1, Spend -> 2),ArrayBuffer(2017-08-08, 5430, 5237.0206726193, 2701909, 0.30023782, 8.99726, 2.70132, 'Desktop'))Row(Map(Bid Modifier -> 5, Average Bid -> 4, Day -> 0, Modified Bid -> 6, Device Type -> 7, Impressions -> 3, Advertiser ID -> 1, Spend -> 2),ArrayBuffer(2017-08-07, 5430, 1.4580000341, 2250, 0.30307999, 0, 0.30307999, 'SmartPhone'))Row(Map(Bid Modifier -> 5, Average Bid -> 4, Day -> 0, Modified Bid -> 6, Device Type -> 7, Impressions -> 3, Advertiser ID -> 1, Spend -> 2),ArrayBuffer(2017-08-08, 5430, 1.0800000392, 2138, 0.30110852, 0.2, 0.06022, 'SmartPhone'))"
+        assert(count == 2)
+        val expected = "Row(Map(Bid Modifier -> 5, Average Bid -> 4, Day -> 0, Modified Bid -> 6, Device Type -> 7, Impressions -> 3, Advertiser ID -> 1, Spend -> 2),ArrayBuffer(2017-08-07, 5430, 5793.1630783081, 2884485, 0.30467536, 9, 2.74208, 'Desktop'))Row(Map(Bid Modifier -> 5, Average Bid -> 4, Day -> 0, Modified Bid -> 6, Device Type -> 7, Impressions -> 3, Advertiser ID -> 1, Spend -> 2),ArrayBuffer(2017-08-08, 5430, 5237.0206726193, 2701909, 0.30023782, 8.99726, 2.70132, 'Desktop'))"
 
         str should equal(expected)(after being whiteSpaceNormalised)
 
@@ -2344,6 +2344,9 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     assert(query.maxRows == 3)
 
     assert(queryPipeline.queryChain.isInstanceOf[MultiQuery])
+    val multiQuery = queryPipeline.queryChain.asInstanceOf[MultiQuery]
+
+    assert(multiQuery.unionQueryList.size == 2)
 
     assert(queryPipeline.queryChain.asInstanceOf[MultiQuery].unionQueryList.nonEmpty)
 
@@ -3072,6 +3075,70 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         assert(count == 1)
         val expected = "Row(Map(TOTALROWS -> 0),ArrayBuffer(100))"
 
+        str should equal(expected)(after being whiteSpaceNormalised)
+
+        result.rowList.foreach { row =>
+          val map = row.aliasMap
+          for ((key, value) <- map) {
+            assert(row.getValue(key) != null)
+          }
+        }
+    }
+  }
+
+  test("successfully drop rows that more than specific maxrows") {
+
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Advertiser ID"},
+                            {"field": "Campaign Name"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Campaign Name", "operator": "in", "values": ["test1", "test2", "test3"]}
+                          ],
+                          "paginationStartIndex":1,
+                          "rowsPerPage":1
+                        }""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
+    // hasNonFKDimFilters = true, limit = rowsPerPage * 2 + paginationStartIndex
+    assert(query.asString.contains(""""limit":3"""))
+
+    // should drop first 1 and last 1 row from DruidExecutor
+    withDruidQueryExecutor("http://localhost:6667/mock/droprowtest"){
+      executor =>
+        val rowList = new CompleteRowList(query)
+        val result = executor.execute(query, rowList, QueryAttributes.empty)
+        assert(!result.rowList.isEmpty)
+        var str: String = ""
+        var count: Int = 0
+        result.rowList.foreach {
+          row => {
+            count += 1
+
+            str = str + s"$row"
+          }
+        }
+
+        assert(count == 1)
+
+        val expected = "Row(Map(Advertiser ID -> 0, Campaign Name -> 1, Impressions -> 2),ArrayBuffer(12345, test2, 17))"
         str should equal(expected)(after being whiteSpaceNormalised)
 
         result.rowList.foreach { row =>

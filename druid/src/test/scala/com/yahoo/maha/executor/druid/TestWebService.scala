@@ -1296,6 +1296,35 @@ trait TestWebService {
                      |  }
                      |  ]""".stripMargin
       Ok(groupby)
+
+    case POST -> Root /("droprowtest") =>
+      val res ="""[
+                     |  {
+                     |    "timestamp" : "2012-01-01T00:00:00.000Z",
+                     |    "event" : {
+                     |     "Advertiser ID" : 12345,
+                     |     "Campaign Name": "test1",
+                     |     "Impressions":175
+                     |    }
+                     |  },
+                     |  {
+                     |    "timestamp" : "2012-01-01T00:00:12.000Z",
+                     |    "event" : {
+                     |     "Advertiser ID" : 12345,
+                     |     "Campaign Name": "test2",
+                     |     "Impressions":17
+                     |    }
+                     |  },
+                     |  {
+                     |    "timestamp" : "2012-01-01T00:00:12.000Z",
+                     |    "event" : {
+                     |     "Advertiser ID" : 12345,
+                     |     "Campaign Name": "test3",
+                     |     "Impressions":12314
+                     |    }
+                     |  }
+                     |  ]""".stripMargin
+      Ok(res)
   }
 
 }
