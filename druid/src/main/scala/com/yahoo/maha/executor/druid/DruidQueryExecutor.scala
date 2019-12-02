@@ -260,7 +260,15 @@ object DruidQueryExecutor extends Logging {
             if (query.queryContext.requestModel.isDebugEnabled) {
               info(s"GroupBy rows.size=${rows.size}")
             }
-            rows.drop(startIndex).foreach {
+
+            val dropStartIndexRows = rows.drop(startIndex)
+            val len = dropStartIndexRows.size
+            val maxRows = query.queryContext.requestModel.maxRows
+            val finalRows = if (maxRows > 0 && len > maxRows) {
+              dropStartIndexRows.dropRight(len - maxRows)
+            } else dropStartIndexRows
+
+            finalRows.foreach {
               case JObject(jobject) =>
                 rowsCount += 1
                 jobject.foreach {
