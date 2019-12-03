@@ -5005,13 +5005,13 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     
     val expected =
       s"""
-         |SELECT *
-         |FROM (SELECT af0.advertiser_id "Advertiser ID", coalesce(af0."impressions", 1) "Impressions", ROUND((CASE WHEN af0."clicks" = 0 THEN 0.0 ELSE af0."spend" / af0."clicks" END), 10) "Average CPC"
+         |SELECT "Advertiser ID", impressions AS "Impressions", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC"
+         |FROM (SELECT af0.advertiser_id "Advertiser ID", SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   advertiser_id, ad_group_id, SUM(impressions) AS "impressions", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(spend) AS "spend"
+         |                   advertiser_id, campaign_id, ad_group_id, SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend, SUM(impressions) AS impressions
          |            FROM ad_fact1 FactAlias
          |            WHERE (advertiser_id = 12345) AND (campaign_id IN (22222)) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY advertiser_id, ad_group_id
+         |            GROUP BY advertiser_id, campaign_id, ad_group_id
          |
          |           ) af0
          |           INNER JOIN
@@ -5021,6 +5021,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |             )
          |           agp1 ON ( af0.advertiser_id = agp1.advertiser_id AND af0.ad_group_id = agp1.id)
          |
+ |          GROUP BY af0.advertiser_id
          |) sqalias1
        """.stripMargin
 
