@@ -1030,21 +1030,21 @@ b. Dim Driven
       val hasPartitioningScheme = fact.annotations.contains(OracleQueryGenerator.ANY_PARTITIONING_SCHEME)
 
       //add subquery
-      if(isFactOnlyQuery) {
-        queryContext.dims.foreach {
-          subqueryBundle =>
-            val factFKCol = fact.publicDimToForeignKeyMap(subqueryBundle.publicDim.name)
-            val factFkColAlias = {
-              if (fact.columnsByNameMap.contains(factFKCol)) {
-                fact.columnsByNameMap.get(factFKCol).get.alias
-              } else {
-                None
-              }
-            }
-            val sql = generateSubqueryFilter(factFkColAlias.getOrElse(factFKCol), filters, subqueryBundle)
-            whereFilters += sql
-        }
-      }
+//      if(isFactOnlyQuery) {
+//        queryContext.dims.foreach {
+//          subqueryBundle =>
+//            val factFKCol = fact.publicDimToForeignKeyMap(subqueryBundle.publicDim.name)
+//            val factFkColAlias = {
+//              if (fact.columnsByNameMap.contains(factFKCol)) {
+//                fact.columnsByNameMap.get(factFKCol).get.alias
+//              } else {
+//                None
+//              }
+//            }
+//            val sql = generateSubqueryFilter(factFkColAlias.getOrElse(factFKCol), filters, subqueryBundle)
+//            whereFilters += sql
+//        }
+//      }
 
       if (requestModel.isFactDriven || requestModel.dimensionsCandidates.isEmpty || requestModel.hasNonFKFactFilters || requestModel.hasFactSortBy || fact.forceFilters.nonEmpty) {
         val unique_filters = removeDuplicateIfForced( filters.toSeq, allFilters.toSeq, queryContext )
