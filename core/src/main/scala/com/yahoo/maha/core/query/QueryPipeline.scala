@@ -1155,6 +1155,8 @@ OuterGroupBy operation has to be applied only in the following cases
                 )
                 if (fallbackQueryOptionTry.isSuccess && fallbackQueryOptionTry.get.isDefined) {
                   builder.withFallbackQueryChain(SingleEngineQuery(fallbackQueryOptionTry.get.get))
+                } else {
+                  info(s"No fallback query for request: $fallbackQueryOptionTry")
                 }
                 builder
               } else {
