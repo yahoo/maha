@@ -1160,7 +1160,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         val dependentColumns: scala.collection.mutable.Set[String] = scala.collection.mutable.Set[String]()
         findAllDerivedColumns(dependentColumns, derivedCols)
         val derivedDependentCols: List[(Column, String)] = dependentColumns.toList.collect {
-          case col => fact.columnsByNameMap(col) -> col
+          case col if fact.columnsByNameMap(col).isDerivedColumn => fact.columnsByNameMap(col) -> col
         }
         val dedupDerivedCols = derivedCols.filter(d => !dependentColumns.contains(d._2))
         val allColumns = derivedDependentCols ++ dedupDerivedCols
