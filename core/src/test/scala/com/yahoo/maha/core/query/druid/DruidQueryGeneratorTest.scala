@@ -3099,6 +3099,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    print(query)
     assert(query.contains(""""postAggregations":[{"type":"javascript","name":"Variance","fieldNames":["Clicks","Impressions"],"function":"function(clicks,impressions){return clicks * Math.sqrt(impressions);}"}]"""))
   }
 
