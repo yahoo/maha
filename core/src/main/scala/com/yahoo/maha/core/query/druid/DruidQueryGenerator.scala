@@ -1162,7 +1162,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         val derivedDependentCols: List[(Column, String)] = dependentColumns.toList.collect {
           case col => fact.columnsByNameMap(col) -> col
         }
-        derivedDependentCols.foreach {
+        val dedupDerivedCols = derivedCols.filter(d => !dependentColumns.contains(d._2))
+        val allColumns = derivedDependentCols ++ dedupDerivedCols
+        allColumns.foreach {
           case (column, alias) => renderColumnWithAlias(fact, column, alias)
         }
       }
@@ -1173,13 +1175,11 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         val currentDependentColumns: mutable.Set[String] =
           scala.collection.mutable.Set(derivedCols.view.map(_._1.asInstanceOf[DerivedColumn]).flatMap(dc => dc.derivedExpression.sourceColumns) :_*)
         val derivedDependentCols: List[(Column, String)] = getDerivedColumns(currentDependentColumns)
-        currentDependentColumns ++= derivedCols.view.map(_._1.asInstanceOf[DerivedColumn].name)
 
         allDependentColumns ++= currentDependentColumns
         findAllDerivedColumns(allDependentColumns, derivedDependentCols)
       }
     }
-
 
     def getDerivedColumns(dependentColumns: mutable.Set[String]) = {
       dependentColumns.toList.collect {
