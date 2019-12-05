@@ -1684,4 +1684,106 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     println(result)
     result
   }
+
+  test("Successfully generated Outer Group By Query with dim non id field as filter") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Campaign Name", "operator": "=", "value": "cmpgn_1"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val result = generateHiveQuery(jsonString, defaultRegistry)
+
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_spend,'') AS STRING))
+         |FROM(
+         |SELECT spend AS mang_spend
+         |FROM(
+         |SELECT SUM(spend) AS spend
+         |FROM(SELECT campaign_id, SUM(spend) spend
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id
+         |
+ |       )
+         |af0
+         |JOIN (
+         |SELECT id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345) AND (lower(campaign_name) = lower('cmpgn_1'))
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |
+ |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+       """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Successfully generated Outer Group By Query with dim non id field as filter and derived fact field having dim source col") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Source"
+                             },
+                             {
+                               "field": "N Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Campaign Name", "operator": "=", "value": "cmpgn_1"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val result = generateHiveQuery(jsonString, defaultRegistry)
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_source,'') AS STRING),CAST(NVL(mang_n_spend,'') AS STRING))
+         |FROM(
+         |SELECT mang_source AS mang_source, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend
+         |FROM(
+         |SELECT COALESCE(stats_source, 0L) mang_source, SUM(spend) AS spend, stats_source AS stats_source
+         |FROM(SELECT campaign_id, stats_source, SUM(spend) spend
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id, stats_source
+         |
+ |       )
+         |af0
+         |JOIN (
+         |SELECT id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345) AND (lower(campaign_name) = lower('cmpgn_1'))
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY COALESCE(stats_source, 0L), stats_source
+         |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+       """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
 }

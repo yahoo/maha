@@ -2083,4 +2083,131 @@ ORDER BY mang_impressions ASC
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }
+
+  test("Successfully generated Outer Group By Query with dim non id field as filter") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Campaign Name", "operator": "=", "value": "cmpgn_1"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT CAST(mang_spend as VARCHAR) AS mang_spend
+         |FROM(
+         |SELECT spend AS mang_spend
+         |FROM(
+         |SELECT SUM(spend) AS spend
+         |FROM(SELECT campaign_id, SUM(spend) spend
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id
+         |
+ |       )
+         |af0
+         |JOIN (
+         |SELECT id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345) AND (lower(campaign_name) = lower('cmpgn_1'))
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |
+ |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+       """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Successfully generated Outer Group By Query with dim non id field as filter and derived fact field having dim source col") {
+    val jsonString =
+      s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Source"
+                             },
+                             {
+                               "field": "N Spend",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Campaign Name", "operator": "=", "value": "cmpgn_1"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                           }""".stripMargin
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+    println(result)
+
+    val expected =
+      s"""
+         |SELECT CAST(mang_source as VARCHAR) AS mang_source, CAST(mang_n_spend as VARCHAR) AS mang_n_spend
+         |FROM(
+         |SELECT mang_source AS mang_source, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend
+         |FROM(
+         |SELECT COALESCE(stats_source, 0) mang_source, SUM(spend) AS spend, stats_source AS stats_source
+         |FROM(SELECT campaign_id, stats_source, SUM(spend) spend
+         |FROM ad_fact1
+         |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id, stats_source
+         |
+ |       )
+         |af0
+         |JOIN (
+         |SELECT id c1_id
+         |FROM campaign_presto_underlying
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345) AND (lower(campaign_name) = lower('cmpgn_1'))
+         |)
+         |c1
+         |ON
+         |af0.campaign_id = c1.c1_id
+         |
+         |GROUP BY COALESCE(stats_source, 0), stats_source
+         |) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+       """.stripMargin
+    result should equal(expected)(after being whiteSpaceNormalised)
+  }
 }

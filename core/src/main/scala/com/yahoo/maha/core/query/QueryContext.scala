@@ -114,7 +114,10 @@ case class DimensionBundle(dim: Dimension
                            , hasLowCardinalityFilter: Boolean
                             ) {
   //only filtering on primary key alias then subquery candidate
-  lazy val isSubQueryCandidate: Boolean = fields.filterNot(publicDim.isPrimaryKeyAlias).isEmpty
+  lazy val filterFields: SortedSet[String] = for (filter <- filters) yield {
+    filter.field
+  }
+  lazy val isSubQueryCandidate: Boolean = (fields ++ filterFields).forall(publicDim.isPrimaryKeyAlias)
   def debugString : String = {
     s"""
        dim.name=${dim.name}

@@ -1386,6 +1386,67 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
+  test("generating hive query with dim non id field as filter") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Average CPC"},
+                              {"field": "Average Position"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Campaign Name", "operator": "=", "value": "cmpgn_1"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v2)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryChain = queryPipelineTry.toOption.get.queryChain
+
+    val result =  queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
+    assert(queryChain.drivingQuery.queryGenVersion.isDefined)
+    assert(queryChain.drivingQuery.queryGenVersion.get == Version.v2)
+    println(result)
+    val expected =
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_average_cpc,'') AS STRING),CAST(NVL(mang_average_position,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING))
+         |FROM(
+         |SELECT CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS mang_average_cpc, avg_pos AS mang_average_position, impressions AS mang_impressions
+         |FROM(
+         |SELECT (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(weighted_position * impressions) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend, SUM(weighted_position) AS weighted_position
+         |FROM(SELECT campaign_id, SUM(impressions) impressions, SUM(clicks) clicks, SUM(spend) spend, SUM(weighted_position) weighted_position
+         |FROM s_stats_fact
+         |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
+         |GROUP BY campaign_id
+         |
+ |       )
+         |ssf0
+         |JOIN (
+         |SELECT id c1_id
+         |FROM campaing_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345) AND (lower(campaign_name) = lower('cmpgn_1'))
+         |)
+         |c1
+         |ON
+         |ssf0.campaign_id = c1.c1_id
+         |
+         |
+ |) OgbQueryAlias
+         |) queryAlias LIMIT 200
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
 
   def generateHiveQuery(requestJson: String): String = {
     val requestRaw = ReportingRequest.deserializeAsync(requestJson.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
