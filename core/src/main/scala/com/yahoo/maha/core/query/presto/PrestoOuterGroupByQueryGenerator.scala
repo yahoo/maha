@@ -461,13 +461,8 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
         } else if (columnInfo.isInstanceOf[ConstantColumnInfo]) {
           val pubDimCol = publicFact.dimCols.filter(pubDimCol => pubDimCol.alias.equals(columnInfo.alias))
           val pubFactCol = publicFact.factCols.filter(pubFactCol => pubFactCol.alias.equals(columnInfo.alias))
-          if (pubFactCol.isEmpty) {
-            val column = fact.dimColMap(pubDimCol.head.name)
-            aliasColumnMapOfRequestCols += renderColumnAlias(columnInfo.alias) -> column
-          } else {
-            val column = fact.factColMap(pubFactCol.head.name)
-            aliasColumnMapOfRequestCols += renderColumnAlias(columnInfo.alias) -> column
-          }
+          val column = if (pubFactCol.isEmpty) fact.dimColMap(pubDimCol.head.name) else fact.factColMap(pubFactCol.head.name)
+          aliasColumnMapOfRequestCols += renderColumnAlias(columnInfo.alias) -> column
         }
 
         val renderedCol = columnInfo match {
