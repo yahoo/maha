@@ -21,6 +21,7 @@ message MahaCustomReportRequest {
     optional bool dualWrite = 14;
     optional string registry_name = 15;
     optional int32 queryGenVersion = 16;
+    optional string jobIdString = 17;
 }
 
 message MahaProcessedReport {
@@ -35,6 +36,7 @@ message MahaProcessedReport {
     optional string userId = 9;
     optional bool dualWrite = 10;
     optional string registry_name = 11;
+    optional string jobIdString = 12;
 }
 
 enum DeliveryMethod {

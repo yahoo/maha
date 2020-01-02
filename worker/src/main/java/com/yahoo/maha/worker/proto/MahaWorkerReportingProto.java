@@ -603,6 +603,20 @@ public final class MahaWorkerReportingProto {
      * <code>optional int32 queryGenVersion = 16;</code>
      */
     int getQueryGenVersion();
+
+    /**
+     * <code>optional string jobIdString = 17;</code>
+     */
+    boolean hasJobIdString();
+    /**
+     * <code>optional string jobIdString = 17;</code>
+     */
+    java.lang.String getJobIdString();
+    /**
+     * <code>optional string jobIdString = 17;</code>
+     */
+    com.google.protobuf.ByteString
+        getJobIdStringBytes();
   }
   /**
    * Protobuf type {@code com.yahoo.maha.worker.proto.MahaCustomReportRequest}
@@ -768,6 +782,12 @@ public final class MahaWorkerReportingProto {
             case 128: {
               bitField0_ |= 0x00008000;
               queryGenVersion_ = input.readInt32();
+              break;
+            }
+            case 138: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00010000;
+              jobIdString_ = bs;
               break;
             }
           }
@@ -1158,6 +1178,48 @@ public final class MahaWorkerReportingProto {
       return queryGenVersion_;
     }
 
+    public static final int JOBIDSTRING_FIELD_NUMBER = 17;
+    private java.lang.Object jobIdString_;
+    /**
+     * <code>optional string jobIdString = 17;</code>
+     */
+    public boolean hasJobIdString() {
+      return ((bitField0_ & 0x00010000) == 0x00010000);
+    }
+    /**
+     * <code>optional string jobIdString = 17;</code>
+     */
+    public java.lang.String getJobIdString() {
+      java.lang.Object ref = jobIdString_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          jobIdString_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string jobIdString = 17;</code>
+     */
+    public com.google.protobuf.ByteString
+        getJobIdStringBytes() {
+      java.lang.Object ref = jobIdString_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        jobIdString_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
     private void initFields() {
       rawRequest_ = com.google.protobuf.ByteString.EMPTY;
       deliveryMethod_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.DeliveryMethod.EMAIL;
@@ -1175,6 +1237,7 @@ public final class MahaWorkerReportingProto {
       dualWrite_ = false;
       registryName_ = "";
       queryGenVersion_ = 0;
+      jobIdString_ = "";
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -1265,6 +1328,9 @@ public final class MahaWorkerReportingProto {
       if (((bitField0_ & 0x00008000) == 0x00008000)) {
         output.writeInt32(16, queryGenVersion_);
       }
+      if (((bitField0_ & 0x00010000) == 0x00010000)) {
+        output.writeBytes(17, getJobIdStringBytes());
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -1337,6 +1403,10 @@ public final class MahaWorkerReportingProto {
       if (((bitField0_ & 0x00008000) == 0x00008000)) {
         size += com.google.protobuf.CodedOutputStream
           .computeInt32Size(16, queryGenVersion_);
+      }
+      if (((bitField0_ & 0x00010000) == 0x00010000)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(17, getJobIdStringBytes());
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -1487,6 +1557,8 @@ public final class MahaWorkerReportingProto {
         bitField0_ = (bitField0_ & ~0x00004000);
         queryGenVersion_ = 0;
         bitField0_ = (bitField0_ & ~0x00008000);
+        jobIdString_ = "";
+        bitField0_ = (bitField0_ & ~0x00010000);
         return this;
       }
 
@@ -1579,6 +1651,10 @@ public final class MahaWorkerReportingProto {
           to_bitField0_ |= 0x00008000;
         }
         result.queryGenVersion_ = queryGenVersion_;
+        if (((from_bitField0_ & 0x00010000) == 0x00010000)) {
+          to_bitField0_ |= 0x00010000;
+        }
+        result.jobIdString_ = jobIdString_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -1650,6 +1726,11 @@ public final class MahaWorkerReportingProto {
         }
         if (other.hasQueryGenVersion()) {
           setQueryGenVersion(other.getQueryGenVersion());
+        }
+        if (other.hasJobIdString()) {
+          bitField0_ |= 0x00010000;
+          jobIdString_ = other.jobIdString_;
+          onChanged();
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -2412,6 +2493,82 @@ public final class MahaWorkerReportingProto {
         return this;
       }
 
+      private java.lang.Object jobIdString_ = "";
+      /**
+       * <code>optional string jobIdString = 17;</code>
+       */
+      public boolean hasJobIdString() {
+        return ((bitField0_ & 0x00010000) == 0x00010000);
+      }
+      /**
+       * <code>optional string jobIdString = 17;</code>
+       */
+      public java.lang.String getJobIdString() {
+        java.lang.Object ref = jobIdString_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            jobIdString_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string jobIdString = 17;</code>
+       */
+      public com.google.protobuf.ByteString
+          getJobIdStringBytes() {
+        java.lang.Object ref = jobIdString_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          jobIdString_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string jobIdString = 17;</code>
+       */
+      public Builder setJobIdString(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00010000;
+        jobIdString_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string jobIdString = 17;</code>
+       */
+      public Builder clearJobIdString() {
+        bitField0_ = (bitField0_ & ~0x00010000);
+        jobIdString_ = getDefaultInstance().getJobIdString();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string jobIdString = 17;</code>
+       */
+      public Builder setJobIdStringBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00010000;
+        jobIdString_ = value;
+        onChanged();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:com.yahoo.maha.worker.proto.MahaCustomReportRequest)
     }
 
@@ -2545,6 +2702,20 @@ public final class MahaWorkerReportingProto {
      */
     com.google.protobuf.ByteString
         getRegistryNameBytes();
+
+    /**
+     * <code>optional string jobIdString = 12;</code>
+     */
+    boolean hasJobIdString();
+    /**
+     * <code>optional string jobIdString = 12;</code>
+     */
+    java.lang.String getJobIdString();
+    /**
+     * <code>optional string jobIdString = 12;</code>
+     */
+    com.google.protobuf.ByteString
+        getJobIdStringBytes();
   }
   /**
    * Protobuf type {@code com.yahoo.maha.worker.proto.MahaProcessedReport}
@@ -2673,6 +2844,12 @@ public final class MahaWorkerReportingProto {
               com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000400;
               registryName_ = bs;
+              break;
+            }
+            case 98: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000800;
+              jobIdString_ = bs;
               break;
             }
           }
@@ -2988,6 +3165,48 @@ public final class MahaWorkerReportingProto {
       }
     }
 
+    public static final int JOBIDSTRING_FIELD_NUMBER = 12;
+    private java.lang.Object jobIdString_;
+    /**
+     * <code>optional string jobIdString = 12;</code>
+     */
+    public boolean hasJobIdString() {
+      return ((bitField0_ & 0x00000800) == 0x00000800);
+    }
+    /**
+     * <code>optional string jobIdString = 12;</code>
+     */
+    public java.lang.String getJobIdString() {
+      java.lang.Object ref = jobIdString_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          jobIdString_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string jobIdString = 12;</code>
+     */
+    public com.google.protobuf.ByteString
+        getJobIdStringBytes() {
+      java.lang.Object ref = jobIdString_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        jobIdString_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
     private void initFields() {
       jobId_ = 0L;
       deliveryMethod_ = com.yahoo.maha.worker.proto.MahaWorkerReportingProto.DeliveryMethod.EMAIL;
@@ -3000,6 +3219,7 @@ public final class MahaWorkerReportingProto {
       userId_ = "";
       dualWrite_ = false;
       registryName_ = "";
+      jobIdString_ = "";
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -3071,6 +3291,9 @@ public final class MahaWorkerReportingProto {
       if (((bitField0_ & 0x00000400) == 0x00000400)) {
         output.writeBytes(11, getRegistryNameBytes());
       }
+      if (((bitField0_ & 0x00000800) == 0x00000800)) {
+        output.writeBytes(12, getJobIdStringBytes());
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -3123,6 +3346,10 @@ public final class MahaWorkerReportingProto {
       if (((bitField0_ & 0x00000400) == 0x00000400)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBytesSize(11, getRegistryNameBytes());
+      }
+      if (((bitField0_ & 0x00000800) == 0x00000800)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(12, getJobIdStringBytes());
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -3263,6 +3490,8 @@ public final class MahaWorkerReportingProto {
         bitField0_ = (bitField0_ & ~0x00000200);
         registryName_ = "";
         bitField0_ = (bitField0_ & ~0x00000400);
+        jobIdString_ = "";
+        bitField0_ = (bitField0_ & ~0x00000800);
         return this;
       }
 
@@ -3335,6 +3564,10 @@ public final class MahaWorkerReportingProto {
           to_bitField0_ |= 0x00000400;
         }
         result.registryName_ = registryName_;
+        if (((from_bitField0_ & 0x00000800) == 0x00000800)) {
+          to_bitField0_ |= 0x00000800;
+        }
+        result.jobIdString_ = jobIdString_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -3390,6 +3623,11 @@ public final class MahaWorkerReportingProto {
         if (other.hasRegistryName()) {
           bitField0_ |= 0x00000400;
           registryName_ = other.registryName_;
+          onChanged();
+        }
+        if (other.hasJobIdString()) {
+          bitField0_ |= 0x00000800;
+          jobIdString_ = other.jobIdString_;
           onChanged();
         }
         this.mergeUnknownFields(other.getUnknownFields());
@@ -3983,6 +4221,82 @@ public final class MahaWorkerReportingProto {
         return this;
       }
 
+      private java.lang.Object jobIdString_ = "";
+      /**
+       * <code>optional string jobIdString = 12;</code>
+       */
+      public boolean hasJobIdString() {
+        return ((bitField0_ & 0x00000800) == 0x00000800);
+      }
+      /**
+       * <code>optional string jobIdString = 12;</code>
+       */
+      public java.lang.String getJobIdString() {
+        java.lang.Object ref = jobIdString_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            jobIdString_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string jobIdString = 12;</code>
+       */
+      public com.google.protobuf.ByteString
+          getJobIdStringBytes() {
+        java.lang.Object ref = jobIdString_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          jobIdString_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string jobIdString = 12;</code>
+       */
+      public Builder setJobIdString(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000800;
+        jobIdString_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string jobIdString = 12;</code>
+       */
+      public Builder clearJobIdString() {
+        bitField0_ = (bitField0_ & ~0x00000800);
+        jobIdString_ = getDefaultInstance().getJobIdString();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string jobIdString = 12;</code>
+       */
+      public Builder setJobIdStringBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000800;
+        jobIdString_ = value;
+        onChanged();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:com.yahoo.maha.worker.proto.MahaProcessedReport)
     }
 
@@ -4015,7 +4329,7 @@ public final class MahaWorkerReportingProto {
     java.lang.String[] descriptorData = {
       "\n3worker/src/main/proto/MahaCustomReport" +
       "Request.proto\022\033com.yahoo.maha.worker.pro" +
-      "to\"\264\004\n\027MahaCustomReportRequest\022\023\n\013raw_re" +
+      "to\"\311\004\n\027MahaCustomReportRequest\022\023\n\013raw_re" +
       "quest\030\001 \002(\014\022D\n\017delivery_method\030\002 \002(\0162+.c" +
       "om.yahoo.maha.worker.proto.DeliveryMetho" +
       "d\022>\n\014query_engine\030\003 \002(\0162(.com.yahoo.maha" +
@@ -4029,22 +4343,23 @@ public final class MahaWorkerReportingProto {
       "\030\014 \001(\0162&.com.yahoo.maha.worker.proto.Que" +
       "ueType\022\016\n\006userId\030\r \001(\t\022\021\n\tdualWrite\030\016 \001(" +
       "\010\022\025\n\rregistry_name\030\017 \001(\t\022\027\n\017queryGenVers" +
-      "ion\030\020 \001(\005\"\355\002\n\023MahaProcessedReport\022\016\n\006job" +
-      "_id\030\001 \002(\003\022D\n\017delivery_method\030\002 \002(\0162+.com" +
-      ".yahoo.maha.worker.proto.DeliveryMethod\022" +
-      "@\n\routput_format\030\003 \002(\0162).com.yahoo.maha.",
-      "worker.proto.OutputFormat\022\023\n\013raw_request" +
-      "\030\004 \002(\014\022\016\n\006schema\030\005 \002(\t\022\024\n\014job_response\030\006" +
-      " \002(\t\022\016\n\006dryrun\030\007 \001(\010\0229\n\tqueueType\030\010 \001(\0162" +
-      "&.com.yahoo.maha.worker.proto.QueueType\022" +
-      "\016\n\006userId\030\t \001(\t\022\021\n\tdualWrite\030\n \001(\010\022\025\n\rre" +
-      "gistry_name\030\013 \001(\t*.\n\016DeliveryMethod\022\t\n\005E" +
-      "MAIL\020\000\022\021\n\rCONTENT_STORE\020\001*:\n\013QueryEngine" +
-      "\022\n\n\006ORACLE\020\000\022\010\n\004HIVE\020\001\022\t\n\005DRUID\020\002\022\n\n\006PRE" +
-      "STO\020\003*!\n\014OutputFormat\022\007\n\003CSV\020\000\022\010\n\004JSON\020\001" +
-      "*\'\n\nReportType\022\n\n\006AD_HOC\020\000\022\r\n\tSCHEDULED\020",
-      "\001*\"\n\tQueueType\022\n\n\006PULSAR\020\000\022\t\n\005KAFKA\020\001B\032B" +
-      "\030MahaWorkerReportingProto"
+      "ion\030\020 \001(\005\022\023\n\013jobIdString\030\021 \001(\t\"\202\003\n\023MahaP" +
+      "rocessedReport\022\016\n\006job_id\030\001 \002(\003\022D\n\017delive" +
+      "ry_method\030\002 \002(\0162+.com.yahoo.maha.worker." +
+      "proto.DeliveryMethod\022@\n\routput_format\030\003 ",
+      "\002(\0162).com.yahoo.maha.worker.proto.Output" +
+      "Format\022\023\n\013raw_request\030\004 \002(\014\022\016\n\006schema\030\005 " +
+      "\002(\t\022\024\n\014job_response\030\006 \002(\t\022\016\n\006dryrun\030\007 \001(" +
+      "\010\0229\n\tqueueType\030\010 \001(\0162&.com.yahoo.maha.wo" +
+      "rker.proto.QueueType\022\016\n\006userId\030\t \001(\t\022\021\n\t" +
+      "dualWrite\030\n \001(\010\022\025\n\rregistry_name\030\013 \001(\t\022\023" +
+      "\n\013jobIdString\030\014 \001(\t*.\n\016DeliveryMethod\022\t\n" +
+      "\005EMAIL\020\000\022\021\n\rCONTENT_STORE\020\001*:\n\013QueryEngi" +
+      "ne\022\n\n\006ORACLE\020\000\022\010\n\004HIVE\020\001\022\t\n\005DRUID\020\002\022\n\n\006P" +
+      "RESTO\020\003*!\n\014OutputFormat\022\007\n\003CSV\020\000\022\010\n\004JSON",
+      "\020\001*\'\n\nReportType\022\n\n\006AD_HOC\020\000\022\r\n\tSCHEDULE" +
+      "D\020\001*\"\n\tQueueType\022\n\n\006PULSAR\020\000\022\t\n\005KAFKA\020\001B" +
+      "\032B\030MahaWorkerReportingProto"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -4063,13 +4378,13 @@ public final class MahaWorkerReportingProto {
     internal_static_com_yahoo_maha_worker_proto_MahaCustomReportRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_com_yahoo_maha_worker_proto_MahaCustomReportRequest_descriptor,
-        new java.lang.String[] { "RawRequest", "DeliveryMethod", "QueryEngine", "OutputFormat", "JobId", "Schema", "ReportType", "Timezone", "Dryrun", "Revision", "RequestSubmittedTime", "QueueType", "UserId", "DualWrite", "RegistryName", "QueryGenVersion", });
+        new java.lang.String[] { "RawRequest", "DeliveryMethod", "QueryEngine", "OutputFormat", "JobId", "Schema", "ReportType", "Timezone", "Dryrun", "Revision", "RequestSubmittedTime", "QueueType", "UserId", "DualWrite", "RegistryName", "QueryGenVersion", "JobIdString", });
     internal_static_com_yahoo_maha_worker_proto_MahaProcessedReport_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_com_yahoo_maha_worker_proto_MahaProcessedReport_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_com_yahoo_maha_worker_proto_MahaProcessedReport_descriptor,
-        new java.lang.String[] { "JobId", "DeliveryMethod", "OutputFormat", "RawRequest", "Schema", "JobResponse", "Dryrun", "QueueType", "UserId", "DualWrite", "RegistryName", });
+        new java.lang.String[] { "JobId", "DeliveryMethod", "OutputFormat", "RawRequest", "Schema", "JobResponse", "Dryrun", "QueueType", "UserId", "DualWrite", "RegistryName", "JobIdString", });
   }
 
   // @@protoc_insertion_point(outer_class_scope)
