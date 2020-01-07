@@ -3162,7 +3162,46 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    print(query)
+
     assert(query.contains(s""""postAggregations":[{"type":"arithmetic","name":"Conv Segments Unique User Count","fn":"+","fields":[{"type":"thetaSketchEstimate","name":"conv_unique_users","field":{"type":"fieldAccess","name":"conv_unique_users","fieldName":"Conversion User Count"}},{"type":"thetaSketchEstimate","name":"segments_unique_users","field":{"type":"fieldAccess","name":"segments_unique_users","fieldName":"segments_unique_users"}}]}]"""))
   }
+
+  test("Test generating a query with a derived column which is used in both its derived column and its derived derived column") {
+    val jsonString =
+      s"""{
+                        "cube": "k_stats",
+                        "selectFields": [
+                          {"field": "Day"},
+                          {"field": "Impressions"},
+                          {"field": "Clicks"},
+                          {"field": "segments_unique_users"},
+                          {"field": "Variance"},
+                          {"field": "Conversion User Count"},
+                          {"field": "Conv Segments Unique User Count"},
+                          {"field": "Segment Count By Variance"},
+
+                          {"field": "Advertiser ID"}
+                        ],
+                        "filterExpressions": [
+                          {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                          {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                        ],
+                        "paginationStartIndex":20,
+                        "rowsPerPage":100
+                      }"""
+
+    val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestSync(jsonString))
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    print(query)
+    assert(query.contains(s""""postAggregations":[{"type":"arithmetic","name":"Conv Segments Unique User Count","fn":"+","fields":[{"type":"thetaSketchEstimate","name":"conv_unique_users","field":{"type":"fieldAccess","name":"conv_unique_users","fieldName":"Conversion User Count"}},{"type":"thetaSketchEstimate","name":"segments_unique_users","field":{"type":"fieldAccess","name":"segments_unique_users","fieldName":"segments_unique_users"}}]},{"type":"javascript","name":"variance","fieldNames":["Clicks","Impressions"],"function":"function(clicks,impressions){return clicks * Math.sqrt(impressions);}"},{"type":"arithmetic","name":"Derived User Count Plus Variance","fn":"+","fields":[{"type":"fieldAccess","name":"Conv Segments Unique User Count","fieldName":"Conv Segments Unique User Count"},{"type":"fieldAccess","name":"variance","fieldName":"variance"}]},{"type":"arithmetic","name":"Segment Count By Variance","fn":"/","fields":[{"type":"fieldAccess","name":"Derived User Count Plus Variance","fieldName":"Derived User Count Plus Variance"},{"type":"fieldAccess","name":"variance","fieldName":"variance"}]}]"""))
+  }
 }
+

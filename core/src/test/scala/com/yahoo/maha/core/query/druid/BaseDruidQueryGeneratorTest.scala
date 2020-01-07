@@ -108,6 +108,8 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , FactCol("conv_unique_users", DecType(), DruidFilteredRollup(JavaScriptFilter("segments", "function(x) { return x > 0; }"), "uniqueUserCount", DruidThetaSketchRollup))
           , DruidDerFactCol("Total Unique User Count", DecType(), ThetaSketchEstimator(INTERSECT, List("{ageBucket_unique_users}", "{woeids_unique_users}", "{segments_unique_users}")))
           , DruidDerFactCol("Conv Segments Unique User Count", DecType(), ThetaSketchEstimateWrapper("{conv_unique_users}") ++ ThetaSketchEstimateWrapper("{segments_unique_users}"))
+          , DruidDerFactCol("Derived User Count Plus Variance", DecType(), "{Conv Segments Unique User Count}" ++ "{variance}")
+          , DruidDerFactCol("Segment Count By Variance", DecType(), "{Derived User Count Plus Variance}" /- "{variance}")
         ),
         annotations = annotations
       )
@@ -348,7 +350,8 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("conv_unique_users", "Conversion User Count", InBetweenEquality),
           PublicFactCol("Total Unique User Count", "Total Unique User Count", InBetweenEquality),
           PublicFactCol("variance", "Variance", InBetweenEquality),
-          PublicFactCol("Conv Segments Unique User Count", "Conv Segments Unique User Count", InBetweenEquality)
+          PublicFactCol("Conv Segments Unique User Count", "Conv Segments Unique User Count", InBetweenEquality),
+          PublicFactCol("Segment Count By Variance", "Segment Count By Variance", InBetweenEquality)
         ),
         //Set(EqualityFilter("Source", "2")),
         Set(),
