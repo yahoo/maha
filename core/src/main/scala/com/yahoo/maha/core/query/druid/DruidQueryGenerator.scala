@@ -1155,40 +1155,27 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       }
     }
 
-    def renderDerivedColumns(derivedCols: List[(Column, String)]): Unit = {
+    def renderDerivedColumns(derivedCols: List[(Column, String)], renderedDerivedCols: mutable.Set[String] = mutable.Set.empty[String]): Unit = {
       if (derivedCols.nonEmpty) {
-        val dependentColumns: scala.collection.mutable.Set[String] = scala.collection.mutable.Set[String]()
-        findAllDerivedColumns(dependentColumns, derivedCols)
+        val dependentColumns: Set[String] =
+          derivedCols.view.map(_._1.asInstanceOf[DerivedColumn]).flatMap(dc => dc.derivedExpression.sourceColumns).toSet
         val derivedDependentCols: List[(Column, String)] = dependentColumns.toList.collect {
-          case col if fact.columnsByNameMap(col).isDerivedColumn => fact.columnsByNameMap(col) -> col
+          case col if fact.columnsByNameMap(col).isDerivedColumn =>
+            fact.columnsByNameMap(col) -> col
         }
-        val dedupDerivedCols = derivedCols.filter(d => !dependentColumns.contains(d._2))
-        val allColumns = derivedDependentCols ++ dedupDerivedCols
-        allColumns.foreach {
-          case (column, alias) => renderColumnWithAlias(fact, column, alias)
+        renderDerivedColumns(derivedDependentCols, renderedDerivedCols)
+
+        derivedCols.foreach {
+          case (column, alias) =>
+            if (!dependentColumns(column.name) && !renderedDerivedCols(column.name)) {
+              renderColumnWithAlias(fact, column, alias)
+              renderedDerivedCols += column.name
+            }
         }
       }
     }
 
-    def findAllDerivedColumns(allDependentColumns: scala.collection.mutable.Set[String], derivedCols: List[(Column, String)]): Unit = {
-      if (derivedCols.nonEmpty) {
-        val currentDependentColumns: mutable.Set[String] =
-          scala.collection.mutable.Set(derivedCols.view.map(_._1.asInstanceOf[DerivedColumn]).flatMap(dc => dc.derivedExpression.sourceColumns) :_*)
-        val derivedDependentCols: List[(Column, String)] = getDerivedColumns(currentDependentColumns)
-
-        allDependentColumns ++= currentDependentColumns
-        findAllDerivedColumns(allDependentColumns, derivedDependentCols)
-      }
-    }
-
-    def getDerivedColumns(dependentColumns: mutable.Set[String]) = {
-      dependentColumns.toList.collect {
-        case col if fact.columnsByNameMap(col).isDerivedColumn =>
-          fact.columnsByNameMap(col) -> col
-      }
-    }
-
-    groupedFactCols.get(true).foreach(renderDerivedColumns)
+    groupedFactCols.get(true).foreach(renderDerivedColumns(_))
     (aggregatorList, postAggregatorList)
   }
 
