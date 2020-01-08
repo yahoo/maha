@@ -1155,7 +1155,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       }
     }
 
-    def renderDerivedColumns(derivedCols: List[(Column, String)]): Unit = {
+    def renderDerivedColumns(derivedCols: List[(Column, String)], renderedDerivedCols: mutable.Set[String] = mutable.Set.empty[String]): Unit = {
       if (derivedCols.nonEmpty) {
         val dependentColumns: Set[String] =
           derivedCols.view.map(_._1.asInstanceOf[DerivedColumn]).flatMap(dc => dc.derivedExpression.sourceColumns).toSet
@@ -1163,18 +1163,19 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
           case col if fact.columnsByNameMap(col).isDerivedColumn =>
             fact.columnsByNameMap(col) -> col
         }
+        renderDerivedColumns(derivedDependentCols, renderedDerivedCols)
 
-        renderDerivedColumns(derivedDependentCols)
         derivedCols.foreach {
           case (column, alias) =>
-            if (!dependentColumns(column.name)) {
+            if (!dependentColumns(column.name) && !renderedDerivedCols(column.name)) {
               renderColumnWithAlias(fact, column, alias)
+              renderedDerivedCols += column.name
             }
         }
       }
     }
 
-    groupedFactCols.get(true).foreach(renderDerivedColumns)
+    groupedFactCols.get(true).foreach(renderDerivedColumns(_))
     (aggregatorList, postAggregatorList)
   }
 

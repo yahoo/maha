@@ -1068,15 +1068,15 @@ object DruidExpression {
   case class JavaScript(fn: String, fields: List[String]) extends BaseDruidExpression {
     val hasNumericOperation: Boolean = false
     val hasRollupExpression: Boolean = false
-    val asString: String = {
-      s"function({${fields.mkString("},{")}})\\{$fn\\}"
-    }
-    override def render(insideDerived: Boolean) = {
+    val aggregatorsDruidExpressions = fields.map(e => fromString(e))
+    def asString = s"$aggregatorsDruidExpressions"
 
+    override def render(insideDerived: Boolean) = {
       (s: String, aggregatorNameAliasMap: Map[String, String]) => {
         val listInJava = new util.ArrayList[String]()
-        fields.foreach(f => listInJava.add(aggregatorNameAliasMap.getOrElse(f, f)))
-        new JavaScriptPostAggregator(s, listInJava, s"function(${fields.mkString(",")}){$fn}", JavaScriptConfig.getEnabledInstance)
+        val filedNames = fields.map(_.replaceAll("[}{]",""))
+        filedNames.foreach(f => listInJava.add(aggregatorNameAliasMap.getOrElse(f, f)))
+        new JavaScriptPostAggregator(s, listInJava, s"function(${filedNames.mkString(",")}){$fn}", JavaScriptConfig.getEnabledInstance)
       }
     }
   }
@@ -1120,7 +1120,7 @@ object DruidExpression {
     val hasRollupExpression = false
     val hasNumericOperation = false
 
-    def asString = name
+    def asString = s"${fromString(name)}"
   }
 
   case class ThetaSketchEstimator(fn: ThetaSketchSetOp, aggregators: List[String]) extends BaseDruidExpression {
