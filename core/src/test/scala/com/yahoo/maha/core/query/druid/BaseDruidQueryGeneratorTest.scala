@@ -60,6 +60,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , DimCol("Landing URL Translation", StrType(100, (Map("Valid" -> "Something"), "Empty")), alias = Option("landing_page_url"))
           , DimCol("stats_date", DateType("yyyyMMdd"), Some("statsDate"))
           , DimCol("engagement_type", StrType(3))
+          , DimCol("null_type", NullType())
           , DruidPostResultFuncDimCol("Month", DateType(), postResultFunction = START_OF_THE_MONTH("{stats_date}"))
           , DruidPostResultFuncDimCol("Week", DateType(), postResultFunction = START_OF_THE_WEEK("{stats_date}"))
           , DruidFuncDimCol("Day of Week", DateType(), DAY_OF_WEEK("{stats_date}"))
@@ -300,6 +301,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
           PubCol("engagement_type", "engagement_type", Equality),
+          PubCol("null_type", "Null Type", InBetweenEquality),
           PubCol("id", "Keyword ID", InEqualityFieldEquality),
           PubCol("ad_id", "Ad ID", InEqualityFieldEquality),
           PubCol("ad_group_id", "Ad Group ID", InEqualityFieldEquality),
@@ -309,7 +311,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PubCol("source_name", "Source Name", InEquality, incompatibleColumns = Set("Source")),
           PubCol("price_type", "Pricing Type", In),
           PubCol("Derived Pricing Type", "Derived Pricing Type", InEquality),
-          PubCol("landing_page_url", "Destination URL", InNotInEqualityNotEqualsLikeNullNotNull),
+          PubCol("landing_page_url", "Destination URL", InNotInEqualityNotEqualsLikeNullNotNullBetween),
           PubCol("Landing URL Translation", "Landing URL Translation", Set.empty),
           PubCol("Week", "Week", InBetweenEquality),
           PubCol("Month", "Month", InBetweenEquality),
@@ -786,7 +788,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
         PubCol("campaign_id", "Campaign ID", InEquality),
         PubCol("advertiser_id", "Advertiser ID", InEquality),
         PubCol("price_type", "Pricing Type", In),
-        PubCol("Derived Pricing Type", "Derived Pricing Type", InEquality),
+        PubCol("Derived Pricing Type", "Derived Pricing Type", InBetweenEquality),
       ),
       Set(
         PublicFactCol("impressions", "Impressions", InBetweenEquality)

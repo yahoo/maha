@@ -78,6 +78,18 @@ case class TimestampType private(format: Option[String]) extends DataType {
   val constraint: Option[String] = format
 }
 
+case class NullType private(format: Option[String]) extends DataType {
+  val hasStaticMapping = false
+  val hasUniqueStaticMapping = false
+  val reverseStaticMapping : Map[String, Set[String]] = Map.empty
+  val jsonDataType: String = "Null"
+  val constraint: Option[String] = format
+}
+
+case object NullType {
+  def apply(): NullType = new NullType(None)
+}
+
 case object IntType {
   private[this] val noLength = new IntType(0, None, None, None, None)
   
