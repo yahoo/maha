@@ -60,7 +60,7 @@
         <archaius.version>2.3.13</archaius.version>
         <bytebuddy.version>1.8.12</bytebuddy.version>
         <kryo.version>4.0.2</kryo.version>
-        <lz4.version>1.5.1</lz4.version>
+        <lz4.version>1.7.0</lz4.version>
         <curator.version>4.0.1</curator.version>
         <akka.version>2.5.27</akka.version>
         <mongo-java-driver.version>3.3.0</mongo-java-driver.version>
