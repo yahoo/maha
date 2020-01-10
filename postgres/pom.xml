@@ -18,7 +18,7 @@
 
     <properties>
         <pg.embedded.version>0.13.1</pg.embedded.version>
-        <postgres.jdbc.version>42.2.8</postgres.jdbc.version>
+        <postgres.jdbc.version>42.2.9</postgres.jdbc.version>
     </properties>
 
     <dependencies>
