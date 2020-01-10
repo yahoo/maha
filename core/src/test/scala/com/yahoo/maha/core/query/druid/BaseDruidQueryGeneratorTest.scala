@@ -310,7 +310,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PubCol("stats_source", "Source", Equality, incompatibleColumns = Set("Source Name")),
           PubCol("source_name", "Source Name", InEquality, incompatibleColumns = Set("Source")),
           PubCol("price_type", "Pricing Type", In),
-          PubCol("Derived Pricing Type", "Derived Pricing Type", InEquality),
+          PubCol("Derived Pricing Type", "Derived Pricing Type", InBetweenEquality),
           PubCol("landing_page_url", "Destination URL", InNotInEqualityNotEqualsLikeNullNotNullBetween),
           PubCol("Landing URL Translation", "Landing URL Translation", Set.empty),
           PubCol("Week", "Week", InBetweenEquality),
