@@ -222,6 +222,39 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(result.contains(isNotNullFilterJson), result)
   }
 
+  test("Druid query should be generated with Between filter") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Impressions", "operator": "<", "value": "1000"},
+                            {"field": "Destination URL", "operator": "between", "from": "A", "to": "ZZ"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Asc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":0
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val json = """{"type":"lessThan","aggregation":"Impressions","value":1000}]}"""
+    assert(result.contains(json), result)
+    val boundFilterJson = """{"type":"bound","dimension":"landing_page_url","lower":"A","upper":"ZZ","lowerStrict":false,"upperStrict":false,"ordering":{"type":"lexicographic"}}"""
+    assert(result.contains(boundFilterJson), result)
+  }
+
   test("DruidQueryGenerator: getAggregatorFactory should succeed on DruidFilteredListRollup with filter list size of 2") {
     val jsonString =
       s"""{
@@ -1437,6 +1470,38 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val json = """{"type":"extraction","dimension":"advertiser_id","outputName":"Advertiser Name","outputType":"STRING","extractionFn":{"type":"mahaRegisteredLookup","lookup":"advertiser_lookup","retainMissingValue":false,"replaceMissingValueWith":"MAHA_LOOKUP_EMPTY","injective":false,"optimize":true,"valueColumn":"name","dimensionOverrideMap":{},"useQueryLevelCache":false}}"""
 
     assert(result.contains(json), result)
+  }
+
+  test("Fail filtering on PassthroughType") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Average Bid"},
+                            {"field": "Impressions"},
+                            {"field": "Null Type"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Null Type", "operator": "between", "from": "0", "to": "1"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", ""))
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isFailure && queryPipelineTry.failed.get.getMessage.contains("Between filter not supported on Druid dimension fields : BetweenFilter(Null Type,0,1)"), queryPipelineTry.errorMessage("Should have gotten expected message."))
+
   }
 
   test("namespace lookup extraction functionality for dim") {
@@ -2778,6 +2843,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                             ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Derived Pricing Type", "operator": "between", "from": "1", "to": "20"},
                             {"field": "Advertiser ID", "operator": "=", "value": "12345"},
                             {"field": "Advertiser Status", "operator": "In", "values": ["ON"]}
                           ],
@@ -2802,8 +2868,10 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     val expect_empty_limitspec_inner_query = """"limitSpec":{"type":"NoopLimitSpec"},"context":{"applyLimitPushDown":"false""""
     val expect_nonempty_limitspec_outer_query = """"limitSpec":{"type":"default","columns":[],"limit":220}"""
+    val expect_bound_filter = """{"type":"bound","dimension":"Derived Pricing Type","lower":"1","upper":"20","lowerStrict":false,"upperStrict":false,"ordering":{"type":"numeric"}}"""
     assert(result.contains(expect_empty_limitspec_inner_query))
     assert(result.contains(expect_nonempty_limitspec_outer_query))
+    assert(result.contains(expect_bound_filter))
   }
 
   test("should generate nested groupby query if expensive date time filter is present") {
