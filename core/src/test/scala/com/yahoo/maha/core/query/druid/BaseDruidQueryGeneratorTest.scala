@@ -60,7 +60,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , DimCol("Landing URL Translation", StrType(100, (Map("Valid" -> "Something"), "Empty")), alias = Option("landing_page_url"))
           , DimCol("stats_date", DateType("yyyyMMdd"), Some("statsDate"))
           , DimCol("engagement_type", StrType(3))
-          , DimCol("null_type", NullType())
+          , DimCol("null_type", PassthroughType())
           , DruidPostResultFuncDimCol("Month", DateType(), postResultFunction = START_OF_THE_MONTH("{stats_date}"))
           , DruidPostResultFuncDimCol("Week", DateType(), postResultFunction = START_OF_THE_WEEK("{stats_date}"))
           , DruidFuncDimCol("Day of Week", DateType(), DAY_OF_WEEK("{stats_date}"))

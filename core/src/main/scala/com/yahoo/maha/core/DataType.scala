@@ -78,7 +78,7 @@ case class TimestampType private(format: Option[String]) extends DataType {
   val constraint: Option[String] = format
 }
 
-case class NullType private(format: Option[String]) extends DataType {
+case class PassthroughType private(format: Option[String]) extends DataType {
   val hasStaticMapping = false
   val hasUniqueStaticMapping = false
   val reverseStaticMapping : Map[String, Set[String]] = Map.empty
@@ -86,8 +86,8 @@ case class NullType private(format: Option[String]) extends DataType {
   val constraint: Option[String] = format
 }
 
-case object NullType {
-  def apply(): NullType = new NullType(None)
+case object PassthroughType {
+  def apply(): PassthroughType = new PassthroughType(None)
 }
 
 case object IntType {

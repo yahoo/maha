@@ -1472,7 +1472,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(result.contains(json), result)
   }
 
-  test("Fail filtering on nullType") {
+  test("Fail filtering on PassthroughType") {
     val jsonString = s"""{
                           "cube": "k_stats",
                           "selectFields": [
