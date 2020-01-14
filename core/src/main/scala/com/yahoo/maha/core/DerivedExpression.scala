@@ -1076,7 +1076,7 @@ object DruidExpression {
         val listInJava = new util.ArrayList[String]()
         val filedNames = fields.map(_.replaceAll("[}{]",""))
         filedNames.foreach(f => listInJava.add(aggregatorNameAliasMap.getOrElse(f, f)))
-        new JavaScriptPostAggregator(s, listInJava, s"function(${filedNames.mkString(",")}){$fn}", JavaScriptConfig.getEnabledInstance)
+        new JavaScriptPostAggregator(s, listInJava, fn, JavaScriptConfig.getEnabledInstance)
       }
     }
   }
