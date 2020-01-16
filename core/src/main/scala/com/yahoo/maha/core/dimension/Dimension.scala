@@ -23,6 +23,13 @@ sealed trait DimensionColumn extends Column {
   def getForeignKeySource: Option[String] = {
     annotations.find(_.isInstanceOf[ForeignKey]).map(ca => ca.asInstanceOf[ForeignKey].publicDimName)
   }
+
+  override def toString: String = {
+    super.toString +
+    s"""
+         |isForeignKey:$isForeignKey
+         |""".stripMargin
+  }
 }
 
 trait ConstDimensionColumn extends DimensionColumn with ConstColumn
