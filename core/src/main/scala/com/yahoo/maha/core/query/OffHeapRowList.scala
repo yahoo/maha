@@ -10,7 +10,6 @@ import com.yahoo.maha.rocksdb.{RocksDBAccessor, RocksDBAccessorBuilder}
 import com.yahoo.maha.serde.LongSerDe
 import grizzled.slf4j.Logging
 import org.apache.commons.io.{FileUtils, FilenameUtils}
-import org.slf4j.LoggerFactory
 
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
@@ -23,8 +22,6 @@ case class OffHeapRowListConfig(tempStoragePathOption:Option[String], inMemRowCo
 case class OffHeapRowList(query: Query, config: OffHeapRowListConfig) extends QueryRowList with AutoCloseable with Logging {
 
   private[this] val tempStoragePath = OffHeapRowList.getAndValidateTempStorage(config.tempStoragePathOption)
-
-  private val logger = LoggerFactory.getLogger(classOf[OffHeapRowList])
 
   private[this] var rocksDBAccessorOption: Option[RocksDBAccessor[Long, Row]] = None
 
@@ -128,7 +125,7 @@ case class OffHeapRowList(query: Query, config: OffHeapRowListConfig) extends Qu
     }
 
     if (!listAttempt.isSuccess) {
-      logger.warn("Failed to get total row count.\n" + listAttempt)
+      warn("Failed to get total row count.\n" + listAttempt)
     }
 
     total_count
