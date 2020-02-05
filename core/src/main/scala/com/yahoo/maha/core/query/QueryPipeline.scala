@@ -44,6 +44,7 @@ object QueryPipeline extends Logging {
   val asyncDisqualifyingSet: Set[Engine] = Set(DruidEngine)
 
   val completeRowList: Query => RowList = (q) => new CompleteRowList(q)
+
   val dimDrivenPartialRowList: Query => RowList = (q) => {
     new DimDrivenPartialRowList(RowGrouping(q.queryContext.indexAliasOption.get, List(q.queryContext.indexAliasOption.get)), q)
   }
@@ -424,6 +425,7 @@ case class MultiQuery(unionQueryList: List[Query], fallbackQueryOption: Option[(
 }
 
 trait QueryPipelineFactory {
+
   def from(requestModel: RequestModel, queryAttributes: QueryAttributes, bucketParams: BucketParams): Try[QueryPipeline]
 
   def fromQueryGenVersion(requestModel: RequestModel, queryAttributes: QueryAttributes, queryGenVersion: Version): Try[QueryPipeline]
@@ -705,7 +707,9 @@ object DefaultQueryPipelineFactory extends Logging {
   }
 }
 
-class DefaultQueryPipelineFactory(defaultFactEngine: Engine = OracleEngine, druidMultiQueryEngineList: Seq[Engine] = DefaultQueryPipelineFactory.druidMultiQueryEngineList)(implicit val queryGeneratorRegistry: QueryGeneratorRegistry) extends QueryPipelineFactory with Logging {
+case class QueryPipelineContext(offHeapRowListConfigOption: Option[OffHeapRowListConfig] = None)
+
+class DefaultQueryPipelineFactory(defaultFactEngine: Engine = OracleEngine, druidMultiQueryEngineList: Seq[Engine] = DefaultQueryPipelineFactory.druidMultiQueryEngineList, queryPipelineContext: QueryPipelineContext = QueryPipelineContext())(implicit val queryGeneratorRegistry: QueryGeneratorRegistry) extends QueryPipelineFactory with Logging {
 
   private[this] def getDimOnlyQuery(bestDimCandidates: SortedSet[DimensionBundle], requestModel: RequestModel, queryGenVersion: Version): Query = {
     val dimOnlyContextBuilder = QueryContext
@@ -1153,6 +1157,14 @@ OuterGroupBy operation has to be applied only in the following cases
                   , bestDimCandidates
                   , requestModel.isDebugEnabled
                 )
+                // Use Off Heap rowlist for async if config is specified in the QP factory instantiation
+                if (queryPipelineContext.offHeapRowListConfigOption.isDefined) {
+                  val offHeapRowListConfig = queryPipelineContext.offHeapRowListConfigOption.get
+                  builder.withRowListFunction(
+                    (q) => OffHeapRowList(q, offHeapRowListConfig)
+                  )
+                }
+
                 if (fallbackQueryOptionTry.isSuccess && fallbackQueryOptionTry.get.isDefined) {
                   builder.withFallbackQueryChain(SingleEngineQuery(fallbackQueryOptionTry.get.get))
                 } else {

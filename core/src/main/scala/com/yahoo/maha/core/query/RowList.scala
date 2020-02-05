@@ -2,9 +2,11 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query
 
+import com.twitter.chill.ScalaKryoInstantiator
 import com.yahoo.maha.core._
 import com.yahoo.maha.parrequest2.future.ParFunction
 import com.yahoo.maha.report.{RowCSVWriter, RowCSVWriterProvider}
+import com.yahoo.maha.serde.SerDe
 import org.json4s.JValue
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -74,6 +76,7 @@ sealed trait RowListLifeCycle {
   protected def start() : Unit
   def nextStage(): Unit = {}
   protected def end() : Unit
+  protected def kill(): Unit
 
   def withLifeCycle[T](fn: => T) : T = {
     start()
@@ -113,6 +116,10 @@ trait RowList extends RowListLifeCycle {
   protected def end() : Unit = {
     //do nothing
   }
+  protected def kill() : Unit = {
+    //do nothing
+  }
+
 }
 
 object QueryRowList {
@@ -219,7 +226,7 @@ trait InMemRowList extends QueryRowList {
       total_count = current_totalrows
     }
 
-    if(!listAttempt.isSuccess){
+    if (!listAttempt.isSuccess) {
       logger.warn("Failed to get total row count.\n" + listAttempt)
     }
 
@@ -834,6 +841,16 @@ case class PostResultRowData(r: Row, er: Option[Row] = None, columnAlias: String
     } else {
       None
     }
+  }
+}
+
+object RowSerDe extends SerDe[Row] {
+  override def serialize(t: Row): Array[Byte] = {
+    ScalaKryoInstantiator.defaultPool.toBytesWithClass(t)
+  }
+
+  override def deserialize(bytes: Array[Byte]): Row = {
+    ScalaKryoInstantiator.defaultPool.fromBytes(bytes).asInstanceOf[Row]
   }
 }
 

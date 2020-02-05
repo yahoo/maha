@@ -4,7 +4,7 @@ package com.yahoo.maha.rocksdb
 
 import java.util.concurrent.TimeUnit
 
-import com.yahoo.maha.serde.StringSerDe
+import com.yahoo.maha.serde.{LongSerDe, StringSerDe}
 import org.junit.Assert._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
@@ -114,5 +114,10 @@ class RocksDBAccessorTest extends FunSuite with Matchers with BeforeAndAfterAll 
     list.foreach {
       f => assertFalse(f.getAbsolutePath, f.exists())
     }
+  }
+
+  test("Long Serde Test") {
+    val longBytes = LongSerDe.serialize(1234567890L)
+    assert(LongSerDe.deserialize(longBytes) == 1234567890L)
   }
 }

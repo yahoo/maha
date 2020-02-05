@@ -628,7 +628,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create Postgres NVL and parse parameters") {
     import PostgresExpression._
-    implicit val cc = new ColumnContext
     val nvlVal = NVL("{col_name}", "{default_str}")
     assert(!nvlVal.hasRollupExpression)
     assert(!nvlVal.hasNumericOperation)
@@ -637,7 +636,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create hive NVL and parse parameters") {
     import HiveExpression._
-    implicit val cc = new ColumnContext
     val nvlVal = NVL("{col_name}", "{default_str}")
     assert(!nvlVal.hasRollupExpression)
     assert(!nvlVal.hasNumericOperation)
@@ -646,7 +644,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create presto NVL and parse parameters") {
     import PrestoExpression._
-    implicit val cc = new ColumnContext
     val nvlVal = NVL("{col_name}", "{default_str}")
     assert(!nvlVal.hasRollupExpression)
     assert(!nvlVal.hasNumericOperation)
@@ -655,7 +652,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create oracle TRUNC and parse parameters") {
     import OracleExpression._
-    implicit val cc = new ColumnContext
     val truncVal = TRUNC("{col_name}")
     assert(!truncVal.hasRollupExpression)
     assert(!truncVal.hasNumericOperation)
@@ -664,7 +660,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create Postgres TRUNC and parse parameters") {
     import PostgresExpression._
-    implicit val cc = new ColumnContext
     val truncVal = TRUNC("{col_name}")
     assert(!truncVal.hasRollupExpression)
     assert(!truncVal.hasNumericOperation)
@@ -673,7 +668,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create oracle COALESCE and parse parameters") {
     import OracleExpression._
-    implicit val cc = new ColumnContext
     val coalesceVal = COALESCE("{col_name}", "''")
     assert(!coalesceVal.hasRollupExpression)
     assert(!coalesceVal.hasNumericOperation)
@@ -682,7 +676,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create Postgres COALESCE and parse parameters") {
     import PostgresExpression._
-    implicit val cc = new ColumnContext
     val coalesceVal = COALESCE("{col_name}", "''")
     assert(!coalesceVal.hasRollupExpression)
     assert(!coalesceVal.hasNumericOperation)
@@ -691,7 +684,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create hive COALESCE and parse parameters") {
     import HiveExpression._
-    implicit val cc = new ColumnContext
     val coalesceVal = COALESCE("{col_name}", "''")
     assert(!coalesceVal.hasRollupExpression)
     assert(!coalesceVal.hasNumericOperation)
@@ -700,7 +692,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create presto COALESCE and parse parameters") {
     import PrestoExpression._
-    implicit val cc = new ColumnContext
     val coalesceVal = COALESCE("{col_name}", "''")
     assert(!coalesceVal.hasRollupExpression)
     assert(!coalesceVal.hasNumericOperation)
@@ -709,7 +700,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create oracle TO_CHAR and parse parameters") {
     import OracleExpression._
-    implicit val cc = new ColumnContext
     val tocharVal = TO_CHAR("{col_name}", "''")
     assert(!tocharVal.hasRollupExpression)
     assert(!tocharVal.hasNumericOperation)
@@ -718,7 +708,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create Postgres TO_CHAR and parse parameters") {
     import PostgresExpression._
-    implicit val cc = new ColumnContext
     val tocharVal = TO_CHAR("{col_name}", "''")
     assert(!tocharVal.hasRollupExpression)
     assert(!tocharVal.hasNumericOperation)
@@ -727,7 +716,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create oracle ROUND and parse parameters") {
     import OracleExpression._
-    implicit val cc = new ColumnContext
     val roundVal = ROUND("{col_name}", 1)
     assert(!roundVal.hasRollupExpression)
     assert(!roundVal.hasNumericOperation)
@@ -736,7 +724,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create Postgres ROUND and parse parameters") {
     import PostgresExpression._
-    implicit val cc = new ColumnContext
     val roundVal = ROUND("{col_name}", 1)
     assert(!roundVal.hasRollupExpression)
     assert(!roundVal.hasNumericOperation)
@@ -745,7 +732,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create hive ROUND and parse parameters") {
     import HiveExpression._
-    implicit val cc = new ColumnContext
     val roundVal = ROUND("{col_name}", 1)
     assert(!roundVal.hasRollupExpression)
     assert(!roundVal.hasNumericOperation)
@@ -754,7 +740,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create presto ROUND and parse parameters") {
     import PrestoExpression._
-    implicit val cc = new ColumnContext
     val roundVal = ROUND("{col_name}", 1)
     assert(!roundVal.hasRollupExpression)
     assert(!roundVal.hasNumericOperation)
@@ -763,7 +748,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create presto TRIM and parse parameters") {
     import PrestoExpression._
-    implicit val cc = new ColumnContext
     val roundVal = TRIM("{col_name}")
     assert(!roundVal.hasRollupExpression)
     assert(!roundVal.hasNumericOperation)
@@ -772,7 +756,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create presto MAX and parse parameters") {
     import PrestoExpression._
-    implicit val cc = new ColumnContext
     val roundVal = MAX("{col_name}")
     assert(roundVal.hasRollupExpression)
     assert(roundVal.hasNumericOperation)
