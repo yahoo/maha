@@ -159,6 +159,8 @@ class OffHeapRowListTest extends BaseRowListTest  {
     genericRowListFunctionalVerification(rowList)
     assert(rowList.isPersistentStoreInitialized() == false)
     assert(rowList.sizeOfInMemStore() == 100)
+    assert(rowList.sizeOfRocksDB() == 0 )
+
     rowList.close()
   }
 
@@ -168,6 +170,7 @@ class OffHeapRowListTest extends BaseRowListTest  {
     genericRowListFunctionalVerification(rowList)
     assert(rowList.isPersistentStoreInitialized() == true)
     assert(rowList.sizeOfInMemStore() == 10)
+    assert(rowList.sizeOfRocksDB() == 90)
     rowList.close()
   }
 
@@ -176,6 +179,7 @@ class OffHeapRowListTest extends BaseRowListTest  {
     genericRowListFunctionalVerification(rowList)
     assert(rowList.isPersistentStoreInitialized() == true)
     assert(rowList.sizeOfInMemStore() == 0)
+    assert(rowList.sizeOfRocksDB() == 100)
     rowList.close()
   }
 

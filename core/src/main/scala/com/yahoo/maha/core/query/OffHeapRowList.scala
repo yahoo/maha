@@ -20,7 +20,7 @@ import scala.util.Try
 */
 case class OffHeapRowListConfig(tempStoragePathOption:Option[String], inMemRowCountThreshold: Int = 10000)
 
-case class OffHeapRowList(query: Query, config: OffHeapRowListConfig) extends QueryRowList with AutoCloseable {
+case class OffHeapRowList(query: Query, config: OffHeapRowListConfig) extends QueryRowList with AutoCloseable with Logging {
 
   private[this] val tempStoragePath = OffHeapRowList.getAndValidateTempStorage(config.tempStoragePathOption)
 
@@ -29,6 +29,8 @@ case class OffHeapRowList(query: Query, config: OffHeapRowListConfig) extends Qu
   private[this] var rocksDBAccessorOption: Option[RocksDBAccessor[Long, Row]] = None
 
   private[this] val atomicLongRowCount = new AtomicLong(-1)
+
+  private[this] val rocksDBRowCount = new AtomicLong(0) // To be used for verification and monitoring
 
   protected[this] val list: collection.mutable.ArrayBuffer[Row] = {
     if(query.queryContext.requestModel.maxRows > 0) {
@@ -52,6 +54,7 @@ case class OffHeapRowList(query: Query, config: OffHeapRowListConfig) extends Qu
     if(rocksDBAccessorOption.isEmpty) {
       rocksDBAccessorOption = Some(OffHeapRowList.initRocksDB(tempStoragePath, query))
     }
+    rocksDBRowCount.incrementAndGet()
     rocksDBAccessorOption.get.put(atomicLongRowCount.incrementAndGet(), row)
   }
 
@@ -70,7 +73,8 @@ case class OffHeapRowList(query: Query, config: OffHeapRowListConfig) extends Qu
   }
 
   override protected def kill(): Unit = {
-    if(rocksDBAccessorOption.isDefined) {
+    info(s"called killed on OffHeapRowList, Stats:-> inMemRowCountThreshold: ${config.inMemRowCountThreshold}, sizeOfInMemStore: ${sizeOfInMemStore()}, sizeOfRocksDB:${sizeOfRocksDB()}")
+    if (rocksDBAccessorOption.isDefined) {
       Try {
         rocksDBAccessorOption.get.destroy()
         rocksDBAccessorOption = None
@@ -144,6 +148,10 @@ case class OffHeapRowList(query: Query, config: OffHeapRowListConfig) extends Qu
 
   def sizeOfInMemStore(): Int = {
     list.size
+  }
+
+  def sizeOfRocksDB(): Long = {
+    rocksDBRowCount.longValue()
   }
 
 }
