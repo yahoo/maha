@@ -4,12 +4,14 @@ import java.io.File
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicLong
 
+import com.twitter.chill.ScalaKryoInstantiator
 import com.yahoo.maha.core.query.QueryRowList.ROW_COUNT_ALIAS
 import com.yahoo.maha.core.request.Parameter.RequestId
 import com.yahoo.maha.rocksdb.{RocksDBAccessor, RocksDBAccessorBuilder}
-import com.yahoo.maha.serde.LongSerDe
+import com.yahoo.maha.serde.{LongSerDe, SerDe}
 import grizzled.slf4j.Logging
 import org.apache.commons.io.{FileUtils, FilenameUtils}
+import org.rocksdb.CompressionType
 
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
@@ -19,15 +21,30 @@ import scala.util.Try
 */
 case class OffHeapRowListConfig(tempStoragePathOption:Option[String], inMemRowCountThreshold: Int = 10000)
 
+case class RowValue(cols: collection.mutable.ArrayBuffer[Any]) {
+  def toRow(aliasMap : Map[String, Int]) : Row = {
+    Row(aliasMap, cols)
+  }
+}
+
+object RowValueSerDe extends SerDe[RowValue] {
+  override def serialize(t: RowValue): Array[Byte] = {
+    ScalaKryoInstantiator.defaultPool.toBytesWithClass(t)
+  }
+  override def deserialize(bytes: Array[Byte]): RowValue = {
+    ScalaKryoInstantiator.defaultPool.fromBytes(bytes).asInstanceOf[RowValue]
+  }
+}
+
 case class OffHeapRowList(query: Query, config: OffHeapRowListConfig) extends QueryRowList with AutoCloseable with Logging {
 
   private[this] val tempStoragePath = OffHeapRowList.getAndValidateTempStorage(config.tempStoragePathOption)
 
-  private[this] var rocksDBAccessorOption: Option[RocksDBAccessor[Long, Row]] = None
+  private[this] var rocksDBAccessorOption: Option[RocksDBAccessor[Long, RowValue]] = None
 
-  private[this] val atomicLongRowCount = new AtomicLong(-1)
+  private[this] var rowCount:Long = -1
 
-  private[this] val rocksDBRowCount = new AtomicLong(0) // To be used for verification and monitoring
+  private[this] var rocksDBRowCount:Long = 0 // To be used for verification and monitoring
 
   protected[this] val list: collection.mutable.ArrayBuffer[Row] = {
     if(query.queryContext.requestModel.maxRows > 0) {
@@ -37,13 +54,18 @@ case class OffHeapRowList(query: Query, config: OffHeapRowListConfig) extends Qu
     }
   }
 
+  private[this] def incrementAndGet(): Long = {
+    rowCount+=1
+    rowCount
+  }
+
   def addRow(r: Row, er: Option[Row] = None) : Unit = {
     postResultRowOperation(r, er)
-    if (atomicLongRowCount.get() >= config.inMemRowCountThreshold - 1) {
+    if (rowCount >= config.inMemRowCountThreshold - 1) {
       persist(r)
     } else {
       list+=r
-      atomicLongRowCount.incrementAndGet()
+      incrementAndGet()
     }
   }
 
@@ -51,62 +73,69 @@ case class OffHeapRowList(query: Query, config: OffHeapRowListConfig) extends Qu
     if(rocksDBAccessorOption.isEmpty) {
       rocksDBAccessorOption = Some(OffHeapRowList.initRocksDB(tempStoragePath, query))
     }
-    rocksDBRowCount.incrementAndGet()
-    rocksDBAccessorOption.get.put(atomicLongRowCount.incrementAndGet(), row)
+    rocksDBRowCount+=1
+    rocksDBAccessorOption.get.put(incrementAndGet(), RowValue(row.cols))
   }
 
   private[this] def rocksDBGet(index:Long): Row = {
-    require(index <= atomicLongRowCount.get(), s"Failed to get the index ${index} from rocksdb")
+    require(index <= rowCount, s"Failed to get the index ${index} from rocksdb")
     require(rocksDBAccessorOption.isDefined, "Invalid get call, RocksDB is yet not initialized")
-    val rowOption = rocksDBAccessorOption.get.get(index)
-    require(rowOption.isDefined, s"Failed to get row at index ${index} from rocksDB")
-    rowOption.get
+    val rowValueOption = rocksDBAccessorOption.get.get(index)
+    require(rowValueOption.isDefined, s"Failed to get row at index ${index} from rocksDB")
+    rowValueOption.get.toRow(aliasMap)
   }
 
   def isEmpty : Boolean = {
-    if (atomicLongRowCount.get() < 0) {
+    if (rowCount < 0) {
       true
     } else false
   }
 
   override protected def kill(): Unit = {
-    info(s"called killed on OffHeapRowList, Stats:-> inMemRowCountThreshold: ${config.inMemRowCountThreshold}, sizeOfInMemStore: ${sizeOfInMemStore()}, sizeOfRocksDB:${sizeOfRocksDB()}")
+    if(isDebugEnabled) {
+      logStats
+    }
     if (rocksDBAccessorOption.isDefined) {
+      logStats()
       Try {
         rocksDBAccessorOption.get.destroy()
         rocksDBAccessorOption = None
-        atomicLongRowCount.set(-1)
+        rowCount = -1
         list.clear()
       }
     }
   }
 
+  def logStats(): Unit = {
+    info(s"OffHeapRowList, Stats:-> inMemRowCountThreshold: ${config.inMemRowCountThreshold}, sizeOfInMemStore: ${sizeOfInMemStore()}, sizeOfRocksDB:${sizeOfRocksDB()}")
+  }
+
   def foreach(fn: Row => Unit) : Unit = {
     list.foreach(fn)
-    Range.Long.inclusive(config.inMemRowCountThreshold, atomicLongRowCount.get, 1).foreach {
+    Range.Long.inclusive(config.inMemRowCountThreshold, rowCount, 1).foreach {
       rc =>
         fn(rocksDBGet(rc))
     }
   }
 
   def forall(fn: Row => Boolean) : Boolean = {
-    list.forall(fn) && Range.Long.inclusive(config.inMemRowCountThreshold, atomicLongRowCount.get, 1).forall {
+    list.forall(fn) && Range.Long.inclusive(config.inMemRowCountThreshold, rowCount, 1).forall {
       rc =>
         fn(rocksDBGet(rc))
     }
   }
 
   def map[T](fn: Row => T) : Iterable[T] = {
-    list.map(fn) ++ Range.Long.inclusive(config.inMemRowCountThreshold, atomicLongRowCount.get, 1).map {
+    list.map(fn) ++ Range.Long.inclusive(config.inMemRowCountThreshold, rowCount, 1).map {
       rc =>
         fn(rocksDBGet(rc))
     }
   }
 
   def size: Int = {
-    if(atomicLongRowCount.get() < 0) {
+    if(rowCount < 0) {
       0
-    } else atomicLongRowCount.intValue() + 1
+    } else rowCount.intValue() + 1
   }
 
   //def javaForeach(fn: ParCallable)
@@ -116,7 +145,7 @@ case class OffHeapRowList(query: Query, config: OffHeapRowListConfig) extends Qu
       val firstRow = if (config.inMemRowCountThreshold > 0) {
         list.head
       } else {
-        rocksDBAccessorOption.get.get(0).get
+        rocksDBGet(0)
       }
       require(firstRow.aliasMap.contains(ROW_COUNT_ALIAS), "TOTALROWS not defined in alias map")
       val totalrow_col_num = firstRow.aliasMap(ROW_COUNT_ALIAS)
@@ -132,7 +161,7 @@ case class OffHeapRowList(query: Query, config: OffHeapRowListConfig) extends Qu
   }
 
   override def length : Int = {
-    atomicLongRowCount.intValue() + 1
+    rowCount.intValue() + 1
   }
 
   override def close(): Unit = {
@@ -148,7 +177,7 @@ case class OffHeapRowList(query: Query, config: OffHeapRowListConfig) extends Qu
   }
 
   def sizeOfRocksDB(): Long = {
-    rocksDBRowCount.longValue()
+    rocksDBRowCount
   }
 
 }
@@ -177,17 +206,21 @@ object OffHeapRowList extends Logging {
     newFile.getAbsolutePath
   }
 
-  def initRocksDB(tempStoragePath:String, query: Query): RocksDBAccessor[Long, Row] = {
+  def initRocksDB(tempStoragePath:String, query: Query): RocksDBAccessor[Long, RowValue] = {
     val params = query.queryContext.requestModel.additionalParameters
     val uuid = if(params.contains(RequestId)) {
       params.get(RequestId)
     } else {
       UUID.randomUUID().toString
     }
+    import RocksDBAccessor._1MB
 
     new RocksDBAccessorBuilder(s"off-heap-rowlist-${uuid}", Some(tempStoragePath))
       .addKeySerDe(LongSerDe)
-      .addValSerDe(RowSerDe)
+      .addValSerDe(RowValueSerDe)
+      .addCacheSize(10 * _1MB)
+      .addWriteBufferSize(1 * _1MB)
+      .setCompressionType(CompressionType.LZ4_COMPRESSION)
       .toRocksDBAccessor
   }
 

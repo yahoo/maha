@@ -844,13 +844,4 @@ case class PostResultRowData(r: Row, er: Option[Row] = None, columnAlias: String
   }
 }
 
-object RowSerDe extends SerDe[Row] {
-  override def serialize(t: Row): Array[Byte] = {
-    ScalaKryoInstantiator.defaultPool.toBytesWithClass(t)
-  }
-
-  override def deserialize(bytes: Array[Byte]): Row = {
-    ScalaKryoInstantiator.defaultPool.fromBytes(bytes).asInstanceOf[Row]
-  }
-}
 
