@@ -12,13 +12,15 @@ import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, SyncDruidQueryOptim
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.AsyncRequest
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Created by hiral on 1/15/16.
  */
 trait BaseOracleQueryGeneratorTest
-  extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema {
+  extends AnyFunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema {
 
   override protected def beforeAll(): Unit = {
     OracleQueryGenerator.register(queryGeneratorRegistry,DefaultPartitionColumnRenderer)

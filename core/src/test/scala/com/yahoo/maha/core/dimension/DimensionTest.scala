@@ -614,7 +614,7 @@ class DimensionTest extends FunSuite with Matchers {
   test("construct public dim should fail if dim map is empty") {
     val thrown = intercept[IllegalArgumentException] {
       ColumnContext.withColumnContext { implicit cc =>
-        new PublicDim("pd","pd", null,
+        PublicDim("pd","pd", null,
           Set(
             PubCol("id", "PublicDim ID", InEquality)
           ), Map.empty, Set.empty, Set.empty)

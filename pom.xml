@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>5.335-SNAPSHOT</version>
+    <version>5.336-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -64,6 +64,7 @@
         <curator.version>4.0.1</curator.version>
         <akka.version>2.5.27</akka.version>
         <mongo-java-driver.version>3.3.0</mongo-java-driver.version>
+        <twitter.chill.version>0.9.2</twitter.chill.version>
     </properties>
 
 
@@ -145,6 +146,11 @@
                 <groupId>joda-time</groupId>
                 <artifactId>joda-time</artifactId>
                 <version>${jodatime.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.twitter</groupId>
+                <artifactId>chill_${scala.major.version}</artifactId>
+                <version>${twitter.chill.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.beachape</groupId>

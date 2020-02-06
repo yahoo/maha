@@ -15,6 +15,7 @@ import scala.collection.mutable
 import scala.util.Try
 
 object RocksDBAccessor extends Logging {
+  val _1MB: Int = 1024 * 1024
   val instanceId = new AtomicInteger(0)
   val prefix = "rocksdb_"
   def incrementAndGetId() : Int = instanceId.incrementAndGet()
@@ -51,7 +52,7 @@ class RocksDBAccessor[K, V](builder: RocksDBAccessorBuilder[K, V]) extends Loggi
     options.setMaxOpenFiles(builder.maxOpenFiles)
     options.setWriteBufferSize(builder.writeBufferSize)
     options.setCreateIfMissing(builder.createIfMissing)
-    options.setCompressionType(CompressionType.LZ4HC_COMPRESSION)
+    options.setCompressionType(builder.compressionType)
     options.setParanoidChecks(true)
     options.optimizeForPointLookup(builder.cacheSize)
     options.setMemTableConfig(new HashSkipListMemTableConfig)
@@ -162,8 +163,8 @@ thus leaving it public to invoke it as per the implementation
 }
 
 class RocksDBAccessorBuilder[K, V](val dbName: String, val baseDirOption: Option[String] = None, val timeToLive: Option[Int] = None) {
+  import RocksDBAccessor._1MB
 
-  private val _1MB: Int = 1024 * 1024
   var blockSize: Int = _1MB
   var cacheSize: Int = 500 * _1MB
   var maxOpenFiles: Int = 1000
@@ -172,6 +173,7 @@ class RocksDBAccessorBuilder[K, V](val dbName: String, val baseDirOption: Option
   var keySerDe: SerDe[K] = null
   var valSerDe: SerDe[V] = null
   val baseDir = baseDirOption.getOrElse("/home/y/tmp")
+  var compressionType:CompressionType = CompressionType.LZ4HC_COMPRESSION
 
   def addBlockSize(blockSize: Int) = {
     this.blockSize = blockSize
@@ -205,6 +207,11 @@ class RocksDBAccessorBuilder[K, V](val dbName: String, val baseDirOption: Option
 
   def setCreateIfMissing(createIfMissing: Boolean) = {
     this.createIfMissing = createIfMissing
+    this
+  }
+
+  def setCompressionType(compressionType: CompressionType) = {
+    this.compressionType  = compressionType
     this
   }
 
