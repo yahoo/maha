@@ -2,15 +2,13 @@ package com.yahoo.maha.core.query
 
 import java.io.File
 import java.util.UUID
-import java.util.concurrent.atomic.AtomicLong
-
 import com.twitter.chill.ScalaKryoInstantiator
 import com.yahoo.maha.core.query.QueryRowList.ROW_COUNT_ALIAS
 import com.yahoo.maha.core.request.Parameter.RequestId
 import com.yahoo.maha.rocksdb.{RocksDBAccessor, RocksDBAccessorBuilder}
 import com.yahoo.maha.serde.{LongSerDe, SerDe}
 import grizzled.slf4j.Logging
-import org.apache.commons.io.{FileUtils, FilenameUtils}
+import org.apache.commons.io.{FileUtils}
 import org.rocksdb.CompressionType
 
 import scala.collection.mutable.ArrayBuffer
@@ -19,7 +17,10 @@ import scala.util.Try
 /*
     Created by pranavbhole on 2/3/20
 */
-case class OffHeapRowListConfig(tempStoragePathOption:Option[String], inMemRowCountThreshold: Int = 10000)
+case class OffHeapRowListConfig(tempStoragePathOption:Option[String],
+                                inMemRowCountThreshold: Int = 10000,
+                                rocksDBCacheSizeOption: Option[Int] = None,
+                                rocksDBWriteBufferOption: Option[Int] = None)
 
 case class RowValue(cols: collection.mutable.ArrayBuffer[Any]) {
   def toRow(aliasMap : Map[String, Int]) : Row = {
@@ -71,7 +72,7 @@ case class OffHeapRowList(query: Query, config: OffHeapRowListConfig) extends Qu
 
   private[this] def persist(row:Row): Unit =  {
     if(rocksDBAccessorOption.isEmpty) {
-      rocksDBAccessorOption = Some(OffHeapRowList.initRocksDB(tempStoragePath, query))
+      rocksDBAccessorOption = Some(OffHeapRowList.initRocksDB(tempStoragePath, query, config))
     }
     rocksDBRowCount+=1
     rocksDBAccessorOption.get.put(incrementAndGet(), RowValue(row.cols))
@@ -206,7 +207,7 @@ object OffHeapRowList extends Logging {
     newFile.getAbsolutePath
   }
 
-  def initRocksDB(tempStoragePath:String, query: Query): RocksDBAccessor[Long, RowValue] = {
+  def initRocksDB(tempStoragePath:String, query: Query, config: OffHeapRowListConfig): RocksDBAccessor[Long, RowValue] = {
     val params = query.queryContext.requestModel.additionalParameters
     val uuid = if(params.contains(RequestId)) {
       params.get(RequestId)
@@ -218,8 +219,8 @@ object OffHeapRowList extends Logging {
     new RocksDBAccessorBuilder(s"off-heap-rowlist-${uuid}", Some(tempStoragePath))
       .addKeySerDe(LongSerDe)
       .addValSerDe(RowValueSerDe)
-      .addCacheSize(10 * _1MB)
-      .addWriteBufferSize(1 * _1MB)
+      .addCacheSize(config.rocksDBCacheSizeOption.getOrElse(10 * _1MB))
+      .addWriteBufferSize(config.rocksDBWriteBufferOption.getOrElse(1 * _1MB))
       .setCompressionType(CompressionType.LZ4_COMPRESSION)
       .toRocksDBAccessor
   }
