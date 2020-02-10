@@ -134,8 +134,8 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       assert(anotherCol.derivedExpression.sourceColumns.contains("clicks") && anotherCol.derivedExpression.sourceColumns.contains("BLAH"))
       assert(anotherCol.derivedExpression.sourceRealColumns.contains("clicks") && anotherCol.derivedExpression.sourceRealColumns.contains("impressions"))
 
-      val p = anotherCol2.rollupExpression.sourceColumns
-      val q: Set[String] = anotherCol2.rollupExpression.sourceColumns.map(colName => {
+      val sourceCols = anotherCol2.rollupExpression.sourceColumns
+      val realSources2: Set[String] = anotherCol2.rollupExpression.sourceColumns.map(colName => {
         val col = anotherCol2.columnContext.getColumnByName(colName)
         if (!col.isDefined) {
           Set.empty
@@ -146,7 +146,8 @@ class DerivedExpressionTest extends FunSuite with Matchers {
         }
       }).flatten
 
-      assert(true)
+      assert(sourceCols.contains("newCol") && sourceCols.contains("fakeDim"))
+      assert(realSources2.contains("clicks") && realSources2.contains("impressions") && realSources2.contains("account_id"))
 
     }
   }
