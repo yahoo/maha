@@ -849,6 +849,17 @@ trait DerivedExpression[T] {
     columnRegex.findAllIn(expression.asString).map(_.substring(1).replace("}","")).toSet
   }
 
+  lazy val sourceRealColumns: Set[String] = {
+    val cols = sourceColumns.map(colName => columnContext.getColumnByName(colName)).filter(entry => entry.isDefined).map(entry => entry.get)
+    cols.flatMap(col => {
+      if (col.isDerivedColumn) {
+        col.asInstanceOf[DerivedColumn].derivedExpression.sourceRealColumns
+      } else {
+        Set(col.alias.getOrElse(col.name))
+      }
+    })
+  }
+
   lazy val isDimensionDriven : Boolean = {
     sourceColumns.exists {
       sc =>

@@ -118,6 +118,39 @@ class DerivedExpressionTest extends FunSuite with Matchers {
     }
   }
 
+  test("Should correctly display source columns when the source is also derived") {
+    import DruidExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      DimCol("clicks", IntType())
+      DimCol("impressions", IntType())
+
+      val col = DruidDerFactCol("BLAH", IntType(), "{clicks}" ++ "{impressions}")
+      val col2 = DimCol("fakeDim", IntType(), alias = Option("account_id"))
+
+      val anotherCol = DruidDerFactCol("newCol", IntType(), "{clicks}" ++ "{BLAH}")
+      val anotherCol2 = FactCol("fakeMet", IntType(), DruidFilteredRollup(EqualityFilter("fakeDim", "1"), "newCol", SumRollup))
+
+      assert(anotherCol.derivedExpression.sourceColumns.contains("clicks") && anotherCol.derivedExpression.sourceColumns.contains("BLAH"))
+      assert(anotherCol.derivedExpression.sourceRealColumns.contains("clicks") && anotherCol.derivedExpression.sourceRealColumns.contains("impressions"))
+
+      val p = anotherCol2.rollupExpression.sourceColumns
+      val q: Set[String] = anotherCol2.rollupExpression.sourceColumns.map(colName => {
+        val col = anotherCol2.columnContext.getColumnByName(colName)
+        if (!col.isDefined) {
+          Set.empty
+        } else if (!col.get.isDerivedColumn) {
+          Set(col.get.alias.getOrElse(col.get.name))
+        } else {
+          col.get.asInstanceOf[DerivedColumn].derivedExpression.sourceRealColumns
+        }
+      }).flatten
+
+      assert(true)
+
+    }
+  }
+
   test("successfully derive dependent columns from DruidDerivedExpression") {
     import DruidExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
@@ -130,7 +163,7 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       col.derivedExpression.sourceColumns.contains("clicks") should equal(true)
       col.derivedExpression.sourceColumns.contains("impressions") should equal(true)
       val json = om.writeValueAsString(col.derivedExpression.render(col.name)("BLAH", Map("clicks"->"Clicks")))
-      
+
       json should equal("""{"type":"arithmetic","name":"BLAH","fn":"+","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}],"ordering":null}""")
 
       val cc = new ColumnContext
