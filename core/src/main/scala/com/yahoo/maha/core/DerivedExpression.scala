@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 import com.google.common.collect.Lists
 import com.yahoo.maha.core.ThetaSketchSetOp.ThetaSketchSetOp
+import com.yahoo.maha.core.fact.FactCol
 import io.druid.js.JavaScriptConfig
 import io.druid.query.aggregation.PostAggregator
 import io.druid.query.aggregation.datasketches.theta.{SketchEstimatePostAggregator, SketchSetPostAggregator}
@@ -849,13 +850,25 @@ trait DerivedExpression[T] {
     columnRegex.findAllIn(expression.asString).map(_.substring(1).replace("}","")).toSet
   }
 
-  lazy val sourceRealColumns: Set[String] = {
-    val cols = sourceColumns.map(colName => columnContext.getColumnByName(colName)).filter(entry => entry.isDefined).map(entry => entry.get)
+
+  /**
+   * A primitive column is defined as any column which exists in the underlying
+   * table, not derived in any way.
+   */
+  lazy val sourcePrimitiveColumns: Set[String] = {
+    getPrimitiveCols(sourceColumns)
+  }
+
+  def getPrimitiveCols(colNames: Set[String]): Set[String] = {
+    val cols: Set[Column] = colNames.map(name => columnContext.getColumnByName(name)).filter(col => col.isDefined).map(col => col.get)
     cols.flatMap(col => {
-      if (col.isDerivedColumn) {
-        col.asInstanceOf[DerivedColumn].derivedExpression.sourceRealColumns
-      } else {
+      if((!col.isDerivedColumn && !col.isInstanceOf[FactCol]) || (col.isInstanceOf[FactCol] && !col.asInstanceOf[FactCol].hasRollupWithEngineRequirement)) {
         Set(col.alias.getOrElse(col.name))
+      } else if(col.isDerivedColumn) {
+        col.asInstanceOf[DerivedColumn].derivedExpression.sourcePrimitiveColumns
+      } else {
+        val colNameSet = col.asInstanceOf[FactCol].rollupExpression.sourceColumns
+        getPrimitiveCols(colNameSet)
       }
     })
   }

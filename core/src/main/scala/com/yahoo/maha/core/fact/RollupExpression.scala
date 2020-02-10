@@ -25,23 +25,23 @@ sealed trait CustomRollup extends RollupExpression
  */
 case class HiveCustomRollup(expression: HiveDerivedExpression) extends CustomRollup with WithHiveEngine {
   override val hasDerivedExpression: Boolean = true
-  override lazy val sourceColumns: Set[String] = expression.sourceRealColumns
+  override lazy val sourceColumns: Set[String] = expression.sourcePrimitiveColumns
 }
 case class PrestoCustomRollup(expression: PrestoDerivedExpression) extends CustomRollup with WithPrestoEngine {
   override val hasDerivedExpression: Boolean = true
-  override lazy val sourceColumns: Set[String] = expression.sourceRealColumns
+  override lazy val sourceColumns: Set[String] = expression.sourcePrimitiveColumns
 }
 case class OracleCustomRollup(expression: OracleDerivedExpression) extends CustomRollup with WithOracleEngine {
   override val hasDerivedExpression: Boolean = true
-  override lazy val sourceColumns: Set[String] = expression.sourceRealColumns
+  override lazy val sourceColumns: Set[String] = expression.sourcePrimitiveColumns
 }
 case class PostgresCustomRollup(expression: PostgresDerivedExpression) extends CustomRollup with WithPostgresEngine {
   override val hasDerivedExpression: Boolean = true
-  override lazy val sourceColumns: Set[String] = expression.sourceRealColumns
+  override lazy val sourceColumns: Set[String] = expression.sourcePrimitiveColumns
 }
 case class DruidCustomRollup(expression: DruidDerivedExpression) extends CustomRollup with WithDruidEngine {
   override val hasDerivedExpression: Boolean = true
-  override lazy val sourceColumns: Set[String] = expression.sourceRealColumns
+  override lazy val sourceColumns: Set[String] = expression.sourcePrimitiveColumns
 }
 case class DruidFilteredRollup(filter: Filter, factCol: DruidExpression.FieldAccess,
                                delegateAggregatorRollupExpression: RollupExpression) extends CustomRollup with WithDruidEngine {
