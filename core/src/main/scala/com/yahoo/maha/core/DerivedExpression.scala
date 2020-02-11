@@ -862,13 +862,14 @@ trait DerivedExpression[T] {
   def getPrimitiveCols(colNames: Set[String]): Set[String] = {
     val cols: Set[Column] = colNames.map(name => columnContext.getColumnByName(name)).filter(col => col.isDefined).map(col => col.get)
     cols.flatMap(col => {
-      if(col.isDerivedColumn) {
-        col.asInstanceOf[DerivedColumn].derivedExpression.sourcePrimitiveColumns
-      } else if(col.isInstanceOf[FactCol] && col.asInstanceOf[FactCol].hasRollupWithEngineRequirement) {
-        val colNameSet = col.asInstanceOf[FactCol].rollupExpression.sourceColumns
-        getPrimitiveCols(colNameSet)
-      } else {
-        Set(col.alias.getOrElse(col.name))
+      col match {
+        case col1: DerivedColumn =>
+          col1.derivedExpression.sourcePrimitiveColumns
+        case col1: FactCol if col1.hasRollupWithEngineRequirement =>
+          val colNameSet = col1.rollupExpression.sourceColumns
+          getPrimitiveCols(colNameSet)
+        case _ =>
+          Set(col.alias.getOrElse(col.name))
       }
     })
   }
