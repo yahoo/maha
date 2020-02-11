@@ -118,6 +118,68 @@ class DerivedExpressionTest extends FunSuite with Matchers {
     }
   }
 
+  test("Should correctly display source columns when the source is also derived") {
+    import DruidExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      DimCol("clicks", IntType())
+      DimCol("impressions", IntType())
+
+      val col = DruidDerFactCol("BLAH", IntType(), "{clicks}" ++ "{impressions}")
+      val col2 = DimCol("fakeDim", IntType(), alias = Option("account_id"))
+
+      val anotherCol = DruidDerFactCol("newCol", IntType(), "{clicks}" ++ "{BLAH}")
+      val anotherCol2 = FactCol("fakeMet", IntType(), DruidFilteredRollup(EqualityFilter("fakeDim", "1"), "newCol", SumRollup))
+
+      assert(anotherCol.derivedExpression.sourceColumns.contains("clicks") && anotherCol.derivedExpression.sourceColumns.contains("BLAH"))
+      assert(anotherCol.derivedExpression.sourcePrimitiveColumns.contains("clicks") && anotherCol.derivedExpression.sourcePrimitiveColumns.contains("impressions"))
+
+      val sourceCols = anotherCol2.rollupExpression.sourceColumns
+      val realSources2: Set[String] = anotherCol2.rollupExpression.sourceColumns.map(colName => {
+        val col = anotherCol2.columnContext.getColumnByName(colName)
+        if (!col.isDefined) {
+          Set.empty
+        } else if (!col.get.isDerivedColumn) {
+          Set(col.get.alias.getOrElse(col.get.name))
+        } else {
+          col.get.asInstanceOf[DerivedColumn].derivedExpression.sourcePrimitiveColumns
+        }
+      }).flatten
+
+      assert(sourceCols.contains("newCol") && sourceCols.contains("fakeDim"))
+      assert(realSources2.contains("clicks") && realSources2.contains("impressions") && realSources2.contains("account_id"))
+
+      val derColWithRollup = DruidDerFactCol("newCol2", IntType(), "{clicks}" ++ "{fakeMet}")
+
+      val derRollupSources = derColWithRollup.derivedExpression.sourcePrimitiveColumns
+
+      assert(derRollupSources.contains("impressions") && derRollupSources.contains("clicks") && derRollupSources.contains("account_id"))
+
+    }
+  }
+
+  test("Should create a column from a tree of derivation") {
+    import DruidExpression._
+    ColumnContext.withColumnContext{
+      implicit ctx: ColumnContext =>
+        DimCol("clicks", IntType())
+        FactCol("impressions", IntType())
+        DimCol("account_id", IntType())
+        DimCol("adv_id", IntType(), alias = Option("account_id"))
+
+        FactCol("additive", IntType())
+
+        DruidDerFactCol("derived_clicks_count", IntType(), "{clicks}" ++ "{impressions}")
+        FactCol("rollup_clicks", IntType(), DruidFilteredRollup(EqualityFilter("adv_id", "10"), "derived_clicks_count", SumRollup))
+        DruidDerFactCol("derived_rollup", IntType(), "{impressions}" ++ "{rollup_clicks}")
+        FactCol("filtered_derived_filter", IntType(), DruidFilteredListRollup(List(EqualityFilter("impressions", "1"), EqualityFilter("rollup_clicks", "2")), "derived_rollup", SumRollup))
+        val finalDerived = DruidDerFactCol("mega_col", IntType(), "{additive}" ++ "{filtered_derived_filter}")
+
+        val finalSources: Set[String] = finalDerived.derivedExpression.sourcePrimitiveColumns
+        assert(finalSources.contains("impressions") && finalSources.contains("account_id") && finalSources.contains("clicks"))
+    }
+  }
+
   test("successfully derive dependent columns from DruidDerivedExpression") {
     import DruidExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
@@ -130,7 +192,7 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       col.derivedExpression.sourceColumns.contains("clicks") should equal(true)
       col.derivedExpression.sourceColumns.contains("impressions") should equal(true)
       val json = om.writeValueAsString(col.derivedExpression.render(col.name)("BLAH", Map("clicks"->"Clicks")))
-      
+
       json should equal("""{"type":"arithmetic","name":"BLAH","fn":"+","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}],"ordering":null}""")
 
       val cc = new ColumnContext
