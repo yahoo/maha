@@ -17,6 +17,8 @@ import io.druid.query.aggregation.PostAggregator
 import io.druid.query.aggregation.datasketches.theta.{SketchEstimatePostAggregator, SketchSetPostAggregator}
 import io.druid.query.aggregation.post.{ArithmeticPostAggregator, ConstantPostAggregator, FieldAccessPostAggregator, JavaScriptPostAggregator}
 
+import scala.collection.mutable.ListBuffer
+
 trait Expression[T] {
   def hasNumericOperation: Boolean
   def hasRollupExpression: Boolean
@@ -831,6 +833,8 @@ trait DerivedExpression[T] {
 
   private[this] val columnRegex = """(\{[^}\\]+\})""".r
 
+  private[this] val nameBuffer: collection.mutable.ListBuffer[String] = new ListBuffer[String]()
+
   /**
    * The expression with reference to source columns as {colA}
    * * e.g. "timestamp_to_formatted_date({colA}, 'YYYY-MM-DD')"
@@ -864,13 +868,14 @@ trait DerivedExpression[T] {
   }
 
   def getPrimitiveCols(colNames: Set[String]): Set[String] = {
-    val cols: Set[Column] = colNames.map(name => columnContext.getColumnByName(name)).filter(col => col.isDefined).map(col => col.get)
+    val cols: Set[Column] = (colNames -- nameBuffer).map(name => columnContext.getColumnByName(name)).filter(col => col.isDefined).map(col => col.get)
+    nameBuffer ++= colNames.toList
     cols.flatMap(col => {
       col match {
         case col1: DerivedColumn =>
           col1.derivedExpression.sourcePrimitivesWithInput(col1.alias.getOrElse(col1.name))
         case col1: FactCol if col1.hasRollupWithEngineRequirement =>
-          val colNameSet = col1.rollupExpression.sourceColumns(col1.alias.getOrElse(col1.name))
+          val colNameSet = col1.rollupExpression.sourceColumns
           getPrimitiveCols(colNameSet -- Set(col.alias.getOrElse(col.name)))
         case _ =>
           Set(col.alias.getOrElse(col.name))
