@@ -134,8 +134,8 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       assert(anotherCol.derivedExpression.sourceColumns.contains("clicks") && anotherCol.derivedExpression.sourceColumns.contains("BLAH"))
       assert(anotherCol.derivedExpression.sourcePrimitiveColumns.contains("clicks") && anotherCol.derivedExpression.sourcePrimitiveColumns.contains("impressions"))
 
-      val sourceCols = anotherCol2.rollupExpression.sourceColumns
-      val realSources2: Set[String] = anotherCol2.rollupExpression.sourceColumns.map(colName => {
+      val sourceCols = anotherCol2.rollupExpression.sourceColumns("")
+      val realSources2: Set[String] = anotherCol2.rollupExpression.sourceColumns("").map(colName => {
         val col = anotherCol2.columnContext.getColumnByName(colName)
         if (!col.isDefined) {
           Set.empty
@@ -173,10 +173,14 @@ class DerivedExpressionTest extends FunSuite with Matchers {
         FactCol("rollup_clicks", IntType(), DruidFilteredRollup(EqualityFilter("adv_id", "10"), "derived_clicks_count", SumRollup))
         DruidDerFactCol("derived_rollup", IntType(), "{impressions}" ++ "{rollup_clicks}")
         FactCol("filtered_derived_filter", IntType(), DruidFilteredListRollup(List(EqualityFilter("impressions", "1"), EqualityFilter("rollup_clicks", "2")), "derived_rollup", SumRollup))
-        val finalDerived = DruidDerFactCol("mega_col", IntType(), "{additive}" ++ "{filtered_derived_filter}")
+        DruidDerFactCol("mega_col", IntType(), "{additive}" ++ "{filtered_derived_filter}")
+        val additiveRollup = FactCol("new_id", IntType(), DruidCustomRollup("{new_id}" ++ "{derived_rollup}"))
+        val finalDerived = DruidDerFactCol("self_call", IntType(), "{self_call}" ++ "{new_id}")
 
         val finalSources: Set[String] = finalDerived.derivedExpression.sourcePrimitiveColumns
+        val finalRollup: Set[String] = additiveRollup.rollupExpression.sourceColumns("")
         assert(finalSources.contains("impressions") && finalSources.contains("account_id") && finalSources.contains("clicks"))
+        assert(finalRollup.contains("impressions") && finalRollup.contains("account_id") && finalRollup.contains("clicks"))
     }
   }
 

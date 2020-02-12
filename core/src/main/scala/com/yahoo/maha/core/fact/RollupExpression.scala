@@ -9,7 +9,7 @@ import com.yahoo.maha.core._
  */
 sealed trait RollupExpression {
   val hasDerivedExpression = false
-  lazy val sourceColumns: Set[String] = Set.empty
+  def sourceColumns(discard: String): Set[String] = Set.empty
 }
 
 case object SumRollup extends RollupExpression
@@ -25,38 +25,38 @@ sealed trait CustomRollup extends RollupExpression
  */
 case class HiveCustomRollup(expression: HiveDerivedExpression) extends CustomRollup with WithHiveEngine {
   override val hasDerivedExpression: Boolean = true
-  override lazy val sourceColumns: Set[String] = expression.sourcePrimitiveColumns
+  override def sourceColumns(discard: String): Set[String] = expression.sourcePrimitivesWithInput(discard)
 }
 case class PrestoCustomRollup(expression: PrestoDerivedExpression) extends CustomRollup with WithPrestoEngine {
   override val hasDerivedExpression: Boolean = true
-  override lazy val sourceColumns: Set[String] = expression.sourcePrimitiveColumns
+  override def sourceColumns(discard: String): Set[String] = expression.sourcePrimitivesWithInput(discard)
 }
 case class OracleCustomRollup(expression: OracleDerivedExpression) extends CustomRollup with WithOracleEngine {
   override val hasDerivedExpression: Boolean = true
-  override lazy val sourceColumns: Set[String] = expression.sourcePrimitiveColumns
+  override def sourceColumns(discard: String): Set[String] = expression.sourcePrimitivesWithInput(discard)
 }
 case class PostgresCustomRollup(expression: PostgresDerivedExpression) extends CustomRollup with WithPostgresEngine {
   override val hasDerivedExpression: Boolean = true
-  override lazy val sourceColumns: Set[String] = expression.sourcePrimitiveColumns
+  override def sourceColumns(discard: String): Set[String] = expression.sourcePrimitivesWithInput(discard)
 }
 case class DruidCustomRollup(expression: DruidDerivedExpression) extends CustomRollup with WithDruidEngine {
   override val hasDerivedExpression: Boolean = true
-  override lazy val sourceColumns: Set[String] = expression.sourcePrimitiveColumns
+  override def sourceColumns(discard: String): Set[String] = expression.sourcePrimitivesWithInput(discard)
 }
 case class DruidFilteredRollup(filter: Filter, factCol: DruidExpression.FieldAccess,
                                delegateAggregatorRollupExpression: RollupExpression) extends CustomRollup with WithDruidEngine {
   override val hasDerivedExpression: Boolean = true
-  override lazy val sourceColumns: Set[String] = Set(filter.field, factCol.name) ++ delegateAggregatorRollupExpression.sourceColumns
+  override def sourceColumns(discard: String): Set[String] = Set(filter.field, factCol.name) ++ delegateAggregatorRollupExpression.sourceColumns(discard)
 }
 case class DruidFilteredListRollup(filter: List[Filter], factCol: DruidExpression.FieldAccess,
                                delegateAggregatorRollupExpression: RollupExpression) extends CustomRollup with WithDruidEngine {
   override val hasDerivedExpression: Boolean = true
-  override lazy val sourceColumns: Set[String] = filter.map(fil => fil.field).toSet ++ delegateAggregatorRollupExpression.sourceColumns ++ Set(factCol.name)
+  override def sourceColumns(discard: String): Set[String] = filter.map(fil => fil.field).toSet ++ delegateAggregatorRollupExpression.sourceColumns(discard) ++ Set(factCol.name)
 }
 
 case class DruidHyperUniqueRollup(column: String) extends CustomRollup with WithDruidEngine {
   override val hasDerivedExpression: Boolean = true
-  override lazy val sourceColumns: Set[String] = Set(column)
+  override def sourceColumns(discard: String): Set[String] = Set(column)
 }
 case object DruidThetaSketchRollup extends CustomRollup with WithDruidEngine
 
