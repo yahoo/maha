@@ -861,7 +861,7 @@ trait DerivedExpression[T] {
     getPrimitiveCols(List.empty[String].to[ListBuffer])
   }
 
-  def sourcePrimitivesWithInput(nameBuffer: ListBuffer[String]): Set[String] = {
+  private def sourcePrimitivesWithInput(nameBuffer: ListBuffer[String]): Set[String] = {
     getPrimitiveCols(nameBuffer)
   }
 
@@ -871,7 +871,7 @@ trait DerivedExpression[T] {
    * primitive columns are found, and return.
    * @return
    */
-  def getPrimitiveCols(nameBuffer: ListBuffer[String], passThroughSources: Set[String] = sourceColumns): Set[String] = {
+  private def getPrimitiveCols(nameBuffer: ListBuffer[String], passThroughSources: Set[String] = sourceColumns): Set[String] = {
     val cols: Set[Column] =
       (passThroughSources -- nameBuffer)
         .map(name => columnContext.getColumnByName(name))
