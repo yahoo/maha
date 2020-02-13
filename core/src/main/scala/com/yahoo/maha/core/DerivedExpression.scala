@@ -17,6 +17,8 @@ import io.druid.query.aggregation.PostAggregator
 import io.druid.query.aggregation.datasketches.theta.{SketchEstimatePostAggregator, SketchSetPostAggregator}
 import io.druid.query.aggregation.post.{ArithmeticPostAggregator, ConstantPostAggregator, FieldAccessPostAggregator, JavaScriptPostAggregator}
 
+import scala.collection.mutable.ListBuffer
+
 trait Expression[T] {
   def hasNumericOperation: Boolean
   def hasRollupExpression: Boolean
@@ -856,18 +858,34 @@ trait DerivedExpression[T] {
    * table, not derived in any way.
    */
   lazy val sourcePrimitiveColumns: Set[String] = {
-    getPrimitiveCols(sourceColumns)
+    getPrimitiveCols(List.empty[String].to[ListBuffer])
   }
 
-  def getPrimitiveCols(colNames: Set[String]): Set[String] = {
-    val cols: Set[Column] = colNames.map(name => columnContext.getColumnByName(name)).filter(col => col.isDefined).map(col => col.get)
+  private def sourcePrimitivesWithInput(nameBuffer: ListBuffer[String]): Set[String] = {
+    getPrimitiveCols(nameBuffer)
+  }
+
+  /**
+   * Given a set of source columns for a DerivedExpression,
+   * track its sources and the tree of all sources until
+   * primitive columns are found, and return.
+   * @return
+   */
+  private def getPrimitiveCols(nameBuffer: ListBuffer[String], passThroughSources: Set[String] = sourceColumns): Set[String] = {
+    val cols: Set[Column] =
+      (passThroughSources -- nameBuffer)
+        .map(name => columnContext.getColumnByName(name))
+        .filter(col => col.isDefined)
+        .map(col => col.get)
+
+    nameBuffer ++= cols.map(col => col.alias.getOrElse(col.name))
     cols.flatMap(col => {
       col match {
         case col1: DerivedColumn =>
-          col1.derivedExpression.sourcePrimitiveColumns
+          col1.derivedExpression.sourcePrimitivesWithInput(nameBuffer).to[ListBuffer]
         case col1: FactCol if col1.hasRollupWithEngineRequirement =>
-          val colNameSet = col1.rollupExpression.sourceColumns
-          getPrimitiveCols(colNameSet)
+          val (colIncludeSet, colExcludeSet) = col1.rollupExpression.sourceColumns.partition(_ != col1.alias.getOrElse(col1.name))
+          getPrimitiveCols(colExcludeSet.to[ListBuffer] ++ nameBuffer, colIncludeSet)
         case _ =>
           Set(col.alias.getOrElse(col.name))
       }
