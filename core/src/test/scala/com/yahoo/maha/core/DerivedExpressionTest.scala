@@ -178,7 +178,7 @@ class DerivedExpressionTest extends FunSuite with Matchers {
         val finalDerived = DruidDerFactCol("self_call", IntType(), "{self_call}" ++ "{new_id}")
 
         val finalSources: Set[String] = finalDerived.derivedExpression.sourcePrimitiveColumns
-        val finalRollup: Set[String] = additiveRollup.rollupExpression.sourceColumns
+        val finalRollup: Set[String] = additiveRollup.rollupExpression.sourcePrimitiveColumns
         assert(finalSources.contains("impressions") && finalSources.contains("account_id") && finalSources.contains("clicks"))
         assert(finalRollup.contains("impressions") && finalRollup.contains("account_id") && finalRollup.contains("clicks"))
     }

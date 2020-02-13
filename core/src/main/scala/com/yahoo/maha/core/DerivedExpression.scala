@@ -833,8 +833,6 @@ trait DerivedExpression[T] {
 
   private[this] val columnRegex = """(\{[^}\\]+\})""".r
 
-  private[this] val nameBuffer: collection.mutable.ListBuffer[String] = new ListBuffer[String]()
-
   /**
    * The expression with reference to source columns as {colA}
    * * e.g. "timestamp_to_formatted_date({colA}, 'YYYY-MM-DD')"
@@ -860,23 +858,34 @@ trait DerivedExpression[T] {
    * table, not derived in any way.
    */
   lazy val sourcePrimitiveColumns: Set[String] = {
-    getPrimitiveCols(sourceColumns)
+    getPrimitiveCols(List.empty[String].to[ListBuffer])
   }
 
-  def sourcePrimitivesWithInput(name: String): Set[String] = {
-    getPrimitiveCols(sourceColumns -- Set(name))
+  def sourcePrimitivesWithInput(nameBuffer: ListBuffer[String]): Set[String] = {
+    getPrimitiveCols(nameBuffer)
   }
 
-  def getPrimitiveCols(colNames: Set[String]): Set[String] = {
-    val cols: Set[Column] = (colNames -- nameBuffer).map(name => columnContext.getColumnByName(name)).filter(col => col.isDefined).map(col => col.get)
-    nameBuffer ++= colNames.toList
+  /**
+   * Given a set of source columns for a DerivedExpression,
+   * track its sources and the tree of all sources until
+   * primitive columns are found, and return.
+   * @return
+   */
+  def getPrimitiveCols(nameBuffer: ListBuffer[String], passThroughSources: Set[String] = sourceColumns): Set[String] = {
+    val cols: Set[Column] =
+      (passThroughSources -- nameBuffer)
+        .map(name => columnContext.getColumnByName(name))
+        .filter(col => col.isDefined)
+        .map(col => col.get)
+
+    nameBuffer ++= cols.map(col => col.alias.getOrElse(col.name))
     cols.flatMap(col => {
       col match {
         case col1: DerivedColumn =>
-          col1.derivedExpression.sourcePrimitivesWithInput(col1.alias.getOrElse(col1.name))
+          col1.derivedExpression.sourcePrimitivesWithInput(nameBuffer).to[ListBuffer]
         case col1: FactCol if col1.hasRollupWithEngineRequirement =>
-          val colNameSet = col1.rollupExpression.sourceColumns
-          getPrimitiveCols(colNameSet -- Set(col.alias.getOrElse(col.name)))
+          val (colIncludeSet, colExcludeSet) = col1.rollupExpression.sourceColumns.partition(_ != col1.alias.getOrElse(col1.name))
+          getPrimitiveCols(colExcludeSet.to[ListBuffer] ++ nameBuffer, colIncludeSet)
         case _ =>
           Set(col.alias.getOrElse(col.name))
       }
