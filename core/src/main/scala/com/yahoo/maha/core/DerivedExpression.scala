@@ -11,10 +11,13 @@ import java.util.concurrent.atomic.AtomicLong
 
 import com.google.common.collect.Lists
 import com.yahoo.maha.core.ThetaSketchSetOp.ThetaSketchSetOp
+import com.yahoo.maha.core.fact.FactCol
 import io.druid.js.JavaScriptConfig
 import io.druid.query.aggregation.PostAggregator
 import io.druid.query.aggregation.datasketches.theta.{SketchEstimatePostAggregator, SketchSetPostAggregator}
 import io.druid.query.aggregation.post.{ArithmeticPostAggregator, ConstantPostAggregator, FieldAccessPostAggregator, JavaScriptPostAggregator}
+
+import scala.collection.mutable.ListBuffer
 
 trait Expression[T] {
   def hasNumericOperation: Boolean
@@ -847,6 +850,46 @@ trait DerivedExpression[T] {
    */
   lazy val sourceColumns: Set[String] = {
     columnRegex.findAllIn(expression.asString).map(_.substring(1).replace("}","")).toSet
+  }
+
+
+  /**
+   * A primitive column is defined as any column which exists in the underlying
+   * table, not derived in any way.
+   */
+  lazy val sourcePrimitiveColumns: Set[String] = {
+    getPrimitiveCols(List.empty[String].to[ListBuffer])
+  }
+
+  private def sourcePrimitivesWithInput(nameBuffer: ListBuffer[String]): Set[String] = {
+    getPrimitiveCols(nameBuffer)
+  }
+
+  /**
+   * Given a set of source columns for a DerivedExpression,
+   * track its sources and the tree of all sources until
+   * primitive columns are found, and return.
+   * @return
+   */
+  private def getPrimitiveCols(nameBuffer: ListBuffer[String], passThroughSources: Set[String] = sourceColumns): Set[String] = {
+    val cols: Set[Column] =
+      (passThroughSources -- nameBuffer)
+        .map(name => columnContext.getColumnByName(name))
+        .filter(col => col.isDefined)
+        .map(col => col.get)
+
+    nameBuffer ++= cols.map(col => col.alias.getOrElse(col.name))
+    cols.flatMap(col => {
+      col match {
+        case col1: DerivedColumn =>
+          col1.derivedExpression.sourcePrimitivesWithInput(nameBuffer).to[ListBuffer]
+        case col1: FactCol if col1.hasRollupWithEngineRequirement =>
+          val (colIncludeSet, colExcludeSet) = col1.rollupExpression.sourceColumns.partition(_ != col1.alias.getOrElse(col1.name))
+          getPrimitiveCols(colExcludeSet.to[ListBuffer] ++ nameBuffer, colIncludeSet)
+        case _ =>
+          Set(col.alias.getOrElse(col.name))
+      }
+    })
   }
 
   lazy val isDimensionDriven : Boolean = {

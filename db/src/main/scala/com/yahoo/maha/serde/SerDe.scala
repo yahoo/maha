@@ -3,6 +3,7 @@
 package com.yahoo.maha.serde
 
 import java.nio.charset.StandardCharsets
+import com.google.common.primitives.Longs
 
 trait SerDe[T] {
   def serialize(t: T): Array[Byte]
@@ -33,3 +34,14 @@ object BytesSerDe extends SerDe[Array[Byte]] {
     bytes
   }
 }
+
+object LongSerDe extends SerDe[Long] {
+  override def serialize(t: Long): Array[Byte] = {
+    Longs.toByteArray(t)
+  }
+
+  override def deserialize(bytes: Array[Byte]): Long = {
+    Longs.fromByteArray(bytes)
+  }
+}
+
