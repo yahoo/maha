@@ -12,6 +12,8 @@ import grizzled.slf4j.Logging
 
 import scala.collection.{SortedSet, mutable}
 import scala.util.Try
+import org.json4s.JsonAST.{JArray, JNull, JObject, JValue}
+import org.json4s.scalaz.JsonScalaz._
 
 /**
  * Created by hiral on 10/7/15.
@@ -27,6 +29,14 @@ trait FactColumn extends Column {
   def rollupExpression: RollupExpression
 
   val hasRollupWithEngineRequirement: Boolean = rollupExpression.isInstanceOf[EngineRequirement]
+
+  override def asJSON: JObject =
+    makeObj(
+      List(
+        ("FactColumn" -> super.asJSON)
+        ,("hasRollupWithEngineRequirement" -> toJSON(hasRollupWithEngineRequirement))
+      )
+    )
 }
 
 trait ConstFactColumn extends FactColumn with ConstColumn
@@ -98,6 +108,23 @@ case class FactCol(name: String,
         //normal rollup, do nothing
     }
   }
+
+  private val jUtils = JsonUtils
+
+
+  override def asJSON: JObject =
+    makeObj(
+      List(
+        ("FactCol" -> super.asJSON)
+        ,("name" -> toJSON(name))
+        ,("dataType" -> dataType.asJSON)
+        ,("columnContext" -> toJSON(columnContext.toString))
+        ,("rollupExpression" -> rollupExpression.asJSON)
+        ,("aliasOrName" -> toJSON(alias.getOrElse(name)))
+        ,("annotations" -> jUtils.asJSON(annotations))
+        ,("filterOperationOverrides" -> jUtils.asJSON(filterOperationOverrides.map(op => op.toString)))
+      )
+    )
 }
 
 object FactCol {

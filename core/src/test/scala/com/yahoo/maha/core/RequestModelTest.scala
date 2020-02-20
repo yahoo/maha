@@ -15,6 +15,7 @@ import com.yahoo.maha.core.query.{InnerJoin, LeftOuterJoin, RightOuterJoin}
 import com.yahoo.maha.core.registry.{Registry, RegistryBuilder}
 import com.yahoo.maha.core.request._
 import org.joda.time.{DateTime, DateTimeZone}
+import org.json4s.JObject
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.util.Random
@@ -5617,6 +5618,26 @@ class RequestModelTest extends FunSuite with Matchers {
     failureResp.isFailure shouldBe true
     failureResp.failed.get.getMessage should  startWith (s"requirement failed: ERROR_CODE:10007 (Advertiser Email) can't be used with publisher schema ")
 
+  }
+
+  test("Test rendering of columns to JSON") {
+    val registry = defaultRegistry
+    val pubFact = registry.getFact("publicFact")
+    val pubFactCols = pubFact.get.factCols
+    val pubDimCols = pubFact.get.dimCols
+    val fkAliases = pubFact.get.foreignKeySources
+    val fkTables = fkAliases.map(source => registry.getDimension(source).get)
+    val fkTableNames = fkTables.map(table => table.name)
+    val fkCols = fkTables.flatMap(dim => dim.columnsByAliasMap.map(_._2))
+    val allPubJSONs: Set[JObject] = (pubFactCols ++ pubDimCols ++ fkCols).map(col => col.asJSON)
+    val allOtherJSONS: Set[JObject] = (pubFact.get.baseFact.dimCols ++ pubFact.get.baseFact.factCols).map(col => col.asJSON)
+    println(s"""All tables with fact ${pubFact.get.name}: ${fkTableNames.mkString(",")}""")
+
+    import org.json4s._
+    import org.json4s.jackson.JsonMethods._
+    implicit val formats = DefaultFormats
+    //println(allPubJSONs.map(json => pretty(json)))
+    //println(allOtherJSONS.map(json => pretty(json)))
   }
 }
 

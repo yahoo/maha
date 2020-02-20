@@ -5,8 +5,8 @@ package com.yahoo.maha.core
 import org.json4s._
 import org.json4s.scalaz.JsonScalaz
 import org.json4s.scalaz.JsonScalaz._
-
 import _root_.scalaz.{Scalaz, syntax}
+import org.json4s.JsonAST.{JArray, JValue}
 import syntax.validation._
 
 /**
@@ -45,4 +45,41 @@ object JsonUtils {
   }
 
   def booleanFalse(json: JValue): Result[Boolean] = false.successNel
+
+  /**
+   * Implicits used for JSON converters, IE Set, Map, Annotations, etc.
+   */
+  /*implicit def setJSONW: JSONW[Set[String]] = new JSONW[Set[String]] {
+    def write(values: Set[String]) = JArray(values.map(x => toJSON(x)).toList)
+  }*/
+
+  implicit def mapJSONW: JSONW[Map[String, Set[String]]] = new JSONW[Map[String, Set[String]]] {
+    def write(values: Map[String, Set[String]]) = makeObj(values.map(kv => kv._1 -> toJSON(kv._2.toList)).toList)
+  }
+
+  implicit def bdJSONW: JSONW[BigDecimal] = new JSONW[BigDecimal] {
+    def write(value: BigDecimal): JValue = makeObj(List(("value" -> toJSON(value.doubleValue()))))
+  }
+
+  implicit def toStringJSONW[A]: JSONW[A] = new JSONW[A] {
+    def write(value: A): JValue = value match {
+      case a: ColumnAnnotation =>
+        a.asJSON
+      case _ =>
+        toJSON(value.toString)
+    }
+  }
+
+  implicit def setJSONW[A]: JSONW[Set[A]] = new JSONW[Set[A]] {
+    def write(values: Set[A]) = JArray(values.map(x => toJSON(x)).toList)
+  }
+
+  implicit def listJSONW[A: JSONW]: JSONW[List[A]] = new JSONW[List[A]] {
+    def write(values: List[A]) = JArray(values.map(x => implicitly[JSONW[A]].write(x)))
+  }
+
+  def asJSON[A](a: A): JValue = {
+    toJSON(a)
+  }
+
 }

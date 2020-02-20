@@ -18,6 +18,8 @@ import io.druid.query.aggregation.datasketches.theta.{SketchEstimatePostAggregat
 import io.druid.query.aggregation.post.{ArithmeticPostAggregator, ConstantPostAggregator, FieldAccessPostAggregator, JavaScriptPostAggregator}
 
 import scala.collection.mutable.ListBuffer
+import org.json4s.JsonAST.{JArray, JNull, JObject, JValue}
+import org.json4s.scalaz.JsonScalaz._
 
 trait Expression[T] {
   def hasNumericOperation: Boolean
@@ -29,6 +31,15 @@ trait Expression[T] {
   def ++(that: Expression[T]) : Expression[T] //++ instead of + due to conflict with standard + operator on strings
   def -(that: Expression[T]) : Expression[T]
   def /-(that: Expression[T]) : Expression[T]
+
+  def asJSON: JObject =
+    makeObj(
+      List(
+        ("expression" -> toJSON(this.getClass.getSimpleName))
+        ,("hasNumericOperation" -> toJSON(hasNumericOperation))
+        ,("hasRollupExpression" -> toJSON(hasRollupExpression))
+      )
+    )
 }
 
 sealed trait PostgresExpression extends Expression[String] {
@@ -946,6 +957,16 @@ trait DerivedExpression[T] {
   def copyWith(columnContext: ColumnContext) : ConcreteType
 
   def postRenderHook(columnName: String, rendered: T) : T = rendered
+
+  private val jUtils = JsonUtils
+
+  def asJSON: JObject =
+    makeObj(
+      List(
+        ("expression" -> expression.asJSON)
+        ,("sourcePrimitiveColumns" -> jUtils.asJSON(if(sourcePrimitiveColumns != null) sourcePrimitiveColumns else Set.empty))
+      )
+    )
 }
 
 case class HiveDerivedExpression (columnContext: ColumnContext, expression: HiveExpression) extends DerivedExpression[String] with WithHiveEngine {
@@ -1182,7 +1203,6 @@ object DruidExpression {
     def asString = {
       s"$aggregatorsDruidExpressions"
     }
-
   }
 
   case class Constant(value: BigDecimal) extends BaseDruidExpression {

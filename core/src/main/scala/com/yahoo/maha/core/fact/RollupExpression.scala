@@ -3,6 +3,8 @@
 package com.yahoo.maha.core.fact
 
 import com.yahoo.maha.core._
+import org.json4s.JsonAST.{JArray, JObject}
+import org.json4s.scalaz.JsonScalaz._
 
 /**
  * Created by hiral on 10/7/15.
@@ -11,6 +13,17 @@ sealed trait RollupExpression {
   val hasDerivedExpression = false
   lazy val sourceColumns: Set[String] = Set.empty
   lazy val sourcePrimitiveColumns: Set[String] = Set.empty
+
+  private val jUtils = JsonUtils
+
+  def asJSON: JObject =
+    makeObj(
+      List(
+        ("expressionName" -> toJSON(this.getClass.getSimpleName))
+        ,("hasDerivedExpression" -> toJSON(hasDerivedExpression))
+        ,("sourcePrimitiveColumns"   ->  jUtils.asJSON(sourcePrimitiveColumns))
+      )
+    )
 }
 
 case object SumRollup extends RollupExpression

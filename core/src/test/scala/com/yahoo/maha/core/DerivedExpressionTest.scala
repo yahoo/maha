@@ -7,6 +7,7 @@ import com.yahoo.maha.core.DruidPostResultFunction.POST_RESULT_DECODE
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import io.druid.jackson.DefaultObjectMapper
+import org.json4s.JsonAST.JObject
 import org.scalatest.{FunSuite, Matchers}
 
 /**
@@ -837,6 +838,45 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       col1.derivedExpression.render(col1.name) should equal("CASE WHEN LENGTH(regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$)', 2)) > 0 THEN regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$)', 2) ELSE '-3' END")
       val col2 = PrestoDerDimCol("Default Exp ID", StrType(), REGEX_EXTRACT("internal_bucket_id", "(df-)(.*?)(,|$)", 2, replaceMissingValue = false, ""))
       col2.derivedExpression.render(col2.name) should equal("regexp_extract(internal_bucket_id, '(df-)(.*?)(,|$)', 2)")
+    }
+  }
+
+  test("All column types with all expressions, dataTypes, & rollups should render JSON properly.") {
+    import com.yahoo.maha.core.DruidDerivedFunction._
+    import com.yahoo.maha.core.DruidPostResultFunction._
+    ColumnContext.withColumnContext {
+      implicit cc: ColumnContext =>
+        import DruidExpression._
+        DimCol("clicks", IntType())
+        FactCol("impressions", IntType())
+        DimCol("account_id", IntType())
+        DimCol("adv_id", IntType(), alias = Option("account_id"))
+        DimCol("date", DateType("yyyyMMdd"))
+
+        FactCol("additive", IntType())
+
+        DruidDerFactCol("derived_clicks_count", IntType(), "{clicks}" ++ "{impressions}")
+        FactCol("rollup_clicks", IntType(), DruidFilteredRollup(EqualityFilter("adv_id", "10"), "derived_clicks_count", SumRollup))
+        DruidDerFactCol("derived_rollup", IntType(), "{impressions}" ++ "{rollup_clicks}")
+        FactCol("filtered_derived_filter", IntType(), DruidFilteredListRollup(List(EqualityFilter("impressions", "1"), EqualityFilter("rollup_clicks", "2")), "derived_rollup", SumRollup))
+        DruidDerFactCol("mega_col", IntType(), "{additive}" ++ "{filtered_derived_filter}")
+        val additiveRollup = FactCol("new_id", IntType(), DruidCustomRollup("{new_id}" ++ "{derived_rollup}"))
+        val finalDerived = DruidDerFactCol("self_call", IntType(3, (Map(1 -> "2"), "1")), "{self_call}" ++ "{new_id}")
+        val strCol = DimCol("blue_id", StrType())
+        val dateCol = DruidFuncDimCol("date_id", DateType("yyyyMMdd"), DATETIME_FORMATTER("{date}", 0, 3))
+        val tsCol = DimCol("ts_id", TimestampType())
+        val passthroughCol = DimCol("pt_col", PassthroughType())
+        val prCol = DruidPostResultFuncDimCol("pr_col", IntType(), postResultFunction = START_OF_THE_WEEK("{date_id}"))
+
+
+        val allCols: Set[Column] = Set(additiveRollup, finalDerived, strCol, dateCol, tsCol, passthroughCol, prCol)
+
+        val allJSONs: Set[JObject] = allCols.map(col => col.asJSON)
+
+        import org.json4s._
+        import org.json4s.jackson.JsonMethods._
+        implicit val formats = DefaultFormats
+        //println(allJSONs.map(json => pretty(json)))
     }
   }
 }

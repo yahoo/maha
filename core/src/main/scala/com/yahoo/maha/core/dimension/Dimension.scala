@@ -10,7 +10,8 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.request.RequestType
 import scala.collection.{SortedSet, mutable}
 import scala.collection.immutable.TreeSet
-
+import org.json4s.JsonAST.{JArray, JObject, JValue}
+import org.json4s.scalaz.JsonScalaz._
 /**
  * Created by hiral on 10/2/15.
  */
@@ -24,12 +25,13 @@ sealed trait DimensionColumn extends Column {
     annotations.find(_.isInstanceOf[ForeignKey]).map(ca => ca.asInstanceOf[ForeignKey].publicDimName)
   }
 
-  override def toString: String = {
-    super.toString +
-    s"""
-         |isForeignKey:$isForeignKey
-         |""".stripMargin
-  }
+  override def asJSON: JObject =
+    makeObj(
+      List(
+        ("DimensionColumn" -> super.asJSON)
+        ,("isForeignKey" -> toJSON(isForeignKey))
+      )
+    )
 }
 
 trait ConstDimensionColumn extends DimensionColumn with ConstColumn
@@ -71,6 +73,21 @@ case class DimCol(name: String,
       this.copy(columnContext = columnContext, alias = (columnAliasMap.get(name) orElse this.alias))
     }
   }
+
+  private val jUtils = JsonUtils
+
+  override def asJSON: JObject =
+    makeObj(
+      List(
+        ("DimCol" -> super.asJSON)
+        ,("name" -> toJSON(name))
+        ,("dataType" -> dataType.asJSON)
+        ,("columnContext" -> toJSON(columnContext.toString))
+        ,("aliasOrName" ->  toJSON(alias.getOrElse(name)))
+        ,("annotations" -> jUtils.asJSON(annotations))
+        ,("filterOperationOverrides" -> jUtils.asJSON(filterOperationOverrides.map(fo => fo.toString)))
+      )
+    )
 }
 
 object DimCol {
