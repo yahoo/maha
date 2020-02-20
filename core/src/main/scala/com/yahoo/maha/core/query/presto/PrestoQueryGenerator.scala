@@ -168,11 +168,11 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
           s"""ROUND(COALESCE($finalAlias, ${default}), 10)"""
         case DecType(_, _, _, _, _, _) =>
           s"""ROUND(COALESCE($finalAlias, 0), 10)"""
-        case IntType(_,sm,_,_,_) =>
+        case IntType(_,sm,df,_,_) =>
           if (sm.isDefined) {
             s"""COALESCE(CAST($finalAlias as varchar), 'NA')"""
           } else {
-            s"""COALESCE($finalAlias, 0)"""
+            s"""COALESCE($finalAlias, ${df.getOrElse(0)})"""
           }
         case DateType(_) => s"""getFormattedDate($finalAlias)"""
         case StrType(_, sm, df) =>
