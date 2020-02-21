@@ -6034,7 +6034,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
   test("Test dimension join when dim primary key has alias") {
     val jsonString = s"""{
-                           "cube": "class_stats",
+                           "cube": "class_stats_2",
                            "selectFields": [
                              {
                                "field": "Class ID",
@@ -6077,20 +6077,20 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          |SELECT *
-         |FROM (SELECT fcs0.class_id "Class ID", fcs0.class_name "Class Name", cc1.address "Class Address", fcs0."num_students" "Students"
+         |FROM (SELECT fcso0.class_id "Class ID", fcso0.class_name "Class Name", cc1.address "Class Address", fcso0."num_students" "Students"
          |      FROM (SELECT
          |                   CASE WHEN (class_name IN (1)) THEN 'Classy' WHEN (class_name IN (2)) THEN 'Classier' WHEN (class_name IN (3)) THEN 'Classiest' ELSE 'Unknown' END class_name, class_id, SUM(num_students) AS "num_students"
-         |            FROM f_class_stats FactAlias
+         |            FROM f_class_stats_ora FactAlias
          |            WHERE (class_id = 12345) AND (date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY CASE WHEN (class_name IN (1)) THEN 'Classy' WHEN (class_name IN (2)) THEN 'Classier' WHEN (class_name IN (3)) THEN 'Classiest' ELSE 'Unknown' END, class_id
          |
-         |           ) fcs0
+         |           ) fcso0
          |           LEFT OUTER JOIN
          |           (SELECT  address, id_alias
          |            FROM combined_class
          |            WHERE (id_alias = 12345)
          |             )
-         |           cc1 ON (fcs0.class_id = cc1.id_alias)
+         |           cc1 ON (fcso0.class_id = cc1.id_alias)
          |
          |)
          |""".stripMargin
