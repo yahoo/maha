@@ -833,7 +833,7 @@ trait BaseOracleQueryGeneratorTest
       ColumnContext.withColumnContext {
         implicit dc: ColumnContext =>
           Fact.newFact(
-            name = "f_class_stats", DailyGrain, DruidEngine, Set(AdvertiserSchema),
+            name = "f_class_stats", DailyGrain, OracleEngine, Set(AdvertiserSchema),
             Set(
               DimCol("class_id", IntType(), annotations = Set(ForeignKey("combined_class")))
               , DimCol("class_name", IntType(10, (Map(1 -> "Classy", 2 -> "Classier", 3 -> "Classiest"), "Unknown")))
