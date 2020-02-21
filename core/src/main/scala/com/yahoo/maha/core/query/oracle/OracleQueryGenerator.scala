@@ -447,7 +447,7 @@ b. Dim Driven
             val fkCol = factCandidate.fact.publicDimToForeignKeyColMap(dimBundle.publicDim.name)
             val fk = fkCol.alias.getOrElse(fkCol.name)
 
-            val pk = dimBundle.dim.primaryKey
+            val pk = dimBundle.dim.dimensionColumnsByNameMap(dimBundle.dim.primaryKey).alias.getOrElse(dimBundle.dim.primaryKey)
 
             val joinType : JoinType = requestModel.publicDimToJoinTypeMap(dimBundle.publicDim.name)
 
@@ -519,7 +519,7 @@ b. Dim Driven
             b
         }
         val dimAlias = renderedPrimaryDim.dimAlias
-        val pk = primaryBundle.dim.primaryKey
+        val pk = primaryBundle.dim.dimensionColumnsByNameMap(primaryBundle.dim.primaryKey).alias.getOrElse(primaryBundle.dim.primaryKey)
         val parentJoinType = SqlHelper.getJoinString(
           requestModel.publicDimToJoinTypeMap(renderedPrimaryDimBundle.publicDim.name), engine)
 
