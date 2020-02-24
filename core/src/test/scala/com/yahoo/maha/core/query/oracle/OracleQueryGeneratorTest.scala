@@ -6032,4 +6032,69 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
   }
 
+  test("Test dimension join when dim primary key has alias") {
+    val jsonString = s"""{
+                           "cube": "class_stats_2",
+                           "selectFields": [
+                             {
+                               "field": "Class ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Class Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Class Address",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Students",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                              {"field": "Class ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ]
+                         }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+
+    val expected =
+      s"""
+         |SELECT *
+         |FROM (SELECT fcso0.class_id "Class ID", fcso0.class_name "Class Name", cc1.address "Class Address", fcso0."num_students" "Students"
+         |      FROM (SELECT
+         |                   CASE WHEN (class_name IN (1)) THEN 'Classy' WHEN (class_name IN (2)) THEN 'Classier' WHEN (class_name IN (3)) THEN 'Classiest' ELSE 'Unknown' END class_name, class_id, SUM(num_students) AS "num_students"
+         |            FROM f_class_stats_ora FactAlias
+         |            WHERE (class_id = 12345) AND (date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY CASE WHEN (class_name IN (1)) THEN 'Classy' WHEN (class_name IN (2)) THEN 'Classier' WHEN (class_name IN (3)) THEN 'Classiest' ELSE 'Unknown' END, class_id
+         |
+         |           ) fcso0
+         |           LEFT OUTER JOIN
+         |           (SELECT  address, id_alias
+         |            FROM combined_class
+         |            WHERE (id_alias = 12345)
+         |             )
+         |           cc1 ON (fcso0.class_id = cc1.id_alias)
+         |
+         |)
+         |""".stripMargin
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
 }

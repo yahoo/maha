@@ -90,6 +90,13 @@ b. Dim Driven
   2. Multiple dimensions query
     a. Generate full sql by combining the individual dimensions
 */
+
+    def getNameOrAliasFromColName(columnName: String, dimBundle: DimensionBundle): String = {
+      require(dimBundle.dim.dimensionColumnsByNameMap.contains(columnName), s"""Column name $columnName not present in dimensionColumnsByNameMap in ${dimBundle.dim.name}.""")
+      val col = dimBundle.dim.dimensionColumnsByNameMap(columnName)
+      col.alias.getOrElse(columnName)
+    }
+
     def generateWhereClause(dimBundle: DimensionBundle, subqueryBundles: Set[DimensionBundle]): WhereClause = {
 
       val dimBundleFilters = new mutable.LinkedHashSet[String]
@@ -322,25 +329,28 @@ b. Dim Driven
       if (dimBundle.dim.partitionColumns.nonEmpty) {
         dimBundle.dim.partitionColumns.foreach {
           d =>
-            val fieldAlias = queryBuilderContext.getAliasForField(dimBundle.dim.name, d.name)
-            dimSelectSet += s"${d.name} $fieldAlias"
+            val name = d.alias.getOrElse(d.name)
+            val fieldAlias = queryBuilderContext.getAliasForField(dimBundle.dim.name, name)
+            dimSelectSet += s"$name $fieldAlias"
         }
       }
 
 
       dimBundle.fields.foreach {
         alias =>
-          val name = {
+          val (name, nameOrAlias) = {
             if (dimBundle.publicDim.primaryKeyByAlias == alias) {
-              dimBundle.dim.primaryKey
+              val colName = dimBundle.dim.primaryKey
+              (colName, getNameOrAliasFromColName(colName, dimBundle))
             } else {
-              dimBundle.publicDim.aliasToNameMap(alias)
+              val colName = dimBundle.publicDim.aliasToNameMap(alias)
+              (colName, getNameOrAliasFromColName(colName, dimBundle))
             }
           }
           val column = dimBundle.dim.dimensionColumnsByNameMap(name)
 
-          val fieldAlias = queryBuilderContext.getAliasForField(dimBundle.dim.name, name)
-          dimSelectSet += s"$name $fieldAlias"
+          val fieldAlias = queryBuilderContext.getAliasForField(dimBundle.dim.name, nameOrAlias)
+          dimSelectSet += s"$nameOrAlias $fieldAlias"
 
           colIndex = dimSelectSet.size
 
@@ -368,15 +378,20 @@ b. Dim Driven
       }
 
       val onCondition: Option[String] = {
-        val pkIdFieldAlias = queryBuilderContext.getAliasForField(dimBundle.dim.name,dimBundle.dim.primaryKey)
-        val idJoin = s"${mainDimBundle.dim.name}.${prevDim.aliasToNameMapFull(prevDim.primaryKeyByAlias)} = $dimAlias.${pkIdFieldAlias}"
+        val pkName = dimBundle.dim.primaryKey
+        val pkNameOrAlias = getNameOrAliasFromColName(pkName, dimBundle)
+        val pkIdFieldAlias = queryBuilderContext.getAliasForField(dimBundle.dim.name, pkNameOrAlias)
+        val prevDimPkName = prevDim.aliasToNameMapFull(prevDim.primaryKeyByAlias)
+        val prevDimPkNameOrAlias = getNameOrAliasFromColName(prevDimPkName, mainDimBundle)
+        val idJoin = s"${mainDimBundle.dim.name}.$prevDimPkNameOrAlias = $dimAlias.$pkIdFieldAlias"
         val partitionKeyConditions = new mutable.LinkedHashSet[String]()
         dimBundle.dim.partitionColumns.map {
           partCol =>
-            val name = partCol.name
+            val name = partCol.alias.getOrElse(partCol.name)
             val partColFieldAlias = queryBuilderContext.getAliasForField(dimBundle.dim.name, name)
-            val alias = dimBundle.publicDim.keyColumnToAliasMap(name)
-            val prevName = prevDim.aliasToNameMapFull(alias)
+            val alias = dimBundle.publicDim.keyColumnToAliasMap(partCol.name)
+            val prevDimPartName = prevDim.aliasToNameMapFull(alias)
+            val prevName = getNameOrAliasFromColName(prevDimPartName, mainDimBundle)
             if (prevName.nonEmpty) {
               partitionKeyConditions += s"${mainDimBundle.dim.name}.$prevName = $dimAlias.$partColFieldAlias"
             }
@@ -447,7 +462,7 @@ b. Dim Driven
             val fkCol = factCandidate.fact.publicDimToForeignKeyColMap(dimBundle.publicDim.name)
             val fk = fkCol.alias.getOrElse(fkCol.name)
 
-            val pk = dimBundle.dim.primaryKey
+            val pk = dimBundle.dim.dimensionColumnsByNameMap(dimBundle.dim.primaryKey).alias.getOrElse(dimBundle.dim.primaryKey)
 
             val joinType : JoinType = requestModel.publicDimToJoinTypeMap(dimBundle.publicDim.name)
 
@@ -519,7 +534,7 @@ b. Dim Driven
             b
         }
         val dimAlias = renderedPrimaryDim.dimAlias
-        val pk = primaryBundle.dim.primaryKey
+        val pk = primaryBundle.dim.dimensionColumnsByNameMap(primaryBundle.dim.primaryKey).alias.getOrElse(primaryBundle.dim.primaryKey)
         val parentJoinType = SqlHelper.getJoinString(
           requestModel.publicDimToJoinTypeMap(renderedPrimaryDimBundle.publicDim.name), engine)
 
