@@ -90,6 +90,13 @@ b. Dim Driven
   2. Multiple dimensions query
     a. Generate full sql by combining the individual dimensions
 */
+
+    def getNameOrAliasFromColName(columnName: String, dimBundle: DimensionBundle): String = {
+      require(dimBundle.dim.dimensionColumnsByNameMap.contains(columnName), s"""Column name $columnName not present in dimensionColumnsByNameMap in ${dimBundle.dim.name}.""")
+      val col = dimBundle.dim.dimensionColumnsByNameMap(columnName)
+      col.alias.getOrElse(columnName)
+    }
+
     def generateWhereClause(dimBundle: DimensionBundle, subqueryBundles: Set[DimensionBundle]): WhereClause = {
 
       val dimBundleFilters = new mutable.LinkedHashSet[String]
@@ -333,13 +340,11 @@ b. Dim Driven
         alias =>
           val (name, nameOrAlias) = {
             if (dimBundle.publicDim.primaryKeyByAlias == alias) {
-              val pkName = dimBundle.dim.primaryKey
-              require(dimBundle.dim.dimensionColumnsByNameMap.contains(pkName), s"""Primary key $pkName not present in dimensionColumnsByNameMap in ${dimBundle.dim.name}.""")
-              val pkCol = dimBundle.dim.dimensionColumnsByNameMap(pkName)
-              val pkNameOrAlias = pkCol.alias.getOrElse(pkName)
-              (pkName, pkNameOrAlias)
+              val colName = dimBundle.dim.primaryKey
+              (colName, getNameOrAliasFromColName(colName, dimBundle))
             } else {
-              (dimBundle.publicDim.aliasToNameMap(alias), dimBundle.dim.dimensionColumnsByNameMap(dimBundle.publicDim.aliasToNameMap(alias)).alias.getOrElse(dimBundle.publicDim.aliasToNameMap(alias)))
+              val colName = dimBundle.publicDim.aliasToNameMap(alias)
+              (colName, getNameOrAliasFromColName(colName, dimBundle))
             }
           }
           val column = dimBundle.dim.dimensionColumnsByNameMap(name)
@@ -374,13 +379,11 @@ b. Dim Driven
 
       val onCondition: Option[String] = {
         val pkName = dimBundle.dim.primaryKey
-        require(dimBundle.dim.dimensionColumnsByNameMap.contains(pkName), s"""Primary key $pkName not present in dimensionColumnsByNameMap in ${dimBundle.dim.name}.""")
-        val pkCol = dimBundle.dim.dimensionColumnsByNameMap(pkName)
-        val pkIdFieldAlias = queryBuilderContext.getAliasForField(dimBundle.dim.name, pkCol.alias.getOrElse(pkName))
+        val pkNameOrAlias = getNameOrAliasFromColName(pkName, dimBundle)
+        val pkIdFieldAlias = queryBuilderContext.getAliasForField(dimBundle.dim.name, pkNameOrAlias)
         val prevDimPkName = prevDim.aliasToNameMapFull(prevDim.primaryKeyByAlias)
-        require(mainDimBundle.dim.dimensionColumnsByNameMap.contains(prevDimPkName), s"""Primary key $prevDimPkName not present in dimensionColumnsByNameMap in ${mainDimBundle.dim.name}""")
-        val prevDimPkCol = mainDimBundle.dim.dimensionColumnsByNameMap(prevDimPkName)
-        val idJoin = s"${mainDimBundle.dim.name}.${prevDimPkCol.alias.getOrElse(prevDimPkName)} = $dimAlias.${pkIdFieldAlias}"
+        val prevDimPkNameOrAlias = getNameOrAliasFromColName(prevDimPkName, mainDimBundle)
+        val idJoin = s"${mainDimBundle.dim.name}.$prevDimPkNameOrAlias = $dimAlias.$pkIdFieldAlias"
         val partitionKeyConditions = new mutable.LinkedHashSet[String]()
         dimBundle.dim.partitionColumns.map {
           partCol =>
@@ -388,9 +391,7 @@ b. Dim Driven
             val partColFieldAlias = queryBuilderContext.getAliasForField(dimBundle.dim.name, name)
             val alias = dimBundle.publicDim.keyColumnToAliasMap(partCol.name)
             val prevDimPartName = prevDim.aliasToNameMapFull(alias)
-            require(mainDimBundle.dim.dimensionColumnsByNameMap.contains(prevDimPartName), s"""Partition column $prevDimPartName not present in dimensionColumnsByNameMap in ${mainDimBundle.dim.name}""")
-            val prevDimPartCol = mainDimBundle.dim.dimensionColumnsByNameMap(prevDimPartName)
-            val prevName = prevDimPartCol.alias.getOrElse(prevDimPartName)
+            val prevName = getNameOrAliasFromColName(prevDimPartName, mainDimBundle)
             if (prevName.nonEmpty) {
               partitionKeyConditions += s"${mainDimBundle.dim.name}.$prevName = $dimAlias.$partColFieldAlias"
             }
