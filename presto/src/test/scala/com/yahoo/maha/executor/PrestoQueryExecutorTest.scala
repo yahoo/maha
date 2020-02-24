@@ -17,6 +17,8 @@ import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.jdbc._
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
+import org.json4s.JObject
+import org.json4s.JsonAST.JObject
 import org.mockito.Matchers._
 import org.mockito.Mockito
 import org.mockito.Mockito._
@@ -125,7 +127,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           , PubCol("Ad Status", "Ad Status", InEquality)
           , PubCol("Ad Date Created", "Ad Date Created", InBetweenEquality)
           , PubCol("created_date", "Ad Creation Date", InBetweenEquality)
-          , PubCol("Ad Date Modified", "Ad Date Modified", InBetweenEquality)
+          , PubCol("Ad Date Modified", "Ad Date Modified", InBetweenEquality, restrictedSchemas = Set(AdvertiserLowLatencySchema, AdvertiserSchema), dependsOnColumns = Set("Ad Date Modified Timestamp"))
           , PubCol("last_updated", "Ad Date Modified Timestamp", Set.empty)
         ), highCardinalityFilters = Set(NotInFilter("Ad Status", List("DELETED"), isForceFilter = true), InFilter("Ad Status", List("ON"), isForceFilter = true), EqualityFilter("Ad Status", "ON", isForceFilter = true))
       )
@@ -283,7 +285,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
           PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
           PublicFactCol("clicks", "Clicks", InBetweenEquality),
           PublicFactCol("spend", "Spend", Set.empty),
-          PublicFactCol("max_bid", "Max Bid", Set.empty),
+          PublicFactCol("max_bid", "Max Bid", Set.empty, incompatibleColumns = Set("Clicks")),
           PublicFactCol("average_cpc", "Average CPC", InBetweenEquality),
           PublicFactCol("CTR Percentage", "CTR Percentage", Set.empty),
           PublicFactCol("CTR", "CTR", InBetweenEquality),
@@ -926,5 +928,23 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
         throw new UnsupportedOperationException(s"unexpected row list : $any")
     }
 
+  }
+
+  test("Should render proper JSON Strings for all public cols.") {
+    val registry = getDefaultRegistry()
+    val pubFact = registry.getFact("ad_stats")
+    val pubFactCols = pubFact.get.factCols
+    val pubDimCols = pubFact.get.dimCols
+    val fkAliases = pubFact.get.foreignKeySources
+    val fkTables = fkAliases.map(source => registry.getDimension(source).get)
+    val fkTableNames = fkTables.map(table => table.name)
+    val fkCols = fkTables.flatMap(dim => dim.columnsByAliasMap.map(_._2))
+    val allJSONs: Set[JObject] = (pubFactCols ++ pubDimCols ++ fkCols).map(col => col.asJSON)
+    println(s"""All tables with fact ${pubFact.get.name}: ${fkTableNames.mkString(",")}""")
+
+    import org.json4s._
+    import org.json4s.jackson.JsonMethods._
+    implicit val formats = DefaultFormats
+    //println(allJSONs.map(json => pretty(json)))
   }
 }
