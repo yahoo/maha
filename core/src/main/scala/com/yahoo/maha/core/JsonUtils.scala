@@ -65,6 +65,8 @@ object JsonUtils {
     def write(value: A): JValue = value match {
       case a: ColumnAnnotation =>
         a.asJSON
+      case null =>
+        JNull
       case _ =>
         toJSON(value.toString)
     }

@@ -964,7 +964,7 @@ trait DerivedExpression[T] {
     makeObj(
       List(
         ("expression" -> expression.asJSON)
-        ,("sourcePrimitiveColumns" -> jUtils.asJSON(if(sourcePrimitiveColumns != null) sourcePrimitiveColumns else Set.empty))
+        ,("sourcePrimitiveColumns" -> jUtils.asJSON(sourcePrimitiveColumns))
       )
     )
 }

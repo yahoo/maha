@@ -36,7 +36,7 @@ case class HiveShardingExpression(expression: HiveDerivedExpression) extends Col
     makeObj(
       List(
         ("annotation" -> toJSON(this.getClass.getSimpleName))
-        ,("expression" -> jUtils.asJSON(if(expression != null) expression.asJSON else Set.empty))
+        ,("expression" -> jUtils.asJSON(expression))
       )
     )
 }
@@ -53,7 +53,7 @@ case class PrestoShardingExpression(expression: PrestoDerivedExpression) extends
     makeObj(
       List(
         ("annotation" -> toJSON(this.getClass.getSimpleName))
-        ,("expression" -> jUtils.asJSON(if(expression != null) expression.asJSON else Set.empty))
+        ,("expression" -> jUtils.asJSON(expression))
       )
     )
 }

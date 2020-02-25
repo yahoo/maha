@@ -62,13 +62,39 @@ class ColumnAnnotationTest extends FunSuite with Matchers {
     val ps: PrestoShardingExpression = new PrestoShardingExpression(prestoMin)
 
     val expns = Set(fk, dc, hs, ps)
-    val allJSONs: Set[JObject] = expns.map(expn => expn.asJSON)
-    val instances = expns.map(expn => expn.instance.asJSON)
 
     import org.json4s._
     import org.json4s.jackson.JsonMethods._
     implicit val formats = DefaultFormats
-    //println(allJSONs.map(json => pretty(json)))
+
+    //All actual Annotations
+    val allJSONs: String = expns.map(expn => compact(expn.asJSON)).mkString(",")
+
+    //All instances with null args (null checking)
+    val instances: String = expns.map(expn => compact(expn.instance.asJSON)).mkString(",")
+
+    val allAnnotations = List(
+      """{"annotation":"ForeignKey","publicDimName":"pd"}"""
+      ,"""{"annotation":"DayColumn","fmt":"format"}"""
+      ,"""{"annotation":"HiveShardingExpression","expression":"HiveDerivedExpression(""" //split into two to avoid columnContext.
+      ,""",MIN(COL({thing},false,false)))"}"""
+      ,"""{"annotation":"PrestoShardingExpression","expression":"PrestoDerivedExpression"""
+      ,""",PRESTO_TIMESTAMP_TO_FORMATTED_DATE(COL({created_date},false,false),YYYY-MM-dd))"}"""
+    )
+    val allnstances = List(
+      """{"annotation":"ForeignKey","publicDimName":"instance"}"""
+      ,"""{"annotation":"DayColumn","fmt":"instance"}"""
+      ,"""{"annotation":"HiveShardingExpression","expression":null}"""
+      ,"""{"annotation":"PrestoShardingExpression","expression":null}"""
+    )
+    assert(allAnnotations.forall(
+      annotation =>
+        allJSONs.contains(annotation))
+    )
+    assert(allnstances.forall(
+      instance =>
+        instances.contains(instance))
+    )
 
   }
 

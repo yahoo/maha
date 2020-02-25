@@ -118,7 +118,6 @@ case class FactCol(name: String,
         ("FactCol" -> super.asJSON)
         ,("name" -> toJSON(name))
         ,("dataType" -> dataType.asJSON)
-        ,("columnContext" -> toJSON(columnContext.toString))
         ,("rollupExpression" -> rollupExpression.asJSON)
         ,("aliasOrName" -> toJSON(alias.getOrElse(name)))
         ,("annotations" -> jUtils.asJSON(annotations))

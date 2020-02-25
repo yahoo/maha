@@ -75,6 +75,7 @@ trait Column {
         ,("dataType" -> dataType.asJSON)
         ,("annotations" -> jUtils.asJSON(annotations))
         ,("filterOperationOverrides", jUtils.asJSON(filterOperationOverrides))
+        ,("columnContext" -> toJSON(columnContext.toString))
       )
     )
   }
