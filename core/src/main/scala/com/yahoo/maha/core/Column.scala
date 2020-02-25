@@ -44,6 +44,8 @@ trait Column {
   def escapingRequired : Boolean = annotations.contains(EscapingRequired)
 
   def annotationsWithEngineRequirement: Set[ColumnAnnotation] = annotations.filter(_.isInstanceOf[EngineRequirement])
+
+  def getPrimitives: Set[String] = Set(alias.getOrElse(name))
 }
 
 trait ConstColumn extends Column {
@@ -53,6 +55,8 @@ trait ConstColumn extends Column {
 trait DerivedColumn extends Column {
   override val isDerivedColumn: Boolean = true
   def derivedExpression : DerivedExpression[_]
+
+  override def getPrimitives: Set[String] = derivedExpression.sourcePrimitiveColumns
 }
 
 trait DerivedFunctionColumn extends Column {

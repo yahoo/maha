@@ -4,7 +4,7 @@ package com.yahoo.maha.core.registry
 
 import com.yahoo.maha.core.NoopSchema.NoopSchema
 import com.yahoo.maha.core.dimension.PublicDimension
-import com.yahoo.maha.core.fact.{Fact, FactCandidate, PublicFact}
+import com.yahoo.maha.core.fact.{Fact, FactCandidate, FactColumn, PublicFact}
 import com.yahoo.maha.core.request.{ReportingRequest, RequestType}
 import com.yahoo.maha.core.{DefaultDimEstimator, DefaultFactEstimator, _}
 import grizzled.slf4j.Logging
@@ -679,6 +679,50 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
   def findDimensionPath(fromDim: PublicDimension, toDim: PublicDimension) : SortedSet[PublicDimension] = {
     dimensionPathMap.getOrElse((fromDim.name, toDim.name), SortedSet.empty)
   }
+
+  /**
+   * Return the requested cube and all rollups' pubCols.
+   * Optionally, return source primitives as well.
+   * @param factName
+   * @return
+   */
+  def getFactAndRollups(factName: String, revision: Option[Int], returnPrimitives: Boolean = false): Map[String, Set[Column]] = {
+    val factOption: Option[PublicFact] = getFact(factName, revision)
+    if(factOption.isEmpty)
+      Map.empty
+    else {
+      val pFact = factOption.get
+      pFact.factList.map { fact => (fact.name, getPrimitivesFromFact(fact)) }.toMap
+    }
+  }
+
+  /**
+   * Filtered fact AND column list with restricted schemas on both
+   * rollups level and publicFact level.
+   * @param factName
+   * @param revision
+   * @param returnPrimitives
+   * @param schema
+   * @return
+   */
+  def getFactAndRollupsWithSchema(factName: String, revision: Option[Int], returnPrimitives: Boolean = false, schema: Schema): Map[String, Set[Column]] = {
+    val factOption: Option[PublicFact] = getFact(factName, revision)
+    if(factOption.isEmpty)
+      Map.empty
+    else {
+      val pFact = factOption.get
+      val aliasesWithSchema = (pFact.columnsByAliasMap).filter(col => col._2.restrictedSchemas.isEmpty || col._2.restrictedSchemas.contains(schema)).keys.toSet
+      val prims = (pFact.factCols ++ pFact.dimCols).filter(col => aliasesWithSchema.contains(col.alias)).map(_.name)
+      val retVal = pFact.factList.filter(fact => fact.schemas.contains(schema)).map { fact => (fact.name, getPrimitivesFromFact(fact).filter(col => col.getPrimitives.forall(prim => prims.contains(prim))))
+      }.toMap
+      retVal
+    }
+  }
+
+  def getPrimitivesFromFact(fact: Fact): Set[Column] = {
+    (fact.factCols ++ fact.dimCols)
+  }
+
 }
 
 trait FactRegistrationFactory {
