@@ -96,6 +96,7 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     MDC.put(MahaConstants.USER_ID,"abc")
     mahaRequestLogHelper.setDryRun()
     mahaRequestLogHelper.setJobId(12345)
+    mahaRequestLogHelper.setJobIdString("abcdefg")
     mahaRequestLogHelper.setAsyncQueueParams()
     mahaRequestLogHelper.logQueryStats(queryAttributeBuilder.build)
     when(mahaServiceConf.mahaRequestLogWriter).thenReturn(mahaRequestLogWriter)
