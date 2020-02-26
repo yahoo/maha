@@ -72,6 +72,10 @@ case class CuratorMahaRequestLogHelper(delegate: BaseMahaRequestLogBuilder) exte
   override def setJobId(jobId: Long): Unit =  {
     delegate.setJobId(jobId)
   }
+
+  override def setJobIdString(jobIdStr: String): Unit =  {
+    delegate.setJobIdString(jobIdStr)
+  }
 }
 
 object MahaRequestLogHelper {
