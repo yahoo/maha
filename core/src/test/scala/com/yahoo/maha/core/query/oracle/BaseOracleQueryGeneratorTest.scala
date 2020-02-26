@@ -12,13 +12,15 @@ import com.yahoo.maha.core.query.druid.{DruidQueryGenerator, SyncDruidQueryOptim
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.AsyncRequest
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Created by hiral on 1/15/16.
  */
 trait BaseOracleQueryGeneratorTest
-  extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema {
+  extends AnyFunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema {
 
   override protected def beforeAll(): Unit = {
     OracleQueryGenerator.register(queryGeneratorRegistry,DefaultPartitionColumnRenderer)
@@ -37,6 +39,7 @@ trait BaseOracleQueryGeneratorTest
     registryBuilder.register(pubfact8(forcedFilters))
     registryBuilder.register(pubfact9(forcedFilters))
     registryBuilder.register(pubFactCombined(forcedFilters))
+    registryBuilder.register(pubFact10(forcedFilters))
 
   }
 
@@ -855,4 +858,32 @@ trait BaseOracleQueryGeneratorTest
       ), Set.empty, getMaxDaysWindow, getMaxDaysLookBack)
   }
 
+  def pubFact10(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    val classStats = {
+      ColumnContext.withColumnContext {
+        implicit dc: ColumnContext =>
+          Fact.newFact(
+            name = "f_class_stats_ora", DailyGrain, OracleEngine, Set(AdvertiserSchema),
+            Set(
+              DimCol("class_id", IntType(), annotations = Set(ForeignKey("combined_class")))
+              , DimCol("class_name", IntType(10, (Map(1 -> "Classy", 2 -> "Classier", 3 -> "Classiest"), "Unknown")))
+              , DimCol("date", DateType("YYYY-MM-DD"))
+            ),
+            Set(
+              FactCol("num_students", IntType())
+            )
+          )
+      }
+    }
+
+    classStats.toPublicFact("class_stats_2"
+      , Set(
+        PubCol("class_id", "Class ID", Equality)
+        , PubCol("class_name", "Class Name", Equality)
+        , PubCol("date", "Day", InBetweenEquality)
+      )
+      , Set(
+        PublicFactCol("num_students", "Students", Equality)
+      ), Set.empty, getMaxDaysWindow, getMaxDaysLookBack)
+  }
 }

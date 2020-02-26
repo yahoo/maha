@@ -222,6 +222,39 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(result.contains(isNotNullFilterJson), result)
   }
 
+  test("Druid query should be generated with Between filter") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Impressions", "operator": "<", "value": "1000"},
+                            {"field": "Destination URL", "operator": "between", "from": "A", "to": "ZZ"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Asc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":0
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val json = """{"type":"lessThan","aggregation":"Impressions","value":1000}]}"""
+    assert(result.contains(json), result)
+    val boundFilterJson = """{"type":"bound","dimension":"landing_page_url","lower":"A","upper":"ZZ","lowerStrict":false,"upperStrict":false,"ordering":{"type":"lexicographic"}}"""
+    assert(result.contains(boundFilterJson), result)
+  }
+
   test("DruidQueryGenerator: getAggregatorFactory should succeed on DruidFilteredListRollup with filter list size of 2") {
     val jsonString =
       s"""{
@@ -1439,6 +1472,38 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(result.contains(json), result)
   }
 
+  test("Fail filtering on PassthroughType") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Average Bid"},
+                            {"field": "Impressions"},
+                            {"field": "Null Type"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Null Type", "operator": "between", "from": "0", "to": "1"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", ""))
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isFailure && queryPipelineTry.failed.get.getMessage.contains("Between filter not supported on Druid dimension fields : BetweenFilter(Null Type,0,1)"), queryPipelineTry.errorMessage("Should have gotten expected message."))
+
+  }
+
   test("namespace lookup extraction functionality for dim") {
     val jsonString = s"""{
                           "cube": "k_stats",
@@ -2282,7 +2347,6 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-
     val json = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\},\{"type":"or","fields":\[\{"type":"selector","dimension":"ageBucket","value":"18-24"\},\{"type":"selector","dimension":"ageBucket","value":"25-35"\}\]\},\{"type":"or","fields":\[\{"type":"selector","dimension":"woeids","value":"12345"\},\{"type":"selector","dimension":"woeids","value":"6789"\}\]\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"\},\{"type":"default","dimension":"ad_id","outputName":"Ad ID","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Clicks","fieldName":"clicks"\},\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"filtered","aggregator":\{"type":"thetaSketch","name":"ageBucket_unique_users","fieldName":"uniqueUserCount","size":16384,"shouldFinalize":true,"isInputThetaSketch":false\},"filter":\{"type":"or","fields":\[\{"type":"selector","dimension":"ageBucket","value":"18-24"\},\{"type":"selector","dimension":"ageBucket","value":"25-35"\}\]\},"name":"ageBucket_unique_users"\},\{"type":"filtered","aggregator":\{"type":"thetaSketch","name":"woeids_unique_users","fieldName":"uniqueUserCount","size":16384,"shouldFinalize":true,"isInputThetaSketch":false\},"filter":\{"type":"or","fields":\[\{"type":"selector","dimension":"woeids","value":"12345"\},\{"type":"selector","dimension":"woeids","value":"6789"\}\]\},"name":"woeids_unique_users"\}\],"postAggregations":\[\{"type":"thetaSketchEstimate","name":"Total Unique User Count","field":\{"type":"thetaSketchSetOp","name":"Total Unique User Count","func":"INTERSECT","size":16384,"fields":\[\{"type":"fieldAccess","name":"ageBucket_unique_users","fieldName":"ageBucket_unique_users"\},\{"type":"fieldAccess","name":"woeids_unique_users","fieldName":"woeids_unique_users"\}\]\}\}\],"limitSpec":\{"type":"default","columns":\[\{"dimension":"Impressions","direction":"ascending","dimensionOrder":\{"type":"numeric"\}\},\{"dimension":"Keyword ID","direction":"ascending","dimensionOrder":\{"type":"numeric"\}\},\{"dimension":"Ad ID","direction":"descending","dimensionOrder":\{"type":"numeric"\}\}\],"limit":101\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}"""
 
     result should fullyMatch regex json
@@ -2779,6 +2843,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                             ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Derived Pricing Type", "operator": "between", "from": "1", "to": "20"},
                             {"field": "Advertiser ID", "operator": "=", "value": "12345"},
                             {"field": "Advertiser Status", "operator": "In", "values": ["ON"]}
                           ],
@@ -2803,8 +2868,10 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     val expect_empty_limitspec_inner_query = """"limitSpec":{"type":"NoopLimitSpec"},"context":{"applyLimitPushDown":"false""""
     val expect_nonempty_limitspec_outer_query = """"limitSpec":{"type":"default","columns":[],"limit":220}"""
+    val expect_bound_filter = """{"type":"bound","dimension":"Derived Pricing Type","lower":"1","upper":"20","lowerStrict":false,"upperStrict":false,"ordering":{"type":"numeric"}}"""
     assert(result.contains(expect_empty_limitspec_inner_query))
     assert(result.contains(expect_nonempty_limitspec_outer_query))
+    assert(result.contains(expect_bound_filter))
   }
 
   test("should generate nested groupby query if expensive date time filter is present") {
@@ -3163,7 +3230,46 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val queryPipeline = queryPipelineTry.toOption.get
     val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    print(query)
+
     assert(query.contains(s""""postAggregations":[{"type":"arithmetic","name":"Conv Segments Unique User Count","fn":"+","fields":[{"type":"thetaSketchEstimate","name":"conv_unique_users","field":{"type":"fieldAccess","name":"conv_unique_users","fieldName":"Conversion User Count"}},{"type":"thetaSketchEstimate","name":"segments_unique_users","field":{"type":"fieldAccess","name":"segments_unique_users","fieldName":"segments_unique_users"}}]}]"""))
   }
+
+  test("Test generating a query with a derived column which is used in both its derived column and its derived derived column") {
+    val jsonString =
+      s"""{
+                        "cube": "k_stats",
+                        "selectFields": [
+                          {"field": "Day"},
+                          {"field": "Impressions"},
+                          {"field": "Clicks"},
+                          {"field": "segments_unique_users"},
+                          {"field": "Variance"},
+                          {"field": "Conversion User Count"},
+                          {"field": "Conv Segments Unique User Count"},
+                          {"field": "Segment Count By Variance"},
+
+                          {"field": "Advertiser ID"}
+                        ],
+                        "filterExpressions": [
+                          {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                          {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                        ],
+                        "paginationStartIndex":20,
+                        "rowsPerPage":100
+                      }"""
+
+    val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestSync(jsonString))
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val queryPipeline = queryPipelineTry.toOption.get
+    val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    print(query)
+    assert(query.contains(s""""postAggregations":[{"type":"arithmetic","name":"Conv Segments Unique User Count","fn":"+","fields":[{"type":"thetaSketchEstimate","name":"conv_unique_users","field":{"type":"fieldAccess","name":"conv_unique_users","fieldName":"Conversion User Count"}},{"type":"thetaSketchEstimate","name":"segments_unique_users","field":{"type":"fieldAccess","name":"segments_unique_users","fieldName":"segments_unique_users"}}]},{"type":"javascript","name":"variance","fieldNames":["Clicks","Impressions"],"function":"function(clicks,impressions){return clicks * Math.sqrt(impressions);}"},{"type":"arithmetic","name":"Derived User Count Plus Variance","fn":"+","fields":[{"type":"fieldAccess","name":"Conv Segments Unique User Count","fieldName":"Conv Segments Unique User Count"},{"type":"fieldAccess","name":"variance","fieldName":"variance"}]},{"type":"arithmetic","name":"Segment Count By Variance","fn":"/","fields":[{"type":"fieldAccess","name":"Derived User Count Plus Variance","fieldName":"Derived User Count Plus Variance"},{"type":"fieldAccess","name":"variance","fieldName":"variance"}]}]"""))
+  }
 }
+

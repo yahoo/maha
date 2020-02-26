@@ -288,7 +288,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
       s"""
          |SELECT CONCAT_WS(",",NVL(CAST(mang_day AS STRING), ''), NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(campaign_id AS STRING), ''), NVL(CAST(ad_group_id AS STRING), ''), NVL(CAST(keyword_id AS STRING), ''), NVL(CAST(mang_keyword AS STRING), ''), NVL(CAST(mang_search_term AS STRING), ''), NVL(CAST(mang_delivered_match_type AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_average_cpc AS STRING), ''))
          |FROM(
-         |SELECT getFormattedDate(stats_date) mang_day, COALESCE(account_id, 0L) advertiser_id, COALESCE(campaign_id, 0L) campaign_id, COALESCE(ad_group_id, 0L) ad_group_id, COALESCE(keyword_id, 0L) keyword_id, getCsvEscapedString(CAST(NVL(keyword, '') AS STRING)) mang_keyword, COALESCE(search_term, "None") mang_search_term, COALESCE(delivered_match_type, 0L) mang_delivered_match_type, COALESCE(impressions, 0L) mang_impressions, ROUND(COALESCE((CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END), 0L), 10) mang_average_cpc
+         |SELECT getFormattedDate(stats_date) mang_day, COALESCE(account_id, 0L) advertiser_id, COALESCE(campaign_id, 0L) campaign_id, COALESCE(ad_group_id, 0L) ad_group_id, COALESCE(keyword_id, 0L) keyword_id, getCsvEscapedString(CAST(NVL(keyword, '') AS STRING)) mang_keyword, COALESCE(search_term, "None") mang_search_term, COALESCE(delivered_match_type, 0L) mang_delivered_match_type, COALESCE(impressions, 1L) mang_impressions, ROUND(COALESCE((CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END), 0L), 10) mang_average_cpc
          |FROM(SELECT CASE WHEN (delivered_match_type IN (1)) THEN 'Exact' WHEN (delivered_match_type IN (2)) THEN 'Broad' WHEN (delivered_match_type IN (3)) THEN 'Phrase' ELSE 'UNKNOWN' END delivered_match_type, stats_date, keyword, ad_group_id, search_term, account_id, campaign_id, keyword_id, SUM(impressions) impressions, SUM(clicks) clicks, SUM(spend) spend
          |FROM s_stats_fact
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -359,7 +359,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
       s"""
          |SELECT CONCAT_WS(",",NVL(CAST(mang_day AS STRING), ''), NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(campaign_id AS STRING), ''), NVL(CAST(mang_campaign_name AS STRING), ''), NVL(CAST(ad_group_id AS STRING), ''), NVL(CAST(keyword_id AS STRING), ''), NVL(CAST(mang_keyword AS STRING), ''), NVL(CAST(mang_search_term AS STRING), ''), NVL(CAST(mang_delivered_match_type AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_average_cpc_cents AS STRING), ''), NVL(CAST(mang_average_cpc AS STRING), ''))
          |FROM(
-         |SELECT getFormattedDate(stats_date) mang_day, COALESCE(account_id, 0L) advertiser_id, COALESCE(ssf0.campaign_id, 0L) campaign_id, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(ad_group_id, 0L) ad_group_id, COALESCE(keyword_id, 0L) keyword_id, getCsvEscapedString(CAST(NVL(keyword, '') AS STRING)) mang_keyword, COALESCE(search_term, "None") mang_search_term, COALESCE(delivered_match_type, 0L) mang_delivered_match_type, COALESCE(impressions, 0L) mang_impressions, ROUND(COALESCE((mang_average_cpc * 100), 0L), 10) mang_average_cpc_cents, ROUND(COALESCE(mang_average_cpc, 0L), 10) mang_average_cpc
+         |SELECT getFormattedDate(stats_date) mang_day, COALESCE(account_id, 0L) advertiser_id, COALESCE(ssf0.campaign_id, 0L) campaign_id, getCsvEscapedString(CAST(NVL(c1.mang_campaign_name, '') AS STRING)) mang_campaign_name, COALESCE(ad_group_id, 0L) ad_group_id, COALESCE(keyword_id, 0L) keyword_id, getCsvEscapedString(CAST(NVL(keyword, '') AS STRING)) mang_keyword, COALESCE(search_term, "None") mang_search_term, COALESCE(delivered_match_type, 0L) mang_delivered_match_type, COALESCE(impressions, 1L) mang_impressions, ROUND(COALESCE((mang_average_cpc * 100), 0L), 10) mang_average_cpc_cents, ROUND(COALESCE(mang_average_cpc, 0L), 10) mang_average_cpc
          |FROM(SELECT CASE WHEN (delivered_match_type IN (1)) THEN 'Exact' WHEN (delivered_match_type IN (2)) THEN 'Broad' WHEN (delivered_match_type IN (3)) THEN 'Phrase' ELSE 'UNKNOWN' END delivered_match_type, stats_date, keyword, ad_group_id, search_term, account_id, campaign_id, keyword_id, SUM(impressions) impressions, (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) mang_average_cpc
          |FROM s_stats_fact
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -535,7 +535,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
       s"""
          |SELECT CONCAT_WS(",",NVL(CAST(device_id AS STRING), ''), NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_pricing_type AS STRING), ''), NVL(CAST(network_id AS STRING), ''))
          |FROM(
-         |SELECT COALESCE(device_id, 0L) device_id, COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 0L) mang_impressions, COALESCE(price_type, 0L) mang_pricing_type, COALESCE(network_type, "NA") network_id
+         |SELECT COALESCE(device_id, 0L) device_id, COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 1L) mang_impressions, COALESCE(price_type, 0L) mang_pricing_type, COALESCE(network_type, "NA") network_id
          |FROM(SELECT CASE WHEN (device_id IN (11)) THEN 'Desktop' WHEN (device_id IN (22)) THEN 'Tablet' WHEN (device_id IN (33)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END device_id, decodeUDF(network_type, 'TEST_PUBLISHER', 'Test Publisher', 'CONTENT_S', 'Content Secured', 'EXTERNAL', 'External Partners', 'INTERNAL', 'Internal Properties', 'NONE') network_type, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, account_id, SUM(impressions) impressions
          |FROM s_stats_fact
          |WHERE (ad_id = ad_group_id) AND (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -577,7 +577,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
       s"""
          |SELECT CONCAT_WS(",",NVL(CAST(click_exp_id AS STRING), ''), NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''))
          |FROM(
-         |SELECT COALESCE(click_exp_id, "NA") click_exp_id, COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 0L) mang_impressions
+         |SELECT COALESCE(click_exp_id, "NA") click_exp_id, COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 1L) mang_impressions
          |FROM(SELECT account_id, CASE WHEN LENGTH(regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$$)', 2)) > 0 THEN regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$$)', 2) ELSE '-3' END click_exp_id, SUM(impressions) impressions
          |FROM s_stats_fact
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -622,7 +622,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
       s"""
          |SELECT CONCAT_WS(",",NVL(CAST(device_id AS STRING), ''), NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_pricing_type AS STRING), ''), NVL(CAST(network_id AS STRING), ''))
          |FROM(
-         |SELECT COALESCE(device_id, 0L) device_id, COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 0L) mang_impressions, COALESCE(price_type, 0L) mang_pricing_type, COALESCE(network_type, "NA") network_id
+         |SELECT COALESCE(device_id, 0L) device_id, COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 1L) mang_impressions, COALESCE(price_type, 0L) mang_pricing_type, COALESCE(network_type, "NA") network_id
          |FROM(SELECT decodeUDF(network_type, 'TEST_PUBLISHER', 'Test Publisher', 'CONTENT_S', 'Content Secured', 'EXTERNAL', 'External Partners', 'INTERNAL', 'Internal Properties', 'NONE') network_type, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, account_id, CASE WHEN (device_id IN (11)) THEN 'Desktop' WHEN (device_id IN (22)) THEN 'Tablet' WHEN (device_id IN (33)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END device_id, SUM(impressions) impressions
          |FROM s_stats_fact
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -669,7 +669,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
       s"""
          |SELECT CONCAT_WS(",",NVL(CAST(device_id AS STRING), ''), NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_pricing_type AS STRING), ''), NVL(CAST(network_id AS STRING), ''))
          |FROM(
-         |SELECT COALESCE(device_id, 0L) device_id, COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 0L) mang_impressions, COALESCE(price_type, 0L) mang_pricing_type, COALESCE(network_type, "NA") network_id
+         |SELECT COALESCE(device_id, 0L) device_id, COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 1L) mang_impressions, COALESCE(price_type, 0L) mang_pricing_type, COALESCE(network_type, "NA") network_id
          |FROM(SELECT CASE WHEN (device_id IN (11)) THEN 'Desktop' WHEN (device_id IN (22)) THEN 'Tablet' WHEN (device_id IN (33)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END device_id, decodeUDF(network_type, 'TEST_PUBLISHER', 'Test Publisher', 'CONTENT_S', 'Content Secured', 'EXTERNAL', 'External Partners', 'INTERNAL', 'Internal Properties', 'NONE') network_type, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END price_type, account_id, SUM(impressions) impressions
          |FROM s_stats_fact
          |WHERE (account_id = 12345) AND (stats_source = 2) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -734,7 +734,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     val expected =
       s"""SELECT CONCAT_WS(",",NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''))
           FROM(
-          SELECT COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 0L) mang_impressions
+          SELECT COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 1L) mang_impressions
             FROM(SELECT account_id, SUM(impressions) impressions
             FROM s_stats_fact
             WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -777,7 +777,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     val expected =
       s"""SELECT CONCAT_WS(",",NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''))
           FROM(
-          SELECT COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 0L) mang_impressions
+          SELECT COALESCE(account_id, 0L) advertiser_id, COALESCE(impressions, 1L) mang_impressions
             FROM(SELECT account_id, SUM(impressions) impressions
             FROM s_stats_fact
             WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -826,7 +826,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
       s"""
          |SELECT CONCAT_WS(",",NVL(CAST(advertiser_id AS STRING), ''), NVL(CAST(keyword_id AS STRING), ''), NVL(CAST(mang_impressions AS STRING), ''), NVL(CAST(mang_keyword_count AS STRING), ''), NVL(CAST(mang_keyword_count_scaled AS STRING), ''))
          |FROM(
-         |SELECT COALESCE(account_id, 0L) advertiser_id, COALESCE(keyword_id, 0L) keyword_id, COALESCE(impressions, 0L) mang_impressions, COALESCE(mang_keyword_count, 0L) mang_keyword_count, COALESCE(mang_keyword_count_scaled, 0L) mang_keyword_count_scaled
+         |SELECT COALESCE(account_id, 0L) advertiser_id, COALESCE(keyword_id, 0L) keyword_id, COALESCE(impressions, 1L) mang_impressions, COALESCE(mang_keyword_count, 0L) mang_keyword_count, COALESCE(mang_keyword_count_scaled, 0L) mang_keyword_count_scaled
          |FROM(SELECT account_id, keyword_id, (COUNT(distinct keyword_id)) mang_keyword_count, (COUNT(keyword_id * stats_source * 10)) mang_keyword_count_scaled, SUM(impressions) impressions
          |FROM s_stats_fact
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
