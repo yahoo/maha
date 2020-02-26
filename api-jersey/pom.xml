@@ -10,7 +10,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.340-SNAPSHOT</version>
+        <version>5.341-SNAPSHOT</version>
     </parent>
 
     <name>maha api-jersey</name>
