@@ -656,9 +656,6 @@ class RegistryTest extends FunSuite with Matchers {
     val dims = pf.get.foreignKeySources.map{ source => registry.getDimColumns(source, Some(pf.get.dimRevision), None) }
     val dimStrings = pf.get.foreignKeySources.map{ source => registry.getDimPrimitives(source, Some(pf.get.dimRevision), None) }
 
-    //println(dims.map(entry => entry.map(kv => kv._1 -> kv._2.mkString("\n"))))
-    //println(dimStrings.map(entry => entry.map(kv => kv._1 -> kv._2.mkString("\n"))))
-
     val baseDim: Map[String, SortedSet[Column]] = registry.getDimColumns("advertiser", Option.empty, Some(List(AdvertiserSchema)))
     val baseDimString : Map[String, SortedSet[String]] = registry.getDimPrimitives("advertiser", Option.empty, Some(List(InternalSchema)))
 
