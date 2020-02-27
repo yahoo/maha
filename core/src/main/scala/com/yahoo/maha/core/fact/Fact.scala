@@ -27,6 +27,8 @@ trait FactColumn extends Column {
   def rollupExpression: RollupExpression
 
   val hasRollupWithEngineRequirement: Boolean = rollupExpression.isInstanceOf[EngineRequirement]
+
+  override def getPrimitives: Set[String] = if(hasRollupWithEngineRequirement) rollupExpression.sourcePrimitiveColumns else super.getPrimitives
 }
 
 trait ConstFactColumn extends FactColumn with ConstColumn

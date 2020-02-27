@@ -3,8 +3,8 @@
 package com.yahoo.maha.core.registry
 
 import com.yahoo.maha.core.NoopSchema.NoopSchema
-import com.yahoo.maha.core.dimension.PublicDimension
-import com.yahoo.maha.core.fact.{Fact, FactCandidate, PublicFact}
+import com.yahoo.maha.core.dimension.{Dimension, PublicDimension}
+import com.yahoo.maha.core.fact.{Fact, FactCandidate, FactColumn, PublicFact}
 import com.yahoo.maha.core.request.{ReportingRequest, RequestType}
 import com.yahoo.maha.core.{DefaultDimEstimator, DefaultFactEstimator, _}
 import grizzled.slf4j.Logging
@@ -679,6 +679,126 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
   def findDimensionPath(fromDim: PublicDimension, toDim: PublicDimension) : SortedSet[PublicDimension] = {
     dimensionPathMap.getOrElse((fromDim.name, toDim.name), SortedSet.empty)
   }
+
+  def getDimPrimitives(dimName: String, revision: Option[Int], schemas: Option[List[Schema]]): Map[String, SortedSet[String]] = {
+    val colMap = getDimColumns(dimName, revision, schemas)
+    colMap.map(pair => pair._1 -> pair._2.flatMap(col => col.getPrimitives))
+  }
+
+  def getDimColumns(dimName: String, revision: Option[Int], schemas: Option[List[Schema]]): Map[String, SortedSet[Column]] = {
+    if(schemas.isDefined)
+      getDimColumnsWithSchemas(dimName, revision, schemas.get)
+    else
+      getDimsByType(dimName, revision, None)
+  }
+
+  private def getDimColumnsWithSchemas(dimName: String, revision: Option[Int], schemas: List[Schema]): Map[String, SortedSet[Column]] = {
+    getDimsByType(dimName, revision, Some(schemas))
+  }
+
+  private def getDimsByType(dimName: String, revision: Option[Int], schemas: Option[List[Schema]]): Map[String, SortedSet[Column]] = {
+    val dimOption: Option[PublicDimension] = getDimension(dimName, revision)
+    if(dimOption.isEmpty)
+      Map.empty
+    else {
+      val pDim = dimOption.get
+      getDimFromDimUsingSchema(pDim, schemas)
+    }
+  }
+
+  private def getDimFromDimUsingSchema(pDim: PublicDimension, schemas: Option[List[Schema]]): Map[String, SortedSet[Column]] = {
+    val aliasesWithSchema = (pDim.columnsByAliasMap).filter(col => if(schemas.isDefined) col._2.restrictedSchemas.isEmpty || schemas.get.forall(col._2.restrictedSchemas.contains) else true).values.map(_.name).toSet
+    val prims = (pDim.getBaseDim.columns).filter(col => aliasesWithSchema.contains(col.alias.getOrElse(col.name))).map(_.name)
+    pDim
+      .dimList
+      .filter(dim => if(schemas.isDefined) schemas.get.forall(dim.schemas.contains) else true)
+      .map { dim =>
+        (dim.name,
+          getColsFromDim(dim)
+            .filter(col => col.getPrimitives.forall(prim => prims.contains(prim)))
+        )
+      }
+      .toMap
+  }
+
+  private def getColsFromDim(dim: Dimension): SortedSet[Column] = {
+    implicit def ordering[A <: Column]: Ordering[A] = new Ordering[A]{ override def compare(x: A, y: A): Int = x.name.compareTo(y.name)}
+    collection.immutable.SortedSet[Column]() ++ (dim.columns)
+  }
+
+  /**
+   * Get all fact rollups of current fact spec,
+   * * and all defined PRIMITIVE NAMES at that level
+   *
+   * @param factName
+   * @param revision
+   * @param schemas
+   * @return
+   */
+  def getFactAndRollupPrimitives(factName: String, revision: Option[Int], schemas: Option[List[Schema]]): Map[String, SortedSet[String]] = {
+    val colMap = getFactAndRollupColumns(factName, revision, schemas)
+    colMap.map(pair => pair._1 -> pair._2.flatMap(col => col.getPrimitives))
+  }
+
+  /**
+   * Get all fact rollups of current fact spec,
+   * and all defined COLUMNS at that level
+   * @param factName
+   * @param revision
+   * @param schemas
+   * @return
+   */
+  def getFactAndRollupColumns(factName: String, revision: Option[Int], schemas: Option[List[Schema]]): Map[String, SortedSet[Column]] = {
+    if(schemas.isDefined)
+      getFactAndRollupsWithSchemas(factName, revision, schemas.get)
+    else
+      getFactAndRollupsByType(factName, revision, None)
+  }
+
+  /**
+   * Given a list of schemas, find all satisfying rollups
+   * and columns for ALL.
+   * (rollup, List[Schema]) -> SortedSet[Column]
+   * @param factName
+   * @param revision
+   * @param schemas
+   * @return
+   */
+  private def getFactAndRollupsWithSchemas(factName: String, revision: Option[Int], schemas: List[Schema]): Map[String, SortedSet[Column]] = {
+    getFactAndRollupsByType(factName, revision, Some(schemas))
+
+  }
+
+  private def getFactAndRollupsByType(factName: String, revision: Option[Int], schemas: Option[List[Schema]]): Map[String, SortedSet[Column]] = {
+    val factOption: Option[PublicFact] = getFact(factName, revision)
+    if(factOption.isEmpty)
+      Map.empty
+    else {
+      val pFact = factOption.get
+      getFactsFromFactUsingSchema(pFact, schemas)
+    }
+  }
+
+  private def getFactsFromFactUsingSchema(pFact: PublicFact, schemas: Option[List[Schema]]): Map[String, SortedSet[Column]] = {
+    val aliasesWithSchema = (pFact.columnsByAliasMap).filter(col => if(schemas.isDefined) col._2.restrictedSchemas.isEmpty || schemas.get.forall(col._2.restrictedSchemas.contains) else true).keys.toSet
+    val prims = (pFact.factCols ++ pFact.dimCols).filter(col => aliasesWithSchema.contains(col.alias)).map(_.name)
+    pFact
+      .factList
+      .filter(fact => if(schemas.isDefined) schemas.get.forall(fact.schemas.contains) else true)
+      .map { fact =>
+        (fact.name,
+          getColsFromFact(fact)
+            .filter(col => col.getPrimitives.forall(prim => prims.contains(prim)))
+        )
+      }
+      .toMap
+  }
+
+  private def getColsFromFact(fact: Fact): SortedSet[Column] = {
+    implicit def ordering[A <: Column]: Ordering[A] = new Ordering[A]{ override def compare(x: A, y: A): Int = x.name.compareTo(y.name)}
+    collection.immutable.SortedSet[Column]() ++ (fact.factCols ++ fact.dimCols)
+  }
+
 }
 
 trait FactRegistrationFactory {
