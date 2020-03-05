@@ -663,7 +663,7 @@ case class FactTable private[fact](name: String
       c.derivedExpression.render(c.name)
     }
   }
-  
+
   private[this] def validateForeignKeyCols[T <: Column](columns: Set[T]) : Unit = {
     columns.foreach {
       col =>
@@ -742,7 +742,7 @@ case class FactTable private[fact](name: String
     require(forcedFiltersByBasenameMap.size == publicFact.forcedFilters.size, "Forced Filters public fact and map of forced base cols differ in size")
 
   }
-  
+
   def postValidate(publicFact: PublicFact) : Unit = {
     validateForceFilters(forceFilters, publicFact)
     validateForceFilterUniqueness(publicFact)
@@ -1495,7 +1495,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , renderLocalTimeFilter: Boolean = true
                    , revision: Int = 0
                    , dimRevision: Int = 0
-                   ) : PublicFact = {
+                   ) : PublicFactTable = {
     new PublicFactTable(name
       , baseFact
       , dimCols
@@ -1509,6 +1509,25 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , renderLocalTimeFilter
       , revision
       , dimRevision
+    )
+  }
+
+  def copyPublicFact(alias: String
+                    , publicFact: PublicFactTable): PublicFact = {
+    new PublicFactTable(
+      alias
+      , publicFact.baseFact
+      , publicFact.dimCols
+      , publicFact.factCols
+      , publicFact.facts
+      , publicFact.forcedFilters
+      , publicFact.maxDaysWindow
+      , publicFact.maxDaysLookBack
+      , publicFact.dimCardinalityLookup
+      , publicFact.enableUTCTimeConversion
+      , publicFact.renderLocalTimeFilter
+      , publicFact.revision
+      , publicFact.dimRevision
     )
   }
 }
