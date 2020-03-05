@@ -1521,7 +1521,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , renderLocalTimeFilter: Boolean = true
                    , revision: Int = 0
                    , dimRevision: Int = 0
-                   ) : PublicFact = {
+                   ) : PublicFactTable = {
     new PublicFactTable(name
       , baseFact
       , dimCols
@@ -1536,6 +1536,26 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , revision
       , dimRevision
     )
+  }
+
+  def copyPublicFact(alias: String
+                    , publicFact: PublicFactTable): PublicFact = {
+    val p = new PublicFactTable(
+      alias
+      , publicFact.baseFact
+      , publicFact.dimCols
+      , publicFact.factCols
+      , publicFact.facts
+      , publicFact.forcedFilters
+      , publicFact.maxDaysWindow
+      , publicFact.maxDaysLookBack
+      , publicFact.dimCardinalityLookup
+      , publicFact.enableUTCTimeConversion
+      , publicFact.renderLocalTimeFilter
+      , publicFact.revision
+      , publicFact.dimRevision
+    )
+    p
   }
 }
 
