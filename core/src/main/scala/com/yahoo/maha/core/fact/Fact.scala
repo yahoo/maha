@@ -1513,7 +1513,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
   }
 
   def copyPublicFact(alias: String
-                    , publicFact: PublicFactTable): PublicFact = {
+                    , publicFact: PublicFactTable): PublicFactTable = {
     new PublicFactTable(
       alias
       , publicFact.baseFact
