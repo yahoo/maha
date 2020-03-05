@@ -119,7 +119,7 @@ case class FactCol(name: String,
         ,("name" -> toJSON(name))
         ,("dataType" -> dataType.asJSON)
         ,("rollupExpression" -> rollupExpression.asJSON)
-        ,("aliasOrName" -> toJSON(alias.getOrElse(name)))
+        ,("aliasOrName" -> toJSON(alias.getOrElse("")))
         ,("annotations" -> jUtils.asJSON(annotations))
         ,("filterOperationOverrides" -> jUtils.asJSON(filterOperationOverrides.map(op => op.toString)))
       )

@@ -71,7 +71,7 @@ trait Column {
     makeObj(
       List(
         ("name" -> toJSON(name))
-        ,("alias" -> toJSON(alias))
+        ,("alias" -> toJSON(alias.getOrElse("")))
         ,("dataType" -> dataType.asJSON)
         ,("annotations" -> jUtils.asJSON(annotations))
         ,("filterOperationOverrides", jUtils.asJSON(filterOperationOverrides))

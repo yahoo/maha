@@ -82,7 +82,7 @@ case class DimCol(name: String,
         ("DimCol" -> super.asJSON)
         ,("name" -> toJSON(name))
         ,("dataType" -> dataType.asJSON)
-        ,("aliasOrName" ->  toJSON(alias.getOrElse(name)))
+        ,("aliasOrName" ->  toJSON(alias.getOrElse("")))
         ,("annotations" -> jUtils.asJSON(annotations))
         ,("filterOperationOverrides" -> jUtils.asJSON(filterOperationOverrides.map(fo => fo.toString)))
       )
