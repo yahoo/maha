@@ -1513,6 +1513,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
   }
 
   def copyPublicFact(alias: String
+                    , revision: Int
                     , publicFact: PublicFactTable): PublicFactTable = {
     new PublicFactTable(
       alias
@@ -1526,7 +1527,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , publicFact.dimCardinalityLookup
       , publicFact.enableUTCTimeConversion
       , publicFact.renderLocalTimeFilter
-      , publicFact.revision
+      , revision
       , publicFact.dimRevision
       , Some(publicFact)
     )

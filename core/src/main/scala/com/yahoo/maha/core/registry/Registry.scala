@@ -31,12 +31,14 @@ class RegistryBuilder{
     this
   }
 
-  def registerAlias(aliases: Set[String], fact: PublicFactTable): RegistryBuilder = {
-    for(alias <- aliases) {
-      require(!publicFactMap.contains((alias, fact.revision)), s"Cannot register multiple public facts with same name : ${fact.name} and revision ${fact.revision}")
+  def registerAlias(aliasesWithRevision: Set[(String, Option[Int])], fact: PublicFactTable): RegistryBuilder = {
+    for(pair <- aliasesWithRevision) {
+      val alias = pair._1
+      val revision = pair._2.getOrElse(fact.revision)
+      require(!publicFactMap.contains((alias, revision)), s"Cannot register multiple public facts with same name : ${fact.name} and revision ${fact.revision}")
       val newFactBuilder = FactBuilder(fact.baseFact, fact.facts, fact.dimCardinalityLookup)
-      val newPF = newFactBuilder.copyPublicFact(alias, fact)
-      publicFactMap += ((alias, fact.revision) -> newPF)
+      val newPF = newFactBuilder.copyPublicFact(alias, revision, fact)
+      publicFactMap += ((alias, revision) -> newPF)
     }
     this
   }
