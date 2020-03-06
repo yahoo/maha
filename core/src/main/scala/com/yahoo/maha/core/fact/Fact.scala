@@ -1528,6 +1528,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , publicFact.renderLocalTimeFilter
       , publicFact.revision
       , publicFact.dimRevision
+      , Some(publicFact)
     )
   }
 }
@@ -1668,6 +1669,7 @@ case class PublicFactTable private[fact](name: String
                                          , renderLocalTimeFilter: Boolean
                                          , revision: Int
                                          , dimRevision: Int
+                                         , parentFactTable: Option[PublicFactTable] =  None
                                         ) extends PublicFact with Logging {
 
   def factList: Iterable[Fact] = facts.values
@@ -1779,6 +1781,8 @@ case class PublicFactTable private[fact](name: String
       .to[SortedSet])*/
 
   private[this] val secondaryDimFactMap: Map[SortedSet[String], SortedSet[Fact]] =
+    if (this.parentFactTable.isDefined) parentFactTable.get.getSecondaryDimFactMap
+    else
     facts
       .values
       .map(f => (f.dimCols.filter(_.annotations.exists(_.isInstanceOf[ForeignKey])).map(col => col.name), f))
@@ -1790,6 +1794,8 @@ case class PublicFactTable private[fact](name: String
       .to[SortedSet])
 
   private[this] val dimColsByName = dimCols.map(_.name)
+
+  def getSecondaryDimFactMap: Map[SortedSet[String], SortedSet[Fact]] = secondaryDimFactMap
 
   def getCandidatesFor(schema: Schema, requestType: RequestType, requestAliases: Set[String], requestJoinAliases: Set[String], filterAliasAndOperation: Map[String, FilterOperation], requestedDaysWindow:Int, requestedDaysLookBack:Int, localTimeDayFilter:Filter) : Option[BestCandidates] = {
     val aliases = requestAliases ++ filterAliasAndOperation.keySet
