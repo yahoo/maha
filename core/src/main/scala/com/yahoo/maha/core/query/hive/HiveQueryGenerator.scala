@@ -66,8 +66,8 @@ class HiveQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfSta
             s"""ROUND(COALESCE($finalAlias, ${default}), 10)"""
           case DecType(_, _, _, _, _, _) =>
             s"""ROUND(COALESCE($finalAlias, 0L), 10)"""
-          case IntType(_,sm,_,_,_) =>
-            s"""COALESCE($finalAlias, 0L)"""
+          case IntType(_,sm,df,_,_) =>
+            s"""COALESCE($finalAlias, ${df.getOrElse(0)}L)"""
           case DateType(_) => s"""getFormattedDate($finalAlias)"""
           case StrType(_, sm, df) =>
             val defaultValue = df.getOrElse("NA")
