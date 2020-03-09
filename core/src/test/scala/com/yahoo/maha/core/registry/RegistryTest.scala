@@ -606,7 +606,6 @@ class RegistryTest extends FunSuite with Matchers {
     val thrown = intercept[IllegalArgumentException] {
       registryBuilder.registerAlias(Set((pubFact1.name, Some(pubFact1.revision)), ("publicFact", Some(pubFact1.revision))), pubFact1)
     }
-
     assert(thrown.getMessage.contains("Cannot register multiple public facts with same name"))
   }
 }

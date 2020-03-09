@@ -9,6 +9,9 @@ import org.joda.time.format.DateTimeFormat
 
 import scala.util.Try
 
+import org.json4s.JsonAST.{JNull, JObject, JValue}
+import org.json4s.scalaz.JsonScalaz._
+
 sealed trait PostResultFunction {
 
   def expression: String
@@ -18,6 +21,8 @@ sealed trait PostResultFunction {
   def resultApply(rowData: RowData): Unit
 
   def validate()
+
+  def asJSON: JObject
 }
 
 abstract class BasePostResultFunction (implicit cc: ColumnContext) extends PostResultFunction {
@@ -98,6 +103,15 @@ object DruidPostResultFunction {
       }
     }
 
+    override def asJSON: JObject =
+      makeObj(
+        List(
+          ("postResultFunction" -> toJSON(this.getClass.getSimpleName))
+          ,("expression" -> toJSON(expression))
+          ,("args" -> toJSON(args.mkString(",")))
+        )
+      )
+
   }
 
   case class START_OF_THE_WEEK(expression: String)
@@ -122,6 +136,14 @@ object DruidPostResultFunction {
       }
     }
 
+    override def asJSON: JObject =
+      makeObj(
+        List(
+          ("postResultFunction" -> toJSON(this.getClass.getSimpleName))
+          ,("expression" -> toJSON(expression))
+        )
+      )
+
   }
 
   case class START_OF_THE_MONTH(expression: String)
@@ -135,6 +157,14 @@ object DruidPostResultFunction {
 
     override def resultApply(rowData: RowData): Unit = {
     }
+
+    override def asJSON: JObject =
+      makeObj(
+        List(
+          ("postResultFunction" -> toJSON(this.getClass.getSimpleName))
+          ,("expression" -> toJSON(expression))
+        )
+      )
 
   }
 
