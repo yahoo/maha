@@ -4,7 +4,7 @@ package com.yahoo.maha.core.registry
 
 import com.yahoo.maha.core.NoopSchema.NoopSchema
 import com.yahoo.maha.core.dimension.PublicDimension
-import com.yahoo.maha.core.fact.{Fact, FactCandidate, PublicFact}
+import com.yahoo.maha.core.fact.{Fact, FactBuilder, FactCandidate, PublicFact, PublicFactTable}
 import com.yahoo.maha.core.request.{ReportingRequest, RequestType}
 import com.yahoo.maha.core.{DefaultDimEstimator, DefaultFactEstimator, _}
 import grizzled.slf4j.Logging
@@ -28,6 +28,18 @@ class RegistryBuilder{
   def register(fact: PublicFact): RegistryBuilder = {
     require(!publicFactMap.contains((fact.name, fact.revision)), s"Cannot register multiple public facts with same name : ${fact.name} and revision ${fact.revision}")
     publicFactMap += ((fact.name, fact.revision) -> fact)
+    this
+  }
+
+  def registerAlias(aliasesWithRevision: Set[(String, Option[Int])], fact: PublicFactTable): RegistryBuilder = {
+    for(pair <- aliasesWithRevision) {
+      val alias = pair._1
+      val revision = pair._2.getOrElse(fact.revision)
+      require(!publicFactMap.contains((alias, revision)), s"Cannot register multiple public facts with same name : ${fact.name} and revision ${fact.revision}")
+      val newFactBuilder = FactBuilder(fact.baseFact, fact.facts, fact.dimCardinalityLookup)
+      val newPF = newFactBuilder.copyPublicFact(alias, revision, fact)
+      publicFactMap += ((alias, revision) -> newPF)
+    }
     this
   }
 
