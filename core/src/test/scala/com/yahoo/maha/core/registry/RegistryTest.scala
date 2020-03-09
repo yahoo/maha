@@ -569,14 +569,29 @@ class RegistryTest extends FunSuite with Matchers {
   }
 
   test("domainJsonAsString and flattenDomainJsonAsString should not include NoopSchema") {
+    val pubFact1 = pubfact
+    val registryBuilder = new RegistryBuilder
+    registryBuilder.register(pubFact1)
+    registryBuilder.register(base_dim)
+    val registry = registryBuilder.build()
+
+    registry.domainJsonAsString shouldBe """{"dimensions":[{"name":"advertiser","fields":["Advertiser ID","Advertiser Status","Advertiser Email"],"fieldsWithSchemas":[{"name":"Advertiser ID","allowedSchemas":[]},{"name":"Advertiser Status","allowedSchemas":[]},{"name":"Advertiser Email","allowedSchemas":["internal"]}]}],"schemas":{"advertiser":["publicFact"]},"cubes":[{"name":"publicFact","mainEntityIds":{"advertiser":"Advertiser ID"},"maxDaysLookBack":[{"requestType":"SyncRequest","grain":"DailyGrain","days":30},{"requestType":"AsyncRequest","grain":"DailyGrain","days":30}],"maxDaysWindow":[{"requestType":"SyncRequest","grain":"DailyGrain","days":20},{"requestType":"AsyncRequest","grain":"DailyGrain","days":20},{"requestType":"SyncRequest","grain":"HourlyGrain","days":20},{"requestType":"AsyncRequest","grain":"HourlyGrain","days":20}],"fields":[{"field":"Advertiser ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":"advertiser","filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Destination URL","type":"Dimension","dataType":{"type":"String","constraint":null},"dimensionName":null,"filterable":false,"filterOperations":null,"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Fact ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Is Adjustment","type":"Dimension","dataType":{"type":"Enum","constraint":"Y|N"},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":["Destination URL"],"isImageColumn":false,"allowedSchemas":["internal"]},{"field":"Pricing Type","type":"Dimension","dataType":{"type":"Enum","constraint":"CPCV|CPC|CPF|CPM|CPE|CPV|CPA"},"dimensionName":null,"filterable":true,"filterOperations":["IN"],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Source","type":"Dimension","dataType":{"type":"Number","constraint":"3"},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"incompatibleColumns":null,"isImageColumn":false,"allowedSchemas":null},{"field":"Clicks","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN"],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":["Pricing Type"],"allowedSchemas":null},{"field":"Impressions","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","incompatibleColumns":null,"allowedSchemas":null}]}]}"""
+    registry.flattenDomainJsonAsString shouldBe """{"dimensions":[{"name":"advertiser","fields":["Advertiser ID","Advertiser Status","Advertiser Email"]}],"schemas":{"advertiser":["publicFact"]},"cubes":[{"name":"publicFact","mainEntityIds":{"advertiser":"Advertiser ID"},"maxDaysLookBack":[{"requestType":"SyncRequest","grain":"DailyGrain","days":30},{"requestType":"AsyncRequest","grain":"DailyGrain","days":30}],"maxDaysWindow":[{"requestType":"SyncRequest","grain":"DailyGrain","days":20},{"requestType":"AsyncRequest","grain":"DailyGrain","days":20},{"requestType":"SyncRequest","grain":"HourlyGrain","days":20},{"requestType":"AsyncRequest","grain":"HourlyGrain","days":20}],"fields":[{"field":"Advertiser ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":"advertiser","filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Destination URL","type":"Dimension","dataType":{"type":"String","constraint":null},"dimensionName":null,"filterable":false,"filterOperations":null,"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Fact ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Is Adjustment","type":"Dimension","dataType":{"type":"Enum","constraint":"Y|N"},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":["internal"]},{"field":"Pricing Type","type":"Dimension","dataType":{"type":"Enum","constraint":"CPCV|CPC|CPF|CPM|CPE|CPV|CPA"},"dimensionName":null,"filterable":true,"filterOperations":["IN"],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Source","type":"Dimension","dataType":{"type":"Number","constraint":"3"},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Clicks","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN"],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","allowedSchemas":null},{"field":"Impressions","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","allowedSchemas":null},{"field":"Advertiser Status","type":"Dimension","dataType":{"type":"String","constraint":null},"dimensionName":"advertiser","filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Advertiser Email","type":"Dimension","dataType":{"type":"String","constraint":null},"dimensionName":"advertiser","filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":["internal"]},{"field":"Ad Asset JSON","type":"Dimension","dataType":{"type":"String","constraint":null},"dimensionName":"advertiser","filterable":true,"filterOperations":["IN","="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null}]}]}"""
+  }
+
+  test("Should allow aliasing of a publicFact") {
     val pubFact1: PublicFactTable = pubfact
     val registryBuilder = new RegistryBuilder
 
     registryBuilder.register(base_dim)
-    registryBuilder.registerAlias(Set(pubFact1.name, "alias2"), pubFact1)
+    registryBuilder.register(pubFact1)
+    registryBuilder.registerAlias(Set((pubFact1.name, Some(3)), ("alias2", None)), pubFact1)
     val registry = registryBuilder.build()
 
-    assert(registry.factMap.keys.toSet.contains(("alias2", 0)) && registry.factMap.keys.toSet.contains(("publicFact", 0)))
+    assert(
+      registry.factMap.keys.toSet.contains(("alias2", 0))
+        && registry.factMap.keys.toSet.contains(("publicFact", 0))
+        && registry.factMap.keys.toSet.contains(("publicFact", 3)))
 
   }
 
@@ -586,7 +601,12 @@ class RegistryTest extends FunSuite with Matchers {
 
     registryBuilder.register(base_dim)
     registryBuilder.register(pubFact1)
-    assertThrows[IllegalArgumentException](registryBuilder.registerAlias(Set(pubFact1.name, "publicFact"), pubFact1))
+    assertThrows[IllegalArgumentException](registryBuilder.registerAlias(Set(("turtles", Some(1)), (pubFact1.name, Some(pubFact1.revision))), pubFact1))
 
+    val thrown = intercept[IllegalArgumentException] {
+      registryBuilder.registerAlias(Set((pubFact1.name, Some(pubFact1.revision)), ("publicFact", Some(pubFact1.revision))), pubFact1)
+    }
+
+    assert(thrown.getMessage.contains("Cannot register multiple public facts with same name"))
   }
 }

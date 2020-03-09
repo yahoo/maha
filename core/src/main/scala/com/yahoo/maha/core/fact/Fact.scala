@@ -689,7 +689,7 @@ case class FactTable private[fact](name: String
       c.derivedExpression.render(c.name)
     }
   }
-  
+
   private[this] def validateForeignKeyCols[T <: Column](columns: Set[T]) : Unit = {
     columns.foreach {
       col =>
@@ -768,7 +768,7 @@ case class FactTable private[fact](name: String
     require(forcedFiltersByBasenameMap.size == publicFact.forcedFilters.size, "Forced Filters public fact and map of forced base cols differ in size")
 
   }
-  
+
   def postValidate(publicFact: PublicFact) : Unit = {
     validateForceFilters(forceFilters, publicFact)
     validateForceFilterUniqueness(publicFact)
@@ -1539,8 +1539,9 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
   }
 
   def copyPublicFact(alias: String
-                    , publicFact: PublicFactTable): PublicFact = {
-    val p = new PublicFactTable(
+                     , revision: Int
+                     , publicFact: PublicFactTable): PublicFactTable = {
+    new PublicFactTable(
       alias
       , publicFact.baseFact
       , publicFact.dimCols
@@ -1552,10 +1553,10 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , publicFact.dimCardinalityLookup
       , publicFact.enableUTCTimeConversion
       , publicFact.renderLocalTimeFilter
-      , publicFact.revision
+      , revision
       , publicFact.dimRevision
+      , Some(publicFact)
     )
-    p
   }
 }
 
@@ -1695,6 +1696,7 @@ case class PublicFactTable private[fact](name: String
                                          , renderLocalTimeFilter: Boolean
                                          , revision: Int
                                          , dimRevision: Int
+                                         , parentFactTable: Option[PublicFactTable] =  None
                                         ) extends PublicFact with Logging {
 
   def factList: Iterable[Fact] = facts.values
@@ -1806,6 +1808,8 @@ case class PublicFactTable private[fact](name: String
       .to[SortedSet])*/
 
   private[this] val secondaryDimFactMap: Map[SortedSet[String], SortedSet[Fact]] =
+    if (this.parentFactTable.isDefined) parentFactTable.get.getSecondaryDimFactMap
+    else
     facts
       .values
       .map(f => (f.dimCols.filter(_.annotations.exists(_.isInstanceOf[ForeignKey])).map(col => col.name), f))
@@ -1817,6 +1821,8 @@ case class PublicFactTable private[fact](name: String
       .to[SortedSet])
 
   private[this] val dimColsByName = dimCols.map(_.name)
+
+  def getSecondaryDimFactMap: Map[SortedSet[String], SortedSet[Fact]] = secondaryDimFactMap
 
   def getCandidatesFor(schema: Schema, requestType: RequestType, requestAliases: Set[String], requestJoinAliases: Set[String], filterAliasAndOperation: Map[String, FilterOperation], requestedDaysWindow:Int, requestedDaysLookBack:Int, localTimeDayFilter:Filter) : Option[BestCandidates] = {
     val aliases = requestAliases ++ filterAliasAndOperation.keySet
