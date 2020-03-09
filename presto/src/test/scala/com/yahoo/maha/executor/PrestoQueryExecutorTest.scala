@@ -942,9 +942,20 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
     val allJSONs: Set[JObject] = (pubFactCols ++ pubDimCols ++ fkCols).map(col => col.asJSON)
     println(s"""All tables with fact ${pubFact.get.name}: ${fkTableNames.mkString(",")}""")
 
+    val expectAliases: List[String] = List(
+      "Ad Date Modified Timestamp","Spend","Max Bid","Ad Group ID","Ad Group Date Modified","Day","Impressions",
+      "Advertiser Name","Ad Title","Ad ID","Ad Group Start Date","Average CPC","Ad Group End Date","Count",
+      "Ad Group End Date Full","Ad Group Start Date Full","Network ID","Ad Group Status","Source","Advertiser ID",
+      "Ad Date Modified","Ad Group Name","Ad Status","Country","Ad Date Created","Campaign Name","Advertiser Status",
+      "Campaign ID","Campaign Status","Ad Creation Date","Pricing Type","CTR Percentage","CTR","Ad Group Date Created",
+      "Hour","Clicks"
+    )
+
+    //println(allJSONs.map(json => "\"" + json.values("alias") + "\"").mkString(","))
     import org.json4s._
     import org.json4s.jackson.JsonMethods._
     implicit val formats = DefaultFormats
-    //println(allJSONs.map(json => pretty(json)))
+    val aliases: List[String] = allJSONs.map(json => json.values("alias").toString).toList
+    assert(aliases.forall(alias => expectAliases.contains(alias)))
   }
 }
