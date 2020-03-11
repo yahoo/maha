@@ -1543,7 +1543,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
 
   def copyPublicFact(alias: String
                      , revision: Int
-                     , publicFact: PublicFactTable
+                     , publicFact: PublicFact
                      , dimToRevisionOverrideMap: Map[String, Int] = Map.empty): PublicFactTable = {
     new PublicFactTable(
       alias
@@ -1686,6 +1686,11 @@ trait PublicFact extends PublicTable {
   def renderLocalTimeFilter: Boolean
   def revision: Int
   def dimRevision: Int
+  def dimCardinalityLookup: Option[LongRangeLookup[Map[RequestType, Map[Engine, Int]]]]
+  def facts: Map[String, Fact]
+  def parentFactTable: Option[PublicFact]
+  def dimToRevisionMap: Map[String, Int]
+  def getSecondaryDimFactMap: Map[SortedSet[String], SortedSet[Fact]]
 }
 
 case class PublicFactTable private[fact](name: String
@@ -1701,7 +1706,7 @@ case class PublicFactTable private[fact](name: String
                                          , renderLocalTimeFilter: Boolean
                                          , revision: Int
                                          , dimRevision: Int
-                                         , parentFactTable: Option[PublicFactTable] =  None
+                                         , parentFactTable: Option[PublicFact] =  None
                                          , dimToRevisionMap: Map[String, Int] = Map.empty
                                         ) extends PublicFact with Logging {
 

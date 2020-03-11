@@ -256,7 +256,7 @@ class CSVRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTest {
         
       }
     }
-    assert(thrown.getMessage === "/blah (Permission denied)")
+    assert(thrown.getMessage === "/blah (Permission denied)" || thrown.getMessage === "/blah (Read-only file system)")
   }
 
   test("Error case, no alias") {

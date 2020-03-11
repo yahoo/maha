@@ -21,17 +21,17 @@ import scala.collection.{SortedSet, mutable}
 class RegistryBuilder{
 
   private var publicDimMap: Map[(String, Int), PublicDimension] = Map()
-  private var publicFactMap: Map[(String, Int), PublicFactTable] = Map()
+  private var publicFactMap: Map[(String, Int), PublicFact] = Map()
   private var dimColToKeySetMap: Map[String, Set[String]] = Map()
   private var dimColToDimensionSetMap: Map[String, Set[(String, Int)]] = Map()
 
-  def register(fact: PublicFactTable): RegistryBuilder = {
+  def register(fact: PublicFact): RegistryBuilder = {
     require(!publicFactMap.contains((fact.name, fact.revision)), s"Cannot register multiple public facts with same name : ${fact.name} and revision ${fact.revision}")
     publicFactMap += ((fact.name, fact.revision) -> fact)
     this
   }
 
-  def registerAlias(aliasesWithRevision: Set[(String, Option[Int])], fact: PublicFactTable, dimRevisionMap: Map[String, Int] = Map.empty): RegistryBuilder = {
+  def registerAlias(aliasesWithRevision: Set[(String, Option[Int])], fact: PublicFact, dimRevisionMap: Map[String, Int] = Map.empty): RegistryBuilder = {
     for(pair <- aliasesWithRevision) {
       val alias = pair._1
       val revision = pair._2.getOrElse(fact.revision)
@@ -125,7 +125,7 @@ case class FactRowsCostEstimate(rowsEstimate: RowsEstimate, costEstimate: Long, 
   def isScanOptimized: Boolean = rowsEstimate.isScanOptimized
 }
 case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension]
-                                      , factMap: Map[(String, Int), PublicFactTable]
+                                      , factMap: Map[(String, Int), PublicFact]
                                       , keySet:Set[String]
                                       , dimColToKeyMap: Map[String, String]
                                       , cubeDimColToKeyMap: Map[(String, String), String]
@@ -281,7 +281,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     factHighestLevelDimMap(factCandidate.publicFact.name, factCandidate.publicFact.revision, factCandidate.fact.name)
   }
 
-  def getFact(name: String, revision: Option[Int] = None): Option[PublicFactTable] = {
+  def getFact(name: String, revision: Option[Int] = None): Option[PublicFact] = {
     if (revision.isDefined && factMap.contains((name, revision.get))) {
       factMap.get((name, revision.get))
     } else if (defaultPublicFactRevisionMap.contains(name)) {

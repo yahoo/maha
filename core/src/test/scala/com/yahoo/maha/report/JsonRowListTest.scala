@@ -396,7 +396,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
         
       }
     }
-    assert(thrown.getMessage === "/blah (Permission denied)")
+    assert(thrown.getMessage === "/blah (Permission denied)" || thrown.getMessage === "/blah (Read-only file system)")
   }
 
   override protected[this] def registerFacts(forcedFilters: Set[ForcedFilter], registryBuilder: RegistryBuilder): Unit = {
