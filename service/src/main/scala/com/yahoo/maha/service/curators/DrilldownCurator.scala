@@ -97,7 +97,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
       val bestCandidates = requestModel.bestCandidates.get
       val fkAliases = bestCandidates.fkCols.flatMap(bestCandidates.dimColMapping.get)
       val dimRevisionOption = Option(bestCandidates.publicFact.dimRevision)
-      val dimensions = fkAliases.flatMap(alias => registry.getDimensionByPrimaryKeyAlias(alias, dimRevisionOption))
+      val dimensions = fkAliases.flatMap(alias => registry.getPkDimensionUsingFactTable(alias, dimRevisionOption, bestCandidates.publicFact.dimToRevisionMap))
       if (dimensions.nonEmpty) {
         Option(dimensions.maxBy(_.dimLevel.level).primaryKeyByAlias)
       } else None

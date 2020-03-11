@@ -73,7 +73,7 @@ class RegistryTest extends FunSuite with Matchers {
     )
   }
 
-  def pubfact2: PublicFact = {
+  def pubfact2: PublicFactTable = {
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "fact2", DailyGrain, HiveEngine, Set(AdvertiserSchema),
@@ -96,6 +96,7 @@ class RegistryTest extends FunSuite with Matchers {
         Set(
           PubCol("id", "Fact ID", Equality),
           PubCol("advertiser_id", "Advertiser ID", Equality),
+          PubCol("ad_group_id", "Base Dim3 ID", Equality),
           PubCol("stats_source", "Source", Equality),
           PubCol("price_type", "Pricing Type", In),
           PubCol("landing_page_url", "Destination URL", Set.empty)
@@ -110,7 +111,7 @@ class RegistryTest extends FunSuite with Matchers {
       )
   }
 
-  def pubFact3: PublicFact = {
+  def pubFact3: PublicFactTable = {
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "fact", DailyGrain, HiveEngine, Set(AdvertiserSchema),
@@ -149,7 +150,7 @@ class RegistryTest extends FunSuite with Matchers {
       )
   }
 
-  def pubFact4: PublicFact = {
+  def pubFact4: PublicFactTable = {
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "fact", DailyGrain, HiveEngine, Set(AdvertiserSchema),
@@ -188,7 +189,7 @@ class RegistryTest extends FunSuite with Matchers {
       )
   }
 
-  def pubFact3WithSameRevision: PublicFact = {
+  def pubFact3WithSameRevision: PublicFactTable = {
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "fact", DailyGrain, HiveEngine, Set(AdvertiserSchema),
@@ -263,7 +264,7 @@ class RegistryTest extends FunSuite with Matchers {
           Set(
             PubCol("id", "Advertiser ID", Equality)
             , PubCol("status", "Advertiser Status", Equality)
-            , PubCol("ad_asset_json", "Ad Asset JSON", InEquality, hiddenFromJson = true)
+            , PubCol("ad_asset_json", "Ad Asset JSON Copy", InEquality, hiddenFromJson = true)
           ), revision = 1, highCardinalityFilters = Set(NotInFilter("Advertiser Status", List("DELETED")))
         )
     }
@@ -564,7 +565,7 @@ class RegistryTest extends FunSuite with Matchers {
     registryBuilder.register(base_dim_with_revision)
     val registry = registryBuilder.build()
 
-    val expected = s"""{"name":"publicFact","mainEntityIds":{"advertiser":"Advertiser ID"},"maxDaysLookBack":[{"requestType":"SyncRequest","grain":"DailyGrain","days":30},{"requestType":"AsyncRequest","grain":"DailyGrain","days":30}],"maxDaysWindow":[{"requestType":"SyncRequest","grain":"DailyGrain","days":20},{"requestType":"AsyncRequest","grain":"DailyGrain","days":20},{"requestType":"SyncRequest","grain":"HourlyGrain","days":20},{"requestType":"AsyncRequest","grain":"HourlyGrain","days":20}],"fields":[{"field":"Advertiser ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":"advertiser","filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Destination URL","type":"Dimension","dataType":{"type":"String","constraint":null},"dimensionName":null,"filterable":false,"filterOperations":null,"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Fact ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Is Adjustment","type":"Dimension","dataType":{"type":"Enum","constraint":"Y|N"},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Pricing Type","type":"Dimension","dataType":{"type":"Enum","constraint":"CPCV|CPC|CPF|CPM|CPE|CPV|CPA"},"dimensionName":null,"filterable":true,"filterOperations":["IN"],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Source","type":"Dimension","dataType":{"type":"Number","constraint":"3"},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Clicks","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN"],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","allowedSchemas":null},{"field":"Impressions","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","allowedSchemas":null},{"field":"Advertiser Status","type":"Dimension","dataType":{"type":"String","constraint":null},"dimensionName":"advertiser","filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Ad Asset JSON","type":"Dimension","dataType":{"type":"String","constraint":null},"dimensionName":"advertiser","filterable":true,"filterOperations":["IN","="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null}]}"""
+    val expected = s"""{"name":"publicFact","mainEntityIds":{"advertiser":"Advertiser ID"},"maxDaysLookBack":[{"requestType":"SyncRequest","grain":"DailyGrain","days":30},{"requestType":"AsyncRequest","grain":"DailyGrain","days":30}],"maxDaysWindow":[{"requestType":"SyncRequest","grain":"DailyGrain","days":20},{"requestType":"AsyncRequest","grain":"DailyGrain","days":20},{"requestType":"SyncRequest","grain":"HourlyGrain","days":20},{"requestType":"AsyncRequest","grain":"HourlyGrain","days":20}],"fields":[{"field":"Advertiser ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":"advertiser","filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Destination URL","type":"Dimension","dataType":{"type":"String","constraint":null},"dimensionName":null,"filterable":false,"filterOperations":null,"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Fact ID","type":"Dimension","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Is Adjustment","type":"Dimension","dataType":{"type":"Enum","constraint":"Y|N"},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Pricing Type","type":"Dimension","dataType":{"type":"Enum","constraint":"CPCV|CPC|CPF|CPM|CPE|CPV|CPA"},"dimensionName":null,"filterable":true,"filterOperations":["IN"],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Source","type":"Dimension","dataType":{"type":"Number","constraint":"3"},"dimensionName":null,"filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Clicks","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN"],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","allowedSchemas":null},{"field":"Impressions","type":"Fact","dataType":{"type":"Number","constraint":null},"dimensionName":null,"filterable":true,"filterOperations":["IN","="],"required":false,"filteringRequired":false,"rollupExpression":"SumRollup","allowedSchemas":null},{"field":"Advertiser Status","type":"Dimension","dataType":{"type":"String","constraint":null},"dimensionName":"advertiser","filterable":true,"filterOperations":["="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null},{"field":"Ad Asset JSON Copy","type":"Dimension","dataType":{"type":"String","constraint":null},"dimensionName":"advertiser","filterable":true,"filterOperations":["IN","="],"required":false,"filteringRequired":false,"isImageColumn":false,"allowedSchemas":null}]}"""
     registry.getFlattenCubeJsonAsStringForCube(pubfact.name, 1) shouldBe expected
   }
 
@@ -607,5 +608,28 @@ class RegistryTest extends FunSuite with Matchers {
       registryBuilder.registerAlias(Set((pubFact1.name, Some(pubFact1.revision)), ("publicFact", Some(pubFact1.revision))), pubFact1)
     }
     assert(thrown.getMessage.contains("Cannot register multiple public facts with same name"))
+  }
+
+  test("Should alias a fact with an overriden secondary Dimension, keeping default base.") {
+    val pubFact1: PublicFactTable = pubfact
+    val pf2 = pubfact2
+    val registryBuilder = new RegistryBuilder
+
+    registryBuilder.register(base_dim)
+    registryBuilder.register(base_dim_with_revision)
+    registryBuilder.register(base_dim3_with_duplicate_col)
+    registryBuilder.register(pubFact1)
+    registryBuilder.register(pf2)
+    registryBuilder.registerAlias(Set((pf2.name, Some(3)), ("alias2", None)), pf2, Map("advertiser" -> 1))
+
+    val registry = registryBuilder.build()
+
+    assert(
+      registry.factMap.keys.toSet.contains(("alias2", 0))
+        && registry.factMap.keys.toSet.contains(("publicFact", 0))
+        && registry.factMap.keys.toSet.contains(("publicFact2", 3))
+        && registry.factMap.keys.toSet.contains(("publicFact2", 0)))
+
+    assert(registry.flattenDomainJsonAsString.contains("Ad Asset JSON Copy")) //should only appear in Advertiser V1.
   }
 }

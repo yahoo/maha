@@ -1521,6 +1521,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , renderLocalTimeFilter: Boolean = true
                    , revision: Int = 0
                    , dimRevision: Int = 0
+                   , dimToRevisionMap: Map[String, Int] = Map.empty
                    ) : PublicFactTable = {
     new PublicFactTable(name
       , baseFact
@@ -1535,12 +1536,15 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , renderLocalTimeFilter
       , revision
       , dimRevision
+      , None
+      , dimToRevisionMap
     )
   }
 
   def copyPublicFact(alias: String
                      , revision: Int
-                     , publicFact: PublicFactTable): PublicFactTable = {
+                     , publicFact: PublicFactTable
+                     , dimToRevisionOverrideMap: Map[String, Int] = Map.empty): PublicFactTable = {
     new PublicFactTable(
       alias
       , publicFact.baseFact
@@ -1556,6 +1560,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , revision
       , publicFact.dimRevision
       , Some(publicFact)
+      , publicFact.dimToRevisionMap ++ dimToRevisionOverrideMap
     )
   }
 }
@@ -1623,7 +1628,7 @@ case class BestCandidates(fkCols: SortedSet[String],
                           requestCols: Set[String],
                           requestJoinCols: Set[String],
                           facts: Map[String, FactCandidate],
-                          publicFact: PublicFact, 
+                          publicFact: PublicFactTable,
                           dimColMapping: Map[String, String], 
                           factColMapping: Map[String, String],
                           dimColAliases: Set[String],
@@ -1697,6 +1702,7 @@ case class PublicFactTable private[fact](name: String
                                          , revision: Int
                                          , dimRevision: Int
                                          , parentFactTable: Option[PublicFactTable] =  None
+                                         , dimToRevisionMap: Map[String, Int] = Map.empty
                                         ) extends PublicFact with Logging {
 
   def factList: Iterable[Fact] = facts.values

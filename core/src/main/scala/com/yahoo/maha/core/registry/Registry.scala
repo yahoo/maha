@@ -21,23 +21,23 @@ import scala.collection.{SortedSet, mutable}
 class RegistryBuilder{
 
   private var publicDimMap: Map[(String, Int), PublicDimension] = Map()
-  private var publicFactMap: Map[(String, Int), PublicFact] = Map()
+  private var publicFactMap: Map[(String, Int), PublicFactTable] = Map()
   private var dimColToKeySetMap: Map[String, Set[String]] = Map()
   private var dimColToDimensionSetMap: Map[String, Set[(String, Int)]] = Map()
 
-  def register(fact: PublicFact): RegistryBuilder = {
+  def register(fact: PublicFactTable): RegistryBuilder = {
     require(!publicFactMap.contains((fact.name, fact.revision)), s"Cannot register multiple public facts with same name : ${fact.name} and revision ${fact.revision}")
     publicFactMap += ((fact.name, fact.revision) -> fact)
     this
   }
 
-  def registerAlias(aliasesWithRevision: Set[(String, Option[Int])], fact: PublicFactTable): RegistryBuilder = {
+  def registerAlias(aliasesWithRevision: Set[(String, Option[Int])], fact: PublicFactTable, dimRevisionMap: Map[String, Int] = Map.empty): RegistryBuilder = {
     for(pair <- aliasesWithRevision) {
       val alias = pair._1
       val revision = pair._2.getOrElse(fact.revision)
       require(!publicFactMap.contains((alias, revision)), s"Cannot register multiple public facts with same name : ${fact.name} and revision ${fact.revision}")
       val newFactBuilder = FactBuilder(fact.baseFact, fact.facts, fact.dimCardinalityLookup)
-      val newPF = newFactBuilder.copyPublicFact(alias, revision, fact)
+      val newPF = newFactBuilder.copyPublicFact(alias, revision, fact, dimRevisionMap)
       publicFactMap += ((alias, revision) -> newPF)
     }
     this
@@ -125,7 +125,7 @@ case class FactRowsCostEstimate(rowsEstimate: RowsEstimate, costEstimate: Long, 
   def isScanOptimized: Boolean = rowsEstimate.isScanOptimized
 }
 case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension]
-                                      , factMap: Map[(String, Int), PublicFact]
+                                      , factMap: Map[(String, Int), PublicFactTable]
                                       , keySet:Set[String]
                                       , dimColToKeyMap: Map[String, String]
                                       , cubeDimColToKeyMap: Map[(String, String), String]
@@ -226,8 +226,13 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
   private[this] val publicFactToDimensionMap : Map[(String, Int), IndexedSeq[(String, Int)]] = {
     factMap.map {
       case ((name, rev), pf) =>
-        val dimRev = pf.dimRevision
-        val dimRevList = pf.foreignKeySources.map( pd => (pd, dimRev)).toIndexedSeq
+        val dimRevList = pf.foreignKeySources.map(
+          pd =>
+            if(pf.dimToRevisionMap.nonEmpty && pf.dimToRevisionMap.contains(pd))
+              (pd, pf.dimToRevisionMap(pd))
+            else
+              (pd, pf.dimRevision))
+          .toIndexedSeq
         ((name, rev), dimRevList)
     }
   }
@@ -237,6 +242,8 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
       case ((cubeName, revision), pf) =>
         pf.factList.map { fact =>
           val dimAndLevel = fact.publicDimToForeignKeyMap.keys.collect {
+            case dimName if pf.dimToRevisionMap.nonEmpty && pf.dimToRevisionMap.contains(dimName) && dimMap.contains((dimName, pf.dimToRevisionMap(dimName))) =>
+              dimName -> dimMap((dimName, pf.dimToRevisionMap(dimName))).dimLevel
             case dimName if dimMap.contains((dimName, pf.dimRevision)) =>
               dimName -> dimMap((dimName, pf.dimRevision)).dimLevel
           }
@@ -274,7 +281,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     factHighestLevelDimMap(factCandidate.publicFact.name, factCandidate.publicFact.revision, factCandidate.fact.name)
   }
 
-  def getFact(name: String, revision: Option[Int] = None): Option[PublicFact] = {
+  def getFact(name: String, revision: Option[Int] = None): Option[PublicFactTable] = {
     if (revision.isDefined && factMap.contains((name, revision.get))) {
       factMap.get((name, revision.get))
     } else if (defaultPublicFactRevisionMap.contains(name)) {
@@ -314,6 +321,18 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
 
   def getDimColIdentity(attribute: String): Option[DimColIdentity] = {
     dimColByAliasIdentityMap.get(attribute)
+  }
+
+  def getPkDimensionUsingFactTable(alias: String, revision: Option[Int], dimMap: Map[String, Int]): Option[PublicDimension] = {
+
+    val pkAliasToDimNameMap = primaryKeyToDimMap.values.map( pd => (pd.primaryKeyByAlias -> pd.name)).toMap
+    val aliasAsDimName = pkAliasToDimNameMap.getOrElse(alias, "") //either give a PK name, or fall out of dimMap.
+
+    if(dimMap.nonEmpty &&  dimMap.contains(aliasAsDimName)) {
+      getDimensionByPrimaryKeyAlias(alias, Some(dimMap(aliasAsDimName)))
+    } else {
+      getDimensionByPrimaryKeyAlias(alias, revision)
+    }
   }
 
   def getDimensionByPrimaryKeyAlias(alias: String, revision: Option[Int]) : Option[PublicDimension] = {
@@ -509,7 +528,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
      val flattenDimCols = new scala.collection.mutable.ListBuffer[JObject]
       publicFact.foreignKeyAliases.toList.foreach {
         fk =>
-          val dimension = getDimensionByPrimaryKeyAlias(fk, Some(publicFact.dimRevision))
+          val dimension = getPkDimensionUsingFactTable(fk, Some(publicFact.dimRevision), publicFact.dimToRevisionMap)
           require(dimension.isDefined, s"Failed to find dimesion for $fk inside getFlattenCubeJsonByName")
           dimension.get.columnsByAliasMap.filter(_._1 != fk).toList.foreach {
             dimCol =>

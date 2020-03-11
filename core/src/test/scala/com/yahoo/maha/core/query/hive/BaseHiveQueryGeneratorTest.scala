@@ -34,7 +34,7 @@ trait BaseHiveQueryGeneratorTest
     registryBuilder.register(pubfact2(forcedFilters))
   }
 
-  protected[this] def s_stats_fact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+  protected[this] def s_stats_fact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
     import HiveExpression._
     import com.yahoo.maha.core.BaseExpressionTest._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
@@ -118,7 +118,7 @@ trait BaseHiveQueryGeneratorTest
       )
   }
 
-  protected[this] def aga_stats_fact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+  protected[this] def aga_stats_fact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
     import HiveExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
@@ -175,7 +175,7 @@ trait BaseHiveQueryGeneratorTest
       )
   }
 
-  def bidReco(): PublicFact = {
+  def bidReco(): PublicFactTable = {
     val builder : FactBuilder = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
         import HiveExpression._
@@ -292,7 +292,7 @@ trait BaseHiveQueryGeneratorTest
     publicFact
   }
 
-  protected[this] def ce_stats(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+  protected[this] def ce_stats(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
     import HiveExpression._
     import com.yahoo.maha.core.BaseExpressionTest._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
@@ -364,7 +364,7 @@ trait BaseHiveQueryGeneratorTest
       )
   }
 
-  def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+  def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
     import HiveExpression._
     import UDFHiveExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>

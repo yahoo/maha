@@ -34,7 +34,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
   override def register(registry: RegistryBuilder): Unit = {
     ExampleSchema.register()
 
-    def pubfactOracle: PublicFact = {
+    def pubfactOracle: PublicFactTable = {
      val builder = ColumnContext.withColumnContext { implicit dc: ColumnContext =>
         import com.yahoo.maha.core.OracleExpression._
         Fact.newFact(
@@ -89,7 +89,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
      student_performance with new revision, designed to test multi engine query
      Fact is stored in the druid and dimensions are stored in oracle (local h2-mode)
      */
-    def pubfactDruid: PublicFact = {
+    def pubfactDruid: PublicFactTable = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
         import com.yahoo.maha.core.DruidExpression._
         Fact.newFact(
@@ -133,7 +133,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
     }
     registry.register(pubfactDruid)
 
-    def pubfactOracleReduced: PublicFact = {
+    def pubfactOracleReduced: PublicFactTable = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
         import com.yahoo.maha.core.OracleExpression._
         Fact.newFact(
