@@ -227,7 +227,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
       )
   }
 
-  private[this] def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+  private[this] def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
     import PostgresExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
@@ -283,7 +283,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
       )
   }
 
-  private[this] def pubfactInvalid(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+  private[this] def pubfactInvalid(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
     import PostgresExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
@@ -337,7 +337,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
       )
   }
 
-  private[this] def druidpubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+  private[this] def druidpubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
     import DruidExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
