@@ -295,7 +295,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
     }
   }
 
-  private[this] def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     factBuilder(Set.empty)
       .toPublicFact("k_stats",
         Set(
@@ -361,7 +361,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
       )
   }
 
-  private[this] def pubfactWithExpensiveDateTime(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfactWithExpensiveDateTime(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     factBuilderWithExpensiveDateTime(Set.empty)
       .toPublicFact("k_stats_expensive_date_time",
         Set(
@@ -378,7 +378,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
       )
   }
 
-  private[this] def pubfact_v1(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfact_v1(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     factBuilder(Set(DruidGroupByStrategyV2))
       .toPublicFact("k_stats",
         Set(
@@ -419,7 +419,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
       )
   }
 
-  private[this] def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     factBuilder(Set.empty)
       .toPublicFact("k_stats_no_local_time",
         Set(
@@ -458,7 +458,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
       )
   }
 
-  private[this] def pubfact3(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfact3(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     factBuilder(Set(DruidGroupByStrategyV2))
       .toPublicFact("user_stats",
         Set(
@@ -484,7 +484,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
       )
   }
 
-  private[this] def pubfact4(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfact4(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     factBuilder(Set(DruidGroupByStrategyV2))
       .toPublicFact("user_stats_v2",
         Set(
@@ -510,7 +510,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
       )
   }
 
-  private[this] def pubfact_start_time(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfact_start_time(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     factBuilder2(Set(DruidGroupByStrategyV1, DruidGroupByIsSingleThreaded(false)))
       .toPublicFact("k_stats_start_time",
         Set(
@@ -550,7 +550,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
       )
   }
 
-  private[this] def pubfact_minute_grain(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfact_minute_grain(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     factBuilder3(Set(DruidGroupByStrategyV1, DruidQueryPriority(-1)))
       .toPublicFact("k_stats_minute_grain",
         Set(
@@ -591,7 +591,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
       )
   }
 
-  private[this] def pubfact5(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfact5(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
 
     val tableOne = {
       ColumnContext.withColumnContext {
@@ -683,7 +683,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
       )
   }
 
-  private[this] def pubfact6(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfact6(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     factBuilder4(Set(DruidGroupByStrategyV2))
       .toPublicFact("k_stats_decode_dim",
         Set(
@@ -703,7 +703,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
       )
   }
 
-  private[this] def pubfact7(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfact7(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     factBuilder5(Set(DruidGroupByStrategyV2))
       .toPublicFact("k_stats_derived_decode_dim",
         Set(
@@ -724,7 +724,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
       )
   }
 
-  private[this] def pubfact8(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfact8(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "fact8", HourlyGrain, DruidEngine, Set(AdvertiserSchema),
@@ -761,7 +761,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
     )
   }
 
-  private[this] def pubfact9(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfact9(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "fact9", HourlyGrain, DruidEngine, Set(AdvertiserSchema),

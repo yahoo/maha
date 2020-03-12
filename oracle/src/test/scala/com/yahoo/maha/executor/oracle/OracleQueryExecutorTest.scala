@@ -215,7 +215,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
       )
   }
 
-  private[this] def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import OracleExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
@@ -271,7 +271,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
       )
   }
 
-  private[this] def pubfactInvalid(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfactInvalid(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import OracleExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
@@ -325,7 +325,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
       )
   }
 
-  private[this] def druidpubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def druidpubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import DruidExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(

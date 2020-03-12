@@ -403,7 +403,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
     registryBuilder.register(pubfact(forcedFilters))
   }
 
-  def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import OracleExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(

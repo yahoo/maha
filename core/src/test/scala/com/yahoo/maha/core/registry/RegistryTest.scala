@@ -33,7 +33,7 @@ class RegistryTest extends FunSuite with Matchers {
     )
   }
 
-  def pubfact: PublicFactTable = {
+  def pubfact: PublicFact = {
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "fact", DailyGrain, HiveEngine, Set(AdvertiserSchema),
@@ -73,7 +73,7 @@ class RegistryTest extends FunSuite with Matchers {
     )
   }
 
-  def pubfact2: PublicFactTable = {
+  def pubfact2: PublicFact = {
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "fact2", DailyGrain, HiveEngine, Set(AdvertiserSchema),
@@ -111,7 +111,7 @@ class RegistryTest extends FunSuite with Matchers {
       )
   }
 
-  def pubFact3: PublicFactTable = {
+  def pubFact3: PublicFact = {
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "fact", DailyGrain, HiveEngine, Set(AdvertiserSchema),
@@ -150,7 +150,7 @@ class RegistryTest extends FunSuite with Matchers {
       )
   }
 
-  def pubFact4: PublicFactTable = {
+  def pubFact4: PublicFact = {
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "fact", DailyGrain, HiveEngine, Set(AdvertiserSchema),
@@ -189,7 +189,7 @@ class RegistryTest extends FunSuite with Matchers {
       )
   }
 
-  def pubFact3WithSameRevision: PublicFactTable = {
+  def pubFact3WithSameRevision: PublicFact = {
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "fact", DailyGrain, HiveEngine, Set(AdvertiserSchema),
@@ -581,7 +581,7 @@ class RegistryTest extends FunSuite with Matchers {
   }
 
   test("Should allow aliasing of a publicFact") {
-    val pubFact1: PublicFactTable = pubfact
+    val pubFact1: PublicFact = pubfact
     val registryBuilder = new RegistryBuilder
 
     registryBuilder.register(base_dim)
@@ -611,7 +611,7 @@ class RegistryTest extends FunSuite with Matchers {
   }
 
   test("Should alias a fact with an overriden secondary Dimension, keeping default base.") {
-    val pubFact1: PublicFactTable = pubfact
+    val pubFact1: PublicFact = pubfact
     val pf2 = pubfact2
     val registryBuilder = new RegistryBuilder
 

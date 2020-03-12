@@ -29,7 +29,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
 
 
   override def register(registry: RegistryBuilder): Unit = {
-    def pubfact: PublicFactTable = {
+    def pubfact: PublicFact = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
         import com.yahoo.maha.core.OracleExpression._
         Fact.newFact(

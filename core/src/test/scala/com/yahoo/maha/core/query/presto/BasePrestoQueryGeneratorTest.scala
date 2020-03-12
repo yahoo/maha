@@ -42,7 +42,7 @@ trait BasePrestoQueryGeneratorTest
     registryBuilder.register(pubfact2(forcedFilters))
   }
 
-  protected[this] def s_stats_fact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  protected[this] def s_stats_fact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import PrestoExpression._
     import com.yahoo.maha.core.BasePrestoExpressionTest._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
@@ -119,7 +119,7 @@ trait BasePrestoQueryGeneratorTest
       )
   }
 
-  protected[this] def aga_stats_fact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  protected[this] def aga_stats_fact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import PrestoExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
@@ -176,7 +176,7 @@ trait BasePrestoQueryGeneratorTest
       )
   }
 
-  def bidReco(): PublicFactTable = {
+  def bidReco(): PublicFact = {
     val builder : FactBuilder = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
         import PrestoExpression._
@@ -292,7 +292,7 @@ trait BasePrestoQueryGeneratorTest
     publicFact
   }
 
-  protected[this] def ce_stats(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  protected[this] def ce_stats(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import PrestoExpression._
     import com.yahoo.maha.core.BasePrestoExpressionTest._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
@@ -364,7 +364,7 @@ trait BasePrestoQueryGeneratorTest
       )
   }
 
-  def pubfact5(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact5(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
 
     val campaignStats  = {
       import com.yahoo.maha.core.PrestoExpression._
@@ -453,7 +453,7 @@ trait BasePrestoQueryGeneratorTest
       )
   }
 
-  def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import PrestoExpression._
     import UDFPrestoExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>

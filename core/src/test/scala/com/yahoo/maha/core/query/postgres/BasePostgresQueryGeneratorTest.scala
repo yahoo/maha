@@ -42,7 +42,7 @@ trait BasePostgresQueryGeneratorTest
 
   }
 
-  def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import PostgresExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
@@ -139,7 +139,7 @@ trait BasePostgresQueryGeneratorTest
       )
   }
 
-  def pubfactV1(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfactV1(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     val builder = ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       import HiveExpression._
       Fact.newFact(
@@ -236,7 +236,7 @@ trait BasePostgresQueryGeneratorTest
     )
   }
 
-  def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import PostgresExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
@@ -328,7 +328,7 @@ trait BasePostgresQueryGeneratorTest
       )
   }
   // New Partitioning Scheme
-  def pubfact3(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact3(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import PostgresExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
@@ -401,7 +401,7 @@ trait BasePostgresQueryGeneratorTest
   }
 
   // New Partitioning Scheme
-  def pubfact4(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact4(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import PostgresExpression._
 
     val tableOne  = {
@@ -560,7 +560,7 @@ trait BasePostgresQueryGeneratorTest
       )
   }
 
-  def pubfact5(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact5(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
 
     val campaignStats  = {
       import com.yahoo.maha.core.PostgresExpression._
@@ -649,7 +649,7 @@ trait BasePostgresQueryGeneratorTest
       )
   }
 
-  def pubfact6(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact6(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
 
     val publisherStats  = {
       ColumnContext.withColumnContext {
@@ -682,7 +682,7 @@ trait BasePostgresQueryGeneratorTest
       )
   }
 
-  def pubfact7(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact7(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
 
     val publisherStats  = {
       ColumnContext.withColumnContext {
@@ -715,7 +715,7 @@ trait BasePostgresQueryGeneratorTest
     )
   }
 
-  def pubfact8(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact8(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import PostgresExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
@@ -792,7 +792,7 @@ trait BasePostgresQueryGeneratorTest
       )
   }
 
-  def pubfact9(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact9(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
 
     val publisherStats  = {
       ColumnContext.withColumnContext {
@@ -828,7 +828,7 @@ trait BasePostgresQueryGeneratorTest
   /**
     * Fact for MultiEngine multi RowList Dim Join tests
     */
-  def pubFactCombined(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubFactCombined(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     val classStats = {
       ColumnContext.withColumnContext {
         implicit dc: ColumnContext =>

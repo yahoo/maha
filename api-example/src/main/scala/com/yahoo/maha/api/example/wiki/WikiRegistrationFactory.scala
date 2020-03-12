@@ -39,7 +39,7 @@ class WikiFactRegistrationFactory extends FactRegistrationFactory {
 
   override def register(registry: RegistryBuilder): Unit = {
 
-    def pubfact: PublicFactTable = {
+    def pubfact: PublicFact = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
         Fact.newFact(
           "wikipedia", DailyGrain, DruidEngine, Set(WikiSchema),

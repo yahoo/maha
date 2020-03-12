@@ -43,7 +43,7 @@ trait BaseOracleQueryGeneratorTest
 
   }
 
-  def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import OracleExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
@@ -140,7 +140,7 @@ trait BaseOracleQueryGeneratorTest
       )
   }
 
-  def pubfactV1(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfactV1(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     val builder = ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       import HiveExpression._
       Fact.newFact(
@@ -237,7 +237,7 @@ trait BaseOracleQueryGeneratorTest
     )
   }
 
-  def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import OracleExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
@@ -329,7 +329,7 @@ trait BaseOracleQueryGeneratorTest
       )
   }
   // New Partitioning Scheme
-  def pubfact3(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact3(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import OracleExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
@@ -402,7 +402,7 @@ trait BaseOracleQueryGeneratorTest
   }
 
   // New Partitioning Scheme
-  def pubfact4(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact4(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import OracleExpression._
 
     val tableOne  = {
@@ -561,7 +561,7 @@ trait BaseOracleQueryGeneratorTest
       )
   }
 
-  def pubfact5(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact5(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
 
     val campaignStats  = {
       import com.yahoo.maha.core.OracleExpression._
@@ -650,7 +650,7 @@ trait BaseOracleQueryGeneratorTest
       )
   }
 
-  def pubfact6(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact6(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
 
     val publisherStats  = {
       ColumnContext.withColumnContext {
@@ -683,7 +683,7 @@ trait BaseOracleQueryGeneratorTest
       )
   }
 
-  def pubfact7(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact7(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
 
     val publisherStats  = {
       ColumnContext.withColumnContext {
@@ -716,7 +716,7 @@ trait BaseOracleQueryGeneratorTest
     )
   }
 
-  def pubfact8(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact8(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import OracleExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
@@ -793,7 +793,7 @@ trait BaseOracleQueryGeneratorTest
       )
   }
 
-  def pubfact9(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact9(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
 
     val publisherStats  = {
       ColumnContext.withColumnContext {
@@ -829,7 +829,7 @@ trait BaseOracleQueryGeneratorTest
   /**
     * Fact for MultiEngine multi RowList Dim Join tests
     */
-  def pubFactCombined(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubFactCombined(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     val classStats = {
       ColumnContext.withColumnContext {
         implicit dc: ColumnContext =>
@@ -858,7 +858,7 @@ trait BaseOracleQueryGeneratorTest
       ), Set.empty, getMaxDaysWindow, getMaxDaysLookBack)
   }
 
-  def pubFact10(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubFact10(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     val classStats = {
       ColumnContext.withColumnContext {
         implicit dc: ColumnContext =>

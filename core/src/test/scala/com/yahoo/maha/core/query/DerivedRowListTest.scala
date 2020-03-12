@@ -66,7 +66,7 @@ class DerivedRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTe
       )
     }
   }
-  private[this] def druid_pubfact(forcedFilters: Set[Filter] = Set.empty): PublicFactTable = {
+  private[this] def druid_pubfact(forcedFilters: Set[Filter] = Set.empty): PublicFact = {
     factBuilder(Set.empty)
       .toPublicFact("k_stats",
         Set(

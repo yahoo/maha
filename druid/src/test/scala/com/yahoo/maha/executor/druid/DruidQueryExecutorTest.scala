@@ -75,7 +75,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     , 15 -> "SITE_15"
   )
 
-  private[this] def pubfact3(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfact3(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import DruidExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
@@ -194,7 +194,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
       )
   }
 
-  private[this] def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import DruidExpression._
     val factBuilder = ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
@@ -284,7 +284,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     )
   }
 
-  def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
 
     val tableOne = {
       ColumnContext.withColumnContext {
@@ -377,7 +377,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
       )
   }
 
-  private[this] def pubfact4(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfact4(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(
         "fact4", HourlyGrain, DruidEngine, Set(AdvertiserSchema),

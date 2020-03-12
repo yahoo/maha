@@ -1522,7 +1522,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , revision: Int = 0
                    , dimRevision: Int = 0
                    , dimToRevisionMap: Map[String, Int] = Map.empty
-                   ) : PublicFactTable = {
+                   ) : PublicFact = {
     new PublicFactTable(name
       , baseFact
       , dimCols
@@ -1544,7 +1544,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
   def copyPublicFact(alias: String
                      , revision: Int
                      , publicFact: PublicFact
-                     , dimToRevisionOverrideMap: Map[String, Int] = Map.empty): PublicFactTable = {
+                     , dimToRevisionOverrideMap: Map[String, Int] = Map.empty): PublicFact = {
     new PublicFactTable(
       alias
       , publicFact.baseFact
@@ -1628,7 +1628,7 @@ case class BestCandidates(fkCols: SortedSet[String],
                           requestCols: Set[String],
                           requestJoinCols: Set[String],
                           facts: Map[String, FactCandidate],
-                          publicFact: PublicFactTable,
+                          publicFact: PublicFact,
                           dimColMapping: Map[String, String], 
                           factColMapping: Map[String, String],
                           dimColAliases: Set[String],

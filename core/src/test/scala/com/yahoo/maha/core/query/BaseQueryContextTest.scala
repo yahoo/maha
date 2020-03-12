@@ -127,7 +127,7 @@ trait BaseQueryContextTest {
                               |}
       """.stripMargin
 
-  def pubfactAdjustmentStatsView(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfactAdjustmentStatsView(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
 
     val tableOne  = {
       ColumnContext.withColumnContext {

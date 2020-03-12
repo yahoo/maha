@@ -238,7 +238,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
       )
   }
 
-  private[this] def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  private[this] def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     import PrestoExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
       Fact.newFact(

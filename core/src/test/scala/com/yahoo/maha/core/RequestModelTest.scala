@@ -126,7 +126,7 @@ class RequestModelTest extends FunSuite with Matchers {
     }
   }
 
-  def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     getFactBuilder
       .toPublicFact("publicFact",
         Set(
@@ -155,7 +155,7 @@ class RequestModelTest extends FunSuite with Matchers {
       )
   }
 
-  def pubfactRev2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfactRev2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     getFactBuilder
       .toPublicFact("publicFactRev2",
         Set(
@@ -179,7 +179,7 @@ class RequestModelTest extends FunSuite with Matchers {
       )
   }
 
-  def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact2(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     getFactBuilder2
       .toPublicFact("publicFact2",
         Set(
@@ -203,7 +203,7 @@ class RequestModelTest extends FunSuite with Matchers {
       )
   }
 
-  def pubfact3(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact3(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     getFactBuilder2
       .toPublicFact("publicFact3",
         Set(
@@ -227,7 +227,7 @@ class RequestModelTest extends FunSuite with Matchers {
       )
   }
 
-  def pubfact4(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact4(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     getFactBuilder
       .toPublicFact("publicFact4",
         Set(
@@ -252,7 +252,7 @@ class RequestModelTest extends FunSuite with Matchers {
       )
   }
 
-  def pubfact5(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFactTable = {
+  def pubfact5(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
     getFactBuilder
       .toPublicFact("publicFact5",
         Set(
