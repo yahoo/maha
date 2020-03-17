@@ -107,7 +107,7 @@ class RegistryTest extends FunSuite with Matchers {
           PublicFactCol("spend", "Spend", In, hiddenFromJson = true)
         ),
         Set.empty,
-        getMaxDaysWindow, getMaxDaysLookBack
+        getMaxDaysWindow, getMaxDaysLookBack, dimToRevisionMap = Map("advertiser" -> 0)
       )
   }
 
@@ -630,6 +630,8 @@ class RegistryTest extends FunSuite with Matchers {
         && registry.factMap.keys.toSet.contains(("publicFact2", 3))
         && registry.factMap.keys.toSet.contains(("publicFact2", 0)))
 
+    assert(registry.getFact("publicFact2", Some(0)).get.dimToRevisionMap.get("advertiser") == Some(0))
+    assert(registry.getFact("publicFact2", Some(3)).get.dimToRevisionMap.get("advertiser") == Some(1))
     assert(registry.flattenDomainJsonAsString.contains("Ad Asset JSON Copy")) //should only appear in Advertiser V1.
   }
 }
