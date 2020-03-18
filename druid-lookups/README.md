@@ -279,3 +279,7 @@ We recommended heaps of no more than 48GB on historicals.  Here is an example pr
 ```
 -server -Xmx48g -Xms48g -XX:G1HeapRegionSize=32m -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=8 -XX:InitiatingHeapOccupancyPercent=30 -XX:ConcGCThreads=18 -XX:ParallelGCThreads=36 -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:+ParallelRefProcEnabled -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintTenuringDistribution -Doracle.net.tns_admin=/etc/conf/tns/ -Djava.security.egd=file:///dev/urandom
 ```
+
+
+### Extra Notes/Guides:
+- [Testing Kafka Producer/Consumer Lookups Locally](src/main/java/com/yahoo/maha/maha_druid_lookups/query/lookup/namespace/README.md)
