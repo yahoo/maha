@@ -116,7 +116,7 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
 
     val trynow = Try(asyncHttpClient.prepareGet(targetURI.toASCIIString()).execute().get())
     
-    assert(trynow.isSuccess, "Wanted success for timeoutThrottlingFilter, got " + trynow.failed.get.getMessage)
+    assert(trynow.isSuccess)
   }
 
   test("Test thread safeness of TimeoutThrottlingFilter") {
