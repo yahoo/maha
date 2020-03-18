@@ -3039,6 +3039,35 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(result.contains(json))
   }
 
+  test("Successfully generate a query with HyperUniqueCardinalityWrapper") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Average Bid"},
+                            {"field": "Unique Ad IDs"},
+                            {"field": "Unique Ad IDs Count"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Ad ID", "operator": "==", "compareTo": "Ad Group ID"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", "someUser"))
+    val requestModel = RequestModel.from(request, defaultRegistry)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val json = "{\"type\":\"hyperUniqueCardinality\",\"name\":\"Unique Ad IDs Count\",\"fieldName\":\"Unique Ad IDs\"}"
+    assert(result.contains(json))
+  }
+
   test("Successfully set query priority for async request") {
     val jsonString = s"""{
                           "cube": "k_stats",
