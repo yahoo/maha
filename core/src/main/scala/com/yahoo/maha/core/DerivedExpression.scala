@@ -14,6 +14,7 @@ import com.yahoo.maha.core.ThetaSketchSetOp.ThetaSketchSetOp
 import com.yahoo.maha.core.fact.FactCol
 import io.druid.js.JavaScriptConfig
 import io.druid.query.aggregation.PostAggregator
+import io.druid.query.aggregation.hyperloglog.HyperUniqueFinalizingPostAggregator
 import io.druid.query.aggregation.datasketches.theta.{SketchEstimatePostAggregator, SketchSetPostAggregator}
 import io.druid.query.aggregation.post.{ArithmeticPostAggregator, ConstantPostAggregator, FieldAccessPostAggregator, JavaScriptPostAggregator}
 
@@ -1179,6 +1180,21 @@ object DruidExpression {
         val fieldName = name.replaceAll("[}{]","")
         val e = fromString(name)
         new SketchEstimatePostAggregator(fieldName, e.render(insideDerived)(e.fieldNamePlaceHolder,aggregatorNameAliasMap), null)
+    }
+
+    val hasRollupExpression = false
+    val hasNumericOperation = false
+
+    def asString = s"${fromString(name)}"
+  }
+
+  case class HyperUniqueCardinalityWrapper(name: String) extends BaseDruidExpression {
+
+    def render(insideDerived: Boolean) = {
+      (s: String, aggregatorNameAliasMap: Map[String, String]) => {
+        val fieldName = name.replaceAll("[}{]","")
+        new HyperUniqueFinalizingPostAggregator(s, aggregatorNameAliasMap.getOrElse(fieldName, fieldName))
+      }
     }
 
     val hasRollupExpression = false
