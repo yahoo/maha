@@ -1521,7 +1521,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , renderLocalTimeFilter: Boolean = true
                    , revision: Int = 0
                    , dimRevision: Int = 0
-                   ) : PublicFactTable = {
+                   , dimToRevisionMap: Map[String, Int] = Map.empty
+                   ) : PublicFact = {
     new PublicFactTable(name
       , baseFact
       , dimCols
@@ -1535,12 +1536,15 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , renderLocalTimeFilter
       , revision
       , dimRevision
+      , None
+      , dimToRevisionMap
     )
   }
 
   def copyPublicFact(alias: String
                      , revision: Int
-                     , publicFact: PublicFactTable): PublicFactTable = {
+                     , publicFact: PublicFact
+                     , dimToRevisionOverrideMap: Map[String, Int] = Map.empty): PublicFact = {
     new PublicFactTable(
       alias
       , publicFact.baseFact
@@ -1556,6 +1560,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , revision
       , publicFact.dimRevision
       , Some(publicFact)
+      , publicFact.dimToRevisionMap ++ dimToRevisionOverrideMap
     )
   }
 }
@@ -1623,7 +1628,7 @@ case class BestCandidates(fkCols: SortedSet[String],
                           requestCols: Set[String],
                           requestJoinCols: Set[String],
                           facts: Map[String, FactCandidate],
-                          publicFact: PublicFact, 
+                          publicFact: PublicFact,
                           dimColMapping: Map[String, String], 
                           factColMapping: Map[String, String],
                           dimColAliases: Set[String],
@@ -1681,6 +1686,11 @@ trait PublicFact extends PublicTable {
   def renderLocalTimeFilter: Boolean
   def revision: Int
   def dimRevision: Int
+  def dimCardinalityLookup: Option[LongRangeLookup[Map[RequestType, Map[Engine, Int]]]]
+  def facts: Map[String, Fact]
+  def parentFactTable: Option[PublicFact]
+  def dimToRevisionMap: Map[String, Int]
+  def getSecondaryDimFactMap: Map[SortedSet[String], SortedSet[Fact]]
 }
 
 case class PublicFactTable private[fact](name: String
@@ -1696,7 +1706,8 @@ case class PublicFactTable private[fact](name: String
                                          , renderLocalTimeFilter: Boolean
                                          , revision: Int
                                          , dimRevision: Int
-                                         , parentFactTable: Option[PublicFactTable] =  None
+                                         , parentFactTable: Option[PublicFact] =  None
+                                         , dimToRevisionMap: Map[String, Int] = Map.empty
                                         ) extends PublicFact with Logging {
 
   def factList: Iterable[Fact] = facts.values
