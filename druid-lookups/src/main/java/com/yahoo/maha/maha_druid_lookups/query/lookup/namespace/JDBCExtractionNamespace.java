@@ -149,6 +149,9 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
         return tsColumnConfig != null;
     }
 
+    public boolean hasSecondaryTsColumn() {
+        return this.hasTsColumnConfig() && this.getTsColumnConfig().hasSecondaryTsColumn();
+    }
 
     public boolean isFirstTimeCaching() {
         return firstTimeCaching;

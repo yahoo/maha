@@ -1,5 +1,6 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import org.skife.jdbi.v2.util.TimestampMapper;
 
 import java.text.ParseException;
@@ -26,6 +27,13 @@ public class CustomizedTimestampMapper extends TimestampMapper {
     public CustomizedTimestampMapper(int index, String dateFormat) {
         super(index);
         this.dateFormat = new SimpleDateFormat(dateFormat);
+    }
+
+    public static TimestampMapper getInstance(JDBCExtractionNamespace namespace) {
+        if (namespace.hasTsColumnConfig() && namespace.getTsColumnConfig().getFormat() != null)
+            return new CustomizedTimestampMapper(1, namespace.getTsColumnConfig().getFormat());
+        else
+            return CustomizedTimestampMapper.FIRST;
     }
 
     @Override
