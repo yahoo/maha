@@ -32,7 +32,7 @@ public class JDBCExtractionNamespaceCacheFactory
     private static final Logger LOG = new Logger(JDBCExtractionNamespaceCacheFactory.class);
     private static final String COMMA_SEPARATOR = ",";
     private static final String FIRST_TIME_CACHING_WHERE_CLAUSE = " WHERE %s <= %s";
-    private static final String AND_SECOND_TSWHERE_CLAUSE = " AND %s %s %s";
+    private static final String AND_SECOND_TS_WHERE_CLAUSE = " AND %s %s %s";
     private static final String SUBSEQUENT_CACHING_WHERE_CLAUSE = " WHERE %s > %s";
     private static final String SECONDARY_TS_COL_ONLY_WHERE_CLAUSE = " WHERE %s %s %s";
     private static final String LAST_UPDATED_TIMESTAMP = ":lastUpdatedTimeStamp";
@@ -141,7 +141,7 @@ public class JDBCExtractionNamespaceCacheFactory
         if (extractionNamespace.hasSecondaryTsColumn()) {
             String maxSecondaryTsVal = (String) getMaxValFromColumn(id, extractionNamespace, StringMapper.FIRST, extractionNamespace.getTsColumnConfig().getSecondaryTsColumn(), extractionNamespace.getTable());
             cache[0] = maxSecondaryTsVal;
-            whereClauseExtension = formatSecondTsWhereClause(extractionNamespace, maxSecondaryTsVal, AND_SECOND_TSWHERE_CLAUSE);
+            whereClauseExtension = formatSecondTsWhereClause(extractionNamespace, maxSecondaryTsVal, AND_SECOND_TS_WHERE_CLAUSE);
         }
 
         return whereClauseExtension;
