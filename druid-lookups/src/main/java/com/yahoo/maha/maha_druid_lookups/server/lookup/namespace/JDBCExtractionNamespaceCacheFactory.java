@@ -57,7 +57,7 @@ public class JDBCExtractionNamespaceCacheFactory
         }
 
         final String[] maxTsCache = new String[1];
-        final String secondaryTsWhereClause = getSecondaryTsWhereClause(id, extractionNamespace, maxTsCache);
+        final String secondaryTsWhereCondition = getSecondaryTsWhereCondition(id, extractionNamespace, maxTsCache);
         final Timestamp lastDBUpdate = lastUpdates(id, extractionNamespace, false, maxTsCache);
 
         if (lastDBUpdate != null && lastDBUpdate.getTime() <= lastCheck) {
@@ -78,7 +78,7 @@ public class JDBCExtractionNamespaceCacheFactory
                                 extractionNamespace.getTable()
                         );
 
-                        populateRowListFromJDBC(extractionNamespace, query, lastDBUpdate, handle, new RowMapper(extractionNamespace, cache), secondaryTsWhereClause);
+                        populateRowListFromJDBC(extractionNamespace, query, lastDBUpdate, handle, new RowMapper(extractionNamespace, cache), secondaryTsWhereCondition);
                         return null;
                     }
             );
@@ -105,7 +105,7 @@ public class JDBCExtractionNamespaceCacheFactory
             Timestamp lastDBUpdate,
             Handle handle,
             RowMapper rm,
-            String secondaryTsWhereClause
+            String secondaryTsWhereCondition
     ) {
         Timestamp updateTS;
         if (extractionNamespace.isFirstTimeCaching()) {
@@ -113,7 +113,7 @@ public class JDBCExtractionNamespaceCacheFactory
             query = String.format("%s %s %s",
                     query,
                     getBaseWhereClause(FIRST_TIME_CACHING_WHERE_CLAUSE, extractionNamespace),
-                    secondaryTsWhereClause
+                    secondaryTsWhereCondition
             );
             updateTS = lastDBUpdate;
 
@@ -121,7 +121,7 @@ public class JDBCExtractionNamespaceCacheFactory
             query = String.format("%s %s %s",
                     query,
                     getBaseWhereClause(SUBSEQUENT_CACHING_WHERE_CLAUSE, extractionNamespace),
-                    secondaryTsWhereClause
+                    secondaryTsWhereCondition
             );
             updateTS = extractionNamespace.getPreviousLastUpdateTimestamp();
         }
@@ -135,7 +135,7 @@ public class JDBCExtractionNamespaceCacheFactory
         return null;
     }
 
-    protected String getSecondaryTsWhereClause(String id, JDBCExtractionNamespace extractionNamespace, String[] cache) {
+    protected String getSecondaryTsWhereCondition(String id, JDBCExtractionNamespace extractionNamespace, String[] cache) {
         String whereClauseExtension = "";
 
         if (extractionNamespace.hasSecondaryTsColumn()) {
@@ -162,7 +162,7 @@ public class JDBCExtractionNamespaceCacheFactory
             if (extractionNamespace.getTsColumnConfig().isVarchar()) {
                 tsValue = new SimpleDateFormat(extractionNamespace.getTsColumnConfig().getFormat()).format(updateTS);
             } else if (extractionNamespace.getTsColumnConfig().isBigint()) {
-                tsValue = updateTS.getTime();
+                tsValue = new Long(updateTS.getTime());
             }
         }
         return tsValue;

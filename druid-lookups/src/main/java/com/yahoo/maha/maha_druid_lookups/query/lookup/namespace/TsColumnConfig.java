@@ -21,6 +21,16 @@ public class TsColumnConfig {
     @JsonProperty
     private String secondaryTsColumnCondition;
 
+    public TsColumnConfig(){}
+
+    public TsColumnConfig(String name, String type, String format, String secondaryTsColumn, String secondaryTsColumnCondition) {
+        this.name = name;
+        this.type = type;
+        this.format = format;
+        this.secondaryTsColumn = secondaryTsColumn;
+        this.secondaryTsColumnCondition = secondaryTsColumnCondition;
+    }
+
     public String getName() {
         return name;
     }
@@ -30,11 +40,11 @@ public class TsColumnConfig {
     }
 
     public boolean isVarchar() {
-        return VARCHAR.equals(type);
+        return VARCHAR.equalsIgnoreCase(type);
     }
 
     public boolean isBigint() {
-        return BIGINT.equals(type);
+        return BIGINT.equalsIgnoreCase(type);
     }
 
     public String getFormat() {
