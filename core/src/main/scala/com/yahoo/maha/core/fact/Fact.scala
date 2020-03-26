@@ -978,6 +978,10 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
     //override fact cols by name
     val overrideFactColsByName: Set[String] = overrideFactCols.map(_.name)
 
+    val test = updatedDiscardingSet.intersect(overrideDimColsByName)
+    val test2 = updatedDiscardingSet.intersect(overrideFactColsByName)
+
+
     require(overrideDimColsByName.intersect(updatedDiscardingSet).isEmpty, "Cannot override dim col that is supposed to be discarded")
     require(overrideFactColsByName.intersect(updatedDiscardingSet).isEmpty, "Cannot override fact col that is supposed to be discarded")
 
@@ -1544,12 +1548,17 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
   def copyPublicFact(alias: String
                      , revision: Int
                      , publicFact: PublicFact
-                     , dimToRevisionOverrideMap: Map[String, Int] = Map.empty): PublicFact = {
+                     , dimToRevisionOverrideMap: Map[String, Int] = Map.empty
+                     , dimColOverrides: Set[PublicDimColumn] = Set.empty
+                     , factColOverrides: Set[PublicFactColumn] = Set.empty): PublicFact = {
+    val overrideNames = dimColOverrides.map(col => col.alias) ++ factColOverrides.map(col => col.alias)
+    val newPublicDims = publicFact.dimCols.filterNot(col => overrideNames.contains(col.alias)) ++ dimColOverrides
+    val newPublicDFacts = publicFact.factCols.filterNot(col => overrideNames.contains(col.alias)) ++ factColOverrides
     new PublicFactTable(
       alias
       , publicFact.baseFact
-      , publicFact.dimCols
-      , publicFact.factCols
+      , newPublicDims
+      , newPublicDFacts
       , publicFact.facts
       , publicFact.forcedFilters
       , publicFact.maxDaysWindow
