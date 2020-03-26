@@ -43,13 +43,14 @@ class RegistryTest extends FunSuite with Matchers {
           , DimCol("stats_source", IntType(3))
           , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
           , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
-          , DimCol("is_adjustment", StrType(1, (Map("Y" -> "Y", "N" -> "N"),"NONE"))
-          )
+          , DimCol("is_adjustment", StrType(1, (Map("Y" -> "Y", "N" -> "N"),"NONE")))
+          , DimCol("aliased_dim", StrType())
         ),
         Set(
           FactCol("impressions", IntType())
           , FactCol("clicks", IntType())
           , FactCol("spend", DecType())
+          , FactCol("aliased_met", IntType())
         )
       )
     }
@@ -84,11 +85,13 @@ class RegistryTest extends FunSuite with Matchers {
           , DimCol("stats_source", IntType(3))
           , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
           , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
+          , DimCol("aliased_dim", StrType())
         ),
         Set(
           FactCol("impressions", IntType())
           , FactCol("clicks", IntType())
           , FactCol("spend", DecType())
+          , FactCol("aliased_met", IntType())
         )
       )
     }
@@ -620,7 +623,14 @@ class RegistryTest extends FunSuite with Matchers {
     registryBuilder.register(base_dim3_with_duplicate_col)
     registryBuilder.register(pubFact1)
     registryBuilder.register(pf2)
-    registryBuilder.registerAlias(Set((pf2.name, Some(3)), ("alias2", None)), pf2, Map("advertiser" -> 1))
+    registryBuilder.registerAlias(Set((pf2.name, Some(3)), ("alias2", None)), pf2, Map("advertiser" -> 1),
+      dimColOverrides = Set(
+        PubCol("aliased_dim", "Is Adjustment", Equality, incompatibleColumns = Set("Destination URL"), restrictedSchemas = Set(InternalSchema))
+      ),
+      factColOverrides = Set(
+        PublicFactCol("aliased_met", "Impressions", InEquality)
+      )
+    )
 
     val registry = registryBuilder.build()
 
@@ -633,5 +643,9 @@ class RegistryTest extends FunSuite with Matchers {
     assert(registry.getFact("publicFact2", Some(0)).get.dimToRevisionMap.get("advertiser") == Some(0))
     assert(registry.getFact("publicFact2", Some(3)).get.dimToRevisionMap.get("advertiser") == Some(1))
     assert(registry.flattenDomainJsonAsString.contains("Ad Asset JSON Copy")) //should only appear in Advertiser V1.
+    val pFact3 = registry.getFact("publicFact2", Some(3))
+    val adjName = pFact3.get.columnsByAliasMap("Is Adjustment").name
+    val impName = pFact3.get.columnsByAliasMap("Impressions").name
+    assert(adjName == "aliased_dim" && impName == "aliased_met")
   }
 }
