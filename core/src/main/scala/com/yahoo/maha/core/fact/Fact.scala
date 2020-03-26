@@ -1548,13 +1548,13 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                      , dimColOverrides: Set[PublicDimColumn] = Set.empty
                      , factColOverrides: Set[PublicFactColumn] = Set.empty): PublicFact = {
     val overrideNames = dimColOverrides.map(col => col.alias) ++ factColOverrides.map(col => col.alias)
-    val newPublicDims = publicFact.dimCols.filterNot(col => overrideNames.contains(col.alias)) ++ dimColOverrides
-    val newPublicDFacts = publicFact.factCols.filterNot(col => overrideNames.contains(col.alias)) ++ factColOverrides
+    val publicDimsWithOverrides = publicFact.dimCols.filterNot(col => overrideNames.contains(col.alias)) ++ dimColOverrides
+    val publicFactsWithOverrides = publicFact.factCols.filterNot(col => overrideNames.contains(col.alias)) ++ factColOverrides
     new PublicFactTable(
       alias
       , publicFact.baseFact
-      , newPublicDims
-      , newPublicDFacts
+      , publicDimsWithOverrides
+      , publicFactsWithOverrides
       , publicFact.facts
       , publicFact.forcedFilters
       , publicFact.maxDaysWindow
