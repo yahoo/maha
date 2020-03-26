@@ -978,10 +978,6 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
     //override fact cols by name
     val overrideFactColsByName: Set[String] = overrideFactCols.map(_.name)
 
-    val test = updatedDiscardingSet.intersect(overrideDimColsByName)
-    val test2 = updatedDiscardingSet.intersect(overrideFactColsByName)
-
-
     require(overrideDimColsByName.intersect(updatedDiscardingSet).isEmpty, "Cannot override dim col that is supposed to be discarded")
     require(overrideFactColsByName.intersect(updatedDiscardingSet).isEmpty, "Cannot override fact col that is supposed to be discarded")
 
