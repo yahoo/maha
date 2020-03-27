@@ -84,6 +84,7 @@ class RequestModelTest extends FunSuite with Matchers {
           , DimCol("stats_date", DateType())
           , DimCol("network_type", StrType(100, (Map("TEST_PUBLISHER" -> "Test Publisher"), "NONE")))
           , DimCol("ad_format_id", IntType(3, (Map(2 -> "Single image"), "Other")))
+          , DimCol("unexposed_source", IntType())
           , HiveDerDimCol("Ad Group Start Date Full", StrType(),TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "YYYY-MM-dd HH:mm:ss"))
 
         ),
@@ -342,6 +343,30 @@ class RequestModelTest extends FunSuite with Matchers {
     }
   }
 
+  def ad_dimv1: PublicDimension = {
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      Dimension.newDimension("ad_dim", HiveEngine, LevelFour, Set(AdvertiserSchema),
+        Set(
+          DimCol("id", IntType(), annotations = Set(PrimaryKey))
+          , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+          , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
+          , DimCol("status", StrType())
+        )
+        , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+      ).toPublicDimension("ad","ad",
+        Set(
+          PubCol("id", "Ad ID", InEquality)
+          , PubCol("advertiser_id", "Advertiser ID", InEquality)
+          , PubCol("campaign_id", "Campaign ID", InEquality)
+          , PubCol("ad_group_id", "Ad Group ID", InEquality)
+          , PubCol("status", "Ad Status", InEquality)
+        ), highCardinalityFilters = Set(NotInFilter("Ad Status", List("DELETED")))
+        , revision = 1
+      )
+    }
+  }
+
   def ad_group: PublicDimension = {
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
       Dimension.newDimension("ad_group", HiveEngine, LevelThree, Set(AdvertiserSchema),
@@ -447,6 +472,12 @@ class RequestModelTest extends FunSuite with Matchers {
     registryBuilder.register(ad_group)
     registryBuilder.register(keyword_dim)
     registryBuilder.register(product_ad_dim)
+    registryBuilder.registerAlias(
+      Set(("new_fact", Some(1))),
+      pubfact(forcedFilters),
+      dimColOverrides = Set(PubCol("unexposed_source", "Source", Equality)),
+      dimRevisionMap = Map("ad"-> 1)
+    )
     registryBuilder.build(factEstimator = new DefaultFactEstimator(Set("*-productAd","advertiser-ad","advertiser-adgroup","advertiser-campaign", "advertiser-campaign-adgroup", "advertiser-adgroup-ad", "advertiser-campaign-adgroup-ad")))
   }
 
@@ -5698,6 +5729,63 @@ class RequestModelTest extends FunSuite with Matchers {
     //println("baseCols:\n" + allOtherJSONS.map(json => "\"\"\"" + compact(json) + "\"\"\"").mkString("\n,"))
     assert(allPubCols.forall(pub => pubJsonsString.contains(pub)))
     assert(allBaseCols.forall(base => baseJsonsString.contains(base)))
+  }
+
+  test("""Should create a valid request model in an aliased fact""") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Campaign Status"},
+                              {"field": "Impressions"},
+                              {"field": "Advertiser Status"},
+                              {"field": "Advertiser Email"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val registry = defaultRegistry
+
+    val validRequest: ReportingRequest = getReportingRequestSync(jsonString, InternalSchema)
+    val validResp = RequestModel.from(validRequest, registry, revision = Some(1))
+    assert(validResp.isSuccess, validResp)
+
+  }
+
+  test("""Should fail at creating a dim""") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Ad ID"},
+                              {"field": "Day"},
+                              {"field": "Source"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val registry = defaultRegistry
+
+    val validRequest: ReportingRequest = getReportingRequestSync(jsonString, InternalSchema)
+    val validResp = RequestModel.from(validRequest, registry)
+    assert(validResp.isSuccess, validResp)
+
+
+
   }
 }
 

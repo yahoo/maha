@@ -446,6 +446,7 @@ object RequestModel extends Logging {
               if(publicFact.dimToRevisionMap.isEmpty) Map.empty
               else {
                 requestedAliasList
+                    .filter(publicFact.dimToRevisionMap.keys.toSet.contains(_))
                   .filter(reqCol => {
                       val pdName = registry.getDimColIdentity(reqCol).get.publcDimName
                       registry.getDimColIdentity(reqCol).isDefined && publicFact.dimToRevisionMap.contains(pdName) && registry.dimMap.contains(pdName, publicFact.dimToRevisionMap(pdName))
