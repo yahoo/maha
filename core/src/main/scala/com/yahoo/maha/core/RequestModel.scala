@@ -449,7 +449,7 @@ object RequestModel extends Logging {
                   .filter(reqCol => {
                     if (registry.getDimColIdentity(reqCol).isDefined) {
                       val pdName = registry.getDimColIdentity(reqCol).get.publcDimName
-                      registry.getDimColIdentity(reqCol).isDefined && publicFact.dimToRevisionMap.contains(pdName) && registry.dimMap.contains(pdName, publicFact.dimToRevisionMap(pdName))
+                      publicFact.dimToRevisionMap.contains(pdName) && registry.dimMap.contains(pdName, publicFact.dimToRevisionMap(pdName))
                     } else false
                     }
                   )
