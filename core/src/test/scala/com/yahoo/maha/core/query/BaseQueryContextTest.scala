@@ -222,6 +222,7 @@ trait BaseQueryContextTest {
           , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
           , DimCol("country_woeid", IntType(), annotations = Set(ForeignKey("woeid")))
           , DimCol("stats_source", IntType(3))
+          , DimCol("stats_source2", IntType(3))
           , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
           , DimCol("start_time", IntType())
           , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
@@ -330,11 +331,19 @@ trait BaseQueryContextTest {
         PublicFactCol("CTR", "CTR", InBetweenEquality)
       ),
       Set.empty,
-      getMaxDaysWindow, getMaxDaysLookBack, revision = 1
+      getMaxDaysWindow, getMaxDaysLookBack, revision = 1, dimRevision = 1
     )
     registryBuilder.register(cube)
     registryBuilder.register(pubfactAdjustmentStatsView())
     registryBuilder.register(cubeV1)
+    registryBuilder.registerAlias(
+      Set(("k_stats", Some(10))),
+      cubeV1,
+      dimColOverrides = Set(
+        PubCol("stats_source2", "Source", Equality)
+      ),
+      dimRevisionMap = Map("advertiser" -> 2, "keyword" -> 9001)
+    )
   }
 
 }
