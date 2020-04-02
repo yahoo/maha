@@ -279,3 +279,51 @@ We recommended heaps of no more than 48GB on historicals.  Here is an example pr
 ```
 -server -Xmx48g -Xms48g -XX:G1HeapRegionSize=32m -XX:+UnlockExperimentalVMOptions -XX:G1NewSizePercent=8 -XX:InitiatingHeapOccupancyPercent=30 -XX:ConcGCThreads=18 -XX:ParallelGCThreads=36 -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:+ParallelRefProcEnabled -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintTenuringDistribution -Doracle.net.tns_admin=/etc/conf/tns/ -Djava.security.egd=file:///dev/urandom
 ```
+
+### Example JSON for mahajdbc lookups using kerberos (e.g. Presto/Hive)
+- If your table contains more than one complete snapshot, please specify the partition column in `secondaryTsColumn` in the configuration so that only one snapshot will be used when updating the lookup.
+```
+{
+	"version": "v0",
+	"lookupExtractorFactory": {
+		"type": "cachedNamespace",
+		"extractionNamespace": {
+			"type": "mahajdbc",
+			"lookupName": "advertiser_lookup",
+			"connectorConfig": {
+				"createTables": false,
+				"connectURI": "jdbc:presto://presto.path:4443/path/path"
+			},
+			"kerberosProperties": {
+				"user": "user1",
+				"SSL": "true",
+				"SSLTrustStorePath": "/path/to/cert",
+				"SSLTrustStorePassword": "changeit",
+				"KerberosRemoteServiceName": "HTTP",
+				"KerberosPrincipal": "user1@a.b.com",
+				"KerberosUseCanonicalHostname": "false",
+				"KerberosConfigPath": "/path/to/krb5.conf",
+				"KerberosKeytabPath": "/home/user1/user1.keytab"
+			},
+			"table": "advertiser",
+			"columnList": [
+				"id",				
+				"name"
+			],
+			"primaryKeyColumn": "id",
+			"tsColumn": "last_updated",
+			"tsColumnConfig": {
+				"name": "last_updated",
+				"type": "bigint",
+				"format": "yyyyMMddhhmm",
+				"secondaryTsColumn": "load_time",
+				"secondaryTsColumnCondition": "="
+			},
+
+			"pollPeriod": "PT15M",
+			"cacheEnabled": true
+		},
+		"firstCacheTimeout": 600000
+	}
+}
+```
