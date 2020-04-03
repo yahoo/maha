@@ -34,7 +34,7 @@ case class CubeBucketingConfig(internalBucketPercentage:Map[Int,Int] = Map.empty
     }
   }
 
-  def validate() = {
+  def validate(cubeName:String) = {
     val internalSum = internalBucketPercentage.values.sum
     require(internalSum==100,s"Total internal bucket percentage is not 100% but $internalSum")
 
@@ -101,12 +101,12 @@ case class QueryGenBucketingConfig(internalBucketPercentage:Map[Version,Int] = M
     }
   }
 
-  def validate() = {
+  def validate(cubeName:String) = {
     val internalSum = internalBucketPercentage.values.sum
-    require(internalSum==100,s"Total internal bucket percentage is not 100% but $internalSum")
+    require(internalSum==100,s"Total internal bucket percentage is not 100% but $internalSum, cube: $cubeName")
 
     val externalSum = externalBucketPercentage.values.sum
-    require(externalBucketPercentage.values.sum == 100,s"Total external bucket percentage is not 100% but $externalSum")
+    require(externalBucketPercentage.values.sum == 100,s"Total external bucket percentage is not 100% but $externalSum, cube: $cubeName")
   }
 }
 
@@ -164,11 +164,11 @@ class DefaultBucketingConfig(cubeBucketingConfigMap:scala.collection.immutable.M
   private[this] def validate(): Unit = {
 
     cubeBucketingConfigMap.foreach {
-      case (_, bucketingConfig) => bucketingConfig.validate()
+      case (cubeName, bucketingConfig) => bucketingConfig.validate(cubeName)
     }
 
     queryGenBucketingConfigMap.foreach {
-      case (_, bucketingConfig) => bucketingConfig.validate()
+      case (cubeName, bucketingConfig) => bucketingConfig.validate(cubeName)
     }
   }
 
