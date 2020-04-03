@@ -168,13 +168,13 @@ class BucketSelectorTest extends FunSuite {
       CubeBucketingConfig.builder()
         .internalBucketPercentage(Map(1 -> 100))
         .externalBucketPercentage(Map(1 -> 101))
-        .build()
+        .build().validate("test")
     }
     intercept[IllegalArgumentException] {
       CubeBucketingConfig.builder()
         .internalBucketPercentage(Map(1 -> 101))
         .externalBucketPercentage(Map(1 -> 100))
-        .build()
+        .build().validate("test")
     }
 
     new DefaultBucketingConfig()
@@ -223,22 +223,26 @@ class BucketSelectorTest extends FunSuite {
 
   object TestBucketingConfig extends BucketingConfig {
     override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = {
-      Some(CubeBucketingConfig.builder()
+      val bucketConfig = CubeBucketingConfig.builder()
         .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
         .externalBucketPercentage(Map(1 -> 0, 2 -> 90, 3->10))
         .dryRunPercentage(Map(1 -> (75, None), 2 -> (100, Some(DruidEngine))))
-        .build())
+        .build()
+      bucketConfig.validate(cube)
+      Some(bucketConfig)
     }
     override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = None
   }
 
   object TestBucketingConfigNoDryRun extends BucketingConfig {
     override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = {
-      Some(CubeBucketingConfig.builder()
+      val config = CubeBucketingConfig.builder()
         .internalBucketPercentage(Map(1 -> 100, 2 -> 0))
         .externalBucketPercentage(Map(1 -> 0, 2 -> 90, 3->10))
         .dryRunPercentage(Map(1 -> (0, None), 2 -> (0, Some(DruidEngine))))
-        .build())
+        .build()
+      config.validate(cube)
+      Some(config)
     }
 
     override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = None
@@ -246,22 +250,26 @@ class BucketSelectorTest extends FunSuite {
 
   object TestBucketingConfigDryRunOneRevision extends BucketingConfig {
     override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = {
-      Some(CubeBucketingConfig.builder()
+      val config = CubeBucketingConfig.builder()
         .internalBucketPercentage(Map(0 -> 100))
         .externalBucketPercentage(Map(0 -> 100))
         .dryRunPercentage(Map(1 -> (95, Some(DruidEngine))))
-        .build())
+        .build()
+      config.validate(cube)
+      Some(config)
     }
     override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = None
   }
 
   object TestBucketingConfigWhiteListedOneRevision extends BucketingConfig {
     override def getConfigForCube(cube: String): Option[CubeBucketingConfig] = {
-      Some(CubeBucketingConfig.builder()
+      val config = CubeBucketingConfig.builder()
         .internalBucketPercentage(Map(0 -> 100))
         .externalBucketPercentage(Map(0 -> 100))
         .userWhiteList(Map("test-user" -> 1))
-        .build())
+        .build()
+      config.validate(cube)
+      Some(config)
     }
     override def getConfigForQueryGen(engine: Engine): Option[QueryGenBucketingConfig] = None
   }
