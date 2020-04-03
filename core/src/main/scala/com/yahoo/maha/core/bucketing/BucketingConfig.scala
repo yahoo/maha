@@ -16,7 +16,6 @@ case class CubeBucketingConfig(internalBucketPercentage:Map[Int,Int] = Map.empty
                                dryRunPercentage: Map[Int,Tuple2[Int, Option[Engine]]] = Map.empty, //revision,[%dryRun, Optional Engine]
                                userWhiteList:Map[String,Int] = Map.empty // userId,rev
                             ) {
-  validate()
 
   val internalDistribution = new EnumeratedIntegerDistribution(internalBucketPercentage.keys.toArray,
     internalBucketPercentage.values.map(percentage => percentage.toDouble/100).toArray)
@@ -36,10 +35,10 @@ case class CubeBucketingConfig(internalBucketPercentage:Map[Int,Int] = Map.empty
 
   def validate(cubeName:String) = {
     val internalSum = internalBucketPercentage.values.sum
-    require(internalSum==100,s"Total internal bucket percentage is not 100% but $internalSum")
+    require(internalSum==100,s"Total internal bucket percentage is not 100% but $internalSum, cube: $cubeName")
 
     val externalSum = externalBucketPercentage.values.sum
-    require(externalBucketPercentage.values.sum==100,s"Total external bucket percentage is not 100% but $externalSum")
+    require(externalBucketPercentage.values.sum==100,s"Total external bucket percentage is not 100% but $externalSum, cube: $cubeName")
   }
 }
 
@@ -83,7 +82,6 @@ case class QueryGenBucketingConfig(internalBucketPercentage:Map[Version,Int] = M
                                dryRunPercentage: Map[Version,Int] = Map.empty, //version,%
                                userWhiteList:Map[String,Version] = Map.empty // userId,version
                               ) {
-  validate()
 
   val internalDistribution = new EnumeratedIntegerDistribution(internalBucketPercentage.keys.map(_.number).toArray,
     internalBucketPercentage.values.map(percentage => percentage.toDouble/100).toArray)
@@ -101,16 +99,17 @@ case class QueryGenBucketingConfig(internalBucketPercentage:Map[Version,Int] = M
     }
   }
 
-  def validate(cubeName:String) = {
+  def validate(entityName:String) = {
     val internalSum = internalBucketPercentage.values.sum
-    require(internalSum==100,s"Total internal bucket percentage is not 100% but $internalSum, cube: $cubeName")
+    require(internalSum==100,s"Total internal bucket percentage is not 100% but $internalSum, entity: $entityName")
 
     val externalSum = externalBucketPercentage.values.sum
-    require(externalBucketPercentage.values.sum == 100,s"Total external bucket percentage is not 100% but $externalSum, cube: $cubeName")
+    require(externalBucketPercentage.values.sum == 100,s"Total external bucket percentage is not 100% but $externalSum, entity: $entityName")
   }
 }
 
 object QueryGenBucketingConfig {
+  val entity = "query_gen_bucket_config"
   def builder() = new QueryGenBucketingConfigBuilder
 }
 
@@ -142,7 +141,7 @@ class QueryGenBucketingConfigBuilder {
 
   def build(): QueryGenBucketingConfig = {
     val config = new QueryGenBucketingConfig(internalBucketPercentage.toMap, externalBucketPercentage.toMap, dryRunPercentage.toMap, userWhiteList.toMap)
-    config.validate()
+    config.validate(QueryGenBucketingConfig.entity)
     config
   }
 }
@@ -168,7 +167,7 @@ class DefaultBucketingConfig(cubeBucketingConfigMap:scala.collection.immutable.M
     }
 
     queryGenBucketingConfigMap.foreach {
-      case (cubeName, bucketingConfig) => bucketingConfig.validate(cubeName)
+      case (engine, bucketingConfig) => bucketingConfig.validate(engine.toString)
     }
   }
 
