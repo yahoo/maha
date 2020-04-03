@@ -16,6 +16,7 @@ case class CubeBucketingConfig(internalBucketPercentage:Map[Int,Int] = Map.empty
                                dryRunPercentage: Map[Int,Tuple2[Int, Option[Engine]]] = Map.empty, //revision,[%dryRun, Optional Engine]
                                userWhiteList:Map[String,Int] = Map.empty // userId,rev
                             ) {
+  validate("")
 
   val internalDistribution = new EnumeratedIntegerDistribution(internalBucketPercentage.keys.toArray,
     internalBucketPercentage.values.map(percentage => percentage.toDouble/100).toArray)
@@ -82,6 +83,7 @@ case class QueryGenBucketingConfig(internalBucketPercentage:Map[Version,Int] = M
                                dryRunPercentage: Map[Version,Int] = Map.empty, //version,%
                                userWhiteList:Map[String,Version] = Map.empty // userId,version
                               ) {
+  validate("")
 
   val internalDistribution = new EnumeratedIntegerDistribution(internalBucketPercentage.keys.map(_.number).toArray,
     internalBucketPercentage.values.map(percentage => percentage.toDouble/100).toArray)
