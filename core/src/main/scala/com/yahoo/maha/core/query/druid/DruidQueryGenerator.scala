@@ -729,10 +729,17 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         }
       }
 
+      var dimTypePresent = false
+      queryContext.requestModel.orFilterMeta.foreach {
+        orFilterMeta =>
+          if (orFilterMeta.filterType.equals(MetaType.DimType)) dimTypePresent = true
+      }
+
       queryContext.requestModel.orFilterMeta.foreach{
         meta =>
           //val dimMeta = meta.orFilter.filters.filter()
-          if(!(meta.filterType == MetaType.FactType)) outerQueryDimFilterList += FilterDruid.renderOrDimFilters(meta.orFilter.filters, aliases.toMap, cols, Option.empty, true)
+          if(dimTypePresent)
+            outerQueryDimFilterList += FilterDruid.renderOrDimFilters(meta.orFilter.filters, aliases.toMap, cols, Option.empty, true)
       }
 
       if(hasExpensiveDateDimFilter) {
@@ -761,7 +768,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
       outerQueryBuilder.build()
 
-    } else {
+    } //end of outer query
+
+    else {
       val dimWithDateTimeFilterList = getDateTimeFilters(queryContext) ++ dimFilterList
       if (dimWithDateTimeFilterList.nonEmpty)
         innerGroupByQueryBuilder.setDimFilter(new AndDimFilter(dimWithDateTimeFilterList.asJava))
@@ -794,7 +803,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     }
 
     new GroupByDruidQuery(finalQueryContext, finalAliasColumnMap, finalQuery, additionalColumns(queryContext), ephemeralAliasColumns, threshold, queryContext.requestModel.isSyncRequest)
-  }
+  } //generateGroupByQuery ends here
 
   private[this] def getBetweenDates(model: RequestModel): (DateTime, DateTime) = {
     val (dayFrom, dayTo) = {
@@ -1532,13 +1541,22 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         }
     }
 
+    var factTypePresent = false
+    var dimTypePresent = false
+    queryContext.requestModel.orFilterMeta.foreach {
+      orFilterMeta =>
+        if (orFilterMeta.filterType.equals(MetaType.FactType)) factTypePresent = true
+        else if (orFilterMeta.filterType.equals(MetaType.DimType)) dimTypePresent = true
+        }
+
     queryContext.requestModel.orFilterMeta.foreach {
       orFilterMeta =>
         if (orFilterMeta.filterType.equals(MetaType.MetricType)) {
           havingFilters += FilterDruid.renderOrFactFilters(orFilterMeta.orFilter.filters,
             queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
             fact.columnsByNameMap)
-        } else if (orFilterMeta.filterType.equals(MetaType.FactType)){
+        }
+        else if (orFilterMeta.filterType.equals(MetaType.FactType) && !(factTypePresent && dimTypePresent)){
           val cols = fact.columnsByNameMap
           val aliases = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap
           whereFilters += FilterDruid.renderOrDimFilters(orFilterMeta.orFilter.filters, aliases, cols, Option(fact.grain))
