@@ -1409,7 +1409,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
     val flatOrFilterMetaFields: Set[String] = queryContext.requestModel.orFilterMeta.flatMap(orFilterMeta => orFilterMeta.orFilter.filters).map(_.field)
     queryContext.factBestCandidate.dimColMapping.foreach {
-      case (dimCol, alias) if !isUsingDruidLookups || ((isUsingDruidLookups && queryContext.requestModel.requestColsSet(alias) && factRequestCols(dimCol)) || (isUsingDruidLookups && flatOrFilterMetaFields.contains(alias) && factTypePresent && dimTypePresent)) =>
+      case (dimCol, alias) if !isUsingDruidLookups && factRequestCols(dimCol) || ((isUsingDruidLookups && queryContext.requestModel.requestColsSet(alias) && factRequestCols(dimCol)) || (isUsingDruidLookups && flatOrFilterMetaFields.contains(alias) && factTypePresent && dimTypePresent)) =>
           val column = fact.columnsByNameMap(dimCol)
           if (!column.isInstanceOf[ConstDimCol]) {
             dimensionSpecTupleList += renderColumnWithAlias(fact, column, alias)
