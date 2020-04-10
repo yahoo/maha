@@ -1481,46 +1481,6 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       }
     }
 
-
-//    queryContext.requestModel.orFilterMeta.foreach {
-//      orFilterMeta =>
-//        if (orFilterMeta.filterType.equals(MetaType.FactType) && (factTypePresent && dimTypePresent)){
-//          orFilterMeta.orFilter.filters.foreach {
-//            filter =>
-//              val aliases = queryContext.factBestCandidate.dimColMapping
-//              var name = ""
-//              aliases.foreach {
-//                item =>
-//                  if(item._2 == filter.field) name = item._1
-//              }
-//              val column = fact.columnsByNameMap(name)
-//              if (!column.isInstanceOf[ConstDimCol]) {
-//                dimensionSpecTupleList += renderColumnWithAlias(fact,column,filter.field)
-////              }
-//          }
-//        }
-//    }
-
-//    //new block for adding factcol if it is a part of orfiltercombo
-//    dims.filter(p => p.dim.engine == DruidEngine).foreach {
-//      db => {
-//        db.filters.foreach {
-//          filter => {
-//            if (!dimAliasSet(filter.field)) {
-//              val name = db.publicDim.aliasToNameMap(filter.field)
-//              val column = db.dim.dimensionColumnsByNameMap(name)
-//              if (!column.isInstanceOf[ConstDimCol]) {
-//                val useQueryLevelCache: Boolean = db.dim.dimLevel < lastDimLevel
-//                dimensionSpecTupleList += renderColumnWithAliasUsingDimensionBundle(fact, column, filter.field, db, useQueryLevelCache)
-//              }
-//            }
-//          }
-//        }
-//      }
-//    }
-
-
-
     // include expensive dateTimeFilter columns also in dimSpecList if not included already as it is required for filters in outer query
     val hasExpensiveDateDimFilter = FilterDruid.isExpensiveDateDimFilter(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, queryContext.factBestCandidate.fact.columnsByNameMap)
     val name: String = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap(queryContext.requestModel.localTimeDayFilter.field)
