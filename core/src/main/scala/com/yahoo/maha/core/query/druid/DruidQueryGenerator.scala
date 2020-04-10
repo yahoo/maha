@@ -711,9 +711,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       if (outerQueryDimensionSpecList.nonEmpty)
         outerQueryBuilder.setDimensions(outerQueryDimensionSpecList.asJava)
 
-      val cols = dims.flatMap(f => f.dim.columnsByNameMap).toMap
-      val aliases = dims.flatMap(f => f.publicDim.aliasToNameMapFull)
-
+      val cols = dims.flatMap(f => f.dim.columnsByNameMap).toMap ++ queryContext.factBestCandidate.fact.dimColMap
+      val aliases = dims.flatMap(f => f.publicDim.aliasToNameMapFull) ++ queryContext.factBestCandidate.publicFact.aliasToNameColumnMap
+// ++ queryContext.factBestCandidate.publicFact.dimCols
       val outerQueryDimFilterList = new ArrayBuffer[DimFilter](queryContext.factBestCandidate.dimColMapping.size)
       dims.foreach {
         db => {
@@ -735,11 +735,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
           if (orFilterMeta.filterType.equals(MetaType.DimType)) dimTypePresent = true
       }
 
-      queryContext.requestModel.orFilterMeta.foreach{
-        meta =>
-          //val dimMeta = meta.orFilter.filters.filter()
-          if(dimTypePresent)
-            outerQueryDimFilterList += FilterDruid.renderOrDimFilters(meta.orFilter.filters, aliases.toMap, cols, Option.empty, true)
+      if(dimTypePresent) {
+        val flatOrFilterMetaFields: Set[Filter] = queryContext.requestModel.orFilterMeta.flatMap(orFilterMeta => orFilterMeta.orFilter.filters)
+        outerQueryDimFilterList += FilterDruid.renderOrDimFilters(flatOrFilterMetaFields.toList, aliases.toMap, cols , Option.empty, true)
       }
 
       if(hasExpensiveDateDimFilter) {
@@ -1401,9 +1399,17 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       }
     }
 
+    var factTypePresent = false
+    var dimTypePresent = false
+    queryContext.requestModel.orFilterMeta.foreach {
+      orFilterMeta =>
+        if (orFilterMeta.filterType.equals(MetaType.FactType)) factTypePresent = true
+        else if (orFilterMeta.filterType.equals(MetaType.DimType)) dimTypePresent = true
+    }
+
+    val flatOrFilterMetaFields: Set[String] = queryContext.requestModel.orFilterMeta.flatMap(orFilterMeta => orFilterMeta.orFilter.filters).map(_.field)
     queryContext.factBestCandidate.dimColMapping.foreach {
-      case (dimCol, alias) if !isUsingDruidLookups || (isUsingDruidLookups && queryContext.requestModel.requestColsSet(alias)) =>
-        if (factRequestCols(dimCol)) {
+      case (dimCol, alias) if !isUsingDruidLookups || ((isUsingDruidLookups && queryContext.requestModel.requestColsSet(alias) && factRequestCols(dimCol)) || (isUsingDruidLookups && flatOrFilterMetaFields.contains(alias) && factTypePresent && dimTypePresent)) =>
           val column = fact.columnsByNameMap(dimCol)
           if (!column.isInstanceOf[ConstDimCol]) {
             dimensionSpecTupleList += renderColumnWithAlias(fact, column, alias)
@@ -1417,7 +1423,6 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             }
           }
           */
-        }
       case _ => //do nothing
     }
 
@@ -1475,6 +1480,46 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         }
       }
     }
+
+
+//    queryContext.requestModel.orFilterMeta.foreach {
+//      orFilterMeta =>
+//        if (orFilterMeta.filterType.equals(MetaType.FactType) && (factTypePresent && dimTypePresent)){
+//          orFilterMeta.orFilter.filters.foreach {
+//            filter =>
+//              val aliases = queryContext.factBestCandidate.dimColMapping
+//              var name = ""
+//              aliases.foreach {
+//                item =>
+//                  if(item._2 == filter.field) name = item._1
+//              }
+//              val column = fact.columnsByNameMap(name)
+//              if (!column.isInstanceOf[ConstDimCol]) {
+//                dimensionSpecTupleList += renderColumnWithAlias(fact,column,filter.field)
+////              }
+//          }
+//        }
+//    }
+
+//    //new block for adding factcol if it is a part of orfiltercombo
+//    dims.filter(p => p.dim.engine == DruidEngine).foreach {
+//      db => {
+//        db.filters.foreach {
+//          filter => {
+//            if (!dimAliasSet(filter.field)) {
+//              val name = db.publicDim.aliasToNameMap(filter.field)
+//              val column = db.dim.dimensionColumnsByNameMap(name)
+//              if (!column.isInstanceOf[ConstDimCol]) {
+//                val useQueryLevelCache: Boolean = db.dim.dimLevel < lastDimLevel
+//                dimensionSpecTupleList += renderColumnWithAliasUsingDimensionBundle(fact, column, filter.field, db, useQueryLevelCache)
+//              }
+//            }
+//          }
+//        }
+//      }
+//    }
+
+
 
     // include expensive dateTimeFilter columns also in dimSpecList if not included already as it is required for filters in outer query
     val hasExpensiveDateDimFilter = FilterDruid.isExpensiveDateDimFilter(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, queryContext.factBestCandidate.fact.columnsByNameMap)
