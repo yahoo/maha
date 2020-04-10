@@ -728,6 +728,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         }
       }
 
+      //Add entire OR filter to outer query if any of them are dimType
       if(queryContext.requestModel.orFilterMeta.map(orFilterMeta => orFilterMeta.filterType).contains(MetaType.DimType)) {
         val flatOrFilterMetaFields: Set[Filter] = queryContext.requestModel.orFilterMeta.flatMap(orFilterMeta => orFilterMeta.orFilter.filters)
         outerQueryDimFilterList += FilterDruid.renderOrDimFilters(flatOrFilterMetaFields.toList, aliases.toMap, cols , Option.empty, true)
@@ -1396,6 +1397,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
     val flatOrFilterMetaFields: Set[String] = queryContext.requestModel.orFilterMeta.flatMap(orFilterMeta => orFilterMeta.orFilter.filters).map(_.field)
     queryContext.factBestCandidate.dimColMapping.foreach {
+      //Add factColumn to inner query's dimensionSpecTupleList even if not in group by, as the factColumn's filter is part of outer query
       case (dimCol, alias) if !isUsingDruidLookups && factRequestCols(dimCol) || (
           (isUsingDruidLookups && queryContext.requestModel.requestColsSet(alias) && factRequestCols(dimCol)) ||
           (isUsingDruidLookups && flatOrFilterMetaFields.contains(alias) && orFilterTypes.contains(MetaType.FactType) && orFilterTypes.contains(MetaType.DimType))
@@ -1548,6 +1550,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
             fact.columnsByNameMap)
         }
+          //Add factType filter to inner query only if it is not a part of OR filter that has combo of both factType and dimType
         else if (orFilterMeta.filterType.equals(MetaType.FactType) && !(orFilterTypes.contains(MetaType.FactType) && orFilterTypes.contains(MetaType.DimType))){
           val cols = fact.columnsByNameMap
           val aliases = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap
