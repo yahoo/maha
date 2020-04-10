@@ -728,11 +728,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         }
       }
 
-      val orFilterTypes = queryContext.requestModel.orFilterMeta.map {
-        orFilterMeta => orFilterMeta.filterType
-      }.toSet
-
-      if(orFilterTypes.contains(MetaType.DimType)) {
+      if(queryContext.requestModel.orFilterMeta.map(orFilterMeta => orFilterMeta.filterType).contains(MetaType.DimType)) {
         val flatOrFilterMetaFields: Set[Filter] = queryContext.requestModel.orFilterMeta.flatMap(orFilterMeta => orFilterMeta.orFilter.filters)
         outerQueryDimFilterList += FilterDruid.renderOrDimFilters(flatOrFilterMetaFields.toList, aliases.toMap, cols , Option.empty, true)
       }
