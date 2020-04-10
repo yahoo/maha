@@ -713,7 +713,6 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
       val cols = dims.flatMap(f => f.dim.columnsByNameMap).toMap ++ queryContext.factBestCandidate.fact.dimColMap
       val aliases = dims.flatMap(f => f.publicDim.aliasToNameMapFull) ++ queryContext.factBestCandidate.publicFact.aliasToNameColumnMap
-// ++ queryContext.factBestCandidate.publicFact.dimCols
       val outerQueryDimFilterList = new ArrayBuffer[DimFilter](queryContext.factBestCandidate.dimColMapping.size)
       dims.foreach {
         db => {
@@ -766,9 +765,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
       outerQueryBuilder.build()
 
-    } //end of outer query
-
-    else {
+    } else {
       val dimWithDateTimeFilterList = getDateTimeFilters(queryContext) ++ dimFilterList
       if (dimWithDateTimeFilterList.nonEmpty)
         innerGroupByQueryBuilder.setDimFilter(new AndDimFilter(dimWithDateTimeFilterList.asJava))
@@ -801,7 +798,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     }
 
     new GroupByDruidQuery(finalQueryContext, finalAliasColumnMap, finalQuery, additionalColumns(queryContext), ephemeralAliasColumns, threshold, queryContext.requestModel.isSyncRequest)
-  } //generateGroupByQuery ends here
+  }
 
   private[this] def getBetweenDates(model: RequestModel): (DateTime, DateTime) = {
     val (dayFrom, dayTo) = {
