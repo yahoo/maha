@@ -711,9 +711,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       if (outerQueryDimensionSpecList.nonEmpty)
         outerQueryBuilder.setDimensions(outerQueryDimensionSpecList.asJava)
 
-      val cols = dims.flatMap(f => f.dim.columnsByNameMap).toMap
-      val aliases = dims.flatMap(f => f.publicDim.aliasToNameMapFull)
-
+      val cols = dims.flatMap(f => f.dim.columnsByNameMap).toMap ++ queryContext.factBestCandidate.fact.dimColMap
+      val aliases = dims.flatMap(f => f.publicDim.aliasToNameMapFull) ++ queryContext.factBestCandidate.publicFact.aliasToNameColumnMap
       val outerQueryDimFilterList = new ArrayBuffer[DimFilter](queryContext.factBestCandidate.dimColMapping.size)
       dims.foreach {
         db => {
@@ -729,10 +728,10 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         }
       }
 
-      queryContext.requestModel.orFilterMeta.foreach{
-        meta =>
-          //val dimMeta = meta.orFilter.filters.filter()
-          if(!(meta.filterType == MetaType.FactType)) outerQueryDimFilterList += FilterDruid.renderOrDimFilters(meta.orFilter.filters, aliases.toMap, cols, Option.empty, true)
+      //Add entire OR filter to outer query if any of them are dimType
+      if(queryContext.requestModel.orFilterMeta.map(orFilterMeta => orFilterMeta.filterType).contains(MetaType.DimType)) {
+        val flatOrFilterMetaFields: Set[Filter] = queryContext.requestModel.orFilterMeta.flatMap(orFilterMeta => orFilterMeta.orFilter.filters)
+        outerQueryDimFilterList += FilterDruid.renderOrDimFilters(flatOrFilterMetaFields.toList, aliases.toMap, cols , Option.empty, true)
       }
 
       if(hasExpensiveDateDimFilter) {
@@ -1392,9 +1391,17 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       }
     }
 
+    val orFilterTypes = queryContext.requestModel.orFilterMeta.map {
+      orFilterMeta => orFilterMeta.filterType
+    }.toSet
+
+    val flatOrFilterMetaFields: Set[String] = queryContext.requestModel.orFilterMeta.flatMap(orFilterMeta => orFilterMeta.orFilter.filters).map(_.field)
     queryContext.factBestCandidate.dimColMapping.foreach {
-      case (dimCol, alias) if !isUsingDruidLookups || (isUsingDruidLookups && queryContext.requestModel.requestColsSet(alias)) =>
-        if (factRequestCols(dimCol)) {
+      //Add factColumn to inner query's dimensionSpecTupleList even if not in group by, as the factColumn's filter is part of outer query
+      case (dimCol, alias) if !isUsingDruidLookups && factRequestCols(dimCol) || (
+          (isUsingDruidLookups && queryContext.requestModel.requestColsSet(alias) && factRequestCols(dimCol)) ||
+          (isUsingDruidLookups && flatOrFilterMetaFields.contains(alias) && orFilterTypes.contains(MetaType.FactType) && orFilterTypes.contains(MetaType.DimType))
+        ) =>
           val column = fact.columnsByNameMap(dimCol)
           if (!column.isInstanceOf[ConstDimCol]) {
             dimensionSpecTupleList += renderColumnWithAlias(fact, column, alias)
@@ -1408,7 +1415,6 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             }
           }
           */
-        }
       case _ => //do nothing
     }
 
@@ -1532,13 +1538,20 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         }
     }
 
+
+    val orFilterTypes = queryContext.requestModel.orFilterMeta.map {
+      orFilterMeta => orFilterMeta.filterType
+    }.toSet
+
     queryContext.requestModel.orFilterMeta.foreach {
       orFilterMeta =>
         if (orFilterMeta.filterType.equals(MetaType.MetricType)) {
           havingFilters += FilterDruid.renderOrFactFilters(orFilterMeta.orFilter.filters,
             queryContext.factBestCandidate.publicFact.aliasToNameColumnMap,
             fact.columnsByNameMap)
-        } else if (orFilterMeta.filterType.equals(MetaType.FactType)){
+        }
+          //Add factType filter to inner query only if it is not a part of OR filter that has combo of both factType and dimType
+        else if (orFilterMeta.filterType.equals(MetaType.FactType) && !(orFilterTypes.contains(MetaType.FactType) && orFilterTypes.contains(MetaType.DimType))){
           val cols = fact.columnsByNameMap
           val aliases = queryContext.factBestCandidate.publicFact.aliasToNameColumnMap
           whereFilters += FilterDruid.renderOrDimFilters(orFilterMeta.orFilter.filters, aliases, cols, Option(fact.grain))

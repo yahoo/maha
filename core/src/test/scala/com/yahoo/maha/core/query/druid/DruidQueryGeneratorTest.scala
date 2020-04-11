@@ -2106,10 +2106,10 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
 
-    println(result)
-    val filterjson = s"""{"type":"or","fields":[{"type":"search","dimension":"Advertiser Name","query":{"type":"insensitive_contains","value":"2","caseSensitive":false}},{"type":"selector","dimension":"Campaign Name","value":"Nike"},{"type":"selector","dimension":"Campaign Total","value":"Nike"}]}"""
+    val filterjson = s""""fields":[{"type":"or","fields":[{"type":"search","dimension":"Advertiser Name","query":{"type":"insensitive_contains","value":"2","caseSensitive":false}},{"type":"selector","dimension":"Campaign Total","value":"Nike"},{"type":"selector","dimension":"Campaign Name","value":"Nike"},{"type":"selector","dimension":"Source","value":"1"},{"type":"selector","dimension":"Ad ID","value":"12345"}]}]"""
     val filterFactJson = s"""{"type":"or","fields":[{"type":"selector","dimension":"ad_id","value":"12345"},{"type":"selector","dimension":"stats_source","value":"1"}]}"""
-    assert(result.contains(filterjson) && result.contains(filterFactJson), result)
+    val exposingFactInInnerQueryJson = s"""{"type":"default","dimension":"ad_id","outputName":"Ad ID","outputType":"STRING"}"""
+    assert(result.contains(filterjson) && result.contains(exposingFactInInnerQueryJson) && !result.contains(filterFactJson), result)
   }
 
   test("Or filter expression with fact filters") {
