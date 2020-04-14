@@ -6,7 +6,7 @@ import java.util.Date
 
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.{CompleteRowList, QueryAttributes, QueryPipelineResult, QueryRowList}
-import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.core.request.{ReportingRequest, RowCountQuery}
 import com.yahoo.maha.core.{DruidEngine, Engine, OracleEngine, RequestModelResult}
 import com.yahoo.maha.jdbc.List
 import com.yahoo.maha.service.curators._
@@ -16,6 +16,7 @@ import com.yahoo.maha.service.utils.MahaRequestLogHelper
 import com.yahoo.maha.service.{BaseMahaServiceTest, CuratorInjector, MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
 import org.json4s.JsonAST.{JInt, JObject}
 import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should
 
 import scala.util.Try
 
@@ -315,5 +316,77 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val result = stringStream.toString()
     stringStream.close()
     assert(result === """{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200,"debug":{"testName":"test1","labels":["lb1","lb2","lb3"]},"pagination":{"Druid":{"pagingIdentifiers":{"wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9":4}}}},"rows":[[123,234,345,99,"Test Result",1]],"curators":{}}""")
+  }
+
+  test("Test JsonOutputFormat with RowCountCurator while rowList is empty") {
+
+    val rowCountRequest =
+      s"""{
+                          "cube": "student_performance",
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"},
+                            {"field": "Sample Constant Field", "value" :"Test Result"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                          "additionalParameters": {
+                              "debug": true
+                          },
+                          "curators" : {
+                            "rowcount" : {
+                              "config" : {
+                                "isFactDriven": true
+                              }
+                            }
+                          }
+                        }"""
+
+
+    val reportingRequest = ReportingRequest.forceDruid(ReportingRequest.deserializeSync(rowCountRequest.getBytes, StudentSchema).toOption.get)
+
+    val (pse, queryPipeline, drivingQuery, queryChain) = {
+      val requestModel = mahaService.generateRequestModel(REGISTRY
+        , reportingRequest.copy(queryType = RowCountQuery)
+        , BucketParams(UserInfo("test", false), forceRevision = Option(1))).toOption.get
+      val factory = registry.queryPipelineFactory.from(requestModel.model, QueryAttributes.empty, bucketParams)
+      val queryChain = factory.get.queryChain
+      val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)
+      (pse, factory.get, queryChain.drivingQuery, queryChain)
+    }
+
+    val rowList = CompleteRowList(drivingQuery)
+
+    val queryPipelineResult = QueryPipelineResult(queryPipeline, queryChain, rowList, QueryAttributes.empty, Map.empty)
+    val requestResult = pse.immediateResult("label", new Right(RequestResult(queryPipelineResult)))
+    val parRequestResult = ParRequestResult(Try(queryPipeline), requestResult, None)
+    val requestModelResult = RequestModelResult(drivingQuery.queryContext.requestModel, None)
+
+    val defaultCurator = DefaultCurator()
+    val rowCountCurator = RowCountCurator()
+    val curatorResult1 = CuratorResult(defaultCurator, NoConfig, Option(parRequestResult), requestModelResult)
+    val curatorResult2 = CuratorResult(rowCountCurator, NoConfig, Option(parRequestResult), requestModelResult)
+
+    val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator, rowCountCurator)
+      , Map(DefaultCurator.name -> curatorResult1, RowCountCurator.name -> curatorResult2)
+      , Map.empty
+      , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get,
+            RowCountCurator.name -> curatorResult2.parRequestResultOption.get.prodRun.get().right.get)
+      , mahaRequestContext)
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
+
+    val stringStream = new StringStream()
+
+    jsonStreamingOutput.writeStream(stringStream)
+    val result = stringStream.toString()
+    stringStream.close()
+
+    val expectedJson = """\{.*,"curators":\{"rowcount":\{"result":\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"TOTALROWS","fieldType":"FACT"\}\],"maxRows":200\},"rows":\[\[0\]\]\}\}\}\}"""
+    assert(result.matches(expectedJson))
+
   }
 }
