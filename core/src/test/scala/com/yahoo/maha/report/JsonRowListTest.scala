@@ -440,7 +440,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
         )
       )
     }
-      .newRollUp("fact_table_keywords", "fact0_table_keywords", discarding = Set("ad_id"), columnAliasMap = Map("price_type" -> "pricing_type"))
+      .newRollUp("fact_table_keywords", "fact0_table_keywords", discarding = Set("ad_id"), columnAliasMap = Map("price_type" -> "pricing_type"), availableOnwardsDate = Some("2010-01-01"))
       .toPublicFact("k_stats",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),

@@ -99,7 +99,7 @@ trait BaseOracleQueryGeneratorTest
           , OracleFactConditionalHint(FactCondition(Option(true), Option(false), Option(false), Option(false)), "CONDITIONAL_HINT4")
           , OracleFactConditionalHint(FactCondition(None, minRowsEstimate = Option(900L))
             , "CONDITIONAL_HINT5")
-        )
+        ), availableOnwardsDate = Some("2010-01-01")
       ).toPublicFact("k_stats",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
@@ -368,7 +368,7 @@ trait BaseOracleQueryGeneratorTest
         )
       )
     }
-      .newRollUp("k_stats_fact1", "k_stats_new_partitioning", discarding = Set("ad_id"), columnAliasMap = Map("price_type" -> "pricing_type"))
+      .newRollUp("k_stats_fact1", "k_stats_new_partitioning", discarding = Set("ad_id"), columnAliasMap = Map("price_type" -> "pricing_type"), availableOnwardsDate = Some("2010-01-01"))
       .toPublicFact("k_stats_new",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
@@ -529,7 +529,7 @@ trait BaseOracleQueryGeneratorTest
         )
       )
     }
-      .newRollUp("k_stats_fact1", "k_stats_new_partitioning", discarding = Set("ad_id"), columnAliasMap = Map("price_type" -> "pricing_type"))
+      .newRollUp("k_stats_fact1", "k_stats_new_partitioning", discarding = Set("ad_id"), columnAliasMap = Map("price_type" -> "pricing_type"), availableOnwardsDate = Some("2010-01-01"))
       .toPublicFact("keyword_view_test",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
@@ -757,7 +757,7 @@ trait BaseOracleQueryGeneratorTest
         )
       )
     }
-      .newRollUp("fact2", "fact1", discarding = Set("ad_id"), columnAliasMap = Map("price_type" -> "pricing_type", "source_name" -> "stats_source"))
+      .newRollUp("fact2", "fact1", discarding = Set("ad_id"), columnAliasMap = Map("price_type" -> "pricing_type", "source_name" -> "stats_source"), availableOnwardsDate = Some("2010-01-01"))
       .toPublicFact("k_stats_new_freq",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
