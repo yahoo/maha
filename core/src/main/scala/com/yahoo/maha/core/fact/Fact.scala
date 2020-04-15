@@ -3,6 +3,7 @@
 package com.yahoo.maha.core.fact
 
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.NoopSchema.NoopSchema
 import com.yahoo.maha.core.ddl.{DDLAnnotation, HiveDDLAnnotation}
 import com.yahoo.maha.core.dimension.{BaseFunctionDimCol, ConstDimCol, DimensionColumn, PublicDimColumn}
 import com.yahoo.maha.core.fact.Fact.ViewTable
@@ -1241,6 +1242,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
     require(tableMap.contains(from), s"from table not valid $from")
     require(!tableMap.contains(name), s"table $name already exists")
     require(discarding.nonEmpty, "discarding set should never be empty")
+    require(availableOnwardsDate.isDefined || schemas == Set(NoopSchema), "Public rollups should have a defined availableOnwardsDate")
 
     val fromTable = tableMap(from)
 
@@ -1344,6 +1346,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
     require(tableMap.contains(from), s"from table not valid $from")
     require(!tableMap.contains(name), s"table $name already exists")
     require(discarding.nonEmpty, "discardings should never be empty in rollup")
+    require(availableOnwardsDate.isDefined || schemas == Set(NoopSchema), "Public rollups should have a defined availableOnwardsDate")
+
     val fromTable = tableMap(from)
     discarding foreach {
       d =>

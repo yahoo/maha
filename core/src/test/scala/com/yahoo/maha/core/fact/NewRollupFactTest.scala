@@ -3,6 +3,7 @@
 package com.yahoo.maha.core.fact
 
 import com.yahoo.maha.core.CoreSchema._
+import com.yahoo.maha.core.NoopSchema.NoopSchema
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
 import com.yahoo.maha.core.dimension.DimCol
@@ -15,18 +16,38 @@ class NewRollupFactTest extends BaseFactTest {
 
   test("newRollup should succeed with discarding foreign key") {
     val fact = fact1
-    fact.newRollUp("fact2", "fact1", Set("ad_id"))
+    fact.newRollUp("fact2", "fact1", Set("ad_id"), availableOnwardsDate = Some("2020-01-01"))
     val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
     require(bcOption.isDefined, "Failed to get candidates!")
     assert(bcOption.get.facts.keys.exists(_ == "fact2") === true)
     assert(bcOption.get.facts.find(_._1 == "fact2").get._2.fact.maxDaysLookBack === None)
     assert(bcOption.get.facts.find(_._1 == "fact2").get._2.fact.maxDaysWindow === None)
   }
+
+  test("newRollup should succeed with NoopSchema and no availableOnwardsDate") {
+    val fact = fact1
+    fact.newRollUp("fact2", "fact1", Set("ad_id"), schemas = Set(NoopSchema))
+    val bcOption = publicFact(fact).getCandidatesFor(NoopSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
+    require(bcOption.isDefined, "Failed to get candidates!")
+    assert(bcOption.get.facts.keys.exists(_ == "fact2") === true)
+    assert(bcOption.get.facts.find(_._1 == "fact2").get._2.fact.maxDaysLookBack === None)
+    assert(bcOption.get.facts.find(_._1 == "fact2").get._2.fact.maxDaysWindow === None)
+  }
+
+  test("newRollup should fail is trying to make a rollup without available onwards") {
+    val fact = fact1
+    val thrown = intercept[IllegalArgumentException] {
+      fact.newRollUp("fact2", "fact1", Set("ad_id"))
+    }
+
+    thrown.getMessage should startWith ("requirement failed: Public rollups should have a defined availableOnwardsDate")
+  }
+
   test("newRollup should success with discarding foreign key and change of max days and max lookback") {
     val fact = fact1
     val maxWindow: Option[Map[RequestType, Int]] = Option(Map(SyncRequest -> 11))
     val maxLookBack: Option[Map[RequestType, Int]] = Option(Map(SyncRequest -> 12))
-    fact.newRollUp("fact2", "fact1", Set("ad_id"), maxDaysLookBack = maxLookBack, maxDaysWindow = maxWindow)
+    fact.newRollUp("fact2", "fact1", Set("ad_id"), maxDaysLookBack = maxLookBack, maxDaysWindow = maxWindow, availableOnwardsDate = Some("2020-01-01"))
     val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
     require(bcOption.isDefined, "Failed to get candidates!")
     assert(bcOption.get.facts.keys.exists(_ == "fact2") === true)
@@ -43,8 +64,8 @@ class NewRollupFactTest extends BaseFactTest {
 
   test("newRollup should succeed with 2 rollups") {
     val fact = fact1
-    fact.newRollUp("fact2", "fact1", Set("ad_id"))
-    fact.newRollUp("fact3", "fact2", Set("ad_group_id"))
+    fact.newRollUp("fact2", "fact1", Set("ad_id"), availableOnwardsDate = Some("2020-01-01"))
+    fact.newRollUp("fact3", "fact2", Set("ad_group_id"), availableOnwardsDate = Some("2020-01-01"))
     val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
     require(bcOption.isDefined, "Failed to get candidates!")
     assert(bcOption.get.facts.keys.exists(_ == "fact2") === true, "first roll up failed")
@@ -54,7 +75,7 @@ class NewRollupFactTest extends BaseFactTest {
 
   test("newRollup should succeed when discarding column that is not a foreign key dim col") {
     val fact = fact1
-    fact.newRollUp("fact2", "fact1", Set("stats_source"))
+    fact.newRollUp("fact2", "fact1", Set("stats_source"), availableOnwardsDate = Some("2020-01-01"))
   }
 
 /*  test("newRollup should fail when discarding column that is not a foreign key fact col") {
@@ -76,9 +97,9 @@ class NewRollupFactTest extends BaseFactTest {
   test("newRollup should fail when discarding last remaining foreign key") {
     val fact = fact1
 
-    fact.newRollUp("fact2", "fact1", Set("account_id"))
-    fact.newRollUp("fact3", "fact2", Set("campaign_id"))
-    fact.newRollUp("fact4", "fact3", Set("ad_group_id"))
+    fact.newRollUp("fact2", "fact1", Set("account_id"), availableOnwardsDate = Some("2020-01-01"))
+    fact.newRollUp("fact3", "fact2", Set("campaign_id"), availableOnwardsDate = Some("2020-01-01"))
+    fact.newRollUp("fact4", "fact3", Set("ad_group_id"), availableOnwardsDate = Some("2020-01-01"))
 
 
     intercept[IllegalArgumentException] {
@@ -96,8 +117,8 @@ class NewRollupFactTest extends BaseFactTest {
   test("newRollup should fail when rollup to an existing table") {
     val fact = fact1
     val thrown = intercept[IllegalArgumentException] {
-      fact.newRollUp("fact2", "fact1", Set("account_id"))
-      fact.newRollUp("fact1", "fact2", Set("ad_group_id"))
+      fact.newRollUp("fact2", "fact1", Set("account_id"), availableOnwardsDate = Some("2020-01-01"))
+      fact.newRollUp("fact1", "fact2", Set("ad_group_id"), availableOnwardsDate = Some("2020-01-01"))
     }
     thrown.getMessage should startWith("requirement failed: table")
   }
@@ -140,7 +161,7 @@ class NewRollupFactTest extends BaseFactTest {
             , DimCol("dimcol2", IntType())),
           Set(
             FactCol("factcol1", StrType())
-          )).newRollUp("fact2", "fact1", Set("dimcol2"))
+          )).newRollUp("fact2", "fact1", Set("dimcol2"), availableOnwardsDate = Some("2020-01-01"))
       }
     }
     thrown.getMessage should startWith ("requirement failed: Failed to copy dim columns with new column context!")
@@ -168,7 +189,7 @@ class NewRollupFactTest extends BaseFactTest {
           Set(
             FactCol("factcol1", StrType())
             , mockedFactCol
-          )).newRollUp("fact2", "fact1", Set("dimcol3"))
+          )).newRollUp("fact2", "fact1", Set("dimcol3"), availableOnwardsDate = Some("2020-01-01"))
       }
     }
     thrown.getMessage should startWith ("requirement failed: Failed to copy fact columns with new column context!")
@@ -177,14 +198,14 @@ class NewRollupFactTest extends BaseFactTest {
   test("newRollup should fail if trying to discard fact columns") {
     val fact = fact1
     val thrown = intercept[IllegalArgumentException] {
-      fact.newRollUp("fact2", "fact1", Set("clicks"))
+      fact.newRollUp("fact2", "fact1", Set("clicks"), availableOnwardsDate = Some("2020-01-01"))
     }
     thrown.getMessage should startWith ("requirement failed: Cannot discard fact column clicks with newRollup, use createSubset to discard")
   }
 
   test("newRollup should successfully rollup discarding all derived columns associated the discarding columns") {
     val fact = fact1
-    fact.newRollUp("fact2", "fact1", Set("engagement_type"))
+    fact.newRollUp("fact2", "fact1", Set("engagement_type"), availableOnwardsDate = Some("2020-01-01"))
     val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
     require(bcOption.isDefined, "Failed to get candidates!")
     assert(bcOption.get.facts.keys.exists(_ == "fact2") === true, "Roll up failed")
@@ -192,7 +213,7 @@ class NewRollupFactTest extends BaseFactTest {
 
   test("newRollup should successfully rollup with column alias map") {
     val fact = fact1
-    fact.newRollUp("fact2", "fact1", discarding = Set("engagement_type"), columnAliasMap = Map("price_type" -> "pricing_type"))
+    fact.newRollUp("fact2", "fact1", discarding = Set("engagement_type"), columnAliasMap = Map("price_type" -> "pricing_type"), availableOnwardsDate = Some("2020-01-01"))
     val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions", "Pricing Type"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
     require(bcOption.isDefined, "Failed to get candidates!")
     assert(bcOption.get.facts.keys.exists(_ == "fact2") === true, "Roll up failed")
@@ -201,7 +222,7 @@ class NewRollupFactTest extends BaseFactTest {
 
   test("newRollup should discard column in hive ddl column rendering") {
     val fact = fact1
-    fact.newRollUp("fact2", "fact1", Set("ad_group_id"))
+    fact.newRollUp("fact2", "fact1", Set("ad_group_id"), availableOnwardsDate = Some("2020-01-01"))
     val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, EqualityFilter("Day", s"$toDate"))
     require(bcOption.isDefined, "Failed to get candidates!")
     assert(bcOption.get.facts.keys.exists(_ == "fact2") === true, "Roll up failed")
