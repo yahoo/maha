@@ -2501,6 +2501,82 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
+
+  test("successfully generate async  dim only query with filters and order by and row count") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Campaign ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Ad Group ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Advertiser Status",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             { "field" : "Source", "value" : "2", "alias" : "Source"}
+                           ],
+                          "filterExpressions": [
+                             {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ],"sortBy": [
+                              {"field": "Campaign ID", "order": "Asc"}
+                           ],
+                           "paginationStartIndex":0,
+                           "rowsPerPage":100,
+                           "forceDimensionDriven": true,
+                           "includeRowCount": true
+                          }"""
+
+    val requestOption = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(requestOption.toOption.get, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    val expected = """
+                     |SELECT  *
+                     |      FROM (SELECT ago2.campaign_id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", '2' AS "Source", Count(*) OVER() TOTALROWS
+                     |            FROM
+                     |               ( (SELECT  campaign_id, advertiser_id, id
+                     |            FROM ad_group_oracle
+                     |            WHERE (advertiser_id = 12345)
+                     |            ORDER BY 1 ASC  ) ago2
+                     |          INNER JOIN
+                     |            (SELECT /*+ CampaignHint */ id, advertiser_id, campaign_name
+                     |            FROM campaign_oracle
+                     |            WHERE (advertiser_id = 12345)
+                     |             ) co1
+                     |              ON( ago2.advertiser_id = co1.advertiser_id AND ago2.campaign_id = co1.id )
+                     |               INNER JOIN
+                     |            (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+                     |            FROM advertiser_oracle
+                     |            WHERE (id = 12345)
+                     |             ) ao0
+                     |              ON( co1.advertiser_id = ao0.id )
+                     |               )
+                     |
+                     |           )
+                     |
+                     |""".stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+  }
+
   test("successfully generate fact driven query with right outer join when schema required fields are not present in the fact") {
     val jsonString = s"""{
                            "cube": "performance_stats",
