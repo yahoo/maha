@@ -1080,6 +1080,13 @@ object RequestModel extends Logging {
             }
             DimensionRelations(relations)
           }
+          val isDimOnlyQuery = dimensionCandidates.nonEmpty && bestCandidatesOption.isEmpty
+
+          // All Dim only queries are by default dim driven
+          val forceDimensionDriven:Boolean = if(isDimOnlyQuery) {
+            true
+          } else request.forceDimensionDriven
+
 
           val allFactWithoutOr = allFactFilters.filterNot(filter => allOrFilters.contains(filter))
           new RequestModel(request.cube, bestCandidatesOption, allFactWithoutOr.to[SortedSet], dimensionCandidates,
@@ -1099,7 +1106,7 @@ object RequestModel extends Logging {
             hasDimFilters = hasDimFilters,
             hasNonFKDimFilters = hasNonFKDimFilters,
             hasDimSortBy = hasDimSortBy,
-            forceDimDriven = request.forceDimensionDriven,
+            forceDimDriven = forceDimensionDriven,
             forceFactDriven = request.forceFactDriven,
             hasNonDrivingDimSortOrFilter = hasNonDrivingDimSortOrFilter,
             hasDrivingDimNonFKNonPKSortBy = hasDrivingDimNonFKNonPKSortBy,
