@@ -341,7 +341,7 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                 mahaRequestLogBuilder.logFailed(message, Option(400))
                 withError(curatorConfig, GeneralError.from(parRequestLabel, message))
               }
-            } else { // if isFactDriven = true is specified in config, includeRowCount = true
+            } else { // if isFactDriven = true is specified in config, queryType = RowCountQuery
               val totalRowsCountRequestTry =
                 Try {
                   //force fact driven
@@ -422,7 +422,7 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
       })
 
       val finalParRequestResult = parRequestResult.copy(prodRun = populateRowCount)
-      val curatorResult = CuratorResult(this, curatorConfig, Option(finalParRequestResult), requestModelResult)
+      val curatorResult = CuratorResult(this, curatorConfig, Option(finalParRequestResult), requestModelResult.copy(model = totalRowsRequestModel))
       withResult(parRequestLabel, parallelServiceExecutor, curatorResult)
     }
   }
