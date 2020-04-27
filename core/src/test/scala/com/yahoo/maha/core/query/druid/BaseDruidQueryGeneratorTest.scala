@@ -73,6 +73,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , DruidFuncDimCol("segments", StrType(), JAVASCRIPT("{segments}", "function(x) { return x > 0; }"))
           , DimCol("internal_bucket_id", StrType())
           , DruidFuncDimCol("click_exp_id", StrType(), REGEX("{internal_bucket_id}", "(cl-)(.*?)(,)", 2, replaceMissingValue = true, "-3"))
+          , DruidFuncDimCol("week_start", DateType(), DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY("yyyy-MM-dd", "P1W"))
         ),
         Set(
           FactCol("impressions", IntType(3, 1))
@@ -324,7 +325,8 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PubCol("woeids", "Woe ID", InEquality),
           PubCol("segments", "Segments", InEquality),
           PubCol("internal_bucket_id", "Internal Bucket ID", InEquality),
-          PubCol("click_exp_id", "Click Exp ID", InEquality)
+          PubCol("click_exp_id", "Click Exp ID", InEquality),
+          PubCol("week_start", "Week Start", InEquality)
           //PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality)
         ),
         Set(

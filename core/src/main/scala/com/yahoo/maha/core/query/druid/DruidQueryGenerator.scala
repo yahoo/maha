@@ -17,7 +17,7 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.{DecodeConfig, MahaRegiste
 import com.yahoo.maha.query.aggregation.{RoundingDoubleSumAggregatorFactory, RoundingDoubleSumDruidModule}
 import grizzled.slf4j.Logging
 import io.druid.jackson.DefaultObjectMapper
-import io.druid.java.util.common.granularity.GranularityType
+import io.druid.java.util.common.granularity.{GranularityType, PeriodGranularity}
 import io.druid.js.JavaScriptConfig
 import io.druid.math.expr.ExprMacroTable
 import io.druid.query.aggregation._
@@ -39,7 +39,7 @@ import io.druid.query.timeseries.TimeseriesResultValue
 import io.druid.query.topn.{InvertedTopNMetricSpec, NumericTopNMetricSpec, TopNQueryBuilder, TopNResultValue}
 import io.druid.query.{Druids, Result}
 import io.druid.segment.column.ValueType
-import org.joda.time.{DateTime, DateTimeZone, Interval}
+import org.joda.time.{DateTime, DateTimeZone, Interval, Period}
 import org.json4s.{DefaultFormats, JValue}
 
 import scala.collection.mutable.ArrayBuffer
@@ -1275,6 +1275,10 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             case DRUID_TIME_FORMAT(fmt, zone) =>
               val exFn = new TimeFormatExtractionFn(fmt, zone, null, null, false)
               (new ExtractionDimensionSpec(DRUID_TIME_FORMAT.sourceDimColName, alias, getDimValueType(column), exFn, null), Option.empty)
+            case DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY(fmt, period, zone) =>
+              val periodGranularity = new PeriodGranularity(new Period(period), null, zone)
+              val exFn = new TimeFormatExtractionFn(fmt, zone, null, periodGranularity, false)
+              (new ExtractionDimensionSpec(DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY.sourceDimColName, alias, getDimValueType(column), exFn, null), Option.empty)
             case TIME_FORMAT_WITH_REQUEST_CONTEXT(fmt) =>
               val timezoneValue = queryContext.requestModel.additionalParameters
                 .getOrElse(Parameter.TimeZone, TimeZoneValue.apply(DateTimeZone.UTC.getID)).asInstanceOf[TimeZoneValue]
@@ -1368,6 +1372,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                 Option.apply(new ExtractionDimensionSpec(alias, alias, getDimValueType(column), timeFormatFn, null)))
 
             case DRUID_TIME_FORMAT(fmt, zone) =>
+              renderColumnWithAlias(fact, column, alias)
+
+            case DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY(fmt, period, zone) =>
               renderColumnWithAlias(fact, column, alias)
 
             case TIME_FORMAT_WITH_REQUEST_CONTEXT(fmt) =>
