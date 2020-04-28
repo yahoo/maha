@@ -259,6 +259,26 @@ object DruidDerivedFunction {
     val sourceDimColName = "__time"
   }
 
+  case class DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY(
+    format: String,
+    period: String,
+    zone: DateTimeZone = DateTimeZone.UTC
+  ) extends DruidDerivedFunction {
+    override def asJSON(): JObject =
+      makeObj(
+        List(
+          ("function_type" -> toJSON(this.getClass.getSimpleName))
+          , ("format" -> toJSON(format))
+          , ("period" -> toJSON(period))
+          , ("zone" -> toJSON(zone.toString))
+        )
+      )
+  }
+
+  object DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY {
+    val sourceDimColName = "__time"
+  }
+
   /* Information like timezone is passed in the request context. */
   case class TIME_FORMAT_WITH_REQUEST_CONTEXT(format: String) extends DruidDerivedFunction {
     override def asJSON(): JObject =
