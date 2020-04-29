@@ -40,8 +40,13 @@ case object RowCountQuery extends QueryType {
   val stringValue: String = "rowcount"
 }
 
+@Deprecated
 case object SelectQuery extends QueryType {
   val stringValue: String = "select"
+}
+
+case object ScanQuery extends QueryType {
+  val stringValue: String = "scan"
 }
 
 case class RequestContext(requestId: String, userId: String)

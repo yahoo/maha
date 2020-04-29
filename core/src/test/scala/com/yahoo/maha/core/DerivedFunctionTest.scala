@@ -52,10 +52,11 @@ class DerivedFunctionTest extends FunSuiteLike with Matchers {
     val ltf = LOOKUP_WITH_TIMEFORMATTER("namespace", "valCol", "yyyyMMdd", "yyyy", Map("do" -> "dont"), Some("override"))
     val ldr = LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE("namespace", "valCol", true, true, Map("rtn" -> "not"), "arg1", "decodeVal1", "arg2", "decodeVal2", "default")
     val dtz = DRUID_TIME_FORMAT("format", DateTimeZone.forID("Asia/Jakarta"))
+    val dpg = DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY("format", "P1D", DateTimeZone.forID("Asia/Jakarta"))
     val rc = TIME_FORMAT_WITH_REQUEST_CONTEXT("yyyy")
     val lwt = LOOKUP_WITH_TIMESTAMP("namespace", "val", "fmt", Map.empty, Some("ovrVal"), asMillis = false)
 
-    val resultArray = List(gid, dow, dtf, dd, js, rgx, lu, lwd, lwe, lwo, ltf, ldr, dtz, rc, lwt)
+    val resultArray = List(gid, dow, dtf, dd, js, rgx, lu, lwd, lwe, lwo, ltf, ldr, dtz, dpg, rc, lwt)
 
     val expectedJSONs = List(
       """{"function_type":"GET_INTERVAL_DATE","fieldName":"fieldName","format":"yyyyMMdd"}""",
@@ -71,6 +72,7 @@ class DerivedFunctionTest extends FunSuiteLike with Matchers {
       """{"function_type":"LOOKUP_WITH_TIMEFORMATTER","lookupNamespace":"namespace","valueColumn":"valCol","inputFormat":"yyyyMMdd","resultFormat":"yyyy","dimensionOverrideMap":{"do":"dont"}}""",
       """{"function_type":"LOOKUP_WITH_DECODE_RETAIN_MISSING_VALUE","lookupNamespace":"namespace","valueColumn":"valCol","retainMissingValue":true,"injective":true,"dimensionOverrideMap":{"rtn":"not"},"args":"arg1,decodeVal1,arg2,decodeVal2,default"}""",
       """{"function_type":"DRUID_TIME_FORMAT","format":"format","zone":"Asia/Jakarta"}""",
+      """{"function_type":"DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY","format":"format","period":"P1D","zone":"Asia/Jakarta"}""",
       """{"function_type":"TIME_FORMAT_WITH_REQUEST_CONTEXT","format":"yyyy"}""",
       """{"function_type":"LOOKUP_WITH_TIMESTAMP","lookupNamespace":"namespace","valueColumn":"val","resultFormat":"fmt","dimensionOverrideMap":{},"overrideValue":"ovrVal","asMillis":false}"""
     )

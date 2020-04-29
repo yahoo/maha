@@ -18,6 +18,7 @@ import com.yahoo.maha.query.aggregation.{RoundingDoubleSumAggregatorFactory, Rou
 import grizzled.slf4j.Logging
 import org.apache.druid.jackson.DefaultObjectMapper
 import org.apache.druid.java.util.common.granularity.GranularityType
+import org.apache.druid.java.util.common.granularity.PeriodGranularity
 import org.apache.druid.js.JavaScriptConfig
 import org.apache.druid.math.expr.ExprMacroTable
 import org.apache.druid.query.aggregation._
@@ -33,13 +34,14 @@ import org.apache.druid.query.groupby.having.{AndHavingSpec, HavingSpec}
 import org.apache.druid.query.groupby.orderby.{DefaultLimitSpec, NoopLimitSpec, OrderByColumnSpec}
 import org.apache.druid.query.lookup.LookupExtractionFn
 import org.apache.druid.query.ordering.{StringComparator, StringComparators}
-import org.apache.druid.query.select.{PagingSpec, SelectResultValue}
+import org.apache.druid.query.scan.{ScanResultValue}
 import org.apache.druid.query.spec.{MultipleIntervalSegmentSpec, QuerySegmentSpec}
 import org.apache.druid.query.timeseries.TimeseriesResultValue
 import org.apache.druid.query.topn.{InvertedTopNMetricSpec, NumericTopNMetricSpec, TopNQueryBuilder, TopNResultValue}
 import org.apache.druid.query.{Druids, Result}
 import org.apache.druid.segment.column.ValueType
-import org.joda.time.{DateTime, DateTimeZone, Interval}
+import org.joda.time.{DateTime, DateTimeZone, Interval, Period}
+
 import org.json4s.{DefaultFormats, JValue}
 
 import scala.collection.mutable.ArrayBuffer
@@ -241,13 +243,13 @@ case class GroupByDruidQuery(queryContext: QueryContext
                              , isPaginated: Boolean
                             ) extends DruidQuery[org.apache.druid.data.input.Row]
 
-case class SelectDruidQuery(queryContext: QueryContext
-                            , aliasColumnMap: Map[String, Column]
-                            , query: org.apache.druid.query.Query[Result[SelectResultValue]]
-                            , additionalColumns: IndexedSeq[String]
-                            , maxRows: Int
-                            , isPaginated: Boolean
-                           ) extends DruidQuery[Result[SelectResultValue]]
+case class ScanDruidQuery(queryContext: QueryContext
+                          , aliasColumnMap: Map[String, Column]
+                          , query: org.apache.druid.query.Query[Result[ScanResultValue]]
+                          , additionalColumns: IndexedSeq[String]
+                          , maxRows: Int
+                          , isPaginated: Boolean
+                           ) extends DruidQuery[Result[ScanResultValue]]
 
 class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                           , defaultDimCardinality: Long
@@ -532,7 +534,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         //since select query supports pagination, we don't need to add the offset to the threshold
         val threshold = maxRows
 
-        val builder = Druids.newSelectQueryBuilder()
+        val builder = Druids.newScanQueryBuilder()
           .dataSource(dataSource)
           .intervals(getInterval(model))
           .context(context)
@@ -585,7 +587,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             }
         }
 
-        new SelectDruidQuery(queryContext, aliasColumnMap, builder.build(), additionalColumns(queryContext), threshold, model.isSyncRequest)
+        new ScanDruidQuery(queryContext, aliasColumnMap, builder.build(), additionalColumns(queryContext), threshold, model.isSyncRequest)
       case other =>
         throw new UnsupportedOperationException(s"query type unsupported : $other")
     }
@@ -1004,7 +1006,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             FilterDruid.renderFilterDim(filter, fact.columnsByNameMap.map(e => e._1 -> e._2.name), fact.columnsByNameMap, Option(fact.grain))
           }.asJava
 
-        val dimFilter: AndDimFilter = Druids.newAndDimFilterBuilder().fields(dimFilterList).build
+        val dimFilter: AndDimFilter = new AndDimFilter(dimFilterList)
 
         new FilteredAggregatorFactory(getAggregatorFactory(dataType, druidFilteredListRollup.delegateAggregatorRollupExpression,
           alias, druidFilteredListRollup.factCol.fieldNamePlaceHolder), dimFilter)
@@ -1275,6 +1277,10 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             case DRUID_TIME_FORMAT(fmt, zone) =>
               val exFn = new TimeFormatExtractionFn(fmt, zone, null, null, false)
               (new ExtractionDimensionSpec(DRUID_TIME_FORMAT.sourceDimColName, alias, getDimValueType(column), exFn, null), Option.empty)
+            case DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY(fmt, period, zone) =>
+              val periodGranularity = new PeriodGranularity(new Period(period), null, zone)
+              val exFn = new TimeFormatExtractionFn(fmt, zone, null, periodGranularity, false)
+              (new ExtractionDimensionSpec(DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY.sourceDimColName, alias, getDimValueType(column), exFn, null), Option.empty)
             case TIME_FORMAT_WITH_REQUEST_CONTEXT(fmt) =>
               val timezoneValue = queryContext.requestModel.additionalParameters
                 .getOrElse(Parameter.TimeZone, TimeZoneValue.apply(DateTimeZone.UTC.getID)).asInstanceOf[TimeZoneValue]
@@ -1368,6 +1374,9 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                 Option.apply(new ExtractionDimensionSpec(alias, alias, getDimValueType(column), timeFormatFn, null)))
 
             case DRUID_TIME_FORMAT(fmt, zone) =>
+              renderColumnWithAlias(fact, column, alias)
+
+            case DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY(fmt, period, zone) =>
               renderColumnWithAlias(fact, column, alias)
 
             case TIME_FORMAT_WITH_REQUEST_CONTEXT(fmt) =>

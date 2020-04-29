@@ -14,13 +14,16 @@ import com.yahoo.maha.core.MetaType.MetaType
 import com.yahoo.maha.core.dimension.{DruidFuncDimCol, DruidPostResultFuncDimCol}
 import com.yahoo.maha.core.request.{Parameter, TimeZoneValue, fieldExtended}
 import grizzled.slf4j.Logging
+
+import org.apache.druid.java.util.common.granularity.PeriodGranularity
 import org.apache.druid.js.JavaScriptConfig
 import org.apache.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec}
 import org.apache.druid.query.extraction.{RegexDimExtractionFn, SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
 import org.apache.druid.query.filter.JavaScriptDimFilter
 import org.apache.druid.query.ordering.StringComparator
 import org.apache.druid.query.ordering.StringComparators.{LexicographicComparator, NumericComparator}
-import org.joda.time.DateTimeZone
+import org.joda.time.{DateTimeZone, Period}
+
 
 import scala.collection.{Iterable, mutable}
 import scalaz.syntax.applicative._
@@ -805,6 +808,12 @@ object FilterDruid {
             values.map {
               v => new SelectorDimFilter(DRUID_TIME_FORMAT.sourceDimColName, druidLiteralMapper.toLiteral(column, v, Option(grain)), exFn)
             }
+          case DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY(fmt, period, zone) =>
+            val periodGranularity = new PeriodGranularity(new Period(period), null, zone)
+            val exFn = new TimeFormatExtractionFn(fmt, zone, null, periodGranularity, false)
+            values.map {
+              v => new SelectorDimFilter(DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY.sourceDimColName, druidLiteralMapper.toLiteral(column, v, Option(grain)), exFn)
+            }
           case TIME_FORMAT_WITH_REQUEST_CONTEXT(fmt) =>
             val exFn = new TimeFormatExtractionFn(fmt, timezone, null, null, false)
             values.map {
@@ -1025,6 +1034,10 @@ object FilterDruid {
           case DRUID_TIME_FORMAT(fmt,zone) =>
             val exFn = new TimeFormatExtractionFn(fmt, zone, null, null, false)
             new SelectorDimFilter(DRUID_TIME_FORMAT.sourceDimColName, druidLiteralMapper.toLiteral(column, value, grainOption), exFn)
+          case DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY(fmt, period, zone) =>
+            val periodGranularity = new PeriodGranularity(new Period(period), null, zone)
+            val exFn = new TimeFormatExtractionFn(fmt, zone, null, periodGranularity, false)
+            new SelectorDimFilter(DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY.sourceDimColName, druidLiteralMapper.toLiteral(column, value, grainOption), exFn)
           case formatter@DATETIME_FORMATTER(fieldName, index, length) =>
             val exFn = new SubstringDimExtractionFn(index, length)
             new SelectorDimFilter(formatter.dimColName, druidLiteralMapper.toLiteral(column, value, Grain.getGrainByField(column.name)), exFn)
@@ -1069,13 +1082,13 @@ object FilterDruid {
 
             val yearAndWeekFormattedValue = sotw.toFormattedString(value)
 
-            val exFn = new TimeDimExtractionFn(sourceDimColFormat, sotw.yearandWeekOfTheYearFormatForDruid)
+            val exFn = new TimeDimExtractionFn(sourceDimColFormat, sotw.yearandWeekOfTheYearFormatForDruid, true)
             new SelectorDimFilter(sourceDimCol.alias.getOrElse(sourceDimCol.name), yearAndWeekFormattedValue, exFn)
           }
           case sotm@START_OF_THE_MONTH(exp) => {
             val sourceDimCol = columnsByNameMap(sotm.colName)
             val sourceDimColFormat: String = getSourceDimColFormat(sourceDimCol)
-            val exFn = new TimeDimExtractionFn(sourceDimColFormat, sotm.startOfTheMonthFormat)
+            val exFn = new TimeDimExtractionFn(sourceDimColFormat, sotm.startOfTheMonthFormat, true)
             new SelectorDimFilter(sourceDimCol.alias.getOrElse(sourceDimCol.name), value, exFn)
           }
           case any => throw new UnsupportedOperationException(s"Unhandled druid post result func $any")
