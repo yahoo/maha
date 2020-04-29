@@ -5,9 +5,9 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup;
 import com.google.common.collect.ImmutableMap;
 import com.metamx.common.ISE;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaNamespaceExtractionCacheManager;
-import io.druid.common.utils.ServletResourceUtils;
-import io.druid.query.extraction.MapLookupExtractor;
-import io.druid.query.lookup.LookupIntrospectHandler;
+import org.apache.druid.common.utils.ServletResourceUtils;
+import org.apache.druid.query.extraction.MapLookupExtractor;
+import org.apache.druid.query.lookup.LookupIntrospectHandler;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;

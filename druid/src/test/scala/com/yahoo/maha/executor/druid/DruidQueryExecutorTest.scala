@@ -19,8 +19,8 @@ import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.{DebugValue, Parameter, ReportingRequest, RowCountQuery, SyncRequest}
 import com.yahoo.maha.executor.MockOracleQueryExecutor
-import io.druid.query.Result
-import io.druid.query.select.SelectResultValue
+import org.apache.druid.query.Result
+import org.apache.druid.query.scan.ScanResultValue
 import org.http4s.server.blaze.BlazeBuilder
 import org.json4s.JsonAST._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
@@ -2958,8 +2958,8 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val actualQuery = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
 
-    val query = new DruidQuery[Result[SelectResultValue]] {
-      override def query: io.druid.query.Query[Result[SelectResultValue]] = actualQuery.query.asInstanceOf[io.druid.query.Query[Result[SelectResultValue]]]
+    val query = new DruidQuery[Result[ScanResultValue]] {
+      override def query: org.apache.druid.query.Query[Result[ScanResultValue]] = actualQuery.query.asInstanceOf[org.apache.druid.query.Query[Result[ScanResultValue]]]
 
       override def maxRows: Int = actualQuery.maxRows
 

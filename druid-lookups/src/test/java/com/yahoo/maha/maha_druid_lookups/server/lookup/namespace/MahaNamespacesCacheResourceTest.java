@@ -7,7 +7,7 @@ import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.OnHeapMahaNamespaceExtractionCacheManager;
-import io.druid.metadata.MetadataStorageConnectorConfig;
+import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.joda.time.Period;
 import org.testng.Assert;
 import org.testng.annotations.Test;

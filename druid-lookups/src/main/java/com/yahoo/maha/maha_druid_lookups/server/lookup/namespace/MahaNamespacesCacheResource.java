@@ -12,8 +12,8 @@ import com.metamx.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaNamespaceExtractionCacheManager;
-import io.druid.server.security.Access;
-import io.druid.server.security.AuthConfig;
+import org.apache.druid.server.security.Access;
+import org.apache.druid.server.security.AuthConfig;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;

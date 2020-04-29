@@ -1,6 +1,5 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Binder;
 import com.google.inject.Injector;
@@ -8,11 +7,11 @@ import com.google.inject.Key;
 import com.google.inject.Module;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaNamespaceExtractionCacheManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.OnHeapMahaNamespaceExtractionCacheManager;
-import io.druid.guice.GuiceInjectors;
-import io.druid.guice.JsonConfigProvider;
-import io.druid.guice.annotations.Self;
-import io.druid.initialization.Initialization;
-import io.druid.server.DruidNode;
+import org.apache.druid.guice.GuiceInjectors;
+import org.apache.druid.guice.JsonConfigProvider;
+import org.apache.druid.guice.annotations.Self;
+import org.apache.druid.initialization.Initialization;
+import org.apache.druid.server.DruidNode;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -36,18 +35,11 @@ public class MahaNamespaceExtractionModuleTest {
         injector = Initialization.makeInjectorWithModules(
                 injector,
                 ImmutableList.of(
-                        new Module()
-                        {
-                            @Override
-                            public void configure(Binder binder)
-                            {
-                                JsonConfigProvider.bindInstance(
-                                        binder,
-                                        Key.get(DruidNode.class, Self.class),
-                                        new DruidNode("test-inject", null, null, null, true, false)
-                                );
-                            }
-                        }
+                        binder -> JsonConfigProvider.bindInstance(
+                                binder,
+                                Key.get(DruidNode.class, Self.class),
+                                new DruidNode("test-inject", "host", false, null, null, true, false)
+                        )
                 )
         );
         final MahaNamespaceExtractionCacheManager manager = injector.getInstance(MahaNamespaceExtractionCacheManager.class);

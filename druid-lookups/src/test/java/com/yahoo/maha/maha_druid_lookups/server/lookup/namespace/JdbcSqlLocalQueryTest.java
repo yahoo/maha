@@ -6,7 +6,7 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNa
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import io.druid.metadata.MetadataStorageConnectorConfig;
+import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;

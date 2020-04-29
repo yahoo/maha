@@ -9,16 +9,16 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.MongoExtractionN
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.MahaNamespaceExtractionModule;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaNamespaceExtractionCacheManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.OnHeapMahaNamespaceExtractionCacheManager;
-import io.druid.guice.GuiceInjectors;
-import io.druid.guice.JsonConfigProvider;
-import io.druid.guice.annotations.Self;
-import io.druid.initialization.Initialization;
-import io.druid.query.extraction.ExtractionFn;
-import io.druid.query.lookup.LookupExtractor;
-import io.druid.query.lookup.LookupExtractorFactory;
-import io.druid.query.lookup.LookupExtractorFactoryContainer;
-import io.druid.query.lookup.LookupReferencesManager;
-import io.druid.server.DruidNode;
+import org.apache.druid.guice.GuiceInjectors;
+import org.apache.druid.guice.JsonConfigProvider;
+import org.apache.druid.guice.annotations.Self;
+import org.apache.druid.initialization.Initialization;
+import org.apache.druid.query.extraction.ExtractionFn;
+import org.apache.druid.query.lookup.LookupExtractor;
+import org.apache.druid.query.lookup.LookupExtractorFactory;
+import org.apache.druid.query.lookup.LookupExtractorFactoryContainer;
+import org.apache.druid.query.lookup.LookupReferencesManager;
+import org.apache.druid.server.DruidNode;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -76,7 +76,7 @@ public class MahaLookupExtractionFactoryTest extends TestMongoServer {
                                 JsonConfigProvider.bindInstance(
                                         binder,
                                         Key.get(DruidNode.class, Self.class),
-                                        new DruidNode("test-inject", null, null, null, true, false)
+                                        new DruidNode("test-inject", null, false, 0, 1, true, false)
                                 );
                                 binder.bind(LookupReferencesManager.class).toProvider(provider);
                             }

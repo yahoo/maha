@@ -10,13 +10,13 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.metamx.common.ISE;
-import com.metamx.common.StringUtils;
 import com.metamx.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaNamespaceExtractionCacheManager;
-import io.druid.query.lookup.LookupExtractor;
-import io.druid.query.lookup.LookupExtractorFactory;
-import io.druid.query.lookup.LookupIntrospectHandler;
+import org.apache.druid.java.util.common.StringUtils;
+import org.apache.druid.query.lookup.LookupExtractor;
+import org.apache.druid.query.lookup.LookupExtractorFactory;
+import org.apache.druid.query.lookup.LookupIntrospectHandler;
 
 import javax.annotation.Nullable;
 import java.nio.ByteBuffer;

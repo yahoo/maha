@@ -13,7 +13,7 @@ import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.metamx.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
-import io.druid.guice.ManageLifecycle;
+import org.apache.druid.guice.ManageLifecycle;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.conf.Configuration;

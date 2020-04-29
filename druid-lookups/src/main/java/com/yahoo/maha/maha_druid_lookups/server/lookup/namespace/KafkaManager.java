@@ -16,7 +16,7 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamesp
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaNamespaceExtractionCacheManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
-import io.druid.guice.ManageLifecycle;
+import org.apache.druid.guice.ManageLifecycle;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;

@@ -13,8 +13,8 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.metamx.common.logger.Logger;
-import io.druid.query.extraction.ExtractionFn;
-import io.druid.query.lookup.LookupReferencesManager;
+import org.apache.druid.query.extraction.ExtractionFn;
+import org.apache.druid.query.lookup.LookupReferencesManager;
 
 import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;

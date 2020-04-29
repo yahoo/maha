@@ -6,7 +6,7 @@ import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.TsColumnConfig;
-import io.druid.metadata.MetadataStorageConnectorConfig;
+import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.joda.time.Period;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;

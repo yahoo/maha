@@ -30,11 +30,11 @@
         <json4s.version>3.6.7</json4s.version>
         <scalatest.version>3.1.0</scalatest.version>
         <scalaz.version>7.2.27</scalaz.version>
-        <jackson.version>2.10.1</jackson.version>
+        <jackson.version>2.10.3</jackson.version>
         <httpclient.version>4.5.5</httpclient.version>
         <guava.version>27.1-jre</guava.version>
         <jodatime.version>2.10.5</jodatime.version>
-        <druid.version>0.11.0</druid.version>
+        <druid.version>0.17.1</druid.version>
         <scala.arm.version>2.0</scala.arm.version>
         <opencsv.version>3.8</opencsv.version>
         <esapi.version>2.2.0.0</esapi.version>
@@ -265,12 +265,12 @@
                 <version>${jackson.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.druid.extensions</groupId>
+                <groupId>org.apache.druid.extensions</groupId>
                 <artifactId>druid-datasketches</artifactId>
                 <version>${druid.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.druid</groupId>
+                <groupId>org.apache.druid</groupId>
                 <artifactId>druid-processing</artifactId>
                 <version>${druid.version}</version>
                 <exclusions>
@@ -313,7 +313,7 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>io.druid.extensions</groupId>
+                <groupId>org.apache.druid.extensions</groupId>
                 <artifactId>druid-histogram</artifactId>
                 <version>${druid.version}</version>
             </dependency>
@@ -744,10 +744,10 @@
             </extension>
         </extensions>
     </build>
-  <distributionManagement>
-    <repository>
-      <id>bintray-maha-parent-repo</id>
-      <url>https://api.bintray.com/maven/yahoo/maven/maha-parent/;publish=1</url>
-    </repository>
-  </distributionManagement>
+    <distributionManagement>
+        <repository>
+          <id>bintray-maha-parent-repo</id>
+          <url>https://api.bintray.com/maven/yahoo/maven/maha-parent/;publish=1</url>
+        </repository>
+    </distributionManagement>
 </project>

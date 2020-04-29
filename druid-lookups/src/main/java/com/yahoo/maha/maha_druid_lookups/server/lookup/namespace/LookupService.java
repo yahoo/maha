@@ -14,7 +14,7 @@ import com.metamx.common.lifecycle.LifecycleStop;
 import com.metamx.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
-import io.druid.guice.ManageLifecycle;
+import org.apache.druid.guice.ManageLifecycle;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;

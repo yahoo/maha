@@ -33,7 +33,7 @@
             <version>${project.version}</version>
             <exclusions>
                 <exclusion>
-                    <groupId>io.druid</groupId>
+                    <groupId>org.apache.druid</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>

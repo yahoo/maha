@@ -16,29 +16,29 @@ import com.yahoo.maha.core.request._
 import com.yahoo.maha.maha_druid_lookups.query.lookup.{DecodeConfig, MahaRegisteredLookupExtractionFn}
 import com.yahoo.maha.query.aggregation.{RoundingDoubleSumAggregatorFactory, RoundingDoubleSumDruidModule}
 import grizzled.slf4j.Logging
-import io.druid.jackson.DefaultObjectMapper
-import io.druid.java.util.common.granularity.GranularityType
-import io.druid.js.JavaScriptConfig
-import io.druid.math.expr.ExprMacroTable
-import io.druid.query.aggregation._
-import io.druid.query.aggregation.datasketches.theta.{SketchMergeAggregatorFactory, SketchModule}
-import io.druid.query.aggregation.hyperloglog.HyperUniquesAggregatorFactory
-import io.druid.query.aggregation.post.{ArithmeticPostAggregator, FieldAccessPostAggregator}
-import io.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec, ExtractionDimensionSpec}
-import io.druid.query.extraction._
-import io.druid.query.filter.{AndDimFilter, DimFilter, SelectorDimFilter}
-import io.druid.query.groupby.GroupByQuery
-import io.druid.query.groupby.GroupByQuery.Builder
-import io.druid.query.groupby.having.{AndHavingSpec, HavingSpec}
-import io.druid.query.groupby.orderby.{DefaultLimitSpec, NoopLimitSpec, OrderByColumnSpec}
-import io.druid.query.lookup.LookupExtractionFn
-import io.druid.query.ordering.{StringComparator, StringComparators}
-import io.druid.query.select.{PagingSpec, SelectResultValue}
-import io.druid.query.spec.{MultipleIntervalSegmentSpec, QuerySegmentSpec}
-import io.druid.query.timeseries.TimeseriesResultValue
-import io.druid.query.topn.{InvertedTopNMetricSpec, NumericTopNMetricSpec, TopNQueryBuilder, TopNResultValue}
-import io.druid.query.{Druids, Result}
-import io.druid.segment.column.ValueType
+import org.apache.druid.jackson.DefaultObjectMapper
+import org.apache.druid.java.util.common.granularity.GranularityType
+import org.apache.druid.js.JavaScriptConfig
+import org.apache.druid.math.expr.ExprMacroTable
+import org.apache.druid.query.aggregation._
+import org.apache.druid.query.aggregation.datasketches.theta.{SketchMergeAggregatorFactory, SketchModule}
+import org.apache.druid.query.aggregation.hyperloglog.HyperUniquesAggregatorFactory
+import org.apache.druid.query.aggregation.post.{ArithmeticPostAggregator, FieldAccessPostAggregator}
+import org.apache.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec, ExtractionDimensionSpec}
+import org.apache.druid.query.extraction._
+import org.apache.druid.query.filter.{AndDimFilter, DimFilter, SelectorDimFilter}
+import org.apache.druid.query.groupby.GroupByQuery
+import org.apache.druid.query.groupby.GroupByQuery.Builder
+import org.apache.druid.query.groupby.having.{AndHavingSpec, HavingSpec}
+import org.apache.druid.query.groupby.orderby.{DefaultLimitSpec, NoopLimitSpec, OrderByColumnSpec}
+import org.apache.druid.query.lookup.LookupExtractionFn
+import org.apache.druid.query.ordering.{StringComparator, StringComparators}
+import org.apache.druid.query.select.{PagingSpec, SelectResultValue}
+import org.apache.druid.query.spec.{MultipleIntervalSegmentSpec, QuerySegmentSpec}
+import org.apache.druid.query.timeseries.TimeseriesResultValue
+import org.apache.druid.query.topn.{InvertedTopNMetricSpec, NumericTopNMetricSpec, TopNQueryBuilder, TopNResultValue}
+import org.apache.druid.query.{Druids, Result}
+import org.apache.druid.segment.column.ValueType
 import org.joda.time.{DateTime, DateTimeZone, Interval}
 import org.json4s.{DefaultFormats, JValue}
 
@@ -197,7 +197,7 @@ object DruidQuery {
   val roundingDoubleSUmModulesList = new RoundingDoubleSumDruidModule().getJacksonModules()
   roundingDoubleSUmModulesList.asScala.foreach(module => mapper.registerModule(module))
 
-  def toJson(query: io.druid.query.Query[_]): String = {
+  def toJson(query: org.apache.druid.query.Query[_]): String = {
     mapper.writeValueAsString(query)
   }
 
@@ -205,7 +205,7 @@ object DruidQuery {
 }
 
 abstract class DruidQuery[T] extends Query with WithDruidEngine {
-  def query: io.druid.query.Query[T]
+  def query: org.apache.druid.query.Query[T]
 
   def asString: String = DruidQuery.toJson(query)
 
@@ -218,7 +218,7 @@ abstract class DruidQuery[T] extends Query with WithDruidEngine {
 
 case class TimeseriesDruidQuery(queryContext: QueryContext
                                 , aliasColumnMap: Map[String, Column]
-                                , query: io.druid.query.Query[Result[TimeseriesResultValue]]
+                                , query: org.apache.druid.query.Query[Result[TimeseriesResultValue]]
                                 , additionalColumns: IndexedSeq[String]
                                 , maxRows: Int
                                 , isPaginated: Boolean
@@ -226,7 +226,7 @@ case class TimeseriesDruidQuery(queryContext: QueryContext
 
 case class TopNDruidQuery(queryContext: QueryContext
                           , aliasColumnMap: Map[String, Column]
-                          , query: io.druid.query.Query[Result[TopNResultValue]]
+                          , query: org.apache.druid.query.Query[Result[TopNResultValue]]
                           , additionalColumns: IndexedSeq[String]
                           , maxRows: Int
                           , isPaginated: Boolean
@@ -234,16 +234,16 @@ case class TopNDruidQuery(queryContext: QueryContext
 
 case class GroupByDruidQuery(queryContext: QueryContext
                              , aliasColumnMap: Map[String, Column]
-                             , query: io.druid.query.Query[io.druid.data.input.Row]
+                             , query: org.apache.druid.query.Query[org.apache.druid.data.input.Row]
                              , additionalColumns: IndexedSeq[String]
                              , override val ephemeralAliasColumnMap: Map[String, Column]
                              , maxRows: Int
                              , isPaginated: Boolean
-                            ) extends DruidQuery[io.druid.data.input.Row]
+                            ) extends DruidQuery[org.apache.druid.data.input.Row]
 
 case class SelectDruidQuery(queryContext: QueryContext
                             , aliasColumnMap: Map[String, Column]
-                            , query: io.druid.query.Query[Result[SelectResultValue]]
+                            , query: org.apache.druid.query.Query[Result[SelectResultValue]]
                             , additionalColumns: IndexedSeq[String]
                             , maxRows: Int
                             , isPaginated: Boolean
@@ -859,7 +859,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     }
   }
 
-  private[this] def getGranularity(queryContext: FactualQueryContext): io.druid.java.util.common.granularity.Granularity = {
+  private[this] def getGranularity(queryContext: FactualQueryContext): org.apache.druid.java.util.common.granularity.Granularity = {
     //for now, just do day
     if (queryContext.requestModel.isTimeSeries && !queryContext.factBestCandidate.publicFact.renderLocalTimeFilter) {
       GranularityType.DAY.getDefaultGranularity

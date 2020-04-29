@@ -19,7 +19,7 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.MongoStorageConn
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.FlatMultiValueDocumentProcessor;
 import de.bwaldvogel.mongo.MongoServer;
 import de.bwaldvogel.mongo.backend.memory.MemoryBackend;
-import io.druid.metadata.MetadataStorageConnectorConfig;
+import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.joda.time.Period;

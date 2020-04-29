@@ -95,17 +95,17 @@ _NOTE: to reset druid for a clean start, do`rm -rf var/* && rm -rf log && bin/in
 
 #### Start coordinator node:
 ```
-java `cat conf-quickstart/druid/coordinator/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/coordinator:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server coordinator
+java `cat conf-quickstart/druid/coordinator/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/coordinator:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" org.apache.druid.cli.Main server coordinator
 ```
 
 #### Start historical node:
 ```
-java `cat conf-quickstart/druid/historical/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/historical:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server historical
+java `cat conf-quickstart/druid/historical/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/historical:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" org.apache.druid.cli.Main server historical
 ```
 
 #### Start broker node (Optional):
 ```
-java `cat conf-quickstart/druid/broker/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/broker:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server broker
+java `cat conf-quickstart/druid/broker/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/broker:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" org.apache.druid.cli.Main server broker
 ```
 
 _NOTE: skip this setp if you just want to check the functionality of a lookup and don't need to query it via broker._
@@ -136,7 +136,7 @@ This is caused by lack of Hadoop dependency.
 
 For Druid-0.11.0, it already has the hadoop client jars under `hadoop-dependencies/hadoop-client/2.7.3/*`.  Just make sure you have included the path in your command when trying to bring up the node, for example:
 ```
-java `cat conf-quickstart/druid/coordinator/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/coordinator:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server coordinator
+java `cat conf-quickstart/druid/coordinator/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/coordinator:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" org.apache.druid.cli.Main server coordinator
 ```
 
 ### Registering Druid Lookups

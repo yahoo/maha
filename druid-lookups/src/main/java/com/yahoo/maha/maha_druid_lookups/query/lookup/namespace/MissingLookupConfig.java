@@ -3,7 +3,7 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup.namespace;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
-import io.druid.metadata.MetadataStorageConnectorConfig;
+import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 
 import javax.validation.constraints.NotNull;
 import java.util.Objects;
