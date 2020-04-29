@@ -1736,7 +1736,7 @@ object Filter extends Logging {
       case andFilter: AndFilter => andFilter.filters.flatMap{ innerFilter: Filter => returnFullFieldSetForPkAliases(innerFilter) }.toSet
       case fieldEqualityFilter: MultiFieldForcedFilter => Set(fieldEqualityFilter.field, fieldEqualityFilter.compareTo)
       case betweenFilter: BetweenFilter => Set(betweenFilter.field)
-      case notBetweenFilter: BetweenFilter => Set(notBetweenFilter.field)
+      case notBetweenFilter: NotBetweenFilter => Set(notBetweenFilter.field)
       case equalityFilter: EqualityFilter => Set(equalityFilter.field)
       case inFilter: InFilter => Set(inFilter.field)
       case notInFilter: NotInFilter => Set(notInFilter.field)

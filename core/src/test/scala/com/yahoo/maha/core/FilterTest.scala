@@ -537,6 +537,7 @@ class FilterTest extends FunSuite with Matchers {
     val orFilter = OrFilter(List(EqualityFilter("field3", "a")))
     val andFilter = AndFilter(List(EqualityFilter("field17", "a")))
     val betweenFilter = BetweenFilter("field4", "1", "3")
+    val notBetweenFilter = NotBetweenFilter("field18", "1", "3")
     val inFilter = InFilter("field5", List("a", "b", "c"))
     val notInFilter = NotInFilter("field6", List("a", "b", "c"))
     val notEqualToFilter = NotEqualToFilter("field7", "1")
@@ -556,6 +557,7 @@ class FilterTest extends FunSuite with Matchers {
         , orFilter
         , andFilter
         , betweenFilter
+        , notBetweenFilter
         , inFilter
         , notInFilter
         , notEqualToFilter
@@ -621,6 +623,7 @@ class FilterTest extends FunSuite with Matchers {
     val orFilter = OrFilter(List(EqualityFilter("field3", "a")))
     val andFilter = AndFilter(List(EqualityFilter("field17", "a")))
     val betweenFilter = BetweenFilter("field4", "1", "3")
+    val notBetweenFilter = NotBetweenFilter("field18", "1", "3")
     val inFilter = InFilter("field5", List("a", "b", "c"))
     val notInFilter = NotInFilter("field6", List("a", "b", "c"))
     val notEqualToFilter = NotEqualToFilter("field7", "1")
@@ -639,6 +642,7 @@ class FilterTest extends FunSuite with Matchers {
         , orFilter
         , andFilter
         , betweenFilter
+        , notBetweenFilter
         , inFilter
         , notInFilter
         , notEqualToFilter
@@ -664,7 +668,8 @@ class FilterTest extends FunSuite with Matchers {
       "field12" -> IsNullFilterOperation,
       "field13" -> EqualityFilterOperation,
       "field15" -> FieldEqualityFilterOperation,
-      "field16" -> FieldEqualityFilterOperation
+      "field16" -> FieldEqualityFilterOperation,
+      "field18" -> NotBetweenFilterOperation
     )
 
     assert(returnedMap == expectedReturnedMap)
@@ -693,6 +698,7 @@ class FilterTest extends FunSuite with Matchers {
     val orFilter = OrFilter(List(EqualityFilter("field3", "a")))
     val andFilter = AndFilter(List(EqualityFilter("field17", "a")))
     val betweenFilter = BetweenFilter("field4", "1", "3")
+    val notBetweenFilter = NotBetweenFilter("field18", "1", "3")
     val inFilter = InFilter("field5", List("a", "b", "c"))
     val notInFilter = NotInFilter("field6", List("a", "b", "c"))
     val notEqualToFilter = NotEqualToFilter("field7", "1")
@@ -711,6 +717,7 @@ class FilterTest extends FunSuite with Matchers {
         , orFilter
         , andFilter
         , betweenFilter
+        , notBetweenFilter
         , inFilter
         , notInFilter
         , notEqualToFilter
@@ -740,6 +747,7 @@ class FilterTest extends FunSuite with Matchers {
         , "field15"
         , "field16"
         , "field17"       //AndFilter returns its fields.
+        , "field18"
       )
 
     assert(returnedFields == expectedReturnedFields, "Should return all expected fields!")
