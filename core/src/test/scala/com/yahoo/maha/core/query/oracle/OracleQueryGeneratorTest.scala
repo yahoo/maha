@@ -2550,28 +2550,28 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = """
                      |SELECT  *
-                     |      FROM (SELECT ago2.campaign_id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", '2' AS "Source", Count(*) OVER() TOTALROWS
-                     |            FROM
-                     |               ( (SELECT  campaign_id, advertiser_id, id
-                     |            FROM ad_group_oracle
-                     |            WHERE (advertiser_id = 12345)
-                     |            ORDER BY 1 ASC  ) ago2
-                     |          INNER JOIN
-                     |            (SELECT /*+ CampaignHint */ id, advertiser_id, campaign_name
-                     |            FROM campaign_oracle
-                     |            WHERE (advertiser_id = 12345)
-                     |             ) co1
-                     |              ON( ago2.advertiser_id = co1.advertiser_id AND ago2.campaign_id = co1.id )
-                     |               INNER JOIN
-                     |            (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
-                     |            FROM advertiser_oracle
-                     |            WHERE (id = 12345)
-                     |             ) ao0
-                     |              ON( co1.advertiser_id = ao0.id )
-                     |               )
+                     |        FROM (SELECT ago2.campaign_id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", '2' AS "Source", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
+                     |              FROM
+                     |                 ( (SELECT  campaign_id, advertiser_id, id
+                     |              FROM ad_group_oracle
+                     |              WHERE (advertiser_id = 12345)
+                     |              ORDER BY 1 ASC  ) ago2
+                     |            INNER JOIN
+                     |              (SELECT /*+ CampaignHint */ id, advertiser_id, campaign_name
+                     |              FROM campaign_oracle
+                     |              WHERE (advertiser_id = 12345)
+                     |               ) co1
+                     |                ON( ago2.advertiser_id = co1.advertiser_id AND ago2.campaign_id = co1.id )
+                     |                 INNER JOIN
+                     |              (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+                     |              FROM advertiser_oracle
+                     |              WHERE (id = 12345)
+                     |               ) ao0
+                     |                ON( co1.advertiser_id = ao0.id )
+                     |                 )
                      |
-                     |           )
-                     |
+                     |             )
+                     |               WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
                      |""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)

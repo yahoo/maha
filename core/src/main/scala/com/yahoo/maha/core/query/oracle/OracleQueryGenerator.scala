@@ -669,7 +669,8 @@ b. Dim Driven
       }
     }
 
-    val includePagination = queryContext.requestModel.isSyncRequest
+    val includePagination = true // Include pagination wrapper always
+
     val aliasColumnMapOfRequestCols = new mutable.HashMap[String, Column]()
 
     val dimOnlyQueryContext = queryContext.asInstanceOf[DimQueryContext]
