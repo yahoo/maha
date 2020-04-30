@@ -606,21 +606,17 @@ b. Dim Driven
   }
 
   private[this] def addOuterPaginationWrapper(queryString: String, mr: Int, si: Int, includePagination: Boolean, outerFiltersPresent: Boolean): String = {
-    if(includePagination) {
-      val paginationPredicates: ListBuffer[String] = new ListBuffer[String]()
-      val minPosition: Int = if (si < 0) 1 else si + 1
-      paginationPredicates += ("ROW_NUMBER >= " + minPosition)
-      if (mr > 0) {
-        val maxPosition: Int = if (si <= 0) mr else minPosition - 1 + mr
-        paginationPredicates += ("ROW_NUMBER <= " + maxPosition)
-      }
-      if (outerFiltersPresent)
-        String.format(OUTER_PAGINATION_WRAPPER_WITH_FILTERS, queryString, paginationPredicates.toList.mkString(" AND "))
-      else
-        String.format(OUTER_PAGINATION_WRAPPER, queryString, paginationPredicates.toList.mkString(" AND "))
-    } else {
-      queryString
+    val paginationPredicates: ListBuffer[String] = new ListBuffer[String]()
+    val minPosition: Int = if (si < 0) 1 else si + 1
+    paginationPredicates += ("ROW_NUMBER >= " + minPosition)
+    if (mr > 0) {
+      val maxPosition: Int = if (si <= 0) mr else minPosition - 1 + mr
+      paginationPredicates += ("ROW_NUMBER <= " + maxPosition)
     }
+    if (outerFiltersPresent)
+      String.format(OUTER_PAGINATION_WRAPPER_WITH_FILTERS, queryString, paginationPredicates.toList.mkString(" AND "))
+    else
+      String.format(OUTER_PAGINATION_WRAPPER, queryString, paginationPredicates.toList.mkString(" AND "))
   }
 
   private[this] def getDimensionOptionalHint(dimension: Dimension): Option[String] = {
