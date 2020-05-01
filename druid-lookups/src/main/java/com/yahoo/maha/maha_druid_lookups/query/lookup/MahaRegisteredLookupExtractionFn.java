@@ -12,7 +12,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
-import com.metamx.common.logger.Logger;
+import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.query.extraction.ExtractionFn;
 import org.apache.druid.query.lookup.LookupReferencesManager;
 

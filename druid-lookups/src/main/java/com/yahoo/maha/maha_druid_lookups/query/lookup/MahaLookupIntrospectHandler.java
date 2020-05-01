@@ -3,7 +3,7 @@
 package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
 import com.google.common.collect.ImmutableMap;
-import com.metamx.common.ISE;
+import org.apache.druid.java.util.common.ISE;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaNamespaceExtractionCacheManager;
 import org.apache.druid.common.utils.ServletResourceUtils;
 import org.apache.druid.query.extraction.MapLookupExtractor;

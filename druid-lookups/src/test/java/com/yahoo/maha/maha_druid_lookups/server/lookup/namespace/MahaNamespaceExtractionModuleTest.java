@@ -1,10 +1,8 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.google.common.collect.ImmutableList;
-import com.google.inject.Binder;
 import com.google.inject.Injector;
 import com.google.inject.Key;
-import com.google.inject.Module;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.MahaNamespaceExtractionCacheManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.OnHeapMahaNamespaceExtractionCacheManager;
 import org.apache.druid.guice.GuiceInjectors;
@@ -14,6 +12,7 @@ import org.apache.druid.initialization.Initialization;
 import org.apache.druid.server.DruidNode;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
 
 import java.util.Properties;
 

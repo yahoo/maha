@@ -6,7 +6,7 @@ import javax.validation.constraints.NotNull;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import org.apache.druid.query.lookup.LookupExtractor;
-import com.metamx.common.logger.Logger;
+import org.apache.druid.java.util.common.logger.Logger;
 
 import java.util.Map;
 

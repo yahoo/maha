@@ -34,6 +34,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.*;
 
+
 public class MahaLookupExtractionFactoryTest extends TestMongoServer {
 
     Provider<LookupReferencesManager> provider = new Provider<LookupReferencesManager>() {
@@ -70,16 +71,13 @@ public class MahaLookupExtractionFactoryTest extends TestMongoServer {
         injector = Initialization.makeInjectorWithModules(
                 injector,
                 ImmutableList.of(
-                        new Module() {
-                            @Override
-                            public void configure(Binder binder) {
-                                JsonConfigProvider.bindInstance(
-                                        binder,
-                                        Key.get(DruidNode.class, Self.class),
-                                        new DruidNode("test-inject", null, false, 0, 1, true, false)
-                                );
-                                binder.bind(LookupReferencesManager.class).toProvider(provider);
-                            }
+                        binder -> {
+                            JsonConfigProvider.bindInstance(
+                                    binder,
+                                    Key.get(DruidNode.class, Self.class),
+                                    new DruidNode("test-inject", null, false, 0, 1, true, false)
+                            );
+                            binder.bind(LookupReferencesManager.class).toProvider(provider);
                         }
                 )
         );
@@ -102,6 +100,7 @@ public class MahaLookupExtractionFactoryTest extends TestMongoServer {
         InputStream input = Thread.currentThread().getContextClassLoader().getResourceAsStream("maha_lookup_extraction_factory.json");
         String json = String.format(CharStreams.toString(new InputStreamReader(input, StandardCharsets.UTF_8))
                 , mongoSocketAddress.getHostString(), mongoSocketAddress.getPort());
+        objectMapper.registerSubtypes(MahaLookupExtractorFactory.class);
         LookupExtractorFactoryContainer container = objectMapper
                 .readValue(json
                         , LookupExtractorFactoryContainer.class);
