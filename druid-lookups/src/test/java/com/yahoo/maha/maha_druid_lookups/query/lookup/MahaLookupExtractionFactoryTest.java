@@ -75,7 +75,7 @@ public class MahaLookupExtractionFactoryTest extends TestMongoServer {
                             JsonConfigProvider.bindInstance(
                                     binder,
                                     Key.get(DruidNode.class, Self.class),
-                                    new DruidNode("test-inject", null, false, 0, 1, true, false)
+                                    new DruidNode("test-inject", null, false, null, null, true, false)
                             );
                             binder.bind(LookupReferencesManager.class).toProvider(provider);
                         }
@@ -100,7 +100,6 @@ public class MahaLookupExtractionFactoryTest extends TestMongoServer {
         InputStream input = Thread.currentThread().getContextClassLoader().getResourceAsStream("maha_lookup_extraction_factory.json");
         String json = String.format(CharStreams.toString(new InputStreamReader(input, StandardCharsets.UTF_8))
                 , mongoSocketAddress.getHostString(), mongoSocketAddress.getPort());
-        objectMapper.registerSubtypes(MahaLookupExtractorFactory.class);
         LookupExtractorFactoryContainer container = objectMapper
                 .readValue(json
                         , LookupExtractorFactoryContainer.class);

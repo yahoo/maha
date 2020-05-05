@@ -37,7 +37,7 @@ public class MahaNamespaceExtractionModuleTest {
                         binder -> JsonConfigProvider.bindInstance(
                                 binder,
                                 Key.get(DruidNode.class, Self.class),
-                                new DruidNode("test-inject", "host", false, null, null, true, false)
+                                new DruidNode("test-inject", null, false, null, null, true, false)
                         )
                 )
         );

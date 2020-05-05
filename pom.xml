@@ -313,6 +313,11 @@
                 </exclusions>
             </dependency>
             <dependency>
+                <groupId>org.apache.druid</groupId>
+                <artifactId>druid-server</artifactId>
+                <version>${druid.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.druid.extensions</groupId>
                 <artifactId>druid-histogram</artifactId>
                 <version>${druid.version}</version>

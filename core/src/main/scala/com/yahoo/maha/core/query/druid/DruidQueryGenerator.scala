@@ -27,14 +27,14 @@ import org.apache.druid.query.aggregation.hyperloglog.HyperUniquesAggregatorFact
 import org.apache.druid.query.aggregation.post.{ArithmeticPostAggregator, FieldAccessPostAggregator}
 import org.apache.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec, ExtractionDimensionSpec}
 import org.apache.druid.query.extraction._
-import org.apache.druid.query.filter.{AndDimFilter, DimFilter, SelectorDimFilter}
-import org.apache.druid.query.groupby.GroupByQuery
+import org.apache.druid.query.filter.{AndDimFilter, DimFilter}
+import org.apache.druid.query.groupby.{GroupByQuery, ResultRow}
 import org.apache.druid.query.groupby.GroupByQuery.Builder
 import org.apache.druid.query.groupby.having.{AndHavingSpec, HavingSpec}
 import org.apache.druid.query.groupby.orderby.{DefaultLimitSpec, NoopLimitSpec, OrderByColumnSpec}
 import org.apache.druid.query.lookup.LookupExtractionFn
 import org.apache.druid.query.ordering.{StringComparator, StringComparators}
-import org.apache.druid.query.scan.{ScanResultValue}
+import org.apache.druid.query.scan.ScanResultValue
 import org.apache.druid.query.spec.{MultipleIntervalSegmentSpec, QuerySegmentSpec}
 import org.apache.druid.query.timeseries.TimeseriesResultValue
 import org.apache.druid.query.topn.{InvertedTopNMetricSpec, NumericTopNMetricSpec, TopNQueryBuilder, TopNResultValue}
@@ -42,11 +42,9 @@ import org.apache.druid.query.{Druids, Result}
 import org.apache.druid.segment.column.ValueType
 import org.joda.time.{DateTime, DateTimeZone, Interval, Period}
 
-import org.json4s.{DefaultFormats, JValue}
-
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.{SortedSet, mutable}
-import scala.util.Try
+import org.apache.druid.query.lookup.LookupReferencesManager;
 
 /**
   * Created by hiral on 12/11/15.
@@ -236,20 +234,20 @@ case class TopNDruidQuery(queryContext: QueryContext
 
 case class GroupByDruidQuery(queryContext: QueryContext
                              , aliasColumnMap: Map[String, Column]
-                             , query: org.apache.druid.query.Query[org.apache.druid.data.input.Row]
+                             , query: org.apache.druid.query.Query[ResultRow]
                              , additionalColumns: IndexedSeq[String]
                              , override val ephemeralAliasColumnMap: Map[String, Column]
                              , maxRows: Int
                              , isPaginated: Boolean
-                            ) extends DruidQuery[org.apache.druid.data.input.Row]
+                            ) extends DruidQuery[ResultRow]
 
 case class ScanDruidQuery(queryContext: QueryContext
                           , aliasColumnMap: Map[String, Column]
-                          , query: org.apache.druid.query.Query[Result[ScanResultValue]]
+                          , query: org.apache.druid.query.Query[ScanResultValue]
                           , additionalColumns: IndexedSeq[String]
                           , maxRows: Int
                           , isPaginated: Boolean
-                           ) extends DruidQuery[Result[ScanResultValue]]
+                           ) extends DruidQuery[ScanResultValue]
 
 class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                           , defaultDimCardinality: Long
@@ -519,19 +517,18 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
         }
 
-      case com.yahoo.maha.core.request.SelectQuery =>
+      case com.yahoo.maha.core.request.ScanQuery =>
         require(queryContext.requestModel.reportingRequest.sortBy.isEmpty
-          , "druid select query type does not support sort by functionality!")
+          , "druid scan query type does not support sort by functionality!")
         require(!isUsingDruidLookup
-          , "druid select query type does not support druid lookups!")
+          , "druid scan query type does not support druid lookups!")
         queryContext.factBestCandidate.filterCols.foreach {
           colName =>
             require(!fact.columnsByNameMap(colName).isDerivedColumn
-              , s"druid select query type does not support filter on derived columns: $colName")
+              , s"druid scan query type does not support filter on derived columns: $colName")
         }
         val (dimFilterList, factFilterList) = getFilters(queryContext, dims)
         val maximumMaxRowsForReq = if (queryContext.requestModel.isAsyncRequest) maximumMaxRowsAsync else maximumMaxRows
-        //since select query supports pagination, we don't need to add the offset to the threshold
         val threshold = maxRows
 
         val builder = Druids.newScanQueryBuilder()
@@ -539,13 +536,12 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
           .intervals(getInterval(model))
           .context(context)
 
+        builder.limit(threshold)
         queryContext.factBestCandidate.dimColMapping.collect {
           case (dimCol, alias) if factRequestCols(dimCol) =>
             val column = fact.columnsByNameMap(dimCol)
-            require(!column.isDerivedColumn, s"druid select query type does not support derived columns : $alias")
+            require(!column.isDerivedColumn, s"druid scan query type does not support derived columns : $alias")
         }
-        val dimensionSpecTupleList: mutable.Buffer[(DimensionSpec, Option[DimensionSpec])] = getDimensions(queryContext, factRequestCols, dims, isUsingDruidLookup)
-        builder.dimensionSpecs(dimensionSpecTupleList.map(_._1).asJava)
 
         val factCols = queryContext.factBestCandidate.factColMapping.toList.collect {
           case (nonFkCol, alias) if queryContext.factBestCandidate.requestCols(nonFkCol) =>
@@ -556,36 +552,26 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         val groupedFactCols = factCols.groupBy(_._1.isDerivedColumn)
 
         if (groupedFactCols.contains(true)) {
-          throw new UnsupportedOperationException(s"druid select query does not support derived columns : ${groupedFactCols(true).map(_._2).mkString(" ")}")
+          throw new UnsupportedOperationException(s"druid scan query does not support derived columns : ${groupedFactCols(true).map(_._2).mkString(" ")}")
         }
+
+        val factColumns = groupedFactCols.get(false).map {
+          nonDerivedColsList =>
+            nonDerivedColsList.map {
+              case (col, alias) => col.alias.getOrElse(col.name)
+            }
+        }.toList.flatten.map(_.toString)
+
+        val dimensionSpecTupleList: mutable.Buffer[(DimensionSpec, Option[DimensionSpec])] = getDimensions(queryContext, factRequestCols, dims, isUsingDruidLookup)
+        val dimColumns = dimensionSpecTupleList.map(_._1.getDimension).toList
+
+        builder.columns((dimColumns ++ factColumns).asJava)
 
         val dimWithDateTimeFilterList = getDateTimeFilters(queryContext) ++ dimFilterList
         if (dimWithDateTimeFilterList.nonEmpty)
           builder.filters(new AndDimFilter(dimWithDateTimeFilterList.asJava))
 
-        groupedFactCols.get(false).foreach {
-          nonDerivedColsList =>
-            builder.metrics(nonDerivedColsList.map {
-              case (col, alias) => col.alias.getOrElse(col.name)
-            }.asJava)
-        }
 
-        val pagination: Option[JValue] = queryContext.requestModel.reportingRequest.pagination.config.get(DruidEngine)
-
-        implicit val formats: org.json4s.Formats = DefaultFormats
-
-        pagination.fold[Unit] {
-          val spec = PagingSpec.newSpec(threshold)
-          builder.pagingSpec(spec)
-        } {
-          jvalue =>
-            jvalue.findField(_._1 == "pagingIdentifiers").foreach {
-              case (_, identifiersJson) =>
-                val identifiers: java.util.Map[String, java.lang.Integer] = identifiersJson.extract[Map[String, Int]].mapValues(new java.lang.Integer(_)).asJava
-                val spec = new PagingSpec(identifiers, threshold)
-                builder.pagingSpec(spec)
-            }
-        }
 
         new ScanDruidQuery(queryContext, aliasColumnMap, builder.build(), additionalColumns(queryContext), threshold, model.isSyncRequest)
       case other =>
@@ -1199,7 +1185,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     def getTimeDimExtractionSpec(fact: Fact, outputName: String, colName: String, format: String): (DimensionSpec, Option[DimensionSpec]) = {
       val dimCol = fact.columnsByNameMap(colName)
       val targetTimeFormat: String = getTargetTimeFormat(fact, dimCol)
-      val exFn = new TimeDimExtractionFn(targetTimeFormat, format)
+      val exFn = new TimeDimExtractionFn(targetTimeFormat, format, false)
       (new ExtractionDimensionSpec(dimCol.alias.getOrElse(dimCol.name), outputName, getDimValueType(dimCol), exFn, null), Option.empty)
     }
 
@@ -1235,7 +1221,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                   throw new UnsupportedOperationException(s"Found unhandled dataType : $any")
               }
 
-              val exFn = new TimeDimExtractionFn(targetTimeFormat, resultFormat)
+              val exFn = new TimeDimExtractionFn(targetTimeFormat, resultFormat, false)
               (new ExtractionDimensionSpec(dimCol.alias.getOrElse(dimCol.name), alias, getDimValueType(column), exFn, null), Option.empty)
             case dayOfWeekFunc@DAY_OF_WEEK(fieldName) =>
               val dimCol = fact.columnsByNameMap(dayOfWeekFunc.dimColName)
@@ -1248,7 +1234,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                   throw new UnsupportedOperationException(s"Found unhandled dataType : $any")
               }
 
-              val exFn = new TimeDimExtractionFn(targetTimeFormat, "EEEE")
+              val exFn = new TimeDimExtractionFn(targetTimeFormat, "EEEE", false)
               (new ExtractionDimensionSpec(dimCol.alias.getOrElse(dimCol.name), alias, getDimValueType(column), exFn, null), Option.empty)
 
             case decodeDimFunction@DECODE_DIM(fieldName, args@_*) =>
@@ -1368,7 +1354,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
             case lookupFunc@LOOKUP_WITH_TIMEFORMATTER(lookupNamespace, valueColumn, inputFormat, resultFormat, dimensionOverrideMap, overrideValue) =>
               val regExFn = new MahaRegisteredLookupExtractionFn(null, lookupNamespace, false, overrideValue.getOrElse(DruidQuery.replaceMissingValueWith), false, true, valueColumn, null, dimensionOverrideMap.asJava, useQueryLevelCache)
-              val timeFormatFn = new TimeDimExtractionFn(inputFormat, resultFormat)
+              val timeFormatFn = new TimeDimExtractionFn(inputFormat, resultFormat, false)
               val primaryColumn = queryContext.factBestCandidate.fact.publicDimToForeignKeyColMap(db.publicDim.name)
               (new ExtractionDimensionSpec(primaryColumn.alias.getOrElse(primaryColumn.name), alias, getDimValueType(column), regExFn, null),
                 Option.apply(new ExtractionDimensionSpec(alias, alias, getDimValueType(column), timeFormatFn, null)))

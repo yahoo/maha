@@ -9,6 +9,7 @@ import com.yahoo.maha.core.dimension.DruidFuncDimCol
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.{ReportingRequest, RequestContext, RowCountQuery}
 import org.apache.commons.lang.StringUtils
+import org.apache.druid.common.config.NullHandling
 
 /**
  * Created by hiral on 1/14/16.
@@ -16,6 +17,7 @@ import org.apache.commons.lang.StringUtils
 class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
   lazy val defaultRegistry = getDefaultRegistry()
+  NullHandling.initializeForTests()
 
   test("registering Druid query generation multiple times should fail") {
     intercept[IllegalArgumentException] {
@@ -183,6 +185,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    print(s"result: $result")
     val json = """{"type":"lessThan","aggregation":"Impressions","value":1000}]}"""
     assert(result.contains(json), result)
     val isNullFilterJson = """{"type":"selector","dimension":"landing_page_url","value":""}"""
