@@ -572,8 +572,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
           builder.filters(new AndDimFilter(dimWithDateTimeFilterList.asJava))
 
 
-
-        new ScanDruidQuery(queryContext, aliasColumnMap, builder.build(), additionalColumns(queryContext), threshold, model.isSyncRequest)
+        //pagination feature is not supported by scan query https://druid.apache.org/docs/latest/querying/select-query.html
+        new ScanDruidQuery(queryContext, aliasColumnMap, builder.build(), additionalColumns(queryContext), threshold, false)
       case other =>
         throw new UnsupportedOperationException(s"query type unsupported : $other")
     }

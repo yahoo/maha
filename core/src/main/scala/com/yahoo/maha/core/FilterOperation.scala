@@ -1082,13 +1082,13 @@ object FilterDruid {
 
             val yearAndWeekFormattedValue = sotw.toFormattedString(value)
 
-            val exFn = new TimeDimExtractionFn(sourceDimColFormat, sotw.yearandWeekOfTheYearFormatForDruid, true)
+            val exFn = new TimeDimExtractionFn(sourceDimColFormat, sotw.yearandWeekOfTheYearFormatForDruid, false)
             new SelectorDimFilter(sourceDimCol.alias.getOrElse(sourceDimCol.name), yearAndWeekFormattedValue, exFn)
           }
           case sotm@START_OF_THE_MONTH(exp) => {
             val sourceDimCol = columnsByNameMap(sotm.colName)
             val sourceDimColFormat: String = getSourceDimColFormat(sourceDimCol)
-            val exFn = new TimeDimExtractionFn(sourceDimColFormat, sotm.startOfTheMonthFormat, true)
+            val exFn = new TimeDimExtractionFn(sourceDimColFormat, sotm.startOfTheMonthFormat, false)
             new SelectorDimFilter(sourceDimCol.alias.getOrElse(sourceDimCol.name), value, exFn)
           }
           case any => throw new UnsupportedOperationException(s"Unhandled druid post result func $any")
