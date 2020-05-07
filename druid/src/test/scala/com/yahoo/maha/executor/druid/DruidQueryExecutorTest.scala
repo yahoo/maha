@@ -19,6 +19,7 @@ import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.{DebugValue, Parameter, ReportingRequest, RowCountQuery, SyncRequest}
 import com.yahoo.maha.executor.MockOracleQueryExecutor
+import org.apache.druid.common.config.NullHandling
 import org.apache.druid.query.Result
 import org.apache.druid.query.scan.ScanResultValue
 import org.http4s.server.blaze.BlazeBuilder
@@ -36,6 +37,9 @@ class TestAuthHeaderProvider extends AuthHeaderProvider {
 }
 
 class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema with TestWebService {
+
+  NullHandling.initializeForTests()
+
   var server: org.http4s.server.Server[IO] = null
 
   override def beforeAll(): Unit = {
@@ -2777,11 +2781,11 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
   }
 
-  test("successfully execute select query type") {
+  test("successfully execute scan query type") {
 
     val jsonString =
       s"""{
-                          "queryType": "select",
+                          "queryType": "scan",
                           "cube": "k_stats_select",
                           "selectFields": [
                             {"field": "Day"},
@@ -2837,15 +2841,15 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
           }
         }
 
-        assert(result.pagination.isDefined)
+        assert(!result.pagination.isDefined)
     }
   }
 
-  test("fail to execute select query type with unhandled json") {
+  test("fail to execute scan query type with unhandled json") {
 
     val jsonString =
       s"""{
-                          "queryType": "select",
+                          "queryType": "scan",
                           "cube": "k_stats_select",
                           "selectFields": [
                             {"field": "Day"},
@@ -2889,7 +2893,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
     val jsonString =
       s"""{
-                          "queryType": "select",
+                          "queryType": "scan",
                           "cube": "k_stats_select",
                           "selectFields": [
                             {"field": "Day"},
@@ -2932,7 +2936,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
     val jsonString =
       s"""{
-                          "queryType": "select",
+                          "queryType": "scan",
                           "cube": "k_stats_select",
                           "selectFields": [
                             {"field": "Day"},
