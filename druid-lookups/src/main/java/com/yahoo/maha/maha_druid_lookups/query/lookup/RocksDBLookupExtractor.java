@@ -86,7 +86,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
 
     @Nullable
     public String apply(@NotNull String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap) {
-        LOG.info("RocksDBLookupExtractor: key: {}", key);
+        LOG.info("RocksDBLookupExtractor: key: %s", key);
         try {
 
             if (key == null) {
@@ -94,7 +94,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
             }
 
             if (dimensionOverrideMap != null && dimensionOverrideMap.containsKey(key)) {
-                LOG.info("using dimensionOverrideMap for key: {}", key);
+                LOG.info("using dimensionOverrideMap for key: %s", key);
                 return Strings.emptyToNull(dimensionOverrideMap.get(key));
             }
 
@@ -102,10 +102,10 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
             if (!extractionNamespace.isCacheEnabled()) {
                 byte[] cacheByteValue = lookupService.lookup(new LookupService.LookupData(extractionNamespace,
                         key, valueColumn, decodeConfigOptional));
-                LOG.info("cache not enabled, lookup service return cacheByteValue, len = {}", cacheByteValue.length);
+                LOG.info("cache not enabled, lookup service return cacheByteValue, len = %s", cacheByteValue.length);
                 return (cacheByteValue == null || cacheByteValue.length == 0) ? null : new String(cacheByteValue, UTF_8);
             } else {
-                LOG.info("loading rocksdb instance: {}", extractionNamespace.getNamespace());
+                LOG.info("loading rocksdb instance: %s", extractionNamespace.getNamespace());
                 final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
                 if (db == null) {
                     LOG.error("RocksDB instance is null");
@@ -117,12 +117,12 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
 
                 if (cacheByteValue == null || cacheByteValue.length == 0) {
                     // No need to call handleMissingLookup if missing dimension is already present in missingLookupCache
-                    LOG.info("cacheByteValue is null or empty for key = {}, returning null", key);
+                    LOG.info("cacheByteValue is null or empty for key = %s, returning null", key);
                     if (extractionNamespace.getMissingLookupConfig() != null
                             && !Strings.isNullOrEmpty(extractionNamespace.getMissingLookupConfig().getMissingLookupKafkaTopic())
                             && missingLookupCache.getIfPresent(key) == null) {
 
-                        LOG.info("handling Missing Lookup for key: {}", key);
+                        LOG.info("handling Missing Lookup for key: %s", key);
                         kafkaManager.handleMissingLookup(extractionNamespaceAsByteArray,
                                 extractionNamespace.getMissingLookupConfig().getMissingLookupKafkaTopic(),
                                 key);
@@ -131,7 +131,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                     }
                     return null;
                 }
-                LOG.info("handling decode for cacheByteValue, len: {}", cacheByteValue.length);
+                LOG.info("handling decode for cacheByteValue, len: %s", cacheByteValue.length);
                 return handleDecode(decodeConfig, cacheByteValue, valueColumn);
             }
 
@@ -146,26 +146,26 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
         try {
             Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
             Message message = parser.parseFrom(cacheByteValue);
-            LOG.info("parsed message: {}", message.toString());
+            LOG.info("parsed message: %s", message.toString());
             Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
 
             if (decodeConfig != null) {
                 Descriptors.FieldDescriptor columnToCheckField = descriptor.findFieldByName(decodeConfig.getColumnToCheck());
                 if (decodeConfig.getValueToCheck().equals(message.getField(columnToCheckField).toString())) {
                     Descriptors.FieldDescriptor columnIfValueMatchedField = descriptor.findFieldByName(decodeConfig.getColumnIfValueMatched());
-                    LOG.info("columnIfValueMatchedField: {}", columnIfValueMatchedField.toString());
-                    LOG.info("message.getField(columnIfValueMatchedField).toString() returning: {}", message.getField(columnIfValueMatchedField).toString());
+                    LOG.info("columnIfValueMatchedField: %s", columnIfValueMatchedField.toString());
+                    LOG.info("message.getField(columnIfValueMatchedField).toString() returning: %s", message.getField(columnIfValueMatchedField).toString());
                     return Strings.emptyToNull(message.getField(columnIfValueMatchedField).toString());
                 } else {
                     Descriptors.FieldDescriptor columnIfValueNotMatched = descriptor.findFieldByName(decodeConfig.getColumnIfValueNotMatched());
-                    LOG.info("columnIfValueNotMatched: {}", columnIfValueNotMatched.toString());
-                    LOG.info("message.getField(columnIfValueNotMatched).toString() returning: {}", message.getField(columnIfValueNotMatched).toString());
+                    LOG.info("columnIfValueNotMatched: %s", columnIfValueNotMatched.toString());
+                    LOG.info("message.getField(columnIfValueNotMatched).toString() returning: %s", message.getField(columnIfValueNotMatched).toString());
                     return Strings.emptyToNull(message.getField(columnIfValueNotMatched).toString());
                 }
             } else {
                 Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn);
-                LOG.info("valueColumn: {}", valueColumn.toString());
-                LOG.info("message.getField(field).toString() returning: {}", message.getField(field).toString());
+                LOG.info("valueColumn: %s", valueColumn.toString());
+                LOG.info("message.getField(field).toString() returning: %s", message.getField(field).toString());
                 return Strings.emptyToNull(message.getField(field).toString());
             }
         } catch (InvalidProtocolBufferException e ) {

@@ -21,7 +21,7 @@ abstract public class MahaLookupExtractor extends LookupExtractor {
     @Nullable
     @Override
     public String apply(@NotNull String key) {
-        LOG.info("MahaLookupExtractor: key: {}", key);
+        LOG.info("MahaLookupExtractor: key: %s", key);
         try {
             if (key == null) {
                 return null;
