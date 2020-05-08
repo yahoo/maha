@@ -16,10 +16,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.Message;
-import com.google.protobuf.Parser;
+import com.google.protobuf.*;
 import com.metamx.common.logger.Logger;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.metamx.emitter.service.ServiceMetricEvent;
@@ -131,7 +128,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                     }
                     return null;
                 }
-                LOG.info("handling decode for cacheByteValue, len: %s", cacheByteValue.length);
+                LOG.info("handling decode for cacheByteValue, len: %s, value: %s", cacheByteValue.length, new String(cacheByteValue));
                 return handleDecode(decodeConfig, cacheByteValue, valueColumn);
             }
 
@@ -144,9 +141,15 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
     private String handleDecode(DecodeConfig decodeConfig, byte[] cacheByteValue, String valueColumn) throws Exception {
 
         try {
+
+            LOG.info("extractionNamespace.getNamespace: %s" , extractionNamespace.getNamespace());
             Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
+            LOG.info("protobufSchemaFactory.getProtobufParser: %s", parser.toString());
             Message message = parser.parseFrom(cacheByteValue);
             LOG.info("parsed message: %s", message.toString());
+            CodedInputStream input = CodedInputStream.newInstance(cacheByteValue);
+            LOG.info("readTag(): %d", input.readTag());
+            LOG.info("getLastTag(): %d", input.getLastTag());
             Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
 
             if (decodeConfig != null) {
@@ -169,7 +172,12 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                 return Strings.emptyToNull(message.getField(field).toString());
             }
         } catch (InvalidProtocolBufferException e ) {
-            LOG.debug("Message is not a protobuf, returning String");
+            LOG.error(e, "throwing InvalidProtocolBufferException in handleDecode");
+            LOG.info("new String(cacheByteValue): %s", new String(cacheByteValue));
+            CodedInputStream input = CodedInputStream.newInstance(cacheByteValue);
+            LOG.info("readTag(): %d", input.readTag());
+            LOG.info("getLastTag(): %d", input.getLastTag());
+            LOG.info("Message is not a protobuf, returning String");
             return Strings.emptyToNull(new String(cacheByteValue));
         }
 
