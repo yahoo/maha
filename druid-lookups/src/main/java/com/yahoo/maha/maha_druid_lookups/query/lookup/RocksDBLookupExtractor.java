@@ -83,7 +83,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
 
     @Nullable
     public String apply(@NotNull String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap) {
-        LOG.info("RocksDBLookupExtractor: key: %s", key);
+        LOG.info("RocksDBLookupExtractor: key: %s, valueColumn: %s", key, valueColumn);
         try {
 
             if (key == null) {
@@ -102,7 +102,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                 LOG.info("cache not enabled, lookup service return cacheByteValue, len = %s", cacheByteValue.length);
                 return (cacheByteValue == null || cacheByteValue.length == 0) ? null : new String(cacheByteValue, UTF_8);
             } else {
-                LOG.info("loading rocksdb instance: %s", extractionNamespace.getNamespace());
+                LOG.info("loading rocksdb instance for namespace: %s", extractionNamespace.getNamespace());
                 final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
                 if (db == null) {
                     LOG.error("RocksDB instance is null");
@@ -110,6 +110,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                 }
                 //byte[] cacheByteValue = db.get(key.getBytes());
                 //tryResetRunnerOrLog(extractionNamespace);
+                LOG.info("trying getCacheValue from cacheActionRunner...");
                 byte[] cacheByteValue = extractionNamespace.getCacheActionRunner().getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, serviceEmitter, extractionNamespace);
 
                 if (cacheByteValue == null || cacheByteValue.length == 0) {

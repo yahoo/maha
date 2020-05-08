@@ -39,16 +39,25 @@ public class CacheActionRunner {
             final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
             if (db != null) {
                 Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
+                LOG.info("protobufSchemaFactory.getProtobufParser: %s", parser.toString());
                 byte[] cacheByteValue = db.get(key.getBytes());
                 if(cacheByteValue == null) {
                     return new byte[0];
                 }
+                LOG.info("cacheByteValue in cacherunner: %s", new String(cacheByteValue));
                 Message message = parser.parseFrom(cacheByteValue);
+                LOG.info("parsed message in cacherunner: %s", message.toString());
                 if (valueColumn.isPresent() && !decodeConfigOptional.isPresent()) {
                     Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
                     Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn.get());
+                    LOG.info("valueColumn presented & decodeConfig not presented");
+                    LOG.info("returning message.getField(field).toString(): %s", message.getField(field).toString());
+                    LOG.info("returning message.getField(field).toString().getBytes(): %s", message.getField(field).toString().getBytes());
                     return (field == null) ? new byte[0] : message.getField(field).toString().getBytes();
                 } else {
+                    LOG.info("valueColumn not presented or decodeConfig presented");
+                    LOG.info("returning new String(message.toByteArray()): %s", new String(message.toByteArray()));
+                    LOG.info("returning message.toByteArray(): %s", message.toByteArray());
                     return message.toByteArray();
                 }
             }
