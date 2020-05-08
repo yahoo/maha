@@ -18,14 +18,14 @@ For convenience, we use `/druid` as our druid root path for the following docume
 ### Zookeeper setup
 #### Download:
 ```
-curl http://www.gtlib.gatech.edu/pub/apache/zookeeper/zookeeper-3.4.10/zookeeper-3.4.10.tar.gz -o zookeeper-3.4.10.tar.gz
-tar -xzf zookeeper-3.4.10.tar.gz
-cd zookeeper-3.4.10
+wget http://www.gtlib.gatech.edu/pub/apache/zookeeper/zookeeper-3.4.14/zookeeper-3.4.14.tar.gz
+tar -xzf zookeeper-3.4.14.tar.gz
+cd zookeeper-3.4.14
 cp conf/zoo_sample.cfg conf/zoo.cfg
 ```
 #### Starting up zookeeper:
 ```
-cd zookeeper-3.4.10
+cd zookeeper-3.4.14
 ./bin/zkServer.sh start
 ```
 

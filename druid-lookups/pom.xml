@@ -15,7 +15,6 @@
 
 
     <properties>
-        <druid.version>0.17.1</druid.version>
         <protobuf.version>3.1.0</protobuf.version>
     </properties>
 
@@ -250,6 +249,11 @@
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
             <version>${caffeine.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.ws.rs</groupId>
+            <artifactId>javax.ws.rs-api</artifactId>
+            <version>2.1.1</version>
         </dependency>
         <!-- Tests -->
         <dependency>
