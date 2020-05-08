@@ -91,7 +91,6 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
             }
 
             if (dimensionOverrideMap != null && dimensionOverrideMap.containsKey(key)) {
-                LOG.info("using dimensionOverrideMap for key: %s", key);
                 return Strings.emptyToNull(dimensionOverrideMap.get(key));
             }
 
@@ -102,7 +101,6 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                 LOG.info("cache not enabled, lookup service return cacheByteValue, len = %s", cacheByteValue.length);
                 return (cacheByteValue == null || cacheByteValue.length == 0) ? null : new String(cacheByteValue, UTF_8);
             } else {
-                LOG.info("loading rocksdb instance for namespace: %s", extractionNamespace.getNamespace());
                 final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
                 if (db == null) {
                     LOG.error("RocksDB instance is null");
@@ -110,17 +108,14 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                 }
                 //byte[] cacheByteValue = db.get(key.getBytes());
                 //tryResetRunnerOrLog(extractionNamespace);
-                LOG.info("trying getCacheValue from cacheActionRunner...");
-                byte[] cacheByteValue = extractionNamespace.getCacheActionRunner().getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, serviceEmitter, extractionNamespace);
+                byte[] cacheByteValue = extractionNamespace.getCacheActionRunner().getCacheValue(key, Optional.empty(), decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, serviceEmitter, extractionNamespace);
 
                 if (cacheByteValue == null || cacheByteValue.length == 0) {
                     // No need to call handleMissingLookup if missing dimension is already present in missingLookupCache
-                    LOG.info("cacheByteValue is null or empty for key = %s, returning null", key);
                     if (extractionNamespace.getMissingLookupConfig() != null
                             && !Strings.isNullOrEmpty(extractionNamespace.getMissingLookupConfig().getMissingLookupKafkaTopic())
                             && missingLookupCache.getIfPresent(key) == null) {
 
-                        LOG.info("handling Missing Lookup for key: %s", key);
                         kafkaManager.handleMissingLookup(extractionNamespaceAsByteArray,
                                 extractionNamespace.getMissingLookupConfig().getMissingLookupKafkaTopic(),
                                 key);
