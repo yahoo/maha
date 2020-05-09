@@ -204,7 +204,7 @@ public class RocksDBLookupExtractorTest {
             map.put("12345", Arrays.asList("12345", "my name", "USD", "ON"));
             RocksDBLookupExtractor RocksDBLookupExtractor = new RocksDBLookupExtractor(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager,  new TestProtobufSchemaFactory(), serviceEmitter);
             MahaLookupQueryElement mahaLookupQueryElement1 = new MahaLookupQueryElement();
-            mahaLookupQueryElement1.setDimension("12345");
+            mahaLookupQueryElement1.setDimension("32309719080");
             mahaLookupQueryElement1.setValueColumn("booking_country");
             String lookupValue = RocksDBLookupExtractor.apply(objectMapper.writeValueAsString(mahaLookupQueryElement1));
             Assert.assertNull(lookupValue);
