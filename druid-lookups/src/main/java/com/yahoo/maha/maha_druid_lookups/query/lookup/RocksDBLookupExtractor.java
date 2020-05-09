@@ -83,7 +83,6 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
 
     @Nullable
     public String apply(@NotNull String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap) {
-        LOG.info("RocksDBLookupExtractor: key: %s, valueColumn: %s", key, valueColumn);
         try {
 
             if (key == null) {
@@ -136,7 +135,6 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
     private String handleDecode(DecodeConfig decodeConfig, byte[] cacheByteValue, String valueColumn) throws Exception {
 
         try {
-
             Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
             Message message = parser.parseFrom(cacheByteValue);
             LOG.debug("parsed message: %s", message.toString());
