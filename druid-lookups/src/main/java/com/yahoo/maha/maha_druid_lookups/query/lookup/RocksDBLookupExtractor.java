@@ -108,11 +108,13 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                 //byte[] cacheByteValue = db.get(key.getBytes());
                 //tryResetRunnerOrLog(extractionNamespace);
                 byte[] cacheByteValue = extractionNamespace.getCacheActionRunner().getCacheValue(key, Optional.empty(), decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, serviceEmitter, extractionNamespace);
+
                 if (cacheByteValue == null || cacheByteValue.length == 0) {
                     // No need to call handleMissingLookup if missing dimension is already present in missingLookupCache
                     if (extractionNamespace.getMissingLookupConfig() != null
                             && !Strings.isNullOrEmpty(extractionNamespace.getMissingLookupConfig().getMissingLookupKafkaTopic())
                             && missingLookupCache.getIfPresent(key) == null) {
+
                         kafkaManager.handleMissingLookup(extractionNamespaceAsByteArray,
                                 extractionNamespace.getMissingLookupConfig().getMissingLookupKafkaTopic(),
                                 key);
@@ -121,6 +123,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                     }
                     return null;
                 }
+
                 return handleDecode(decodeConfig, cacheByteValue, valueColumn);
             }
 
