@@ -17,8 +17,10 @@ import org.apache.druid.guice.ManageLifecycle;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.rocksdb.*;
 import org.zeroturnaround.zip.ZipUtil;
 
@@ -63,6 +65,13 @@ public class RocksDBManager {
 
     @Inject
     public RocksDBManager(final MahaNamespaceExtractionConfig mahaNamespaceExtractionConfig, Configuration config) throws IOException {
+        //updating configs - https://stackoverflow.com/questions/17265002/hadoop-no-filesystem-for-scheme-file
+        config.set("fs.hdfs.impl",
+                DistributedFileSystem.class.getName()
+        );
+        config.set("fs.file.impl",
+                LocalFileSystem.class.getName()
+        );
         this.localStorageDirectory = mahaNamespaceExtractionConfig.getRocksDBProperties().getProperty(ROCKSDB_LOCATION_PROP_NAME, TEMPORARY_PATH);
         this.blockCacheSize = Long.parseLong(mahaNamespaceExtractionConfig.getRocksDBProperties().getProperty(ROCKSDB_BLOCK_CACHE_SIZE_PROP_NAME, String.valueOf(DEFAULT_BLOCK_CACHE_SIZE)));
         Preconditions.checkArgument(blockCacheSize > 0);
