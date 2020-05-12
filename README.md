@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.org/yahoo/maha.svg?branch=master)](https://travis-ci.org/yahoo/maha) [![Join the chat at https://gitter.im/yahoo-maha/community](https://badges.gitter.im/yahoo-maha/community.svg)](https://gitter.im/yahoo-maha/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
+[Google Group: Maha-Users](https://groups.google.com/forum/#!forum/maha-users) 
+
 # Maha
 A centralised library for building reporting APIs on top of multiple data stores to exploit them for what they do best.
 
