@@ -16,10 +16,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.Message;
-import com.google.protobuf.Parser;
+import com.google.protobuf.*;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.apache.druid.java.util.emitter.service.ServiceMetricEvent;
@@ -109,7 +106,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                 }
                 //byte[] cacheByteValue = db.get(key.getBytes());
                 //tryResetRunnerOrLog(extractionNamespace);
-                byte[] cacheByteValue = extractionNamespace.getCacheActionRunner().getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, serviceEmitter, extractionNamespace);
+                byte[] cacheByteValue = extractionNamespace.getCacheActionRunner().getCacheValue(key, Optional.empty(), decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, serviceEmitter, extractionNamespace);
 
                 if (cacheByteValue == null || cacheByteValue.length == 0) {
                     // No need to call handleMissingLookup if missing dimension is already present in missingLookupCache
@@ -140,6 +137,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
         try {
             Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
             Message message = parser.parseFrom(cacheByteValue);
+            LOG.debug("parsed message: %s", message.toString());
             Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
 
             if (decodeConfig != null) {
@@ -156,8 +154,10 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                 return Strings.emptyToNull(message.getField(field).toString());
             }
         } catch (InvalidProtocolBufferException e ) {
-            LOG.debug("Message is not a protobuf, returning String");
-            return Strings.emptyToNull(new String(cacheByteValue));
+            LOG.error(e, "Caught exception while handleDecode");
+            String cacheByteValueStr =  Strings.emptyToNull(new String(cacheByteValue));
+            LOG.info("cacheByteValue is not a protobuf, return as a String: %s", cacheByteValueStr);
+            return cacheByteValueStr;
         }
 
     }
