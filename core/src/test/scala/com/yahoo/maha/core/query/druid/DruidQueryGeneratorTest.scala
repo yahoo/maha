@@ -3046,6 +3046,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Hour", "operator": "=", "value": "10"},
                             {"field": "Advertiser ID", "operator": "=", "value": "12345"}
                           ],
                           "paginationStartIndex":20,
