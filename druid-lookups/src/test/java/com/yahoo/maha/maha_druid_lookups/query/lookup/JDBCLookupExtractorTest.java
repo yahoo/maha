@@ -5,7 +5,7 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
-import io.druid.metadata.MetadataStorageConnectorConfig;
+import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.joda.time.Period;
 import org.mockito.Mock;
 import org.testng.Assert;

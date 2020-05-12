@@ -9,6 +9,7 @@ import com.yahoo.maha.core.dimension.DruidFuncDimCol
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.{ReportingRequest, RequestContext, RowCountQuery}
 import org.apache.commons.lang.StringUtils
+import org.apache.druid.common.config.NullHandling
 
 /**
  * Created by hiral on 1/14/16.
@@ -16,6 +17,7 @@ import org.apache.commons.lang.StringUtils
 class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
   lazy val defaultRegistry = getDefaultRegistry()
+  NullHandling.initializeForTests()
 
   test("registering Druid query generation multiple times should fail") {
     intercept[IllegalArgumentException] {
@@ -183,9 +185,10 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    print(s"result: $result")
     val json = """{"type":"lessThan","aggregation":"Impressions","value":1000}]}"""
     assert(result.contains(json), result)
-    val isNullFilterJson = """{"type":"selector","dimension":"landing_page_url","value":""}"""
+    val isNullFilterJson = """{"type":"selector","dimension":"landing_page_url"}"""
     assert(result.contains(isNullFilterJson), result)
   }
 
@@ -216,9 +219,10 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    print(result)
     val json = """{"type":"lessThan","aggregation":"Impressions","value":1000}]}"""
     assert(result.contains(json), result)
-    val isNotNullFilterJson = """{"type":"not","field":{"type":"selector","dimension":"landing_page_url","value":""}}"""
+    val isNotNullFilterJson = """{"type":"not","field":{"type":"selector","dimension":"landing_page_url"}}"""
     assert(result.contains(isNotNullFilterJson), result)
   }
 
@@ -666,7 +670,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    val json = """\{"queryType":"timeseries","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"descending":false,"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":"DAY","aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"roundingDoubleSum","name":"_sum_avg_bid","fieldName":"avg_bid","scale":10,"enableRoundingDoubleSumAggregatorFactory":true\},\{"type":"count","name":"_count_avg_bid"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Average Bid","fn":"/","fields":\[\{"type":"fieldAccess","name":"_sum_avg_bid","fieldName":"_sum_avg_bid"\},\{"type":"fieldAccess","name":"_count_avg_bid","fieldName":"_count_avg_bid"\}\]\}\],"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\}\}"""
+    val json = """\{"queryType":"timeseries","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"descending":false,"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":"DAY","aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\},\{"type":"roundingDoubleSum","name":"_sum_avg_bid","fieldName":"avg_bid","scale":10,"enableRoundingDoubleSumAggregatorFactory":true\},\{"type":"count","name":"_count_avg_bid"\}\],"postAggregations":\[\{"type":"arithmetic","name":"Average Bid","fn":"/","fields":\[\{"type":"fieldAccess","name":"_sum_avg_bid","fieldName":"_sum_avg_bid"\},\{"type":"fieldAccess","name":"_count_avg_bid","fieldName":"_count_avg_bid"\}\]\}\],"limit":2147483647,"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\}\}"""
 
     result should fullyMatch regex json
   }
@@ -775,8 +779,8 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    val json = """"dimension":"statsDate","outputName":"Week","outputType":"STRING","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"YYYY-w"}}"""
-    val filterjson = """{"type":"selector","dimension":"statsDate","value":"2017-24","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"YYYY-w"}},{"type":"selector","dimension":"statsDate","value":"2017-26","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"YYYY-w"}}"""
+    val json = """"dimension":"statsDate","outputName":"Week","outputType":"STRING","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"YYYY-w","joda":false}}"""
+    val filterjson = """{"type":"selector","dimension":"statsDate","value":"2017-24","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"YYYY-w","joda":false}},{"type":"selector","dimension":"statsDate","value":"2017-26","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"YYYY-w","joda":false}}"""
 
     assert(result.contains(json), result)
     assert(result.contains(filterjson), result)
@@ -814,8 +818,8 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    val json = """"dimension":"statsDate","outputName":"Month","outputType":"STRING","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"yyyy-MM-01"}}"""
-    val filterjson = """{"type":"selector","dimension":"statsDate","value":"2017-06-01","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"yyyy-MM-01"}},{"type":"selector","dimension":"statsDate","value":"2017-07-01","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"yyyy-MM-01"}}"""
+    val json = """"dimension":"statsDate","outputName":"Month","outputType":"STRING","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"yyyy-MM-01","joda":false}}"""
+    val filterjson = """{"type":"selector","dimension":"statsDate","value":"2017-06-01","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"yyyy-MM-01","joda":false}},{"type":"selector","dimension":"statsDate","value":"2017-07-01","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"yyyy-MM-01","joda":false}}"""
 
     assert(result.contains(json), result)
     assert(result.contains(filterjson), result)
@@ -1541,7 +1545,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     val expect_empty_lookup = """{"type":"extraction","dimension":"campaign_id_alias","outputName":"Campaign Name","outputType":"STRING","extractionFn":{"type":"mahaRegisteredLookup","lookup":"campaign_lookup","retainMissingValue":false,"replaceMissingValueWith":"MAHA_LOOKUP_EMPTY","injective":false,"optimize":true,"valueColumn":"name","dimensionOverrideMap":{},"useQueryLevelCache":false}}"""
     val expect_replace_with_other = """{"type":"extraction","dimension":"campaign_id_alias","outputName":"Campaign Total","outputType":"STRING","extractionFn":{"type":"mahaRegisteredLookup","lookup":"campaign_lookup","retainMissingValue":false,"replaceMissingValueWith":"Other","injective":false,"optimize":true,"valueColumn":"total","dimensionOverrideMap":{},"useQueryLevelCache":false}}"""
-    val expect_time_extract_func = """{"type":"extraction","dimension":"Campaign Start Date","outputName":"Campaign Start Date","outputType":"STRING","extractionFn":{"type":"time","timeFormat":"yyyy-MM-dd HH:mm:ss","resultFormat":"yyyy-MM-dd"}}"""
+    val expect_time_extract_func = """{"type":"extraction","dimension":"Campaign Start Date","outputName":"Campaign Start Date","outputType":"STRING","extractionFn":{"type":"time","timeFormat":"yyyy-MM-dd HH:mm:ss","resultFormat":"yyyy-MM-dd","joda":false}}"""
     val expect_replace_with_null = """{"type":"extraction","dimension":"campaign_id_alias","outputName":"Campaign End Date","outputType":"STRING","extractionFn":{"type":"mahaRegisteredLookup","lookup":"campaign_lookup","retainMissingValue":false,"replaceMissingValueWith":"null","injective":false,"optimize":true,"valueColumn":"end_time","dimensionOverrideMap":{},"useQueryLevelCache":false}}"""
     
     assert(result.contains(expect_empty_lookup))
@@ -1809,7 +1813,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    val json = """{"type":"extraction","dimension":"statsDate","outputName":"Day of Week","outputType":"STRING","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"EEEE"}}"""
+    val json = """{"type":"extraction","dimension":"statsDate","outputName":"Day of Week","outputType":"STRING","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"EEEE","joda":false}}"""
 
     assert(result.contains(json), result)
   }
@@ -1964,7 +1968,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     println(result)
     val json =
-      """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\}\]\},\{"type":"or","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"valid_conversion","value":""\},\{"type":"selector","dimension":"valid_conversion","value":"1"\}\]\}\]\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"advertiser_id","outputName":"Advertiser ID","outputType":"STRING"\}\],"aggregations":\[\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":120\},"context":\{"groupByStrategy":"v2","applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}""".stripMargin
+      """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\}\]\},\{"type":"or","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"valid_conversion"\},\{"type":"selector","dimension":"valid_conversion","value":"1"\}\]\}\]\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"advertiser_id","outputName":"Advertiser ID","outputType":"STRING"\}\],"aggregations":\[\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":120\},"context":\{"groupByStrategy":"v2","applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}""".stripMargin
     result should fullyMatch regex json
   }
 
@@ -2187,7 +2191,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
 
-    val expectectDimensionsJson = """"dimensions":[{"type":"extraction","dimension":"statsDate","outputName":"Week","outputType":"STRING","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"w"}},{"type":"default","dimension":"stats_source","outputName":"Source","outputType":"STRING"},{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"}"""
+    val expectectDimensionsJson = """"dimensions":[{"type":"extraction","dimension":"statsDate","outputName":"Week","outputType":"STRING","extractionFn":{"type":"time","timeFormat":"yyyyMMdd","resultFormat":"w","joda":false}},{"type":"default","dimension":"stats_source","outputName":"Source","outputType":"STRING"},{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"}"""
 
     assert(result.contains(expectectDimensionsJson), s"$expectectDimensionsJson \n\n not found in \n\n $result")
   }
@@ -2575,9 +2579,9 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     result should fullyMatch regex json
   }
 
-  test("Druid query should be generated successfully with select query type") {
+  test("Druid query should be generated successfully with scan query type") {
     val jsonString = s"""{
-                          "queryType": "select",
+                          "queryType": "scan",
                           "cube": "k_stats_select",
                           "selectFields": [
                             {"field": "Day"},
@@ -2599,48 +2603,13 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    val json= """\{"queryType":"select","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"descending":false,"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"\},\{"type":"extraction","dimension":"__time","outputName":"Day","outputType":"STRING","extractionFn":\{"type":"timeFormat","format":"YYYY-MM-dd HH","timeZone":"UTC","granularity":\{"type":"none"\},"asMillis":false\}\}\],"metrics":\["impressions"\],"virtualColumns":\[\],"pagingSpec":\{"pagingIdentifiers":\{\},"threshold":5,"fromNext":true\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"timeout":5000,"queryId":".*"\}\}"""
+    val json= """\{"queryType":"scan","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*Z"\]\},"virtualColumns":\[\],"resultFormat":"list","batchSize":20480,"limit":5,"order":"none","filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"columns":\["id","__time","impressions"\],"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"timeout":5000,"queryId":".*"\},"descending":false,"granularity":\{"type":"all"\}\}"""
     result should fullyMatch regex json
   }
 
-  test("Druid query should be generated successfully with select query type with pagination") {
+  test("Druid query should fail to generate with scan query type when sort by requested") {
     val jsonString = s"""{
-                          "queryType": "select",
-                          "cube": "k_stats",
-                          "selectFields": [
-                            {"field": "Keyword ID"},
-                            {"field": "Keyword Value"},
-                            {"field": "Impressions"}
-                          ],
-                          "filterExpressions": [
-                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
-                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
-                          ],
-                          "paginationStartIndex":5,
-                          "rowsPerPage":5,
-                          "pagination": {
-                            "druid": {
-                              "pagingIdentifiers" : {
-                                "wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9" : 5
-                              }
-                            }
-                          }
-
-                        }"""
-
-    val request: ReportingRequest = getReportingRequestSync(jsonString)
-    val requestModel = RequestModel.from(request, getDefaultRegistry())
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-
-    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    val json= """\{"queryType":"select","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"descending":false,"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\}\]\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"\}\],"metrics":\["impressions"\],"virtualColumns":\[],"pagingSpec":\{"pagingIdentifiers":\{"wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9":5\},"threshold":5,"fromNext":true\},"context":\{"applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"timeout":5000,"queryId":".*"\}\}"""
-    result should fullyMatch regex json
-  }
-
-  test("Druid query should fail to generate with select query type when sort by requested") {
-    val jsonString = s"""{
-                          "queryType": "select",
+                          "queryType": "scan",
                           "cube": "k_stats",
                           "selectFields": [
                             {"field": "Keyword ID"},
@@ -2662,12 +2631,12 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val requestModel = RequestModel.from(request, getDefaultRegistry())
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("query pipeline should fail"))
-    assert(queryPipelineTry.failed.toOption.get.getMessage.contains("druid select query type does not support sort by functionality!"))
+    assert(queryPipelineTry.failed.toOption.get.getMessage.contains("druid scan query type does not support sort by functionality!"))
   }
 
-  test("Druid query should fail to generate with select query type when derived fact requested") {
+  test("Druid query should fail to generate with scan query type when derived fact requested") {
     val jsonString = s"""{
-                          "queryType": "select",
+                          "queryType": "scan",
                           "cube": "k_stats",
                           "selectFields": [
                             {"field": "Keyword ID"},
@@ -2686,12 +2655,12 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val requestModel = RequestModel.from(request, getDefaultRegistry())
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("query pipeline should fail"))
-    assert(queryPipelineTry.failed.toOption.get.getMessage.contains("druid select query does not support derived columns : CTR"))
+    assert(queryPipelineTry.failed.toOption.get.getMessage.contains("druid scan query does not support derived columns : CTR"))
   }
 
-  test("Druid query should fail to generate with select query type when filter on derived fact requested") {
+  test("Druid query should fail to generate with scan query type when filter on derived fact requested") {
     val jsonString = s"""{
-                          "queryType": "select",
+                          "queryType": "scan",
                           "cube": "k_stats",
                           "selectFields": [
                             {"field": "Keyword ID"},
@@ -2711,12 +2680,12 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val requestModel = RequestModel.from(request, getDefaultRegistry())
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("query pipeline should fail"))
-    assert(queryPipelineTry.failed.toOption.get.getMessage.contains("druid select query type does not support filter on derived columns: CTR"))
+    assert(queryPipelineTry.failed.toOption.get.getMessage.contains("druid scan query type does not support filter on derived columns: CTR"))
   }
 
-  test("Druid query should fail to generate with select query type when using druid for dimension joins") {
+  test("Druid query should fail to generate with scan query type when using druid for dimension joins") {
     val jsonString = s"""{
-                          "queryType": "select",
+                          "queryType": "scan",
                           "cube": "k_stats",
                           "selectFields": [
                             {"field": "Campaign ID"},
@@ -2742,12 +2711,12 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
 
     assert(queryPipelineTry.isFailure, queryPipelineTry.errorMessage("query pipeline should fail"))
-    assert(queryPipelineTry.failed.toOption.get.getMessage.contains("requirement failed: druid select query type does not support druid lookups!"))
+    assert(queryPipelineTry.failed.toOption.get.getMessage.contains("requirement failed: druid scan query type does not support druid lookups!"))
   }
 
   test("dimension time extraction function for druid time when no timezone is specified in additional parameters") {
     val jsonString = s"""{
-                          "queryType": "select",
+                          "queryType": "groupby",
                           "cube": "k_stats_date_select",
                           "selectFields": [
                             {"field": "Day"},
@@ -2776,7 +2745,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
   test("dimension time extraction function for druid time when timezone is specified in the request") {
     val jsonString = s"""{
-                          "queryType": "select",
+                          "queryType": "groupby",
                           "cube": "k_stats_date_select",
                           "selectFields": [
                             {"field": "Day"},
@@ -2798,13 +2767,13 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
-    val json = """{"type":"extraction","dimension":"__time","outputName":"Day","outputType":"STRING","extractionFn":{"type":"timeFormat","format":"YYYY-MM-dd HH","timeZone":"America/Los_Angeles","granularity":{"type":"none"},"asMillis":false}}"""
+    val json = """__time","outputName":"Day","outputType":"STRING","extractionFn":{"type":"timeFormat","format":"YYYY-MM-dd HH","timeZone":"America/Los_Angeles","granularity":{"type":"none"},"asMillis":false}}"""
     assert(result.contains(json), result)
   }
 
   test("Filter on time dimension extracted using request context should render correctly") {
     val jsonString = s"""{
-                          "queryType": "select",
+                          "queryType": "scan",
                           "cube": "k_stats_date_select",
                           "selectFields": [
                             {"field": "Day"},
@@ -3077,6 +3046,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Hour", "operator": "=", "value": "10"},
                             {"field": "Advertiser ID", "operator": "=", "value": "12345"}
                           ],
                           "paginationStartIndex":20,

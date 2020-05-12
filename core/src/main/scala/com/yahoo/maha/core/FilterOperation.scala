@@ -14,14 +14,16 @@ import com.yahoo.maha.core.MetaType.MetaType
 import com.yahoo.maha.core.dimension.{DruidFuncDimCol, DruidPostResultFuncDimCol}
 import com.yahoo.maha.core.request.{Parameter, TimeZoneValue, fieldExtended}
 import grizzled.slf4j.Logging
-import io.druid.java.util.common.granularity.PeriodGranularity
-import io.druid.js.JavaScriptConfig
-import io.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec}
-import io.druid.query.extraction.{RegexDimExtractionFn, SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
-import io.druid.query.filter.JavaScriptDimFilter
-import io.druid.query.ordering.StringComparator
-import io.druid.query.ordering.StringComparators.{LexicographicComparator, NumericComparator}
+
+import org.apache.druid.java.util.common.granularity.PeriodGranularity
+import org.apache.druid.js.JavaScriptConfig
+import org.apache.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec}
+import org.apache.druid.query.extraction.{RegexDimExtractionFn, SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
+import org.apache.druid.query.filter.JavaScriptDimFilter
+import org.apache.druid.query.ordering.StringComparator
+import org.apache.druid.query.ordering.StringComparators.{LexicographicComparator, NumericComparator}
 import org.joda.time.{DateTimeZone, Period}
+
 
 import scala.collection.{Iterable, mutable}
 import scalaz.syntax.applicative._
@@ -756,9 +758,9 @@ object SqlIsNotNullFilterRenderer extends IsNotNullFilterRenderer[SqlResult] {
 }
 
 object FilterDruid {
-  import io.druid.query.filter.{DimFilter, NotDimFilter, OrDimFilter, SearchQueryDimFilter, SelectorDimFilter, BoundDimFilter, ColumnComparisonDimFilter}
-  import io.druid.query.groupby.having._
-  import io.druid.query.search.InsensitiveContainsSearchQuerySpec
+  import org.apache.druid.query.filter.{DimFilter, NotDimFilter, OrDimFilter, SearchQueryDimFilter, SelectorDimFilter, BoundDimFilter, ColumnComparisonDimFilter}
+  import org.apache.druid.query.groupby.having._
+  import org.apache.druid.query.search.InsensitiveContainsSearchQuerySpec
   import org.joda.time.DateTime
 
   import collection.JavaConverters._
@@ -1080,13 +1082,13 @@ object FilterDruid {
 
             val yearAndWeekFormattedValue = sotw.toFormattedString(value)
 
-            val exFn = new TimeDimExtractionFn(sourceDimColFormat, sotw.yearandWeekOfTheYearFormatForDruid)
+            val exFn = new TimeDimExtractionFn(sourceDimColFormat, sotw.yearandWeekOfTheYearFormatForDruid, false)
             new SelectorDimFilter(sourceDimCol.alias.getOrElse(sourceDimCol.name), yearAndWeekFormattedValue, exFn)
           }
           case sotm@START_OF_THE_MONTH(exp) => {
             val sourceDimCol = columnsByNameMap(sotm.colName)
             val sourceDimColFormat: String = getSourceDimColFormat(sourceDimCol)
-            val exFn = new TimeDimExtractionFn(sourceDimColFormat, sotm.startOfTheMonthFormat)
+            val exFn = new TimeDimExtractionFn(sourceDimColFormat, sotm.startOfTheMonthFormat, false)
             new SelectorDimFilter(sourceDimCol.alias.getOrElse(sourceDimCol.name), value, exFn)
           }
           case any => throw new UnsupportedOperationException(s"Unhandled druid post result func $any")
