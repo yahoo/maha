@@ -289,12 +289,12 @@ object DruidQueryExecutor extends Logging {
             }
           case other => throw new UnsupportedOperationException(s"Unexpected field in GroupByDruidQuery json response : $other")
         }
-      case ScanDruidQuery(_, _, _, _, _, _) =>
+      case SelectDruidQuery(_, _, _, _, _, _) =>
         val json = parse(jsonString)
         json match {
           case JArray(rows) =>
             if (query.queryContext.requestModel.isDebugEnabled) {
-              info(s"ScanQuery rows.size=${rows.size}")
+              info(s"SelectQuery rows.size=${rows.size}")
             }
             rows.foreach {
               case JObject(jobject) =>

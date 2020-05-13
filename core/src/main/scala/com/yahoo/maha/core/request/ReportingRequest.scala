@@ -40,13 +40,8 @@ case object RowCountQuery extends QueryType {
   val stringValue: String = "rowcount"
 }
 
-@Deprecated
 case object SelectQuery extends QueryType {
   val stringValue: String = "select"
-}
-
-case object ScanQuery extends QueryType {
-  val stringValue: String = "scan"
 }
 
 case class RequestContext(requestId: String, userId: String)
@@ -115,7 +110,7 @@ trait BaseRequest {
   val DEFAULT_CURATOR_JSON_CONFIG_MAP: JsonScalaz.Result[Map[String, CuratorJsonConfig]] = Map("default" -> CuratorJsonConfig(parse("""{}"""))).successNel
   val DEFAULT_PAGINATION_CONFIG: JsonScalaz.Result[PaginationConfig] = PaginationConfig(Map.empty).successNel
   val GROUPBY_QUERY: JsonScalaz.Result[QueryType] = GroupByQuery.successNel
-  val SCAN_QUERY: JsonScalaz.Result[QueryType] = ScanQuery.successNel
+  val SEARCH_QUERY: JsonScalaz.Result[QueryType] = SelectQuery.successNel
 
   protected[this] val factBiasOption : Option[Bias] = Option(FactBias)
 
@@ -368,8 +363,8 @@ object ReportingRequest extends BaseRequest {
           optionalQueryType.fold(GROUPBY_QUERY) {
             case GroupByQuery.stringValue =>
               GROUPBY_QUERY
-            case ScanQuery.stringValue =>
-              SCAN_QUERY
+            case SelectQuery.stringValue =>
+              SEARCH_QUERY
             case any =>
               UncategorizedError("queryType", s"unknown query type : $any", List.empty).asInstanceOf[JsonScalaz.Error].failureNel[QueryType]
           }

@@ -5,8 +5,8 @@ import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
-import org.apache.druid.query.lookup.LookupExtractor;
-import org.apache.druid.java.util.common.logger.Logger;
+import io.druid.query.lookup.LookupExtractor;
+import com.metamx.common.logger.Logger;
 
 import java.util.Map;
 
@@ -16,11 +16,11 @@ abstract public class MahaLookupExtractor extends LookupExtractor {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Nullable
-    public abstract String apply(@Nullable String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap);
+    public abstract String apply(@NotNull String key, @NotNull String valueColumn, DecodeConfig decodeConfig, Map<String, String> dimensionOverrideMap);
 
     @Nullable
     @Override
-    public String apply(@Nullable String key) {
+    public String apply(@NotNull String key) {
         try {
             if (key == null) {
                 return null;

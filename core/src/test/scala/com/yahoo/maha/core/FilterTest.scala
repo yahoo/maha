@@ -4,9 +4,9 @@ package com.yahoo.maha.core
 
 import com.yahoo.maha.core.dimension.DimCol
 import com.yahoo.maha.core.fact.ForceFilter
-import org.apache.druid.query.filter.{NotDimFilter, SearchQueryDimFilter}
-import org.apache.druid.query.search.InsensitiveContainsSearchQuerySpec
-import org.apache.druid.segment.filter.BoundFilter
+import io.druid.query.filter.{NotDimFilter, SearchQueryDimFilter}
+import io.druid.query.search.InsensitiveContainsSearchQuerySpec
+import io.druid.segment.filter.BoundFilter
 import org.joda.time.DateTime
 import org.json4s.JsonAST.{JArray, JObject, JString, JValue}
 import org.scalatest.{FunSuite, Matchers}
