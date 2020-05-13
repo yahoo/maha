@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.356-SNAPSHOT</version>
+        <version>5.357-SNAPSHOT</version>
     </parent>
 
     <name>maha core</name>
@@ -131,16 +131,22 @@
             <artifactId>jackson-dataformat-smile</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.druid</groupId>
+            <groupId>io.druid</groupId>
             <artifactId>druid-processing</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.druid</groupId>
+            <groupId>io.druid</groupId>
             <artifactId>druid-server</artifactId>
             <version>${druid.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.apache.druid.extensions</groupId>
+            <groupId>io.druid.extensions</groupId>
             <artifactId>druid-histogram</artifactId>
         </dependency>
         <dependency>
@@ -202,7 +208,7 @@
             <artifactId>commons-math3</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.druid.extensions</groupId>
+            <groupId>io.druid.extensions</groupId>
             <artifactId>druid-datasketches</artifactId>
             <version>${druid.version}</version>
         </dependency>

@@ -9,7 +9,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.druid.java.util.common.logger.Logger;
+import com.metamx.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.OnlineDatastoreExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 

@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JacksonInject;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
-import org.apache.druid.math.expr.ExprMacroTable;
-import org.apache.druid.query.aggregation.DoubleSumAggregatorFactory;
+import io.druid.math.expr.ExprMacroTable;
+import io.druid.query.aggregation.DoubleSumAggregatorFactory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
