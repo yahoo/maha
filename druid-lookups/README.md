@@ -7,6 +7,19 @@ An extension to druid which provides for MongoDB, JDBC and RocksDB (for high car
 * High cardinality support - Druid's default lookup extension provides both off-heap and on-heap implementations for simple key/value pair.  We extend this by allowing multiple columns and using RocksDB for on SSD lookups with off-heap LRU for high cardinality use cases.
 * Lookup service for real-time tasks - Provides a built in lookup service which is used to query lookups on historicals at query time for real-time tasks.  Otherwise, real-time tasks would have to keep local copy of all lookups and that can get costly if they are high cardinality.
 
+#### Assumptions:
+* You have some dimension dataset on HDFS in a readable format from a Java application(e.g. CSV, TSV, or some delimited format).
+* The dataset is snapshot of all dimension data at some interval. E.g. daily snapshot. Each how has the last updated timestamp column.
+* You have a Kafka topic with a TTL at slightly larger then the snapshot interval. E.g. snapshot is every 24 hours, the Kafka topic retains messages for 26 hours.
+* You have updates to the dimensions which you can publish to a kafka topic in the same key/value format you create the rocksdb instance (see below) with a valid last updated timestamp from your source of truth system.
+
+#### Steps:
+* Define your protobuf message format. Remember to include the last updated timestamp column. Create a jar library which has the java protobuf definitions so you can copy it to the druid historical nodes and put it in the druid libs folder.
+* Create a application which reads your dataset from HDFS and creates a rocksdb instance and inserts all the rows into the rocksdb instance in the same format as you expect to read it in maha druid lookups. E.g. the key would just be the String.getBytes() and the value would be the serialized protobuf bytes. Once all rows are inserted close the rocksDb instance, zip it up and upload it to HDFS path.
+* Schedule your application to run every day after your dimension snapshots are available.
+* Configure maha druid lookup extension on your historicals.
+* Register your lookup via the API
+
 ## Getting Started
 Here is tutorial of how to set up maha-druid-lookups as an extensions of Druid in your local box.  
 For convenience, we use `/druid` as our druid root path for the following document.
