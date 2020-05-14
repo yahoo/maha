@@ -3327,5 +3327,32 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val json = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"extraction","dimension":"__time","outputName":"Week Start","outputType":"STRING","extractionFn":\{"type":"timeFormat","format":"yyyy-MM-dd","timeZone":"UTC","granularity":"WEEK","asMillis":false\}\},\{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Impressions","fieldName":"impressions"\}\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":120\},"context":\{"applyLimitPushDown":"false","userId":"someUser","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\},"descending":false\}"""
     result should fullyMatch regex json
   }
+
+  test("Successfully generate a filter on an aggregated fact col even when the fact is not in the selected fields") {
+    val jsonString = s"""{
+                      "cube": "k_stats",
+                      "selectFields": [
+                        {"field": "Keyword ID"},
+                        {"field": "Keyword Value"},
+                        {"field": "Clicks"}
+                      ],
+                      "filterExpressions": [
+                        {"field": "Day", "operator": "=", "value": "$fromDate"},
+                        {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                        {"field": "Impressions", "operator": ">", "value": "5"}
+                      ],
+                      "paginationStartIndex":20,
+                      "rowsPerPage":100
+                    }"""
+
+    val request: ReportingRequest = getReportingRequestSyncWithAdditionalParameters(jsonString, RequestContext("abc123", "someUser"))
+    val requestModel = RequestModel.from(request, defaultRegistry)
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    println(result)
+    val json = """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"advertiser_id","value":"12345"\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"id","outputName":"Keyword ID","outputType":"STRING"\}\],"aggregations":\[\{"type":"longSum","name":"Clicks","fieldName":"clicks"\},\{"type":"longSum","name":"Impressions","fieldName":"impressions"\}\],"postAggregations":\[\],"having":\{"type":"and","havingSpecs":\[\{"type":"greaterThan","aggregation":"Impressions","value":5\}\]\},"limitSpec":\{"type":"default","columns":\[\],"limit":120\},"context":\{"applyLimitPushDown":"false","userId":"someUser","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":"abc123"\},"descending":false\}"""
+    result should fullyMatch regex json
+  }
 }
 
