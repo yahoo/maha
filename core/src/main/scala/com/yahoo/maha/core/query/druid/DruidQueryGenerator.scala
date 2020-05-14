@@ -1140,8 +1140,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     }
 
     val factCols = queryContext.factBestCandidate.factColMapping.toList.collect {
-      case (nonFkCol, alias) if queryContext.factBestCandidate.requestCols(nonFkCol) =>
-        (fact.columnsByNameMap(nonFkCol), alias)
+      case (nonFkCol, alias) => (fact.columnsByNameMap(nonFkCol), alias)
     }
 
     //render derived columns last
