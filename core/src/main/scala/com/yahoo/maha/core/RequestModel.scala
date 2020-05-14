@@ -464,7 +464,9 @@ object RequestModel extends Logging {
             initialMap ++ secondMap
           }
 
-          val colsWithRestrictedSchema: IndexedSeq[String] = requestedAliasList.collect {
+          val allFilters = request.filterExpressions.map(filter => filter.field)
+
+          val colsWithRestrictedSchema: IndexedSeq[String] = (requestedAliasList ++ allFilters).collect {
             case reqCol if (publicFact.restrictedSchemasMap.contains(reqCol)
               && !publicFact.restrictedSchemasMap(reqCol)(request.schema))
               => reqCol

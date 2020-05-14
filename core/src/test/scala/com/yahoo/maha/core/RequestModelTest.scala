@@ -141,7 +141,7 @@ class RequestModelTest extends FunSuite with Matchers {
           PubCol("price_type", "Pricing Type", InNotInBetweenEqualityNotEqualsGreaterLesser),
           PubCol("landing_page_url", "Destination URL", Set.empty),
           PubCol("network_type", "Network Type", InEqualityIsNotNullNotIn, restrictedSchemas = Set(AdvertiserSchema)),
-          PubCol("ad_format_id", "Ad Format Name", Set.empty, restrictedSchemas = Set(ResellerSchema)),
+          PubCol("ad_format_id", "Ad Format Name", Equality, restrictedSchemas = Set(ResellerSchema)),
           PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality),
           PubCol("device_type", "Device Type", In, incompatibleColumns = Set("Device ID")),
           PubCol("device_id", "Device ID", In, incompatibleColumns = Set("Device Type"))
@@ -149,7 +149,7 @@ class RequestModelTest extends FunSuite with Matchers {
         Set(
           PublicFactCol("impressions", "Impressions", InBetweenEquality),
           PublicFactCol("clicks", "Clicks", InEquality),
-          PublicFactCol("spend", "Spend", InBetweenEquality, restrictedSchemas = Set(ResellerSchema))
+          PublicFactCol("spend", "Spend", InBetweenEquality, restrictedSchemas = Set(ResellerSchema, AdvertiserSchema))
         ),
         forcedFilters,
         getMaxDaysWindow, getMaxDaysLookBack
@@ -4803,7 +4803,7 @@ class RequestModelTest extends FunSuite with Matchers {
     val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
     assert(res.isFailure, res.errorMessage("Create model succeeded even with forbidden schema "))
-    res.failed.get.getMessage should startWith ("requirement failed: ERROR_CODE:10007 (Ad Format Name, Spend) can't be used with advertiser schema in publicFact cube")
+    res.failed.get.getMessage should startWith ("requirement failed: ERROR_CODE:10007 (Ad Format Name) can't be used with advertiser schema in publicFact cube")
   }
 
   test("create model should succeed when public col with non forbidden schema is requested") {
@@ -5670,7 +5670,7 @@ class RequestModelTest extends FunSuite with Matchers {
       ,"""{"name":"network_type","alias":"Network Type","schemas":"List(advertiser)","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =, IsNotNull, Not In)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"status","alias":"Product Ad Status","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"id","alias":"Campaign ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
-      ,"""{"name":"ad_format_id","alias":"Ad Format Name","schemas":"List(reseller)","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set()","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"ad_format_id","alias":"Ad Format Name","schemas":"List(reseller)","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(=)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"status","alias":"Campaign Status","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"stats_date","alias":"Day","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, Between, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"landing_page_url","alias":"Destination URL","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set()","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
@@ -5695,7 +5695,7 @@ class RequestModelTest extends FunSuite with Matchers {
       ,"""{"name":"ad_id","alias":"Ad ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"name","alias":"Campaign Name","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =, Like)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"price_type","alias":"Pricing Type","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(<>, In, =, <, Between, Not In, >)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
-      ,"""{"name":"spend","alias":"Spend","schemas":"List(reseller)","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, Between, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"spend","alias":"Spend","schemas":"List(reseller, advertiser)","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, Between, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"impressions","alias":"Impressions","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, Between, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
     )
     
@@ -5727,8 +5727,8 @@ class RequestModelTest extends FunSuite with Matchers {
     val baseJsonsString = allOtherJSONS.map(json => compact(json)).mkString(",")
     //println("pubCols:\n" + allPubJSONs.map(json => "\"\"\"" + compact(json) + "\"\"\"").mkString("\n,"))
     //println("baseCols:\n" + allOtherJSONS.map(json => "\"\"\"" + compact(json) + "\"\"\"").mkString("\n,"))
-    assert(allPubCols.forall(pub => pubJsonsString.contains(pub)))
-    assert(allBaseCols.forall(base => baseJsonsString.contains(base)))
+    assert(allPubCols.forall(pub => pubJsonsString.contains(pub)), "Found: " + pubJsonsString)
+    assert(allBaseCols.forall(base => baseJsonsString.contains(base)), "Found: " + baseJsonsString)
   }
 
   test("""Should create a valid request model in an aliased fact""") {
@@ -5786,6 +5786,38 @@ class RequestModelTest extends FunSuite with Matchers {
 
 
 
+  }
+
+  test ("Restricted schema should fail on only bad filter.") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Pricing Type"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Ad Format Name", "operator": "=", "value": "Single image"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Campaign Status", "operator": "=", "value": "active"}
+                          ],
+                          "sortBy": [
+                              {"field": "Campaign ID", "order": "Asc"}
+                          ],
+                          "forceFactDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val res = RequestModel.from(request, registry)
+    assert(res.isFailure, "Request from Restricted Schema should fail on filter, even without filter requested.")
+
+    println(res.failed.get.getMessage)
+    res.failed.get.getMessage should startWith (s"requirement failed: ERROR_CODE:10007 (Ad Format Name) can't be used with advertiser schema in publicFact cube")
   }
 }
 
