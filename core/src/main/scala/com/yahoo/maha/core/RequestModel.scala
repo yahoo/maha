@@ -5,7 +5,7 @@ package com.yahoo.maha.core
 import com.yahoo.maha.core
 import com.yahoo.maha.core.MetaType.MetaType
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, CubeBucketSelected}
-import com.yahoo.maha.core.dimension.{PublicDim, PublicDimension}
+import com.yahoo.maha.core.dimension.{PublicDim, PublicDimension, RequiredAlias}
 import com.yahoo.maha.core.fact.{BestCandidates, PublicFact, PublicFactCol, PublicFactColumn}
 import com.yahoo.maha.core.registry.{FactRowsCostEstimate, Registry}
 import com.yahoo.maha.core.request.Parameter.Distinct
@@ -1084,7 +1084,10 @@ object RequestModel extends Logging {
           }
           val isDimOnlyQuery = dimensionCandidates.nonEmpty && bestCandidatesOption.isEmpty
           if(isDimOnlyQuery) {
-            validateRequiredFiltersForDimOnlyQuery(filterMap, dimensionCandidates, request)
+            val requiredAliasSet = dimensionCandidates.flatMap(dc=> {
+              dc.dim.foreignKeySources.map(fks => registry.getDimensionWithRevMap(fks, Some(publicFact.dimRevision), publicFact.dimToRevisionMap))
+            }).filter(_.isDefined).map(_.get.schemaRequiredAlias(request.schema)).filter(_.isDefined).map(_.get)
+            validateRequiredFiltersForDimOnlyQuery(filterMap, requiredAliasSet.toSet, request)
           }
 
           // All Dim only queries are by default dim driven
@@ -1146,9 +1149,8 @@ object RequestModel extends Logging {
     }
   }
 
-  private[this] def validateRequiredFiltersForDimOnlyQuery(filterMap:mutable.HashMap[String, Filter], dimensionCandidates:SortedSet[DimensionCandidate], request:ReportingRequest): Unit = {
-    val requiredFilters = dimensionCandidates.flatMap(dc=> dc.dim.schemaRequiredAlias(request.schema))
-    requiredFilters.foreach(
+  private[this] def validateRequiredFiltersForDimOnlyQuery(filterMap:mutable.HashMap[String, Filter],requiredAliasSet:Set[RequiredAlias], request:ReportingRequest): Unit = {
+    requiredAliasSet.foreach(
       reqAlias => {
         require(filterMap.contains(reqAlias.alias), s"Missing Dim Only query Schema(${request.schema}) required filter on '${reqAlias.alias}'")
         val filter = filterMap.get(reqAlias.alias).get

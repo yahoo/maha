@@ -135,7 +135,7 @@ class RequestModelTest extends FunSuite with Matchers {
           PubCol("ad_group_id", "Ad Group ID", InEquality),
           PubCol("ad_id", "Ad ID", InEquality),
           PubCol("campaign_id", "Campaign ID", InEquality),
-          PubCol("advertiser_id", "Advertiser ID", InEquality),
+          PubCol("advertiser_id", "Advertiser ID", InNotInEquality),
           PubCol("product_ad_id", "Product Ad ID", InEquality),
           PubCol("stats_source", "Source", Equality),
           PubCol("price_type", "Pricing Type", InNotInBetweenEqualityNotEqualsGreaterLesser),
@@ -405,7 +405,7 @@ class RequestModelTest extends FunSuite with Matchers {
         "campaign",
         Set(
           PubCol("id", "Campaign ID", InEquality)
-          , PubCol("advertiser_id", "Advertiser ID", InEquality)
+          , PubCol("advertiser_id", "Advertiser ID", InNotInEquality)
           , PubCol("status", "Campaign Status", InEquality)
           , PubCol("name", "Campaign Name", InEqualityLike)
         ), highCardinalityFilters = Set(NotInFilter("Campaign Status", List("DELETED")))
@@ -427,7 +427,7 @@ class RequestModelTest extends FunSuite with Matchers {
       ).toPublicDimension("advertiser",
         "advertiser",
         Set(
-          PubCol("id", "Advertiser ID", InEquality)
+          PubCol("id", "Advertiser ID", InNotInEquality)
           , PubCol("status", "Advertiser Status", InEquality)
           , PubCol("name", "Advertiser Name", InEquality)
           , PubCol("email", "Advertiser Email", InEquality, restrictedSchemas = Set(InternalSchema))
@@ -5683,14 +5683,14 @@ class RequestModelTest extends FunSuite with Matchers {
       ,"""{"name":"name","alias":"Ad Group Name","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"stats_source","alias":"Source","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(=)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"status","alias":"Advertiser Status","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
-      ,"""{"name":"advertiser_id","alias":"Advertiser ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"advertiser_id","alias":"Advertiser ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, Not In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"status","alias":"Ad Group Status","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"email","alias":"Advertiser Email","schemas":"List(internal)","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"product_ad_id","alias":"Product Ad ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"id","alias":"Ad ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"ad_group_id","alias":"Ad Group ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"campaign_id","alias":"Campaign ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
-      ,"""{"name":"id","alias":"Advertiser ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"id","alias":"Advertiser ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, Not In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"device_id","alias":"Device ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set(Device Type)","filters":"Set(In)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"ad_id","alias":"Ad ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
       ,"""{"name":"name","alias":"Campaign Name","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =, Like)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
@@ -5828,7 +5828,6 @@ class RequestModelTest extends FunSuite with Matchers {
                               {"field": "Campaign Name"}
                           ],
                           "filterExpressions": [
-
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                           ],
                           "forceDimDriven": true,
@@ -5842,6 +5841,53 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(res.isFailure, "should fail on not having filter on Advertiser iD")
     res.failed.get.getMessage should startWith (s"requirement failed: Missing Dim Only query Schema(advertiser) required filter on 'Advertiser ID'")
   }
+
+  test ("Dim Only query Schema required filter validation with invalid injection filter") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Advertiser Name"},
+                              {"field": "Campaign Name"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "Not In", "values": ["12345"]},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "forceDimDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, AdvertiserSchema)
+    val registry = defaultRegistry
+    val res = RequestModel.from(request, registry)
+    assert(res.isFailure, "should fail on not having filter on Advertiser iD")
+    res.failed.get.getMessage should startWith (s"requirement failed: Invalid Schema Required Filter Advertiser ID operation, expected at least one of set(In,=), found Not In")
+  }
+
+  test ("Dim Only query Schema required filter: Success") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Advertiser Name"},
+                              {"field": "Campaign Name"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "forceDimDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, AdvertiserSchema)
+    val registry = defaultRegistry
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess, "should fail not fail on having filter on Advertiser iD")
+  }
+
+
 
 }
 
