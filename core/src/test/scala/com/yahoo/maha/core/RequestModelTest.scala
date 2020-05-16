@@ -5819,5 +5819,29 @@ class RequestModelTest extends FunSuite with Matchers {
     println(res.failed.get.getMessage)
     res.failed.get.getMessage should startWith (s"requirement failed: ERROR_CODE:10007 (Ad Format Name) can't be used with advertiser schema in publicFact cube")
   }
+
+  test ("Dim Only query Schema required filter validation") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Advertiser Name"},
+                              {"field": "Campaign Name"}
+                          ],
+                          "filterExpressions": [
+
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "forceDimDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, AdvertiserSchema)
+    val registry = defaultRegistry
+    val res = RequestModel.from(request, registry)
+    assert(res.isFailure, "should fail on not having filter on Advertiser iD")
+    res.failed.get.getMessage should startWith (s"requirement failed: Missing Dim Only query Schema(advertiser) required filter on 'Advertiser ID'")
+  }
+
 }
 
