@@ -10,7 +10,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.359-SNAPSHOT</version>
+        <version>5.360-SNAPSHOT</version>
     </parent>
 
     <name>maha postgres executor</name>
