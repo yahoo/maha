@@ -3863,6 +3863,77 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     result should equal (expected)(after being whiteSpaceNormalised)
   }
 
+  test("PowerEditor : Use case Dim Only Query Ad Level") {
+    val jsonString = s"""{
+                           "cube": "performance_stats",
+                           "selectFields": [
+                             {
+                               "field": "Ad Group ID",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Campaign Name",
+                               "alias": null,
+                               "value": null
+                             },
+                             {
+                               "field": "Ad Title",
+                               "alias": null,
+                               "value": null
+                             }
+                           ],
+                           "filterExpressions": [
+                             {"operator": "outer", "outerFilters": [
+                                  {"field": "Ad Group ID", "operator": "isnull"}
+                                  ]
+                             },
+                              {"field": "Campaign Status", "operator": "=", "value": "ON"},
+                              {"field": "Reseller ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                           ],
+                           "forceDimensionDriven": true
+                         }"""
+
+    val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), ResellerSchema).toOption.get
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+    val expected = s"""
+                      |SELECT  *
+                      |      FROM (SELECT ado2.ad_group_id "Ad Group ID", co1.campaign_name "Campaign Name", ado2.title "Ad Title", ROWNUM as ROW_NUMBER
+                      |            FROM
+                      |               ( (SELECT  campaign_id, id, title, ad_group_id, advertiser_id
+                      |            FROM ad_dim_oracle
+                      |
+                      |             ) ado2
+                      |          INNER JOIN
+                      |            (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
+                      |            FROM campaign_oracle
+                      |            WHERE (DECODE(status, 'ON', 'ON', 'OFF') = 'ON')
+                      |             ) co1
+                      |              ON( ado2.advertiser_id = co1.advertiser_id AND ado2.campaign_id = co1.id )
+                      |               INNER JOIN
+                      |            (SELECT  id
+                      |            FROM advertiser_oracle
+                      |            WHERE (managed_by = 12345)
+                      |             ) ao0
+                      |              ON( co1.advertiser_id = ao0.id )
+                      |               )
+                      |
+                      |           )
+                      |            WHERE ( "Ad Group ID"   IS NULL) AND ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+                      |""".stripMargin
+
+
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
   test("where clause: ensure duplicate filter mappings are not propagated into the where clause") {
     val jsonString = s"""{
                           "cube": "k_stats",
