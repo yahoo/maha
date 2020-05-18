@@ -376,7 +376,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     assert(result.contains("'2' mang_source"), "No constant field in outer columns")
   }
@@ -410,7 +410,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
         val expected =
           s"""
@@ -475,7 +475,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -544,7 +544,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -615,7 +615,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -686,7 +686,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -770,7 +770,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     assert(!result.contains("OgbQueryAlias"))
   }
@@ -823,7 +823,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -905,7 +905,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -982,7 +982,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -1051,7 +1051,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -1123,7 +1123,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -1195,7 +1195,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -1264,7 +1264,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -1343,7 +1343,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -1435,7 +1435,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -1533,7 +1533,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -1601,7 +1601,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -1662,7 +1662,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -1727,7 +1727,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -1796,7 +1796,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -1863,7 +1863,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -1929,7 +1929,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -2004,7 +2004,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     assert(result.contains("'2' AS mang_source"), "No constant field in outer columns")
   }
@@ -2043,7 +2043,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -2114,7 +2114,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -2179,7 +2179,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""

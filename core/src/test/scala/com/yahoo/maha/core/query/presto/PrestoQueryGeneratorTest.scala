@@ -380,7 +380,7 @@ ORDER BY mang_impressions ASC
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     assert(result.contains("'2' mang_source"), "No constant field in outer columns")
   }
@@ -414,7 +414,7 @@ ORDER BY mang_impressions ASC
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
         val expected =
           s"""
@@ -479,7 +479,7 @@ ORDER BY mang_impressions ASC
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
-    println(result)
+
 
     val expected =
       s"""SELECT CAST(mang_campaign_name as VARCHAR) AS mang_campaign_name, CAST(mang_spend as VARCHAR) AS mang_spend

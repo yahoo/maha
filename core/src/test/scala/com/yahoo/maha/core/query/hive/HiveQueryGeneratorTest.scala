@@ -820,7 +820,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
 
-    println(result)
+
 
     val expected =
       s"""
@@ -891,7 +891,7 @@ class HiveQueryGeneratorTest extends BaseHiveQueryGeneratorTest {
     |
     |GROUP BY c1.mang_campaign_name) outergroupby
     |)""".stripMargin
-    println(result)
+
     result should equal(expected)(after being whiteSpaceNormalised)
   }
 

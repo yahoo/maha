@@ -5662,7 +5662,7 @@ class RequestModelTest extends FunSuite with Matchers {
     val fkCols = fkTables.flatMap(dim => dim.columnsByAliasMap.map(_._2))
     val allPubJSONs: Set[JObject] = (pubFactCols ++ pubDimCols ++ fkCols).map(col => col.asJSON)
     val allOtherJSONS: Set[JObject] = (pubFact.get.baseFact.dimCols ++ pubFact.get.baseFact.factCols).map(col => col.asJSON)
-    println(s"""All tables with fact ${pubFact.get.name}: ${fkTableNames.mkString(",")}""")
+    //println(s"""All tables with fact ${pubFact.get.name}: ${fkTableNames.mkString(",")}""")
 
     val allPubCols: List[String] = List(
       """{"name":"device_type","alias":"Device Type","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set(Device ID)","filters":"Set(In)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
