@@ -3017,7 +3017,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100
        """.stripMargin
 
-    println(result)
+
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -6029,7 +6029,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     }))
     assert(postRowResult.rowList.forall(row => expectedUnmergedRowList.contains(row.toString)))
 
-    println(result)
+
 
   }
 

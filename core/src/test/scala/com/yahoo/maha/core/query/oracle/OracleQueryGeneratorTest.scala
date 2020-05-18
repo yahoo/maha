@@ -3093,7 +3093,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |   ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
        """.stripMargin
 
-    println(result)
+
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -6181,7 +6181,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     }))
     assert(postRowResult.rowList.forall(row => expectedUnmergedRowList.contains(row.toString)))
 
-    println(result)
+
 
   }
 

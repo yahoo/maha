@@ -643,7 +643,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
+
 
         val expected =
           s"""
@@ -1345,7 +1345,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     val queryChain = queryPipelineTry.toOption.get.queryChain
 
     val result =  queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-    println(result)
+
 
     val expected =
       s"""
@@ -1416,7 +1416,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     val result =  queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
     assert(queryChain.drivingQuery.queryGenVersion.isDefined)
     assert(queryChain.drivingQuery.queryGenVersion.get == Version.v2)
-    println(result)
+
     val expected =
       s"""
          |SELECT CONCAT_WS(',', CAST(NVL(mang_average_cpc,'') AS STRING),CAST(NVL(mang_average_position,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING))

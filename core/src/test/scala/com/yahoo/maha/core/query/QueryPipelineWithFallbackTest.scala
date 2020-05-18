@@ -111,7 +111,7 @@ class QueryPipelineWithFallbackTest extends FunSuite with Matchers with BeforeAn
 
     val oracleExecutor = new MockOracleQueryExecutor(
       { rl =>
-        println(rl.query.asString)
+        //println(rl.query.asString)
         val expected =
           s"""
              |SELECT *
