@@ -1084,10 +1084,13 @@ object RequestModel extends Logging {
           }
           val isDimOnlyQuery = dimensionCandidates.nonEmpty && bestCandidatesOption.isEmpty
           if (isDimOnlyQuery) {
-            val requiredAliasSet = dimensionCandidates.flatMap(dc=> {
+            val requiredAliasSetFromRelatedDims = dimensionCandidates.flatMap(dc=> {
               dc.dim.foreignKeySources.map(fks => registry.getDimensionWithRevMap(fks, Some(publicFact.dimRevision), publicFact.dimToRevisionMap))
             }).filter(_.isDefined).map(_.get.schemaRequiredAlias(request.schema)).filter(_.isDefined).map(_.get)
-            validateRequiredFiltersForDimOnlyQuery(filterMap, requiredAliasSet.toSet, request)
+
+            val selfDimSchemaRequiredAlias = dimensionCandidates.map(_.dim.schemaRequiredAlias(request.schema)).filter(_.isDefined).map(_.get)
+
+            validateRequiredFiltersForDimOnlyQuery(filterMap, (requiredAliasSetFromRelatedDims ++ selfDimSchemaRequiredAlias).toSet , request)
           }
           
           // All Dim only queries are by default dim driven

@@ -5887,7 +5887,48 @@ class RequestModelTest extends FunSuite with Matchers {
     assert(res.isSuccess, "should fail not fail on having filter on Advertiser iD")
   }
 
+  test ("Dim Only query Schema required filter: Self Dim check") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Advertiser Name"},
+                              {"field": "Advertiser ID"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "forceDimDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
 
+    val request: ReportingRequest = getReportingRequestSync(jsonString, AdvertiserSchema)
+    val registry = defaultRegistry
+    val res = RequestModel.from(request, registry)
+    assert(res.isFailure, s"should fail on not having filter on Advertiser iD ${}")
+    assert(res.failed.get.getMessage.contains("requirement failed: Missing Dim Only query Schema(advertiser) required filter on 'Advertiser ID'"))
+  }
 
+    test ("Dim Only query Schema required filter: Self Dim check: Success") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Advertiser Name"},
+                              {"field": "Advertiser ID"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "forceDimDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, AdvertiserSchema)
+    val registry = defaultRegistry
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess, s"should not fail on having filter on Advertiser ID")
+  }
 }
 
