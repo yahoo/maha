@@ -21,7 +21,7 @@
         <scoverage.aggregate>true</scoverage.aggregate>
         <scoverage.minimum.coverage>90</scoverage.minimum.coverage>
         <target_jdk_version>1.8</target_jdk_version>
-        <maven-surefire-plugin.version>2.20.1</maven-surefire-plugin.version>
+        <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
         <maven-surefire-report-plugin.version>${maven-surefire-plugin.version}</maven-surefire-report-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <scala.major.version>2.12</scala.major.version>
@@ -43,7 +43,7 @@
         <logback.version>1.2.3</logback.version>
         <junit.version>4.12</junit.version>
         <mockito.version>1.10.19</mockito.version>
-        <maven.compiler.plugin.version>3.7.0</maven.compiler.plugin.version>
+        <maven.compiler.plugin.version>3.8.1</maven.compiler.plugin.version>
         <scoverage.plugin.version>1.4.1</scoverage.plugin.version>
         <enforcer.skip>true</enforcer.skip>
         <log4j2.version>2.3</log4j2.version>
