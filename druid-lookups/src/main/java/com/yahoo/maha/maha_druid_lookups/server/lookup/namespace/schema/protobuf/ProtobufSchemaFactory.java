@@ -5,8 +5,9 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.BaseSchemaFactory;
 
-public interface ProtobufSchemaFactory {
+public interface ProtobufSchemaFactory extends BaseSchemaFactory {
 
     Descriptors.Descriptor getProtobufDescriptor(final String messageType);
 

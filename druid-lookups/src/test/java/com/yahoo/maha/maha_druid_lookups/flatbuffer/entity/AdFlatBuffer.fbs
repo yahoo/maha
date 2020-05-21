@@ -1,0 +1,12 @@
+namespace com.yahoo.maha.maha_druid_lookups.flatbuffer.entity;
+
+table ProductAd {
+         id : integer;
+         description : string;
+         status : string;
+         image_url_hq : string;
+         image_url_large : string;
+         source_id : string;
+         title : string;
+}
+root_type ProductAd;
