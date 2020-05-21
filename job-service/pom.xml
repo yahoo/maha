@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.362-SNAPSHOT</version>
+        <version>5.363-SNAPSHOT</version>
     </parent>
 
     <name>maha job service</name>
