@@ -1,8 +1,7 @@
-package com.yahoo.maha.maha_druid_lookups.flatbuffer.entity;
+package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.flatbuffers.Table;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferWrapper;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
