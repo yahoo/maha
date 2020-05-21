@@ -4,9 +4,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.flatbuffers.Table;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferWrapper;
 
+import java.nio.ByteBuffer;
 import java.util.Map;
 
-public class ProductAdWrapper implements FlatBufferWrapper {
+public class ProductAdWrapper extends FlatBufferWrapper {
 
     Map<String, Integer> fieldNameToOffsetMap = ImmutableMap.<String, Integer> builder()
             .put("id", 0)
@@ -48,5 +49,10 @@ public class ProductAdWrapper implements FlatBufferWrapper {
             default:
                 return null;
         }
+    }
+
+    @Override
+    public Table getFlatBuffer(byte[] flatBufferBytes) {
+        return ProductAd.getRootAsProductAd(ByteBuffer.wrap(flatBufferBytes));
     }
 }

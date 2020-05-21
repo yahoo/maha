@@ -6,6 +6,7 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.BaseSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
 
 import java.util.Optional;
@@ -19,7 +20,7 @@ public class NoopCacheActionRunner extends CacheActionRunner {
             , Optional<String> valueColumn
             , final Optional<DecodeConfig> decodeConfigOptional
             , RocksDBManager rocksDBManager
-            , ProtobufSchemaFactory protobufSchemaFactory
+            , BaseSchemaFactory schemaFactory
             , LookupService lookupService
             , ServiceEmitter emitter
             , RocksDBExtractionNamespace extractionNamespace){
@@ -28,7 +29,7 @@ public class NoopCacheActionRunner extends CacheActionRunner {
     }
 
     @Override
-    public void updateCache(ProtobufSchemaFactory protobufSchemaFactory
+    public void updateCache(BaseSchemaFactory schemaFactory
             , final String key
             , final byte[] value
             , RocksDBManager rocksDBManager
