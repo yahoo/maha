@@ -3,12 +3,8 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.protobuf.Descriptors;
 import com.google.protobuf.GeneratedMessageV3;
-import com.google.protobuf.Message;
-import com.google.protobuf.Parser;
-
-import java.util.Map;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.DefaultProtobufSchemaFactory;
 
 public class TestProtobufSchemaFactory extends DefaultProtobufSchemaFactory {
     public TestProtobufSchemaFactory() {

@@ -72,7 +72,7 @@ Here we take advantage of config files under `/druid/conf-quickstart`, which is 
 druid.lookup.maha.namespace.authHeaderFactory=com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.NoopAuthHeaderFactory
 
 # This is your implementation of protobuf schema factory, only needed for RocksDB based lookups which require protobuf schema
-druid.lookup.maha.namespace.schemaFactory=com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopProtobufSchemaFactory
+druid.lookup.maha.namespace.schemaFactory=com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.NoopProtobufSchemaFactory
 
 # This is the scheme used by the lookup service, which is used by real-time nodes for looking up on historicals.  Set this to https if using secured druid.
 druid.lookup.maha.namespace.lookupService.service_scheme=http

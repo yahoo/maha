@@ -8,7 +8,7 @@ import java.util.*;
 import com.google.flatbuffers.*;
 
 @SuppressWarnings("unused")
-public final class ProductAd extends Table {
+public class ProductAd extends Table {
   public static void ValidateVersion() { Constants.FLATBUFFERS_1_12_0(); }
   public static ProductAd getRootAsProductAd(ByteBuffer _bb) { return getRootAsProductAd(_bb, new ProductAd()); }
   public static ProductAd getRootAsProductAd(ByteBuffer _bb, ProductAd obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
