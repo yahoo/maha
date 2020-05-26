@@ -70,7 +70,7 @@ public class MahaLookupExtractionFactoryTest extends TestMongoServer {
         injector = Initialization.makeInjectorWithModules(
                 injector,
                 ImmutableList.of(
-                        new Module() {
+                        new com.google.inject.Module() {
                             @Override
                             public void configure(Binder binder) {
                                 JsonConfigProvider.bindInstance(

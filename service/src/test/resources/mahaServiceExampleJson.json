@@ -143,6 +143,23 @@
         ]
       }
     },
+    "postgres2": {
+      "factoryClass": "com.yahoo.maha.service.factory.PostgresQueryGeneratorFactory",
+      "config": {
+        "partitionColumnRendererClass": "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
+        "partitionColumnRendererConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "literalMapperClass": "com.yahoo.maha.service.factory.DefaultPostgresLiteralMapperUsingDriverFactory",
+        "literalMapperConfig": [
+          {
+            "key": "value"
+          }
+        ]
+      }
+    },
     "oracle": {
       "factoryClass": "com.yahoo.maha.service.factory.OracleQueryGeneratorFactory",
       "config": {
