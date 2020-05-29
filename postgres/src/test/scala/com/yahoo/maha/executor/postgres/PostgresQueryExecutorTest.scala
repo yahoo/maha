@@ -21,12 +21,15 @@ import com.yahoo.maha.executor.MockDruidQueryExecutor
 import com.yahoo.maha.jdbc._
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.apache.commons.lang3.StringUtils
+import org.apache.druid.common.config.NullHandling
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 /**
  * Created by hiral on 1/25/16.
  */
 class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest {
+
+  NullHandling.initializeForTests()
 
   override protected def defaultFactEngine: Engine = PostgresEngine
 

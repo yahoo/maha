@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.fasterxml.jackson.datatype.joda.deser.DurationDeserializer;
 import com.fasterxml.jackson.datatype.joda.deser.PeriodDeserializer;
 import com.fasterxml.jackson.datatype.joda.deser.key.DateTimeKeyDeserializer;
-import io.druid.jackson.DefaultObjectMapper;
+import org.apache.druid.jackson.DefaultObjectMapper;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.Interval;
