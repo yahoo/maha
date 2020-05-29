@@ -223,7 +223,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
 
-    println(result)
+
 
     val expected =
       s"""
@@ -411,7 +411,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
 
-    println(result)
+
     assert(result.contains("(lower(campaign_name) LIKE lower('%yahoo%'))"))
     val expected =
       s"""
@@ -992,7 +992,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     val result = generateHiveQuery(jsonString, defaultRegistry)
     assert(!result.contains("OgbQueryAlias"))
 
-    println(result)
+
     val expected =
       """
         |
@@ -1538,7 +1538,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                            ]
                            }""".stripMargin
     val result = generateHiveQuery(jsonString, defaultRegistry)
-    println(result)
+
     val expected =
       s"""
          |SELECT CONCAT_WS(',', CAST(NVL(mang_ad_status,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(campaign_id,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING),CAST(NVL(mang_engagement_rate,'') AS STRING),CAST(NVL(mang_paid_engagement_rate,'') AS STRING))
@@ -1624,7 +1624,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
                            ]
                            }""".stripMargin
     val result = generateHiveQuery(jsonString, defaultRegistry)
-    println(result)
+
     val expected =
       s"""
          |SELECT CONCAT_WS(',', CAST(NVL(mang_ad_status,'') AS STRING),CAST(NVL(ad_group_id,'') AS STRING),CAST(NVL(advertiser_id,'') AS STRING),CAST(NVL(mang_campaign_name,'') AS STRING),CAST(NVL(campaign_id,'') AS STRING),CAST(NVL(mang_spend,'') AS STRING),CAST(NVL(mang_engagement_rate,'') AS STRING),CAST(NVL(mang_paid_engagement_rate,'') AS STRING))
@@ -1681,7 +1681,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
     println(s"got json $requestJson")
-    println(result)
+
     result
   }
 

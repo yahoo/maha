@@ -2,7 +2,9 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Strings;
 import com.google.protobuf.Descriptors;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
@@ -45,12 +47,12 @@ public class CacheActionRunner {
                 }
                 Message message = parser.parseFrom(cacheByteValue);
                 LOG.debug("parsed message: %s", message.toString());
-                if (valueColumn.isPresent() && !decodeConfigOptional.isPresent()) {
-                    Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
+                Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
+                if (!decodeConfigOptional.isPresent()) {
                     Descriptors.FieldDescriptor field = descriptor.findFieldByName(valueColumn.get());
                     return (field == null) ? new byte[0] : message.getField(field).toString().getBytes();
-                } else {
-                    return message.toByteArray();
+                } else { //handle decodeConfig
+                    return handleDecode(decodeConfigOptional.get(), message, descriptor).getBytes();
                 }
             }
         } catch (Exception e) {
@@ -58,6 +60,23 @@ public class CacheActionRunner {
             emitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_GET_CACHE_VALUE_FAILURE, 1));
         }
         return null;
+    }
+
+    public String handleDecode(DecodeConfig decodeConfig, Message parsedMessage, Descriptors.Descriptor descriptor) throws Exception {
+
+        try {
+            Descriptors.FieldDescriptor columnToCheckField = descriptor.findFieldByName(decodeConfig.getColumnToCheck());
+            if (decodeConfig.getValueToCheck().equals(parsedMessage.getField(columnToCheckField).toString())) {
+                Descriptors.FieldDescriptor columnIfValueMatchedField = descriptor.findFieldByName(decodeConfig.getColumnIfValueMatched());
+                return Strings.emptyToNull(parsedMessage.getField(columnIfValueMatchedField).toString());
+            } else {
+                Descriptors.FieldDescriptor columnIfValueNotMatched = descriptor.findFieldByName(decodeConfig.getColumnIfValueNotMatched());
+                return Strings.emptyToNull(parsedMessage.getField(columnIfValueNotMatched).toString());
+            }
+        } catch (Exception e ) {
+            LOG.error(e, "Caught exception while handleDecode");
+            throw e;
+        }
     }
 
     synchronized public void updateCache(ProtobufSchemaFactory protobufSchemaFactory

@@ -306,6 +306,14 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
     }
   }
 
+  def getDimensionWithRevMap(name: String, revision: Option[Int] = None, dimRevisionMap:Map[String, Int]): Option[PublicDimension] = {
+    if (dimRevisionMap.contains(name)) {
+      getDimension(name, dimRevisionMap.get(name))
+    } else {
+      getDimension(name, revision)
+    }
+  }
+
   def getPrimaryKeyAlias(publicFactName: String, revision: Option[Int], attribute: String): Option[String] = {
     dimColToKeyMap.get(attribute) orElse cubeDimColToKeyMap.get((publicFactName, attribute)) orElse {
       val rev = revision.getOrElse(defaultPublicFactRevisionMap(publicFactName))

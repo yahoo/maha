@@ -3017,7 +3017,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100
        """.stripMargin
 
-    println(result)
+
     result should equal (expected) (after being whiteSpaceNormalised)
   }
 
@@ -3741,7 +3741,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                                   ]
                              },
                               {"field": "Campaign Status", "operator": "=", "value": "ON"},
-                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Reseller ID", "operator": "=", "value": "12345"},
                               {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
                            ],
                            "forceDimensionDriven": true
@@ -3759,18 +3759,24 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected = s"""
                       |SELECT  *
-                      |      FROM (SELECT cp0.id "Campaign ID", cp0.campaign_name "Campaign Name", agp1.id "Ad Group ID", ROW_NUMBER() OVER() AS ROWNUM
+                      |      FROM (SELECT cp1.id "Campaign ID", cp1.campaign_name "Campaign Name", agp2.id "Ad Group ID", ROW_NUMBER() OVER() AS ROWNUM
                       |            FROM
-                      |               ( (SELECT  campaign_id, id, advertiser_id
+                      |               ( (SELECT  advertiser_id, campaign_id, id
                       |            FROM ad_group_postgres
-                      |            WHERE (advertiser_id = 12345)
-                      |             ) agp1
+                      |
+                      |             ) agp2
                       |          INNER JOIN
-                      |            (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
+                      |            (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
                       |            FROM campaign_postgres
-                      |            WHERE (advertiser_id = 12345) AND (CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END = 'ON')
-                      |             ) cp0
-                      |              ON( agp1.advertiser_id = cp0.advertiser_id AND agp1.campaign_id = cp0.id )
+                      |            WHERE (CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END = 'ON')
+                      |             ) cp1
+                      |              ON( agp2.advertiser_id = cp1.advertiser_id AND agp2.campaign_id = cp1.id )
+                      |               INNER JOIN
+                      |            (SELECT  id
+                      |            FROM advertiser_postgres
+                      |            WHERE (managed_by = 12345)
+                      |             ) ap0
+                      |              ON( cp1.advertiser_id = ap0.id )
                       |               )
                       |
                       |           ) sqalias1
@@ -6023,7 +6029,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     }))
     assert(postRowResult.rowList.forall(row => expectedUnmergedRowList.contains(row.toString)))
 
-    println(result)
+
 
   }
 

@@ -56,7 +56,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
     config.setUsername("postgres")
     config.setPassword("")
     config.setMaximumPoolSize(1)
-    PostgresQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer)
+    PostgresQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, new PostgresLiteralMapperUsingDriver)
     DruidQueryGenerator.register(queryGeneratorRegistry)
     dataSource = Option(new HikariDataSource(config))
     jdbcConnection = dataSource.map(new JdbcConnection(_))

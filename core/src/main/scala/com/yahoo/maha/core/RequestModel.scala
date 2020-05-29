@@ -5,7 +5,7 @@ package com.yahoo.maha.core
 import com.yahoo.maha.core
 import com.yahoo.maha.core.MetaType.MetaType
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, CubeBucketSelected}
-import com.yahoo.maha.core.dimension.PublicDimension
+import com.yahoo.maha.core.dimension.{PublicDim, PublicDimension, RequiredAlias}
 import com.yahoo.maha.core.fact.{BestCandidates, PublicFact, PublicFactCol, PublicFactColumn}
 import com.yahoo.maha.core.registry.{FactRowsCostEstimate, Registry}
 import com.yahoo.maha.core.request.Parameter.Distinct
@@ -464,7 +464,9 @@ object RequestModel extends Logging {
             initialMap ++ secondMap
           }
 
-          val colsWithRestrictedSchema: IndexedSeq[String] = requestedAliasList.collect {
+          val allFilters = request.filterExpressions.map(filter => filter.field)
+
+          val colsWithRestrictedSchema: IndexedSeq[String] = (requestedAliasList ++ allFilters).collect {
             case reqCol if (publicFact.restrictedSchemasMap.contains(reqCol)
               && !publicFact.restrictedSchemasMap(reqCol)(request.schema))
               => reqCol
@@ -1081,7 +1083,16 @@ object RequestModel extends Logging {
             DimensionRelations(relations)
           }
           val isDimOnlyQuery = dimensionCandidates.nonEmpty && bestCandidatesOption.isEmpty
+          if (isDimOnlyQuery) {
+            val requiredAliasSetFromRelatedDims = dimensionCandidates.flatMap(dc=> {
+              dc.dim.foreignKeySources.map(fks => registry.getDimensionWithRevMap(fks, Some(publicFact.dimRevision), publicFact.dimToRevisionMap))
+            }).filter(_.isDefined).map(_.get.schemaRequiredAlias(request.schema)).filter(_.isDefined).map(_.get)
 
+            val selfDimSchemaRequiredAlias = dimensionCandidates.map(_.dim.schemaRequiredAlias(request.schema)).filter(_.isDefined).map(_.get)
+
+            validateRequiredFiltersForDimOnlyQuery(filterMap, (requiredAliasSetFromRelatedDims ++ selfDimSchemaRequiredAlias).toSet , request)
+          }
+          
           // All Dim only queries are by default dim driven
           val forceDimensionDriven:Boolean = if(isDimOnlyQuery) {
             true
@@ -1139,6 +1150,16 @@ object RequestModel extends Logging {
            )
       }
     }
+  }
+
+  private[this] def validateRequiredFiltersForDimOnlyQuery(filterMap:mutable.HashMap[String, Filter],requiredAliasSet:Set[RequiredAlias], request:ReportingRequest): Unit = {
+    requiredAliasSet.foreach(
+      reqAlias => {
+        require(filterMap.contains(reqAlias.alias), s"Missing Dim Only query Schema(${request.schema}) required filter on '${reqAlias.alias}'")
+        val filter = filterMap.get(reqAlias.alias).get
+        require(FilterOperation.InEquality.contains(filter.operator), s"Invalid Schema Required Filter ${filter.field} operation, expected at least one of set(In,=), found ${filter.operator}")
+      }
+    )
   }
 
   def validateMaxLookBackWindow(localTimeDayFilter:Filter, factName:String, maxDaysWindow:Int, maxDaysLookBack:Int): (Int, Int) = {

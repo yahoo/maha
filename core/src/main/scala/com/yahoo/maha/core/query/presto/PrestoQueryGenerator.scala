@@ -172,7 +172,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
           if (sm.isDefined) {
             s"""COALESCE(CAST($finalAlias as varchar), 'NA')"""
           } else {
-            s"""COALESCE($finalAlias, ${df.getOrElse(0)})"""
+            s"""COALESCE(CAST($finalAlias as bigint), ${df.getOrElse(0)})"""
           }
         case DateType(_) => s"""getFormattedDate($finalAlias)"""
         case StrType(_, sm, df) =>

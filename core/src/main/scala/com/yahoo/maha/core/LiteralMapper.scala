@@ -13,11 +13,12 @@ import org.owasp.esapi.codecs.OracleCodec
 
 trait LiteralMapper {
   val ORACLE_CODEC = new OracleCodec
-  def getEscapedSqlString(s: String): String = {
+  protected def getEscapedSqlString(s: String): String = {
     ESAPI.encoder().encodeForSQL(ORACLE_CODEC, s)
   }
   def toLiteral(column: Column, value: String, grainOption: Option[Grain] = None) : String
 }
+
 class OracleLiteralMapper extends LiteralMapper {
   def getDateFormatFromGrain(grain: Grain): String = {
     grain match {
