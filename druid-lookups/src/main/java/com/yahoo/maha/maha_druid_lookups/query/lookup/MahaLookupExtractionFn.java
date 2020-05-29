@@ -2,13 +2,14 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
-import org.apache.druid.query.extraction.ExtractionCacheHelper;
-import org.apache.druid.query.extraction.FunctionalExtraction;
-import org.apache.druid.query.lookup.LookupExtractor;
+import io.druid.query.extraction.ExtractionCacheHelper;
+import io.druid.query.extraction.FunctionalExtraction;
+import io.druid.query.lookup.LookupExtractor;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;

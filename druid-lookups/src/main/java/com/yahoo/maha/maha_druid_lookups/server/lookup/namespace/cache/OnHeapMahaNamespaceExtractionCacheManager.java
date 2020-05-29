@@ -5,11 +5,11 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache;
 import com.google.common.primitives.Chars;
 import com.google.common.util.concurrent.Striped;
 import com.google.inject.Inject;
-import org.apache.druid.java.util.common.IAE;
-import org.apache.druid.java.util.common.lifecycle.Lifecycle;
-import org.apache.druid.java.util.common.logger.Logger;
-import org.apache.druid.java.util.emitter.service.ServiceEmitter;
-import org.apache.druid.java.util.emitter.service.ServiceMetricEvent;
+import com.metamx.common.IAE;
+import com.metamx.common.lifecycle.Lifecycle;
+import com.metamx.common.logger.Logger;
+import com.metamx.emitter.service.ServiceEmitter;
+import com.metamx.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 

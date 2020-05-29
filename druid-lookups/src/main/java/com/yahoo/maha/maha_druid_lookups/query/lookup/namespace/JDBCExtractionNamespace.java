@@ -8,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.apache.druid.metadata.MetadataStorageConnectorConfig;
+import io.druid.metadata.MetadataStorageConnectorConfig;
 import org.joda.time.Period;
 
 import javax.annotation.Nullable;

@@ -7,11 +7,11 @@ import com.google.inject.Binder;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.Module;
-import org.apache.druid.guice.GuiceInjectors;
-import org.apache.druid.guice.JsonConfigProvider;
-import org.apache.druid.guice.annotations.Self;
-import org.apache.druid.initialization.Initialization;
-import org.apache.druid.server.DruidNode;
+import io.druid.guice.GuiceInjectors;
+import io.druid.guice.JsonConfigProvider;
+import io.druid.guice.annotations.Self;
+import io.druid.initialization.Initialization;
+import io.druid.server.DruidNode;
 import org.junit.Assert;
 
 import java.util.Properties;
