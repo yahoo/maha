@@ -9,7 +9,7 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractio
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.MissingLookupConfig;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestPasswordProvider;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
-import org.apache.druid.metadata.MetadataStorageConnectorConfig;
+import io.druid.metadata.MetadataStorageConnectorConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;

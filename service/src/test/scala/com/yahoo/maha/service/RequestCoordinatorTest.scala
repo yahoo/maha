@@ -12,15 +12,12 @@ import com.yahoo.maha.service.error.MahaServiceExecutionException
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.output.{JsonOutputFormat, StringStream}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
-import org.apache.druid.common.config.NullHandling
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.Matchers._
 
 class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
-
-  NullHandling.initializeForTests()
 
   val today: String = DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now())
   val yesterday: String = DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(1))

@@ -24,21 +24,21 @@ An extension to druid which provides for MongoDB, JDBC and RocksDB (for high car
 Here is tutorial of how to set up maha-druid-lookups as an extensions of Druid in your local box.  
 For convenience, we use `/druid` as our druid root path for the following document.
 ### Requirement
-* [druid-0.17.1](http://druid.io/docs/0.17.1/tutorials/quickstart.html)
+* [druid-0.11.0](http://druid.io/docs/0.11.0/tutorials/quickstart.html)
 * zookeeper
 * your local datasource (mysql, oracle, etc.)
 
 ### Zookeeper setup
 #### Download:
 ```
-wget http://www.gtlib.gatech.edu/pub/apache/zookeeper/zookeeper-3.4.14/zookeeper-3.4.14.tar.gz
-tar -xzf zookeeper-3.4.14.tar.gz
-cd zookeeper-3.4.14
+curl http://www.gtlib.gatech.edu/pub/apache/zookeeper/zookeeper-3.4.10/zookeeper-3.4.10.tar.gz -o zookeeper-3.4.10.tar.gz
+tar -xzf zookeeper-3.4.10.tar.gz
+cd zookeeper-3.4.10
 cp conf/zoo_sample.cfg conf/zoo.cfg
 ```
 #### Starting up zookeeper:
 ```
-cd zookeeper-3.4.14
+cd zookeeper-3.4.10
 ./bin/zkServer.sh start
 ```
 
@@ -58,10 +58,10 @@ Now unzip assembled zip file and move all the jars to a new repo for your packag
 The path will be something like:
 ```/druid/extensions/maha-druid-lookups/some-jar-file.jar```
 
-### Configuration: using micro-quickstart for quick setup
-Here we take advantage of config files under `/druid/conf/druid/single-server/micro-quickstart/`, which is originally for druid tutorial, for our local setup, there are multiple files we need to modify:
+### Configuration: using conf-quickstart for quick setup
+Here we take advantage of config files under `/druid/conf-quickstart`, which is originally for druid tutorial, for our local setup, there are multiple files we need to modify:
 
-#### /druid/conf/druid/single-server/micro-quickstart/_common/common.runtime.properties
+#### /druid/conf-quickstart/druid/_common/common.runtime.properties
 1. add package name **maha-druid-lookups** to druid.extensions.loadList:
 
 ```druid.extensions.loadList=["extension1", "extension2" , … , "maha-druid-lookups"]```
@@ -90,29 +90,38 @@ druid.lookup.maha.namespace.rocksdb.localStorageDirectory=/tmp
 druid.lookup.maha.namespace.rocksdb.blockCacheSize=1048576
 ```
 
-#### /druid/conf/druid/single-server/micro-quickstart/historical/runtime.properties
+#### /druid/conf-quickstart/druid/historical/runtime.properties
 add a line for historical lookup tier:
 ```druid.lookup.lookupTier=historicalLookupTier```
 
-####/druid/conf/druid/single-server/micro-quickstart/broker/runtime.properties (Optional)
+#### conf-quickstart/druid/broker/runtime.properties (Optional)
 add a line for broker lookup tier:
 ```druid.lookup.lookupTier=brokerLookupTier```
 
 _NOTE: skip this setp if you just want to check the functionality of a lookup and don't need to query it via broker._
 
-#### Include hadoop dependencies in `bin/run-druid`
-Add `hadoop-dependencies/hadoop-client/2.8.5/*` into -cp list
-```
-exec "$JAVA_BIN"/java `cat "$CONFDIR"/"$WHATAMI"/jvm.config | xargs` \
-  -cp "$CONFDIR"/"$WHATAMI":"$CONFDIR"/_common:"$CONFDIR"/_common/hadoop-xml:"$CONFDIR"/../_common:"$CONFDIR"/../_common/hadoop-xml:"$WHEREAMI/../lib/*":hadoop-dependencies/hadoop-client/2.8.5/* \
-  `cat "$CONFDIR"/$WHATAMI/main.config | xargs`
-```
-
 ### Starting up Druid
-#### Start Druid services: 
-```./bin/start-micro-quickstart```
+#### Init Druid: creating required repos for log
+```/druid/bin/init```
 
-_NOTE: to reset druid for a clean start, do`rm -rf var/* && rm -rf log && ./bin/start-micro-quickstart`_
+_NOTE: to reset druid for a clean start, do`rm -rf var/* && rm -rf log && bin/init`_
+
+#### Start coordinator node:
+```
+java `cat conf-quickstart/druid/coordinator/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/coordinator:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server coordinator
+```
+
+#### Start historical node:
+```
+java `cat conf-quickstart/druid/historical/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/historical:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server historical
+```
+
+#### Start broker node (Optional):
+```
+java `cat conf-quickstart/druid/broker/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/broker:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server broker
+```
+
+_NOTE: skip this setp if you just want to check the functionality of a lookup and don't need to query it via broker._
 
 ### Troubleshooting
 * JDBC Driver
@@ -138,7 +147,10 @@ This is caused by lack of Hadoop dependency.
 
 **Solution:** 
 
-For Druid-0.17.1, it already has the hadoop client jars under `hadoop-dependencies/hadoop-client/2.8.5/*`.  Just make sure you have included the path in `bin/run-druid`
+For Druid-0.11.0, it already has the hadoop client jars under `hadoop-dependencies/hadoop-client/2.7.3/*`.  Just make sure you have included the path in your command when trying to bring up the node, for example:
+```
+java `cat conf-quickstart/druid/coordinator/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/coordinator:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server coordinator
+```
 
 ### Registering Druid Lookups
 Druid lookups are managed using APIs on coordinators.  Refer [here](http://druid.io/docs/latest/querying/lookups.html).
@@ -181,7 +193,7 @@ Example Lookup JSON:
 }
 ```
 
-_NOTE1: for the details of parameters, please check [here](http://druid.io/docs/0.17.1/development/extensions-core/lookups-cached-global.html)._
+_NOTE1: for the details of parameters, please check [here](http://druid.io/docs/0.11.0/development/extensions-core/lookups-cached-global.html)._
 
 _NOTE2: set "cacheEnabled" to true for building cache(hasmap) in the node._
 

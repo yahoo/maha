@@ -7,15 +7,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespaceWithLeaderAndFollower;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
-import org.apache.druid.common.config.NullHandling;
-import org.apache.druid.metadata.MetadataStorageConnectorConfig;
-import org.apache.druid.query.lookup.LookupExtractorFactory;
-import org.apache.druid.query.lookup.LookupExtractorFactoryContainer;
-import org.apache.druid.query.lookup.LookupReferencesManager;
+import io.druid.metadata.MetadataStorageConnectorConfig;
+import io.druid.query.lookup.LookupExtractorFactory;
+import io.druid.query.lookup.LookupExtractorFactoryContainer;
+import io.druid.query.lookup.LookupReferencesManager;
 import org.joda.time.Period;
 import org.mockito.Mock;
 import org.testng.Assert;
-import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
 import java.util.*;
@@ -29,11 +27,6 @@ public class MahaRegisteredLookupExtractionFnTest {
 
     @Mock
     LookupService lookupService;
-
-    @BeforeTest
-    public void before() {
-        NullHandling.initializeForTests();
-    }
 
     @Test
     public void testWhenCacheValueIsEmpty() {

@@ -2,7 +2,7 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import org.apache.druid.guice.annotations.ExtensionPoint;
+import io.druid.guice.annotations.ExtensionPoint;
 
 import java.util.List;
 

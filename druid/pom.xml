@@ -10,7 +10,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.366-SNAPSHOT</version>
+        <version>5.365-SNAPSHOT</version>
     </parent>
 
     <name>maha druid executor</name>
@@ -152,7 +152,7 @@
             <artifactId>http4s-blaze-server_${scala.major.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.druid.extensions</groupId>
+            <groupId>io.druid.extensions</groupId>
             <artifactId>druid-datasketches</artifactId>
             <version>${druid.version}</version>
         </dependency>
