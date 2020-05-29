@@ -55,7 +55,7 @@
         <checkstyle.skip>true</checkstyle.skip>
         <freemarker.version>2.3.20</freemarker.version>
         <enumeratum.version>1.5.15</enumeratum.version>
-        <kafka.version>1.1.0</kafka.version>
+        <kafka.version>2.2.1</kafka.version>
         <caffeine.version>2.8.1</caffeine.version>
         <archaius.version>2.3.13</archaius.version>
         <bytebuddy.version>1.8.12</bytebuddy.version>
