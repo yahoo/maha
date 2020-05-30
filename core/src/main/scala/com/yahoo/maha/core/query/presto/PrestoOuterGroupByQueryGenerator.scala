@@ -554,7 +554,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
             if (sm.isDefined) {
               handleStaticMappingInt(sm, finalAlias)
             } else {
-              s"""COALESCE($finalAlias, ${df.getOrElse(0)})"""
+              s"""COALESCE(CAST($finalAlias as BIGINT), ${df.getOrElse(0)})"""
             }
           case DateType(_) => s"""getFormattedDate($finalAlias)"""
           case StrType(_, sm, df) =>
