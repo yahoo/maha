@@ -548,6 +548,7 @@ class FilterTest extends FunSuite with Matchers {
     val pushDownFilter = PushDownFilter(EqualityFilter("field13", "a"))
     val fieldEqualityFilter = FieldEqualityFilter("field15", "field16")
     val jsFilter = JavaScriptFilter("field14", "this filter will fail.") //This rendering fn is not defined, so being used as fallthrough to test failure in field set rendering.
+    val notLikeFilter = NotLikeFilter("field18", "a")
 
     val returnedFields: Set[String] = Filter.returnFieldSetOnMultipleFiltersWithoutValidation(
       Set(equalityFilter
@@ -564,7 +565,8 @@ class FilterTest extends FunSuite with Matchers {
         , likeFilter
         , isNullFilter
         , pushDownFilter
-        , fieldEqualityFilter)
+        , fieldEqualityFilter
+        , notLikeFilter)
     )
 
     val expectedReturnedFields : Set[String] =
@@ -584,6 +586,7 @@ class FilterTest extends FunSuite with Matchers {
         , "field15"
         , "field16"
         //, "field17"     AndFilter returns no fields.
+        , "field18"
       )
 
     assert(returnedFields == expectedReturnedFields, "Should return all expected fields!")

@@ -1238,6 +1238,7 @@ object RequestModel extends Logging {
         case FieldEqualityFilter(_, value, _, _) => validateLength(List(value), length)
         case NotEqualToFilter(_, value, _, _) => validateLength(List(value), length)
         case LikeFilter(_, value, _, _) => validateLength(List(value), length)
+        case NotLikeFilter(_, value, _, _) => validateLength(List(value), length)
         case BetweenFilter(_, from, to) => validateLength(List(from, to), length)
         case IsNullFilter(_, _, _) | IsNotNullFilter(_, _, _) | PushDownFilter(_) | OuterFilter(_) | OrFilter(_) => (true, MAX_ALLOWED_STR_LEN)
         case _ => throw new Exception(s"Unhandled FilterOperation $filter.")
