@@ -115,16 +115,6 @@ public class RocksDBManager {
             return String.valueOf(lastUpdate);
         }
 
-        if(lastUpdate != 0 && !Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
-            // this is non deployment time and kafka is configured to get real time updates, so rocksdb instance download can be delayed
-            try {
-                int waitTime = RANDOM.nextInt(BOUND);
-                LOG.error("Going to sleep for [%s] ms before RocksDB instance is downloaded and kafka messages are applied for [%s]", waitTime, extractionNamespace.getNamespace());
-                Thread.sleep(waitTime);
-            } catch (InterruptedException e) {
-            }
-        }
-
         final File file = new File(String.format("%s/%s", localStorageDirectory, extractionNamespace.getNamespace()));
         if(!file.exists()) {
             FileUtils.forceMkdir(file);
@@ -136,6 +126,19 @@ public class RocksDBManager {
 
         final String localPath = FilenameUtils.removeExtension(localZippedFileNameWithPath);
 
+        if(lastUpdate != 0 && !Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
+            // this is non deployment time and kafka is configured to get real time updates, so rocksdb instance download can be delayed
+            try {
+                int waitTime = RANDOM.nextInt(BOUND);
+                LOG.error("Going to sleep for [%s] ms before RocksDB instance is downloaded and kafka messages are applied for [%s]", waitTime, extractionNamespace.getNamespace());
+                Thread.sleep(waitTime);
+            } catch (InterruptedException e) {
+                LOG.error(e, "Interrupted while sleeping for RocksDB downloading.");
+            }
+            LOG.info("non-deployment time: starting a new RocksDB instance after sleep...");
+            return startNewInstance(extractionNamespace, loadTime, hdfsPath, localZippedFileNameWithPath, localPath);
+        }
+
         File snapShotFile = new File(localPath + SNAPSHOT_FILE_NAME);
 
         if(snapShotFile.exists()) {
@@ -145,7 +148,7 @@ public class RocksDBManager {
                 LOG.error(e, "Caught exception while using the snapshot. Going to start new instance.");
             }
         }
-
+        LOG.info("Snapshot file doesn't exist for namespace[%s], starting new instance", extractionNamespace.getNamespace());
         return startNewInstance(extractionNamespace, loadTime, hdfsPath, localZippedFileNameWithPath, localPath);
     }
 

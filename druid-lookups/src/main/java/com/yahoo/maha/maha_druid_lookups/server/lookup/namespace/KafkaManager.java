@@ -206,7 +206,11 @@ public class KafkaManager {
                         if(seekOffsetToPreviousSnapshot) {
                             kafkaPartitionOffset.entrySet().forEach(partitionOffset -> {
                                 log.info("topic = [%s], seek partition = [%s], seek offset = [%s]", topic, partitionOffset.getKey(), partitionOffset.getValue());
-                                consumer.poll(0);
+                                try {
+                                    consumer.poll(0);
+                                } catch (Exception e) {
+                                    log.error(e, "Caught exception while trying to poll kafka event(s)");
+                                }
                                 consumer.seek(new TopicPartition(topic, partitionOffset.getKey()), partitionOffset.getValue());
                             });
                         }
