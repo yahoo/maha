@@ -166,6 +166,7 @@ public class RocksDBManager {
 
         // kafka topic is not empty then add listener for the topic
         if (!Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
+            LOG.info("useSnapshotInstance: adding Listener...");
             kafkaExtractionManager.addListener(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.kafkaPartitionOffset, true);
         }
         return loadTime;
@@ -188,6 +189,7 @@ public class RocksDBManager {
         if (!Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
             rocksDBSnapshot.kafkaConsumerGroupId = UUID.randomUUID().toString();
             rocksDBSnapshot.kafkaPartitionOffset = new ConcurrentHashMap<Integer, Long>();
+            LOG.info("startNewInstance: applying change since beginning...");
             kafkaExtractionManager.applyChangesSinceBeginning(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.rocksDB, rocksDBSnapshot.kafkaPartitionOffset);
             LOG.info(rocksDBSnapshot.rocksDB.getProperty(STATS_KEY));
 
@@ -196,6 +198,7 @@ public class RocksDBManager {
                 int retryCount = 0;
                 lookupAuditing(localZippedFileNameWithPath, extractionNamespace, loadTime, sleepTime, retryCount);
             }
+            LOG.info("startNewInstance: adding Listener...");
             kafkaExtractionManager.addListener(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.kafkaPartitionOffset, false);
         }
 
@@ -211,7 +214,7 @@ public class RocksDBManager {
         if (oldDb != null) {
             try {
                 LOG.info(oldDb.getProperty(STATS_KEY));
-                LOG.info("Waiting for 10 seconds before cleaning");
+                LOG.info("Waiting for 10 seconds before cleaning old DB connection/path");
                 Thread.sleep(10000);
                 oldDb.close();
                 cleanup(oldDbPath);
