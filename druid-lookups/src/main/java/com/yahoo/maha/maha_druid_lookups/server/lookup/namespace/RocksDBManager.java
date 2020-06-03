@@ -135,7 +135,7 @@ public class RocksDBManager {
             } catch (InterruptedException e) {
                 LOG.error(e, "Interrupted while sleeping for RocksDB downloading.");
             }
-            LOG.info("non-deployment time: starting a new RocksDB instance after sleep...");
+            LOG.info("non-deployment time: starting a new RocksDB instance after sleep for namespace[%s]...", extractionNamespace.getNamespace());
             return startNewInstance(extractionNamespace, loadTime, hdfsPath, localZippedFileNameWithPath, localPath);
         }
 
@@ -145,10 +145,10 @@ public class RocksDBManager {
             try {
                 return useSnapshotInstance(extractionNamespace, loadTime, localPath, snapShotFile);
             } catch (Exception e) {
-                LOG.error(e, "Caught exception while using the snapshot. Going to start new instance.");
+                LOG.error(e, "Caught exception while using the snapshot.");
             }
         }
-        LOG.info("Snapshot file doesn't exist for namespace[%s], starting new instance", extractionNamespace.getNamespace());
+        LOG.info("starting new instance for namespace[%s]...", extractionNamespace.getNamespace());
         return startNewInstance(extractionNamespace, loadTime, hdfsPath, localZippedFileNameWithPath, localPath);
     }
 
