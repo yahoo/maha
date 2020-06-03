@@ -37,6 +37,7 @@ case object NotInFilterOperation extends FilterOperation { override def toString
 case object BetweenFilterOperation extends FilterOperation { override def toString = "Between" }
 case object EqualityFilterOperation extends FilterOperation { override def toString = "=" }
 case object LikeFilterOperation extends FilterOperation { override def toString = "Like" }
+case object NotLikeFilterOperation extends FilterOperation { override def toString = "Not Like" }
 case object NotEqualToFilterOperation extends FilterOperation { override def toString = "<>" }
 case object IsNullFilterOperation extends FilterOperation { override def toString = "IsNull" }
 case object IsNotNullFilterOperation extends FilterOperation { override def toString = "IsNotNull" }
@@ -62,6 +63,7 @@ object FilterOperation {
   val InEqualityNotEquals: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation, NotEqualToFilterOperation)
   val InNotInEquality: Set[FilterOperation] = Set(InFilterOperation, NotInFilterOperation, EqualityFilterOperation)
   val InEqualityLike : Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation, LikeFilterOperation)
+  val InEqualityLikeNotLike : Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation, LikeFilterOperation, NotLikeFilterOperation)
   val InNotInEqualityNotEquals: Set[FilterOperation] = Set(InFilterOperation, NotInFilterOperation, EqualityFilterOperation, NotEqualToFilterOperation)
   val InNotInEqualityLike: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation, NotInFilterOperation, LikeFilterOperation)
   val InBetweenEquality: Set[FilterOperation] = Set(InFilterOperation, BetweenFilterOperation,EqualityFilterOperation)
@@ -78,6 +80,10 @@ object FilterOperation {
 
   val InNotInEqualityNotEqualsLikeNullNotNull: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation,NotEqualToFilterOperation, NotInFilterOperation,
                                                    LikeFilterOperation, IsNullFilterOperation, IsNotNullFilterOperation)
+
+  val InNotInEqualityNotEqualsLikeNotLikeNullNotNull: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation,NotEqualToFilterOperation, NotInFilterOperation,
+                                                  LikeFilterOperation, NotLikeFilterOperation, IsNullFilterOperation, IsNotNullFilterOperation)
+
   val InNotInEqualityNotEqualsLikeNullNotNullBetween: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation,NotEqualToFilterOperation, NotInFilterOperation,
     LikeFilterOperation, IsNullFilterOperation, IsNotNullFilterOperation, BetweenFilterOperation)
 
@@ -209,6 +215,15 @@ case class LikeFilter(field: String, value: String
   val asValues: String = value
   override def canBeHighCardinalityFilter: Boolean = true
 }
+
+case class NotLikeFilter(field: String, value: String
+                      , override val isForceFilter: Boolean = false
+                      , override val isOverridable: Boolean = false) extends ForcedFilter {
+  override def operator = NotLikeFilterOperation
+  val asValues: String = value
+  override def canBeHighCardinalityFilter: Boolean = true
+}
+
 case class NotEqualToFilter(field: String, value: String
                             , override val isForceFilter: Boolean = false
                             , override val isOverridable: Boolean = false) extends ForcedFilter {
@@ -279,6 +294,8 @@ sealed trait GreaterThanFilterRenderer[O] extends FilterRenderer[GreaterThanFilt
 sealed trait LessThanFilterRenderer[O] extends FilterRenderer[LessThanFilter, O]
 
 sealed trait LikeFilterRenderer[O] extends FilterRenderer[LikeFilter, O]
+
+sealed trait NotLikeFilterRenderer[O] extends FilterRenderer[NotLikeFilter, O]
 
 sealed trait NotEqualToFilterRenderer[O] extends FilterRenderer[NotEqualToFilter, O]
 
@@ -999,6 +1016,9 @@ object FilterDruid {
       case f @ LikeFilter(alias, value, _, _) =>
         val spec = new InsensitiveContainsSearchQuerySpec(druidLiteralMapper.toLiteral(column, value, grainOption))
         new SearchQueryDimFilter(columnAlias, spec, null)
+      case f @ NotLikeFilter(alias, value, _, _) =>
+        val spec = new InsensitiveContainsSearchQuerySpec(druidLiteralMapper.toLiteral(column, value, grainOption))
+        new NotDimFilter(new SearchQueryDimFilter(columnAlias, spec, null))
       case f @ JavaScriptFilter(alias, func, _, _) => {
         new JavaScriptDimFilter(alias, func, null, JavaScriptConfig.getEnabledInstance)
       }
@@ -1611,6 +1631,11 @@ object Filter extends Logging {
               filter.flatMap {
                 f => nonEmptyString(f.value, f.field, "value").map(_ => f)
               }
+            case "not like" =>
+              val filter = NotLikeFilter.applyJSON(field[String]("field"), stringField("value"), booleanFalse, booleanFalse)(json)
+              filter.flatMap {
+                f => nonEmptyString(f.value, f.field, "value").map(_ => f)
+              }
             case "<>" | "not equal to" =>
               val filter = NotEqualToFilter.applyJSON(field[String]("field"), stringField("value"), booleanFalse, booleanFalse)(json)
               filter.flatMap {
@@ -1649,6 +1674,7 @@ object Filter extends Logging {
       case lessThanFilter: LessThanFilter => Set(lessThanFilter.field)
       case isNotNullFilter: IsNotNullFilter => Set(isNotNullFilter.field)
       case likeFilter: LikeFilter => Set(likeFilter.field)
+      case notLikeFilter: NotLikeFilter => Set(notLikeFilter.field)
       case isNullFilter: IsNullFilter => Set(isNullFilter.field)
       case pushDownFilter: PushDownFilter => returnFieldSetWithoutValidation(pushDownFilter.f)
       case t: Filter => throw new IllegalArgumentException("The field set for the input filter is undefined. " + t.field + " with filter " + t.toString)
