@@ -14,6 +14,7 @@ import com.yahoo.maha.core.error._
 import com.yahoo.maha.core.query.{InnerJoin, JoinType, LeftOuterJoin, RightOuterJoin}
 import com.yahoo.maha.utils.DaysUtils
 import grizzled.slf4j.Logging
+import org.joda.time.DateTimeZone
 import org.slf4j.LoggerFactory
 
 import scala.collection.{SortedSet, mutable}
@@ -342,9 +343,18 @@ object RequestModel extends Logging {
             Option.apply(DailyGrain)
           }
           val isDebugEnabled = request.isDebugEnabled
-          val localTimeMinuteFilter = request.minuteFilter
-          val localTimeHourFilter = request.hourFilter
-          val localTimeDayFilter = request.dayFilter
+          val timezone = request.getTimezone //the zone should come from request, not UTC time provider
+          val (localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter) = if(timezone.isDefined) {
+            //we assume all dates are in the users local time
+            //if it's a DateTimeFilter we simplify apply the zone on top of the incoming date
+            if (request.dayFilter.isInstanceOf[DateTimeFilter]) {
+              val zone = DateTimeZone.forID(timezone.get)
+              //if it is a DateTimeFilter, then we don't need separate hour and minute filter, they can be in day filter
+              (request.dayFilter.asInstanceOf[DateTimeFilter].applyTimeZone(zone), None, None)
+            } else //if it's not a DateTimeFilter then we just pass through since there won't be zone information in filter
+              (request.dayFilter, request.hourFilter, request.minuteFilter)
+          } else //if the user hasn't set a time zone, then we honor whatever the zone is in the parsed date itself
+            (request.dayFilter, request.hourFilter, request.minuteFilter)
           val maxDaysWindowOption = publicFact.maxDaysWindow.get(request.requestType, queryGrain.getOrElse(DailyGrain))
           val maxDaysLookBackOption = publicFact.maxDaysLookBack.get(request.requestType, queryGrain.getOrElse(DailyGrain))
           require(maxDaysLookBackOption.isDefined && maxDaysWindowOption.isDefined
@@ -352,7 +362,7 @@ object RequestModel extends Logging {
           val maxDaysWindow = maxDaysWindowOption.get
           val maxDaysLookBack = maxDaysLookBackOption.get
 
-          // validating max lookback againt public fact a
+          // validating max lookback against public fact a
           val (requestedDaysWindow, requestedDaysLookBack) = validateMaxLookBackWindow(localTimeDayFilter, publicFact.name, maxDaysWindow, maxDaysLookBack)
           val isAsyncFactDrivenQuery = request.requestType == AsyncRequest && !request.forceDimensionDriven
           val isSyncFactDrivenQuery = request.requestType == SyncRequest && request.forceFactDriven
@@ -690,11 +700,9 @@ object RequestModel extends Logging {
               factSchemaRequiredAliasesMap.put(fact.name, schemaRequiredFilterAliases)
           })
 
-          val timezone = if(bestCandidatesOption.isDefined && bestCandidatesOption.get.publicFact.enableUTCTimeConversion) {
-            utcTimeProvider.getTimezone(request)
-          } else None
-
-          val (utcTimeDayFilter, utcTimeHourFilter, utcTimeMinuteFilter) = utcTimeProvider.getUTCDayHourMinuteFilter(localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter, timezone, isDebugEnabled)
+          val (utcTimeDayFilter, utcTimeHourFilter, utcTimeMinuteFilter) = if(bestCandidatesOption.isDefined && bestCandidatesOption.get.publicFact.enableUTCTimeConversion) {
+            utcTimeProvider.getUTCDayHourMinuteFilter(localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter, timezone, isDebugEnabled)
+          } else (localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter)
 
           //set fact flags
           //we don't count fk filters here
@@ -1193,6 +1201,15 @@ object RequestModel extends Logging {
 
   def validateMaxLookBackWindow(localTimeDayFilter:Filter, factName:String, maxDaysWindow:Int, maxDaysLookBack:Int): (Int, Int) = {
     localTimeDayFilter match {
+      case dtf: DateTimeBetweenFilter =>
+        val requestedDaysWindow = dtf.daysBetween
+        val requestedDaysLookBack = dtf.daysFromNow
+        require(requestedDaysWindow <= maxDaysWindow,
+          MaxWindowExceededError(maxDaysWindow, DailyGrain.getDaysBetween(dtf.from, dtf.to), factName))
+        require(requestedDaysLookBack <= maxDaysLookBack,
+          MaxLookBackExceededError(maxDaysLookBack, DailyGrain.getDaysFromNow(dtf.from), factName))
+        (requestedDaysWindow, requestedDaysLookBack)
+
       case BetweenFilter(_,from,to) =>
         val requestedDaysWindow = DailyGrain.getDaysBetween(from, to)
         val requestedDaysLookBack = DailyGrain.getDaysFromNow(from)

@@ -5295,8 +5295,9 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                            ],
                           "filterExpressions": [
                              {"field": "Publisher ID", "operator": "=", "value": "12345"},
-                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
-                           ],
+                             {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                             {"field": "Hour", "operator": "between", "from": "0", "to": "23"}
+                          ],
                            "paginationStartIndex":0,
                            "rowsPerPage":100
                           }"""

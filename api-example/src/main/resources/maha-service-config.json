@@ -16,6 +16,7 @@
         "presto"
       ],
       "bucketingConfigName": "studentBucket",
+      "userTimeZoneProviderName": "studentUserTimeZone",
       "utcTimeProviderName": "studentUTC",
       "parallelServiceExecutorName": "studentParallelExec",
       "dimEstimatorFactoryClass": "com.yahoo.maha.service.factory.DefaultDimCostEstimatorFactory",
@@ -41,6 +42,7 @@
         "druid"
       ],
       "bucketingConfigName": "wikiBucket",
+      "userTimeZoneProviderName": "wikiUserTimeZone",
       "utcTimeProviderName": "wikiUTC",
       "parallelServiceExecutorName": "wikiParallelExec",
       "dimEstimatorFactoryClass": "com.yahoo.maha.service.factory.DefaultDimCostEstimatorFactory",
@@ -294,6 +296,20 @@
           }
         ],
         "queryGenerator": []
+      }
+    }
+  },
+  "userTimeZoneProviderMap": {
+    "studentUserTimeZone": {
+      "factoryClass": "com.yahoo.maha.service.factory.NoopUserTimeZoneProviderFactory",
+      "config": {
+        "k": "v"
+      }
+    },
+    "wikiUserTimeZone": {
+      "factoryClass": "com.yahoo.maha.service.factory.NoopUserTimeZoneProviderFactory",
+      "config": {
+        "k": "v"
       }
     }
   },

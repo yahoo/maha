@@ -30,7 +30,7 @@ case object DailyGrain extends Grain with Logging {
   
   val DAY_FILTER_FIELD: String = "Day"
 
-  override val formatString = "YYYY-MM-dd"
+  override val formatString = "yyyy-MM-dd"
   private[this] val datetimeFormat = DateTimeFormat.forPattern(formatString).withZoneUTC()
   
   def toFormattedString(dt: DateTime) : String = datetimeFormat.print(dt)
@@ -40,6 +40,8 @@ case object DailyGrain extends Grain with Logging {
 
   def validateFilterAndGetNumDays(filter: Filter): Int = {
     filter match {
+      case dtf: DateTimeBetweenFilter =>
+        dtf.daysBetween
       case BetweenFilter(field, from, to) =>
         validateFormat(field, from)
         validateFormat(field, to)

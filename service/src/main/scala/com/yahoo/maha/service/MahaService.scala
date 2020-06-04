@@ -47,7 +47,9 @@ class DynamicRegistryConfig(private var _name: String,
                             private var _queryExecutorContext: QueryExecutorContext,
                             private var _bucketSelector: BucketSelector,
                             private var _utcTimeProvider: UTCTimeProvider,
-                            private var _parallelServiceExecutor: ParallelServiceExecutor)
+                            private var _parallelServiceExecutor: ParallelServiceExecutor,
+                            private var _userTimeZoneProvider: UserTimeZoneProvider
+                            )
   extends RegistryConfig {
 
   def updateRegistry(registry: Registry): Unit = {
@@ -74,6 +76,10 @@ class DynamicRegistryConfig(private var _name: String,
     this._parallelServiceExecutor = parallelServiceExecutor
   }
 
+  def updateUserTimeZoneProvider(userTimeZoneProvider: UserTimeZoneProvider): Unit = {
+    this._userTimeZoneProvider = userTimeZoneProvider
+  }
+
   override def name = _name
   override def registry = _registry
   override def queryPipelineFactory = _queryPipelineFactory
@@ -81,6 +87,7 @@ class DynamicRegistryConfig(private var _name: String,
   override def bucketSelector = _bucketSelector
   override def utcTimeProvider = _utcTimeProvider
   override def parallelServiceExecutor = _parallelServiceExecutor
+  override def userTimeZoneProvider: UserTimeZoneProvider = _userTimeZoneProvider
 
 }
 
@@ -95,6 +102,8 @@ trait RegistryConfig {
 
   def bucketSelector: BucketSelector
 
+  def userTimeZoneProvider: UserTimeZoneProvider
+
   def utcTimeProvider: UTCTimeProvider
 
   def parallelServiceExecutor: ParallelServiceExecutor
@@ -108,7 +117,11 @@ trait MahaServiceConfig {
   def curatorMap: Map[String, Curator]
 }
 
-case class DefaultRegistryConfig(name: String, registry: Registry, queryPipelineFactory: QueryPipelineFactory, queryExecutorContext: QueryExecutorContext, bucketSelector: BucketSelector, utcTimeProvider: UTCTimeProvider, parallelServiceExecutor: ParallelServiceExecutor) extends RegistryConfig
+case class DefaultRegistryConfig(name: String, registry: Registry, queryPipelineFactory: QueryPipelineFactory
+                                 , queryExecutorContext: QueryExecutorContext, bucketSelector: BucketSelector
+                                 , utcTimeProvider: UTCTimeProvider, parallelServiceExecutor: ParallelServiceExecutor
+                                 , userTimeZoneProvider: UserTimeZoneProvider
+                                ) extends RegistryConfig
 
 
 case class DefaultMahaServiceConfig(context: MahaServiceConfigContext, registry: Map[String, RegistryConfig], mahaRequestLogWriter: MahaRequestLogWriter, curatorMap: Map[String, Curator]) extends MahaServiceConfig
@@ -437,6 +450,7 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
 trait MahaServiceConfigContext {
   def bucketConfigMap: Map[String, BucketingConfig]
   def dataSourceMap: Map[String, DataSource]
+  def userTimeZoneProviderMap: Map[String, UserTimeZoneProvider]
   def utcTimeProviderMap: Map[String, UTCTimeProvider]
   def generatorMap: Map[String, QueryGenerator[_ <: EngineRequirement]]
   def executorMap: Map[String, QueryExecutor]
@@ -446,6 +460,7 @@ trait MahaServiceConfigContext {
 }
 case class DefaultMahaServiceConfigContext(bucketConfigMap: Map[String, BucketingConfig] = Map.empty
                                           , dataSourceMap: Map[String, DataSource] = Map.empty
+                                          , userTimeZoneProviderMap: Map[String, UserTimeZoneProvider] = Map.empty
                                           , utcTimeProviderMap: Map[String, UTCTimeProvider] = Map.empty
                                           , generatorMap: Map[String, QueryGenerator[_ <: EngineRequirement]] = Map.empty
                                           , executorMap: Map[String, QueryExecutor] = Map.empty
@@ -488,18 +503,20 @@ object MahaServiceConfig {
       postBucketContext = defaultContext.copy(bucketConfigMap = bucketConfigMap)
       dataSourceMap <- initDataSources(jsonMahaServiceConfig.datasourceMap)(postBucketContext)
       postDataSourceContext = postBucketContext.copy(dataSourceMap = dataSourceMap)
-      utcTimeProviderMap <- initUTCTimeProvider(jsonMahaServiceConfig.utcTimeProviderMap)(postDataSourceContext)
-      postTimeProviderContext = postDataSourceContext.copy(utcTimeProviderMap = utcTimeProviderMap)
+      userTimeZoneProviderMap <- initUserTimeZoneProvider(jsonMahaServiceConfig.userTimeZoneProviderMap)(postDataSourceContext)
+      postTimeZoneProviderContext = postDataSourceContext.copy(userTimeZoneProviderMap = userTimeZoneProviderMap)
+      utcTimeProviderMap <- initUTCTimeProvider(jsonMahaServiceConfig.utcTimeProviderMap)(postTimeZoneProviderContext)
+      postTimeProviderContext = postTimeZoneProviderContext.copy(utcTimeProviderMap = utcTimeProviderMap)
       generatorMap <- initGenerators(jsonMahaServiceConfig.generatorMap)(postTimeProviderContext)
       postGeneratorContext = postTimeProviderContext.copy(generatorMap = generatorMap)
       executorMap <- initExecutors(jsonMahaServiceConfig.executorMap)(postGeneratorContext)
       postExecutorContext = postGeneratorContext.copy(executorMap = executorMap)
-      registryMap <- initRegistry(jsonMahaServiceConfig.registryMap)(postExecutorContext)
-      postRegistryContext = postExecutorContext.copy(registryMap = registryMap)
-      parallelServiceExecutorConfig <- initParallelServiceExecutors(jsonMahaServiceConfig.parallelServiceExecutorConfigMap)(postRegistryContext)
-      postParallelServiceExecutorContext = postRegistryContext.copy(parallelServiceExecutorMap = parallelServiceExecutorConfig)
+      parallelServiceExecutorConfig <- initParallelServiceExecutors(jsonMahaServiceConfig.parallelServiceExecutorConfigMap)(postExecutorContext)
+      postParallelServiceExecutorContext = postExecutorContext.copy(parallelServiceExecutorMap = parallelServiceExecutorConfig)
       curatorMap <- initCurators(jsonMahaServiceConfig.curatorMap)(postParallelServiceExecutorContext)
       postCuratorContext = postParallelServiceExecutorContext.copy(curatorMap = curatorMap)
+      registryMap <- initRegistry(jsonMahaServiceConfig.registryMap)(postCuratorContext)
+      postRegistryContext = postCuratorContext.copy(registryMap = registryMap)
       mahaRequestLogWriter <- initKafkaLogWriter(jsonMahaServiceConfig.jsonMahaRequestLogConfig)(postCuratorContext)
     } yield {
         val resultMap: Map[String, _<:RegistryConfig] = registryMap.map {
@@ -522,7 +539,9 @@ object MahaServiceConfig {
               queryExecutorContext,
               new BucketSelector(registry, bucketConfigMap.get(registryConfig.bucketConfigName).get),
               utcTimeProviderMap.get(registryConfig.utcTimeProviderName).get,
-              parallelServiceExecutorConfig.get(registryConfig.parallelServiceExecutorName).get))
+              parallelServiceExecutorConfig.get(registryConfig.parallelServiceExecutorName).get,
+              userTimeZoneProviderMap.get(registryConfig.userTimeZoneProviderName).get
+            ))
           }
         }
         DefaultMahaServiceConfig(postCuratorContext, resultMap, mahaRequestLogWriter, curatorMap)
@@ -583,6 +602,27 @@ object MahaServiceConfig {
     result
   }
 
+  def initUserTimeZoneProvider(userTimeZoneProviderMap: Map[String, JsonUserTimeZoneProviderConfig])(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[Map[String, UserTimeZoneProvider]] = {
+    import Scalaz._
+    val result: MahaServiceConfig.MahaConfigResult[Map[String, UserTimeZoneProvider]] = {
+
+      val constructUserTimeZoneProvider: Iterable[MahaServiceConfig.MahaConfigResult[(String, UserTimeZoneProvider)]] = {
+        userTimeZoneProviderMap.map {
+          case (name, jsonConfig) =>
+            for {
+              factory <- getFactory[UserTimeZoneProviderFactory](jsonConfig.className, closer)
+              built <- factory.fromJson(jsonConfig.json)
+            } yield (name, built)
+        }
+      }
+      val resultList: MahaServiceConfig.MahaConfigResult[List[(String, UserTimeZoneProvider)]] =
+        constructUserTimeZoneProvider.toList.sequence[MahaServiceConfig.MahaConfigResult, (String, UserTimeZoneProvider)]
+
+      resultList.map(_.toMap)
+    }
+    result
+  }
+
   def initUTCTimeProvider(utcTimeProviderMap: Map[String, JsonUTCTimeProviderConfig])(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[Map[String, UTCTimeProvider]] = {
     import Scalaz._
     val result: MahaServiceConfig.MahaConfigResult[Map[String, UTCTimeProvider]] = {
@@ -591,7 +631,7 @@ object MahaServiceConfig {
         utcTimeProviderMap.map {
           case (name, jsonConfig) =>
             for {
-              factory <- getFactory[UTCTimeProvideryFactory](jsonConfig.className, closer)
+              factory <- getFactory[UTCTimeProviderFactory](jsonConfig.className, closer)
               built <- factory.fromJson(jsonConfig.json)
             } yield (name, built)
         }
@@ -653,14 +693,23 @@ object MahaServiceConfig {
         registryMap.map {
           case (name, jsonConfig) =>
             for {
-              factRegistrationFactory <- getFactory[FactRegistrationFactory](jsonConfig.factRegistrationdFactoryClass, closer)
+              factRegistrationFactory <- getFactory[FactRegistrationFactory](jsonConfig.factRegistrationFactoryClass, closer)
               dimRegistrationFactory <- getFactory[DimensionRegistrationFactory](jsonConfig.dimensionRegistrationFactoryClass, closer)
               dimEstimatorFactory <- getFactory[DimCostEstimatorFactory](jsonConfig.dimEstimatorFactoryClass, closer)
               factEstimatorFactory <- getFactory[FactCostEstimatorFactory](jsonConfig.factEstimatorFactoryClass, closer)
               dimEstimator <- dimEstimatorFactory.fromJson(jsonConfig.dimEstimatorFactoryConfig)
               factEstimator <- factEstimatorFactory.fromJson(jsonConfig.factEstimatorFactoryConfig)
-              defaultFactEngine <- Engine.from(jsonConfig.defaultFactEngine).toMahaConfigResult(
+              requireDefaultFactEngine = Engine.from(jsonConfig.defaultFactEngine).toMahaConfigResult(
                 ServiceConfigurationError(s"Unknown default fact engine : ${jsonConfig.defaultFactEngine}"))
+              requireUTCProvider = context.utcTimeProviderMap.get(jsonConfig.utcTimeProviderName).toMahaConfigResult(
+                ServiceConfigurationError(s"Unknown utcTimeProviderName: ${jsonConfig.utcTimeProviderName}"))
+              requireUserTimeZoneProvider = context.userTimeZoneProviderMap.get(jsonConfig.userTimeZoneProviderName).toMahaConfigResult(
+                ServiceConfigurationError(s"Unknown userTimeZoneProviderName: ${jsonConfig.userTimeZoneProviderName}"))
+              requireParallelServiceExeuctor = context.parallelServiceExecutorMap.get(jsonConfig.parallelServiceExecutorName).toMahaConfigResult(
+                ServiceConfigurationError(s"Unknown parallelServiceExecutorName: ${jsonConfig.parallelServiceExecutorName}"))
+              requiredBucketConfig = context.bucketConfigMap.get(jsonConfig.bucketConfigName).toMahaConfigResult(
+                ServiceConfigurationError(s"Unknown bucketConfigName: ${jsonConfig.bucketConfigName}"))
+              defaultFactEngine <- (requireDefaultFactEngine |@| requireUTCProvider |@| requireUserTimeZoneProvider |@| requireParallelServiceExeuctor |@| requiredBucketConfig)((a, b, c, d, e) => a)
               druidMultiEngineQueryList = jsonConfig.druidMultiEngineQueryList.map(Engine.from).flatten
             } yield {
               val registryBuilder = new RegistryBuilder
@@ -797,18 +846,20 @@ object DynamicMahaServiceConfig {
       postBucketContext = defaultContext.copy(bucketConfigMap = bucketConfigMap)
       dataSourceMap <- initDataSources(jsonMahaServiceConfig.datasourceMap)(postBucketContext)
       postDataSourceContext = postBucketContext.copy(dataSourceMap = dataSourceMap)
-      utcTimeProviderMap <- initUTCTimeProvider(jsonMahaServiceConfig.utcTimeProviderMap)(postDataSourceContext)
-      postTimeProviderContext = postDataSourceContext.copy(utcTimeProviderMap = utcTimeProviderMap)
+      userTimeZoneProviderMap <- initUserTimeZoneProvider(jsonMahaServiceConfig.userTimeZoneProviderMap)(postDataSourceContext)
+      postTimeZoneProviderContext = postDataSourceContext.copy(userTimeZoneProviderMap = userTimeZoneProviderMap)
+      utcTimeProviderMap <- initUTCTimeProvider(jsonMahaServiceConfig.utcTimeProviderMap)(postTimeZoneProviderContext)
+      postTimeProviderContext = postTimeZoneProviderContext.copy(utcTimeProviderMap = utcTimeProviderMap)
       generatorMap <- initGenerators(jsonMahaServiceConfig.generatorMap)(postTimeProviderContext)
       postGeneratorContext = postTimeProviderContext.copy(generatorMap = generatorMap)
       executorMap <- initExecutors(jsonMahaServiceConfig.executorMap)(postGeneratorContext)
       postExecutorContext = postGeneratorContext.copy(executorMap = executorMap)
-      registryMap <- initRegistry(jsonMahaServiceConfig.registryMap)(postExecutorContext)
-      postRegistryContext = postExecutorContext.copy(registryMap = registryMap)
-      parallelServiceExecutorConfig <- initParallelServiceExecutors(jsonMahaServiceConfig.parallelServiceExecutorConfigMap)(postRegistryContext)
-      postParallelServiceExecutorContext = postRegistryContext.copy(parallelServiceExecutorMap = parallelServiceExecutorConfig)
+      parallelServiceExecutorConfig <- initParallelServiceExecutors(jsonMahaServiceConfig.parallelServiceExecutorConfigMap)(postExecutorContext)
+      postParallelServiceExecutorContext = postExecutorContext.copy(parallelServiceExecutorMap = parallelServiceExecutorConfig)
       curatorMap <- initCurators(jsonMahaServiceConfig.curatorMap)(postParallelServiceExecutorContext)
       postCuratorContext = postParallelServiceExecutorContext.copy(curatorMap = curatorMap)
+      registryMap <- initRegistry(jsonMahaServiceConfig.registryMap)(postCuratorContext)
+      postRegistryContext = postCuratorContext.copy(registryMap = registryMap)
       mahaRequestLogWriter <- initKafkaLogWriter(jsonMahaServiceConfig.jsonMahaRequestLogConfig)(postCuratorContext)
     } yield {
       val objectNameMapNew = Map(
@@ -842,7 +893,9 @@ object DynamicMahaServiceConfig {
             queryExecutorContext,
             new BucketSelector(registry, bucketConfigMap.get(registryConfig.bucketConfigName).get),
             utcTimeProviderMap.get(registryConfig.utcTimeProviderName).get,
-            parallelServiceExecutorConfig.get(registryConfig.parallelServiceExecutorName).get))
+            parallelServiceExecutorConfig.get(registryConfig.parallelServiceExecutorName).get,
+            userTimeZoneProviderMap.get(registryConfig.userTimeZoneProviderName).get
+          ))
         }
       }
       new DynamicMahaServiceConfig(dynamicProperties, postCuratorContext, resultMap, mahaRequestLogWriter, curatorMap, jsonMahaServiceConfig)

@@ -21,7 +21,7 @@ import com.yahoo.maha.service.config.{PassThroughPasswordProvider, PasswordProvi
 import com.yahoo.maha.service.curators.Curator
 import com.yahoo.maha.service.error.{FailedToConstructFactory, MahaServiceError}
 import com.yahoo.maha.service.request._
-import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext}
+import com.yahoo.maha.service.{MahaServiceConfig, MahaServiceConfigContext, NoopUserTimeZoneProvider, UserTimeZoneProvider}
 import javax.sql.DataSource
 import org.json4s.JValue
 import org.json4s.JsonAST.JString
@@ -53,7 +53,12 @@ trait RejectedExecutionHandlerFactory extends BaseFactory {
   def supportedProperties: List[(String, Boolean)]
 }
 
-trait UTCTimeProvideryFactory extends BaseFactory {
+trait UserTimeZoneProviderFactory extends BaseFactory {
+  def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[UserTimeZoneProvider]
+  def supportedProperties: List[(String, Boolean)]
+}
+
+trait UTCTimeProviderFactory extends BaseFactory {
   def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[UTCTimeProvider]
   def supportedProperties: List[(String, Boolean)]
 }
@@ -149,11 +154,15 @@ trait AuthHeaderProviderFactory extends BaseFactory {
 }
 
 import scalaz.syntax.validation._
-class PassThroughUTCTimeProviderFactory extends UTCTimeProvideryFactory {
+class NoopUserTimeZoneProviderFactory extends UserTimeZoneProviderFactory {
+  def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[UserTimeZoneProvider] = NoopUserTimeZoneProvider.successNel
+  def supportedProperties: List[(String, Boolean)] = List.empty
+}
+class PassThroughUTCTimeProviderFactory extends UTCTimeProviderFactory {
   def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[UTCTimeProvider] = PassThroughUTCTimeProvider.successNel
   def supportedProperties: List[(String, Boolean)] = List.empty
 }
-class BaseUTCTimeProviderFactory extends UTCTimeProvideryFactory {
+class BaseUTCTimeProviderFactory extends UTCTimeProviderFactory {
   def fromJson(config: org.json4s.JValue)(implicit context: MahaServiceConfigContext) : MahaServiceConfig.MahaConfigResult[UTCTimeProvider] = new BaseUTCTimeProvider().successNel
   def supportedProperties: List[(String, Boolean)] = List.empty
 }

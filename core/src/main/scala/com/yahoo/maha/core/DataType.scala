@@ -2,6 +2,11 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
+import java.util.concurrent.TimeUnit
+
+import com.github.benmanes.caffeine.cache.{Cache, CacheLoader, Caffeine, LoadingCache}
+import grizzled.slf4j.Logging
+import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.json4s.JsonAST.{JArray, JNull, JObject, JValue}
 import org.json4s.scalaz.JsonScalaz._
 
@@ -291,7 +296,7 @@ case object DecType {
   }
 }
 
-case object DateType {
+case object DateType extends Logging {
   private[this] val noFormat = new DateType(None)
   private[this] val ORACLE_DATE_FORMAT = "YYYY-MM-DD"
   private[this] val HIVE_DATE_FORMAT = "YYYY-MM-dd"
@@ -307,6 +312,29 @@ case object DateType {
   private[this] val ORACLE_HOUR_FORMAT = "hh"
   private[this] val HIVE_HOUR = "YYYYMMDDHH"
   private[this] val UTC_TIME_HOUR = "yyyyMMddHH"
+  private[this] var formatterMap: LoadingCache[String, DateTimeFormatter] = {
+    val loader: CacheLoader[String, DateTimeFormatter] = new CacheLoader[String, DateTimeFormatter] {
+      override def load(k: String): DateTimeFormatter = {
+        try {
+          DateTimeFormat.forPattern(k) //timezone could be provided in the format string
+        } catch {
+          case e: Exception =>
+            error(s"Invalid date time format: $k", e)
+            null
+        }
+      }
+    }
+    Caffeine
+      .newBuilder()
+      .maximumSize(10000)
+      .expireAfterAccess(1, TimeUnit.HOURS)
+      .build(loader)
+  }
+
+
+  def formatter(fmt: String): DateTimeFormatter = {
+    formatterMap.get(fmt)
+  }
 
   def apply() : DateType = {
     noFormat

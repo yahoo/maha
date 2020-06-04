@@ -1075,7 +1075,7 @@ b. Dim Driven
                 case any =>
                   throw new UnsupportedOperationException(s"Found non fact column : $any")
               }
-            val result = QueryGeneratorHelper.handleFilterRender(filter, publicFact, fact, publicFact.aliasToNameColumnMap, queryContext, OracleEngine, literalMapper, colRenderFn)
+            val result = QueryGeneratorHelper.handleFilterSqlRender(filter, publicFact, fact, publicFact.aliasToNameColumnMap, queryContext, OracleEngine, literalMapper, colRenderFn)
 
             if(fact.dimColMap.contains(name)) {
               whereFilters += result.filter

@@ -22,6 +22,7 @@ class JsonMahaServiceConfigTest extends FunSuite with Matchers {
                        |			"executors": ["e1", "e2"],
                        |			"generators": ["g1", "g2"],
                        |			"bucketingConfigName": "erBucket",
+                       |			"userTimeZoneProviderName": "erUserTimeZone",
                        |			"utcTimeProviderName": "erUTC",
                        |			"parallelServiceExecutorName": "erPSE",
                        |			"dimEstimatorFactoryClass": "dimEstFactoryClass",
@@ -39,6 +40,7 @@ class JsonMahaServiceConfigTest extends FunSuite with Matchers {
                        |			"executors": ["e1", "e2"],
                        |			"generators": ["g1", "g2"],
                        |			"bucketingConfigName": "irBucket",
+                       |			"userTimeZoneProviderName": "irUserTimeZone",
                        |			"utcTimeProviderName": "irUTC",
                        |			"parallelServiceExecutorName": "irPSE",
                        |			"dimEstimatorFactoryClass": "dimEstFactoryClass",
@@ -93,6 +95,20 @@ class JsonMahaServiceConfigTest extends FunSuite with Matchers {
                        |			}
                        |		}
                        |
+                       |	},
+                       |	"userTimeZoneProviderMap": {
+                       |		"erUserTimeZone": {
+                       |			"factoryClass": "erUserTimeZoneClass",
+                       |			"config": {
+                       |				"k": "v"
+                       |			}
+                       |		},
+                       |		"irUserTimeZone": {
+                       |			"factoryClass": "irUserTimeZoneClass",
+                       |			"config": {
+                       |				"k": "v"
+                       |			}
+                       |		}
                        |	},
                        |	"utcTimeProviderMap": {
                        |		"erUTC": {

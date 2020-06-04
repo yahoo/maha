@@ -830,6 +830,24 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
   private[this] def getInterval(model: RequestModel): QuerySegmentSpec = {
     model.utcTimeDayFilter match {
+      case dtf: DateTimeBetweenFilter =>
+        val f = dtf.fromDateTime
+        //since to is exclusive, we add 1 unit
+        val t = {
+          val d = dtf.toDateTime
+          if(d.getMillisOfDay != 0)
+            d.plusMillis(1)
+          else if(d.getSecondOfMinute != 0)
+            d.plusSeconds(1)
+          else if(d.getMinuteOfHour != 0)
+            d.plusMinutes(1)
+          else if(d.getHourOfDay != 0)
+            d.plusHours(1)
+          else
+            d.plusDays(1)
+        }
+        val interval = new Interval(f, t)
+        new MultipleIntervalSegmentSpec(java.util.Arrays.asList(interval))
       case BetweenFilter(_, from, to) =>
         val (f, t) = getBetweenDates(model)
         val interval = new Interval(f, t)

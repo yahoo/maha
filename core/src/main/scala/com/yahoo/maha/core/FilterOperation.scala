@@ -14,7 +14,6 @@ import com.yahoo.maha.core.MetaType.MetaType
 import com.yahoo.maha.core.dimension.{DruidFuncDimCol, DruidPostResultFuncDimCol}
 import com.yahoo.maha.core.request.{Parameter, TimeZoneValue, fieldExtended}
 import grizzled.slf4j.Logging
-
 import org.apache.druid.java.util.common.granularity.PeriodGranularity
 import org.apache.druid.js.JavaScriptConfig
 import org.apache.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec}
@@ -22,9 +21,8 @@ import org.apache.druid.query.extraction.{RegexDimExtractionFn, SubstringDimExtr
 import org.apache.druid.query.filter.JavaScriptDimFilter
 import org.apache.druid.query.ordering.StringComparator
 import org.apache.druid.query.ordering.StringComparators.{LexicographicComparator, NumericComparator}
-import org.joda.time.{DateTimeZone, Period}
-
-
+import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
+import org.joda.time.{DateTime, DateTimeZone, Days, Period}
 import scala.collection.{Iterable, mutable}
 import scalaz.syntax.applicative._
 import org.json4s._
@@ -37,6 +35,7 @@ sealed trait FilterOperation
 case object InFilterOperation extends FilterOperation { override def toString = "In" }
 case object NotInFilterOperation extends FilterOperation { override def toString = "Not In" }
 case object BetweenFilterOperation extends FilterOperation { override def toString = "Between" }
+case object DateTimeBetweenFilterOperation extends FilterOperation { override def toString = "DateTimeBetween" }
 case object EqualityFilterOperation extends FilterOperation { override def toString = "=" }
 case object LikeFilterOperation extends FilterOperation { override def toString = "Like" }
 case object NotLikeFilterOperation extends FilterOperation { override def toString = "Not Like" }
@@ -144,6 +143,113 @@ case class OuterFilter(filters: List[Filter]) extends Filter {
 case class BetweenFilter(field: String, from: String, to: String) extends Filter {
   override def operator = BetweenFilterOperation
   val asValues: String = s"$from-$to"
+}
+
+trait DateTimeFilter extends Filter {
+  def format: String
+
+  val dateTimeFormatter: DateTimeFormatter = DateType.formatter(format)
+
+  def applyTimeZone(zone: DateTimeZone): DateTimeFilter
+
+  def convertToTimeZone(zone: DateTimeZone): DateTimeFilter
+
+  def convertToUTCFromLocalZone(zone: DateTimeZone): DateTimeFilter
+}
+
+case class DateTimeBetweenFilter(field: String, from: String, to: String, format: String) extends DateTimeFilter {
+  override def operator = DateTimeBetweenFilterOperation
+
+  val asValues: String = s"$from-$to"
+  val fromDateTime: DateTime = try {
+    dateTimeFormatter.parseDateTime(from)
+  } catch {
+    case e: Exception =>
+      DateTimeBetweenFilterHelper.logError(s"Unchecked input to function from=$from", e)
+      throw e
+  }
+  val toDateTime: DateTime = try {
+    dateTimeFormatter.parseDateTime(to)
+  } catch {
+    case e: Exception =>
+      DateTimeBetweenFilterHelper.logError(s"Unchecked input to function to=$to", e)
+      throw e
+  }
+
+  require(fromDateTime.isBefore(toDateTime) || fromDateTime.isEqual(toDateTime), s"From datetime must be before or equal to To datetime : from=$from, to=$to")
+
+  val daysBetween: Int = Days.daysBetween(fromDateTime, toDateTime).getDays
+  val daysFromNow: Int = try {
+    val currentDate = DateTime.now(DateTimeZone.UTC)
+    Days.daysBetween(fromDateTime, currentDate).getDays
+  } catch {
+    case e: Exception =>
+      1
+  }
+
+  private def getDateTimeWithZone(dt: DateTime, z: DateTimeZone): DateTime = {
+    val yy = dt.getYear
+    val mm = dt.getMonthOfYear
+    val dd = dt.getDayOfMonth
+    val hh = dt.getHourOfDay
+    val mins = dt.getMinuteOfHour
+    val secs = dt.getSecondOfMinute
+    val millis = dt.getMillisOfSecond
+    new DateTime(yy, mm, dd, hh, mins, secs, millis, z)
+  }
+
+  def applyTimeZone(zone: DateTimeZone): DateTimeBetweenFilter = {
+    val isoFormat = ISODateTimeFormat.dateTime().withZone(zone)
+    val f = getDateTimeWithZone(fromDateTime, zone)
+    val t = getDateTimeWithZone(toDateTime, zone)
+    DateTimeBetweenFilterHelper.iso8601(field, isoFormat.print(f), isoFormat.print(t))
+  }
+
+  def convertToTimeZone(zone: DateTimeZone): DateTimeBetweenFilter = {
+    val isoFormat = ISODateTimeFormat.dateTime().withZone(zone)
+    DateTimeBetweenFilterHelper.iso8601(field, isoFormat.print(fromDateTime), isoFormat.print(toDateTime))
+  }
+
+  def convertToUTCFromLocalZone(zone: DateTimeZone) : DateTimeBetweenFilter = {
+    val f = if(fromDateTime.getZone == DateTimeZone.UTC && zone != DateTimeZone.UTC ) {
+      getDateTimeWithZone(fromDateTime, zone)
+    } else fromDateTime
+    val t = if(toDateTime.getZone == DateTimeZone.UTC && zone != DateTimeZone.UTC) {
+      getDateTimeWithZone(toDateTime, zone)
+    } else toDateTime
+    val isoFormat = ISODateTimeFormat.dateTime().withZoneUTC()
+    DateTimeBetweenFilterHelper.iso8601(field, isoFormat.print(fromDateTime), isoFormat.print(toDateTime))
+  }
+}
+
+object DateTimeBetweenFilterHelper extends Logging {
+  def logError(msg: String, t: Throwable): Unit = {
+    error(msg, t)
+  }
+
+  def iso8601(field: String, from: String, to: String): DateTimeBetweenFilter = {
+    DateTimeBetweenFilter(field, from, to, "yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
+  }
+
+  def yearMonthDayHourMinuteSecondMilli(field: String, from: String, to: String): DateTimeBetweenFilter = {
+    DateTimeBetweenFilter(field, from, to, "yyyy-MM-dd'T'HH:mm:ss.SSS")
+  }
+
+  def yearMonthDayHourMinuteSecond(field: String, from: String, to: String): DateTimeBetweenFilter = {
+    DateTimeBetweenFilter(field, from, to, "yyyy-MM-dd'T'HH:mm:ss")
+  }
+
+  def yearMonthDayHourMinute(field: String, from: String, to: String): DateTimeBetweenFilter = {
+    DateTimeBetweenFilter(field, from, to, "yyyy-MM-dd'T'HH:mm")
+  }
+
+  def yearMonthDayHour(field: String, from: String, to: String): DateTimeBetweenFilter = {
+    DateTimeBetweenFilter(field, from, to, "yyyy-MM-dd'T'HH")
+  }
+
+  def yearMonthDay(field: String, from: String, to: String): DateTimeBetweenFilter = {
+    DateTimeBetweenFilter(field, from, to, "yyyy-MM-dd")
+  }
 }
 
 case class EqualityFilter(field: String, value: String
@@ -277,13 +383,15 @@ case class RenderedOrFilter(filters: Iterable[String]) extends CombiningFilter {
 sealed trait FilterRenderer[T, O] {
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: T,
-             literalMapper: LiteralMapper,
+             literalMapper: SqlLiteralMapper,
              column: Column,
              engine: Engine,
              grainOption: Option[Grain]): O
 }
 
 sealed trait BetweenFilterRenderer[O] extends FilterRenderer[BetweenFilter, O]
+
+sealed trait DateTimeFilterRenderer[O] extends FilterRenderer[DateTimeBetweenFilter, O]
 
 sealed trait InFilterRenderer[O] extends FilterRenderer[InFilter, O]
 
@@ -339,7 +447,7 @@ object MetaType extends Enumeration {
 object SqlBetweenFilterRenderer extends BetweenFilterRenderer[SqlResult] {
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              betweenFilter: BetweenFilter,
-             literalMapper: LiteralMapper,
+             literalMapper: SqlLiteralMapper,
              column: Column,
              engine: Engine,
              grainOption: Option[Grain]) : SqlResult = {
@@ -437,10 +545,125 @@ object SqlBetweenFilterRenderer extends BetweenFilterRenderer[SqlResult] {
   }
 }
 
+object SqlDateTimeBetweenFilterRenderer extends DateTimeFilterRenderer[SqlResult] {
+  def render(aliasToRenderedSqlMap: Map[String, (String, String)],
+             datetimeFilter: DateTimeBetweenFilter,
+             literalMapper: SqlLiteralMapper,
+             column: Column,
+             engine: Engine,
+             grainOption: Option[Grain]) : SqlResult = {
+    val name = aliasToRenderedSqlMap(datetimeFilter.field)._2
+    require(column.dataType.isInstanceOf[DateType] || column.dataType.isInstanceOf[TimestampType]
+      , s"DateTimeFilter must be on a column with data type of DateType or TimestampType : $name : ${column.dataType}")
+    val fromDateTime = DateType.formatter(datetimeFilter.format).parseDateTime(datetimeFilter.from)
+    val toDateTime = DateType.formatter(datetimeFilter.format).parseDateTime(datetimeFilter.to)
+    engine match {
+      case OracleEngine =>
+        column.dataType match {
+          case DateType(format) =>
+            val ISO8601DateFormat = ISODateTimeFormat.yearMonthDay().withZoneUTC()
+            val fromISO = ISO8601DateFormat.print(fromDateTime)
+            val toISO = ISO8601DateFormat.print(toDateTime)
+            val from = s"""'$fromISO'"""
+            val to = s"""'$toISO'"""
+            val renderedFrom = s"to_date($from, 'YYYY-MM-DD')"
+            val renderedTo = s"to_date($to, 'YYYY-MM-DD')"
+            DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
+          case TimestampType(format) =>
+            val ISO8601DateFormat = ISODateTimeFormat.dateTime()
+            val fromISO = ISO8601DateFormat.print(fromDateTime)
+            val toISO = ISO8601DateFormat.print(toDateTime)
+            val from = s"""'$fromISO'"""
+            val to = s"""'$toISO'"""
+            val renderedFrom = s"TO_UTC_TIMESTAMP_TZ($from)"
+            val renderedTo = s"TO_UTC_TIMESTAMP_TZ($to)"
+            DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
+          case a =>
+            throw new IllegalArgumentException(s"Unsupported data type : $a")
+        }
+      case PostgresEngine =>
+        column.dataType match {
+          case DateType(format) =>
+            val ISO8601DateFormat = ISODateTimeFormat.yearMonthDay().withZoneUTC()
+            val fromISO = ISO8601DateFormat.print(fromDateTime)
+            val toISO = ISO8601DateFormat.print(toDateTime)
+            val from = s"""'$fromISO'"""
+            val to = s"""'$toISO'"""
+            val renderedFrom = s"to_date($from, 'YYYY-MM-DD')"
+            val renderedTo = s"to_date($to, 'YYYY-MM-DD')"
+            DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
+          case TimestampType(format) =>
+            val ISO8601DateFormat = ISODateTimeFormat.dateTime()
+            val fromISO = ISO8601DateFormat.print(fromDateTime)
+            val toISO = ISO8601DateFormat.print(toDateTime)
+            val from = s"""'$fromISO'::timestamptz"""
+            val to = s"""'$toISO'::timestamptz"""
+            val renderedFrom = from
+            val renderedTo = to
+            DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
+          case a =>
+            throw new IllegalArgumentException(s"Unsupported data type : $a")
+        }
+      case HiveEngine =>
+        column.dataType match {
+          case DateType(format) =>
+            //yyyy-MM-dd'T'HH:mm:ss.SSSZZ
+            val ISO8601DateFormat = ISODateTimeFormat.yearMonthDay().withZoneUTC()
+            val fromISO = ISO8601DateFormat.print(fromDateTime)
+            val toISO = ISO8601DateFormat.print(toDateTime)
+            val from = s"""'$fromISO'"""
+            val to = s"""'$toISO'"""
+            val renderedFrom = s"cast($from as date)"
+            val renderedTo = s"cast($to as date)"
+            DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
+          case TimestampType(format) =>
+            //yyyy-MM-dd'T'HH:mm:ss.SSSZZ
+            val ISO8601DateFormat = ISODateTimeFormat.dateHourMinuteSecondMillis().withZoneUTC()
+            val fromISO = ISO8601DateFormat.print(fromDateTime)
+            val toISO = ISO8601DateFormat.print(toDateTime)
+            val from = s"""'$fromISO'"""
+            val to = s"""'$toISO'"""
+            val renderedFrom = s"cast($from as timestamp)"
+            val renderedTo = s"cast($to as timestamp)"
+            DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
+          case a =>
+            throw new IllegalArgumentException(s"Unsupported data type : $a")
+        }
+      case PrestoEngine =>
+        column.dataType match {
+          case DateType(format) =>
+            //yyyy-MM-dd'T'HH:mm:ss.SSSZZ
+            val ISO8601DateFormat = ISODateTimeFormat.yearMonthDay().withZoneUTC()
+            val fromISO = ISO8601DateFormat.print(fromDateTime)
+            val toISO = ISO8601DateFormat.print(toDateTime)
+            val from = s"""'$fromISO'"""
+            val to = s"""'$toISO'"""
+            val renderedFrom = s"date($from)"
+            val renderedTo = s"date($to)"
+            DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
+          case TimestampType(format) =>
+            //yyyy-MM-dd'T'HH:mm:ss.SSSZZ
+            val ISO8601DateFormat = ISODateTimeFormat.dateTime()
+            val fromISO = ISO8601DateFormat.print(fromDateTime)
+            val toISO = ISO8601DateFormat.print(toDateTime)
+            val from = s"""'$fromISO'"""
+            val to = s"""'$toISO'"""
+            val renderedFrom = s"from_iso8601_timestamp($from)"
+            val renderedTo = s"from_iso8601_timestamp($to)"
+            DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
+          case a =>
+            throw new IllegalArgumentException(s"Unsupported data type : $a")
+        }
+      case _ =>
+        throw new IllegalArgumentException(s"Unsupported engine for DateTimeFilterRenderer $engine")
+    }
+  }
+}
+
 object SqlInFilterRenderer extends InFilterRenderer[SqlResult] {
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: InFilter,
-             literalMapper: LiteralMapper,
+             literalMapper: SqlLiteralMapper,
              column: Column,
              engine: Engine,
              grainOption: Option[Grain]) : SqlResult = {
@@ -477,7 +700,7 @@ object SqlInFilterRenderer extends InFilterRenderer[SqlResult] {
 object SqlNotInFilterRenderer extends NotInFilterRenderer[SqlResult] {
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: NotInFilter,
-             literalMapper: LiteralMapper,
+             literalMapper: SqlLiteralMapper,
              column: Column,
              engine: Engine,
              grainOption: Option[Grain]) : SqlResult = {
@@ -509,7 +732,7 @@ object SqlNotInFilterRenderer extends NotInFilterRenderer[SqlResult] {
 object SqlEqualityFilterRenderer extends EqualityFilterRenderer[SqlResult] {
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: EqualityFilter,
-             literalMapper: LiteralMapper,
+             literalMapper: SqlLiteralMapper,
              column: Column,
              engine: Engine,
              grainOption : Option[Grain]) : SqlResult = {
@@ -574,7 +797,7 @@ object SqlFieldEqualityFilterRenderer extends FieldEqualityFilterRenderer[SqlRes
 
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: FieldEqualityFilter,
-             literalMapper: LiteralMapper,
+             literalMapper: SqlLiteralMapper,
              column: Column,
              engine: Engine,
              grainOption : Option[Grain]) : SqlResult = {
@@ -591,33 +814,33 @@ object SqlFieldEqualityFilterRenderer extends FieldEqualityFilterRenderer[SqlRes
   }
 }
 
-  object SqlFilterRenderFactory {
-    def renderComparisonFilterWithOperator(name: String,
-                                 filter: Filter,
-                                 literalMapper: LiteralMapper,
-                                 column: Column,
-                                 engine: Engine,
-                                 grainOption : Option[Grain],
-                                 operator: String,
-                                 validEngineSet: Set[Engine]
-                                ): SqlResult = {
-      val renderedValue = literalMapper.toLiteral(column, filter.asInstanceOf[ForcedFilter].asValues, grainOption)
-      if( validEngineSet.contains(engine)) {
-        column.dataType match {
-          case StrType(_, _, _) if column.caseInSensitive =>
-            DefaultResult(s"""lower($name) $operator lower($renderedValue)""")
-          case _ =>
-            DefaultResult(s"""$name $operator $renderedValue""")
-        }
-      } else
-          throw new IllegalArgumentException(s"Unsupported engine for Operator: ${filter.operator} $engine")
-    }
+object SqlFilterRenderFactory {
+  def renderComparisonFilterWithOperator(name: String,
+                                         filter: Filter,
+                                         literalMapper: LiteralMapper,
+                                         column: Column,
+                                         engine: Engine,
+                                         grainOption: Option[Grain],
+                                         operator: String,
+                                         validEngineSet: Set[Engine]
+                                        ): SqlResult = {
+    val renderedValue = literalMapper.toLiteral(column, filter.asInstanceOf[ForcedFilter].asValues, grainOption)
+    if (validEngineSet.contains(engine)) {
+      column.dataType match {
+        case StrType(_, _, _) if column.caseInSensitive =>
+          DefaultResult(s"""lower($name) $operator lower($renderedValue)""")
+        case _ =>
+          DefaultResult(s"""$name $operator $renderedValue""")
+      }
+    } else
+      throw new IllegalArgumentException(s"Unsupported engine for Operator: ${filter.operator} $engine")
   }
+}
 
 object SqlGreaterThanFilterRenderer extends GreaterThanFilterRenderer[SqlResult] {
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: GreaterThanFilter,
-             literalMapper: LiteralMapper,
+             literalMapper: SqlLiteralMapper,
              column: Column,
              engine: Engine,
              grainOption : Option[Grain]) : SqlResult = {
@@ -629,7 +852,7 @@ object SqlGreaterThanFilterRenderer extends GreaterThanFilterRenderer[SqlResult]
 object SqlLessThanFilterRenderer extends LessThanFilterRenderer[SqlResult] {
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: LessThanFilter,
-             literalMapper: LiteralMapper,
+             literalMapper: SqlLiteralMapper,
              column: Column,
              engine: Engine,
              grainOption : Option[Grain]) : SqlResult = {
@@ -639,7 +862,7 @@ object SqlLessThanFilterRenderer extends LessThanFilterRenderer[SqlResult] {
 }
 
 object SqlLikeFilterRenderer extends LikeFilterRenderer[SqlResult] {
-  
+
   private[this] val specialCharsR = """[%_\\]""".r
 
   def escapeEscapeChars(value: String) : String = {
@@ -652,7 +875,7 @@ object SqlLikeFilterRenderer extends LikeFilterRenderer[SqlResult] {
 
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: LikeFilter,
-             literalMapper: LiteralMapper,
+             literalMapper: SqlLiteralMapper,
              column: Column,
              engine: Engine,
              grainOption: Option[Grain]) : SqlResult = {
@@ -713,7 +936,7 @@ object SqlLikeFilterRenderer extends LikeFilterRenderer[SqlResult] {
 object SqlNotEqualToFilterRenderer extends NotEqualToFilterRenderer[SqlResult] {
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: NotEqualToFilter,
-             literalMapper: LiteralMapper,
+             literalMapper: SqlLiteralMapper,
              column: Column,
              engine: Engine,
              grainOption: Option[Grain]) : SqlResult = {
@@ -744,7 +967,7 @@ object SqlNotEqualToFilterRenderer extends NotEqualToFilterRenderer[SqlResult] {
 object SqlIsNullFilterRenderer extends IsNullFilterRenderer[SqlResult] {
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: IsNullFilter,
-             literalMapper: LiteralMapper,
+             literalMapper: SqlLiteralMapper,
              column: Column,
              engine: Engine,
              grainOption: Option[Grain]) : SqlResult = {
@@ -760,7 +983,7 @@ object SqlIsNullFilterRenderer extends IsNullFilterRenderer[SqlResult] {
 object SqlIsNotNullFilterRenderer extends IsNotNullFilterRenderer[SqlResult] {
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: IsNotNullFilter,
-             literalMapper: LiteralMapper,
+             literalMapper: SqlLiteralMapper,
              column: Column,
              engine: Engine,
              grainOption: Option[Grain]) : SqlResult = {
@@ -787,16 +1010,22 @@ object FilterDruid {
 
   def extractFromAndToDate(f: Filter, g: Grain) : (DateTime, DateTime) = {
     f match {
+      case dtf: DateTimeBetweenFilter =>
+        val f = g.fromFormattedString(g.toFormattedString(dtf.fromDateTime))
+        val t = g.fromFormattedString(g.toFormattedString(dtf.toDateTime))
+        (f, t)
       case BetweenFilter(_, from, to) =>
         val f = g.fromFormattedString(from)
         val t = g.fromFormattedString(to)
         (f, t)
-      case any => throw new UnsupportedOperationException(s"Only between filter supported : $any")
+      case any => throw new UnsupportedOperationException(s"Only between or datetime between filter supported : $any")
     }
   }
 
   def getMaxDate(f: Filter, g: Grain) : DateTime = {
     f match {
+      case dtf: DateTimeBetweenFilter =>
+        g.fromFormattedString(g.toFormattedString(dtf.toDateTime))
       case BetweenFilter(_, from, to) =>
         g.fromFormattedString(to)
       case InFilter(_, values, _, _) =>
@@ -1171,7 +1400,7 @@ object FilterDruid {
       case f =>
         throw new UnsupportedOperationException(s"Unhandled filter operation $f")
     }
-  }  
+  }
 }
 
 object FilterSql {
@@ -1181,7 +1410,7 @@ object FilterSql {
                    nameToAliasAndRenderedSqlMap: Map[String, (String, String)],
                    columnsByNameMap: Map[String, Column],
                    engine: Engine,
-                   literalMapper: LiteralMapper,
+                   literalMapper: SqlLiteralMapper,
                    grainOption: Option[Grain] = None): SqlResult = {
 
     val aliasToRenderedSqlMap: mutable.HashMap[String, (String, String)] = new mutable.HashMap[String, (String, String)]()
@@ -1202,7 +1431,7 @@ object FilterSql {
 
     aliasToRenderedSqlMap(filter.field) = (name, exp)
     filter match {
-      case PushDownFilter(f) => 
+      case PushDownFilter(f) =>
         renderFilter(f, aliasToNameMapFull, nameToAliasAndRenderedSqlMap, columnsByNameMap, engine, literalMapper, None)
       case FieldEqualityFilter(f,g, _, _) =>
         val otherColumnName = aliasToNameMapFull(g)
@@ -1229,7 +1458,7 @@ object FilterSql {
   def renderOuterFilter(filter: Filter,
                    columnsByNameMap: Map[String, Column],
                    engine: Engine,
-                   literalMapper: LiteralMapper,
+                   literalMapper: SqlLiteralMapper,
                    grainOption: Option[Grain] = None): SqlResult = {
 
 
@@ -1242,12 +1471,20 @@ object FilterSql {
                    aliasToRenderedSqlMap: Map[String, (String, String)],
                    column: Column,
                    engine: Engine,
-                   literalMapper: LiteralMapper,
+                   literalMapper: SqlLiteralMapper,
                    grainOption: Option[Grain] = None): SqlResult = {
 
     filter match {
       case f@BetweenFilter(alias, from, to) =>
         SqlBetweenFilterRenderer.render(
+          aliasToRenderedSqlMap,
+          f,
+          literalMapper,
+          column,
+          engine,
+          grainOption)
+      case f: DateTimeBetweenFilter =>
+        SqlDateTimeBetweenFilterRenderer.render(
           aliasToRenderedSqlMap,
           f,
           literalMapper,
@@ -1421,6 +1658,14 @@ object Filter extends Logging {
           :: ("from" -> toJSON(from))
           :: ("to" -> toJSON(to))
           :: Nil)
+      case DateTimeBetweenFilter(field, from, to, fmt) =>
+        makeObj(
+          ("field" -> toJSON(field))
+            :: ("operator" -> toJSON(filter.operator.toString))
+            :: ("from" -> toJSON(from))
+            :: ("to" -> toJSON(to))
+            :: ("format" -> toJSON(fmt))
+            :: Nil)
       case InFilter(field, values, _, _) =>
         makeObj(
           ("field" -> toJSON(field))
@@ -1503,7 +1748,7 @@ object Filter extends Logging {
 
     }
   }
-  
+
   def nonEmptyString(string: String, fieldName : String, jsonFieldName: String) : JsonScalaz.Result[Boolean] = {
     import _root_.scalaz.syntax.validation._
     if (string.isEmpty) {
@@ -1512,7 +1757,7 @@ object Filter extends Logging {
       true.successNel
     }
   }
-  
+
   def nonEmptyList(string: List[Any], fieldName : String, jsonFieldName: String) : JsonScalaz.Result[Boolean] = {
     import _root_.scalaz.syntax.validation._
     if (string.isEmpty) {
@@ -1595,6 +1840,14 @@ object Filter extends Logging {
                 f =>
                   (nonEmptyString(f.from, f.field, "from") |@| nonEmptyString(f.to, f.field, "to"))((a,b) => f)
               }
+            case "datetimebetween" =>
+              val filter = (stringField("field")(json) |@| stringField("from")(json) |@| stringField("to")(json) |@| stringField("format")(json))((a,b,c,d) => {
+                DateTimeBetweenFilter(a, b, c, d)
+              })
+              filter.flatMap {
+                f =>
+                  (nonEmptyString(f.from, f.field, "from") |@| nonEmptyString(f.to, f.field, "to") |@| nonEmptyString(f.format, f.field, "format"))((a,b,c) => f)
+              }
             case "in" =>
               val filter = InFilter.applyJSON(field[String]("field"), stringListField("values"), booleanFalse, booleanFalse)(json)
               filter.flatMap {
@@ -1674,6 +1927,7 @@ object Filter extends Logging {
       case _: OrFilter => Set.empty
       case _: AndFilter => Set.empty
       case betweenFilter: BetweenFilter => Set(betweenFilter.field)
+      case dateTimeBetweenFilter: DateTimeBetweenFilter => Set(dateTimeBetweenFilter.field)
       case equalityFilter: EqualityFilter => Set(equalityFilter.field)
       case inFilter: InFilter => Set(inFilter.field)
       case notInFilter: NotInFilter => Set(notInFilter.field)
@@ -1705,6 +1959,7 @@ object Filter extends Logging {
       case andFilter: AndFilter => andFilter.filters.flatMap{ innerFilter: Filter => returnFullFieldSetForPkAliases(innerFilter) }.toSet
       case fieldEqualityFilter: MultiFieldForcedFilter => Set(fieldEqualityFilter.field, fieldEqualityFilter.compareTo)
       case betweenFilter: BetweenFilter => Set(betweenFilter.field)
+      case dateTimeBetweenFilter: DateTimeBetweenFilter => Set(dateTimeBetweenFilter.field)
       case equalityFilter: EqualityFilter => Set(equalityFilter.field)
       case inFilter: InFilter => Set(inFilter.field)
       case notInFilter: NotInFilter => Set(notInFilter.field)
@@ -1735,6 +1990,7 @@ object Filter extends Logging {
       case _: OrFilter => Map.empty
       case _: AndFilter => Map.empty
       case betweenFilter: BetweenFilter => Map(betweenFilter.field -> betweenFilter.operator)
+      case dateTimeBetweenFilter: DateTimeBetweenFilter => Map(dateTimeBetweenFilter.field -> dateTimeBetweenFilter.operator)
       case equalityFilter: EqualityFilter => Map(equalityFilter.field -> equalityFilter.operator)
       case inFilter: InFilter => Map(inFilter.field -> inFilter.operator)
       case notInFilter: NotInFilter => Map(notInFilter.field -> notInFilter.operator)

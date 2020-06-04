@@ -211,7 +211,7 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
             case any =>
               throw new UnsupportedOperationException(s"Found non fact column : $any")
           }
-        val result = QueryGeneratorHelper.handleFilterRender(filter, publicFact, fact, aliasToNameMapFull, null, HiveEngine, hiveLiteralMapper, colRenderFn)
+        val result = QueryGeneratorHelper.handleFilterSqlRender(filter, publicFact, fact, aliasToNameMapFull, null, HiveEngine, hiveLiteralMapper, colRenderFn)
 
         if (fact.dimColMap.contains(name)) {
           whereFilters += result.filter

@@ -9,8 +9,8 @@ import org.joda.time.{DateTime, DateTimeZone}
 import scala.collection.SortedSet
 
 /**
- * Created by surabhip on 3/9/16.
- */
+  * Created by surabhip on 3/9/16.
+  */
 class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
 
   override def getUTCDayHourMinuteFilter(localTimeDayFilter: Filter
@@ -19,12 +19,40 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
                                          , timezone: Option[String]
                                          , isDebugEnabled: Boolean): (Filter, Option[Filter], Option[Filter]) = {
 
+    if (localTimeDayFilter.isInstanceOf[DateTimeFilter]) {
+      require(localTimeHourFilter.isEmpty && localTimeMinuteFilter.isEmpty
+        , "A DateTimeBetweenFilter on Day cannot be used with a filter on Hour and Minute")
+      var utcDateTimeFilter = localTimeDayFilter.asInstanceOf[DateTimeFilter]
+
+      if (!timezone.isDefined) {
+        utcDateTimeFilter = extendDateTimeBackwardsByOneDay(utcDateTimeFilter)
+        utcDateTimeFilter = extendDateTimeForwardByOneDay(utcDateTimeFilter)
+      }
+
+      if (timezone.contains(DateTimeZone.UTC.toString))
+        return (utcDateTimeFilter, None, None)
+
+      val dateTimeZone = DateTimeZone.forID(timezone.get)
+      val requestDTF = localTimeDayFilter.asInstanceOf[DateTimeFilter]
+      utcDateTimeFilter = requestDTF.convertToUTCFromLocalZone(dateTimeZone)
+      (utcDateTimeFilter, None, None)
+    } else {
+      handleLegacyDayHourMinuteFilter(localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter, timezone, isDebugEnabled)
+    }
+  }
+
+  private def handleLegacyDayHourMinuteFilter(localTimeDayFilter: Filter
+                                      , localTimeHourFilter: Option[Filter]
+                                      , localTimeMinuteFilter: Option[Filter]
+                                      , timezone: Option[String]
+                                      , isDebugEnabled: Boolean): (Filter, Option[Filter], Option[Filter]) = {
+
     var utcDayFilter = localTimeDayFilter
     var utcHourFilter = localTimeHourFilter
     var utcMinuteFilter = localTimeMinuteFilter
     if (isDebugEnabled) info(s"Timezone: $timezone")
     if (!validateFilters(localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter) || !timezone.isDefined) {
-      if(utcHourFilter.isEmpty) {
+      if (utcHourFilter.isEmpty) {
         warn(s"Failed to validate day/hour filters, or timezone cannot be fetched. Extending day filter by one day")
         utcDayFilter = extendDaysBackwardsByOneDay(utcDayFilter)
         utcDayFilter = extendDaysForwardByOneDay(utcDayFilter)
@@ -34,13 +62,14 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
       if (timezone.contains(DateTimeZone.UTC.toString)) return (localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter)
 
       val dateTimeZone = DateTimeZone.forID(timezone.get)
+
       val offsetMinutes = getOffsetMinutes(dateTimeZone)
       val offsetHours = offsetMinutes / 60
       if (isDebugEnabled) {
         info(s"OffsetMinutes: $offsetMinutes")
         info(s"OffsetHours: $offsetHours")
       }
-      val inferredLocalHourFilter: Filter =  if (!localTimeHourFilter.isDefined) {
+      val inferredLocalHourFilter: Filter = if (!localTimeHourFilter.isDefined) {
         new BetweenFilter(HOUR_FILTER_FIELD, "00", "23")
       } else {
         localTimeHourFilter.get
@@ -63,7 +92,7 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
       }
 
       if (localTimeHourFilter.isDefined) {
-        utcHourFilter = Some(updateHours(localTimeHourFilter.get, offsetHours)) // Don't set hourFilter if inputHour filter isn't specified 
+        utcHourFilter = Some(updateHours(localTimeHourFilter.get, offsetHours)) // Don't set hourFilter if inputHour filter isn't specified
       }
 
       if (localTimeHourFilter.isDefined && localTimeMinuteFilter.isDefined) {
@@ -99,13 +128,12 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
       case InFilter(field, days, _, _) =>
         val prevDays = new collection.mutable.TreeSet[String]()
         val daysSorted = days.to[SortedSet]
-        days.foreach { day =>
-          {
-            val nextDay = oneDayBefore(day)
-            if (!daysSorted.contains(nextDay)) {
-              prevDays += nextDay
-            }
+        days.foreach { day => {
+          val nextDay = oneDayBefore(day)
+          if (!daysSorted.contains(nextDay)) {
+            prevDays += nextDay
           }
+        }
         }
         prevDays ++= days
         new InFilter(field, prevDays.toList)
@@ -123,20 +151,30 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
       case InFilter(field, days, _, _) =>
         val prevDays = new collection.mutable.TreeSet[String]()
         val daysSorted = days.to[SortedSet]
-        daysSorted.foreach { day =>
-          {
-            val nextDay = oneDayBefore(day)
-            if (!daysSorted.contains(nextDay)) {
-              prevDays += nextDay
-            }
+        daysSorted.foreach { day => {
+          val nextDay = oneDayBefore(day)
+          if (!daysSorted.contains(nextDay)) {
+            prevDays += nextDay
           }
+        }
         }
         prevDays ++= days
         new InFilter(field, prevDays.toList)
-      case EqualityFilter(field, day, _ , _) =>
+      case EqualityFilter(field, day, _, _) =>
         new BetweenFilter(field, oneDayBefore(day), day)
       case a =>
         throw new IllegalArgumentException(s"Filter operation not supported. Day filter can be 'between', 'in' or 'equality' : $a")
+    }
+  }
+
+  def extendDateTimeBackwardsByOneDay(dtf: DateTimeFilter): DateTimeFilter = {
+    dtf match {
+      case dtbf: DateTimeBetweenFilter =>
+        DateTimeBetweenFilter(
+          dtbf.field, dtbf.dateTimeFormatter.print(dtbf.fromDateTime.minusDays(1)), dtbf.to, dtbf.format
+        )
+      case a =>
+        throw new IllegalArgumentException(s"Filter operation not supported : $a")
     }
   }
 
@@ -147,13 +185,12 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
       case InFilter(field, days, _, _) =>
         val nextDays = new collection.mutable.TreeSet[String]()
         val daysSorted = days.to[SortedSet]
-        days.foreach { day =>
-          {
-            val nextDay = oneDayAfter(day)
-            if (!daysSorted.contains(nextDay)) {
-              nextDays += nextDay
-            }
+        days.foreach { day => {
+          val nextDay = oneDayAfter(day)
+          if (!daysSorted.contains(nextDay)) {
+            nextDays += nextDay
           }
+        }
         }
         nextDays ++= days
         new InFilter(field, nextDays.toList)
@@ -171,13 +208,12 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
       case InFilter(field, days, _, _) =>
         val nextDays = new collection.mutable.TreeSet[String]()
         val daysSorted = days.to[SortedSet]
-        days.foreach { day =>
-          {
-            val nextDay = oneDayAfter(day)
-            if (!daysSorted.contains(nextDay)) {
-              nextDays += nextDay
-            }
+        days.foreach { day => {
+          val nextDay = oneDayAfter(day)
+          if (!daysSorted.contains(nextDay)) {
+            nextDays += nextDay
           }
+        }
         }
         nextDays ++= days
         new InFilter(field, nextDays.toList)
@@ -185,6 +221,17 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
         new BetweenFilter(field, day, oneDayAfter(day))
       case a =>
         throw new IllegalArgumentException(s"Filter operation not supported. Day filter can be 'between', 'in' or 'equality' : $a")
+    }
+  }
+
+  def extendDateTimeForwardByOneDay(dtf: DateTimeFilter): DateTimeFilter = {
+    dtf match {
+      case dtbf: DateTimeBetweenFilter =>
+        DateTimeBetweenFilter(
+          dtbf.field, dtbf.from, dtbf.dateTimeFormatter.print(dtbf.toDateTime.plusDays(1)), dtbf.format
+        )
+      case a =>
+        throw new IllegalArgumentException(s"Filter operation not supported : $a")
     }
   }
 
