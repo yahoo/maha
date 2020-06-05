@@ -124,16 +124,6 @@ public class RocksDBManager {
             return String.valueOf(lastUpdate);
         }
 
-        if(lastUpdate != 0 && !Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
-            // this is non deployment time and kafka is configured to get real time updates, so rocksdb instance download can be delayed
-            try {
-                int waitTime = RANDOM.nextInt(BOUND);
-                LOG.error("Going to sleep for [%s] ms before RocksDB instance is downloaded and kafka messages are applied for [%s]", waitTime, extractionNamespace.getNamespace());
-                Thread.sleep(waitTime);
-            } catch (InterruptedException e) {
-            }
-        }
-
         final File file = new File(String.format("%s/%s", localStorageDirectory, extractionNamespace.getNamespace()));
         if(!file.exists()) {
             FileUtils.forceMkdir(file);
@@ -145,16 +135,29 @@ public class RocksDBManager {
 
         final String localPath = FilenameUtils.removeExtension(localZippedFileNameWithPath);
 
+        if(lastUpdate != 0 && !Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
+            // this is non deployment time and kafka is configured to get real time updates, so rocksdb instance download can be delayed
+            try {
+                int waitTime = RANDOM.nextInt(BOUND);
+                LOG.error("Going to sleep for [%s] ms before RocksDB instance is downloaded and kafka messages are applied for [%s]", waitTime, extractionNamespace.getNamespace());
+                Thread.sleep(waitTime);
+            } catch (InterruptedException e) {
+                LOG.error(e, "Interrupted while sleeping for RocksDB downloading.");
+            }
+            LOG.info("non-deployment time: starting a new RocksDB instance after sleep for namespace[%s]...", extractionNamespace.getNamespace());
+            return startNewInstance(extractionNamespace, loadTime, hdfsPath, localZippedFileNameWithPath, localPath);
+        }
+
         File snapShotFile = new File(localPath + SNAPSHOT_FILE_NAME);
 
         if(snapShotFile.exists()) {
             try {
                 return useSnapshotInstance(extractionNamespace, loadTime, localPath, snapShotFile);
             } catch (Exception e) {
-                LOG.error(e, "Caught exception while using the snapshot. Going to start new instance.");
+                LOG.error(e, "Caught exception while using the snapshot.");
             }
         }
-
+        LOG.info("starting new instance for namespace[%s]...", extractionNamespace.getNamespace());
         return startNewInstance(extractionNamespace, loadTime, hdfsPath, localZippedFileNameWithPath, localPath);
     }
 
@@ -172,6 +175,7 @@ public class RocksDBManager {
 
         // kafka topic is not empty then add listener for the topic
         if (!Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
+            LOG.info("useSnapshotInstance: adding Listener...");
             kafkaExtractionManager.addListener(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.kafkaPartitionOffset, true);
         }
         return loadTime;
@@ -194,6 +198,7 @@ public class RocksDBManager {
         if (!Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
             rocksDBSnapshot.kafkaConsumerGroupId = UUID.randomUUID().toString();
             rocksDBSnapshot.kafkaPartitionOffset = new ConcurrentHashMap<Integer, Long>();
+            LOG.info("startNewInstance: applying change since beginning...");
             kafkaExtractionManager.applyChangesSinceBeginning(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.rocksDB, rocksDBSnapshot.kafkaPartitionOffset);
             LOG.info(rocksDBSnapshot.rocksDB.getProperty(STATS_KEY));
 
@@ -202,6 +207,7 @@ public class RocksDBManager {
                 int retryCount = 0;
                 lookupAuditing(localZippedFileNameWithPath, extractionNamespace, loadTime, sleepTime, retryCount);
             }
+            LOG.info("startNewInstance: adding Listener...");
             kafkaExtractionManager.addListener(extractionNamespace, rocksDBSnapshot.kafkaConsumerGroupId, rocksDBSnapshot.kafkaPartitionOffset, false);
         }
 
@@ -217,7 +223,7 @@ public class RocksDBManager {
         if (oldDb != null) {
             try {
                 LOG.info(oldDb.getProperty(STATS_KEY));
-                LOG.info("Waiting for 10 seconds before cleaning");
+                LOG.info("Waiting for 10 seconds before cleaning old DB connection/path");
                 Thread.sleep(10000);
                 oldDb.close();
                 cleanup(oldDbPath);

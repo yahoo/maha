@@ -204,10 +204,18 @@ public class KafkaManager {
                         consumer.subscribe(Arrays.asList(topic));
 
                         if(seekOffsetToPreviousSnapshot) {
+                            log.info("seekOffsetToPreviousSnapshot is true, seeking offset for each partition" +
+                                    "kafkaPartitionOffset.entrySet size: [%d]", kafkaPartitionOffset.entrySet().size());
                             kafkaPartitionOffset.entrySet().forEach(partitionOffset -> {
                                 log.info("topic = [%s], seek partition = [%s], seek offset = [%s]", topic, partitionOffset.getKey(), partitionOffset.getValue());
-                                consumer.poll(0);
-                                consumer.seek(new TopicPartition(topic, partitionOffset.getKey()), partitionOffset.getValue());
+                                TopicPartition curTopicPartition = new TopicPartition(topic, partitionOffset.getKey());
+                                try {
+                                    consumer.poll(0);
+                                    consumer.seek(curTopicPartition, partitionOffset.getValue());
+                                } catch (Exception e) {
+                                    log.error(e, "Caught exception while consumer poll/seek.");
+                                    consumer.seekToBeginning(Arrays.asList(curTopicPartition));
+                                }
                             });
                         }
 
