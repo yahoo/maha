@@ -6,7 +6,7 @@ import com.yahoo.maha.core.BaseExpressionTest.{FACT_HIVE_EXPRESSION, PRESTO_TIME
 import com.yahoo.maha.core.DruidPostResultFunction.POST_RESULT_DECODE
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
-import io.druid.jackson.DefaultObjectMapper
+import org.apache.druid.jackson.DefaultObjectMapper
 import org.json4s.JsonAST.JObject
 import org.scalatest.{FunSuite, Matchers}
 

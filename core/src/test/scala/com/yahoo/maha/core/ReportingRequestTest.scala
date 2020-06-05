@@ -1612,7 +1612,7 @@ class ReportingRequestTest extends FlatSpec {
 
   "ReportingRequest with select query type" should "succeed" in {
     val jsonString = """{
-                          "queryType": "select",
+                          "queryType": "scan",
                           "cube": "performance_stats",
                           "selectFields": [
                               {"field": "Ad ID"},
@@ -1638,7 +1638,7 @@ class ReportingRequestTest extends FlatSpec {
                         }"""
 
     val request: ReportingRequest = getReportingRequest(jsonString, AdvertiserSchema)
-    assert(request.queryType === SelectQuery)
+    assert(request.queryType === ScanQuery)
     assert(request.pagination.config.contains(DruidEngine))
     val paginationJValue = request.pagination.config(DruidEngine)
     val identifiers = paginationJValue.findField{ case (n, v) => n == "pagingIdentifiers" }

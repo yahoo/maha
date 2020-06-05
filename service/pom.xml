@@ -9,7 +9,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.370-SNAPSHOT</version>
+        <version>5.371-SNAPSHOT</version>
     </parent>
 
     <name>maha service</name>
@@ -155,11 +155,11 @@
             <artifactId>jackson-dataformat-smile</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.druid</groupId>
+            <groupId>org.apache.druid</groupId>
             <artifactId>druid-processing</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.druid.extensions</groupId>
+            <groupId>org.apache.druid.extensions</groupId>
             <artifactId>druid-histogram</artifactId>
         </dependency>
         <dependency>
@@ -222,7 +222,7 @@
             <artifactId>commons-math3</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.druid.extensions</groupId>
+            <groupId>org.apache.druid.extensions</groupId>
             <artifactId>druid-datasketches</artifactId>
             <version>${druid.version}</version>
         </dependency>
