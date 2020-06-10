@@ -29,8 +29,6 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
  */
 class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest {
 
-  NullHandling.initializeForTests()
-
   override protected def defaultFactEngine: Engine = PostgresEngine
 
   private var dataSource: Option[HikariDataSource] = None

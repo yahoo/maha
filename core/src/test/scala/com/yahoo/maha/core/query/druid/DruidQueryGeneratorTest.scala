@@ -17,7 +17,6 @@ import org.apache.druid.common.config.NullHandling
 class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
   lazy val defaultRegistry = getDefaultRegistry()
-  NullHandling.initializeForTests()
 
   test("registering Druid query generation multiple times should fail") {
     intercept[IllegalArgumentException] {
