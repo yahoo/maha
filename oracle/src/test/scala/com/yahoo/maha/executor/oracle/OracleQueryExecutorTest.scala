@@ -26,8 +26,6 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
  * Created by hiral on 1/25/16.
  */
 class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest {
-
-  NullHandling.initializeForTests()
   
   private var dataSource: Option[HikariDataSource] = None
   private var jdbcConnection: Option[JdbcConnection] = None

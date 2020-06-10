@@ -16,6 +16,7 @@ import com.yahoo.maha.core.request._
 import com.yahoo.maha.maha_druid_lookups.query.lookup.{DecodeConfig, MahaRegisteredLookupExtractionFn}
 import com.yahoo.maha.query.aggregation.{RoundingDoubleSumAggregatorFactory, RoundingDoubleSumDruidModule}
 import grizzled.slf4j.Logging
+import org.apache.druid.common.config.NullHandling
 import org.apache.druid.jackson.DefaultObjectMapper
 import org.apache.druid.java.util.common.granularity.GranularityType
 import org.apache.druid.java.util.common.granularity.PeriodGranularity
@@ -258,6 +259,8 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
                           , useCustomRoundingSumAggregator : Boolean = false) extends BaseQueryGenerator[WithDruidEngine] with Logging {
 
   import collection.JavaConverters._
+
+  NullHandling.initializeForTests()
 
   override val engine: Engine = DruidEngine
 

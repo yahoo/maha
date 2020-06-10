@@ -22,8 +22,6 @@ import org.slf4j.MDC
  */
 class MahaRequestLogHelperTest extends FunSuite with Matchers {
 
-  NullHandling.initializeForTests()
-
   val jsonString =
     """
       |{

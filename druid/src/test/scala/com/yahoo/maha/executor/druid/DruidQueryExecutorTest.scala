@@ -38,8 +38,6 @@ class TestAuthHeaderProvider extends AuthHeaderProvider {
 
 class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema with TestWebService {
 
-  NullHandling.initializeForTests()
-
   var server: org.http4s.server.Server[IO] = null
 
   override def beforeAll(): Unit = {
