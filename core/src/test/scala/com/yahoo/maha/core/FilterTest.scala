@@ -751,4 +751,19 @@ class FilterTest extends FunSuite with Matchers {
     assert(thrown.getMessage.contains("The field alias set for the input filter is undefined. "))
 
   }
+
+  test("Test serialization/deserialization for Not like filter") {
+    val notLikeFilter: Filter = NotLikeFilter("testField", "testValue")
+    val renderedFilter = Filter.filterJSONW.write(notLikeFilter)
+    val  expectedRenderedJson : JObject =
+      new JObject(List[(String, JValue)](
+                  ("field", JString("testField"))
+                  , ("operator", JString("Not Like"))
+                  , ("value", JString("testValue"))
+                )
+              )
+    renderedFilter shouldEqual expectedRenderedJson
+    val readJsonFilter = Filter.filterJSONR.read(renderedFilter)
+    readJsonFilter.isSuccess shouldBe true
+  }
 }
