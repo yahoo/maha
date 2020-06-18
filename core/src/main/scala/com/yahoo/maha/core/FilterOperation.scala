@@ -1463,6 +1463,12 @@ object Filter extends Logging {
             :: ("operator" -> toJSON(filter.operator.toString))
             :: ("value" -> toJSON(value))
             :: Nil)
+      case NotLikeFilter(field, value, _, _) =>
+        makeObj(
+          ("field" -> toJSON(field))
+            :: ("operator" -> toJSON(filter.operator.toString))
+            :: ("value" -> toJSON(value))
+            :: Nil)
       case NotEqualToFilter(field, value, _, _) =>
         makeObj(
           ("field" -> toJSON(field))
