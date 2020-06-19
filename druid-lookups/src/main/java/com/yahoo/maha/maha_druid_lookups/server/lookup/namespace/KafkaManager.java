@@ -155,7 +155,7 @@ public class KafkaManager {
                         }
                     }
                     consumer.close();
-                    log.error("Applied all the changes since the beginning for this consumer and topic [%s]", topic);
+                    log.error("Applied [%s] changes since the beginning for this consumer and topic [%s]", recordCount, topic);
                     countDownLatch.countDown();
                     return true;
                 }
