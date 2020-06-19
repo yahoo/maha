@@ -110,10 +110,6 @@ public class KafkaManager {
         properties.put("auto.offset.reset", "earliest");
         properties.put("max.poll.records", "10000");
 
-        final Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
-        final Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
-        final Descriptors.FieldDescriptor tsField = descriptor.findFieldByName(extractionNamespace.getTsColumn());
-
         final List<Future> futureList = new ArrayList<>(CONSUMER_COUNT);
         final CountDownLatch countDownLatch = new CountDownLatch(CONSUMER_COUNT);
         for (int count = 0; count < CONSUMER_COUNT; count++) {
@@ -142,9 +138,13 @@ public class KafkaManager {
                                 continue;
                             }
                             try {
-                                updateRocksDB(parser, descriptor, tsField, rocksDB, key, message);
+                                ExtractionNamespaceCacheFactory namespaceFunctionFactory =
+                                        namespaceExtractionCacheManager.get().getExtractionNamespaceFunctionFactory(extractionNamespace.getClass());
+                                namespaceFunctionFactory.updateCache(extractionNamespace,
+                                        namespaceExtractionCacheManager.get().getCacheMap(namespace), key, message);
+                                log.debug("applyChangesSinceBeginning: Placed key[%s] val[%s]", key, message);
                                 kafkaPartitionOffset.put(record.partition(), record.offset());
-                            } catch (RocksDBException | InvalidProtocolBufferException e) {
+                            } catch (Exception e) {
                                 log.error("Caught exception while applying changes to RocksDB", e);
                             }
                             log.debug("Placed key[%s] val[%s]", key, message);
