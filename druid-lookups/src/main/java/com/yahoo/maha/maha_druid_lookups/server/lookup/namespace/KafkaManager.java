@@ -72,28 +72,6 @@ public class KafkaManager {
         this.protobufSchemaFactory = protobufSchemaFactory;
     }
 
-    synchronized private void updateRocksDB(final Parser<Message> parser, final Descriptors.Descriptor descriptor,
-                               final Descriptors.FieldDescriptor tsField, final RocksDB rocksDB, final String key,
-                               final byte[] value) throws RocksDBException,
-            InvalidProtocolBufferException {
-        byte[] cacheValue = rocksDB.get(key.getBytes());
-        if(cacheValue != null) {
-
-            Message messageInDB = parser.parseFrom(cacheValue);
-            Message newMessage = parser.parseFrom(value);
-            Long lastUpdatedInDB, newLastUpdated;
-
-            lastUpdatedInDB = Long.valueOf(messageInDB.getField(tsField).toString());
-            newLastUpdated = Long.valueOf(newMessage.getField(tsField).toString());
-
-            if(newLastUpdated > lastUpdatedInDB) {
-                rocksDB.put(key.getBytes(), value);
-            }
-        } else {
-            rocksDB.put(key.getBytes(), value);
-        }
-    }
-
     public void applyChangesSinceBeginning(final RocksDBExtractionNamespace extractionNamespace,
                                            final String groupId, final RocksDB rocksDB, final ConcurrentMap<Integer, Long> kafkaPartitionOffset) {
 
@@ -109,10 +87,6 @@ public class KafkaManager {
         properties.put("value.deserializer", "org.apache.kafka.common.serialization.ByteArrayDeserializer");
         properties.put("auto.offset.reset", "earliest");
         properties.put("max.poll.records", "10000");
-
-        final Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
-        final Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
-        final Descriptors.FieldDescriptor tsField = descriptor.findFieldByName(extractionNamespace.getTsColumn());
 
         final List<Future> futureList = new ArrayList<>(CONSUMER_COUNT);
         final CountDownLatch countDownLatch = new CountDownLatch(CONSUMER_COUNT);
@@ -142,9 +116,13 @@ public class KafkaManager {
                                 continue;
                             }
                             try {
-                                updateRocksDB(parser, descriptor, tsField, rocksDB, key, message);
+                                ExtractionNamespaceCacheFactory namespaceFunctionFactory =
+                                        namespaceExtractionCacheManager.get().getExtractionNamespaceFunctionFactory(extractionNamespace.getClass());
+                                namespaceFunctionFactory.updateCache(extractionNamespace,
+                                        namespaceExtractionCacheManager.get().getCacheMap(namespace), key, message);
+                                log.debug("applyChangesSinceBeginning: Placed key[%s] val[%s]", key, message);
                                 kafkaPartitionOffset.put(record.partition(), record.offset());
-                            } catch (RocksDBException | InvalidProtocolBufferException e) {
+                            } catch (Exception e) {
                                 log.error("Caught exception while applying changes to RocksDB", e);
                             }
                             log.debug("Placed key[%s] val[%s]", key, message);
@@ -155,7 +133,7 @@ public class KafkaManager {
                         }
                     }
                     consumer.close();
-                    log.error("Applied all the changes since the beginning for this consumer and topic [%s]", topic);
+                    log.error("Applied [%s] changes since the beginning for this consumer and topic [%s]", recordCount, topic);
                     countDownLatch.countDown();
                     return true;
                 }
