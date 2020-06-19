@@ -72,28 +72,6 @@ public class KafkaManager {
         this.protobufSchemaFactory = protobufSchemaFactory;
     }
 
-    synchronized private void updateRocksDB(final Parser<Message> parser, final Descriptors.Descriptor descriptor,
-                               final Descriptors.FieldDescriptor tsField, final RocksDB rocksDB, final String key,
-                               final byte[] value) throws RocksDBException,
-            InvalidProtocolBufferException {
-        byte[] cacheValue = rocksDB.get(key.getBytes());
-        if(cacheValue != null) {
-
-            Message messageInDB = parser.parseFrom(cacheValue);
-            Message newMessage = parser.parseFrom(value);
-            Long lastUpdatedInDB, newLastUpdated;
-
-            lastUpdatedInDB = Long.valueOf(messageInDB.getField(tsField).toString());
-            newLastUpdated = Long.valueOf(newMessage.getField(tsField).toString());
-
-            if(newLastUpdated > lastUpdatedInDB) {
-                rocksDB.put(key.getBytes(), value);
-            }
-        } else {
-            rocksDB.put(key.getBytes(), value);
-        }
-    }
-
     public void applyChangesSinceBeginning(final RocksDBExtractionNamespace extractionNamespace,
                                            final String groupId, final RocksDB rocksDB, final ConcurrentMap<Integer, Long> kafkaPartitionOffset) {
 
