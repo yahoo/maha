@@ -116,10 +116,9 @@ public class KafkaManager {
                                 continue;
                             }
                             try {
-                                ExtractionNamespaceCacheFactory namespaceFunctionFactory =
-                                        namespaceExtractionCacheManager.get().getExtractionNamespaceFunctionFactory(extractionNamespace.getClass());
-                                namespaceFunctionFactory.updateCache(extractionNamespace,
-                                        namespaceExtractionCacheManager.get().getCacheMap(namespace), key, message);
+                                RocksDBExtractionNamespaceCacheFactory rocksDBExtractionNamespaceCacheFactory =
+                                        (RocksDBExtractionNamespaceCacheFactory) namespaceExtractionCacheManager.get().getExtractionNamespaceFunctionFactory(extractionNamespace.getClass());
+                                rocksDBExtractionNamespaceCacheFactory.updateCacheWithDb(extractionNamespace, rocksDB, key, message);
                                 log.debug("applyChangesSinceBeginning: Placed key[%s] val[%s]", key, message);
                                 kafkaPartitionOffset.put(record.partition(), record.offset());
                             } catch (Exception e) {
@@ -213,10 +212,9 @@ public class KafkaManager {
                                     log.error("Bad key/message from topic [%s]", topic);
                                     continue;
                                 }
-                                ExtractionNamespaceCacheFactory namespaceFunctionFactory =
-                                        namespaceExtractionCacheManager.get()
-                                                .getExtractionNamespaceFunctionFactory(kafkaNamespace.getClass());
-                                namespaceFunctionFactory.updateCache(kafkaNamespace,
+                                RocksDBExtractionNamespaceCacheFactory rocksDBExtractionNamespaceCacheFactory =
+                                        (RocksDBExtractionNamespaceCacheFactory) namespaceExtractionCacheManager.get().getExtractionNamespaceFunctionFactory(kafkaNamespace.getClass());
+                                rocksDBExtractionNamespaceCacheFactory.updateCache(kafkaNamespace,
                                         namespaceExtractionCacheManager.get().getCacheMap(namespace), key, message);
                                 log.debug("Placed key[%s] val[%s]", key, message);
                                 kafkaPartitionOffset.put(record.partition(), record.offset());

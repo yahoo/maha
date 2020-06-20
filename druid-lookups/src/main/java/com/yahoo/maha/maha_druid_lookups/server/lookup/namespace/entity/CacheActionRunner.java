@@ -28,7 +28,7 @@ public class CacheActionRunner {
     public byte[] getCacheValue(final String key
             , Optional<String> valueColumn
             , final Optional<DecodeConfig> decodeConfigOptional
-            , RocksDBManager rocksDBManager
+            , RocksDB db
             , ProtobufSchemaFactory protobufSchemaFactory
             , LookupService lookupService
             , ServiceEmitter emitter
@@ -38,7 +38,6 @@ public class CacheActionRunner {
                 return lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn.get(), decodeConfigOptional));
             }
 
-            final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
             if (db != null) {
                 Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
                 byte[] cacheByteValue = db.get(key.getBytes());
@@ -82,7 +81,7 @@ public class CacheActionRunner {
     synchronized public void updateCache(ProtobufSchemaFactory protobufSchemaFactory
             , final String key
             , final byte[] value
-            , RocksDBManager rocksDBManager
+            , RocksDB db
             , ServiceEmitter serviceEmitter
             , RocksDBExtractionNamespace extractionNamespace) {
         if (extractionNamespace.isCacheEnabled()) {
@@ -95,7 +94,6 @@ public class CacheActionRunner {
                 Message newMessage = parser.parseFrom(value);
                 Long newLastUpdated = Long.valueOf(newMessage.getField(field).toString());
 
-                final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
                 if (db != null) {
                     byte[] cacheValue = db.get(key.getBytes());
                     if(cacheValue != null) {

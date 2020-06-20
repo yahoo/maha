@@ -72,12 +72,14 @@ public class RocksDBExtractionNamespaceCacheFactory
     public void updateCache(final RocksDBExtractionNamespace extractionNamespace,
                             final Map<String, String> cache, final String key, final byte[] value) {
 
-        extractionNamespace.getCacheActionRunner().updateCache(protobufSchemaFactory, key, value, rocksDBManager, emitter, extractionNamespace);
+        RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
+        extractionNamespace.getCacheActionRunner().updateCache(protobufSchemaFactory, key, value, db, emitter, extractionNamespace);
     }
 
     @Override
     public byte[] getCacheValue(final RocksDBExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key, String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
-        return extractionNamespace.getCacheActionRunner().getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, emitter, extractionNamespace);
+        RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
+        return extractionNamespace.getCacheActionRunner().getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, protobufSchemaFactory, lookupService, emitter, extractionNamespace);
     }
 
     @Override
@@ -103,6 +105,12 @@ public class RocksDBExtractionNamespaceCacheFactory
             return lookupService.getLastUpdatedTime(new LookupService.LookupData(extractionNamespace));
         }
         return (extractionNamespace.getLastUpdatedTime() != null) ? extractionNamespace.getLastUpdatedTime() : -1L;
+    }
+
+    public void updateCacheWithDb(final RocksDBExtractionNamespace extractionNamespace,
+                            RocksDB db, final String key, final byte[] value) {
+
+        extractionNamespace.getCacheActionRunner().updateCache(protobufSchemaFactory, key, value, db, emitter, extractionNamespace);
     }
 
 }
