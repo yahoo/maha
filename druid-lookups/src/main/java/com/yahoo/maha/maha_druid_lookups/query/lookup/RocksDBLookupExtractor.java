@@ -104,7 +104,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                     LOG.error("RocksDB instance is null");
                     return null;
                 }
-                byte[] cacheByteValue = extractionNamespace.getCacheActionRunner().getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, rocksDBManager, protobufSchemaFactory, lookupService, serviceEmitter, extractionNamespace);
+                byte[] cacheByteValue = extractionNamespace.getCacheActionRunner().getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, protobufSchemaFactory, lookupService, serviceEmitter, extractionNamespace);
 
                 if (cacheByteValue == null || cacheByteValue.length == 0) {
                     // No need to call handleMissingLookup if missing dimension is already present in missingLookupCache
