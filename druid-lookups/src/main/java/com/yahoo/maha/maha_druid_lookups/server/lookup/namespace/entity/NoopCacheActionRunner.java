@@ -6,6 +6,7 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
+import org.rocksdb.RocksDB;
 
 import java.util.Optional;
 
@@ -17,7 +18,7 @@ public class NoopCacheActionRunner extends CacheActionRunner {
     public byte[] getCacheValue(final String key
             , Optional<String> valueColumn
             , final Optional<DecodeConfig> decodeConfigOptional
-            , RocksDBManager rocksDBManager
+            , RocksDB rocksDB
             , ProtobufSchemaFactory protobufSchemaFactory
             , LookupService lookupService
             , ServiceEmitter emitter
@@ -30,7 +31,7 @@ public class NoopCacheActionRunner extends CacheActionRunner {
     public void updateCache(ProtobufSchemaFactory protobufSchemaFactory
             , final String key
             , final byte[] value
-            , RocksDBManager rocksDBManager
+            , RocksDB rocksDB
             , ServiceEmitter serviceEmitter
             , RocksDBExtractionNamespace extractionNamespace) {
         LOG.error("Noop called, no update to make.");
