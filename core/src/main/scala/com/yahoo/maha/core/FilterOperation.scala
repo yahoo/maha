@@ -447,6 +447,107 @@ object SqlBetweenFilterRenderer extends BetweenFilterRenderer[SqlResult] {
   }
 }
 
+object SqlNotBetweenFilterRenderer extends NotBetweenFilterRenderer[SqlResult] {
+  def render(aliasToRenderedSqlMap: Map[String, (String, String)],
+             notBetweenFilter: NotBetweenFilter,
+             literalMapper: LiteralMapper,
+             column: Column,
+             engine: Engine,
+             grainOption: Option[Grain]) : SqlResult = {
+    val name = aliasToRenderedSqlMap(notBetweenFilter.field)._2
+    val renderedFrom = literalMapper.toLiteral(column, notBetweenFilter.from, grainOption)
+    val renderedTo = literalMapper.toLiteral(column, notBetweenFilter.to, grainOption)
+    engine match {
+      case OracleEngine =>
+        column.dataType match {
+          case DateType(format) =>
+            if (grainOption.isDefined) {
+               grainOption.get match {
+                 case HourlyGrain  =>
+                   DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+                 case _=>
+                   DefaultResult(s"""$name < trunc($renderedFrom) AND $name > trunc($renderedTo)""")
+               }
+            } else {
+              DefaultResult(s"""$name < trunc($renderedFrom) AND $name > trunc($renderedTo)""")
+            }
+          case i: IntType if column.annotations.contains(DayColumn.instance) =>
+            column.annotations.find(_.isInstanceOf[DayColumn]).fold(throw new IllegalStateException("Failed to find DayColumn when expected")){
+              ca:ColumnAnnotation =>
+                val dayColumn = ca.asInstanceOf[DayColumn]
+                val fmt = dayColumn.fmt
+                grainOption match {
+                  case Some(HourlyGrain) =>
+                    DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+                  case _ =>
+                    DefaultResult(s"""$name < to_number(to_char(trunc($renderedFrom), '$fmt')) AND $name > to_number(to_char(trunc($renderedTo), '$fmt'))""")
+                }
+            }
+          case i: StrType if column.annotations.contains(DayColumn.instance) =>
+            column.annotations.find(_.isInstanceOf[DayColumn]).fold(throw new IllegalStateException("Failed to find DayColumn when expected")){
+              ca:ColumnAnnotation =>
+                val dayColumn = ca.asInstanceOf[DayColumn]
+                val fmt = dayColumn.fmt
+                grainOption match {
+                  case Some(HourlyGrain) =>
+                    DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+                  case _ =>
+                    DefaultResult(s"""$name < to_char(trunc($renderedFrom), '$fmt') AND $name > to_char(trunc($renderedTo), '$fmt')""")
+                }
+            }
+          case _ =>
+            DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+        }
+      case PostgresEngine =>
+        column.dataType match {
+          case DateType(format) =>
+            if(grainOption.isDefined) {
+              grainOption.get match {
+                case HourlyGrain  =>
+                  DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+                case _=>
+                  DefaultResult(s"""$name < DATE_TRUNC('DAY', $renderedFrom) AND $name > DATE_TRUNC('DAY', $renderedTo)""")
+              }
+            } else {
+              DefaultResult(s"""$name < DATE_TRUNC('DAY', $renderedFrom) AND $name > DATE_TRUNC('DAY', $renderedTo)""")
+            }
+          case i: IntType if column.annotations.contains(DayColumn.instance) =>
+            column.annotations.find(_.isInstanceOf[DayColumn]).fold(throw new IllegalStateException("Failed to find DayColumn when expected")){
+              ca:ColumnAnnotation =>
+                val dayColumn = ca.asInstanceOf[DayColumn]
+                val fmt = dayColumn.fmt
+                grainOption match {
+                  case Some(HourlyGrain) =>
+                    DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+                  case _ =>
+                    DefaultResult(s"""$name < to_number(to_char(DATE_TRUNC('DAY', $renderedFrom), '$fmt')) AND $name > to_number(to_char(DATE_TRUNC('DAY', $renderedTo), '$fmt'))""")
+                }
+            }
+          case i: StrType if column.annotations.contains(DayColumn.instance) =>
+            column.annotations.find(_.isInstanceOf[DayColumn]).fold(throw new IllegalStateException("Failed to find DayColumn when expected")){
+              ca:ColumnAnnotation =>
+                val dayColumn = ca.asInstanceOf[DayColumn]
+                val fmt = dayColumn.fmt
+                grainOption match {
+                  case Some(HourlyGrain) =>
+                    DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+                  case _ =>
+                    DefaultResult(s"""$name < to_char(DATE_TRUNC('DAY', $renderedFrom), '$fmt') AND $name > to_char(DATE_TRUNC('DAY', $renderedTo), '$fmt')""")
+                }
+            }
+          case _ =>
+            DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+        }
+      case HiveEngine =>
+        DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+      case PrestoEngine =>
+        DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+      case _ =>
+        throw new IllegalArgumentException(s"Unsupported engine for NotBetweenFilterRenderer $engine")
+    }
+  }
+}
+
 object SqlInFilterRenderer extends InFilterRenderer[SqlResult] {
   def render(aliasToRenderedSqlMap: Map[String, (String, String)],
              filter: InFilter,
@@ -1265,6 +1366,14 @@ object FilterSql {
     filter match {
       case f@BetweenFilter(alias, from, to) =>
         SqlBetweenFilterRenderer.render(
+          aliasToRenderedSqlMap,
+          f,
+          literalMapper,
+          column,
+          engine,
+          grainOption)
+      case f@NotBetweenFilter(alias, from, to) =>
+        SqlNotBetweenFilterRenderer.render(
           aliasToRenderedSqlMap,
           f,
           literalMapper,

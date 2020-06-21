@@ -64,6 +64,22 @@ class FilterTest extends FunSuite with Matchers {
     strHourlyResult shouldBe "date_sid2 >= to_date('2018-01-01', 'HH24') AND date_sid2 <= to_date('2018-01-02', 'HH24')"
   }
 
+  test("NotBetweenFilter with a defined grain should modify the output result to include it.") {
+    val filter = NotBetweenFilter("stats_date", "2018-01-01", "2018-01-07")
+    val dailyResult = renderWithGrain(SqlNotBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, dateCol, DailyGrain, Map("stats_date" -> ("stats_date", "stats_date"))).filter
+    dailyResult shouldBe "stats_date < trunc(to_date('2018-01-01', 'YYYY-MM-DD')) AND stats_date > trunc(to_date('2018-01-07', 'YYYY-MM-DD'))"
+    val hourlyResult = renderWithGrain(SqlNotBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, dateCol, HourlyGrain, Map("stats_date" -> ("stats_date", "stats_date"))).filter
+    hourlyResult shouldBe "stats_date < to_date('2018-01-01', 'HH24') AND stats_date > to_date('2018-01-07', 'HH24')"
+
+    val intNotBetweenfilter = NotBetweenFilter("date_sid", "2018-01-01", "2018-01-02")
+    val intHourlyResult = renderWithGrain(SqlNotBetweenFilterRenderer, intNotBetweenfilter, oracleLiteralMapper, OracleEngine, intDateCol, HourlyGrain, Map("date_sid" -> ("date_sid", "date_sid"))).filter
+    intHourlyResult shouldBe "date_sid < to_date('2018-01-01', 'HH24') AND date_sid > to_date('2018-01-02', 'HH24')"
+
+    val strNotBetweenfilter = NotBetweenFilter("date_sid2", "2018-01-01", "2018-01-02")
+    val strHourlyResult = renderWithGrain(SqlNotBetweenFilterRenderer, strNotBetweenfilter, oracleLiteralMapper, OracleEngine, strDateCol, HourlyGrain, Map("date_sid2" -> ("date_sid2", "date_sid2"))).filter
+    strHourlyResult shouldBe "date_sid2 < to_date('2018-01-01', 'HH24') AND date_sid2 > to_date('2018-01-02', 'HH24')"
+  }
+
   test("Filter Types in Druid should return valid MaxDate") {
     val filter = BetweenFilter("stats_date", "2018-01-01", "2018-01-07")
     val eqFilter = EqualityFilter("stats_date", "2018-01-01")
@@ -91,6 +107,11 @@ class FilterTest extends FunSuite with Matchers {
   test("BetweenFilter should render correct string for Oracle") {
     val filter = BetweenFilter("field1", "abc", "def")
     render(SqlBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col,  Map("field1" -> ("field1", "field1"))).filter shouldBe "field1 >= 'abc' AND field1 <= 'def'"
+  }
+
+  test("NotBetweenFilter should render correct string for Oracle") {
+    val filter = NotBetweenFilter("field1", "abc", "def")
+    render(SqlNotBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, col,  Map("field1" -> ("field1", "field1"))).filter shouldBe "field1 < 'abc' AND field1 > 'def'"
   }
 
   test("EqualityFilter should render correct string for Oracle") {
@@ -153,6 +174,11 @@ class FilterTest extends FunSuite with Matchers {
   test("BetweenFilter should render correct string for Hive") {
     val filter = BetweenFilter("field1", "abc", "def")
     render(SqlBetweenFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 >= 'abc' AND field1 <= 'def'")
+  }
+
+  test("NotBetweenFilter should render correct string for Hive") {
+    val filter = NotBetweenFilter("field1", "abc", "def")
+    render(SqlNotBetweenFilterRenderer, filter, hiveLiteralMapper, HiveEngine, col,  Map("field1" -> ("field1", "field1"))) shouldBe DefaultResult("field1 < 'abc' AND field1 > 'def'")
   }
 
   test("EqualityFilter should render correct string for Hive") {
