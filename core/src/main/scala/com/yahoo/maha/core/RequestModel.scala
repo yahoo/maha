@@ -572,6 +572,14 @@ object RequestModel extends Logging {
               require(filterMap.contains(alias), s"Missing required filter: cube=${publicFact.name}, field=$alias")
           }
 
+          val requiredFilterColumns = publicFact.requiredFilterColumns
+          require(
+            requiredFilterColumns.isEmpty
+              || requiredFilterColumns.get(request.schema).isEmpty
+              || requiredFilterColumns(request.schema).exists(col => filterMap.contains(col))
+            , s"Query must use at least one required filter: ${requiredFilterColumns.mkString("[", ",", "]")}"
+          )
+
           // populate all forced filters from fact
           publicFact.forcedFilters.foreach { filter =>
             if(!allFilterAliases(filter.field)) {
