@@ -152,7 +152,7 @@ class RequestModelTest extends FunSuite with Matchers {
           PublicFactCol("spend", "Spend", InBetweenEquality, restrictedSchemas = Set(ResellerSchema, AdvertiserSchema))
         ),
         forcedFilters,
-        getMaxDaysWindow, getMaxDaysLookBack, optionalFilterColumns = Map(InternalSchema -> Set("Advertiser ID", "Campaign ID"))
+        getMaxDaysWindow, getMaxDaysLookBack, requiredFilterColumns = Map(InternalSchema -> Set("Advertiser ID", "Campaign ID"))
       )
   }
 
@@ -5951,8 +5951,31 @@ class RequestModelTest extends FunSuite with Matchers {
     val request: ReportingRequest = getReportingRequestSync(jsonString, InternalSchema)
     val registry = defaultRegistry
     val res = RequestModel.from(request, registry)
-    assert(res.isFailure, s"should not fail on having filter on Advertiser ID")
+    assert(res.isFailure, s"should fail on having filter on Ad Group ID")
     assert(res.failed.get.getMessage.contains("Query must use at least one required filter: [internal -> Set(Advertiser ID, Campaign ID)]"))
+  }
+
+  test("Should succeed with any part of required filtering list") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Ad Group Name"},
+                              {"field": "Ad Group ID"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Campaign ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "forceDimDriven": true,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString, InternalSchema)
+    val registry = defaultRegistry
+    val res = RequestModel.from(request, registry)
+    assert(res.isSuccess, s"should not fail on having filter on Campaign ID")
   }
 }
 
