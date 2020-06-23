@@ -36,13 +36,14 @@ class RegistryBuilder{
                      , fact: PublicFact, dimRevisionMap: Map[String, Int] = Map.empty
                      , dimColOverrides: Set[PublicDimColumn] = Set.empty
                      , factColOverrides: Set[PublicFactColumn] = Set.empty
+                     , optionalFilterColumns: Map[Schema, Set[String]] = Map.empty
                    ): RegistryBuilder = {
     for(pair <- aliasesWithRevision) {
       val alias = pair._1
       val revision = pair._2.getOrElse(fact.revision)
       require(!publicFactMap.contains((alias, revision)), s"Cannot register multiple public facts with same name : ${fact.name} and revision ${fact.revision}")
       val newFactBuilder = FactBuilder(fact.baseFact, fact.facts, fact.dimCardinalityLookup)
-      val newPF = newFactBuilder.copyPublicFact(alias, revision, fact, dimRevisionMap, dimColOverrides, factColOverrides)
+      val newPF = newFactBuilder.copyPublicFact(alias, revision, fact, dimRevisionMap, dimColOverrides, factColOverrides, optionalFilterColumns)
       publicFactMap += ((alias, revision) -> newPF)
     }
     this

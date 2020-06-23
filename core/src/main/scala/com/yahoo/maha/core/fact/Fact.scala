@@ -1526,6 +1526,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , revision: Int = 0
                    , dimRevision: Int = 0
                    , dimToRevisionMap: Map[String, Int] = Map.empty
+                   , optionalFilterColumns: Map[Schema, Set[String]] = Map.empty
                    ) : PublicFact = {
     new PublicFactTable(name
       , baseFact
@@ -1542,6 +1543,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , dimRevision
       , None
       , dimToRevisionMap
+      , optionalFilterColumns
     )
   }
 
@@ -1550,7 +1552,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                      , publicFact: PublicFact
                      , dimToRevisionOverrideMap: Map[String, Int] = Map.empty
                      , dimColOverrides: Set[PublicDimColumn] = Set.empty
-                     , factColOverrides: Set[PublicFactColumn] = Set.empty): PublicFact = {
+                     , factColOverrides: Set[PublicFactColumn] = Set.empty
+                     , optionalFilterColumns: Map[Schema, Set[String]] = Map.empty): PublicFact = {
     val overrideNames = dimColOverrides.map(col => col.alias) ++ factColOverrides.map(col => col.alias)
     val publicDimsWithOverrides = publicFact.dimCols.filterNot(col => overrideNames.contains(col.alias)) ++ dimColOverrides
     val publicFactsWithOverrides = publicFact.factCols.filterNot(col => overrideNames.contains(col.alias)) ++ factColOverrides
@@ -1570,6 +1573,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , publicFact.dimRevision
       , Some(publicFact)
       , publicFact.dimToRevisionMap ++ dimToRevisionOverrideMap
+      , optionalFilterColumns
     )
   }
 }
@@ -1699,6 +1703,7 @@ trait PublicFact extends PublicTable {
   def facts: Map[String, Fact]
   def parentFactTable: Option[PublicFact]
   def dimToRevisionMap: Map[String, Int]
+  def optionalFilterColumns: Map[Schema, Set[String]]
   def getSecondaryDimFactMap: Map[SortedSet[String], SortedSet[Fact]]
 }
 
@@ -1717,6 +1722,7 @@ case class PublicFactTable private[fact](name: String
                                          , dimRevision: Int
                                          , parentFactTable: Option[PublicFact] =  None
                                          , dimToRevisionMap: Map[String, Int] = Map.empty
+                                         , optionalFilterColumns: Map[Schema, Set[String]] = Map.empty
                                         ) extends PublicFact with Logging {
 
   def factList: Iterable[Fact] = facts.values
