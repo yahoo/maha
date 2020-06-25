@@ -2,17 +2,16 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 
 import com.google.common.base.Strings;
 import com.google.flatbuffers.Table;
-import com.metamx.emitter.service.ServiceEmitter;
-import com.metamx.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.MonitoringConstants;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
-import com.metamx.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.BaseSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferWrapper;
+import org.apache.druid.java.util.common.logger.Logger;
+import org.apache.druid.java.util.emitter.service.ServiceEmitter;
+import org.apache.druid.java.util.emitter.service.ServiceMetricEvent;
 import org.rocksdb.RocksDB;
 
 import java.util.Optional;
@@ -26,19 +25,19 @@ public class CacheActionRunnerFlatBuffer implements BaseCacheActionRunnerChain {
      */
     BaseCacheActionRunnerChain nextChain = null;
 
+    @Override
     public byte[] getCacheValue(final String key
             , Optional<String> valueColumn
             , final Optional<DecodeConfig> decodeConfigOptional
-            , RocksDBManager rocksDBManager
+            , RocksDB db
             , BaseSchemaFactory schemaFactory
             , LookupService lookupService
             , ServiceEmitter emitter
-            , RocksDBExtractionNamespace extractionNamespace){
+            , RocksDBExtractionNamespace extractionNamespace) {
         try {
 
             FlatBufferSchemaFactory flatBufferSchemaFactory = (FlatBufferSchemaFactory) schemaFactory;
 
-            final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
             if (db != null) {
                 FlatBufferWrapper flatBuffer = flatBufferSchemaFactory.getFlatBuffer(extractionNamespace.getNamespace());
                 byte[] cacheByteValue = db.get(key.getBytes());
@@ -74,10 +73,11 @@ public class CacheActionRunnerFlatBuffer implements BaseCacheActionRunnerChain {
         }
     }
 
+    @Override
     synchronized public void updateCache(BaseSchemaFactory schemaFactory
             , final String key
             , final byte[] value
-            , RocksDBManager rocksDBManager
+            , RocksDB db
             , ServiceEmitter serviceEmitter
             , RocksDBExtractionNamespace extractionNamespace) {
         if (extractionNamespace.isCacheEnabled()) {
@@ -87,7 +87,6 @@ public class CacheActionRunnerFlatBuffer implements BaseCacheActionRunnerChain {
                 Table parsedMessage = flatBuffer.getFlatBuffer(value);
                 Long newLastUpdated = Long.valueOf(flatBuffer.readFieldValue(extractionNamespace.getTsColumn(), parsedMessage));
 
-                final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
                 if (db != null) {
                     byte[] cacheValue = db.get(key.getBytes());
                     if(cacheValue != null) {
