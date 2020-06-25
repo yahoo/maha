@@ -1,7 +1,7 @@
-namespace com.yahoo.maha.maha_druid_lookups.flatbuffer.entity;
+namespace com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer;
 
 table ProductAd {
-         id : long;
+         id : string;
          description : string;
          status : string;
          image_url_hq : string;

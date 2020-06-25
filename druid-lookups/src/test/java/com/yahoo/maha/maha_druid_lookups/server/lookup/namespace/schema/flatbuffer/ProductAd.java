@@ -4,18 +4,20 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuf
 
 import java.nio.*;
 import java.lang.*;
-
+import java.util.*;
 import com.google.flatbuffers.*;
 
 @SuppressWarnings("unused")
-public class ProductAd extends Table {
+public final class ProductAd extends Table {
   public static void ValidateVersion() { Constants.FLATBUFFERS_1_12_0(); }
   public static ProductAd getRootAsProductAd(ByteBuffer _bb) { return getRootAsProductAd(_bb, new ProductAd()); }
   public static ProductAd getRootAsProductAd(ByteBuffer _bb, ProductAd obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
   public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
   public ProductAd __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  public long id() { int o = __offset(4); return o != 0 ? bb.getLong(o + bb_pos) : 0L; }
+  public String id() { int o = __offset(4); return o != 0 ? __string(o + bb_pos) : null; }
+  public ByteBuffer idAsByteBuffer() { return __vector_as_bytebuffer(4, 1); }
+  public ByteBuffer idInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 4, 1); }
   public String description() { int o = __offset(6); return o != 0 ? __string(o + bb_pos) : null; }
   public ByteBuffer descriptionAsByteBuffer() { return __vector_as_bytebuffer(6, 1); }
   public ByteBuffer descriptionInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 6, 1); }
@@ -36,7 +38,7 @@ public class ProductAd extends Table {
   public ByteBuffer titleInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 16, 1); }
 
   public static int createProductAd(FlatBufferBuilder builder,
-      long id,
+      int idOffset,
       int descriptionOffset,
       int statusOffset,
       int image_url_hqOffset,
@@ -44,18 +46,18 @@ public class ProductAd extends Table {
       int source_idOffset,
       int titleOffset) {
     builder.startTable(7);
-    ProductAd.addId(builder, id);
     ProductAd.addTitle(builder, titleOffset);
     ProductAd.addSourceId(builder, source_idOffset);
     ProductAd.addImageUrlLarge(builder, image_url_largeOffset);
     ProductAd.addImageUrlHq(builder, image_url_hqOffset);
     ProductAd.addStatus(builder, statusOffset);
     ProductAd.addDescription(builder, descriptionOffset);
+    ProductAd.addId(builder, idOffset);
     return ProductAd.endProductAd(builder);
   }
 
   public static void startProductAd(FlatBufferBuilder builder) { builder.startTable(7); }
-  public static void addId(FlatBufferBuilder builder, long id) { builder.addLong(0, id, 0L); }
+  public static void addId(FlatBufferBuilder builder, int idOffset) { builder.addOffset(0, idOffset, 0); }
   public static void addDescription(FlatBufferBuilder builder, int descriptionOffset) { builder.addOffset(1, descriptionOffset, 0); }
   public static void addStatus(FlatBufferBuilder builder, int statusOffset) { builder.addOffset(2, statusOffset, 0); }
   public static void addImageUrlHq(FlatBufferBuilder builder, int imageUrlHqOffset) { builder.addOffset(3, imageUrlHqOffset, 0); }

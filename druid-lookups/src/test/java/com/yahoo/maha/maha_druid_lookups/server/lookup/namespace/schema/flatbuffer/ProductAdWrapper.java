@@ -1,12 +1,16 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.flatbuffers.Table;
+import org.apache.druid.java.util.common.logger.Logger;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
 
 public class ProductAdWrapper extends FlatBufferWrapper {
+
+    private static final Logger LOG = new Logger(ProductAdWrapper.class);
 
     Map<String, Integer> fieldNameToOffsetMap = ImmutableMap.<String, Integer> builder()
             .put("id", 0)
@@ -53,5 +57,31 @@ public class ProductAdWrapper extends FlatBufferWrapper {
     @Override
     public Table getFlatBuffer(byte[] flatBufferBytes) {
         return ProductAd.getRootAsProductAd(ByteBuffer.wrap(flatBufferBytes));
+    }
+
+    @Override
+    public FlatBufferBuilder createFlatBuffer(Map<String, FlatBufferValue> nameToValueMap) {
+        FlatBufferBuilder bufferBuilder = new FlatBufferBuilder(512);
+
+        //Create Index in the buffer builder
+        for (Map.Entry<String,FlatBufferValue> entry : nameToValueMap.entrySet()) {
+            if (fieldNameToOffsetMap.containsKey(entry.getKey())) {
+                int index = bufferBuilder.createString(entry.getValue().getValue());
+                entry.getValue().setOffsetInBuffer(index);
+            } else {
+                LOG.error(String.format("Failed to find the field name '%s' in the fieldNameToOffsetMap, please update the offset map and flat buffer wrapper", entry.getKey()));
+            }
+        }
+
+        // add indices to values in buffer builder
+        ProductAd.startProductAd(bufferBuilder);
+        for (Map.Entry<String, FlatBufferValue> entry : nameToValueMap.entrySet()) {
+            int fbFieldOffset = fieldNameToOffsetMap.get(entry.getKey());
+            bufferBuilder.addOffset(fbFieldOffset, entry.getValue().getOffsetInBuffer(), 0);
+        }
+
+        int endRoot = ProductAd.endProductAd(bufferBuilder);
+        ProductAd.finishProductAdBuffer(bufferBuilder, endRoot);
+        return bufferBuilder;
     }
 }
