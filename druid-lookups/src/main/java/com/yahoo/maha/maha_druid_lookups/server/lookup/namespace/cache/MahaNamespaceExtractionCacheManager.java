@@ -5,6 +5,7 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.*;
 import com.google.inject.Inject;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
 import org.apache.druid.java.util.common.IAE;
 import org.apache.druid.java.util.common.ISE;
 import org.apache.druid.java.util.common.concurrent.ExecutorServices;
@@ -20,7 +21,6 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.KafkaManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
 import org.apache.druid.query.lookup.LookupExtractor;
 
 import javax.annotation.concurrent.GuardedBy;
