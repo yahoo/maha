@@ -9,7 +9,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
-import io.druid.metadata.PasswordProvider;
+import org.apache.druid.metadata.PasswordProvider;
 
 import java.lang.reflect.Method;
 import java.util.*;

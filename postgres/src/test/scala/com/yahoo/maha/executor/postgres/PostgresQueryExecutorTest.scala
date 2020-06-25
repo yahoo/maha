@@ -21,6 +21,7 @@ import com.yahoo.maha.executor.MockDruidQueryExecutor
 import com.yahoo.maha.jdbc._
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.apache.commons.lang3.StringUtils
+import org.apache.druid.common.config.NullHandling
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 /**
@@ -53,7 +54,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
     config.setUsername("postgres")
     config.setPassword("")
     config.setMaximumPoolSize(1)
-    PostgresQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer)
+    PostgresQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, new PostgresLiteralMapperUsingDriver)
     DruidQueryGenerator.register(queryGeneratorRegistry)
     dataSource = Option(new HikariDataSource(config))
     jdbcConnection = dataSource.map(new JdbcConnection(_))

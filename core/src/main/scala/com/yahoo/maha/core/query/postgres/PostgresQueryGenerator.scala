@@ -1263,9 +1263,10 @@ object PostgresQueryGenerator extends Logging {
   val ROW_COUNT_ALIAS: String = "TOTALROWS"
   val ANY_PARTITIONING_SCHEME = PostgresPartitioningScheme("") //no name needed since class name hashcode
 
-  def register(queryGeneratorRegistry: QueryGeneratorRegistry, partitionColumnRenderer:PartitionColumnRenderer) = {
+  def register(queryGeneratorRegistry: QueryGeneratorRegistry, partitionColumnRenderer:PartitionColumnRenderer
+               , postgresLiteralMapper: PostgresLiteralMapper = new PostgresLiteralMapper) = {
     if (!queryGeneratorRegistry.isEngineRegistered(PostgresEngine, Option(Version.DEFAULT))) {
-      val generator = new PostgresQueryGenerator(partitionColumnRenderer)
+      val generator = new PostgresQueryGenerator(partitionColumnRenderer, postgresLiteralMapper)
       queryGeneratorRegistry.register(PostgresEngine, generator)
     } else {
       queryGeneratorRegistry.getDefaultGenerator(PostgresEngine).foreach {

@@ -9,6 +9,7 @@ import com.yahoo.maha.parrequest2.future.ParRequest
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.{CuratorMahaRequestLogHelper, MahaRequestLogHelper}
 import com.yahoo.maha.service.{BaseMahaServiceTest, CuratorInjector, MahaRequestContext}
+import org.apache.druid.common.config.NullHandling
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.scalatest.BeforeAndAfterAll
@@ -16,7 +17,8 @@ import org.scalatest.BeforeAndAfterAll
 /**
  * Created by pranavbhole on 24/04/18.
  */
-class RowCountCuratorTest  extends BaseMahaServiceTest with BeforeAndAfterAll {
+class RowCountCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
+
   val today: String = DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now())
   val yesterday: String = DateTimeFormat.forPattern("yyyy-MM-dd").print(DateTime.now().minusDays(1))
 

@@ -1526,6 +1526,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , revision: Int = 0
                    , dimRevision: Int = 0
                    , dimToRevisionMap: Map[String, Int] = Map.empty
+                   , requiredFilterColumns: Map[Schema, Set[String]] = Map.empty
                    ) : PublicFact = {
     new PublicFactTable(name
       , baseFact
@@ -1542,6 +1543,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , dimRevision
       , None
       , dimToRevisionMap
+      , requiredFilterColumns
     )
   }
 
@@ -1550,7 +1552,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                      , publicFact: PublicFact
                      , dimToRevisionOverrideMap: Map[String, Int] = Map.empty
                      , dimColOverrides: Set[PublicDimColumn] = Set.empty
-                     , factColOverrides: Set[PublicFactColumn] = Set.empty): PublicFact = {
+                     , factColOverrides: Set[PublicFactColumn] = Set.empty
+                     , requiredFilterColumns: Map[Schema, Set[String]] = Map.empty): PublicFact = {
     val overrideNames = dimColOverrides.map(col => col.alias) ++ factColOverrides.map(col => col.alias)
     val publicDimsWithOverrides = publicFact.dimCols.filterNot(col => overrideNames.contains(col.alias)) ++ dimColOverrides
     val publicFactsWithOverrides = publicFact.factCols.filterNot(col => overrideNames.contains(col.alias)) ++ factColOverrides
@@ -1570,6 +1573,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , publicFact.dimRevision
       , Some(publicFact)
       , publicFact.dimToRevisionMap ++ dimToRevisionOverrideMap
+      , requiredFilterColumns
     )
   }
 }
@@ -1671,6 +1675,10 @@ case class BestCandidates(fkCols: SortedSet[String],
   }
 }
 
+/**
+ * requiredFilterColumns - Map from schema to all possibly filter-required cols in that schema.
+ * Only one of these columns is required in the request.
+ */
 trait PublicFact extends PublicTable {
   def baseFact: Fact
   def name: String
@@ -1699,6 +1707,7 @@ trait PublicFact extends PublicTable {
   def facts: Map[String, Fact]
   def parentFactTable: Option[PublicFact]
   def dimToRevisionMap: Map[String, Int]
+  def requiredFilterColumns: Map[Schema, Set[String]]
   def getSecondaryDimFactMap: Map[SortedSet[String], SortedSet[Fact]]
 }
 
@@ -1717,6 +1726,7 @@ case class PublicFactTable private[fact](name: String
                                          , dimRevision: Int
                                          , parentFactTable: Option[PublicFact] =  None
                                          , dimToRevisionMap: Map[String, Int] = Map.empty
+                                         , requiredFilterColumns: Map[Schema, Set[String]] = Map.empty
                                         ) extends PublicFact with Logging {
 
   def factList: Iterable[Fact] = facts.values

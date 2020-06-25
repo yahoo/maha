@@ -5,7 +5,7 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Throwables;
-import io.druid.query.extraction.ExtractionCacheHelper;
+import org.apache.druid.query.extraction.ExtractionCacheHelper;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

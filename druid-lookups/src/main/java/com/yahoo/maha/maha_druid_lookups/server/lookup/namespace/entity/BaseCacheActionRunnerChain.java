@@ -4,8 +4,8 @@ import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.BaseSchemaFactory;
+import org.rocksdb.RocksDB;
 
 import java.util.Optional;
 /*
@@ -17,7 +17,7 @@ public interface BaseCacheActionRunnerChain {
     byte[] getCacheValue(final String key
             , Optional<String> valueColumn
             , final Optional<DecodeConfig> decodeConfigOptional
-            , RocksDBManager rocksDBManager
+            , RocksDB db
             , BaseSchemaFactory schemaFactory
             , LookupService lookupService
             , ServiceEmitter emitter
@@ -26,7 +26,7 @@ public interface BaseCacheActionRunnerChain {
     void updateCache(BaseSchemaFactory schemaFactory
             , final String key
             , final byte[] value
-            , RocksDBManager rocksDBManager
+            , RocksDB db
             , ServiceEmitter serviceEmitter
             , RocksDBExtractionNamespace extractionNamespace);
 

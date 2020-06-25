@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.362-SNAPSHOT</version>
+        <version>5.376-SNAPSHOT</version>
     </parent>
 
     <name>maha worker</name>
@@ -92,7 +92,7 @@
             <version>${project.version}</version>
             <exclusions>
                 <exclusion>
-                    <groupId>io.druid</groupId>
+                    <groupId>org.apache.druid</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>

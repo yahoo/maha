@@ -5,7 +5,8 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup.namespace;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import io.druid.metadata.MetadataStorageConnectorConfig;
+
+import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.joda.time.Period;
 
 import javax.annotation.Nullable;

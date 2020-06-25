@@ -12,6 +12,7 @@ import com.yahoo.maha.service.error.MahaServiceExecutionException
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.output.{JsonOutputFormat, StringStream}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
+import org.apache.druid.common.config.NullHandling
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.scalatest.BeforeAndAfterAll

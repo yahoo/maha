@@ -1,51 +1,43 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Strings;
 import com.google.protobuf.Descriptors;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
-import com.metamx.emitter.service.ServiceEmitter;
-import com.metamx.emitter.service.ServiceMetricEvent;
+import org.apache.druid.java.util.emitter.service.ServiceEmitter;
+import org.apache.druid.java.util.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.MonitoringConstants;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
-import com.metamx.common.logger.Logger;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.BaseSchemaFactory;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
+import org.apache.druid.java.util.common.logger.Logger;
 import org.rocksdb.RocksDB;
 
+import java.io.Serializable;
+import java.util.Objects;
 import java.util.Optional;
 
-public class CacheActionRunner implements BaseCacheActionRunnerChain {
+public class CacheActionRunner {
 
     private static final Logger LOG = new Logger(CacheActionRunner.class);
 
-    private BaseCacheActionRunnerChain nextChain = new CacheActionRunnerFlatBuffer();
-
-    @Override
     public byte[] getCacheValue(final String key
             , Optional<String> valueColumn
             , final Optional<DecodeConfig> decodeConfigOptional
-            , RocksDBManager rocksDBManager
-            , BaseSchemaFactory schemaFactory
+            , RocksDB db
+            , ProtobufSchemaFactory protobufSchemaFactory
             , LookupService lookupService
             , ServiceEmitter emitter
-            , RocksDBExtractionNamespace extractionNamespace) {
-
+            , RocksDBExtractionNamespace extractionNamespace){
         try {
             if (!extractionNamespace.isCacheEnabled() && valueColumn.isPresent()) {
                 return lookupService.lookup(new LookupService.LookupData(extractionNamespace, key, valueColumn.get(), decodeConfigOptional));
             }
 
-            if (routeToNextChain(schemaFactory)) {
-                return nextChain.getCacheValue(key, valueColumn, decodeConfigOptional, rocksDBManager, schemaFactory, lookupService, emitter, extractionNamespace);
-            }
-
-            ProtobufSchemaFactory protobufSchemaFactory = (ProtobufSchemaFactory) schemaFactory;
-
-            final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
             if (db != null) {
                 Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
                 byte[] cacheByteValue = db.get(key.getBytes());
@@ -69,11 +61,6 @@ public class CacheActionRunner implements BaseCacheActionRunnerChain {
         return null;
     }
 
-    @Override
-    public boolean routeToNextChain(BaseSchemaFactory schemaFactory) {
-        return !(schemaFactory instanceof ProtobufSchemaFactory);
-    }
-
     public String handleDecode(DecodeConfig decodeConfig, Message parsedMessage, Descriptors.Descriptor descriptor) throws Exception {
 
         try {
@@ -91,46 +78,39 @@ public class CacheActionRunner implements BaseCacheActionRunnerChain {
         }
     }
 
-    @Override
-    synchronized public void updateCache(BaseSchemaFactory schemaFactory
+    synchronized public void updateCache(ProtobufSchemaFactory protobufSchemaFactory
             , final String key
             , final byte[] value
-            , RocksDBManager rocksDBManager
+            , RocksDB db
             , ServiceEmitter serviceEmitter
             , RocksDBExtractionNamespace extractionNamespace) {
         if (extractionNamespace.isCacheEnabled()) {
             try {
-                if (routeToNextChain(schemaFactory)) {
-                    nextChain.updateCache(schemaFactory, key, value, rocksDBManager, serviceEmitter, extractionNamespace);
-                } else {
-                    ProtobufSchemaFactory protobufSchemaFactory = (ProtobufSchemaFactory) schemaFactory;
 
-                    Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
-                    Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
-                    Descriptors.FieldDescriptor field = descriptor.findFieldByName(extractionNamespace.getTsColumn());
+                Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
+                Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
+                Descriptors.FieldDescriptor field = descriptor.findFieldByName(extractionNamespace.getTsColumn());
 
-                    Message newMessage = parser.parseFrom(value);
-                    Long newLastUpdated = Long.valueOf(newMessage.getField(field).toString());
+                Message newMessage = parser.parseFrom(value);
+                Long newLastUpdated = Long.valueOf(newMessage.getField(field).toString());
 
-                    final RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
-                    if (db != null) {
-                        byte[] cacheValue = db.get(key.getBytes());
-                        if(cacheValue != null) {
+                if (db != null) {
+                    byte[] cacheValue = db.get(key.getBytes());
+                    if(cacheValue != null) {
 
-                            Message messageInDB = parser.parseFrom(cacheValue);
-                            Long lastUpdatedInDB = Long.valueOf(messageInDB.getField(field).toString());
+                        Message messageInDB = parser.parseFrom(cacheValue);
+                        Long lastUpdatedInDB = Long.valueOf(messageInDB.getField(field).toString());
 
-                            if(newLastUpdated > lastUpdatedInDB) {
-                                db.put(key.getBytes(), value);
-                            }
-                        } else {
+                        if(newLastUpdated > lastUpdatedInDB) {
                             db.put(key.getBytes(), value);
                         }
-                        if(newLastUpdated > extractionNamespace.getLastUpdatedTime()) {
-                            extractionNamespace.setLastUpdatedTime(newLastUpdated);
-                        }
-                        serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_SUCCESS, 1));
+                    } else {
+                        db.put(key.getBytes(), value);
                     }
+                    if(newLastUpdated > extractionNamespace.getLastUpdatedTime()) {
+                        extractionNamespace.setLastUpdatedTime(newLastUpdated);
+                    }
+                    serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_SUCCESS, 1));
                 }
             } catch (Exception e) {
                 LOG.error(e, "Caught exception while updating cache");

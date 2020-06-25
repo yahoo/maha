@@ -5,7 +5,7 @@
     <parent>
         <artifactId>maha-parent</artifactId>
         <groupId>com.yahoo.maha</groupId>
-        <version>5.362-SNAPSHOT</version>
+        <version>5.376-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -15,7 +15,6 @@
 
 
     <properties>
-        <druid.version>0.11.0</druid.version>
         <protobuf.version>3.1.0</protobuf.version>
         <flatbuffers.version>1.12.0</flatbuffers.version>
     </properties>
@@ -66,12 +65,10 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
         <dependency>
-
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-client</artifactId>
-            <version>2.3.0</version>
+            <version>2.8.5</version>
             <scope>provided</scope>
             <exclusions>
                 <exclusion>
@@ -161,34 +158,16 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>io.druid</groupId>
-            <artifactId>druid-api</artifactId>
-            <version>${druid.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.druid</groupId>
+            <groupId>org.apache.druid</groupId>
             <artifactId>druid-processing</artifactId>
             <version>${druid.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>io.druid</groupId>
+            <groupId>org.apache.druid</groupId>
             <artifactId>druid-server</artifactId>
             <version>${druid.version}</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.druid</groupId>
-            <artifactId>druid-common</artifactId>
-            <version>${druid.version}</version>
-            <scope>provided</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -210,14 +189,44 @@
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-guava</artifactId>
+            <version>${jackson.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-joda</artifactId>
+            <version>${jackson.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-smile</artifactId>
+            <version>${jackson.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-jaxb-annotations</artifactId>
             <version>${jackson.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
-            <version>0.10.2.0</version>
+            <version>2.2.1</version>
         </dependency>
         <dependency>
             <groupId>org.rocksdb</groupId>
@@ -247,6 +256,11 @@
             <version>${flatbuffers.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>javax.ws.rs</groupId>
+            <artifactId>javax.ws.rs-api</artifactId>
+            <version>2.1.1</version>
+        </dependency>
         <!-- Tests -->
         <dependency>
             <groupId>de.bwaldvogel</groupId>
@@ -267,9 +281,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.druid</groupId>
+            <groupId>org.apache.druid</groupId>
             <artifactId>druid-server</artifactId>
-            <version>0.9.1.1</version>
+            <version>0.17.1</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -303,6 +317,17 @@
             <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>log4j-over-slf4j</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-to-slf4j</artifactId>
+            <version>${log4j2.version}</version>
+        </dependency>
+
     </dependencies>
 
     <distributionManagement>
@@ -368,7 +393,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.1</version>
+                <version>0.8.5</version>
                 <executions>
                     <execution>
                         <id>prepare-agent</id>

@@ -4,9 +4,9 @@ package com.yahoo.maha.core
 
 import com.yahoo.maha.core.dimension.DimCol
 import com.yahoo.maha.core.fact.ForceFilter
-import io.druid.query.filter.{NotDimFilter, SearchQueryDimFilter}
-import io.druid.query.search.InsensitiveContainsSearchQuerySpec
-import io.druid.segment.filter.BoundFilter
+import org.apache.druid.query.filter.{NotDimFilter, SearchQueryDimFilter}
+import org.apache.druid.query.search.InsensitiveContainsSearchQuerySpec
+import org.apache.druid.segment.filter.BoundFilter
 import org.joda.time.DateTime
 import org.json4s.JsonAST.{JArray, JObject, JString, JValue}
 import org.scalatest.{FunSuite, Matchers}
@@ -548,6 +548,7 @@ class FilterTest extends FunSuite with Matchers {
     val pushDownFilter = PushDownFilter(EqualityFilter("field13", "a"))
     val fieldEqualityFilter = FieldEqualityFilter("field15", "field16")
     val jsFilter = JavaScriptFilter("field14", "this filter will fail.") //This rendering fn is not defined, so being used as fallthrough to test failure in field set rendering.
+    val notLikeFilter = NotLikeFilter("field18", "a")
 
     val returnedFields: Set[String] = Filter.returnFieldSetOnMultipleFiltersWithoutValidation(
       Set(equalityFilter
@@ -564,7 +565,8 @@ class FilterTest extends FunSuite with Matchers {
         , likeFilter
         , isNullFilter
         , pushDownFilter
-        , fieldEqualityFilter)
+        , fieldEqualityFilter
+        , notLikeFilter)
     )
 
     val expectedReturnedFields : Set[String] =
@@ -584,6 +586,7 @@ class FilterTest extends FunSuite with Matchers {
         , "field15"
         , "field16"
         //, "field17"     AndFilter returns no fields.
+        , "field18"
       )
 
     assert(returnedFields == expectedReturnedFields, "Should return all expected fields!")
@@ -747,5 +750,20 @@ class FilterTest extends FunSuite with Matchers {
 
     assert(thrown.getMessage.contains("The field alias set for the input filter is undefined. "))
 
+  }
+
+  test("Test serialization/deserialization for Not like filter") {
+    val notLikeFilter: Filter = NotLikeFilter("testField", "testValue")
+    val renderedFilter = Filter.filterJSONW.write(notLikeFilter)
+    val  expectedRenderedJson : JObject =
+      new JObject(List[(String, JValue)](
+                  ("field", JString("testField"))
+                  , ("operator", JString("Not Like"))
+                  , ("value", JString("testValue"))
+                )
+              )
+    renderedFilter shouldEqual expectedRenderedJson
+    val readJsonFilter = Filter.filterJSONR.read(renderedFilter)
+    readJsonFilter.isSuccess shouldBe true
   }
 }

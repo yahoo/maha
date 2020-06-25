@@ -3,11 +3,11 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.metamx.emitter.service.ServiceEmitter;
+import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache.OnHeapMahaNamespaceExtractionCacheManager;
-import io.druid.metadata.MetadataStorageConnectorConfig;
+import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.joda.time.Period;
 import org.testng.Assert;
 import org.testng.annotations.Test;

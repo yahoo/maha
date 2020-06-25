@@ -19,6 +19,7 @@ import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.MockDruidQueryExecutor
 import com.yahoo.maha.jdbc._
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
+import org.apache.druid.common.config.NullHandling
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 /**

@@ -12,11 +12,11 @@ import java.util.concurrent.atomic.AtomicLong
 import com.google.common.collect.Lists
 import com.yahoo.maha.core.ThetaSketchSetOp.ThetaSketchSetOp
 import com.yahoo.maha.core.fact.FactCol
-import io.druid.js.JavaScriptConfig
-import io.druid.query.aggregation.PostAggregator
-import io.druid.query.aggregation.hyperloglog.HyperUniqueFinalizingPostAggregator
-import io.druid.query.aggregation.datasketches.theta.{SketchEstimatePostAggregator, SketchSetPostAggregator}
-import io.druid.query.aggregation.post.{ArithmeticPostAggregator, ConstantPostAggregator, FieldAccessPostAggregator, JavaScriptPostAggregator}
+import org.apache.druid.js.JavaScriptConfig
+import org.apache.druid.query.aggregation.PostAggregator
+import org.apache.druid.query.aggregation.hyperloglog.HyperUniqueFinalizingPostAggregator
+import org.apache.druid.query.aggregation.datasketches.theta.{SketchEstimatePostAggregator, SketchSetPostAggregator}
+import org.apache.druid.query.aggregation.post.{ArithmeticPostAggregator, ConstantPostAggregator, FieldAccessPostAggregator, JavaScriptPostAggregator}
 
 import scala.collection.mutable.ListBuffer
 import org.json4s.JsonAST.{JArray, JNull, JObject, JValue}

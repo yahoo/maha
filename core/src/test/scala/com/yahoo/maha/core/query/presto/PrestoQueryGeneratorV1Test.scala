@@ -552,7 +552,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |FROM(
          |SELECT mang_campaign_name AS mang_campaign_name, mang_source AS mang_source, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend
          |FROM(
-         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(stats_source, 0) mang_source, SUM(spend) AS spend, stats_source AS stats_source
+         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(CAST(stats_source as BIGINT), 0) mang_source, SUM(spend) AS spend, stats_source AS stats_source
          |FROM(SELECT campaign_id, stats_source, SUM(spend) spend
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -569,7 +569,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |ON
          |af0.campaign_id = c1.c1_id
          |
-         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(stats_source, 0), stats_source
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(stats_source as BIGINT), 0), stats_source
          |) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -913,7 +913,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |FROM(
          |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend
          |FROM(
-         |SELECT COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA') mang_ad_status, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a2.campaign_id, 0) campaign_id, SUM(spend) AS spend
+         |SELECT COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA') mang_ad_status, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(CAST(a2.campaign_id as BIGINT), 0) campaign_id, SUM(spend) AS spend
          |FROM(SELECT campaign_id, ad_id, SUM(spend) spend
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -938,7 +938,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |ON
          |af0.ad_id = a2.a2_id
          |
-         |GROUP BY COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA'), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(a2.campaign_id, 0)
+         |GROUP BY COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA'), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(a2.campaign_id as BIGINT), 0)
          |) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -1203,7 +1203,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |FROM(
          |SELECT mang_campaign_name AS mang_campaign_name, advertiser_id AS advertiser_id, CASE WHEN decodeUDF(stats_source, 1, clicks, 0.0) = 0 THEN 0.0 ELSE CAST(decodeUDF(stats_source, 1, spend, 0.0) AS DOUBLE) / decodeUDF(stats_source, 1, clicks, 0.0) END AS mang_n_average_cpc, spend AS mang_spend
          |FROM(
-         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(advertiser_id, 0) advertiser_id, SUM(spend) AS spend, SUM(clicks) AS clicks, COALESCE(stats_source, 0) stats_source
+         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(CAST(advertiser_id as BIGINT), 0) advertiser_id, SUM(spend) AS spend, SUM(clicks) AS clicks, COALESCE(CAST(stats_source as BIGINT), 0) stats_source
          |FROM(SELECT advertiser_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks, stats_source
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -1220,7 +1220,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |ON
          |af0.campaign_id = c1.c1_id
          |
-         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(advertiser_id, 0), COALESCE(stats_source, 0)
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(advertiser_id as BIGINT), 0), COALESCE(CAST(stats_source as BIGINT), 0)
          |) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -1272,7 +1272,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |FROM(
          |SELECT mang_campaign_name AS mang_campaign_name, impression_share_rounded AS mang_impression_share, spend AS mang_spend
          |FROM(
-         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, SUM(spend) AS spend, SUM(impressions) AS impressions, SUM(s_impressions) AS s_impressions, COALESCE(show_flag, 0) show_flag, (ROUND((decodeUDF(MAX(show_flag), 1, ROUND(CASE WHEN SUM(s_impressions) = 0 THEN 0.0 ELSE CAST(SUM(impressions) AS DOUBLE) / (SUM(s_impressions)) END, 4), NULL)), 5)) AS impression_share_rounded
+         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, SUM(spend) AS spend, SUM(impressions) AS impressions, SUM(s_impressions) AS s_impressions, COALESCE(CAST(show_flag as BIGINT), 0) show_flag, (ROUND((decodeUDF(MAX(show_flag), 1, ROUND(CASE WHEN SUM(s_impressions) = 0 THEN 0.0 ELSE CAST(SUM(impressions) AS DOUBLE) / (SUM(s_impressions)) END, 4), NULL)), 5)) AS impression_share_rounded
          |FROM(SELECT campaign_id, SUM(spend) spend, SUM(impressions) impressions, SUM(s_impressions) s_impressions, show_flag
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -1289,7 +1289,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |ON
          |af0.campaign_id = c1.c1_id
          |
-         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(show_flag, 0)
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(show_flag as BIGINT), 0)
          |) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -1351,7 +1351,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |FROM(
          |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate
          |FROM(
-         |SELECT COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA') mang_ad_status, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a2.campaign_id, 0) campaign_id, SUM(spend) AS spend, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
+         |SELECT COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA') mang_ad_status, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(CAST(a2.campaign_id as BIGINT), 0) campaign_id, SUM(spend) AS spend, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
          |FROM(SELECT ad_id, campaign_id, SUM(spend) spend, SUM(engagement_count) engagement_count, SUM(impressions) impressions
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -1376,7 +1376,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |ON
          |af0.ad_id = a2.a2_id
          |
-         |GROUP BY COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA'), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(a2.campaign_id, 0)
+         |GROUP BY COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA'), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(a2.campaign_id as BIGINT), 0)
          |) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -1443,7 +1443,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |FROM(
          |SELECT mang_ad_status AS mang_ad_status, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate, 100 * mathUDAF(engagement_count, 0, 0, clicks, impressions) AS mang_paid_engagement_rate
          |FROM(
-         |SELECT COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA') mang_ad_status, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a2.campaign_id, 0) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
+         |SELECT COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA') mang_ad_status, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(CAST(a2.campaign_id as BIGINT), 0) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
          |FROM(SELECT ad_id, campaign_id, SUM(spend) spend, SUM(clicks) clicks, SUM(engagement_count) engagement_count, SUM(impressions) impressions
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -1468,7 +1468,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |ON
          |af0.ad_id = a2.a2_id
          |
-         |GROUP BY COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA'), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(a2.campaign_id, 0)
+         |GROUP BY COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA'), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(a2.campaign_id as BIGINT), 0)
          |) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -1541,7 +1541,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |FROM(
          |SELECT mang_ad_status AS mang_ad_status, ad_group_id AS ad_group_id, advertiser_id AS advertiser_id, mang_campaign_name AS mang_campaign_name, campaign_id AS campaign_id, spend AS mang_spend, 100 * mathUDF(engagement_count, impressions) AS mang_engagement_rate, 100 * mathUDAF(engagement_count, 0, 0, clicks, impressions) AS mang_paid_engagement_rate
          |FROM(
-         |SELECT COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA') mang_ad_status, COALESCE(ad_group_id, 0) ad_group_id, COALESCE(advertiser_id, 0) advertiser_id, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(a2.campaign_id, 0) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
+         |SELECT COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA') mang_ad_status, COALESCE(CAST(ad_group_id as BIGINT), 0) ad_group_id, COALESCE(CAST(advertiser_id as BIGINT), 0) advertiser_id, getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(CAST(a2.campaign_id as BIGINT), 0) campaign_id, SUM(spend) AS spend, SUM(clicks) AS clicks, SUM(engagement_count) AS engagement_count, SUM(impressions) AS impressions
          |FROM(SELECT advertiser_id, ad_id, campaign_id, ad_group_id, SUM(spend) spend, SUM(clicks) clicks, SUM(engagement_count) engagement_count, SUM(impressions) impressions
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -1566,7 +1566,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |ON
          |af0.ad_id = a2.a2_id
          |
-         |GROUP BY COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA'), COALESCE(ad_group_id, 0), COALESCE(advertiser_id, 0), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(a2.campaign_id, 0)
+         |GROUP BY COALESCE(CAST(a2.mang_ad_status as VARCHAR), 'NA'), COALESCE(CAST(ad_group_id as BIGINT), 0), COALESCE(CAST(advertiser_id as BIGINT), 0), getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(a2.campaign_id as BIGINT), 0)
          |) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -1735,7 +1735,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |FROM(
          |SELECT advertiser_id AS advertiser_id, mang_campaign_name AS mang_campaign_name, mang_advertiser_name AS mang_advertiser_name, CASE WHEN clicks = 0 THEN 0.0 ELSE CAST(spend AS DOUBLE) / clicks END AS mang_average_cpc, avg_pos AS mang_average_position, impressions AS mang_impressions
          |FROM(
-         |SELECT COALESCE(c2.advertiser_id, 0) advertiser_id, getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE CAST(SUM(weighted_position * impressions) AS DOUBLE) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend, SUM(weighted_position) AS weighted_position
+         |SELECT COALESCE(CAST(c2.advertiser_id as BIGINT), 0) advertiser_id, getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE CAST(SUM(weighted_position * impressions) AS DOUBLE) / (SUM(impressions)) END) AS avg_pos, SUM(impressions) AS impressions, SUM(clicks) AS clicks, SUM(spend) AS spend, SUM(weighted_position) AS weighted_position
          |FROM(SELECT account_id, campaign_id, SUM(impressions) impressions, SUM(clicks) clicks, SUM(spend) spend, SUM(weighted_position) weighted_position
          |FROM s_stats_fact_underlying
          |WHERE (account_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -1760,7 +1760,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |ON
          |CAST(ssfu0.campaign_id AS VARCHAR) = CAST(c2.c2_id AS VARCHAR)
          |
-         |GROUP BY COALESCE(c2.advertiser_id, 0), getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA')
+         |GROUP BY COALESCE(CAST(c2.advertiser_id as BIGINT), 0), getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA')
          |ORDER BY impressions DESC, mang_advertiser_name DESC) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -1871,7 +1871,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |FROM(
          |SELECT mang_campaign_name AS mang_campaign_name, decodeUDF(stats_source, 1, clicks, 0.0) AS mang_n_clicks, mang_pricing_type AS mang_pricing_type, mang_static_mapping_string AS mang_static_mapping_string, impressions AS mang_impressions, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend, mang_month, clicks AS mang_clicks
          |FROM(
-         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END mang_pricing_type, CASE WHEN (sm_string IN ('Y')) THEN 'Yes' WHEN (sm_string IN ('N')) THEN 'No' ELSE 'NA' END mang_static_mapping_string, SUM(impressions) AS impressions, getFormattedDate(mang_month) mang_month, SUM(clicks) AS clicks, COALESCE(stats_source, 0) stats_source, SUM(spend) AS spend
+         |SELECT getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END mang_pricing_type, CASE WHEN (sm_string IN ('Y')) THEN 'Yes' WHEN (sm_string IN ('N')) THEN 'No' ELSE 'NA' END mang_static_mapping_string, SUM(impressions) AS impressions, getFormattedDate(mang_month) mang_month, SUM(clicks) AS clicks, COALESCE(CAST(stats_source as BIGINT), 0) stats_source, SUM(spend) AS spend
          |FROM(SELECT sm_string, price_type, campaign_id, dateUDF(stats_date, 'M') mang_month, SUM(clicks) clicks, SUM(impressions) impressions, stats_source, SUM(spend) spend
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -1888,7 +1888,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |ON
          |af0.campaign_id = c1.c1_id
          |
-         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, CASE WHEN (sm_string IN ('Y')) THEN 'Yes' WHEN (sm_string IN ('N')) THEN 'No' ELSE 'NA' END, getFormattedDate(mang_month), COALESCE(stats_source, 0)
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c1.mang_campaign_name, '') AS VARCHAR)), CASE WHEN (price_type IN (1)) THEN 'CPC' WHEN (price_type IN (6)) THEN 'CPV' WHEN (price_type IN (2)) THEN 'CPA' WHEN (price_type IN (-10)) THEN 'CPE' WHEN (price_type IN (-20)) THEN 'CPF' WHEN (price_type IN (7)) THEN 'CPCV' WHEN (price_type IN (3)) THEN 'CPM' ELSE 'NONE' END, CASE WHEN (sm_string IN ('Y')) THEN 'Yes' WHEN (sm_string IN ('N')) THEN 'No' ELSE 'NA' END, getFormattedDate(mang_month), COALESCE(CAST(stats_source as BIGINT), 0)
          |ORDER BY mang_campaign_name DESC, impressions DESC) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200       """.stripMargin
@@ -1937,7 +1937,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |FROM(
          |SELECT mang_campaign_name AS mang_campaign_name, mang_bid_strategy AS mang_bid_strategy, mang_advertiser_name AS mang_advertiser_name, advertiser_id AS advertiser_id, actual_impressions AS mang_impressions, mang_test_constant_col AS mang_test_constant_col, mang_load_time
          |FROM(
-         |SELECT getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, CASE WHEN (bid_strategy IN (1)) THEN 'Max Click' WHEN (bid_strategy IN (2)) THEN 'Inflection Point' ELSE 'NONE' END mang_bid_strategy, COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, COALESCE(c2.advertiser_id, 0) advertiser_id, SUM(actual_impressions) AS actual_impressions, ROUND(COALESCE(test_constant_col, 0), 10) mang_test_constant_col, COALESCE(CAST(mang_load_time as VARCHAR), 'NA') mang_load_time
+         |SELECT getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, CASE WHEN (bid_strategy IN (1)) THEN 'Max Click' WHEN (bid_strategy IN (2)) THEN 'Inflection Point' ELSE 'NONE' END mang_bid_strategy, COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, COALESCE(CAST(c2.advertiser_id as BIGINT), 0) advertiser_id, SUM(actual_impressions) AS actual_impressions, ROUND(COALESCE(test_constant_col, 0), 10) mang_test_constant_col, COALESCE(CAST(mang_load_time as VARCHAR), 'NA') mang_load_time
          |FROM(SELECT bid_strategy, account_id, load_time, 'test_constant_col_value' AS test_constant_col, campaign_id, SUM(actual_impressions) actual_impressions
          |FROM bidreco_complete
          |WHERE (account_id = 12345) AND (status = 'Valid') AND (factPartCol = 123)
@@ -1962,7 +1962,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |ON
          |bc0.campaign_id = c2.c2_id
          |
- |GROUP BY getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), CASE WHEN (bid_strategy IN (1)) THEN 'Max Click' WHEN (bid_strategy IN (2)) THEN 'Inflection Point' ELSE 'NONE' END, COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA'), COALESCE(c2.advertiser_id, 0), ROUND(COALESCE(test_constant_col, 0), 10), COALESCE(CAST(mang_load_time as VARCHAR), 'NA')
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), CASE WHEN (bid_strategy IN (1)) THEN 'Max Click' WHEN (bid_strategy IN (2)) THEN 'Inflection Point' ELSE 'NONE' END, COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA'), COALESCE(CAST(c2.advertiser_id as BIGINT), 0), ROUND(COALESCE(test_constant_col, 0), 10), COALESCE(CAST(mang_load_time as VARCHAR), 'NA')
          |ORDER BY mang_campaign_name DESC, actual_impressions DESC) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -2051,7 +2051,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |FROM(
          |SELECT mang_campaign_name AS mang_campaign_name, mang_advertiser_name AS mang_advertiser_name, advertiser_id AS advertiser_id, mang_bid_strategy AS mang_bid_strategy, actual_impressions AS mang_impressions, actual_clicks AS mang_clicks, mang_bid_modifier_fact AS mang_bid_modifier_fact, mang_modified_bid_fact AS mang_modified_bid_fact
          |FROM(
-         |SELECT getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, COALESCE(c2.advertiser_id, 0) advertiser_id, CASE WHEN (bid_strategy IN (1)) THEN 'Max Click' WHEN (bid_strategy IN (2)) THEN 'Inflection Point' ELSE 'NONE' END mang_bid_strategy, SUM(actual_impressions) AS actual_impressions, SUM(actual_clicks) AS actual_clicks, SUM(recommended_bid) AS recommended_bid, (coalesce(CASE WHEN (getAbyB(recommended_bid, actual_clicks)) = 0 THEN 1 WHEN IS_NAN((getAbyB(recommended_bid, actual_clicks))) THEN 1 ELSE (getAbyB(recommended_bid, actual_clicks)) END, 1)) AS mang_bid_modifier_fact, SUM(coalesce(CASE WHEN coalesce(CASE WHEN (getAbyB(recommended_bid, actual_clicks)) = 0 THEN 1 WHEN IS_NAN((getAbyB(recommended_bid, actual_clicks))) THEN 1 ELSE (getAbyB(recommended_bid, actual_clicks)) END, 1) = 0 THEN 1 WHEN IS_NAN(coalesce(CASE WHEN (getAbyB(recommended_bid, actual_clicks)) = 0 THEN 1 WHEN IS_NAN((getAbyB(recommended_bid, actual_clicks))) THEN 1 ELSE (getAbyB(recommended_bid, actual_clicks)) END, 1)) THEN 1 ELSE coalesce(CASE WHEN (getAbyB(recommended_bid, actual_clicks)) = 0 THEN 1 WHEN IS_NAN((getAbyB(recommended_bid, actual_clicks))) THEN 1 ELSE (getAbyB(recommended_bid, actual_clicks)) END, 1) END, 1) * (getAbyB(recommended_bid, actual_impressions))) AS mang_modified_bid_fact
+         |SELECT getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)) mang_campaign_name, COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, COALESCE(CAST(c2.advertiser_id as BIGINT), 0) advertiser_id, CASE WHEN (bid_strategy IN (1)) THEN 'Max Click' WHEN (bid_strategy IN (2)) THEN 'Inflection Point' ELSE 'NONE' END mang_bid_strategy, SUM(actual_impressions) AS actual_impressions, SUM(actual_clicks) AS actual_clicks, SUM(recommended_bid) AS recommended_bid, (coalesce(CASE WHEN (getAbyB(recommended_bid, actual_clicks)) = 0 THEN 1 WHEN IS_NAN((getAbyB(recommended_bid, actual_clicks))) THEN 1 ELSE (getAbyB(recommended_bid, actual_clicks)) END, 1)) AS mang_bid_modifier_fact, SUM(coalesce(CASE WHEN coalesce(CASE WHEN (getAbyB(recommended_bid, actual_clicks)) = 0 THEN 1 WHEN IS_NAN((getAbyB(recommended_bid, actual_clicks))) THEN 1 ELSE (getAbyB(recommended_bid, actual_clicks)) END, 1) = 0 THEN 1 WHEN IS_NAN(coalesce(CASE WHEN (getAbyB(recommended_bid, actual_clicks)) = 0 THEN 1 WHEN IS_NAN((getAbyB(recommended_bid, actual_clicks))) THEN 1 ELSE (getAbyB(recommended_bid, actual_clicks)) END, 1)) THEN 1 ELSE coalesce(CASE WHEN (getAbyB(recommended_bid, actual_clicks)) = 0 THEN 1 WHEN IS_NAN((getAbyB(recommended_bid, actual_clicks))) THEN 1 ELSE (getAbyB(recommended_bid, actual_clicks)) END, 1) END, 1) * (getAbyB(recommended_bid, actual_impressions))) AS mang_modified_bid_fact
          |FROM(SELECT bid_strategy, account_id, campaign_id, SUM(actual_clicks) actual_clicks, SUM(actual_impressions) actual_impressions, SUM(recommended_bid) recommended_bid
          |FROM bidreco_complete
          |WHERE (account_id = 12345) AND (status = 'Valid') AND (factPartCol = 123)
@@ -2076,7 +2076,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |ON
          |bc0.campaign_id = c2.c2_id
          |
- |GROUP BY getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA'), COALESCE(c2.advertiser_id, 0), CASE WHEN (bid_strategy IN (1)) THEN 'Max Click' WHEN (bid_strategy IN (2)) THEN 'Inflection Point' ELSE 'NONE' END
+         |GROUP BY getCsvEscapedString(CAST(COALESCE(c2.mang_campaign_name, '') AS VARCHAR)), COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA'), COALESCE(CAST(c2.advertiser_id as BIGINT), 0), CASE WHEN (bid_strategy IN (1)) THEN 'Max Click' WHEN (bid_strategy IN (2)) THEN 'Inflection Point' ELSE 'NONE' END
          |ORDER BY mang_campaign_name DESC, actual_impressions DESC) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
@@ -2187,7 +2187,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |FROM(
          |SELECT mang_source AS mang_source, decodeUDF(stats_source, 1, spend, 0.0) AS mang_n_spend
          |FROM(
-         |SELECT COALESCE(stats_source, 0) mang_source, SUM(spend) AS spend, stats_source AS stats_source
+         |SELECT COALESCE(CAST(stats_source as BIGINT), 0) mang_source, SUM(spend) AS spend, stats_source AS stats_source
          |FROM(SELECT campaign_id, stats_source, SUM(spend) spend
          |FROM ad_fact1
          |WHERE (advertiser_id = 12345) AND (stats_date >= '$fromDate' AND stats_date <= '$toDate')
@@ -2204,7 +2204,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |ON
          |af0.campaign_id = c1.c1_id
          |
-         |GROUP BY COALESCE(stats_source, 0), stats_source
+         |GROUP BY COALESCE(CAST(stats_source as BIGINT), 0), stats_source
          |) OgbQueryAlias
          |)
          |        queryAlias LIMIT 200
