@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.base.Preconditions;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.BaseCacheActionRunner;
 import org.apache.druid.java.util.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
 import org.apache.commons.lang.StringUtils;
@@ -14,6 +15,7 @@ import org.joda.time.Period;
 import javax.annotation.Nullable;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Null;
 import java.util.Objects;
 
 @JsonTypeName("maharocksdb")
@@ -47,7 +49,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     @JsonProperty
     public String cacheActionRunnerName = "";
 
-    private CacheActionRunner cacheActionRunner = null;
+    private BaseCacheActionRunner cacheActionRunner = null;
 
     @JsonCreator
     public RocksDBExtractionNamespace(@NotNull @JsonProperty(value = "namespace", required = true)
@@ -147,7 +149,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
 
     public String getCacheActionRunnerName() { return cacheActionRunnerName; }
 
-    public CacheActionRunner getCacheActionRunner() {
+    public BaseCacheActionRunner getCacheActionRunner() {
         return cacheActionRunner;
     }
 

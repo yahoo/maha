@@ -1,12 +1,10 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Strings;
 import com.google.protobuf.Descriptors;
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.BaseSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.apache.druid.java.util.emitter.service.ServiceMetricEvent;
@@ -14,23 +12,21 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.MonitoringConstants;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.rocksdb.RocksDB;
 
-import java.io.Serializable;
-import java.util.Objects;
 import java.util.Optional;
 
-public class CacheActionRunner {
+public class CacheActionRunner implements BaseCacheActionRunner {
 
     private static final Logger LOG = new Logger(CacheActionRunner.class);
 
+    @Override
     public byte[] getCacheValue(final String key
             , Optional<String> valueColumn
             , final Optional<DecodeConfig> decodeConfigOptional
             , RocksDB db
-            , ProtobufSchemaFactory protobufSchemaFactory
+            , BaseSchemaFactory schemaFactory
             , LookupService lookupService
             , ServiceEmitter emitter
             , RocksDBExtractionNamespace extractionNamespace){
@@ -40,6 +36,9 @@ public class CacheActionRunner {
             }
 
             if (db != null) {
+                validateSchemaFactory(schemaFactory);
+                ProtobufSchemaFactory protobufSchemaFactory = (ProtobufSchemaFactory) schemaFactory;
+
                 Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
                 byte[] cacheByteValue = db.get(key.getBytes());
                 if(cacheByteValue == null) {
@@ -79,7 +78,7 @@ public class CacheActionRunner {
         }
     }
 
-    synchronized public void updateCache(ProtobufSchemaFactory protobufSchemaFactory
+    synchronized public void updateCache(BaseSchemaFactory schemaFactory
             , final String key
             , final byte[] value
             , RocksDB db
@@ -87,6 +86,8 @@ public class CacheActionRunner {
             , RocksDBExtractionNamespace extractionNamespace) {
         if (extractionNamespace.isCacheEnabled()) {
             try {
+                validateSchemaFactory(schemaFactory);
+                ProtobufSchemaFactory protobufSchemaFactory = (ProtobufSchemaFactory) schemaFactory;
 
                 Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
                 Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
@@ -117,6 +118,13 @@ public class CacheActionRunner {
                 LOG.error(e, "Caught exception while updating cache");
                 serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_FAILURE, 1));
             }
+        }
+    }
+
+    @Override
+    public void validateSchemaFactory(BaseSchemaFactory schemaFactory) {
+        if (!(schemaFactory instanceof ProtobufSchemaFactory)) {
+            throw new IllegalArgumentException("Expecting ProtobufSchemaFactory in getCacheValue call");
         }
     }
 

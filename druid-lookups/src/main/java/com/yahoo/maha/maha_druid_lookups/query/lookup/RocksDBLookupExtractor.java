@@ -2,8 +2,6 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.query.lookup;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -16,8 +14,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.protobuf.*;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.BaseSchemaFactory;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.apache.druid.java.util.emitter.service.ServiceMetricEvent;
@@ -47,7 +44,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
     private final RocksDBExtractionNamespace extractionNamespace;
     private RocksDBManager rocksDBManager;
     private LookupService lookupService;
-    private ProtobufSchemaFactory protobufSchemaFactory;
+    private BaseSchemaFactory schemaFactory;
     private KafkaManager kafkaManager;
     private ServiceEmitter serviceEmitter;
     private Cache<String, byte[]> missingLookupCache;
@@ -55,13 +52,13 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
 
     public RocksDBLookupExtractor(RocksDBExtractionNamespace extractionNamespace, Map<String, U> map,
                                   LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
-                                  ProtobufSchemaFactory protobufSchemaFactory, ServiceEmitter serviceEmitter) {
+                                  BaseSchemaFactory schemaFactory, ServiceEmitter serviceEmitter) {
         this.extractionNamespace = extractionNamespace;
         this.map = Preconditions.checkNotNull(map, "map");
         this.rocksDBManager = rocksDBManager;
         this.kafkaManager = kafkaManager;
         this.lookupService = lookupService;
-        this.protobufSchemaFactory = protobufSchemaFactory;
+        this.schemaFactory = schemaFactory;
         this.serviceEmitter = serviceEmitter;
         this.missingLookupCache = Caffeine
                 .newBuilder()
@@ -104,7 +101,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
                     LOG.error("RocksDB instance is null");
                     return null;
                 }
-                byte[] cacheByteValue = extractionNamespace.getCacheActionRunner().getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, protobufSchemaFactory, lookupService, serviceEmitter, extractionNamespace);
+                byte[] cacheByteValue = extractionNamespace.getCacheActionRunner().getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, schemaFactory, lookupService, serviceEmitter, extractionNamespace);
 
                 if (cacheByteValue == null || cacheByteValue.length == 0) {
                     // No need to call handleMissingLookup if missing dimension is already present in missingLookupCache

@@ -12,7 +12,7 @@ import java.util.Optional;
  Base class for reading the value from rocksdb and parsing it according to BaseScameFactory type,
  Right now supporting two chains, ProtoBuf and FlatBuffer. It checks if routeToNextChain is true else go ahead and parse with current chain
  */
-public interface BaseCacheActionRunnerChain {
+public interface BaseCacheActionRunner {
 
     byte[] getCacheValue(final String key
             , Optional<String> valueColumn
@@ -30,5 +30,5 @@ public interface BaseCacheActionRunnerChain {
             , ServiceEmitter serviceEmitter
             , RocksDBExtractionNamespace extractionNamespace);
 
-    boolean routeToNextChain(BaseSchemaFactory schemaFactory);
+    void validateSchemaFactory(BaseSchemaFactory schemaFactory);
 }

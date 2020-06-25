@@ -16,14 +16,9 @@ import org.rocksdb.RocksDB;
 
 import java.util.Optional;
 
-public class CacheActionRunnerFlatBuffer implements BaseCacheActionRunnerChain {
+public class CacheActionRunnerFlatBuffer implements BaseCacheActionRunner {
 
-    private static final Logger LOG = new Logger(CacheActionRunner.class);
-
-    /*
-     For new SerDe Schema, add next chain impl here
-     */
-    BaseCacheActionRunnerChain nextChain = null;
+    private static final Logger LOG = new Logger(CacheActionRunnerFlatBuffer.class);
 
     @Override
     public byte[] getCacheValue(final String key
@@ -111,8 +106,10 @@ public class CacheActionRunnerFlatBuffer implements BaseCacheActionRunnerChain {
     }
 
     @Override
-    public boolean routeToNextChain(BaseSchemaFactory schemaFactory) {
-        return false;
+    public void validateSchemaFactory(BaseSchemaFactory schemaFactory) {
+        if (!(schemaFactory instanceof FlatBufferSchemaFactory)) {
+            throw new IllegalArgumentException("Expecting FlatBufferSchemaFactory in getCacheValue call");
+        }
     }
 
     @Override
