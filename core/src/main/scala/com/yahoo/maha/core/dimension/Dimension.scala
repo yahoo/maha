@@ -871,7 +871,8 @@ case class PubCol(name: String
                   , hiddenFromJson: Boolean = false
                   , filteringRequired: Boolean = false
                   , restrictedSchemas: Set[Schema] = Set.empty
-                  , isImageColumn: Boolean = false) extends PublicDimColumn
+                  , isImageColumn: Boolean = false
+                  , isReplacement: Boolean = false) extends PublicDimColumn
 
 case class RequiredAlias(name: String, alias: String, isKey: Boolean)
 trait PublicDimension extends PublicTable {

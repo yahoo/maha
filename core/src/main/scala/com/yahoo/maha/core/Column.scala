@@ -21,6 +21,7 @@ trait PublicColumn {
   def filteringRequired: Boolean
   def restrictedSchemas: Set[Schema]
   def isImageColumn: Boolean
+  def isReplacement: Boolean
 
   private val jUtils = JsonUtils
 
@@ -36,6 +37,7 @@ trait PublicColumn {
         ,("hiddenFromJson" -> toJSON(hiddenFromJson))
         ,("filteringRequired" -> toJSON(filteringRequired))
         ,("isImageColumn" -> toJSON(isImageColumn))
+        ,("isReplacement" -> toJSON(isReplacement))
       )
     )
   }

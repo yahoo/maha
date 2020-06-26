@@ -599,6 +599,25 @@ class RegistryTest extends FunSuite with Matchers {
 
   }
 
+  test("Should allow aliasing of a publicFact with column replacements") {
+    val pubFact1: PublicFact = pubfact
+    val registryBuilder = new RegistryBuilder
+
+    registryBuilder.register(base_dim)
+    registryBuilder.register(pubFact1)
+    registryBuilder.registerAlias(
+      Set((pubFact1.name, Some(3)), ("alias2", None)),
+      pubFact1,
+      dimColOverrides = Set(PubCol("price_type", "Pricing type", InEquality, isReplacement = true)))
+    val registry = registryBuilder.build()
+
+    assert(
+      registry.factMap.keys.toSet.contains(("alias2", 0))
+        && registry.factMap.keys.toSet.contains(("publicFact", 0))
+        && registry.factMap.keys.toSet.contains(("publicFact", 3))
+        && registry.factMap.get(("alias2", 0)).get.columnsByAlias.contains("Pricing type"))
+  }
+
   test("Should fail with invalid secondary alias (duplicate)") {
     val pubFact1 = pubfact
     val registryBuilder = new RegistryBuilder
