@@ -8,5 +8,6 @@ table ProductAd {
          image_url_large : string;
          source_id : string;
          title : string;
+         last_updated: string;
 }
 root_type ProductAd;

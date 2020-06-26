@@ -20,6 +20,7 @@ public class ProductAdWrapper extends FlatBufferWrapper {
             .put("image_url_large", 4)
             .put("source_id", 5)
             .put("title", 6)
+            .put("last_updated", 7)
             .build();
 
     @Override
@@ -49,6 +50,8 @@ public class ProductAdWrapper extends FlatBufferWrapper {
                 return productAd.sourceId();
             case 6:
                 return productAd.title();
+            case 7:
+                return productAd.lastUpdated();
             default:
                 return null;
         }

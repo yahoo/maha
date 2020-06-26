@@ -2,19 +2,22 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
+import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.flatbuffers.Table;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferValue;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.ProductAd;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.ProductAdWrapper;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.TestFlatBufferSchemaFactory;
+import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.AdProtos;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferWrapper;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.ProductAd;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.TestFlatBufferSchemaFactory;
 import org.apache.commons.io.FileUtils;
-import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.joda.time.Period;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -28,6 +31,7 @@ import scala.Product;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -50,6 +54,8 @@ public class RocksDBExtractionNamespaceCacheFactoryFlatBufferTest {
     @Mock
     ServiceEmitter serviceEmitter;
 
+    ProductAdWrapper productAdWrapper = new ProductAdWrapper();
+
     @BeforeTest
     public void setUp() {
         MockitoAnnotations.initMocks(this);
@@ -62,7 +68,7 @@ public class RocksDBExtractionNamespaceCacheFactoryFlatBufferTest {
     }
 
     @Test
-    public void testUpdateCacheWithGreaterLastUpdated() throws Exception{
+    public void testUpdateCacheWithGreaterLastUpdated() throws Exception {
 
         Options options = null;
         RocksDB db = null;
@@ -73,53 +79,41 @@ public class RocksDBExtractionNamespaceCacheFactoryFlatBufferTest {
             options = new Options().setCreateIfMissing(true);
             db = RocksDB.open(options, tempFile.getAbsolutePath());
 
-            Message msg = AdProtos.Ad.newBuilder()
-                    .setId("32309719080")
-                    .setTitle("some title")
-                    .setStatus("ON")
-                    .setLastUpdated("1470733203505")
-                    .build();
+            Map<String, FlatBufferValue> map = new HashMap();
+            map.put("id",  FlatBufferValue.of("32309719080"));
+            map.put("title",  FlatBufferValue.of("some title"));
+            map.put("status",  FlatBufferValue.of("ON"));
+            map.put("description",  FlatBufferValue.of("test desc"));
+            map.put("last_updated", FlatBufferValue.of("1480733203505"));
 
-            FlatBufferBuilder bufferBuilder = new FlatBufferBuilder(512);
+            FlatBufferBuilder flatBufferBuilder = productAdWrapper.createFlatBuffer(map);
 
-
-            db.put("32309719080".getBytes(), msg.toByteArray());
+            db.put("32309719080".getBytes(), productAdWrapper.toByteArr(flatBufferBuilder.dataBuffer()));
 
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
-                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner");
+                    "product_ad_fb_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
+                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer");
 
-            Message msgFromKafka = AdProtos.Ad.newBuilder()
-                    .setId("32309719080")
-                    .setTitle("some updated title")
-                    .setStatus("OFF")
-                    .setLastUpdated("1480733203505")
-                    .build();
+            map.put("status", FlatBufferValue.of("OFF"));
+            map.put("last_updated", FlatBufferValue.of("1480733203506"));
+            FlatBufferBuilder msgFromKafkaFlatBuffer = productAdWrapper.createFlatBuffer(map);
 
-            obj.updateCache(extractionNamespace, new HashMap<>(), "32309719080", msgFromKafka.toByteArray());
+            obj.updateCache(extractionNamespace, new HashMap<>(), "32309719080", productAdWrapper.toByteArr(msgFromKafkaFlatBuffer.dataBuffer()));
 
-            Parser<Message> parser = new TestProtobufSchemaFactory().getProtobufParser(extractionNamespace.getNamespace());
-            Message updatedMessage = parser.parseFrom(db.get("32309719080".getBytes()));
+            Table productAdTable = productAdWrapper.getFlatBuffer(db.get("32309719080".getBytes()));
+            ProductAd productAdUpdated  = (ProductAd) productAdTable;
 
-            Descriptors.Descriptor descriptor = new TestProtobufSchemaFactory().getProtobufDescriptor(extractionNamespace.getNamespace());
-            Descriptors.FieldDescriptor field = descriptor.findFieldByName("title");
-
-            Assert.assertEquals(updatedMessage.getField(field).toString(), "some updated title");
-
-            field = descriptor.findFieldByName("status");
-            Assert.assertEquals(updatedMessage.getField(field).toString(), "OFF");
-
-            field = descriptor.findFieldByName("last_updated");
-            Assert.assertEquals(updatedMessage.getField(field).toString(), "1480733203505");
-            Assert.assertEquals(extractionNamespace.getLastUpdatedTime().longValue(), 1480733203505L);
-
+            Assert.assertEquals(productAdUpdated.id(), "32309719080");
+            Assert.assertEquals(productAdUpdated.description(), "test desc");
+            Assert.assertEquals(productAdUpdated.status(), "OFF");
+            Assert.assertEquals(extractionNamespace.getLastUpdatedTime().longValue(), 1480733203506L);
         } finally {
-            if(db != null) {
+            if (db != null) {
                 db.close();
             }
-            if(tempFile.exists()) {
+            if (tempFile.exists()) {
                 FileUtils.forceDelete(tempFile);
             }
         }
@@ -136,33 +130,31 @@ public class RocksDBExtractionNamespaceCacheFactoryFlatBufferTest {
             options = new Options().setCreateIfMissing(true);
             db = RocksDB.open(options, tempFile.getAbsolutePath());
 
-            Message msg = AdProtos.Ad.newBuilder()
-                    .setId("32309719080")
-                    .setTitle("some title")
-                    .setStatus("ON")
-                    .setLastUpdated("1470733203505")
-                    .build();
+            Map<String, FlatBufferValue> map = new HashMap();
+            map.put("id",  FlatBufferValue.of("32309719080"));
+            map.put("title",  FlatBufferValue.of("some title"));
+            map.put("status",  FlatBufferValue.of("ON"));
+            map.put("description",  FlatBufferValue.of("test desc"));
+            map.put("last_updated", FlatBufferValue.of("1480733203505"));
 
-            db.put("32309719080".getBytes(), msg.toByteArray());
+            FlatBufferBuilder flatBufferBuilder = productAdWrapper.createFlatBuffer(map);
+
+            db.put("32309719080".getBytes(), productAdWrapper.toByteArr(flatBufferBuilder.dataBuffer()));
 
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
-            Message msgFromKafka = AdProtos.Ad.newBuilder()
-                    .setId("32309719080")
-                    .setTitle("some updated title")
-                    .setStatus("OFF")
-                    .setLastUpdated("1480733203505")
-                    .build();
+            FlatBufferBuilder flatBufferBuilderFromKafka = productAdWrapper.createFlatBuffer(map);
+
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
-                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
+                    "product_ad_fb_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
                     , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopCacheActionRunner");
 
-            noopObj.getCachePopulator("ad_lookup", extractionNamespace, "32309719080", new HashMap<>());
-            noopObj.updateCache(extractionNamespace, new HashMap<>(), "32309719080", msgFromKafka.toByteArray());
+            noopObj.getCachePopulator("product_ad_fb_lookup", extractionNamespace, "32309719080", new HashMap<>());
+            noopObj.updateCache(extractionNamespace, new HashMap<>(), "32309719080", productAdWrapper.toByteArr(flatBufferBuilderFromKafka.dataBuffer()));
             byte[] cacheVal = noopObj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "", Optional.empty());
             Assert.assertNull(cacheVal);
         } finally {
-            if(db != null) {
+            if (db != null) {
                 db.close();
             }
             if(tempFile.exists()) {
@@ -183,45 +175,38 @@ public class RocksDBExtractionNamespaceCacheFactoryFlatBufferTest {
             options = new Options().setCreateIfMissing(true);
             db = RocksDB.open(options, tempFile.getAbsolutePath());
 
-            Message msg = AdProtos.Ad.newBuilder()
-                    .setId("32309719080")
-                    .setTitle("some title")
-                    .setStatus("ON")
-                    .setLastUpdated("1470733203505")
-                    .build();
+            Map<String, FlatBufferValue> map = new HashMap();
+            map.put("id",  FlatBufferValue.of("32309719080"));
+            map.put("title",  FlatBufferValue.of("some title"));
+            map.put("status",  FlatBufferValue.of("ON"));
+            map.put("description",  FlatBufferValue.of("test desc"));
+            map.put("last_updated", FlatBufferValue.of("1480733203505"));
 
-            db.put("32309719080".getBytes(), msg.toByteArray());
+            FlatBufferBuilder flatBufferBuilder = productAdWrapper.createFlatBuffer(map);
+
+            db.put("32309719080".getBytes(), productAdWrapper.toByteArr(flatBufferBuilder.dataBuffer()));
 
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
-                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner");
+                    "product_ad_fb_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
+                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer");
 
-            Message msgFromKafka = AdProtos.Ad.newBuilder()
-                    .setId("32309719080")
-                    .setTitle("some updated title")
-                    .setStatus("OFF")
-                    .setLastUpdated("1460733203505")
-                    .build();
+            map.put("last_updated", FlatBufferValue.of("1480733203504"));
+            map.put("status",  FlatBufferValue.of("OFF"));
+            FlatBufferBuilder flatBufferBuilderFromKafka = productAdWrapper.createFlatBuffer(map);
 
-            obj.updateCache(extractionNamespace, new HashMap<>(), "32309719080", msgFromKafka.toByteArray());
+            obj.updateCache(extractionNamespace, new HashMap<>(), "32309719080", productAdWrapper.toByteArr(flatBufferBuilderFromKafka.dataBuffer()));
 
-            Parser<Message> parser = new TestProtobufSchemaFactory().getProtobufParser(extractionNamespace.getNamespace());
-            Message updatedMessage = parser.parseFrom(db.get("32309719080".getBytes()));
 
-            Descriptors.Descriptor descriptor = new TestProtobufSchemaFactory().getProtobufDescriptor(extractionNamespace.getNamespace());
-            Descriptors.FieldDescriptor field = descriptor.findFieldByName("title");
+            Table productAdTable = productAdWrapper.getFlatBuffer(db.get("32309719080".getBytes()));
+            ProductAd productAdUpdated  = (ProductAd) productAdTable;
 
-            Assert.assertEquals(updatedMessage.getField(field).toString(), "some title");
-
-            field = descriptor.findFieldByName("status");
-            Assert.assertEquals(updatedMessage.getField(field).toString(), "ON");
-
-            field = descriptor.findFieldByName("last_updated");
-            Assert.assertEquals(updatedMessage.getField(field).toString(), "1470733203505");
-            Assert.assertEquals(extractionNamespace.getLastUpdatedTime().longValue(), 1460733203505L);
-
+            Assert.assertEquals(productAdUpdated.id(), "32309719080");
+            Assert.assertEquals(productAdUpdated.description(), "test desc");
+            Assert.assertEquals(productAdUpdated.status(), "ON"); // NOT Updated due to lesser last updated time, old record is discarded
+            Assert.assertEquals(extractionNamespace.getLastUpdatedTime().longValue(), -1);
+            Assert.assertEquals(productAdUpdated.lastUpdated(), "1480733203505");
         } finally {
             if(db != null) {
                 db.close();
@@ -256,8 +241,8 @@ public class RocksDBExtractionNamespaceCacheFactoryFlatBufferTest {
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
-                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            , null);
+                    "product_ad_fb_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
+                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer");
 
             byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "title", Optional.empty());
 
@@ -288,8 +273,8 @@ public class RocksDBExtractionNamespaceCacheFactoryFlatBufferTest {
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
-                    "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            , null);
+                    "product_ad_fb_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
+                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer");
 
             byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "title", Optional.empty());
 

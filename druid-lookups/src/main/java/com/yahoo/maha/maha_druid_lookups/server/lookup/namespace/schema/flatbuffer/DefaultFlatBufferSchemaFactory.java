@@ -16,7 +16,7 @@ public class DefaultFlatBufferSchemaFactory implements FlatBufferSchemaFactory {
     @Override
     public FlatBufferWrapper getFlatBuffer(String messageType) {
         Preconditions.checkArgument(messageType != null , "messageType cannot be null!");
-        Preconditions.checkArgument(messageTypeToFbWrapperMap.containsKey(messageType), String.format("Failed to find messageType %s in DefaultFlatBufferSchemaFactory factory"));
-        return messageTypeToFbWrapperMap.get(messageType);
+        Preconditions.checkArgument(this.messageTypeToFbWrapperMap.containsKey(messageType), String.format("Failed to find messageType %s in DefaultFlatBufferSchemaFactory factory", messageType));
+        return this.messageTypeToFbWrapperMap.get(messageType);
     }
 }

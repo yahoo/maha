@@ -36,6 +36,9 @@ public final class ProductAd extends Table {
   public String title() { int o = __offset(16); return o != 0 ? __string(o + bb_pos) : null; }
   public ByteBuffer titleAsByteBuffer() { return __vector_as_bytebuffer(16, 1); }
   public ByteBuffer titleInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 16, 1); }
+  public String lastUpdated() { int o = __offset(18); return o != 0 ? __string(o + bb_pos) : null; }
+  public ByteBuffer lastUpdatedAsByteBuffer() { return __vector_as_bytebuffer(18, 1); }
+  public ByteBuffer lastUpdatedInByteBuffer(ByteBuffer _bb) { return __vector_in_bytebuffer(_bb, 18, 1); }
 
   public static int createProductAd(FlatBufferBuilder builder,
       int idOffset,
@@ -44,8 +47,10 @@ public final class ProductAd extends Table {
       int image_url_hqOffset,
       int image_url_largeOffset,
       int source_idOffset,
-      int titleOffset) {
-    builder.startTable(7);
+      int titleOffset,
+      int last_updatedOffset) {
+    builder.startTable(8);
+    ProductAd.addLastUpdated(builder, last_updatedOffset);
     ProductAd.addTitle(builder, titleOffset);
     ProductAd.addSourceId(builder, source_idOffset);
     ProductAd.addImageUrlLarge(builder, image_url_largeOffset);
@@ -56,7 +61,7 @@ public final class ProductAd extends Table {
     return ProductAd.endProductAd(builder);
   }
 
-  public static void startProductAd(FlatBufferBuilder builder) { builder.startTable(7); }
+  public static void startProductAd(FlatBufferBuilder builder) { builder.startTable(8); }
   public static void addId(FlatBufferBuilder builder, int idOffset) { builder.addOffset(0, idOffset, 0); }
   public static void addDescription(FlatBufferBuilder builder, int descriptionOffset) { builder.addOffset(1, descriptionOffset, 0); }
   public static void addStatus(FlatBufferBuilder builder, int statusOffset) { builder.addOffset(2, statusOffset, 0); }
@@ -64,6 +69,7 @@ public final class ProductAd extends Table {
   public static void addImageUrlLarge(FlatBufferBuilder builder, int imageUrlLargeOffset) { builder.addOffset(4, imageUrlLargeOffset, 0); }
   public static void addSourceId(FlatBufferBuilder builder, int sourceIdOffset) { builder.addOffset(5, sourceIdOffset, 0); }
   public static void addTitle(FlatBufferBuilder builder, int titleOffset) { builder.addOffset(6, titleOffset, 0); }
+  public static void addLastUpdated(FlatBufferBuilder builder, int lastUpdatedOffset) { builder.addOffset(7, lastUpdatedOffset, 0); }
   public static int endProductAd(FlatBufferBuilder builder) {
     int o = builder.endTable();
     return o;
