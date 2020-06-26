@@ -1589,6 +1589,7 @@ case class PublicFactCol (name: String
                           , hiddenFromJson: Boolean = false
                           , filteringRequired: Boolean = false
                           , isImageColumn: Boolean = false
+                          , isReplacement: Boolean = false
                           , restrictedSchemas: Set[Schema] = Set.empty) extends PublicFactColumn
 
 case class FactBestCandidate(fkCols: SortedSet[String]
@@ -2012,13 +2013,13 @@ case class PublicFactTable private[fact](name: String
     require(maxDaysLookBack.nonEmpty, "No max days look back window defined, public fact supports no request types!")
     require(facts.nonEmpty, s"public fact $name has no underlying facts")
     require(columnsByAlias.size == (dimCols.size + factCols.size), "Column names size mismatch with dimCols + factCols")
-    require(lowerCaseAliases.size == (dimCols.size + factCols.size), "Column aliases size mismatch with dimCols + factCols")
+    require(lowerCaseAliases.size == (dimCols.filterNot(c => c.isReplacement).size + factCols.size), "Column aliases size mismatch with dimCols + factCols")
     
     //run post validate on each fact
     facts.values.foreach(_.postValidate(this))
 
     var dimColNames: Set[String] = Set()
-    dimCols.foreach { col =>
+    dimCols.filterNot(c => c.isReplacement).foreach { col =>
       require(!dimColNames.contains(col.name), "dim column names should be unique")
       dimColNames += col.name
     }
