@@ -103,7 +103,7 @@ public class CacheActionRunner implements BaseCacheActionRunner {
                         Message messageInDB = parser.parseFrom(cacheValue);
                         Long lastUpdatedInDB = Long.valueOf(messageInDB.getField(field).toString());
 
-                        if(newLastUpdated > lastUpdatedInDB) {
+                        if (newLastUpdated > lastUpdatedInDB) {
                             db.put(key.getBytes(), value);
                         }
                     } else {

@@ -205,7 +205,7 @@ public class RocksDBExtractionNamespaceCacheFactoryFlatBufferTest {
             Assert.assertEquals(productAdUpdated.id(), "32309719080");
             Assert.assertEquals(productAdUpdated.description(), "test desc");
             Assert.assertEquals(productAdUpdated.status(), "ON"); // NOT Updated due to lesser last updated time, old record is discarded
-            Assert.assertEquals(extractionNamespace.getLastUpdatedTime().longValue(), -1);
+            Assert.assertEquals(extractionNamespace.getLastUpdatedTime().longValue(), 1480733203504L); // update ts on first message from kafka, although oldest
             Assert.assertEquals(productAdUpdated.lastUpdated(), "1480733203505");
         } finally {
             if(db != null) {
@@ -229,14 +229,16 @@ public class RocksDBExtractionNamespaceCacheFactoryFlatBufferTest {
             options = new Options().setCreateIfMissing(true);
             db = RocksDB.open(options, tempFile.getAbsolutePath());
 
-            Message msg = AdProtos.Ad.newBuilder()
-                    .setId("32309719080")
-                    .setTitle("some title")
-                    .setStatus("ON")
-                    .setLastUpdated("1470733203505")
-                    .build();
+            Map<String, FlatBufferValue> map = new HashMap();
+            map.put("id",  FlatBufferValue.of("32309719080"));
+            map.put("title",  FlatBufferValue.of("some title"));
+            map.put("status",  FlatBufferValue.of("ON"));
+            map.put("description",  FlatBufferValue.of("test desc"));
+            map.put("last_updated", FlatBufferValue.of("1480733203505"));
 
-            db.put("32309719080".getBytes(), msg.toByteArray());
+            FlatBufferBuilder flatBufferBuilder = productAdWrapper.createFlatBuffer(map);
+
+            db.put("32309719080".getBytes(), productAdWrapper.toByteArr(flatBufferBuilder.dataBuffer()));
 
             when(rocksDBManager.getDB(anyString())).thenReturn(db);
 
