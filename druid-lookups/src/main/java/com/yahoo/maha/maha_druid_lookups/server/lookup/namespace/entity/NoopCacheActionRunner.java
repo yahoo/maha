@@ -10,7 +10,7 @@ import org.rocksdb.RocksDB;
 
 import java.util.Optional;
 
-public class NoopCacheActionRunner extends CacheActionRunner {
+public class NoopCacheActionRunner implements BaseCacheActionRunner {
 
     private static final Logger LOG = new Logger(NoopCacheActionRunner.class);
 
@@ -35,6 +35,15 @@ public class NoopCacheActionRunner extends CacheActionRunner {
             , ServiceEmitter serviceEmitter
             , RocksDBExtractionNamespace extractionNamespace) {
         LOG.error("Noop called, no update to make.");
+    }
+
+    @Override
+    public void validateSchemaFactory(BaseSchemaFactory schemaFactory) {
+    }
+
+    @Override
+    public boolean flatBufferSupport() {
+        return false;
     }
 
     @Override

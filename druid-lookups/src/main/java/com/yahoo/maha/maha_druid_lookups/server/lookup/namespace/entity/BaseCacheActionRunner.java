@@ -31,4 +31,6 @@ public interface BaseCacheActionRunner {
             , RocksDBExtractionNamespace extractionNamespace);
 
     void validateSchemaFactory(BaseSchemaFactory schemaFactory);
+
+    boolean flatBufferSupport();
 }

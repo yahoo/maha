@@ -124,6 +124,11 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     }
 
     @Override
+    public boolean isFlatBufferNamespace() {
+        return false;
+    }
+
+    @Override
     public long getPollMs() {
         return pollPeriod.toStandardDuration().getMillis();
     }

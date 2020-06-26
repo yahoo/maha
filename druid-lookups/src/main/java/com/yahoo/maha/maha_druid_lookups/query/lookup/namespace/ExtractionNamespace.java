@@ -29,4 +29,6 @@ public interface ExtractionNamespace {
     String getTsColumn();
 
     boolean isCacheEnabled();
+
+    boolean isFlatBufferNamespace();
 }

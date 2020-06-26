@@ -60,10 +60,13 @@ public class RocksDBExtractionNamespaceCacheFactoryFlatBufferTest {
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         obj.rocksDBManager = rocksDBManager;
-        obj.schemaFactory = new TestFlatBufferSchemaFactory();
+        obj.protobufSchemaFactory = new TestProtobufSchemaFactory();
+        obj.flatBufferSchemaFactory = new TestFlatBufferSchemaFactory();
         obj.emitter = serviceEmitter;
+
         noopObj.rocksDBManager = rocksDBManager;
-        noopObj.schemaFactory = new TestFlatBufferSchemaFactory();
+        noopObj.flatBufferSchemaFactory = new TestFlatBufferSchemaFactory();
+        noopObj.protobufSchemaFactory = new TestProtobufSchemaFactory();
         noopObj.emitter = serviceEmitter;
     }
 

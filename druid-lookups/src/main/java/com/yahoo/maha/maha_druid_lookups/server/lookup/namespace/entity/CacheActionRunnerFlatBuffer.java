@@ -114,6 +114,11 @@ public class CacheActionRunnerFlatBuffer implements BaseCacheActionRunner {
     }
 
     @Override
+    public boolean flatBufferSupport() {
+        return true;
+    }
+
+    @Override
     public String toString() {
         return "CacheActionRunner{}";
     }

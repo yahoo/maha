@@ -119,6 +119,11 @@ public class MongoExtractionNamespace implements OnlineDatastoreExtractionNamesp
     }
 
     @Override
+    public boolean isFlatBufferNamespace() {
+        return false;
+    }
+
+    @Override
     public long getPollMs() {
         return pollPeriod.toStandardDuration().getMillis();
     }

@@ -131,6 +131,11 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         return cacheEnabled;
     }
 
+    @Override
+    public boolean isFlatBufferNamespace() {
+        return this.cacheActionRunner.flatBufferSupport();
+    }
+
     public boolean isLookupAuditingEnabled() {
         return lookupAuditingEnabled;
     }

@@ -5,6 +5,7 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.*;
 import com.google.inject.Inject;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
 import org.apache.druid.java.util.common.IAE;
 import org.apache.druid.java.util.common.ISE;
@@ -71,6 +72,8 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
     KafkaManager kafkaManager;
     @Inject
     ProtobufSchemaFactory protobufSchemaFactory;
+    @Inject
+    FlatBufferSchemaFactory flatBufferSchemaFactory;
 
     public MahaNamespaceExtractionCacheManager(
             Lifecycle lifecycle,
@@ -387,6 +390,8 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
             return new JDBCLookupExtractorWithLeaderAndFollower((JDBCExtractionNamespaceWithLeaderAndFollower) extractionNamespace, map, lookupService);
         } else if (extractionNamespace instanceof JDBCExtractionNamespace) {
             return new JDBCLookupExtractor((JDBCExtractionNamespace) extractionNamespace, map, lookupService);
+        } else if (extractionNamespace instanceof RocksDBExtractionNamespace && extractionNamespace.isFlatBufferNamespace()) {
+            return new RocksDBLookupExtractor((RocksDBExtractionNamespace) extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, flatBufferSchemaFactory, serviceEmitter);
         } else if (extractionNamespace instanceof RocksDBExtractionNamespace) {
             return new RocksDBLookupExtractor((RocksDBExtractionNamespace) extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory, serviceEmitter);
         } else if (extractionNamespace instanceof MongoExtractionNamespace) {
