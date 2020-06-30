@@ -104,13 +104,13 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         }
 
         //overrideLookupServiceHosts
+        this.overrideLookupServiceHostsList = new ArrayList<>();
         if(StringUtils.isBlank(overrideLookupServiceHosts)) {
             LOG.info("no input overrideLookupServiceHosts");
             this.overrideLookupServiceHosts = "";
-            this.overrideLookupServiceHostsList = null;
         } else {
             LOG.info("input overrideLookupServiceHosts: " + overrideLookupServiceHosts);
-            this.overrideLookupServiceHostsList = new ArrayList<>();
+
             String[] splitStrs = StringUtils.split(overrideLookupServiceHosts,',');
             for(String s: splitStrs) {
                 if(urlValidator.isValid(s)){
@@ -127,8 +127,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                     LOG.warn("invalid input uri: " + s);
                 }
             }
-            this.overrideLookupServiceHosts = overrideLookupServiceHostsList.toString();
-            LOG.info("valid overrideLookupServiceHosts: " + this.overrideLookupServiceHosts.toString());
+            this.overrideLookupServiceHosts = overrideLookupServiceHostsList.toString().replaceAll("\\s+","");
+            LOG.info("valid overrideLookupServiceHosts: " + this.overrideLookupServiceHosts);
         }
     }
 
