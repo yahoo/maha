@@ -89,7 +89,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
             this.cacheActionRunner = BaseCacheActionRunner.class.cast(
                 Class.forName(this.cacheActionRunnerName).newInstance());
         } catch (Throwable t) {
-            LOG.error("Found a blank or invalid CacheActionRunner, logging error and throwing Runtime ", t);
+            LOG.error(t, "Found a blank or invalid CacheActionRunner, logging error and throwing Runtime ");
             throw new RuntimeException("Found invalid passed in CacheActionRunner with String " + cacheActionRunner, t);
         }
     }
