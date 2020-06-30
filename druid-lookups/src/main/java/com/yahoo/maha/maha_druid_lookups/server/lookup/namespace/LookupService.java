@@ -9,6 +9,7 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.base.Throwables;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import org.apache.druid.java.util.common.lifecycle.LifecycleStart;
 import org.apache.druid.java.util.common.lifecycle.LifecycleStop;
 import org.apache.druid.java.util.common.logger.Logger;
@@ -129,11 +130,14 @@ public class LookupService {
         if(authHeaders != null) {
             authHeaders.entrySet().stream().forEach(e -> httpGet.addHeader(e.getKey(), e.getValue()));
         }
-        URIBuilder uriBuilder = new URIBuilder()
-                .setScheme(serviceScheme)
-                .setHost(getHost())
-                .setPort(Integer.valueOf(servicePort))
-                .setPath("/druid/v1/namespaces/" + lookupData.extractionNamespace.getLookupName())
+        URIBuilder uriBuilder = null;
+        if(lookupData.overrideHostList != null && lookupData.overrideHostList.size() != 0) {
+            String lookupHost = lookupData.overrideHostList.get(RANDOM.nextInt(lookupData.overrideHostList.size()));
+            uriBuilder = new URIBuilder(lookupHost);
+        } else {
+            uriBuilder = new URIBuilder().setScheme(serviceScheme).setHost(getHost()).setPort(Integer.valueOf(servicePort));
+        }
+            uriBuilder.setPath("/druid/v1/namespaces/" + lookupData.extractionNamespace.getLookupName())
                 .addParameter("namespaceclass", lookupData.extractionNamespace.getClass().getName())
                 .addParameter("key", lookupData.key)
                 .addParameter("valueColumn", lookupData.valueColumn);
@@ -211,9 +215,11 @@ public class LookupService {
         String valueColumn;
         Optional<DecodeConfig> decodeConfigOptional = Optional.empty();
         ExtractionNamespace extractionNamespace;
+        List<String> overrideHostList;
 
         public LookupData(ExtractionNamespace extractionNamespace) {
             this.extractionNamespace = extractionNamespace;
+            overrideHostsIfColumnPresent(extractionNamespace);
         }
 
         public LookupData(ExtractionNamespace extractionNamespace, String key, String valueColumn, Optional<DecodeConfig> decodeConfigOptional) {
@@ -221,6 +227,14 @@ public class LookupService {
             this.key = key;
             this.valueColumn = valueColumn;
             this.decodeConfigOptional = decodeConfigOptional;
+            overrideHostsIfColumnPresent(extractionNamespace);
+        }
+
+        public void overrideHostsIfColumnPresent(ExtractionNamespace namespace) {
+            if (namespace instanceof RocksDBExtractionNamespace) {
+                RocksDBExtractionNamespace rocksDBNamespace = (RocksDBExtractionNamespace) namespace;
+                this.overrideHostList = rocksDBNamespace.getOverrideLookupServiceHostsList();
+            }
         }
 
         @Override
@@ -230,7 +244,8 @@ public class LookupService {
             LookupData that = (LookupData) o;
             boolean result = Objects.equals(key, that.key) &&
                     Objects.equals(valueColumn, that.valueColumn) &&
-                    Objects.equals(extractionNamespace, that.extractionNamespace);
+                    Objects.equals(extractionNamespace, that.extractionNamespace) &&
+                    Objects.equals(overrideHostList, that.overrideHostList);
 
             if(decodeConfigOptional.isPresent() && that.decodeConfigOptional.isPresent()) {
                 result &= Objects.equals(decodeConfigOptional.get(), that.decodeConfigOptional.get());
@@ -243,10 +258,13 @@ public class LookupService {
         @Override
         public int hashCode() {
 
-            if(decodeConfigOptional.isPresent())
+            if(decodeConfigOptional.isPresent()) {
                 return Objects.hash(key, valueColumn, decodeConfigOptional.get(), extractionNamespace);
-            else
+            } else if (overrideHostList != null) {
+                return Objects.hash(key, valueColumn, decodeConfigOptional.get(), extractionNamespace, overrideHostList.toString());
+            } else {
                 return Objects.hash(key, valueColumn, extractionNamespace);
+            }
         }
 
     }
