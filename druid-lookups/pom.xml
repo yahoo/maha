@@ -319,6 +319,11 @@
             <artifactId>log4j-to-slf4j</artifactId>
             <version>${log4j2.version}</version>
         </dependency>
+        <dependency>
+            <groupId>commons-validator</groupId>
+            <artifactId>commons-validator</artifactId>
+            <version>1.6</version>
+        </dependency>
 
     </dependencies>
 
