@@ -106,8 +106,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         //overrideLookupServiceHosts
         this.overrideLookupServiceHostsList = new ArrayList<>();
         if(StringUtils.isBlank(overrideLookupServiceHosts)) {
-            LOG.info("no input overrideLookupServiceHosts");
-            this.overrideLookupServiceHosts = this.overrideLookupServiceHostsList.toString();
+            LOG.info("no input from overrideLookupServiceHosts");
+            this.overrideLookupServiceHosts = "";
         } else {
             LOG.info("input overrideLookupServiceHosts: " + overrideLookupServiceHosts);
 
