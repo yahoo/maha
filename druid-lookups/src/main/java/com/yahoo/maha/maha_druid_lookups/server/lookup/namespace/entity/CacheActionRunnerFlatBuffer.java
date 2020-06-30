@@ -101,7 +101,6 @@ public class CacheActionRunnerFlatBuffer implements BaseCacheActionRunner {
             } catch (Exception e) {
                 LOG.error(e, "Caught exception while updating cache");
                 serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_FAILURE, 1));
-                e.printStackTrace();
             }
         }
     }

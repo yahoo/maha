@@ -15,7 +15,6 @@ import org.joda.time.Period;
 import javax.annotation.Nullable;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Null;
 import java.util.Objects;
 
 @JsonTypeName("maharocksdb")
@@ -132,8 +131,11 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     }
 
     @Override
-    public boolean isFlatBufferNamespace() {
-        return this.cacheActionRunner.flatBufferSupport();
+    public ExtractionNameSpaceSchemaType getType() {
+        if (this.cacheActionRunner.flatBufferSupport()) {
+           return ExtractionNameSpaceSchemaType.FlatBuffer;
+        }
+        return ExtractionNameSpaceSchemaType.Protobuf;
     }
 
     public boolean isLookupAuditingEnabled() {

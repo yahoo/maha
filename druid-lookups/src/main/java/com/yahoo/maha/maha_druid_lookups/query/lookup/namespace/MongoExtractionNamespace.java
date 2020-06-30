@@ -119,8 +119,8 @@ public class MongoExtractionNamespace implements OnlineDatastoreExtractionNamesp
     }
 
     @Override
-    public boolean isFlatBufferNamespace() {
-        return false;
+    public ExtractionNameSpaceSchemaType getType() {
+        return ExtractionNameSpaceSchemaType.Protobuf;
     }
 
     @Override

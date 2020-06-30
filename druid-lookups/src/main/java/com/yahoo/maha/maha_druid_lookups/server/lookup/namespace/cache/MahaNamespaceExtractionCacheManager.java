@@ -390,7 +390,7 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
             return new JDBCLookupExtractorWithLeaderAndFollower((JDBCExtractionNamespaceWithLeaderAndFollower) extractionNamespace, map, lookupService);
         } else if (extractionNamespace instanceof JDBCExtractionNamespace) {
             return new JDBCLookupExtractor((JDBCExtractionNamespace) extractionNamespace, map, lookupService);
-        } else if (extractionNamespace instanceof RocksDBExtractionNamespace && extractionNamespace.isFlatBufferNamespace()) {
+        } else if (extractionNamespace instanceof RocksDBExtractionNamespace && extractionNamespace.getType() == ExtractionNameSpaceSchemaType.FlatBuffer) {
             return new RocksDBLookupExtractor((RocksDBExtractionNamespace) extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, flatBufferSchemaFactory, serviceEmitter);
         } else if (extractionNamespace instanceof RocksDBExtractionNamespace) {
             return new RocksDBLookupExtractor((RocksDBExtractionNamespace) extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory, serviceEmitter);

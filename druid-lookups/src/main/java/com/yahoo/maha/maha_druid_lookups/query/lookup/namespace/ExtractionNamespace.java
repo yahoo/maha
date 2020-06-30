@@ -4,7 +4,6 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup.namespace;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.google.common.collect.ImmutableList;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes(value = {
@@ -30,5 +29,5 @@ public interface ExtractionNamespace {
 
     boolean isCacheEnabled();
 
-    boolean isFlatBufferNamespace();
+    ExtractionNameSpaceSchemaType getType();
 }

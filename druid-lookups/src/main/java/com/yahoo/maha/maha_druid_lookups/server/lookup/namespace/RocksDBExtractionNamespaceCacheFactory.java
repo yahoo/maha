@@ -3,6 +3,7 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.google.inject.Inject;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNameSpaceSchemaType;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.BaseSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferSchemaFactory;
@@ -119,7 +120,7 @@ public class RocksDBExtractionNamespaceCacheFactory
     }
 
     private BaseSchemaFactory getSchemaFactory(ExtractionNamespace extractionNamespace) {
-        if (extractionNamespace.isFlatBufferNamespace()) {
+        if (extractionNamespace.getType() == ExtractionNameSpaceSchemaType.FlatBuffer) {
            return flatBufferSchemaFactory;
         } else {
             return protobufSchemaFactory;
