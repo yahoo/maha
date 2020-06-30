@@ -219,7 +219,7 @@ public class LookupService {
 
         public LookupData(ExtractionNamespace extractionNamespace) {
             this.extractionNamespace = extractionNamespace;
-            overrideHostsIfColumnPresent(extractionNamespace);
+            this.overrideHostList = extractionNamespace.getOverrideLookupServiceHostsList();
         }
 
         public LookupData(ExtractionNamespace extractionNamespace, String key, String valueColumn, Optional<DecodeConfig> decodeConfigOptional) {
@@ -227,14 +227,7 @@ public class LookupService {
             this.key = key;
             this.valueColumn = valueColumn;
             this.decodeConfigOptional = decodeConfigOptional;
-            overrideHostsIfColumnPresent(extractionNamespace);
-        }
-
-        public void overrideHostsIfColumnPresent(ExtractionNamespace namespace) {
-            if (namespace instanceof RocksDBExtractionNamespace) {
-                RocksDBExtractionNamespace rocksDBNamespace = (RocksDBExtractionNamespace) namespace;
-                this.overrideHostList = rocksDBNamespace.getOverrideLookupServiceHostsList();
-            }
+            this.overrideHostList = extractionNamespace.getOverrideLookupServiceHostsList();
         }
 
         @Override
