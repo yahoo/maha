@@ -70,5 +70,16 @@ public class RocksDBExtractionNamespaceTest {
         assertEquals(namespace.getPollMs(), 30000);
         assertEquals(namespace.isCacheEnabled(), true);
         assertEquals(namespace.getLookupName(), "advertiser_lookup");
+        assertEquals(namespace.getOverrideLookupServiceHosts(), "[]");
+        assertEquals(namespace.getOverrideLookupServiceHostsList().size(), 0);
+    }
+
+    @Test
+    public void testOverrideLookupHosts() throws Exception{
+        RocksDBExtractionNamespace namespace = objectMapper
+                .readValue(ClassLoader.getSystemClassLoader().getResourceAsStream("rocksdb_extraction_namespace_w_serviceHostList.json")
+                        , RocksDBExtractionNamespace.class);
+        assertEquals(namespace.getOverrideLookupServiceHosts(),"[http://test.com:1234,http://localhost:8090,https://test.com:8090,http://127.0.0.1:9999]");
+        assertEquals(namespace.getOverrideLookupServiceHostsList().size(), 4);
     }
 }

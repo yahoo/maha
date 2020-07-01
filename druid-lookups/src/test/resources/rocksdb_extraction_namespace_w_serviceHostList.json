@@ -1,0 +1,10 @@
+{
+  "type": "maharocksdb",
+  "namespace": "advertiser_lookup",
+  "rocksDbInstanceHDFSPath": "/data/druid/lookups/snapshots/advertiser",
+  "lookupAuditingHDFSPath": "/data/druid/lookups/audits/advertiser",
+  "pollPeriod": "PT30S",
+  "cacheEnabled": false,
+  "lookupName": "advertiser_lookup",
+  "overrideLookupServiceHosts": "http://test.com:1234,test.com:2234,https://test.com,http://localhost:8090,https://test.com:8090,http://127.0.0.1:9999,localhost,localhos,localhost:9999"
+}
