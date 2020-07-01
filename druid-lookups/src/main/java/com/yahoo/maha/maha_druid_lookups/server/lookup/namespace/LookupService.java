@@ -131,8 +131,9 @@ public class LookupService {
             authHeaders.entrySet().stream().forEach(e -> httpGet.addHeader(e.getKey(), e.getValue()));
         }
         URIBuilder uriBuilder = null;
-        if(lookupData.overrideHostList != null && lookupData.overrideHostList.size() != 0) {
-            String lookupHost = lookupData.overrideHostList.get(RANDOM.nextInt(lookupData.overrideHostList.size()));
+        List<String> overrideHostsList = lookupData.extractionNamespace.getOverrideLookupServiceHostsList();
+        if(overrideHostsList != null && overrideHostsList.size() != 0) {
+            String lookupHost = overrideHostsList.get(RANDOM.nextInt(overrideHostsList.size()));
             uriBuilder = new URIBuilder(lookupHost);
         } else {
             uriBuilder = new URIBuilder().setScheme(serviceScheme).setHost(getHost()).setPort(Integer.valueOf(servicePort));
@@ -215,11 +216,9 @@ public class LookupService {
         String valueColumn;
         Optional<DecodeConfig> decodeConfigOptional = Optional.empty();
         ExtractionNamespace extractionNamespace;
-        List<String> overrideHostList;
 
         public LookupData(ExtractionNamespace extractionNamespace) {
             this.extractionNamespace = extractionNamespace;
-            this.overrideHostList = extractionNamespace.getOverrideLookupServiceHostsList();
         }
 
         public LookupData(ExtractionNamespace extractionNamespace, String key, String valueColumn, Optional<DecodeConfig> decodeConfigOptional) {
@@ -227,7 +226,6 @@ public class LookupService {
             this.key = key;
             this.valueColumn = valueColumn;
             this.decodeConfigOptional = decodeConfigOptional;
-            this.overrideHostList = extractionNamespace.getOverrideLookupServiceHostsList();
         }
 
         @Override
@@ -237,8 +235,7 @@ public class LookupService {
             LookupData that = (LookupData) o;
             boolean result = Objects.equals(key, that.key) &&
                     Objects.equals(valueColumn, that.valueColumn) &&
-                    Objects.equals(extractionNamespace, that.extractionNamespace) &&
-                    Objects.equals(overrideHostList, that.overrideHostList);
+                    Objects.equals(extractionNamespace, that.extractionNamespace);
 
             if(decodeConfigOptional.isPresent() && that.decodeConfigOptional.isPresent()) {
                 result &= Objects.equals(decodeConfigOptional.get(), that.decodeConfigOptional.get());
@@ -253,9 +250,7 @@ public class LookupService {
 
             if(decodeConfigOptional.isPresent()) {
                 return Objects.hash(key, valueColumn, decodeConfigOptional.get(), extractionNamespace);
-            } else if (overrideHostList != null) {
-                return Objects.hash(key, valueColumn, decodeConfigOptional.get(), extractionNamespace, overrideHostList.toString());
-            } else {
+            }  else {
                 return Objects.hash(key, valueColumn, extractionNamespace);
             }
         }

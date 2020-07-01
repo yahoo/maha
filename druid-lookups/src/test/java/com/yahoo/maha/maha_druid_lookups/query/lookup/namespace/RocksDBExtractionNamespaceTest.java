@@ -70,7 +70,7 @@ public class RocksDBExtractionNamespaceTest {
         assertEquals(namespace.getPollMs(), 30000);
         assertEquals(namespace.isCacheEnabled(), true);
         assertEquals(namespace.getLookupName(), "advertiser_lookup");
-        assertEquals(namespace.getOverrideLookupServiceHosts(), "");
+        assertEquals(namespace.getOverrideLookupServiceHosts(), "[]");
         assertEquals(namespace.getOverrideLookupServiceHostsList().size(), 0);
     }
 

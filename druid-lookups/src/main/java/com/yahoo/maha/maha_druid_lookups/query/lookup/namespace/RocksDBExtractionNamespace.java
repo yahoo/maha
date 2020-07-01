@@ -17,6 +17,7 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -24,7 +25,6 @@ import java.util.Objects;
 public class RocksDBExtractionNamespace implements ExtractionNamespace {
 
     Logger LOG = new Logger(RocksDBExtractionNamespace.class);
-    UrlValidator urlValidator = new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS + UrlValidator.ALLOW_2_SLASHES + UrlValidator.ALLOW_ALL_SCHEMES);
 
     @JsonProperty
     private final String rocksDbInstanceHDFSPath;
@@ -104,29 +104,13 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         }
 
         //overrideLookupServiceHosts
-        this.overrideLookupServiceHostsList = new ArrayList<>();
         if(StringUtils.isBlank(overrideLookupServiceHosts)) {
             LOG.info("no input from overrideLookupServiceHosts");
-            this.overrideLookupServiceHosts = "";
+            this.overrideLookupServiceHostsList = Collections.emptyList();
+            this.overrideLookupServiceHosts = this.overrideLookupServiceHostsList.toString();
         } else {
             LOG.info("input overrideLookupServiceHosts: " + overrideLookupServiceHosts);
-
-            String[] splitStrs = StringUtils.split(overrideLookupServiceHosts,',');
-            for(String s: splitStrs) {
-                if(urlValidator.isValid(s)){
-                    //check if port present
-                    try {
-                        String port = StringUtils.split(StringUtils.reverse(s), ':')[0];
-                        Integer.parseInt(port);
-                        overrideLookupServiceHostsList.add(s);
-                    } catch (NumberFormatException e) {
-                        LOG.warn("uri without port: " + s);
-                        continue;
-                    }
-                } else {
-                    LOG.warn("invalid input uri: " + s);
-                }
-            }
+            this.overrideLookupServiceHostsList = parseOverrideLookupServiceHostsList(overrideLookupServiceHosts);
             this.overrideLookupServiceHosts = overrideLookupServiceHostsList.toString().replaceAll("\\s+","");
             LOG.info("valid overrideLookupServiceHosts: " + this.overrideLookupServiceHosts);
         }
