@@ -9,6 +9,7 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.base.Throwables;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import org.apache.druid.java.util.common.lifecycle.LifecycleStart;
 import org.apache.druid.java.util.common.lifecycle.LifecycleStop;
 import org.apache.druid.java.util.common.logger.Logger;
@@ -129,11 +130,15 @@ public class LookupService {
         if(authHeaders != null) {
             authHeaders.entrySet().stream().forEach(e -> httpGet.addHeader(e.getKey(), e.getValue()));
         }
-        URIBuilder uriBuilder = new URIBuilder()
-                .setScheme(serviceScheme)
-                .setHost(getHost())
-                .setPort(Integer.valueOf(servicePort))
-                .setPath("/druid/v1/namespaces/" + lookupData.extractionNamespace.getLookupName())
+        URIBuilder uriBuilder = null;
+        List<String> overrideHostsList = lookupData.extractionNamespace.getOverrideLookupServiceHostsList();
+        if(overrideHostsList != null && overrideHostsList.size() != 0) {
+            String lookupHost = overrideHostsList.get(RANDOM.nextInt(overrideHostsList.size()));
+            uriBuilder = new URIBuilder(lookupHost);
+        } else {
+            uriBuilder = new URIBuilder().setScheme(serviceScheme).setHost(getHost()).setPort(Integer.valueOf(servicePort));
+        }
+            uriBuilder.setPath("/druid/v1/namespaces/" + lookupData.extractionNamespace.getLookupName())
                 .addParameter("namespaceclass", lookupData.extractionNamespace.getClass().getName())
                 .addParameter("key", lookupData.key)
                 .addParameter("valueColumn", lookupData.valueColumn);
@@ -243,10 +248,11 @@ public class LookupService {
         @Override
         public int hashCode() {
 
-            if(decodeConfigOptional.isPresent())
+            if(decodeConfigOptional.isPresent()) {
                 return Objects.hash(key, valueColumn, decodeConfigOptional.get(), extractionNamespace);
-            else
+            }  else {
                 return Objects.hash(key, valueColumn, extractionNamespace);
+            }
         }
 
     }

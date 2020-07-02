@@ -1,6 +1,7 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.BaseSchemaFactory;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNameSpaceSchemaType;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
@@ -10,7 +11,7 @@ import org.rocksdb.RocksDB;
 
 import java.util.Optional;
 
-public class NoopCacheActionRunner implements BaseCacheActionRunner {
+public class NoopCacheActionRunner extends CacheActionRunner {
 
     private static final Logger LOG = new Logger(NoopCacheActionRunner.class);
 
@@ -19,7 +20,7 @@ public class NoopCacheActionRunner implements BaseCacheActionRunner {
             , Optional<String> valueColumn
             , final Optional<DecodeConfig> decodeConfigOptional
             , RocksDB rocksDB
-            , BaseSchemaFactory schemaFactory
+            , ProtobufSchemaFactory schemaFactory
             , LookupService lookupService
             , ServiceEmitter emitter
             , RocksDBExtractionNamespace extractionNamespace){
@@ -28,7 +29,7 @@ public class NoopCacheActionRunner implements BaseCacheActionRunner {
     }
 
     @Override
-    public void updateCache(BaseSchemaFactory schemaFactory
+    public void updateCache(ProtobufSchemaFactory schemaFactory
             , final String key
             , final byte[] value
             , RocksDB rocksDB
@@ -38,12 +39,8 @@ public class NoopCacheActionRunner implements BaseCacheActionRunner {
     }
 
     @Override
-    public void validateSchemaFactory(BaseSchemaFactory schemaFactory) {
-    }
-
-    @Override
-    public boolean flatBufferSupport() {
-        return false;
+    public ExtractionNameSpaceSchemaType getSchemaType() {
+        return ExtractionNameSpaceSchemaType.Protobuf;
     }
 
     @Override

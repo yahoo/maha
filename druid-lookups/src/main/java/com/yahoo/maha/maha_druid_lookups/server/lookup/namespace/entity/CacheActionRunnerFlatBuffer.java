@@ -3,10 +3,10 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 import com.google.common.base.Strings;
 import com.google.flatbuffers.Table;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNameSpaceSchemaType;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.MonitoringConstants;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.BaseSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferWrapper;
 import org.apache.druid.java.util.common.logger.Logger;
@@ -20,19 +20,15 @@ public class CacheActionRunnerFlatBuffer implements BaseCacheActionRunner {
 
     private static final Logger LOG = new Logger(CacheActionRunnerFlatBuffer.class);
 
-    @Override
     public byte[] getCacheValue(final String key
             , Optional<String> valueColumn
             , final Optional<DecodeConfig> decodeConfigOptional
             , RocksDB db
-            , BaseSchemaFactory schemaFactory
+            , FlatBufferSchemaFactory flatBufferSchemaFactory
             , LookupService lookupService
             , ServiceEmitter emitter
             , RocksDBExtractionNamespace extractionNamespace) {
         try {
-
-            FlatBufferSchemaFactory flatBufferSchemaFactory = (FlatBufferSchemaFactory) schemaFactory;
-
             if (db != null) {
                 FlatBufferWrapper flatBuffer = flatBufferSchemaFactory.getFlatBuffer(extractionNamespace.getNamespace());
                 byte[] cacheByteValue = db.get(key.getBytes());
@@ -68,8 +64,7 @@ public class CacheActionRunnerFlatBuffer implements BaseCacheActionRunner {
         }
     }
 
-    @Override
-    synchronized public void updateCache(BaseSchemaFactory schemaFactory
+    synchronized public void updateCache(FlatBufferSchemaFactory flatBufferSchemaFactory
             , final String key
             , final byte[] value
             , RocksDB db
@@ -77,7 +72,6 @@ public class CacheActionRunnerFlatBuffer implements BaseCacheActionRunner {
             , RocksDBExtractionNamespace extractionNamespace) {
         if (extractionNamespace.isCacheEnabled()) {
             try {
-                FlatBufferSchemaFactory flatBufferSchemaFactory = (FlatBufferSchemaFactory) schemaFactory;
                 FlatBufferWrapper flatBuffer = flatBufferSchemaFactory.getFlatBuffer(extractionNamespace.getNamespace());
                 Table parsedMessage = flatBuffer.getFlatBuffer(value);
                 Long newLastUpdated = Long.valueOf(flatBuffer.readFieldValue(extractionNamespace.getTsColumn(), parsedMessage));
@@ -106,15 +100,8 @@ public class CacheActionRunnerFlatBuffer implements BaseCacheActionRunner {
     }
 
     @Override
-    public void validateSchemaFactory(BaseSchemaFactory schemaFactory) {
-        if (!(schemaFactory instanceof FlatBufferSchemaFactory)) {
-            throw new IllegalArgumentException("Expecting FlatBufferSchemaFactory in getCacheValue call");
-        }
-    }
-
-    @Override
-    public boolean flatBufferSupport() {
-        return true;
+    public ExtractionNameSpaceSchemaType getSchemaType() {
+        return ExtractionNameSpaceSchemaType.FlatBuffer;
     }
 
     @Override

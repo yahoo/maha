@@ -14,18 +14,17 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.BaseSchemaFactory;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
-import org.apache.druid.java.util.common.logger.Logger;
-import org.apache.druid.java.util.emitter.service.ServiceEmitter;
-import org.apache.druid.java.util.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.KafkaManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.MonitoringConstants;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.BaseSchemaFactory;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferSchemaFactory;
+import org.apache.druid.java.util.common.logger.Logger;
+import org.apache.druid.java.util.emitter.service.ServiceEmitter;
+import org.apache.druid.java.util.emitter.service.ServiceMetricEvent;
 import org.rocksdb.RocksDB;
 
 import javax.annotation.Nullable;
@@ -39,24 +38,24 @@ import java.util.concurrent.TimeUnit;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
-    private static final Logger LOG = new Logger(RocksDBLookupExtractor.class);
+public class RocksDBLookupExtractorV2<U> extends MahaLookupExtractor {
+    private static final Logger LOG = new Logger(RocksDBLookupExtractorV2.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, U> map;
     private final RocksDBExtractionNamespace extractionNamespace;
     private RocksDBManager rocksDBManager;
     private LookupService lookupService;
-    private ProtobufSchemaFactory schemaFactory;
+    private FlatBufferSchemaFactory schemaFactory;
     private KafkaManager kafkaManager;
     private ServiceEmitter serviceEmitter;
     private Cache<String, byte[]> missingLookupCache;
     private final byte[] extractionNamespaceAsByteArray;
-    private CacheActionRunner cacheActionRunner;
+    private CacheActionRunnerFlatBuffer cacheActionRunner;
 
-    public RocksDBLookupExtractor(RocksDBExtractionNamespace extractionNamespace, Map<String, U> map,
-                                  LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
-                                  ProtobufSchemaFactory schemaFactory, ServiceEmitter serviceEmitter,
-                                  CacheActionRunner cacheActionRunner) {
+    public RocksDBLookupExtractorV2(RocksDBExtractionNamespace extractionNamespace, Map<String, U> map,
+                                    LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
+                                    FlatBufferSchemaFactory schemaFactory, ServiceEmitter serviceEmitter,
+                                    CacheActionRunnerFlatBuffer cacheActionRunner) {
         this.extractionNamespace = extractionNamespace;
         this.map = Preconditions.checkNotNull(map, "map");
         this.rocksDBManager = rocksDBManager;
@@ -179,7 +178,7 @@ public class RocksDBLookupExtractor<U> extends MahaLookupExtractor {
             return false;
         }
 
-        RocksDBLookupExtractor that = (RocksDBLookupExtractor) o;
+        RocksDBLookupExtractorV2 that = (RocksDBLookupExtractorV2) o;
 
         return map.equals(that.map);
     }

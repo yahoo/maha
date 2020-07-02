@@ -5,6 +5,8 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 import com.google.inject.Inject;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNameSpaceSchemaType;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespace;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.BaseSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
@@ -79,13 +81,21 @@ public class RocksDBExtractionNamespaceCacheFactory
                             final Map<String, String> cache, final String key, final byte[] value) {
 
         RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
-        extractionNamespace.getCacheActionRunner().updateCache(getSchemaFactory(extractionNamespace), key, value, db, emitter, extractionNamespace);
+        if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FlatBuffer) {
+            ((CacheActionRunnerFlatBuffer)extractionNamespace.getCacheActionRunner()).updateCache(flatBufferSchemaFactory, key, value, db, emitter, extractionNamespace);
+        } else {
+            ((CacheActionRunner)extractionNamespace.getCacheActionRunner()).updateCache(protobufSchemaFactory, key, value, db, emitter, extractionNamespace);
+        }
     }
 
     @Override
     public byte[] getCacheValue(final RocksDBExtractionNamespace extractionNamespace, final Map<String, String> cache, final String key, String valueColumn, final Optional<DecodeConfig> decodeConfigOptional) {
         RocksDB db = rocksDBManager.getDB(extractionNamespace.getNamespace());
-        return extractionNamespace.getCacheActionRunner().getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, getSchemaFactory(extractionNamespace), lookupService, emitter, extractionNamespace);
+        if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FlatBuffer) {
+            return ((CacheActionRunnerFlatBuffer) extractionNamespace.getCacheActionRunner()).getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, flatBufferSchemaFactory, lookupService, emitter, extractionNamespace);
+        } else {
+            return ((CacheActionRunner)extractionNamespace.getCacheActionRunner()).getCacheValue(key, Optional.of(valueColumn), decodeConfigOptional, db, protobufSchemaFactory, lookupService, emitter, extractionNamespace);
+        }
     }
 
     @Override
@@ -116,11 +126,15 @@ public class RocksDBExtractionNamespaceCacheFactory
     public void updateCacheWithDb(final RocksDBExtractionNamespace extractionNamespace,
                             RocksDB db, final String key, final byte[] value) {
 
-        extractionNamespace.getCacheActionRunner().updateCache(getSchemaFactory(extractionNamespace), key, value, db, emitter, extractionNamespace);
+        if(extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FlatBuffer) {
+            ((CacheActionRunnerFlatBuffer)extractionNamespace.getCacheActionRunner()).updateCache(flatBufferSchemaFactory, key, value, db, emitter, extractionNamespace);
+        } else {
+            ((CacheActionRunner)extractionNamespace.getCacheActionRunner()).updateCache(protobufSchemaFactory, key, value, db, emitter, extractionNamespace);
+        }
     }
 
     private BaseSchemaFactory getSchemaFactory(ExtractionNamespace extractionNamespace) {
-        if (extractionNamespace.getType() == ExtractionNameSpaceSchemaType.FlatBuffer) {
+        if (extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FlatBuffer) {
            return flatBufferSchemaFactory;
         } else {
             return protobufSchemaFactory;

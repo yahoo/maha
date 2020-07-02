@@ -119,8 +119,8 @@ public class MongoExtractionNamespace implements OnlineDatastoreExtractionNamesp
     }
 
     @Override
-    public ExtractionNameSpaceSchemaType getType() {
-        return ExtractionNameSpaceSchemaType.Protobuf;
+    public ExtractionNameSpaceSchemaType getSchemaType() {
+        return ExtractionNameSpaceSchemaType.None;
     }
 
     @Override

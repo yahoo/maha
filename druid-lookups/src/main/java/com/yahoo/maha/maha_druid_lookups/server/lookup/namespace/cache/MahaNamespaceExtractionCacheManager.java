@@ -5,6 +5,9 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.cache;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.*;
 import com.google.inject.Inject;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.*;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.FlatBufferSchemaFactory;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
 import org.apache.druid.java.util.common.IAE;
@@ -14,10 +17,6 @@ import org.apache.druid.java.util.common.lifecycle.Lifecycle;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.apache.druid.java.util.emitter.service.ServiceMetricEvent;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.JDBCLookupExtractorWithLeaderAndFollower;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.MongoLookupExtractor;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.RocksDBLookupExtractor;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.JDBCLookupExtractor;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.*;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.KafkaManager;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
@@ -390,10 +389,12 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
             return new JDBCLookupExtractorWithLeaderAndFollower((JDBCExtractionNamespaceWithLeaderAndFollower) extractionNamespace, map, lookupService);
         } else if (extractionNamespace instanceof JDBCExtractionNamespace) {
             return new JDBCLookupExtractor((JDBCExtractionNamespace) extractionNamespace, map, lookupService);
-        } else if (extractionNamespace instanceof RocksDBExtractionNamespace && extractionNamespace.getType() == ExtractionNameSpaceSchemaType.FlatBuffer) {
-            return new RocksDBLookupExtractor((RocksDBExtractionNamespace) extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, flatBufferSchemaFactory, serviceEmitter);
+        } else if (extractionNamespace instanceof RocksDBExtractionNamespace && extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FlatBuffer) {
+            RocksDBExtractionNamespace rocksDBExtractionNamespace = (RocksDBExtractionNamespace) extractionNamespace;
+            return new RocksDBLookupExtractorV2(rocksDBExtractionNamespace, map, lookupService, rocksDBManager, kafkaManager, flatBufferSchemaFactory, serviceEmitter, (CacheActionRunnerFlatBuffer) rocksDBExtractionNamespace.getCacheActionRunner());
         } else if (extractionNamespace instanceof RocksDBExtractionNamespace) {
-            return new RocksDBLookupExtractor((RocksDBExtractionNamespace) extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory, serviceEmitter);
+            RocksDBExtractionNamespace rocksDBExtractionNamespace = (RocksDBExtractionNamespace) extractionNamespace;
+            return new RocksDBLookupExtractor(rocksDBExtractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory, serviceEmitter, (CacheActionRunner) rocksDBExtractionNamespace.getCacheActionRunner());
         } else if (extractionNamespace instanceof MongoExtractionNamespace) {
             return new MongoLookupExtractor((MongoExtractionNamespace) extractionNamespace, map, lookupService);
         } else {

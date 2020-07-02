@@ -4,7 +4,7 @@ import com.google.common.base.Strings;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.BaseSchemaFactory;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNameSpaceSchemaType;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.apache.druid.java.util.emitter.service.ServiceMetricEvent;
@@ -21,12 +21,11 @@ public class CacheActionRunner implements BaseCacheActionRunner {
 
     private static final Logger LOG = new Logger(CacheActionRunner.class);
 
-    @Override
     public byte[] getCacheValue(final String key
             , Optional<String> valueColumn
             , final Optional<DecodeConfig> decodeConfigOptional
             , RocksDB db
-            , BaseSchemaFactory schemaFactory
+            , ProtobufSchemaFactory protobufSchemaFactory
             , LookupService lookupService
             , ServiceEmitter emitter
             , RocksDBExtractionNamespace extractionNamespace){
@@ -36,9 +35,6 @@ public class CacheActionRunner implements BaseCacheActionRunner {
             }
 
             if (db != null) {
-                validateSchemaFactory(schemaFactory);
-                ProtobufSchemaFactory protobufSchemaFactory = (ProtobufSchemaFactory) schemaFactory;
-
                 Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
                 byte[] cacheByteValue = db.get(key.getBytes());
                 if(cacheByteValue == null) {
@@ -78,7 +74,7 @@ public class CacheActionRunner implements BaseCacheActionRunner {
         }
     }
 
-    synchronized public void updateCache(BaseSchemaFactory schemaFactory
+    synchronized public void updateCache(ProtobufSchemaFactory protobufSchemaFactory
             , final String key
             , final byte[] value
             , RocksDB db
@@ -86,9 +82,6 @@ public class CacheActionRunner implements BaseCacheActionRunner {
             , RocksDBExtractionNamespace extractionNamespace) {
         if (extractionNamespace.isCacheEnabled()) {
             try {
-                validateSchemaFactory(schemaFactory);
-                ProtobufSchemaFactory protobufSchemaFactory = (ProtobufSchemaFactory) schemaFactory;
-
                 Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
                 Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
                 Descriptors.FieldDescriptor field = descriptor.findFieldByName(extractionNamespace.getTsColumn());
@@ -122,15 +115,8 @@ public class CacheActionRunner implements BaseCacheActionRunner {
     }
 
     @Override
-    public void validateSchemaFactory(BaseSchemaFactory schemaFactory) {
-        if (!(schemaFactory instanceof ProtobufSchemaFactory)) {
-            throw new IllegalArgumentException("Expecting ProtobufSchemaFactory in getCacheValue call");
-        }
-    }
-
-    @Override
-    public boolean flatBufferSupport() {
-        return false;
+    public ExtractionNameSpaceSchemaType getSchemaType() {
+        return ExtractionNameSpaceSchemaType.Protobuf;
     }
 
     @Override

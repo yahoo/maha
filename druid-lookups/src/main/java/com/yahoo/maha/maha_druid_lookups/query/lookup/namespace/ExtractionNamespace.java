@@ -4,6 +4,11 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup.namespace;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.validator.routines.UrlValidator;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes(value = {
@@ -29,5 +34,26 @@ public interface ExtractionNamespace {
 
     boolean isCacheEnabled();
 
-    ExtractionNameSpaceSchemaType getType();
+    ExtractionNameSpaceSchemaType getSchemaType();
+
+    default List<String> getOverrideLookupServiceHostsList() { return Collections.emptyList(); }
+
+    default List<String> parseOverrideLookupServiceHostsList(String overrideLookupServiceHosts) {
+        UrlValidator urlValidator = new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS + UrlValidator.ALLOW_2_SLASHES + UrlValidator.ALLOW_ALL_SCHEMES);
+        List<String> overrideLookupServiceHostsList = new ArrayList<>();
+        String[] splitStrs = StringUtils.split(overrideLookupServiceHosts,',');
+        for(String s: splitStrs) {
+            if(urlValidator.isValid(s)){
+                //check if port present
+                try {
+                    String port = StringUtils.split(StringUtils.reverse(s), ':')[0];
+                    Integer.parseInt(port);
+                    overrideLookupServiceHostsList.add(s);
+                } catch (NumberFormatException e) {
+                    continue;
+                }
+            }
+        }
+        return overrideLookupServiceHostsList;
+    }
 }

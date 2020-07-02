@@ -5,7 +5,7 @@
     <parent>
         <artifactId>maha-parent</artifactId>
         <groupId>com.yahoo.maha</groupId>
-        <version>5.376-SNAPSHOT</version>
+        <version>5.378-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -324,6 +324,11 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-to-slf4j</artifactId>
             <version>${log4j2.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-validator</groupId>
+            <artifactId>commons-validator</artifactId>
+            <version>1.6</version>
         </dependency>
 
     </dependencies>

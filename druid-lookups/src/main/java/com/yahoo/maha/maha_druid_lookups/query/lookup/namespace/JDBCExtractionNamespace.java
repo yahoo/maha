@@ -123,8 +123,8 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     }
 
     @Override
-    public ExtractionNameSpaceSchemaType getType() {
-        return ExtractionNameSpaceSchemaType.Protobuf;
+    public ExtractionNameSpaceSchemaType getSchemaType() {
+        return ExtractionNameSpaceSchemaType.None;
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNameSpaceSchemaType;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.BaseSchemaFactory;
@@ -14,23 +15,5 @@ import java.util.Optional;
  */
 public interface BaseCacheActionRunner {
 
-    byte[] getCacheValue(final String key
-            , Optional<String> valueColumn
-            , final Optional<DecodeConfig> decodeConfigOptional
-            , RocksDB db
-            , BaseSchemaFactory schemaFactory
-            , LookupService lookupService
-            , ServiceEmitter emitter
-            , RocksDBExtractionNamespace extractionNamespace);
-
-    void updateCache(BaseSchemaFactory schemaFactory
-            , final String key
-            , final byte[] value
-            , RocksDB db
-            , ServiceEmitter serviceEmitter
-            , RocksDBExtractionNamespace extractionNamespace);
-
-    void validateSchemaFactory(BaseSchemaFactory schemaFactory);
-
-    boolean flatBufferSupport();
+    ExtractionNameSpaceSchemaType getSchemaType();
 }
