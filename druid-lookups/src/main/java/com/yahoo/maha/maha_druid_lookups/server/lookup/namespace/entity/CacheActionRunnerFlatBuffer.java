@@ -53,7 +53,8 @@ public class CacheActionRunnerFlatBuffer implements BaseCacheActionRunner {
 
     public String handleDecode(DecodeConfig decodeConfig, FlatBufferWrapper flatBufferWrapper, Table parsedMessage) throws Exception {
         try {
-            if (decodeConfig.getValueToCheck().equals(decodeConfig.getColumnToCheck())) {
+            String actualValue = flatBufferWrapper.readFieldValue(decodeConfig.getColumnToCheck(), parsedMessage);
+            if (decodeConfig.getValueToCheck().equals(actualValue)) {
                 return Strings.emptyToNull(flatBufferWrapper.readFieldValue(decodeConfig.getColumnIfValueMatched(), parsedMessage));
             } else {
                 return Strings.emptyToNull(flatBufferWrapper.readFieldValue(decodeConfig.getColumnIfValueNotMatched(), parsedMessage));
