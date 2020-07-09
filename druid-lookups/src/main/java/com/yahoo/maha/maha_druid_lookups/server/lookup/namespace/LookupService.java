@@ -8,8 +8,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.base.Throwables;
 import com.google.inject.Inject;
-import com.google.inject.name.Named;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
+import org.apache.commons.lang.StringUtils;
 import org.apache.druid.java.util.common.lifecycle.LifecycleStart;
 import org.apache.druid.java.util.common.lifecycle.LifecycleStop;
 import org.apache.druid.java.util.common.logger.Logger;
@@ -34,6 +33,7 @@ import org.apache.http.ssl.SSLContexts;
 import javax.net.ssl.SSLContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.util.*;
@@ -59,6 +59,7 @@ public class LookupService {
     private String servicePort = "4080";
     private final AuthHeaderFactory authHeaderFactory;
     private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static String localHostName;
 
     @Inject
     public LookupService(final MahaNamespaceExtractionConfig mahaNamespaceExtractionConfig, AuthHeaderFactory authHeaderFactory) {
@@ -118,6 +119,11 @@ public class LookupService {
                     .expireAfterWrite(1, TimeUnit.MINUTES)
                     .build(loader);
 
+            if(StringUtils.isEmpty(localHostName)) {
+                localHostName = InetAddress.getLocalHost().getHostName();
+                LOG.info(String.format("local host name: [%s]", localHostName));
+            }
+
         } catch (final Exception e) {
             throw Throwables.propagate(e);
         }
@@ -134,6 +140,12 @@ public class LookupService {
         List<String> overrideHostsList = lookupData.extractionNamespace.getOverrideLookupServiceHostsList();
         if(overrideHostsList != null && overrideHostsList.size() != 0) {
             String lookupHost = overrideHostsList.get(RANDOM.nextInt(overrideHostsList.size()));
+            //if localhost is used, replace localhost with real hostname
+            if(lookupHost.contains("localhost") && StringUtils.isNotEmpty(localHostName)) {
+                lookupHost = lookupHost.replace("localhost", localHostName);
+            } else if (lookupHost.contains("LOCALHOST") && StringUtils.isNotEmpty(localHostName)) {
+                lookupHost = lookupHost.replace("LOCALHOST", localHostName);
+            }
             uriBuilder = new URIBuilder(lookupHost);
         } else {
             uriBuilder = new URIBuilder().setScheme(serviceScheme).setHost(getHost()).setPort(Integer.valueOf(servicePort));
