@@ -391,7 +391,7 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
             return new JDBCLookupExtractor((JDBCExtractionNamespace) extractionNamespace, map, lookupService);
         } else if (extractionNamespace instanceof RocksDBExtractionNamespace && extractionNamespace.getSchemaType() == ExtractionNameSpaceSchemaType.FlatBuffer) {
             RocksDBExtractionNamespace rocksDBExtractionNamespace = (RocksDBExtractionNamespace) extractionNamespace;
-            return new RocksDBLookupExtractorV2(rocksDBExtractionNamespace, map, lookupService, rocksDBManager, kafkaManager, flatBufferSchemaFactory, serviceEmitter, (CacheActionRunnerFlatBuffer) rocksDBExtractionNamespace.getCacheActionRunner());
+            return new RocksDBLookupExtractorWithFlatBuffer(rocksDBExtractionNamespace, map, lookupService, rocksDBManager, kafkaManager, flatBufferSchemaFactory, serviceEmitter, (CacheActionRunnerFlatBuffer) rocksDBExtractionNamespace.getCacheActionRunner());
         } else if (extractionNamespace instanceof RocksDBExtractionNamespace) {
             RocksDBExtractionNamespace rocksDBExtractionNamespace = (RocksDBExtractionNamespace) extractionNamespace;
             return new RocksDBLookupExtractor(rocksDBExtractionNamespace, map, lookupService, rocksDBManager, kafkaManager, protobufSchemaFactory, serviceEmitter, (CacheActionRunner) rocksDBExtractionNamespace.getCacheActionRunner());

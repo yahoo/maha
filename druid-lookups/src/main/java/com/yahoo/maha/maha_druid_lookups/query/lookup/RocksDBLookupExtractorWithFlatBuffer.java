@@ -14,16 +14,16 @@ import org.rocksdb.RocksDB;
 import java.util.Map;
 import java.util.Optional;
 
-public class RocksDBLookupExtractorV2<U> extends BaseRocksDBLookupExtractor<U> {
-    private static final Logger LOG = new Logger(RocksDBLookupExtractorV2.class);
+public class RocksDBLookupExtractorWithFlatBuffer<U> extends BaseRocksDBLookupExtractor<U> {
+    private static final Logger LOG = new Logger(RocksDBLookupExtractorWithFlatBuffer.class);
 
     private FlatBufferSchemaFactory schemaFactory;
     private CacheActionRunnerFlatBuffer cacheActionRunner;
 
-    public RocksDBLookupExtractorV2(RocksDBExtractionNamespace extractionNamespace, Map<String, U> map,
-                                    LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
-                                    FlatBufferSchemaFactory schemaFactory, ServiceEmitter serviceEmitter,
-                                    CacheActionRunnerFlatBuffer cacheActionRunner) {
+    public RocksDBLookupExtractorWithFlatBuffer(RocksDBExtractionNamespace extractionNamespace, Map<String, U> map,
+                                                LookupService lookupService, RocksDBManager rocksDBManager, KafkaManager kafkaManager,
+                                                FlatBufferSchemaFactory schemaFactory, ServiceEmitter serviceEmitter,
+                                                CacheActionRunnerFlatBuffer cacheActionRunner) {
         super(extractionNamespace, map, lookupService, rocksDBManager, kafkaManager, serviceEmitter);
         this.schemaFactory = schemaFactory;
         this.cacheActionRunner = cacheActionRunner;
