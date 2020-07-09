@@ -119,8 +119,10 @@ public class LookupService {
                     .expireAfterWrite(1, TimeUnit.MINUTES)
                     .build(loader);
 
-            localHostName = InetAddress.getLocalHost().getHostName();
-            LOG.info(String.format("local host name: [%s]", localHostName));
+            if(StringUtils.isEmpty(localHostName)) {
+                localHostName = InetAddress.getLocalHost().getHostName();
+                LOG.info(String.format("local host name: [%s]", localHostName));
+            }
 
         } catch (final Exception e) {
             throw Throwables.propagate(e);
