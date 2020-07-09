@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.validator.routines.UrlValidator;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -34,6 +33,8 @@ public interface ExtractionNamespace {
     String getTsColumn();
 
     boolean isCacheEnabled();
+
+    ExtractionNameSpaceSchemaType getSchemaType();
 
     default List<String> getOverrideLookupServiceHostsList() { return Collections.emptyList(); }
 

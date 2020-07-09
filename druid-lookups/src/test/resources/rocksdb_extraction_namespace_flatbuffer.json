@@ -1,0 +1,10 @@
+{
+  "type": "maharocksdb",
+  "namespace": "advertiser",
+  "rocksDbInstanceHDFSPath": "/data/druid/lookups/snapshots/advertiser",
+  "lookupAuditingHDFSPath": "/data/druid/lookups/audits/advertiser",
+  "pollPeriod": "PT30S",
+  "cacheEnabled": true,
+  "lookupName": "advertiser_lookup",
+  "cacheActionRunner": "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer"
+}

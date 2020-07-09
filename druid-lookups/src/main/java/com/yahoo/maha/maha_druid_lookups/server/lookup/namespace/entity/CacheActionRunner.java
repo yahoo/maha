@@ -1,27 +1,23 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Strings;
 import com.google.protobuf.Descriptors;
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNameSpaceSchemaType;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.ProtobufSchemaFactory;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import org.apache.druid.java.util.emitter.service.ServiceMetricEvent;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.LookupService;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.MonitoringConstants;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.RocksDBManager;
 import org.apache.druid.java.util.common.logger.Logger;
 import org.rocksdb.RocksDB;
 
-import java.io.Serializable;
-import java.util.Objects;
 import java.util.Optional;
 
-public class CacheActionRunner {
+public class CacheActionRunner implements BaseCacheActionRunner {
 
     private static final Logger LOG = new Logger(CacheActionRunner.class);
 
@@ -86,7 +82,6 @@ public class CacheActionRunner {
             , RocksDBExtractionNamespace extractionNamespace) {
         if (extractionNamespace.isCacheEnabled()) {
             try {
-
                 Parser<Message> parser = protobufSchemaFactory.getProtobufParser(extractionNamespace.getNamespace());
                 Descriptors.Descriptor descriptor = protobufSchemaFactory.getProtobufDescriptor(extractionNamespace.getNamespace());
                 Descriptors.FieldDescriptor field = descriptor.findFieldByName(extractionNamespace.getTsColumn());
@@ -101,7 +96,7 @@ public class CacheActionRunner {
                         Message messageInDB = parser.parseFrom(cacheValue);
                         Long lastUpdatedInDB = Long.valueOf(messageInDB.getField(field).toString());
 
-                        if(newLastUpdated > lastUpdatedInDB) {
+                        if (newLastUpdated > lastUpdatedInDB) {
                             db.put(key.getBytes(), value);
                         }
                     } else {
@@ -117,6 +112,11 @@ public class CacheActionRunner {
                 serviceEmitter.emit(ServiceMetricEvent.builder().build(MonitoringConstants.MAHA_LOOKUP_UPDATE_CACHE_FAILURE, 1));
             }
         }
+    }
+
+    @Override
+    public ExtractionNameSpaceSchemaType getSchemaType() {
+        return ExtractionNameSpaceSchemaType.Protobuf;
     }
 
     @Override

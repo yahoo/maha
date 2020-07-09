@@ -6,6 +6,7 @@ import com.google.common.io.Files;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.TestFlatBufferSchemaFactory;
 import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.AdProtos;
@@ -50,8 +51,11 @@ public class RocksDBExtractionNamespaceCacheFactoryTest {
         MockitoAnnotations.initMocks(this);
         obj.rocksDBManager = rocksDBManager;
         obj.protobufSchemaFactory = new TestProtobufSchemaFactory();
+        obj.flatBufferSchemaFactory = new TestFlatBufferSchemaFactory();
         obj.emitter = serviceEmitter;
+
         noopObj.rocksDBManager = rocksDBManager;
+        noopObj.flatBufferSchemaFactory = new TestFlatBufferSchemaFactory();
         noopObj.protobufSchemaFactory = new TestProtobufSchemaFactory();
         noopObj.emitter = serviceEmitter;
     }

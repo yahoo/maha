@@ -16,7 +16,6 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 
@@ -121,6 +120,11 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
 
     public boolean isCacheEnabled() {
         return cacheEnabled;
+    }
+
+    @Override
+    public ExtractionNameSpaceSchemaType getSchemaType() {
+        return ExtractionNameSpaceSchemaType.None;
     }
 
     @Override

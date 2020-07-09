@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.base.Preconditions;
-import org.apache.commons.validator.routines.UrlValidator;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.BaseCacheActionRunner;
 import org.apache.druid.java.util.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
 import org.apache.commons.lang.StringUtils;
@@ -15,8 +15,6 @@ import org.joda.time.Period;
 import javax.annotation.Nullable;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
-
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -52,7 +50,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     @JsonProperty
     public String cacheActionRunnerName = "";
 
-    private CacheActionRunner cacheActionRunner = null;
+    private BaseCacheActionRunner cacheActionRunner = null;
 
     @JsonProperty
     private String overrideLookupServiceHosts = null;
@@ -92,14 +90,14 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
             else {
                 //Check if the passed in runner is valid, else throw an exception to stop the program.
                 Object actionRunner = Class.forName(cacheActionRunnerName).newInstance();
-                Preconditions.checkArgument(actionRunner instanceof CacheActionRunner,
+                Preconditions.checkArgument(actionRunner instanceof BaseCacheActionRunner,
                         "Passed in runner should be a CacheActionRunner, but got a " + cacheActionRunnerName + " of class " + actionRunner.getClass().getName());
                 this.cacheActionRunnerName =  cacheActionRunnerName;
             }
-            this.cacheActionRunner = CacheActionRunner.class.cast(
+            this.cacheActionRunner = BaseCacheActionRunner.class.cast(
                 Class.forName(this.cacheActionRunnerName).newInstance());
         } catch (Throwable t) {
-            LOG.error("Found a blank or invalid CacheActionRunner, logging error and throwing Runtime ", t);
+            LOG.error(t, "Found a blank or invalid CacheActionRunner, logging error and throwing Runtime ");
             throw new RuntimeException("Found invalid passed in CacheActionRunner with String " + cacheActionRunner, t);
         }
 
@@ -152,6 +150,11 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         return cacheEnabled;
     }
 
+    @Override
+    public ExtractionNameSpaceSchemaType getSchemaType() {
+        return this.cacheActionRunner.getSchemaType();
+    }
+
     public boolean isLookupAuditingEnabled() {
         return lookupAuditingEnabled;
     }
@@ -170,7 +173,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
 
     public String getCacheActionRunnerName() { return cacheActionRunnerName; }
 
-    public CacheActionRunner getCacheActionRunner() {
+    public BaseCacheActionRunner getCacheActionRunner() {
         return cacheActionRunner;
     }
 

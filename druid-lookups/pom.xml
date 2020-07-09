@@ -5,7 +5,7 @@
     <parent>
         <artifactId>maha-parent</artifactId>
         <groupId>com.yahoo.maha</groupId>
-        <version>5.378-SNAPSHOT</version>
+        <version>5.379-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -16,6 +16,7 @@
 
     <properties>
         <protobuf.version>3.1.0</protobuf.version>
+        <flatbuffers.version>1.12.0</flatbuffers.version>
     </properties>
 
     <dependencies>
@@ -247,6 +248,11 @@
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
             <version>${caffeine.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.flatbuffers</groupId>
+            <artifactId>flatbuffers-java</artifactId>
+            <version>${flatbuffers.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.ws.rs</groupId>

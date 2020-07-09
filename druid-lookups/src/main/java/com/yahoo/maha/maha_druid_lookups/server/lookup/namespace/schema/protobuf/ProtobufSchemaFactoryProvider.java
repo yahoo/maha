@@ -1,11 +1,11 @@
 // Copyright 2017, Yahoo Holdings Inc.
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
-package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
+package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf;
 
 import com.google.common.base.Preconditions;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.MahaNamespaceExtractionConfig;
 import org.apache.commons.lang.StringUtils;
 
 public class ProtobufSchemaFactoryProvider implements Provider<ProtobufSchemaFactory> {

@@ -3,6 +3,7 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.inject.internal.cglib.proxy.$FixedValue;
 
 import java.util.Properties;
 import javax.annotation.Nullable;
@@ -24,6 +25,9 @@ public class MahaNamespaceExtractionConfig {
   @NotNull @JsonProperty(value = "authHeaderFactory")
   private String authHeaderFactoryClass;
 
+  @Nullable @JsonProperty(value="flatBufferSchemaFactory")
+  private String flatBufferSchemaFactory;
+
   public Properties getKafkaProperties() {
     return kafkaProperties;
   }
@@ -43,4 +47,7 @@ public class MahaNamespaceExtractionConfig {
   public String getAuthHeaderFactoryClass() {
     return authHeaderFactoryClass;
   }
+
+  public String getFlatBufferSchemaFactory() { return flatBufferSchemaFactory; }
+
 }
