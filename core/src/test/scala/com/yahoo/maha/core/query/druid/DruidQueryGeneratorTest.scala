@@ -258,6 +258,36 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     assert(result.contains(boundFilterJson), result)
   }
 
+  test("Druid query should be generated with NotBetween filter") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Clicks", "operator": "notbetween", "from": "5", "to": "200"}
+                          ],
+                          "sortBy": [
+                            {"field": "Clicks", "order": "Asc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":0
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = RequestModel.from(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    val json = """"type":"or","havingSpecs":[{"type":"greaterThan","aggregation":"Clicks","value":200},{"type":"lessThan","aggregation":"Clicks","value":5}]"""
+    assert(result.contains(json), result)
+  }
+
   test("DruidQueryGenerator: getAggregatorFactory should succeed on DruidFilteredListRollup with filter list size of 2") {
     val jsonString =
       s"""{

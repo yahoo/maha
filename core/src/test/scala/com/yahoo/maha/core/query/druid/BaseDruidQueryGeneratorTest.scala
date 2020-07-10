@@ -331,7 +331,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
         ),
         Set(
           PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
-          PublicFactCol("clicks", "Clicks", InBetweenEquality),
+          PublicFactCol("clicks", "Clicks", InBetweenNotBetweenEquality),
           PublicFactCol("const_a", "const_a", InBetweenEquality),
           PublicFactCol("const_b", "const_b", InBetweenEquality),
           PublicFactCol("Const Der Fact Col C", "Const Der Fact Col C", InBetweenEquality),

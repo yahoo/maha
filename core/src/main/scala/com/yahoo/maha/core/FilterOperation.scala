@@ -37,6 +37,7 @@ sealed trait FilterOperation
 case object InFilterOperation extends FilterOperation { override def toString = "In" }
 case object NotInFilterOperation extends FilterOperation { override def toString = "Not In" }
 case object BetweenFilterOperation extends FilterOperation { override def toString = "Between" }
+case object NotBetweenFilterOperation extends FilterOperation { override def toString = "Not Between" }
 case object EqualityFilterOperation extends FilterOperation { override def toString = "=" }
 case object LikeFilterOperation extends FilterOperation { override def toString = "Like" }
 case object NotLikeFilterOperation extends FilterOperation { override def toString = "Not Like" }
@@ -55,6 +56,7 @@ object FilterOperation {
   val In : Set[FilterOperation] = Set(InFilterOperation)
   val NotIn : Set[FilterOperation] = Set(NotInFilterOperation)
   val Between : Set[FilterOperation] = Set(BetweenFilterOperation)
+  val NotBetween : Set[FilterOperation] = Set(NotBetweenFilterOperation)
   val Equality : Set[FilterOperation] = Set(EqualityFilterOperation)
   val FieldEquality: Set[FilterOperation] = Set(FieldEqualityFilterOperation)
   val EqualityFieldEquality: Set[FilterOperation] = Set(EqualityFilterOperation, FieldEqualityFilterOperation)
@@ -69,6 +71,7 @@ object FilterOperation {
   val InNotInEqualityNotEquals: Set[FilterOperation] = Set(InFilterOperation, NotInFilterOperation, EqualityFilterOperation, NotEqualToFilterOperation)
   val InNotInEqualityLike: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation, NotInFilterOperation, LikeFilterOperation)
   val InBetweenEquality: Set[FilterOperation] = Set(InFilterOperation, BetweenFilterOperation,EqualityFilterOperation)
+  val InBetweenNotBetweenEquality: Set[FilterOperation] = Set(InFilterOperation, BetweenFilterOperation, NotBetweenFilterOperation, EqualityFilterOperation)
   val BetweenEquality: Set[FilterOperation] = Set(BetweenFilterOperation,EqualityFilterOperation)
   val InEqualityIsNotNull: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation, IsNotNullFilterOperation)
   val InEqualityIsNotNullNotIn: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation, IsNotNullFilterOperation,NotInFilterOperation)
@@ -143,6 +146,11 @@ case class OuterFilter(filters: List[Filter]) extends Filter {
 
 case class BetweenFilter(field: String, from: String, to: String) extends Filter {
   override def operator = BetweenFilterOperation
+  val asValues: String = s"$from-$to"
+}
+
+case class NotBetweenFilter(field: String, from: String, to: String) extends Filter {
+  override def operator = NotBetweenFilterOperation
   val asValues: String = s"$from-$to"
 }
 
@@ -284,6 +292,8 @@ sealed trait FilterRenderer[T, O] {
 }
 
 sealed trait BetweenFilterRenderer[O] extends FilterRenderer[BetweenFilter, O]
+
+sealed trait NotBetweenFilterRenderer[O] extends FilterRenderer[NotBetweenFilter, O]
 
 sealed trait InFilterRenderer[O] extends FilterRenderer[InFilter, O]
 
@@ -433,6 +443,107 @@ object SqlBetweenFilterRenderer extends BetweenFilterRenderer[SqlResult] {
         DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
       case _ =>
         throw new IllegalArgumentException(s"Unsupported engine for BetweenFilterRenderer $engine")
+    }
+  }
+}
+
+object SqlNotBetweenFilterRenderer extends NotBetweenFilterRenderer[SqlResult] {
+  def render(aliasToRenderedSqlMap: Map[String, (String, String)],
+             notBetweenFilter: NotBetweenFilter,
+             literalMapper: LiteralMapper,
+             column: Column,
+             engine: Engine,
+             grainOption: Option[Grain]) : SqlResult = {
+    val name = aliasToRenderedSqlMap(notBetweenFilter.field)._2
+    val renderedFrom = literalMapper.toLiteral(column, notBetweenFilter.from, grainOption)
+    val renderedTo = literalMapper.toLiteral(column, notBetweenFilter.to, grainOption)
+    engine match {
+      case OracleEngine =>
+        column.dataType match {
+          case DateType(format) =>
+            if (grainOption.isDefined) {
+               grainOption.get match {
+                 case HourlyGrain  =>
+                   DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+                 case _=>
+                   DefaultResult(s"""$name < trunc($renderedFrom) AND $name > trunc($renderedTo)""")
+               }
+            } else {
+              DefaultResult(s"""$name < trunc($renderedFrom) AND $name > trunc($renderedTo)""")
+            }
+          case i: IntType if column.annotations.contains(DayColumn.instance) =>
+            column.annotations.find(_.isInstanceOf[DayColumn]).fold(throw new IllegalStateException("Failed to find DayColumn when expected")){
+              ca:ColumnAnnotation =>
+                val dayColumn = ca.asInstanceOf[DayColumn]
+                val fmt = dayColumn.fmt
+                grainOption match {
+                  case Some(HourlyGrain) =>
+                    DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+                  case _ =>
+                    DefaultResult(s"""$name < to_number(to_char(trunc($renderedFrom), '$fmt')) AND $name > to_number(to_char(trunc($renderedTo), '$fmt'))""")
+                }
+            }
+          case i: StrType if column.annotations.contains(DayColumn.instance) =>
+            column.annotations.find(_.isInstanceOf[DayColumn]).fold(throw new IllegalStateException("Failed to find DayColumn when expected")){
+              ca:ColumnAnnotation =>
+                val dayColumn = ca.asInstanceOf[DayColumn]
+                val fmt = dayColumn.fmt
+                grainOption match {
+                  case Some(HourlyGrain) =>
+                    DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+                  case _ =>
+                    DefaultResult(s"""$name < to_char(trunc($renderedFrom), '$fmt') AND $name > to_char(trunc($renderedTo), '$fmt')""")
+                }
+            }
+          case _ =>
+            DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+        }
+      case PostgresEngine =>
+        column.dataType match {
+          case DateType(format) =>
+            if(grainOption.isDefined) {
+              grainOption.get match {
+                case HourlyGrain  =>
+                  DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+                case _=>
+                  DefaultResult(s"""$name < DATE_TRUNC('DAY', $renderedFrom) AND $name > DATE_TRUNC('DAY', $renderedTo)""")
+              }
+            } else {
+              DefaultResult(s"""$name < DATE_TRUNC('DAY', $renderedFrom) AND $name > DATE_TRUNC('DAY', $renderedTo)""")
+            }
+          case i: IntType if column.annotations.contains(DayColumn.instance) =>
+            column.annotations.find(_.isInstanceOf[DayColumn]).fold(throw new IllegalStateException("Failed to find DayColumn when expected")){
+              ca:ColumnAnnotation =>
+                val dayColumn = ca.asInstanceOf[DayColumn]
+                val fmt = dayColumn.fmt
+                grainOption match {
+                  case Some(HourlyGrain) =>
+                    DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+                  case _ =>
+                    DefaultResult(s"""$name < to_number(to_char(DATE_TRUNC('DAY', $renderedFrom), '$fmt')) AND $name > to_number(to_char(DATE_TRUNC('DAY', $renderedTo), '$fmt'))""")
+                }
+            }
+          case i: StrType if column.annotations.contains(DayColumn.instance) =>
+            column.annotations.find(_.isInstanceOf[DayColumn]).fold(throw new IllegalStateException("Failed to find DayColumn when expected")){
+              ca:ColumnAnnotation =>
+                val dayColumn = ca.asInstanceOf[DayColumn]
+                val fmt = dayColumn.fmt
+                grainOption match {
+                  case Some(HourlyGrain) =>
+                    DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+                  case _ =>
+                    DefaultResult(s"""$name < to_char(DATE_TRUNC('DAY', $renderedFrom), '$fmt') AND $name > to_char(DATE_TRUNC('DAY', $renderedTo), '$fmt')""")
+                }
+            }
+          case _ =>
+            DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+        }
+      case HiveEngine =>
+        DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+      case PrestoEngine =>
+        DefaultResult(s"""$name < $renderedFrom AND $name > $renderedTo""")
+      case _ =>
+        throw new IllegalArgumentException(s"Unsupported engine for NotBetweenFilterRenderer $engine")
     }
   }
 }
@@ -1138,6 +1249,13 @@ object FilterDruid {
         val equalToTo = new EqualToHavingSpec(alias, druidLiteralMapper.toNumber(column, to))
         val greaterThanFromAndLessThanTo = new AndHavingSpec(Lists.newArrayList(greatThanFrom, lessThanTo))
         new OrHavingSpec(Lists.newArrayList(greaterThanFromAndLessThanTo, equalToFrom, equalToTo))
+      case f @ NotBetweenFilter(alias, from, to) =>
+        val name = aliasToNameMapFull(alias)
+        val column = columnsByNameMap(name)
+        // < from or > to
+        val lessThanFrom = new LessThanHavingSpec(alias, druidLiteralMapper.toNumber(column, from))
+        val greaterThanTo = new GreaterThanHavingSpec(alias, druidLiteralMapper.toNumber(column, to))
+        new OrHavingSpec(Lists.newArrayList(greaterThanTo, lessThanFrom))
       case f @ InFilter(alias, values, _, _) =>
         val name = aliasToNameMapFull(alias)
         val column = columnsByNameMap(name)
@@ -1248,6 +1366,14 @@ object FilterSql {
     filter match {
       case f@BetweenFilter(alias, from, to) =>
         SqlBetweenFilterRenderer.render(
+          aliasToRenderedSqlMap,
+          f,
+          literalMapper,
+          column,
+          engine,
+          grainOption)
+      case f@NotBetweenFilter(alias, from, to) =>
+        SqlNotBetweenFilterRenderer.render(
           aliasToRenderedSqlMap,
           f,
           literalMapper,
@@ -1415,6 +1541,13 @@ object Filter extends Logging {
            })
             :: Nil)
       case BetweenFilter(field, from, to) =>
+        makeObj(
+          ("field" -> toJSON(field))
+          :: ("operator" -> toJSON(filter.operator.toString))
+          :: ("from" -> toJSON(from))
+          :: ("to" -> toJSON(to))
+          :: Nil)
+      case NotBetweenFilter(field, from, to) =>
         makeObj(
           ("field" -> toJSON(field))
           :: ("operator" -> toJSON(filter.operator.toString))
@@ -1595,6 +1728,12 @@ object Filter extends Logging {
                 f =>
                   (nonEmptyString(f.from, f.field, "from") |@| nonEmptyString(f.to, f.field, "to"))((a,b) => f)
               }
+            case "notbetween" | "not between"=>
+              val filter = NotBetweenFilter.applyJSON(field[String]("field"), stringField("from"), stringField("to"))(json)
+              filter.flatMap {
+                f =>
+                  (nonEmptyString(f.from, f.field, "from") |@| nonEmptyString(f.to, f.field, "to"))((a,b) => f)
+              }
             case "in" =>
               val filter = InFilter.applyJSON(field[String]("field"), stringListField("values"), booleanFalse, booleanFalse)(json)
               filter.flatMap {
@@ -1674,6 +1813,7 @@ object Filter extends Logging {
       case _: OrFilter => Set.empty
       case _: AndFilter => Set.empty
       case betweenFilter: BetweenFilter => Set(betweenFilter.field)
+      case notBetweenFilter: NotBetweenFilter => Set(notBetweenFilter.field)
       case equalityFilter: EqualityFilter => Set(equalityFilter.field)
       case inFilter: InFilter => Set(inFilter.field)
       case notInFilter: NotInFilter => Set(notInFilter.field)
@@ -1705,6 +1845,7 @@ object Filter extends Logging {
       case andFilter: AndFilter => andFilter.filters.flatMap{ innerFilter: Filter => returnFullFieldSetForPkAliases(innerFilter) }.toSet
       case fieldEqualityFilter: MultiFieldForcedFilter => Set(fieldEqualityFilter.field, fieldEqualityFilter.compareTo)
       case betweenFilter: BetweenFilter => Set(betweenFilter.field)
+      case notBetweenFilter: NotBetweenFilter => Set(notBetweenFilter.field)
       case equalityFilter: EqualityFilter => Set(equalityFilter.field)
       case inFilter: InFilter => Set(inFilter.field)
       case notInFilter: NotInFilter => Set(notInFilter.field)
@@ -1735,6 +1876,7 @@ object Filter extends Logging {
       case _: OrFilter => Map.empty
       case _: AndFilter => Map.empty
       case betweenFilter: BetweenFilter => Map(betweenFilter.field -> betweenFilter.operator)
+      case notBetweenFilter: NotBetweenFilter => Map(notBetweenFilter.field -> notBetweenFilter.operator)
       case equalityFilter: EqualityFilter => Map(equalityFilter.field -> equalityFilter.operator)
       case inFilter: InFilter => Map(inFilter.field -> inFilter.operator)
       case notInFilter: NotInFilter => Map(notInFilter.field -> notInFilter.operator)
