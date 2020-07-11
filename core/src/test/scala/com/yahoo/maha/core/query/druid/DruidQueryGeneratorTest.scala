@@ -3357,5 +3357,72 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     println(result)
     assert(result.contains(""""filter":{"type":"and","fields":[{"type":"not","field":{"type":"search","dimension":"Campaign Name","query":{"type":"insensitive_contains","value":"test","caseSensitive":false}}}]}"""))
   }
+
+  test("Druid query with Lookups should contain column alias if available") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Advertiser ID"},
+                            {"field": "Campaign Name"}
+                            ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Campaign Name", "operator": "not like", "value": "test"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestSync(jsonString))
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    println(result)
+  }
+
+  test("Druid query should retain missing value if LOOKUP_WITH_EMPTY_VALUE_OVERRIDE is used") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Day"},
+                            {"field": "Advertiser ID"},
+                            {"field": "Impressions"},
+                            {"field": "Campaign Name Ext"}
+                            ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestSync(jsonString))
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator) //do not include local time filter
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    assert(result.contains(s""""extractionFn":{"type":"mahaRegisteredLookup","lookup":"campaign_lookup","retainMissingValue":true,"injective":false,"optimize":true,"valueColumn":"name","dimensionOverrideMap":{},"useQueryLevelCache":false}}"""))
+  }
+
 }
 
