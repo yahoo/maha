@@ -46,6 +46,7 @@ class DerivedFunctionTest extends FunSuiteLike with Matchers {
     val js = JAVASCRIPT("fieldName", "function(x) { return x > 0; }")
     val rgx = REGEX("fieldName", "blah", 0, true, "t")
     val lu = LOOKUP("namespace", "val", Map("a" -> "b"))
+    val lur = LOOKUP_WITH_RETAIN_MISSING_VALUE("namespace", "val", Map("a" -> "b"))
     val lwd = LOOKUP_WITH_DECODE("namespace", "valCol", Map("b" -> "a"), "arg1", "decodeVal1", "arg2", "decodeVal2", "default")
     val lwe = LOOKUP_WITH_EMPTY_VALUE_OVERRIDE("namespace", "valCol", "ovr", Map("c" -> "d"))
     val lwo = LOOKUP_WITH_DECODE_ON_OTHER_COLUMN("namespace", "valCol", "valToCheck", "valIfMatched", "valIfNot", Map("2" -> "4", "b" -> "a"))
@@ -56,7 +57,7 @@ class DerivedFunctionTest extends FunSuiteLike with Matchers {
     val rc = TIME_FORMAT_WITH_REQUEST_CONTEXT("yyyy")
     val lwt = LOOKUP_WITH_TIMESTAMP("namespace", "val", "fmt", Map.empty, Some("ovrVal"), asMillis = false)
 
-    val resultArray = List(gid, dow, dtf, dd, js, rgx, lu, lwd, lwe, lwo, ltf, ldr, dtz, dpg, rc, lwt)
+    val resultArray = List(gid, dow, dtf, dd, js, rgx, lu, lur, lwd, lwe, lwo, ltf, ldr, dtz, dpg, rc, lwt)
 
     val expectedJSONs = List(
       """{"function_type":"GET_INTERVAL_DATE","fieldName":"fieldName","format":"yyyyMMdd"}""",
@@ -66,6 +67,7 @@ class DerivedFunctionTest extends FunSuiteLike with Matchers {
       """{"function_type":"JAVASCRIPT","fieldName":"fieldName","function":"function(x) { return x > 0; }"}""",
       """{"function_type":"REGEX","fieldName":"fieldName","expr":"blah","index":0,"replaceMissingValue":true,"replaceMissingValueWith":"t"}""",
       """{"function_type":"LOOKUP","lookupNamespace":"namespace","valueColumn":"val","dimensionOverrideMap":{"a":"b"}}""",
+      """{"function_type":"LOOKUP_WITH_RETAIN_MISSING_VALUE","lookupNamespace":"namespace","valueColumn":"val","dimensionOverrideMap":{"a":"b"}}""",
       """{"function_type":"LOOKUP_WITH_DECODE","lookupNamespace":"namespace","valueColumn":"valCol","dimensionOverrideMap":{"b":"a"},"args":"arg1,decodeVal1,arg2,decodeVal2,default"}""",
       """{"function_type":"LOOKUP_WITH_EMPTY_VALUE_OVERRIDE","lookupNamespace":"namespace","valueColumn":"valCol","overrideValue":"ovr","dimensionOverrideMap":{"c":"d"}}""",
       """{"function_type":"LOOKUP_WITH_DECODE_ON_OTHER_COLUMN","lookupNamespace":"namespace","columnToCheck":"valCol","valueToCheck":"valToCheck","columnIfValueMatched":"valIfMatched","columnIfValueNotMatched":"valIfNot","dimensionOverrideMap":{"2":"4","b":"a"}}""",
