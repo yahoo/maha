@@ -221,11 +221,11 @@ class ExpressionTest extends FunSuite with Matchers {
   test("generate Postgres expression with GET_INTERVAL_DATE") {
     import PostgresExpression._
     val exp1: PostgresExp = GET_INTERVAL_DATE("{stats_date}", "D")
-    exp1.asString should equal("TRUNC({stats_date})")
+    exp1.asString should equal("DATE_TRUNC('day', {stats_date})::DATE")
     val exp2: PostgresExp = GET_INTERVAL_DATE("{stats_date}", "W")
-    exp2.asString should equal("TRUNC({stats_date}, 'IW')")
+    exp2.asString should equal("DATE_TRUNC('week', {stats_date})::DATE")
     val exp3: PostgresExp = GET_INTERVAL_DATE("{stats_date}", "M")
-    exp3.asString should equal("TRUNC({stats_date}, 'MM')")
+    exp3.asString should equal("DATE_TRUNC('month', {stats_date})::DATE")
   }
   test("generate Postgres expression with DECODE") {
     import PostgresExpression._

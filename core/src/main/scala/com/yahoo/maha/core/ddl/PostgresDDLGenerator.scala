@@ -99,8 +99,8 @@ class PostgresDDLGenerator {
         renderColumnDefn(name, col)
     }.filterNot(_.isEmpty)
 
-    val partitionColumnNames = new mutable.HashSet[String]
-    val tablePrimaryKeys = new mutable.HashSet[String]
+    var partitionColumnNames = new mutable.HashSet[String]
+    var tablePrimaryKeys = new mutable.HashSet[String]
 
     table.ddlAnnotation match {
       case Some(ddlAnnotation) =>
@@ -109,12 +109,20 @@ class PostgresDDLGenerator {
       case None => //do nothing
     }
 
-    partitionColumnNames.foreach {
-      pc => require(table.columnsByNameMap.keySet.contains(pc), s"Partition column $pc does not exist in table $tableName")
+    partitionColumnNames = partitionColumnNames.map {
+      pc =>
+        require(table.columnsByNameMap.keySet.contains(pc), s"Partition column $pc does not exist in table $tableName")
+        val c = table.columnsByNameMap(pc)
+        val n = c.alias.getOrElse(c.name)
+        n
     }
 
-    tablePrimaryKeys.foreach {
-      pk => require(table.columnsByNameMap.keySet.contains(pk), s"Primary key column $pk does not exist in table $tableName")
+    tablePrimaryKeys = tablePrimaryKeys.map {
+      pk =>
+        require(table.columnsByNameMap.keySet.contains(pk), s"Primary key column $pk does not exist in table $tableName")
+        val c = table.columnsByNameMap(pk)
+        val n = c.alias.getOrElse(c.name)
+        n
     }
 
     s"""CREATE TABLE $tableName
