@@ -197,6 +197,9 @@ b. Dim Driven
             case OracleDerDimCol(_,_,_,exp, _,_,_) =>
               dimSelectSet += s"""${exp.render(nameOrAlias, Map.empty)} AS "${nameOrAlias}""""
               s"""${dimAlias}."${nameOrAlias}""""
+            case DimCol(_, dt, cc, _, annotations, _) if dt.hasStaticMapping =>
+              dimSelectSet += s"""${renderStaticMappedDimension(column)} AS $nameOrAlias"""
+              s"""${dimAlias}.${nameOrAlias}"""
             case DimCol(_, _, _, _, _, _) | OraclePartDimCol(_, _, _, _, _,_) =>
               dimSelectSet += s"$nameOrAlias"
               s"""${dimAlias}.${nameOrAlias}"""

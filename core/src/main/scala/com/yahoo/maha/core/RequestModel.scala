@@ -801,7 +801,7 @@ object RequestModel extends Logging {
           //produce dim candidates
           val allRequestedDimAliases = new mutable.TreeSet[String]()
           var dimOrder : Int = 0
-          val dimensionCandidates: SortedSet[DimensionCandidate] = {
+          val dimensionCandidatesPreValidation: SortedSet[DimensionCandidate] = {
             val intermediateCandidates = new mutable.TreeSet[DimensionCandidate]()
             val upperJoinCandidates = new mutable.TreeSet[PublicDimension]()
             finalAllRequestedDimensionPrimaryKeyAliases
@@ -999,6 +999,27 @@ object RequestModel extends Logging {
                   }
               }
             intermediateCandidates.to[SortedSet]
+          }
+
+          //here we inject lower candidates since above we only inject upper candidates for dim driven queries
+          val dimensionCandidates: SortedSet[DimensionCandidate] = {
+            if(dimensionCandidatesPreValidation.size > 1 && !isFactDriven) {
+              var i: Int = 0
+              val intermediateCandidates = new mutable.TreeSet[DimensionCandidate]()
+              val dcSeq = dimensionCandidatesPreValidation.toIndexedSeq
+              intermediateCandidates+=dcSeq(i)
+              while ((i + 1) < dcSeq.size) {
+                val l = dcSeq(i)
+                val u = dcSeq(i+1)
+                if(!u.lowerCandidates.contains(l.dim) && l.upperCandidates.contains(u.dim)) {
+                  intermediateCandidates+=u.copy(lowerCandidates = u.lowerCandidates.+:(l.dim), fields = u.fields + l.dim.primaryKeyByAlias)
+                } else {
+                  intermediateCandidates+=u
+                }
+                i += 1
+              }
+              intermediateCandidates.to[SortedSet]
+            } else dimensionCandidatesPreValidation
           }
 
           /*UNUSED Feature

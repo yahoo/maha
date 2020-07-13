@@ -74,7 +74,7 @@ trait BaseOracleQueryGeneratorTest
           , FactCol("clicks", IntType(3, 0, 1, 800))
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-          , FactCol("Average CPC", DecType(), OracleCustomRollup("{spend}" / "{clicks}"))
+          , FactCol("Average CPC", DecType(), OracleCustomRollup(SUM("{spend}") / SUM("{clicks}")))
           , FactCol("CTR", DecType(), OracleCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), OracleCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
           , FactCol("Count", IntType(), rollupExpression = CountRollup)
@@ -357,7 +357,7 @@ trait BaseOracleQueryGeneratorTest
           , FactCol("clicks", IntType(3, 0, 1, 800))
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-          , FactCol("Average CPC", DecType(), OracleCustomRollup("{spend}" / "{clicks}"))
+          , FactCol("Average CPC", DecType(), OracleCustomRollup(SUM("{spend}") / SUM("{clicks}")))
           , FactCol("CTR", DecType(), OracleCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), OracleCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
         ),
@@ -434,7 +434,7 @@ trait BaseOracleQueryGeneratorTest
               , ConstFactCol("constantFact", IntType(3, 0, 1, 800), "0")
               , FactCol("spend", DecType(0, "0.0"))
               , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-              , FactCol("Average CPC", DecType(), OracleCustomRollup("{spend}" / "{clicks}"))
+              , FactCol("Average CPC", DecType(), OracleCustomRollup(SUM("{spend}") / SUM("{clicks}")))
               , FactCol("CTR", DecType(), OracleCustomRollup(SUM("{clicks}" /- "{impressions}")))
               , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), OracleCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
             ),
@@ -476,7 +476,7 @@ trait BaseOracleQueryGeneratorTest
               , ConstFactCol("constantFact", IntType(3, 0, 1, 800), "0")
               , FactCol("spend", DecType(0, "0.0"))
               , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-              , FactCol("Average CPC", DecType(), OracleCustomRollup("{spend}" / "{clicks}"))
+              , FactCol("Average CPC", DecType(), OracleCustomRollup(SUM("{spend}") / SUM("{clicks}")))
               , FactCol("CTR", DecType(), OracleCustomRollup(SUM("{clicks}" /- "{impressions}")))
               , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), OracleCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
             ),
@@ -518,7 +518,7 @@ trait BaseOracleQueryGeneratorTest
           , FactCol("clicks", IntType(3, 0, 1, 800))
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-          , FactCol("Average CPC", DecType(), OracleCustomRollup("{spend}" / "{clicks}"))
+          , FactCol("Average CPC", DecType(), OracleCustomRollup(SUM("{spend}") / SUM("{clicks}")))
           , FactCol("CTR", DecType(), OracleCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), OracleCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
         ),
@@ -746,7 +746,7 @@ trait BaseOracleQueryGeneratorTest
           , FactCol("clicks", IntType(3, 0, 1, 800))
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-          , FactCol("Average CPC", DecType(), OracleCustomRollup("{spend}" / "{clicks}"))
+          , FactCol("Average CPC", DecType(), OracleCustomRollup(SUM("{spend}") / SUM("{clicks}")))
           , FactCol("CTR", DecType(), OracleCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), OracleCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
         ),

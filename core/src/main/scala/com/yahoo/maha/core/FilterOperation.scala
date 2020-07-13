@@ -409,7 +409,7 @@ object SqlBetweenFilterRenderer extends BetweenFilterRenderer[SqlResult] {
                   case Some(HourlyGrain) =>
                     DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
                   case _ =>
-                    DefaultResult(s"""$name >= to_number(to_char(DATE_TRUNC('DAY', $renderedFrom), '$fmt')) AND $name <= to_number(to_char(DATE_TRUNC('DAY', $renderedTo), '$fmt'))""")
+                    DefaultResult(s"""$name >= to_char(DATE_TRUNC('DAY', $renderedFrom), '$fmt')::INTEGER AND $name <= to_char(DATE_TRUNC('DAY', $renderedTo), '$fmt')::INTEGER""")
                 }
             }
           case i: StrType if column.annotations.contains(DayColumn.instance) =>

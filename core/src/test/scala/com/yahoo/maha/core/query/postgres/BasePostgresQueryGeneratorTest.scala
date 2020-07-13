@@ -73,10 +73,10 @@ trait BasePostgresQueryGeneratorTest
           , FactCol("clicks", IntType(3, 0, 1, 800))
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-          , FactCol("Average CPC", DecType(), PostgresCustomRollup("{spend}" / "{clicks}"))
+          , FactCol("Average CPC", DecType(), PostgresCustomRollup(SUM("{spend}") / SUM("{clicks}")))
           , FactCol("CTR", DecType(), PostgresCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PostgresCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
-          , FactCol("Count", IntType(), rollupExpression = CountRollup)
+          , FactCol("Count", IntType(), rollupExpression = CountRollup, alias = Option("count_col"))
           , FactCol("Avg", IntType(), rollupExpression = AverageRollup, alias = Option("avg_col"))
           , FactCol("Max", IntType(), rollupExpression = MaxRollup, alias = Option("max_col"))
           , FactCol("Min", IntType(), rollupExpression = MinRollup, alias = Option("min_col"))
@@ -252,8 +252,8 @@ trait BasePostgresQueryGeneratorTest
           , DimCol("start_time", IntType())
           , DimCol("stats_date", DateType("YYYY-MM-DD"))
           , DimCol("show_flag", IntType())
-          , PostgresDerDimCol("Business Name", StrType(), DECODE_DIM("{stats_source}", "1", "Native", "2", "Search", "Unknown"))
-          , PostgresDerDimCol("Business Name 2", StrType(), DECODE_DIM("{stats_source}", "1", "Expensive", "2", "Cheap", "Unknown"))
+          , PostgresDerDimCol("Business Name", StrType(), DECODE_DIM("{stats_source}", "1", "'Native'", "2", "'Search'", "'Unknown'"))
+          , PostgresDerDimCol("Business Name 2", StrType(), DECODE_DIM("{stats_source}", "1", "'Expensive'", "2", "'Cheap'", "'Unknown'"))
           , PostgresDerDimCol("Month", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
           , PostgresDerDimCol("Week", DateType(), GET_INTERVAL_DATE("{stats_date}", "W"))
         ),
@@ -356,7 +356,7 @@ trait BasePostgresQueryGeneratorTest
           , FactCol("clicks", IntType(3, 0, 1, 800))
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-          , FactCol("Average CPC", DecType(), PostgresCustomRollup("{spend}" / "{clicks}"))
+          , FactCol("Average CPC", DecType(), PostgresCustomRollup(SUM("{spend}") / SUM("{clicks}")))
           , FactCol("CTR", DecType(), PostgresCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PostgresCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
         ),
@@ -433,7 +433,7 @@ trait BasePostgresQueryGeneratorTest
               , ConstFactCol("constantFact", IntType(3, 0, 1, 800), "0")
               , FactCol("spend", DecType(0, "0.0"))
               , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-              , FactCol("Average CPC", DecType(), PostgresCustomRollup("{spend}" / "{clicks}"))
+              , FactCol("Average CPC", DecType(), PostgresCustomRollup(SUM("{spend}") / SUM("{clicks}")))
               , FactCol("CTR", DecType(), PostgresCustomRollup(SUM("{clicks}" /- "{impressions}")))
               , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PostgresCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
             ),
@@ -475,7 +475,7 @@ trait BasePostgresQueryGeneratorTest
               , ConstFactCol("constantFact", IntType(3, 0, 1, 800), "0")
               , FactCol("spend", DecType(0, "0.0"))
               , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-              , FactCol("Average CPC", DecType(), PostgresCustomRollup("{spend}" / "{clicks}"))
+              , FactCol("Average CPC", DecType(), PostgresCustomRollup(SUM("{spend}") / SUM("{clicks}")))
               , FactCol("CTR", DecType(), PostgresCustomRollup(SUM("{clicks}" /- "{impressions}")))
               , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PostgresCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
             ),
@@ -517,7 +517,7 @@ trait BasePostgresQueryGeneratorTest
           , FactCol("clicks", IntType(3, 0, 1, 800))
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-          , FactCol("Average CPC", DecType(), PostgresCustomRollup("{spend}" / "{clicks}"))
+          , FactCol("Average CPC", DecType(), PostgresCustomRollup(SUM("{spend}") / SUM("{clicks}")))
           , FactCol("CTR", DecType(), PostgresCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PostgresCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
         ),
@@ -688,7 +688,7 @@ trait BasePostgresQueryGeneratorTest
       ColumnContext.withColumnContext {
         implicit dc: ColumnContext =>
           Fact.newFact(
-            "v_publisher_stats", DailyGrain, PostgresEngine, Set(PublisherSchema),
+            "v_publisher_stats_str", DailyGrain, PostgresEngine, Set(PublisherSchema),
             Set(
               DimCol("publisher_id", IntType())
               , DimCol("date_sid", StrType(), annotations = Set(DayColumn("YYYYMMDD")))
@@ -745,7 +745,7 @@ trait BasePostgresQueryGeneratorTest
           , FactCol("clicks", IntType(3, 0, 1, 800))
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-          , FactCol("Average CPC", DecType(), PostgresCustomRollup("{spend}" / "{clicks}"))
+          , FactCol("Average CPC", DecType(), PostgresCustomRollup(SUM("{spend}") / SUM("{clicks}")))
           , FactCol("CTR", DecType(), PostgresCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PostgresCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
         ),

@@ -16,11 +16,6 @@
     <name>maha postgres executor</name>
     <url>http://maven.apache.org</url>
 
-    <properties>
-        <pg.embedded.version>0.13.1</pg.embedded.version>
-        <postgres.jdbc.version>42.2.9</postgres.jdbc.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>com.yahoo.maha</groupId>
@@ -124,6 +119,7 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgres.jdbc.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.opentable.components</groupId>
