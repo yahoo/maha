@@ -13,6 +13,46 @@ import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
 
 object JdbcSchemaDumper extends Logging {
+  //cat /tmp/t|grep static|sed -E 's/ *public [a-z ]* //g;s/  *//g;s/([^=]*)=([-0-9]*);/, \2 -> "\1"/g'
+  val columnTypeMap: Map[Int, String] = Map(-7 -> "BIT"
+    , -6 -> "TINYINT"
+    , 5 -> "SMALLINT"
+    , 4 -> "INTEGER"
+    , -5 -> "BIGINT"
+    , 6 -> "FLOAT"
+    , 7 -> "REAL"
+    , 8 -> "DOUBLE"
+    , 2 -> "NUMERIC"
+    , 3 -> "DECIMAL"
+    , 1 -> "CHAR"
+    , 12 -> "VARCHAR"
+    , -1 -> "LONGVARCHAR"
+    , 91 -> "DATE"
+    , 92 -> "TIME"
+    , 93 -> "TIMESTAMP"
+    , -2 -> "BINARY"
+    , -3 -> "VARBINARY"
+    , -4 -> "LONGVARBINARY"
+    , 0 -> "NULL"
+    , 1111 -> "OTHER"
+    , 2000 -> "JAVA_OBJECT"
+    , 2001 -> "DISTINCT"
+    , 2002 -> "STRUCT"
+    , 2003 -> "ARRAY"
+    , 2004 -> "BLOB"
+    , 2005 -> "CLOB"
+    , 2006 -> "REF"
+    , 70 -> "DATALINK"
+    , 16 -> "BOOLEAN"
+    , -8 -> "ROWID"
+    , -15 -> "NCHAR"
+    , -9 -> "NVARCHAR"
+    , -16 -> "LONGNVARCHAR"
+    , 2011 -> "NCLOB"
+    , 2009 -> "SQLXML"
+    , 2012 -> "REF_CURSOR"
+    , 2013 -> "TIME_WITH_TIMEZONE"
+    , 2014 -> "TIMESTAMP_WITH_TIMEZONE")
 
   implicit class ExtractResultSetMetaData(resultSetMetaData: ResultSetMetaData) {
     def extractResultSetMetaData: Map[String, ColumnMetadata] = {
@@ -32,49 +72,8 @@ object JdbcSchemaDumper extends Logging {
           val precision = resultSetMetaData.getPrecision(count)
           val columnDisplaySize = resultSetMetaData.getColumnDisplaySize(count)
           val label = resultSetMetaData.getColumnLabel(count)
-          //cat java.sql.Types|grep static|sed -E 's/ *public [a-z ]* //g;s/  *//g;s/([^=]*)=([-0-9]*)/case \2 => "\1"/g'
-          val columnType = resultSetMetaData.getColumnType(count) match {
-            case -7 => "BIT";
-            case -6 => "TINYINT";
-            case 5 => "SMALLINT";
-            case 4 => "INTEGER";
-            case -5 => "BIGINT";
-            case 6 => "FLOAT";
-            case 7 => "REAL";
-            case 8 => "DOUBLE";
-            case 2 => "NUMERIC";
-            case 3 => "DECIMAL";
-            case 1 => "CHAR";
-            case 12 => "VARCHAR";
-            case -1 => "LONGVARCHAR";
-            case 91 => "DATE";
-            case 92 => "TIME";
-            case 93 => "TIMESTAMP";
-            case -2 => "BINARY";
-            case -3 => "VARBINARY";
-            case -4 => "LONGVARBINARY";
-            case 0 => "NULL";
-            case 1111 => "OTHER";
-            case 2000 => "JAVA_OBJECT";
-            case 2001 => "DISTINCT";
-            case 2002 => "STRUCT";
-            case 2003 => "ARRAY";
-            case 2004 => "BLOB";
-            case 2005 => "CLOB";
-            case 2006 => "REF";
-            case 70 => "DATALINK";
-            case 16 => "BOOLEAN";
-            case -8 => "ROWID";
-            case -15 => "NCHAR";
-            case -9 => "NVARCHAR";
-            case -16 => "LONGNVARCHAR";
-            case 2011 => "NCLOB";
-            case 2009 => "SQLXML";
-            case 2012 => "REF_CURSOR";
-            case 2013 => "TIME_WITH_TIMEZONE";
-            case 2014 => "TIMESTAMP_WITH_TIMEZONE";
-            case any => s"UNKNOWN type $any"
-          }
+          val columnTypeInt = resultSetMetaData.getColumnType(count)
+          val columnType = columnTypeMap.getOrElse(columnTypeInt, s"UNKNOWN type $columnTypeInt")
           val columnTypeName = resultSetMetaData.getColumnTypeName(count)
           val columnClassName = resultSetMetaData.getColumnClassName(count)
           map.put(label
