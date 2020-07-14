@@ -2,13 +2,14 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query.postgres
 
+import java.io.{BufferedOutputStream, FileOutputStream, PrintWriter}
 import java.nio.charset.StandardCharsets
 
 import com.opentable.db.postgres.embedded.EmbeddedPostgres
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core._
 import com.yahoo.maha.core.ddl.PostgresDDLGenerator
-import com.yahoo.maha.core.fact.{Fact}
+import com.yahoo.maha.core.fact.Fact
 import com.yahoo.maha.core.fact.Fact.ViewTable
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.query.druid.DruidQuery
@@ -35,6 +36,12 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     System.setProperty("java.io.tmpdir", userDir+"/target")
   }
   private val pg = EmbeddedPostgres.start()
+  val ddlOutFile = new java.io.File("src/test/resources/pg-dim-ddl.sql")
+  val ddlOutputStream = new BufferedOutputStream(new FileOutputStream(ddlOutFile))
+  val ddlWriter = new PrintWriter(ddlOutputStream)
+  val factDDLOutFile = new java.io.File("src/test/resources/pg-fact-ddl.sql")
+  val factDDLOutputStream = new BufferedOutputStream(new FileOutputStream(factDDLOutFile))
+  val factDDLWriter = new PrintWriter(factDDLOutputStream)
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
@@ -51,6 +58,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     super.afterAll()
     dataSource.foreach(_.close())
     println(tablesCreated)
+    ddlWriter.close()
+    factDDLWriter.close()
   }
   private def createTables(queryPipelineTry: scala.util.Try[QueryPipeline]): Unit = synchronized {
     if(queryPipelineTry.isFailure)
@@ -75,6 +84,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
             val factCreateTry = jdbcConnection.get.execute(factDDL)
             require(factCreateTry.isSuccess, factCreateTry.failed.get.getMessage)
             tablesCreated += fact.name
+            factDDLWriter.write(factDDL)
+            factDDLWriter.write("\n")
           }
       }
     }
@@ -83,6 +94,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
         val dimCreateTry = jdbcConnection.get.execute(ddl)
         require(dimCreateTry.isSuccess, dimCreateTry.failed.get.getMessage)
         tablesCreated+=d.name
+        ddlWriter.write(ddl)
+        ddlWriter.write("\n")
     }
   }
 
