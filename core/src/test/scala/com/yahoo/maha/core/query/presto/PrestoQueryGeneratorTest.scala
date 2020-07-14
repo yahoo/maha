@@ -11,7 +11,8 @@ class PrestoQueryGeneratorTest extends BasePrestoQueryGeneratorTest {
 
   test("registering Presto query generation multiple times should fail") {
     intercept[IllegalArgumentException] {
-      val dummyQueryGenerator = new QueryGenerator[WithPrestoEngine] {
+      val dummyQueryGenerator = new QueryGenerator[WithPrestoEngine]
+      {
         override def generate(queryContext: QueryContext): Query = { null }
         override def engine: Engine = PrestoEngine
       }

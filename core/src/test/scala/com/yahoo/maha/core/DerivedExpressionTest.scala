@@ -551,19 +551,19 @@ class DerivedExpressionTest extends FunSuite with Matchers {
         }
         else if(_IWregex.pattern.matcher(input).matches) {
           val col = PostgresDerDimCol(s"$input", DateType(), GET_INTERVAL_DATE("{stats_date}", "W"))
-          col.derivedExpression.render(col.name) should equal(s"TRUNC(stats_date, 'IW')")
+          col.derivedExpression.render(col.name) should equal(s"DATE_TRUNC('week', stats_date)::DATE")
         }
         else if(_Mregex.pattern.matcher(input).matches) {
           val col = PostgresDerDimCol(s"$input", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
-          col.derivedExpression.render(col.name) should equal(s"TRUNC(stats_date, 'MM')")
+          col.derivedExpression.render(col.name) should equal(s"DATE_TRUNC('month', stats_date)::DATE")
         }
         else if(_Dregex.pattern.matcher(input).matches) {
           val col = PostgresDerDimCol(s"$input", DateType(), GET_INTERVAL_DATE("{stats_date}", "D"))
-          col.derivedExpression.render(col.name) should equal(s"TRUNC(stats_date)")
+          col.derivedExpression.render(col.name) should equal(s"DATE_TRUNC('day', stats_date)::DATE")
         }
         else if(_YRregex.pattern.matcher(input).matches) {
           val col = PostgresDerDimCol(s"$input", DateType(), GET_INTERVAL_DATE("{stats_date}", "YR"))
-          col.derivedExpression.render(col.name) should equal("TO_CHAR(stats_date, 'yyyy')")
+          col.derivedExpression.render(col.name) should equal("TO_CHAR(stats_date, 'YYYY')")
         }
         else {
           assertThrows[IllegalArgumentException] {

@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.381-SNAPSHOT</version>
+        <version>5.382-SNAPSHOT</version>
     </parent>
 
     <name>maha core</name>
@@ -182,6 +182,18 @@
         <dependency>
             <groupId>com.jsuereth</groupId>
             <artifactId>scala-arm_${scala.major.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.opentable.components</groupId>
+            <artifactId>otj-pg-embedded</artifactId>
+            <version>${pg.embedded.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgres.jdbc.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>

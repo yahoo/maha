@@ -614,7 +614,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
          |           ) f0
          |           RIGHT OUTER JOIN
-         |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  id, advertiser_id
+         |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  id, parent_id, advertiser_id
          |            FROM targetingattribute
          |            WHERE (advertiser_id = 12345)
          |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) t3
@@ -1572,7 +1572,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |
                       |           ) f0
                       |           RIGHT OUTER JOIN
-                      |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  id, advertiser_id
+                      |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  id, parent_id, advertiser_id
                       |            FROM targetingattribute
                       |            WHERE (advertiser_id = 12345)
                       |             ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) t3
@@ -3299,7 +3299,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT *
          |FROM (SELECT ksnpo0.ad_id "Ad ID", to_char(ksnpo0.stats_date, 'YYYY-MM-DD') "Day", ROUND(ksnpo0."Average CPC", 10) "Average CPC", coalesce(ROUND(CASE WHEN ((ksnpo0."avg_pos" >= 0.1) AND (ksnpo0."avg_pos" <= 500)) THEN ksnpo0."avg_pos" ELSE 0.0 END, 10), 0.0) "Average Position", coalesce(ksnpo0."impressions", 1) "Impressions", coalesce(ROUND(ksnpo0."max_bid", 10), 0.0) "Max Bid", coalesce(ROUND(ksnpo0."spend", 10), 0.0) "Spend", ROUND(ksnpo0."CTR", 10) "CTR"
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
-         |                   ad_id, stats_date, SUM(impressions) AS "impressions", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS "avg_pos", SUM(spend) AS "spend", MAX(max_bid) AS "max_bid", (spend / clicks) AS "Average CPC", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
+         |                   ad_id, stats_date, SUM(impressions) AS "impressions", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS "avg_pos", SUM(spend) AS "spend", MAX(max_bid) AS "max_bid", (SUM(spend) / SUM(clicks)) AS "Average CPC", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
          |            FROM k_stats_new_partitioning_one
          |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY ad_id, stats_date
@@ -3981,7 +3981,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |
          |           ) f0
          |           RIGHT OUTER JOIN
-         |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  id, advertiser_id
+         |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  id, parent_id, advertiser_id
          |            FROM targetingattribute
          |            WHERE (advertiser_id = 12345)
          |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) t3
@@ -5398,7 +5398,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            WHERE (advertiser_id = 213) AND (id IN (10))
          |             ) ago2
          |          INNER JOIN
-         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            (SELECT /*+ CampaignHint */ advertiser_id, CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END AS device_id, id
          |            FROM campaign_oracle
          |
          |             ) co1
@@ -5420,7 +5420,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            WHERE (advertiser_id = 213) AND (id NOT IN (10))
          |             ) ago2
          |          INNER JOIN
-         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            (SELECT /*+ CampaignHint */ advertiser_id, CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END AS device_id, id
          |            FROM campaign_oracle
          |
          |             ) co1
@@ -5516,7 +5516,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            WHERE (advertiser_id = 213) AND (id IN (12,19,15,11,13,16,17,14,20,18))
          |             ) ago2
          |          INNER JOIN
-         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            (SELECT /*+ CampaignHint */ advertiser_id, CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END AS device_id, id
          |            FROM campaign_oracle
          |
          |             ) co1
@@ -5611,7 +5611,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            WHERE (advertiser_id = 213) AND (id IN (45,34,12,51,19,23,40,15,11,44,33,22,55,26,50,37,13,46,24,35,16,48,21,54,43,32,49,36,39,17,25,14,47,31,53,42,20,27,38,18,30,29,41,52,28))
          |             ) ago2
          |          INNER JOIN
-         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            (SELECT /*+ CampaignHint */ advertiser_id, CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END AS device_id, id
          |            FROM campaign_oracle
          |
          |             ) co1
@@ -5705,7 +5705,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            WHERE (advertiser_id = 213) AND (id IN (12,19,23,15,11,22,13,24,16,21,17,25,14,20,18))
          |             ) ago2
          |          INNER JOIN
-         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            (SELECT /*+ CampaignHint */ advertiser_id, CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END AS device_id, id
          |            FROM campaign_oracle
          |
          |             ) co1
@@ -5727,7 +5727,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            WHERE (advertiser_id = 213) AND (id NOT IN (12,19,23,15,11,22,13,24,16,21,17,25,14,20,18))
          |             ) ago2
          |          INNER JOIN
-         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            (SELECT /*+ CampaignHint */ advertiser_id, CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END AS device_id, id
          |            FROM campaign_oracle
          |
          |             ) co1
@@ -5915,7 +5915,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |            WHERE (advertiser_id = 213) AND (id IN (10))
          |             ) ago2
          |          INNER JOIN
-         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            (SELECT /*+ CampaignHint */ advertiser_id, CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END AS device_id, id
          |            FROM campaign_oracle
          |
          |             ) co1

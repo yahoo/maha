@@ -2,15 +2,24 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.query.postgres
 
+import java.io.{BufferedOutputStream, FileOutputStream, PrintWriter}
 import java.nio.charset.StandardCharsets
 
+import com.opentable.db.postgres.embedded.EmbeddedPostgres
 import com.yahoo.maha.core.CoreSchema._
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.ddl.PostgresDDLGenerator
+import com.yahoo.maha.core.fact.Fact
 import com.yahoo.maha.core.fact.Fact.ViewTable
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.query.druid.DruidQuery
 import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockPostgresQueryExecutor}
+import com.yahoo.maha.jdbc.JdbcConnection
+import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
+import org.apache.commons.lang3.StringUtils
+
+import scala.util.Try
 
 
 /**
@@ -18,6 +27,101 @@ import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockPostgresQueryExecuto
  */
 class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
   lazy val defaultRegistry = getDefaultRegistry()
+  private var dataSource: Option[HikariDataSource] = None
+  private var jdbcConnection: Option[JdbcConnection] = None
+  private val postgresDDLGenerator = new PostgresDDLGenerator
+  private val tablesCreated  = new scala.collection.mutable.HashSet[String]
+  val userDir = System.getProperty("user.dir")
+  if (StringUtils.isNotBlank(userDir)) {
+    System.setProperty("java.io.tmpdir", userDir+"/target")
+  }
+  private val pg = EmbeddedPostgres.start()
+  val ddlOutFile = new java.io.File("src/test/resources/pg-dim-ddl.sql")
+  val ddlOutputStream = new BufferedOutputStream(new FileOutputStream(ddlOutFile))
+  val ddlWriter = new PrintWriter(ddlOutputStream)
+  val factDDLOutFile = new java.io.File("src/test/resources/pg-fact-ddl.sql")
+  val factDDLOutputStream = new BufferedOutputStream(new FileOutputStream(factDDLOutFile))
+  val factDDLWriter = new PrintWriter(factDDLOutputStream)
+
+  override protected def beforeAll(): Unit = {
+    super.beforeAll()
+    val config = new HikariConfig()
+    val jdbcUrl = pg.getJdbcUrl("postgres", "postgres")
+    config.setJdbcUrl(jdbcUrl)
+    config.setUsername("postgres")
+    config.setPassword("")
+    config.setMaximumPoolSize(1)
+    dataSource = Option(new HikariDataSource(config))
+    jdbcConnection = dataSource.map(new JdbcConnection(_))
+  }
+  override protected def afterAll(): Unit = {
+    super.afterAll()
+    dataSource.foreach(_.close())
+    println(tablesCreated)
+    ddlWriter.close()
+    factDDLWriter.close()
+  }
+  private def createTables(queryPipelineTry: scala.util.Try[QueryPipeline]): Unit = synchronized {
+    if(queryPipelineTry.isFailure)
+      return
+    val dimDDL = queryPipelineTry.get.bestDimCandidates.map(_.dim).filterNot(d => tablesCreated(d.name)).map {
+      d => d -> postgresDDLGenerator.toDDL(d)
+    }
+    if(queryPipelineTry.get.factBestCandidate.isDefined) {
+      val facts: Seq[Fact] = {
+        val fact =  queryPipelineTry.get.factBestCandidate.get.fact
+        if(fact.isInstanceOf[ViewTable]) {
+          fact.asInstanceOf[ViewTable].view.facts
+        } else {
+          IndexedSeq(fact)
+        }
+
+      }
+      facts.foreach {
+        fact =>
+          val factDDL = postgresDDLGenerator.toDDL(fact)
+          if (!tablesCreated(fact.name)) {
+            val factCreateTry = jdbcConnection.get.execute(factDDL)
+            require(factCreateTry.isSuccess, factCreateTry.failed.get.getMessage)
+            tablesCreated += fact.name
+            factDDLWriter.write(factDDL)
+            factDDLWriter.write("\n")
+          }
+      }
+    }
+    dimDDL.foreach {
+      case (d, ddl) =>
+        val dimCreateTry = jdbcConnection.get.execute(ddl)
+        require(dimCreateTry.isSuccess, dimCreateTry.failed.get.getMessage)
+        tablesCreated+=d.name
+        ddlWriter.write(ddl)
+        ddlWriter.write("\n")
+    }
+  }
+
+  override protected[this] def generatePipeline(requestModel: RequestModel) : Try[QueryPipeline] = {
+    val qpt = super.generatePipeline(requestModel)
+    if(qpt.isSuccess) {
+      createTables(qpt)
+    }
+    qpt
+  }
+
+  override protected[this] def generatePipeline(requestModel: RequestModel, queryAttributes: QueryAttributes) : Try[QueryPipeline] = {
+    val qpt = super.generatePipeline(requestModel, queryAttributes)
+    if(qpt.isSuccess) {
+      createTables(qpt)
+    }
+    qpt
+  }
+
+  private def testQuery(sql: String): Unit = {
+    val sqlTry = jdbcConnection.get.execute(sql)
+    if(sqlTry.isFailure) {
+      println(sql)
+      throw sqlTry.failed.get
+    }
+  }
 
   test("registering Postgres query generation multiple times should fail") {
     intercept[IllegalArgumentException] {
@@ -44,6 +148,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val select = """SELECT f0.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ap1.name "Advertiser Name", ap1."Advertiser Status" "Advertiser Status", Count(*) OVER() "TOTALROWS""""
     assert(result.contains(select), result)
+    testQuery(result)
   }
 
   test("dim fact sync fact driven query with multiple dim join should produce all requested fields in same order as in request") {
@@ -61,6 +166,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val select = """SELECT cp2.id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ap1.name "Advertiser Name", cp2."Campaign Status" "Campaign Status", Count(*) OVER() "TOTALROWS""""
     assert(result.contains(select), result)
+    testQuery(result)
   }
 
   test("dim fact async fact driven query should produce all requested fields in same order as in request") {
@@ -78,6 +184,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val select = """SELECT f0.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", ap1.name "Advertiser Name", ap1."Advertiser Status" "Advertiser Status""""
     assert(result.contains(select), result)
+    testQuery(result)
   }
 
   test("dim fact sync dimension driven query should produce all requested fields in same order as in request with in Subquery Clause") {
@@ -93,9 +200,28 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
+    val expected = s"""SELECT *
+                      |FROM (SELECT agp1.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", agp1."Ad Group Status" "Ad Group Status"
+                      |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
+                      |                   campaign_id, ad_group_id, SUM(impressions) AS "impressions"
+                      |            FROM fact2 FactAlias
+                      |            WHERE (advertiser_id = 213) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
+                      |            GROUP BY campaign_id, ad_group_id
+                      |
+                      |           ) f0
+                      |           RIGHT OUTER JOIN
+                      |               (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", campaign_id, id, advertiser_id
+                      |            FROM ad_group_postgres
+                      |            WHERE (campaign_id IN (SELECT id FROM campaign_postgres WHERE (CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END IN ('ON')) AND (advertiser_id = 213))) AND (advertiser_id = 213)
+                      |            ORDER BY 1 ASC NULLS LAST ) sqalias1 LIMIT 120) D ) sqalias2 WHERE ROWNUM >= 21 AND ROWNUM <= 120) agp1
+                      |            ON (f0.ad_group_id = agp1.id)
+                      |
+                      |) sqalias3""".stripMargin
     val select = """SELECT agp1.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", agp1."Ad Group Status" "Ad Group Status""""
     assert(result.contains(select), result)
     assert(result.contains("campaign_id IN (SELECT id FROM campaign_postgres WHERE (CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END IN ('ON'))"),result)
+    result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("dim fact async fact driven query with dim filters should use INNER JOIN") {
@@ -113,6 +239,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("INNER JOIN"), "Query should use INNER JOIN if requested dim filters")
 
+    testQuery(result)
   }
 
   test("dim fact async fact driven query with dim filters should use INNER JOIN and use new partitioning scheme") {
@@ -130,6 +257,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("INNER JOIN"), "Query should use INNER JOIN if requested dim filters")
 
+    testQuery(result)
   }
 
   test("dim fact async fact driven query without dim filters should use LEFT OUTER JOIN") {
@@ -145,6 +273,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, s"Fail to get the query pipeline, $queryPipelineTry")
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("LEFT OUTER JOIN"), "Query should use JOIN")
+    testQuery(result)
   }
 
   test("dim fact sync dimension driven query should use RIGHT OUTER JOIN") {
@@ -163,6 +292,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(result.contains("RIGHT OUTER JOIN"), "Query should use RIGHT OUTER JOIN")
     assert(result.contains("TOTALROWS"), "Query should have total row column")
     assert(result.contains("ROWNUM "), "Query should have pagination wrapper")
+    testQuery(result)
   }
 
   test("dim fact sync dimension driven query without total rows should use RIGHT OUTER JOIN") {
@@ -183,6 +313,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(result.contains("ROWNUM"), "Query should have pagination wrapper")
     assert(result.contains("ROWNUM >= 21"), "Min position should be 21")
     assert(result.contains("ROWNUM <= 120"), "Max position should be 120")
+    testQuery(result)
   }
 
   test("dim fact async fact driven query without dim filters should use LEFT OUTER JOIN and has no pagination") {
@@ -200,6 +331,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
     assert(!result.contains("ROWNUM"), "Query should not have pagination")
+    testQuery(result)
   }
 
   test("dim fact async fact driven query with dim filters should use INNER JOIN and has no pagination") {
@@ -217,6 +349,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("INNER JOIN"), "Query should use INNER JOIN if requested dim filters")
     assert(!result.contains("ROWNUM"), "Query should not have pagination")
+    testQuery(result)
   }
 
   test("dim fact async fact driven query without dim sort should use LEFT OUTER JOIN and has no pagination") {
@@ -234,6 +367,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
     assert(!result.contains("ROWNUM"), "Query should not have pagination")
+    testQuery(result)
   }
 
   test("dim fact async fact driven query with dim sort should use JOIN and has no pagination") {
@@ -251,6 +385,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
     assert(!result.contains("ROWNUM"), "Query should not have pagination")
+    testQuery(result)
   }
 
   test("dim fact sync fact driven with fact column sort with total rows should use LEFT OUTER JOIN with pagination and total row column") {
@@ -269,6 +404,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
     assert(result.contains("ROWNUM"), "Query should have pagination")
     assert(result.contains("TOTALROWS"), "Query should have total row column")
+    testQuery(result)
   }
 
   test("dim fact sync fact driven with fact column sort without total rows should use LEFT OUTER JOIN with pagination") {
@@ -289,6 +425,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(result.contains("ROWNUM >= 21"), "Min position should be 21")
     assert(result.contains("ROWNUM <= 120"), "Max position should be 120")
     assert(!result.contains("TOTALROWS"), "Query should not have total row column")
+    testQuery(result)
   }
 
   test("dim fact sync fact driven with fact column filter with total rows should use LEFT OUTER JOIN with pagination and total row column"){
@@ -307,6 +444,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
     assert(result.contains("ROWNUM"), "Query should have pagination")
     assert(result.contains("TOTALROWS"), "Query should have total row column")
+    testQuery(result)
   }
 
   test("dim fact sync fact driven with fact column filter without total rows should use LEFT OUTER JOIN with pagination"){
@@ -327,6 +465,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(result.contains("ROWNUM >= 21"), "Min position should be 21")
     assert(result.contains("ROWNUM <= 120"), "Max position should be 120")
     assert(!result.contains("TOTALROWS"), "Query should not have total row column")
+    testQuery(result)
   }
 
   test("dim fact sync fact driven query with int static mapped fields and filters should succeed") {
@@ -351,6 +490,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(result.contains("pricing_type IN (-10,2)"), "Query should contain filter on price_type")
     val pricingTypeInnerColum = """CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END pricing_type"""
     assert(result.contains(pricingTypeInnerColum), "Query should contain case when for Pricing Type")
+    testQuery(result)
   }
 
   test("dim fact sync fact driven query with default value fields should be in applied in inner select columns") {
@@ -377,6 +517,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(result.contains("coalesce(ROUND(f0.\"max_bid\", 10), 0.0)"), "Query should contain default value")
     assert(result.contains("""(CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS "avg_pos""""), "Query should contain default value")
     assert(result.contains("coalesce(f0.\"impressions\", 1) \"Impressions\", coalesce(ROUND(f0.\"spend\", 10), 0.0) \"Spend\", coalesce(ROUND(f0.\"max_bid\", 10), 0.0) \"Max Bid\", coalesce(ROUND(CASE WHEN ((f0.\"avg_pos\" >= 0.1) AND (f0.\"avg_pos\" <= 500)) THEN f0.\"avg_pos\" ELSE 0.0 END, 10), 0.0) \"Average Position\""), "Query should contain default value")
+    testQuery(result)
   }
 
   test("dim fact sync fact driven with constant requested fields should contain constant fields") {
@@ -394,6 +535,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("'2' AS \"Source\""), "Constant field does not exsit")
+    testQuery(result)
   }
 
 
@@ -419,6 +561,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(result.contains(
       "(SUM(impressions) >= 0 AND SUM(impressions) <= 300)"),
       "Query should contain default value")
+    testQuery(result)
   }
 
   test("dim fact sync dimension driven query with requested fields in multiple dimensions should not fail") {
@@ -449,16 +592,15 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val requestModel = RequestModel.from(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
     assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val expected =
       s"""
         |SELECT *
-        |FROM (SELECT pt3.id "Keyword ID", agp2.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", agp2."Ad Group Status" "Ad Group Status", cp1."Campaign Status" "Campaign Status", f0."Count" "Count"
+        |FROM (SELECT pt3.id "Keyword ID", agp2.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", agp2."Ad Group Status" "Ad Group Status", cp1."Campaign Status" "Campaign Status", f0."count_col" "Count"
         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
-        |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", COUNT(*) AS "Count"
+        |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", COUNT(*) AS "count_col"
         |            FROM fact2 FactAlias
         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
         |            GROUP BY ad_group_id, campaign_id, keyword_id
@@ -487,6 +629,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
         |   ORDER BY "Campaign Status" ASC NULLS LAST
       """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("dim fact sync dimension driven query with dim filters in multiple dimensions should not fail") {
@@ -567,6 +710,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("verify dim query can generate inner select and group by with static mapping") {
@@ -614,7 +758,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |
          |           ) f0
          |           RIGHT OUTER JOIN
-         |               ( (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  id, advertiser_id
+         |               ( (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  id, parent_id, advertiser_id
          |            FROM pg_targetingattribute
          |            WHERE (advertiser_id = 12345)
          |             ) sqalias1 LIMIT 120) D ) sqalias2 WHERE ROWNUM >= 21 AND ROWNUM <= 120) pt3
@@ -636,6 +780,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |   ORDER BY "Campaign Status" ASC NULLS LAST
       """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
 
@@ -670,6 +815,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Non-hash partitioned dimension with singleton snapshot failed"))
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("max_snapshot_ts_"), "Query should contain snapshot column")
+    testQuery(result)
   }
 
   test("dim fact sync dimension driven query with non hash partitioned dimension without singleton snapshot column should fail") {
@@ -730,6 +876,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Non-hash partitioned dimension with singleton snapshot failed"))
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("max_snapshot_ts_"), "Query should contain snapshot column")
+    testQuery(result)
   }
 
   test("dim fact async dimension driven query with non hash partitioned dimension without singleton snapshot column should fail") {
@@ -791,6 +938,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     //since we are using fromDateMinus10, the fact rows should be high enough to render the min rows estimate based hint
     assert(result.contains("/*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 CONDITIONAL_HINT5 */"), "Query should contain dimension hint")
+    testQuery(result)
   }
 
   test("dim fact async fact driven query with hint annotation should have static hint comment in the final sql string") {
@@ -807,6 +955,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("/*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */"), "Query should contain dimension hint")
+    testQuery(result)
   }
 
   test("dim fact sync dimension driven query with dimension id filters should generate full SQL with in subquery clause") {
@@ -822,7 +971,26 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
+    val expected = s"""SELECT *
+                      |FROM (SELECT coalesce(f0."impressions", 1) "Impressions", agp1."Ad Group Status" "Ad Group Status"
+                      |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
+                      |                   campaign_id, ad_group_id, SUM(impressions) AS "impressions"
+                      |            FROM fact2 FactAlias
+                      |            WHERE (advertiser_id = 213) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
+                      |            GROUP BY campaign_id, ad_group_id
+                      |
+                      |           ) f0
+                      |           RIGHT OUTER JOIN
+                      |               (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", campaign_id, id, advertiser_id
+                      |            FROM ad_group_postgres
+                      |            WHERE (campaign_id IN (SELECT id FROM campaign_postgres WHERE (CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END IN ('ON')) AND (advertiser_id = 213))) AND (advertiser_id = 213)
+                      |            ORDER BY 1 ASC NULLS LAST ) sqalias1 LIMIT 120) D ) sqalias2 WHERE ROWNUM >= 21 AND ROWNUM <= 120) agp1
+                      |            ON (f0.ad_group_id = agp1.id)
+                      |
+                      |) sqalias3""".stripMargin
     assert(result.contains("IN (SELECT"), "Query should contain in subquery")
+    result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("dim fact sync dimension driven query with between day filter exceeding the max days window should fail") {
@@ -997,6 +1165,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(result.contains("NOT IN ('OFF')"), "Query should contain NOT IN")
     assert(result.contains("RIGHT OUTER JOIN"), "Query should be ROJ")
     assert(result.contains("/*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */"), "Query should contain dim driven hint")
+    testQuery(result)
   }
 
   test("dim fact sync fact driven query should have static hint") {
@@ -1013,6 +1182,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     assert(result.contains("LEFT OUTER JOIN"), "Query should use LEFT OUTER JOIN")
     assert(result.contains("/*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */"), "Query should contain dim driven hint")
+    testQuery(result)
   }
 
   test("dim fact sync fact driven query with request DecType fields that contains max and min should return query with max and min range") {
@@ -1030,6 +1200,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val select = """(CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS "avg_pos""""
     assert(result.contains(select), result)
+    testQuery(result)
   }
 
   test("dim fact sync fact driven query with request IntType fields that contains max and min should return query with max and min range") {
@@ -1047,6 +1218,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val select = """SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks""""
     assert(result.contains(select), result)
+    testQuery(result)
   }
 
   test("dim fact sync fact driven query with request fields that contains divide operation should round the division result") {
@@ -1064,6 +1236,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val select = """ROUND(f0."Average CPC", 10)"""
     assert(result.contains(select), result)
+    testQuery(result)
   }
 
   test("dim fact sync fact driven query with request fields that contains safe divide operation should round the division result") {
@@ -1080,6 +1253,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val select = """ROUND(f0."CTR", 10) "CTR""""
     assert(result.contains(select), result)
+    testQuery(result)
   }
 
   test("dim fact sync dim driven query with filter fields that contain case insensitive field should use lower function") {
@@ -1116,6 +1290,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val where = """lower(campaign_name) = lower('MegaCampaign')"""
     assert(result.contains(where), result)
+    testQuery(result)
   }
 
   test("dim fact sync dim driven query with fields that map to same column should generate query") {
@@ -1152,6 +1327,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
     val where = """coalesce(f0."impressions", 1) "Total Impressions", coalesce(f0."impressions", 1) "Impressions""""
     assert(result.contains(where), result)
+    testQuery(result)
   }
 
   test("Fact Driven Multidimensional query with dim sortBy") {
@@ -1227,6 +1403,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |   ORDER BY "Campaign Name" ASC NULLS LAST
         |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("successfully generate OGB query for fact driven multidimensional query with missing indirect relation") {
@@ -1291,6 +1468,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |   ORDER BY "Spend" DESC NULLS LAST
          |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("successfully generate non-OGB query for fact driven multidimensional query with indirect relation in request") {
@@ -1359,6 +1537,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |   ORDER BY "Spend" DESC NULLS LAST
          |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Dim Driven Multidimensional query with Keywords and Ad should fail as we do not have parent info of AD in keywords table") {
@@ -1459,6 +1638,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
  |) sqalias3
        """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("MultiDims Sync Query keyword level with 3 parent dimensions, pg_targetingattribute as primary dim") {
@@ -1533,6 +1713,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |) sqalias3
          |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("MultiDims Sync Query keyword level with 1 grand parent dimensions should succeed, keywords as primary dim") {
@@ -1572,7 +1753,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |
                       |           ) f0
                       |           RIGHT OUTER JOIN
-                      |               ( (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  id, advertiser_id
+                      |               ( (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  id, parent_id, advertiser_id
                       |            FROM pg_targetingattribute
                       |            WHERE (advertiser_id = 12345)
                       |             ) sqalias1 LIMIT 100) D ) sqalias2 WHERE ROWNUM >= 1 AND ROWNUM <= 100) pt3
@@ -1595,6 +1776,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |) sqalias3
                      |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("MultiDims Sync Query keyword level with 3 parent dimensions: Should Generate sortBy correctly") {
@@ -1681,6 +1863,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |) sqalias3
          |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Group by over derived expression should append index instead of entire dervied expression") {
@@ -1714,22 +1897,20 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
-    val expected = s"""
-                      |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
+    val expected = s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
                       |FROM (SELECT f0.keyword_id "Keyword ID", f0.campaign_id "Campaign ID", f0."Month" "Month", f0.ad_group_id "Ad Group ID", f0."Week" "Week", to_char(f0.stats_date, 'YYYY-MM-DD') "Day", coalesce(f0."impressions", 1) "Impressions", coalesce(f0."clicks", 0) "Clicks", ROUND(f0."CTR", 10) "CTR"
                       |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
-                      |                   stats_date, ad_group_id, campaign_id, keyword_id, TRUNC(stats_date, 'MM') AS "Month", TRUNC(stats_date, 'IW') AS "Week", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
+                      |                   stats_date, ad_group_id, campaign_id, keyword_id, DATE_TRUNC('month', stats_date)::DATE AS "Month", DATE_TRUNC('week', stats_date)::DATE AS "Week", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
                       |            FROM fact2
                       |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
-                      |            GROUP BY stats_date, ad_group_id, campaign_id, keyword_id, TRUNC(stats_date, 'MM'), TRUNC(stats_date, 'IW')
+                      |            GROUP BY stats_date, ad_group_id, campaign_id, keyword_id, DATE_TRUNC('month', stats_date)::DATE, DATE_TRUNC('week', stats_date)::DATE
                       |
                       |           ) f0
                       |
-                      |
-                      |
-                      |) sqalias1 ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100
-                      |""".stripMargin
+                      |) sqalias1
+                      |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("successfully generate query with debug enabled") {
@@ -1825,19 +2006,17 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
                       |FROM (SELECT f0."Month" "Month", f0.advertiser_id "Advertiser ID"
                       |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
-                      |                   advertiser_id, TRUNC(stats_date, 'MM') AS "Month"
+                      |                   advertiser_id, DATE_TRUNC('month', stats_date)::DATE AS "Month"
                       |            FROM fact2
                       |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
-                      |            GROUP BY advertiser_id, TRUNC(stats_date, 'MM')
+                      |            GROUP BY advertiser_id, DATE_TRUNC('month', stats_date)::DATE
                       |            HAVING (SUM(clicks) >= 1 AND SUM(clicks) <= 9007199254740991)
                       |           ) f0
                       |
-                      |
-                      |
                       |) sqalias1 ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200""".stripMargin
 
-
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("successfully generate dim driven dim only query with filters") {
@@ -1912,6 +2091,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                      |             sqalias1 WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("should compare two strings with first one insensitive") {
@@ -1980,6 +2160,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                      |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("should compare two strings with second one insensitive") {
@@ -2048,6 +2229,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                      |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("should fail to compare two dimensions of different dataTypes.") {
@@ -2374,6 +2556,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |            """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("successfully generate distinct dim only query") {
@@ -2423,6 +2606,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("successfully generate sync force dim driven dim only query with filters and order by and row count") {
@@ -2499,6 +2683,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                      |""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("successfully generate fact driven query with right outer join when schema required fields are not present in the fact") {
@@ -2587,6 +2772,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("successfully generate dim join conditions on partition col if partition col is not requested for reseller case") {
@@ -2665,6 +2851,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("successfully generate dim join conditions on partition col if partition col is not requested") {
@@ -2743,6 +2930,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("AD Page default: Supporting dim test") {
@@ -2819,9 +3007,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
-  ignore("successfully generate query for forced fact driven query specialized to use subquery instead of join") {
+  test("successfully generate query for forced fact driven query specialized to use subquery instead of join") {
     val jsonString =
       s"""{ "cube": "performance_stats",
         |   "selectFields": [
@@ -2903,6 +3092,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
        """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
   test("successfully generate query with new partitioning Scheme") {
     val jsonString = s"""{
@@ -2945,25 +3135,25 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       s"""|SELECT *
          |FROM (SELECT pt1.id "Keyword ID", ksf0."Month" "Month", pt1.parent_id "Ad Group ID", ksf0."Week" "Week", to_char(ksf0.stats_date, 'YYYY-MM-DD') "Day", coalesce(ksf0."impressions", 1) "Impressions", coalesce(ksf0."clicks", 0) "Clicks", ROUND(ksf0."CTR", 10) "CTR"
          |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) */
-         |                   stats_date, ad_group_id, keyword_id, TRUNC(stats_date, 'MM') AS "Month", TRUNC(stats_date, 'IW') AS "Week", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
-         |            FROM k_stats_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY stats_date, ad_group_id, keyword_id, TRUNC(stats_date, 'MM'), TRUNC(stats_date, 'IW')
-         |
-         |           ) ksf0
-         |           RIGHT OUTER JOIN
-         |                (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  parent_id, id, advertiser_id
-         |            FROM pg_targetingattribute
-         |            WHERE (advertiser_id = 12345)
-         |             ) sqalias1 LIMIT 100) D ) sqalias2 WHERE ROWNUM >= 1 AND ROWNUM <= 100) pt1
-         |            ON (ksf0.keyword_id = pt1.id)
-         |
-         |
-         |) sqalias3
+         |                   stats_date, ad_group_id, keyword_id, DATE_TRUNC('month', stats_date)::DATE AS "Month", DATE_TRUNC('week', stats_date)::DATE AS "Week", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
+          |            FROM k_stats_fact1 FactAlias
+          |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
+          |            GROUP BY stats_date, ad_group_id, keyword_id, DATE_TRUNC('month', stats_date)::DATE, DATE_TRUNC('week', stats_date)::DATE
+          |
+          |           ) ksf0
+          |           RIGHT OUTER JOIN
+          |                (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  parent_id, id, advertiser_id
+          |            FROM pg_targetingattribute
+          |            WHERE (advertiser_id = 12345)
+          |             ) sqalias1 LIMIT 100) D ) sqalias2 WHERE ROWNUM >= 1 AND ROWNUM <= 100) pt1
+          |            ON (ksf0.keyword_id = pt1.id)
+          |
+          |) sqalias3
        """.stripMargin
 
 
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Test for Customer Bug fix in old :Fact metric filters in select") {
@@ -3019,6 +3209,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
 
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("AD Page default: Multiple Sort On Dim Cols") {
@@ -3076,6 +3267,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |) sqalias3
        """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   ignore("test NoopRollup expression for generated query") {
@@ -3157,6 +3349,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
        """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Fact View Model Query Test") {
@@ -3223,7 +3416,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
          |FROM (SELECT ksnpo0.ad_id "Ad ID", to_char(ksnpo0.stats_date, 'YYYY-MM-DD') "Day", ROUND(ksnpo0."Average CPC", 10) "Average CPC", coalesce(ROUND(CASE WHEN ((ksnpo0."avg_pos" >= 0.1) AND (ksnpo0."avg_pos" <= 500)) THEN ksnpo0."avg_pos" ELSE 0.0 END, 10), 0.0) "Average Position", coalesce(ksnpo0."impressions", 1) "Impressions", coalesce(ROUND(ksnpo0."max_bid", 10), 0.0) "Max Bid", coalesce(ROUND(ksnpo0."spend", 10), 0.0) "Spend", ROUND(ksnpo0."CTR", 10) "CTR"
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) */
-         |                   ad_id, stats_date, SUM(impressions) AS "impressions", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS "avg_pos", SUM(spend) AS "spend", MAX(max_bid) AS "max_bid", (spend / clicks) AS "Average CPC", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
+         |                   ad_id, stats_date, SUM(impressions) AS "impressions", (CASE WHEN SUM(impressions) = 0 THEN 0.0 ELSE SUM(CASE WHEN ((avg_pos >= 0.1) AND (avg_pos <= 500)) THEN avg_pos ELSE 0.0 END * impressions) / (SUM(impressions)) END) AS "avg_pos", SUM(spend) AS "spend", MAX(max_bid) AS "max_bid", (SUM(spend) / (SUM(clicks))) AS "Average CPC", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
          |            FROM k_stats_new_partitioning_one
          |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
          |            GROUP BY ad_id, stats_date
@@ -3235,6 +3428,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |) sqalias1 ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
        """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Best Candidates test for campaign adjustment in a_stats Fact View") {
@@ -3351,7 +3545,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |      FROM (SELECT
                       |                   publisher_id, SUM(spend) AS "spend"
                       |            FROM v_publisher_stats
-                      |            WHERE (publisher_id = 12345) AND (date_sid >= to_number(to_char(DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')), 'YYYYMMDD')) AND date_sid <= to_number(to_char(DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')), 'YYYYMMDD')))
+                      |            WHERE (publisher_id = 12345) AND (date_sid >= to_char(DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')), 'YYYYMMDD')::INTEGER AND date_sid <= to_char(DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')), 'YYYYMMDD')::INTEGER)
                       |            GROUP BY publisher_id
                       |
                      |           ) vps0
@@ -3359,6 +3553,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                      |) sqalias1
                       |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("succesfully generate query with DayColumn annotation on Day column which is of StrType") {
@@ -3394,18 +3589,19 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
 
     val expected = s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
-                     |FROM (SELECT vps0.publisher_id "Publisher ID", coalesce(ROUND(vps0."spend", 10), 0.0) "Spend"
-                     |      FROM (SELECT
-                     |                   publisher_id, SUM(spend) AS "spend"
-                     |            FROM v_publisher_stats
-                     |            WHERE (publisher_id = 12345) AND (date_sid >= to_char(DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')), 'YYYYMMDD') AND date_sid <= to_char(DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')), 'YYYYMMDD'))
-                     |            GROUP BY publisher_id
-                     |
-                     |           ) vps0
-                     |
-                     |) sqalias1
-                     |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
+                      |FROM (SELECT vpss0.publisher_id "Publisher ID", coalesce(ROUND(vpss0."spend", 10), 0.0) "Spend"
+                      |      FROM (SELECT
+                      |                   publisher_id, SUM(spend) AS "spend"
+                      |            FROM v_publisher_stats_str
+                      |            WHERE (publisher_id = 12345) AND (date_sid >= to_char(DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')), 'YYYYMMDD') AND date_sid <= to_char(DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')), 'YYYYMMDD'))
+                      |            GROUP BY publisher_id
+                      |
+                      |           ) vpss0
+                      |
+                      |) sqalias1
+                      |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
  test("successfully generate fact driven query with outer filter") {
@@ -3504,7 +3700,8 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
 
     result should equal (expected)(after being whiteSpaceNormalised)
-  }
+   testQuery(result)
+ }
 
   test("successfully generate dim driven dim only query with outer filters and order by") {
     val jsonString = s"""{
@@ -3569,6 +3766,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                      |           """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Fact Driven Multidimensional query with outer filters and dim sortBy ") {
@@ -3652,6 +3850,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |   ORDER BY "Campaign Name" ASC NULLS LAST
          |""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Group by over derived expression with outer filters") {
@@ -3694,10 +3893,10 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
                       |FROM (SELECT f0.keyword_id "Keyword ID", agp1.campaign_id "Campaign ID", f0."Month" "Month", agp1.id "Ad Group ID", agp1."Ad Group Status" "Ad Group Status", f0."Week" "Week", to_char(f0.stats_date, 'YYYY-MM-DD') "Day", coalesce(f0."impressions", 1) "Impressions", coalesce(f0."clicks", 0) "Clicks", ROUND(f0."CTR", 10) "CTR"
                       |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
-                      |                   stats_date, ad_group_id, campaign_id, keyword_id, TRUNC(stats_date, 'MM') AS "Month", TRUNC(stats_date, 'IW') AS "Week", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
+                      |                   stats_date, ad_group_id, campaign_id, keyword_id, DATE_TRUNC('month', stats_date)::DATE AS "Month", DATE_TRUNC('week', stats_date)::DATE AS "Week", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS "clicks", SUM(impressions) AS "impressions", (SUM(CASE WHEN impressions = 0 THEN 0.0 ELSE clicks / impressions END)) AS "CTR"
                       |            FROM fact2 FactAlias
                       |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
-                      |            GROUP BY stats_date, ad_group_id, campaign_id, keyword_id, TRUNC(stats_date, 'MM'), TRUNC(stats_date, 'IW')
+                      |            GROUP BY stats_date, ad_group_id, campaign_id, keyword_id, DATE_TRUNC('month', stats_date)::DATE, DATE_TRUNC('week', stats_date)::DATE
                       |
                       |           ) f0
                       |           LEFT OUTER JOIN
@@ -3713,6 +3912,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
 
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("PowerEditor: Use case1") {
@@ -3785,6 +3985,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("where clause: ensure duplicate filter mappings are not propagated into the where clause") {
@@ -3834,7 +4035,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |
          |           ) f0
          |           RIGHT OUTER JOIN
-         |               ( (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  id, advertiser_id
+         |               ( (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  id, parent_id, advertiser_id
          |            FROM pg_targetingattribute
          |            WHERE (advertiser_id = 12345)
          |             ) sqalias1 LIMIT 120) D ) sqalias2 WHERE ROWNUM >= 21 AND ROWNUM <= 120) pt3
@@ -3856,6 +4057,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |   ORDER BY "Campaign Status" ASC NULLS LAST
       """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("test using alias to join dimension table") {
@@ -3906,6 +4108,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
           |) sqalias3
        """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Successfully generated Outer Group By Query with dim non id field and fact field") {
@@ -3969,6 +4172,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Successfully generated Outer Group By Query with dim non id field and derived fact field having dim source col") {
@@ -4034,6 +4238,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Successfully generated timeseries Outer Group By Query with dim non id field and fact field") {
@@ -4099,6 +4304,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Successfully generated Outer Group By Query with 2 dimension non id fields") {
@@ -4247,6 +4453,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |
        """.stripMargin
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Successfully generated Outer Group By Query with 2 dimension non id fields and and two fact transitively dependent cols") {
@@ -4366,6 +4573,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Successfully generated Outer Group By Query with mutlifield fact and dim filters") {
@@ -4439,14 +4647,13 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
 
     val expected =
-      s"""
-         |SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", "Business Name", "Business Name 2", (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS "Average CPC Cents", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend", CASE WHEN stats_source = 1 THEN spend ELSE 0.0 END AS "N Spend"
+      s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT "Campaign Name", "Advertiser Currency", "Business Name", "Business Name 2", (CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END) * 100 AS "Average CPC Cents", CASE WHEN clicks = 0 THEN 0.0 ELSE spend / clicks END AS "Average CPC", spend AS "Spend", CASE WHEN stats_source = 1 THEN spend ELSE 0.0 END AS "N Spend"
          |FROM (SELECT cp2.campaign_name "Campaign Name", ap1.currency "Advertiser Currency", af0."Business Name" "Business Name", af0."Business Name 2" "Business Name 2", SUM(spend) AS spend, SUM(clicks) AS clicks, af0.stats_source stats_source
          |      FROM (SELECT /*+ PARALLEL_INDEX(cb_ad_stats 4) */
-         |                   advertiser_id, campaign_id, CASE WHEN stats_source = 1 THEN Native WHEN stats_source = 2 THEN Search ELSE Unknown END AS "Business Name", CASE WHEN stats_source = 1 THEN Expensive WHEN stats_source = 2 THEN Cheap ELSE Unknown END AS "Business Name 2", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend, stats_source
+         |                   advertiser_id, campaign_id, CASE WHEN stats_source = 1 THEN 'Native' WHEN stats_source = 2 THEN 'Search' ELSE 'Unknown' END AS "Business Name", CASE WHEN stats_source = 1 THEN 'Expensive' WHEN stats_source = 2 THEN 'Cheap' ELSE 'Unknown' END AS "Business Name 2", SUM(CASE WHEN ((clicks >= 1) AND (clicks <= 800)) THEN clicks ELSE 0 END) AS clicks, SUM(spend) AS spend, stats_source
          |            FROM ad_fact1 FactAlias
-         |            WHERE (advertiser_id = 12345) AND (CASE WHEN stats_source = 1 THEN Native WHEN stats_source = 2 THEN Search ELSE Unknown END = CASE WHEN stats_source = 1 THEN Native WHEN stats_source = 2 THEN Search ELSE Unknown END) AND (stats_date >= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
-         |            GROUP BY advertiser_id, campaign_id, CASE WHEN stats_source = 1 THEN Native WHEN stats_source = 2 THEN Search ELSE Unknown END, CASE WHEN stats_source = 1 THEN Expensive WHEN stats_source = 2 THEN Cheap ELSE Unknown END, stats_source
+         |            WHERE (advertiser_id = 12345) AND (CASE WHEN stats_source = 1 THEN 'Native' WHEN stats_source = 2 THEN 'Search' ELSE 'Unknown' END = CASE WHEN stats_source = 1 THEN 'Native' WHEN stats_source = 2 THEN 'Search' ELSE 'Unknown' END) AND (stats_date >= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')) AND stats_date <= DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY advertiser_id, campaign_id, CASE WHEN stats_source = 1 THEN 'Native' WHEN stats_source = 2 THEN 'Search' ELSE 'Unknown' END, CASE WHEN stats_source = 1 THEN 'Expensive' WHEN stats_source = 2 THEN 'Cheap' ELSE 'Unknown' END, stats_source
          |            HAVING (SUM(spend) = SUM(CASE WHEN stats_source = 1 THEN spend ELSE 0.0 END))
          |           ) af0
          |                     LEFT OUTER JOIN
@@ -4462,15 +4669,13 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |             )
          |           cp2 ON ( af0.advertiser_id = cp2.advertiser_id AND af0.campaign_id = cp2.id)
          |
- |          GROUP BY cp2.campaign_name, ap1.currency, af0."Business Name", af0."Business Name 2", af0.stats_source
+         |          GROUP BY cp2.campaign_name, ap1.currency, af0."Business Name", af0."Business Name 2", af0.stats_source
          |) sqalias1
-         |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200
-         |
-       """
-        .stripMargin
+         |   ) sqalias2 LIMIT 200) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 200""".stripMargin
 
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Successfully generated Outer Group By Query with Lowest level FK col is requested") {
@@ -4551,6 +4756,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Successfully generated Outer Group By Query if fk col one level less than Highest dim candidate level is requested") {
@@ -4646,6 +4852,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Successfully generated Outer Group By Query if PostgresCustomRollup col is requested") {
@@ -4711,6 +4918,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
        """
         .stripMargin
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Successfully generated Outer Group By Query if PostgresCustomRollup col with Derived Expression having rollups is requested") {
@@ -4780,6 +4988,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
         .stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Successfully generated Outer Group By Query if PostgresCustomRollup col with Derived Expression having CustomRollup and DerCol are requested") {
@@ -4847,6 +5056,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
         .stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Successfully generated Outer Group By Query if column is derived from dim column") {
@@ -4917,6 +5127,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Successfully generated Outer Group By Query if NoopRollupp column requeted") {
@@ -4981,6 +5192,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
         .stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
 
@@ -5046,6 +5258,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("successfully generate fact driven query with filter on FK and dimension attribute without including attribute in output with attribute col as schema required field") {
@@ -5114,6 +5327,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |""".stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Duplicate registration of the generator") {
@@ -5169,7 +5383,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                       |      FROM (SELECT
                       |                   publisher_id, SUM(spend) AS "spend"
                       |            FROM v_publisher_stats2
-                      |            WHERE (publisher_id = 12345) AND (date_sid >= to_number(to_char(DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')), 'YYYYMMDD')) AND date_sid <= to_number(to_char(DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')), 'YYYYMMDD')))
+                      |            WHERE (publisher_id = 12345) AND (date_sid >= to_char(DATE_TRUNC('DAY', to_date('$fromDate', 'YYYY-MM-DD')), 'YYYYMMDD')::INTEGER AND date_sid <= to_char(DATE_TRUNC('DAY', to_date('$toDate', 'YYYY-MM-DD')), 'YYYYMMDD')::INTEGER)
                       |            GROUP BY publisher_id
                       |            HAVING (SUM(clicks) <> 777) AND (SUM(impressions) IS NOT NULL)
                      |           ) vps0
@@ -5177,6 +5391,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                      |) sqalias1
                       |   ) sqalias2 LIMIT 100) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 100""".stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("successfully generate dim only postgres query with union all for sync multi engine query for druid + postgres") {
@@ -5252,7 +5467,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |            WHERE (advertiser_id = 213) AND (id IN (10))
          |             ) agp2
          |          INNER JOIN
-         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            (SELECT /*+ CampaignHint */ advertiser_id, CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END AS device_id, id
          |            FROM campaign_postgres
          |
          |             ) cp1
@@ -5273,7 +5488,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |            WHERE (advertiser_id = 213) AND (id NOT IN (10))
          |             ) agp2
          |          INNER JOIN
-         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            (SELECT /*+ CampaignHint */ advertiser_id, CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END AS device_id, id
          |            FROM campaign_postgres
          |
          |             ) cp1
@@ -5289,6 +5504,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           ) sqalias3 ) sqalias4 LIMIT 10) D ) sqalias5 WHERE ROWNUM >= 1 AND ROWNUM <= 10)
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(resultSql)
   }
 
 
@@ -5368,7 +5584,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |            WHERE (advertiser_id = 213) AND (id IN (12,19,15,11,13,16,17,14,20,18))
          |             ) agp2
          |          INNER JOIN
-         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            (SELECT /*+ CampaignHint */ advertiser_id, CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END AS device_id, id
          |            FROM campaign_postgres
          |
          |             ) cp1
@@ -5384,6 +5600,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           ) sqalias1 ) sqalias2 LIMIT 10) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 10
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(resultSql)
   }
 
   test("Generate dim only query without union all for any middle page(not last)") {
@@ -5462,7 +5679,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |            WHERE (advertiser_id = 213) AND (id IN (45,34,12,51,19,23,40,15,11,44,33,22,55,26,50,37,13,46,24,35,16,48,21,54,43,32,49,36,39,17,25,14,47,31,53,42,20,27,38,18,30,29,41,52,28))
          |             ) agp2
          |          INNER JOIN
-         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            (SELECT /*+ CampaignHint */ advertiser_id, CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END AS device_id, id
          |            FROM campaign_postgres
          |
          |             ) cp1
@@ -5478,6 +5695,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           ) sqalias1 ) sqalias2 LIMIT 45) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 45
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(resultSql)
   }
 
   test("Generate dim only query wit union all for last page)") {
@@ -5555,7 +5773,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |            WHERE (advertiser_id = 213) AND (id IN (12,19,23,15,11,22,13,24,16,21,17,25,14,20,18))
          |             ) agp2
          |          INNER JOIN
-         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            (SELECT /*+ CampaignHint */ advertiser_id, CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END AS device_id, id
          |            FROM campaign_postgres
          |
          |             ) cp1
@@ -5577,7 +5795,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |            WHERE (advertiser_id = 213) AND (id NOT IN (12,19,23,15,11,22,13,24,16,21,17,25,14,20,18))
          |             ) agp2
          |          INNER JOIN
-         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            (SELECT /*+ CampaignHint */ advertiser_id, CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END AS device_id, id
          |            FROM campaign_postgres
          |
          |             ) cp1
@@ -5593,6 +5811,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           ) sqalias3 ) sqalias4 LIMIT 20) D ) sqalias5 WHERE ROWNUM >= 1 AND ROWNUM <= 20)
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(resultSql)
   }
 
   test("Greater than filter should work for Postgres Sync") {
@@ -5641,6 +5860,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |) sqalias3
       """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Less than filter should work for Postgres Sync") {
@@ -5689,6 +5909,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |) sqalias3
       """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("successfully generate dim only postgres query without union all for sync multi engine query for druid + postgres with metric filter") {
@@ -5764,7 +5985,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |            WHERE (advertiser_id = 213) AND (id IN (10))
          |             ) agp2
          |          INNER JOIN
-         |            (SELECT /*+ CampaignHint */ advertiser_id, device_id, id
+         |            (SELECT /*+ CampaignHint */ advertiser_id, CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END AS device_id, id
          |            FROM campaign_postgres
          |
          |             ) cp1
@@ -5780,6 +6001,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |           ) sqalias1 ) sqalias2 LIMIT 10) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 10
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(resultSql)
   }
   test("successfully generate dim only postgres query with Correct RowNum and pagination") {
     import DefaultQueryPipelineFactoryTest._
@@ -5849,6 +6071,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |             sqalias1 WHERE ROWNUM >= 3 AND ROWNUM <= 42
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(resultSql)
   }
 
   test("Skip inSubquery clause for high cardinality dimension filtering") {
@@ -5911,6 +6134,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
        """.stripMargin
 
     result should equal (expected)(after being whiteSpaceNormalised)
+    testQuery(result)
   }
 
   test("Verify Combined queries lose data in Multivalue Dim contexts (Class Name Collapses)") {

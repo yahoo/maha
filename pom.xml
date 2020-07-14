@@ -5,7 +5,7 @@
 
     <groupId>com.yahoo.maha</groupId>
     <artifactId>maha-parent</artifactId>
-    <version>5.381-SNAPSHOT</version>
+    <version>5.382-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>maha parent</name>
@@ -65,6 +65,8 @@
         <akka.version>2.5.31</akka.version>
         <mongo-java-driver.version>3.3.0</mongo-java-driver.version>
         <twitter.chill.version>0.9.5</twitter.chill.version>
+        <pg.embedded.version>0.13.1</pg.embedded.version>
+        <postgres.jdbc.version>42.2.9</postgres.jdbc.version>
     </properties>
 
 
