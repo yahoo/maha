@@ -51,7 +51,7 @@ class OracleDDLGenerator {
 
     def getColumnConstraint(hasDefaultValue : Boolean, column: Column) : String = {
       column match {
-        case c if c.isInstanceOf[DimCol] | c.isInstanceOf[OracleDerDimCol] | hasDefaultValue => "NOT NULL"
+        case c if /*c.isInstanceOf[DimCol] | c.isInstanceOf[OracleDerDimCol] |*/ hasDefaultValue => "NOT NULL"
         case _ => "NULL"
       }
     }
