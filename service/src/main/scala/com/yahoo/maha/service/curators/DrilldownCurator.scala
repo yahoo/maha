@@ -306,9 +306,6 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                         val fieldAlias = fieldAliasOption.get
                         val rowList = defaultRequestResult.queryPipelineResult.rowList
                         var values: Set[String] = Set.empty
-                        if(fieldAlias == "Remarks")
-                          println("serthath")
-
                         rowList.foreach {
                           row =>
                             val aliasPosition = row.aliasMap(fieldAlias)
