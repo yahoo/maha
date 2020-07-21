@@ -2,7 +2,9 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.curators
 
+import com.yahoo.maha.core.ColumnInfo
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
+import com.yahoo.maha.core.query.Row
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.jdbc._
 import com.yahoo.maha.parrequest2.GeneralError
@@ -13,6 +15,8 @@ import com.yahoo.maha.service.{BaseMahaServiceTest, CuratorInjector, MahaRequest
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.scalatest.BeforeAndAfterAll
+
+import scala.collection.mutable.ArrayBuffer
 
 
 /**
@@ -283,5 +287,92 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val result = drilldownCuratorResult.right.get.get()
     assert(result.isLeft)
     assert(result.left.get.message === "fail")
+  }
+
+  test("Should succeed even when DrillDown metric isn't present") {
+    class CuratorCustomPostProcessor extends CuratorResultPostProcessor {
+      override def process(mahaRequestContext: MahaRequestContext, requestResult: RequestResult) : Either[GeneralError, RequestResult] = {
+        val columns: IndexedSeq[ColumnInfo] = requestResult.queryPipelineResult.queryChain.drivingQuery.queryContext.requestModel.requestCols
+        val aliasMap : Map[String, Int] = columns.map(_.alias).zipWithIndex.toMap
+        val data = new ArrayBuffer[Any](initialSize = aliasMap.size)
+        data+="sid"
+        data+="cid"
+        data+="sid"
+        data+=999
+        data+=null
+        val row = Row(aliasMap, data)
+        requestResult.queryPipelineResult.rowList.addRow(row)
+        new Right(requestResult)
+      }
+    }
+
+    val jsonRequest =
+      s"""
+         |{
+         |                          "cube": "student_performance",
+         |                          "curators" : {
+         |                            "drilldown" : {
+         |                              "config": {
+                         |                "dimension": "Remarks",
+                         |                "enforceFilters": true
+                         |            }
+         |                            }
+         |                          },
+         |                          "selectFields": [
+         |                            {"field": "Student ID"},
+         |                            {"field": "Class ID"},
+         |                            {"field": "Section ID"},
+         |                            {"field": "Total Marks"},
+         |                            {"field": "Remarks"}
+         |                          ],
+         |                          "filterExpressions": [
+         |                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+         |                            {"field": "Student ID", "operator": "=", "value": "555"}
+         |                          ]
+         |                        }
+         |""".stripMargin
+
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", true), forceRevision = Some(1))
+
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+    val curatorMahaRequestLogHelper =  CuratorMahaRequestLogHelper(mahaRequestLogHelper)
+
+
+    val ddCurator = new DrilldownCurator()
+    val defaultCurator = DefaultCurator(curatorResultPostProcessor = new CuratorCustomPostProcessor)
+
+    val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set("default"))
+    val defaultParRequest: Either[CuratorError, ParRequest[CuratorResult]] = defaultCurator
+      .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
+
+    val parseDDConfig = ddCurator.parseConfig(reportingRequest.curatorJsonConfigMap(DrilldownCurator.name))
+    assert(parseDDConfig.isSuccess, s"failed : $parseDDConfig")
+    val ddConfig: DrilldownConfig = parseDDConfig.toOption.get.asInstanceOf[DrilldownConfig]
+    //assert(totalMetricsConfig.forceRevision === Option(0))
+    //val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
+
+    val ddCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = ddCurator
+      .process(Map("default" -> defaultParRequest), mahaRequestContext, mahaService, curatorMahaRequestLogHelper, ddConfig, curatorInjector)
+
+    val queryPipelineResult = ddCuratorResult
+      .right.get.get().right.get.parRequestResultOption.get.prodRun.get().right.get.queryPipelineResult
+    var rowCount = 0
+    queryPipelineResult.rowList.foreach {
+      row=>
+        rowCount+=1
+    }
+    assert(rowCount == 0)
+    //Errors here will pan out in Log as: Row has null Remarks (position 4)!  Found row
   }
 }
