@@ -1537,7 +1537,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                           "selectFields": [
                             {"field": "Student ID"},
                             {"field": "Total Marks"},
-                            {"field": "Remarks"},
+                            {"field": "Remarks2"},
                             {"field": "Class ID"},
                             {"field": "Performance Factor"}
                           ],
