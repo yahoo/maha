@@ -40,9 +40,13 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     @JsonProperty
     private final Properties kerberosProperties;
     @JsonProperty
+    private final Properties mTLSProperties;
+    @JsonProperty
     private final TsColumnConfig tsColumnConfig;
     @JsonProperty
     private final boolean kerberosPropertiesEnabled;
+    @JsonProperty
+    private final boolean mTLSPropertiesEnabled;
 
     private boolean firstTimeCaching = true;
     private Timestamp previousLastUpdateTimestamp;
@@ -59,8 +63,10 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
             @JsonProperty(value = "cacheEnabled", required = false) final boolean cacheEnabled,
             @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName,
             @JsonProperty(value = "kerberosProperties", required = false) final Properties kerberosProperties,
+            @JsonProperty(value = "mTLSProperties", required = false) final Properties mTLSProperties,
             @JsonProperty(value = "tsColumnConfig", required = false) final TsColumnConfig tsColumnConfig,
-            @JsonProperty(value = "kerberosPropertiesEnabled", required = false) final boolean kerberosPropertiesEnabled
+            @JsonProperty(value = "kerberosPropertiesEnabled", required = false) final boolean kerberosPropertiesEnabled,
+            @JsonProperty(value = "mTLSPropertiesEnabled", required = false) final boolean mTLSPropertiesEnabled
     ) {
         this.connectorConfig = Preconditions.checkNotNull(connectorConfig, "connectorConfig");
         Preconditions.checkNotNull(connectorConfig.getConnectURI(), "connectorConfig.connectURI");
@@ -72,8 +78,10 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
         this.cacheEnabled = cacheEnabled;
         this.lookupName = lookupName;
         this.kerberosProperties = kerberosProperties;
+        this.mTLSProperties = mTLSProperties;
         this.tsColumnConfig = tsColumnConfig;
         this.kerberosPropertiesEnabled = kerberosPropertiesEnabled;
+        this.mTLSPropertiesEnabled = mTLSPropertiesEnabled;
         int index = 0;
         ImmutableMap.Builder<String, Integer> builder = ImmutableMap.builder();
         for (String col : columnList) {
@@ -84,7 +92,7 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
     }
 
     public JDBCExtractionNamespace(MetadataStorageConnectorConfig connectorConfig, String table, ArrayList<String> columnList, String primaryKeyColumn, String tsColumn, Period pollPeriod, boolean cacheEnabled, String lookupName) {
-        this(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, null, null, false);
+        this(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, null, null, null, false, false);
     }
 
     public int getColumnIndex(String valueColumn) {
@@ -145,6 +153,10 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
         return kerberosProperties != null && kerberosProperties.size() != 0;
     }
 
+    public boolean hasmTLSProperties() {
+        return mTLSProperties != null && mTLSProperties.size() != 0;
+    }
+
     public TsColumnConfig getTsColumnConfig() {
         return tsColumnConfig;
     }
@@ -179,6 +191,14 @@ public class JDBCExtractionNamespace implements OnlineDatastoreExtractionNamespa
 
     public boolean isKerberosPropertiesEnabled() {
         return kerberosPropertiesEnabled;
+    }
+
+    public Properties getmTLSProperties() {
+        return mTLSProperties;
+    }
+
+    public boolean ismTLSPropertiesEnabled() {
+        return mTLSPropertiesEnabled;
     }
 
     @Override
