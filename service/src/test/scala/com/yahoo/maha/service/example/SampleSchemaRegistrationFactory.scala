@@ -44,7 +44,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
             , DimCol("section_id", IntType(3))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
-            , DimCol("comment", StrType(), annotations = Set(EscapingRequired, ForeignKey("remarks")))
+            , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
             , DimCol("date", DateType())
             , DimCol("month", DateType())
             , DimCol("top_student_id", IntType())
@@ -99,7 +99,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
             , DimCol("section_id", IntType(3))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
-            , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
+            , DimCol("comment", StrType(), annotations = Set(EscapingRequired, ForeignKey("remarks")))
             , DimCol("date", DateType())
             , DimCol("month", DateType())
             , DimCol("top_student_id", IntType())
@@ -209,7 +209,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
 
     val remarks_dim: PublicDimension = {
       ColumnContext.withColumnContext { implicit dc: ColumnContext =>
-        Dimension.newDimension("remarks", OracleEngine, LevelTwo, Set(StudentSchema),
+        Dimension.newDimension("remarks", DruidEngine, LevelTwo, Set(StudentSchema),
           Set(
             DimCol("id", StrType(), annotations = Set(PrimaryKey))
             , DimCol("name", StrType())
@@ -219,8 +219,6 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
             , DimCol("profile_url", StrType())
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
-          , schemaColMap = Map(StudentSchema -> "id")
-          , annotations = Set(OracleHashPartitioning)
         ).toPublicDimension("remarks","remarks",
           Set(
             PubCol("id", "Remarks", InBetweenEqualityFieldEquality)
@@ -228,7 +226,7 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
             , PubCol("admitted_year", "Remark Year", InEquality, hiddenFromJson = true)
             , PubCol("status", "Remark Status", InEqualityFieldEquality)
             , PubCol("profile_url", "Remark URL", InEqualityLike, isImageColumn = true)
-          ), highCardinalityFilters = Set(NotInFilter("Remark Status", List("DELETED")))
+          )
         )
       }
     }

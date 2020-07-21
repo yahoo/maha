@@ -45,8 +45,7 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val rows: List[Seq[Any]] = List(
       Seq(1, 100, 213, 200, 135, yesterday.toString, "some comment 1", yesterday.toString, 213),
       Seq(1, 100, 213, 198, 120, yesterday.toString, "some comment 2", yesterday.toString, 213),
-      Seq(1, 500, 213, 197, 190, yesterday.toString, "some comment 3", yesterday.toString, 213),
-      Seq(1, 500, 555, 0, 543, yesterday.toString, null, yesterday.toString, 213)
+      Seq(1, 500, 213, 197, 190, yesterday.toString, "some comment 3", yesterday.toString, 213)
     )
 
     rows.foreach {
@@ -337,7 +336,7 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val bucketParams = BucketParams(UserInfo("uid", true))
+    val bucketParams = BucketParams(UserInfo("uid", true), forceRevision = Some(1))
 
 
     val mahaRequestContext = MahaRequestContext(REGISTRY,
@@ -372,8 +371,8 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     queryPipelineResult.rowList.foreach {
       row=>
         rowCount+=1
-        assert(row.getValue("Total Marks") == 543) //returns only valid row, as empty List will give RowCount query.
     }
-    assert(rowCount == 1)
+    assert(rowCount == 0)
+    //Errors here will pan out in Log as: Row has null Remarks (position 4)!  Found row
   }
 }

@@ -142,7 +142,8 @@ trait BaseMahaServiceTest extends FunSuite with Logging {
                      | 		"Section ID": 100,
                      |		"Student ID": 213,
                      |		"Class ID": "200",
-                     |		"Total Marks": 99
+                     |		"Total Marks": 99,
+                     |		"Remarks": null
                      |	}
                      |}]""".stripMargin
       Ok(response)
