@@ -23,7 +23,7 @@ object DrilldownConfig {
 
     val config: JValue = curatorJsonConfig.json
 
-    val dimension : Field = assignDim(config)
+    val dimensions : List[Field] = assignDim(config)
 
     val maxRows : BigInt = assignMaxRows(config)
 
@@ -33,7 +33,7 @@ object DrilldownConfig {
 
     val cube : String = assignCube(config, "")
 
-    DrilldownConfig(enforceFilters, dimension, cube, ordering, maxRows).successNel
+    DrilldownConfig(enforceFilters, dimensions.toIndexedSeq, cube, ordering, maxRows).successNel
   }
 
   private def assignCube(config: JValue, default: String) : String = {
@@ -46,10 +46,14 @@ object DrilldownConfig {
     }
   }
 
-  private def assignDim(config: JValue): Field = {
+  private def assignDim(config: JValue): List[Field] = {
     val drillDim : MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("dimension")(config)
-    require(drillDim.isSuccess, "CuratorConfig for a DrillDown should have a dimension declared!")
-    Field(drillDim.toOption.get, None, None)
+    val drillDims: MahaServiceConfig.MahaConfigResult[List[String]] = fieldExtended[List[String]]("dimensions")(config)
+    val dims: MahaServiceConfig.MahaConfigResult[List[String]] = drillDims orElse drillDim.map(s => List(s))
+    require(dims.isSuccess, "CuratorConfig for a DrillDown should have a dimension or dimensions declared!")
+    dims.toOption.get.map {
+      s => Field(s, None, None)
+    }
   }
 
   private def assignMaxRows(config: JValue): BigInt = {
@@ -87,7 +91,7 @@ object DrilldownConfig {
 }
 
 case class DrilldownConfig(enforceFilters: Boolean,
-                            dimension: Field,
-                            cube: String,
-                            ordering: IndexedSeq[SortBy],
-                            maxRows: BigInt) extends CuratorConfig
+                           dimensions: IndexedSeq[Field],
+                           cube: String,
+                           ordering: IndexedSeq[SortBy],
+                           maxRows: BigInt) extends CuratorConfig

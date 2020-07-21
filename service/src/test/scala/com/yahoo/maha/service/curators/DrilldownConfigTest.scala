@@ -55,7 +55,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     assert(drillDownConfig.enforceFilters)
     assert(drillDownConfig.maxRows == 1000)
     assert(drillDownConfig.ordering.contains(SortBy("Class ID", ASC)))
-    assert(drillDownConfig.dimension == Field("Section ID", None, None))
+    assert(drillDownConfig.dimensions == List(Field("Section ID", None, None)))
     assert(drillDownConfig.cube == "")
   }
 
@@ -100,7 +100,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     assert(drillDownConfig.enforceFilters)
     assert(drillDownConfig.maxRows == 1000)
     assert(drillDownConfig.ordering.contains(SortBy("Class ID", DESC)))
-    assert(drillDownConfig.dimension == Field("Section ID", None, None))
+    assert(drillDownConfig.dimensions == List(Field("Section ID", None, None)))
     assert(drillDownConfig.cube == "")
   }
 
@@ -182,7 +182,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val thrown = intercept[Exception] {
       DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown"))
     }
-    assert(thrown.getMessage.contains("CuratorConfig for a DrillDown should have a dimension declared"))
+    assert(thrown.getMessage.contains("CuratorConfig for a DrillDown should have a dimension or dimensions declared"))
   }
 
   test("Create a valid DrillDownConfig with Descending order and multiple orderings") {
@@ -228,7 +228,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     assert(drillDownConfig.enforceFilters)
     assert(drillDownConfig.maxRows == 1000)
     assert(drillDownConfig.ordering.contains(SortBy("Section ID", DESC)))
-    assert(drillDownConfig.dimension == Field("Section ID", None, None))
+    assert(drillDownConfig.dimensions == List(Field("Section ID", None, None)))
     assert(drillDownConfig.cube == "")
   }
 
@@ -240,7 +240,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
                             "drilldown" : {
                               "config" : {
                                 "enforceFilters": false,
-                                "dimension": "Day",
+                                "dimensions": ["Day", "Remarks"],
                                 "mr": 1000
                               }
                             }
@@ -268,7 +268,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
     assert(!drillDownConfig.enforceFilters)
     assert(drillDownConfig.maxRows == 1000)
-    assert(drillDownConfig.dimension == Field("Day", None, None))
+    assert(drillDownConfig.dimensions == List(Field("Day", None, None), Field("Remarks", None, None)))
     assert(drillDownConfig.cube == "")
   }
 }
