@@ -128,7 +128,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
           publicFact.columnsByAlias(filter.field)
       }
     } else IndexedSeq.empty
-    val allSelectedFields : IndexedSeq[Field] = (IndexedSeq(drilldownConfig.dimension, primaryKeyField).filter{_!=null} ++ factFields).distinct
+    val allSelectedFields : IndexedSeq[Field] = ((drilldownConfig.dimensions ++ IndexedSeq(primaryKeyField)).filter{_!=null} ++ factFields).distinct
     val selectedFieldAliasSet:Set[String] = allSelectedFields.map(f=> f.field).toSet
     val drillDownOrdering = reportingRequest.sortBy.filter(sort => selectedFieldAliasSet.contains(sort.field))
     reportingRequest.copy(cube = cube

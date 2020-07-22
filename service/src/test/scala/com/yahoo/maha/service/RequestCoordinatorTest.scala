@@ -1065,7 +1065,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                           "curators" : {
                             "drilldown" : {
                               "config" : {
-                                "dimension": "Remarks"
+                                "dimensions": ["Year", "Remarks"]
                               }
                             }
                           },
@@ -1101,15 +1101,15 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
     val drillDownCuratorResult: RequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name)
     val expectedSet = Set(
-      "Row(Map(Remarks -> 0, Student ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 1, 213, 125))",
-      "Row(Map(Remarks -> 0, Student ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 2, 213, 180))",
-      "Row(Map(Remarks -> 0, Student ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 3, 213, 175))"
+      "Row(Map(Year -> 0, Remarks -> 1, Student ID -> 2, Total Marks -> 3),ArrayBuffer(Freshman, some comment 1, 213, 125))",
+      "Row(Map(Year -> 0, Remarks -> 1, Student ID -> 2, Total Marks -> 3),ArrayBuffer(Freshman, some comment 2, 213, 180))",
+      "Row(Map(Year -> 0, Remarks -> 1, Student ID -> 2, Total Marks -> 3),ArrayBuffer(Freshman, some comment 3, 213, 175))",
     )
 
     var cnt = 0
     drillDownCuratorResult.queryPipelineResult.rowList.foreach( row => {
       
-      assert(expectedSet.contains(row.toString))
+      assert(expectedSet.contains(row.toString), row.toString)
       cnt+=1
     })
 
