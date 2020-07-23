@@ -19,10 +19,10 @@ import org.apache.druid.js.JavaScriptConfig
 import org.apache.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec}
 import org.apache.druid.query.extraction.{RegexDimExtractionFn, SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
 import org.apache.druid.query.filter.JavaScriptDimFilter
-import org.apache.druid.query.ordering.StringComparator
 import org.apache.druid.query.ordering.StringComparators.{LexicographicComparator, NumericComparator}
 import org.joda.time.format.{DateTimeFormatter, ISODateTimeFormat}
 import org.joda.time.{DateTime, DateTimeZone, Days, Period}
+
 import scala.collection.{Iterable, mutable}
 import scalaz.syntax.applicative._
 import org.json4s._
@@ -30,6 +30,8 @@ import org.json4s.jackson.Serialization
 import org.json4s.scalaz.JsonScalaz
 import org.json4s.scalaz.JsonScalaz._
 import org.json4s.jackson.JsonMethods._
+
+import scala.collection.immutable.SortedSet
 
 sealed trait FilterOperation
 case object InFilterOperation extends FilterOperation { override def toString = "In" }
@@ -68,6 +70,7 @@ object FilterOperation {
   val InNotInEqualityNotEquals: Set[FilterOperation] = Set(InFilterOperation, NotInFilterOperation, EqualityFilterOperation, NotEqualToFilterOperation)
   val InNotInEqualityLike: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation, NotInFilterOperation, LikeFilterOperation)
   val InBetweenEquality: Set[FilterOperation] = Set(InFilterOperation, BetweenFilterOperation,EqualityFilterOperation)
+  val InBetweenDateTimeBetweenEquality: Set[FilterOperation] = Set(InFilterOperation, BetweenFilterOperation,EqualityFilterOperation, DateTimeBetweenFilterOperation)
   val BetweenEquality: Set[FilterOperation] = Set(BetweenFilterOperation,EqualityFilterOperation)
   val InEqualityIsNotNull: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation, IsNotNullFilterOperation)
   val InEqualityIsNotNullNotIn: Set[FilterOperation] = Set(InFilterOperation, EqualityFilterOperation, IsNotNullFilterOperation,NotInFilterOperation)
@@ -148,11 +151,8 @@ case class BetweenFilter(field: String, from: String, to: String) extends Filter
 trait DateTimeFilter extends Filter {
   def format: String
 
+  //This is always in UTC format
   val dateTimeFormatter: DateTimeFormatter = DateType.formatter(format)
-
-  def applyTimeZone(zone: DateTimeZone): DateTimeFilter
-
-  def convertToTimeZone(zone: DateTimeZone): DateTimeFilter
 
   def convertToUTCFromLocalZone(zone: DateTimeZone): DateTimeFilter
 }
@@ -198,37 +198,32 @@ case class DateTimeBetweenFilter(field: String, from: String, to: String, format
     new DateTime(yy, mm, dd, hh, mins, secs, millis, z)
   }
 
-  def applyTimeZone(zone: DateTimeZone): DateTimeBetweenFilter = {
-    val isoFormat = ISODateTimeFormat.dateTime().withZone(zone)
-    val f = getDateTimeWithZone(fromDateTime, zone)
-    val t = getDateTimeWithZone(toDateTime, zone)
-    DateTimeBetweenFilterHelper.iso8601(field, isoFormat.print(f), isoFormat.print(t))
-  }
-
-  def convertToTimeZone(zone: DateTimeZone): DateTimeBetweenFilter = {
-    val isoFormat = ISODateTimeFormat.dateTime().withZone(zone)
-    DateTimeBetweenFilterHelper.iso8601(field, isoFormat.print(fromDateTime), isoFormat.print(toDateTime))
-  }
-
   def convertToUTCFromLocalZone(zone: DateTimeZone) : DateTimeBetweenFilter = {
-    val f = if(fromDateTime.getZone == DateTimeZone.UTC && zone != DateTimeZone.UTC ) {
+    val f = if(zone != DateTimeZone.UTC ) {
       getDateTimeWithZone(fromDateTime, zone)
     } else fromDateTime
-    val t = if(toDateTime.getZone == DateTimeZone.UTC && zone != DateTimeZone.UTC) {
+    val t = if(zone != DateTimeZone.UTC) {
       getDateTimeWithZone(toDateTime, zone)
     } else toDateTime
-    val isoFormat = ISODateTimeFormat.dateTime().withZoneUTC()
-    DateTimeBetweenFilterHelper.iso8601(field, isoFormat.print(fromDateTime), isoFormat.print(toDateTime))
+    DateTimeBetweenFilterHelper.iso8601(field, DateTimeBetweenFilterHelper.isoFormat.print(f)
+      , DateTimeBetweenFilterHelper.isoFormat.print(t))
   }
 }
 
 object DateTimeBetweenFilterHelper extends Logging {
+  val isoFormat: DateTimeFormatter = ISODateTimeFormat.dateTime().withZoneUTC()
+  val iso8601FormatString = "yyyy-MM-dd'T'HH:mm:ss.SSSZZ"
+
+  def iso8601FormattedString(dt: DateTime) : String = {
+    isoFormat.print(dt)
+  }
+
   def logError(msg: String, t: Throwable): Unit = {
     error(msg, t)
   }
 
   def iso8601(field: String, from: String, to: String): DateTimeBetweenFilter = {
-    DateTimeBetweenFilter(field, from, to, "yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
+    DateTimeBetweenFilter(field, from, to, iso8601FormatString)
   }
 
   def yearMonthDayHourMinuteSecondMilli(field: String, from: String, to: String): DateTimeBetweenFilter = {
@@ -570,7 +565,7 @@ object SqlDateTimeBetweenFilterRenderer extends DateTimeFilterRenderer[SqlResult
             val renderedTo = s"to_date($to, 'YYYY-MM-DD')"
             DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
           case TimestampType(format) =>
-            val ISO8601DateFormat = ISODateTimeFormat.dateTime()
+            val ISO8601DateFormat = ISODateTimeFormat.dateTime().withZoneUTC()
             val fromISO = ISO8601DateFormat.print(fromDateTime)
             val toISO = ISO8601DateFormat.print(toDateTime)
             val from = s"""'$fromISO'"""
@@ -593,7 +588,7 @@ object SqlDateTimeBetweenFilterRenderer extends DateTimeFilterRenderer[SqlResult
             val renderedTo = s"to_date($to, 'YYYY-MM-DD')"
             DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
           case TimestampType(format) =>
-            val ISO8601DateFormat = ISODateTimeFormat.dateTime()
+            val ISO8601DateFormat = ISODateTimeFormat.dateTime().withZoneUTC()
             val fromISO = ISO8601DateFormat.print(fromDateTime)
             val toISO = ISO8601DateFormat.print(toDateTime)
             val from = s"""'$fromISO'::timestamptz"""
@@ -643,7 +638,7 @@ object SqlDateTimeBetweenFilterRenderer extends DateTimeFilterRenderer[SqlResult
             DefaultResult(s"""$name >= $renderedFrom AND $name <= $renderedTo""")
           case TimestampType(format) =>
             //yyyy-MM-dd'T'HH:mm:ss.SSSZZ
-            val ISO8601DateFormat = ISODateTimeFormat.dateTime()
+            val ISO8601DateFormat = ISODateTimeFormat.dateTime().withZoneUTC()
             val fromISO = ISO8601DateFormat.print(fromDateTime)
             val toISO = ISO8601DateFormat.print(toDateTime)
             val from = s"""'$fromISO'"""
@@ -1011,8 +1006,8 @@ object FilterDruid {
   def extractFromAndToDate(f: Filter, g: Grain) : (DateTime, DateTime) = {
     f match {
       case dtf: DateTimeBetweenFilter =>
-        val f = g.fromFormattedString(g.toFormattedString(dtf.fromDateTime))
-        val t = g.fromFormattedString(g.toFormattedString(dtf.toDateTime))
+        val f = g.fromFullFormattedString(g.toFullFormattedString(dtf.fromDateTime))
+        val t = g.fromFullFormattedString(g.toFullFormattedString(dtf.toDateTime))
         (f, t)
       case BetweenFilter(_, from, to) =>
         val f = g.fromFormattedString(from)
@@ -1081,6 +1076,51 @@ object FilterDruid {
     new OrDimFilter(selectorList.asJava)
   }
 
+  private[this] def processDateTimeBetweenFilterForDate(fromDate: DateTime, toDate: DateTime, grain: Grain, columnAlias: String, column: Column, columnsByNameMap: Map[String, Column], timezone: DateTimeZone) : DimFilter = {
+    val values: List[String] = {
+      val dates = new mutable.HashSet[String]()
+      var currentDate = fromDate
+      while(currentDate.isBefore(toDate) || currentDate.isEqual(toDate)) {
+        dates += grain.toFullFormattedString(currentDate)
+        currentDate = grain.incrementOne(currentDate)
+      }
+      dates.map(druidLiteralMapper.toLiteral(column, _, Option(grain))).to[SortedSet].toList
+    }
+    val selectorList : List[DimFilter] = column match {
+      case DruidFuncDimCol(name, dt, cc, df, a, ann, foo) =>
+        df match {
+          case DRUID_TIME_FORMAT(fmt,zone) =>
+            val exFn = new TimeFormatExtractionFn(fmt, zone, null, null, false)
+            values.map {
+              v => new SelectorDimFilter(DRUID_TIME_FORMAT.sourceDimColName, v, exFn)
+            }
+          case DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY(fmt, period, zone) =>
+            val periodGranularity = new PeriodGranularity(new Period(period), null, zone)
+            val exFn = new TimeFormatExtractionFn(fmt, zone, null, periodGranularity, false)
+            values.map {
+              v => new SelectorDimFilter(DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY.sourceDimColName, v, exFn)
+            }
+          case TIME_FORMAT_WITH_REQUEST_CONTEXT(fmt) =>
+            val exFn = new TimeFormatExtractionFn(fmt, timezone, null, null, false)
+            values.map {
+              v => new SelectorDimFilter(columnAlias, v, null)
+            }
+          case formatter@DATETIME_FORMATTER(fieldName, index, length) =>
+            val exFn = new SubstringDimExtractionFn(index, length)
+            values.map {
+              v => new SelectorDimFilter(formatter.dimColName, v, exFn)
+            }.toList
+          case any => throw new UnsupportedOperationException(s"Unhandled druid func $any")
+        }
+      case _ =>
+        values.map {
+          v => new SelectorDimFilter(columnAlias, druidLiteralMapper.toLiteral(column, v, Option(grain)), null)
+        }
+
+    }
+    new OrDimFilter(selectorList.asJava)
+  }
+
   def isExpensiveDateDimFilter(model: RequestModel,
                                aliasToNameMapFull: Map[String, String],
                                columnsByNameMap: Map[String, Column]) : Boolean = {
@@ -1099,12 +1139,16 @@ object FilterDruid {
 
   }
 
-  def renderDateDimFilters(model: RequestModel,
-                      aliasToNameMapFull: Map[String, String],
-                      columnsByNameMap: Map[String, Column], forOuterQuery: Boolean = false) : Seq[DimFilter] = {
+  def renderDateDimFilters(model: RequestModel
+                           , aliasToNameMapFull: Map[String, String]
+                           , columnsByNameMap: Map[String, Column]
+                           , grain: Grain
+                           , forOuterQuery: Boolean = false) : Seq[DimFilter] = {
     val dimFilters = new mutable.ArrayBuffer[DimFilter]
     val timezone = DateTimeZone.forID(model.additionalParameters.getOrElse(Parameter.TimeZone, TimeZoneValue.apply(DateTimeZone.UTC.getID))
       .asInstanceOf[TimeZoneValue].value)
+    val name: String = aliasToNameMapFull(model.localTimeDayFilter.field)
+    val column = columnsByNameMap(name)
 
     model.localTimeDayFilter.operator match {
       case InFilterOperation | EqualityFilterOperation =>
@@ -1121,10 +1165,12 @@ object FilterDruid {
               dimFilters += renderFilterDim(filter, aliasToNameMapFull, columnsByNameMap, Option(HourlyGrain))
             }
         }
-      case BetweenFilterOperation =>
+      case DateTimeBetweenFilterOperation if column.dataType.isInstanceOf[TimestampType] =>
+        val columnAlias = if(forOuterQuery) model.localTimeDayFilter.field else column.alias.getOrElse(name)
+        val (f, t) = extractFromAndToDate(model.localTimeDayFilter, grain)
+        dimFilters += processDateTimeBetweenFilterForDate(f, t, grain, columnAlias, column, columnsByNameMap, timezone)
+      case BetweenFilterOperation | DateTimeBetweenFilterOperation =>
         val (dayFrom, dayTo) = {
-          val name: String = aliasToNameMapFull(model.localTimeDayFilter.field)
-          val column = columnsByNameMap(name)
           val columnAlias = if(forOuterQuery) model.localTimeDayFilter.field else column.alias.getOrElse(name)
           val (f, t) = extractFromAndToDate(model.localTimeDayFilter, DailyGrain)
           dimFilters += processBetweenFilterForDate(f, t, DailyGrain, columnAlias, column, columnsByNameMap, timezone)
@@ -1157,6 +1203,7 @@ object FilterDruid {
             }
           }
         }
+
       case any => throw new UnsupportedOperationException(s"Unsupported date operation : ${model.localTimeDayFilter}")
 
     }
@@ -1217,6 +1264,8 @@ object FilterDruid {
             //currently
             throw new UnsupportedOperationException(s"Between filter not supported on Druid dimension fields : $f")
         }
+      case dtf: DateTimeBetweenFilter =>
+        throw new UnsupportedOperationException(s"DateTimeBetween filter not supported on Druid dimension fields : ${dtf.field}")
       case f @ InFilter(alias, values, _, _) =>
         val selectorList : List[DimFilter] = values.map {
           v => getDruidFilter(grainOption, column, columnAlias, v, columnsByNameMap)

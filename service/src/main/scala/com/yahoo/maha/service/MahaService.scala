@@ -287,7 +287,10 @@ case class DefaultMahaService(config: MahaServiceConfig) extends MahaService wit
   override def generateRequestModel(registryName: String, reportingRequest: ReportingRequest, bucketParams: BucketParams): Try[RequestModelResult] = {
     validateRegistry(registryName)
     val registryConfig = config.registry(registryName)
-    return RequestModelFactory.fromBucketSelector(reportingRequest, bucketParams, registryConfig.registry, registryConfig.bucketSelector, utcTimeProvider = registryConfig.utcTimeProvider)
+    RequestModelFactory.fromBucketSelector(
+      reportingRequest, bucketParams, registryConfig.registry, registryConfig.bucketSelector
+      , utcTimeProvider = registryConfig.utcTimeProvider, userTimeZoneProvider = registryConfig.userTimeZoneProvider
+    )
   }
 
   /**

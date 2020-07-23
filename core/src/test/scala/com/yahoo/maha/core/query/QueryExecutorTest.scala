@@ -56,7 +56,7 @@ class QueryExecutorTest extends FunSuite with Matchers with BaseOracleQueryGener
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -116,7 +116,7 @@ class QueryExecutorTest extends FunSuite with Matchers with BaseOracleQueryGener
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 

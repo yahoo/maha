@@ -312,11 +312,11 @@ case object DateType extends Logging {
   private[this] val ORACLE_HOUR_FORMAT = "hh"
   private[this] val HIVE_HOUR = "YYYYMMDDHH"
   private[this] val UTC_TIME_HOUR = "yyyyMMddHH"
-  private[this] var formatterMap: LoadingCache[String, DateTimeFormatter] = {
+  private[this] val formatterMap: LoadingCache[String, DateTimeFormatter] = {
     val loader: CacheLoader[String, DateTimeFormatter] = new CacheLoader[String, DateTimeFormatter] {
       override def load(k: String): DateTimeFormatter = {
         try {
-          DateTimeFormat.forPattern(k) //timezone could be provided in the format string
+          DateTimeFormat.forPattern(k).withZoneUTC() //timezone could be provided in the format string
         } catch {
           case e: Exception =>
             error(s"Invalid date time format: $k", e)

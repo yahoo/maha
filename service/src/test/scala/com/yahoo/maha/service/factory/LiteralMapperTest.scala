@@ -35,4 +35,25 @@ class LiteralMapperTest extends BaseFactoryTest {
     assert(generatorResult.toList.head.isInstanceOf[DruidLiteralMapper])
   }
 
+  test("Test DefaultPostgresLiteralMapper") {
+    val factoryResult = getFactory[PostgresLiteralMapperFactory]("com.yahoo.maha.service.factory.DefaultPostgresLiteralMapperFactory", closer)
+    assert(factoryResult.isSuccess)
+    val factory = factoryResult.toOption.get
+    assert(factory.supportedProperties.isEmpty)
+    val json = parse("{}")
+    val generatorResult = factory.fromJson(json)
+    assert(generatorResult.isSuccess, generatorResult)
+    assert(generatorResult.toList.head.isInstanceOf[PostgresLiteralMapper])
+  }
+
+  test("Test DefaultPostgresLiteralMapperUsingDriver") {
+    val factoryResult = getFactory[PostgresLiteralMapperFactory]("com.yahoo.maha.service.factory.DefaultPostgresLiteralMapperUsingDriverFactory", closer)
+    assert(factoryResult.isSuccess)
+    val factory = factoryResult.toOption.get
+    assert(factory.supportedProperties.isEmpty)
+    val json = parse("{}")
+    val generatorResult = factory.fromJson(json)
+    assert(generatorResult.isSuccess, generatorResult)
+    assert(generatorResult.toList.head.isInstanceOf[PostgresLiteralMapper])
+  }
 }

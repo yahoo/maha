@@ -49,7 +49,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -281,7 +281,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
 
       val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
       val registry = getDefaultRegistry()
-      val requestModel = RequestModel.from(request, registry)
+      val requestModel = getRequestModel(request, registry)
       assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 

@@ -12,7 +12,7 @@ import com.yahoo.maha.core.query.druid.{AsyncDruidQueryOptimizer, DruidQuery, Dr
 import com.yahoo.maha.core.query.oracle.BaseOracleQueryGeneratorTest
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.core.{ColumnContext, DailyGrain, DateType, DecType, DruidEngine, DruidExpression, EqualityFilter, EscapingRequired, Filter, ForeignKey, IntType, RequestModel, StrType}
+import com.yahoo.maha.core.{ColumnContext, DailyGrain, DateType, DecType, DruidEngine, DruidExpression, EqualityFilter, EscapingRequired, Filter, ForeignKey, IntType, StrType}
 
 /**
  * Created by hiral on 1/25/16.
@@ -43,7 +43,7 @@ class CompleteRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListT
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -161,7 +161,7 @@ class CompleteRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListT
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -192,7 +192,7 @@ class CompleteRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListT
     registryBuilder.register(druid_pubfact(Set.empty))
     registerDims(registryBuilder)
     val registry = registryBuilder.build()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 

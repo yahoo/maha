@@ -229,6 +229,9 @@ case class RequestModel(cube: String
   utcTimeDayFilter match {
     case BetweenFilter(field, from, to) =>
       require(!DaysUtils.isFutureDate(from), FutureDateNotSupportedError(from))
+    case dtb:DateTimeBetweenFilter =>
+      val from = DailyGrain.toFormattedString(dtb.fromDateTime)
+      require(!DaysUtils.isFutureDate(from), FutureDateNotSupportedError(from))
     case EqualityFilter(field, date, _, _) =>
       require(!DaysUtils.isFutureDate(date), FutureDateNotSupportedError(date))
     case InFilter(field, dates, _, _) =>
@@ -311,7 +314,14 @@ object RequestModel extends Logging {
 
   val Logger = LoggerFactory.getLogger(classOf[RequestModel])
 
-  def from(request: ReportingRequest, registry: Registry, utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider, revision: Option[Int] = None) : Try[RequestModel] = {
+  def from(request: ReportingRequest
+           , registry: Registry
+          //I've made userTimeZoneProvider required so on upgrade, users are forced to provide it
+          //instead of a silent failure with using a Noop provider
+           , userTimeZoneProvider: UserTimeZoneProvider
+           , utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider
+           , revision: Option[Int] = None
+          ) : Try[RequestModel] = {
     Try {
       registry.getFact(request.cube, revision) match {
         case None =>
@@ -343,14 +353,13 @@ object RequestModel extends Logging {
             Option.apply(DailyGrain)
           }
           val isDebugEnabled = request.isDebugEnabled
-          val timezone = request.getTimezone //the zone should come from request, not UTC time provider
+          //the zone should come from request or user time zone provider, not UTC time provider
+          val timezone = request.getTimezone orElse userTimeZoneProvider.getTimeZone(request)
           val (localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter) = if(timezone.isDefined) {
             //we assume all dates are in the users local time
-            //if it's a DateTimeFilter we simplify apply the zone on top of the incoming date
             if (request.dayFilter.isInstanceOf[DateTimeFilter]) {
-              val zone = DateTimeZone.forID(timezone.get)
               //if it is a DateTimeFilter, then we don't need separate hour and minute filter, they can be in day filter
-              (request.dayFilter.asInstanceOf[DateTimeFilter].applyTimeZone(zone), None, None)
+              (request.dayFilter, None, None)
             } else //if it's not a DateTimeFilter then we just pass through since there won't be zone information in filter
               (request.dayFilter, request.hourFilter, request.minuteFilter)
           } else //if the user hasn't set a time zone, then we honor whatever the zone is in the parsed date itself
@@ -1205,18 +1214,18 @@ object RequestModel extends Logging {
         val requestedDaysWindow = dtf.daysBetween
         val requestedDaysLookBack = dtf.daysFromNow
         require(requestedDaysWindow <= maxDaysWindow,
-          MaxWindowExceededError(maxDaysWindow, DailyGrain.getDaysBetween(dtf.from, dtf.to), factName))
+          MaxWindowExceededError(maxDaysWindow, requestedDaysWindow, factName))
         require(requestedDaysLookBack <= maxDaysLookBack,
-          MaxLookBackExceededError(maxDaysLookBack, DailyGrain.getDaysFromNow(dtf.from), factName))
+          MaxLookBackExceededError(maxDaysLookBack, requestedDaysLookBack, factName))
         (requestedDaysWindow, requestedDaysLookBack)
 
       case BetweenFilter(_,from,to) =>
         val requestedDaysWindow = DailyGrain.getDaysBetween(from, to)
         val requestedDaysLookBack = DailyGrain.getDaysFromNow(from)
         require(requestedDaysWindow <= maxDaysWindow,
-          MaxWindowExceededError(maxDaysWindow, DailyGrain.getDaysBetween(from, to), factName))
+          MaxWindowExceededError(maxDaysWindow, requestedDaysWindow, factName))
         require(requestedDaysLookBack <= maxDaysLookBack,
-          MaxLookBackExceededError(maxDaysLookBack, DailyGrain.getDaysFromNow(from), factName))
+          MaxLookBackExceededError(maxDaysLookBack, requestedDaysLookBack, factName))
         (requestedDaysWindow, requestedDaysLookBack)
 
       case InFilter(_,dates, _, _) =>
@@ -1355,12 +1364,18 @@ case class RequestModelResult(model: RequestModel, dryRunModelTry: Option[Try[Re
 
 object RequestModelFactory extends Logging {
   // If no revision is specified, return a Tuple of RequestModels 1-To serve the response 2-Optional dryrun to test new fact revisions
-  def fromBucketSelector(request: ReportingRequest, bucketParams: BucketParams, registry: Registry, bucketSelector: BucketSelector, utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider) : Try[RequestModelResult] = {
+  def fromBucketSelector(request: ReportingRequest
+                         , bucketParams: BucketParams
+                         , registry: Registry
+                         , bucketSelector: BucketSelector
+                         , utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider
+                         , userTimeZoneProvider: UserTimeZoneProvider = NoopUserTimeZoneProvider
+                        ) : Try[RequestModelResult] = {
     val selectedBucketsTry: Try[CubeBucketSelected] = bucketSelector.selectBucketsForCube(request.cube, bucketParams)
     selectedBucketsTry match {
       case Success(buckets: CubeBucketSelected) =>
         for {
-          defaultRequestModel <- RequestModel.from(request, registry, utcTimeProvider, Some(buckets.revision))
+          defaultRequestModel <- RequestModel.from(request, registry, userTimeZoneProvider, utcTimeProvider, Some(buckets.revision))
         } yield {
           val dryRunModel: Option[Try[RequestModel]] = if (buckets.dryRunRevision.isDefined) {
             Option(Try {
@@ -1380,7 +1395,7 @@ object RequestModelFactory extends Logging {
                     throw new IllegalArgumentException(s"Unknown engine: $a")
                 }
               } else request
-              RequestModel.from(updatedRequest, registry, utcTimeProvider, buckets.dryRunRevision)
+              RequestModel.from(updatedRequest, registry, userTimeZoneProvider, utcTimeProvider, buckets.dryRunRevision)
             }.flatten)
           } else None
           RequestModelResult(defaultRequestModel, dryRunModel)
@@ -1388,7 +1403,9 @@ object RequestModelFactory extends Logging {
 
       case Failure(t) =>
         warn("Failed to compute bucketing info, will use default revision to return response", t)
-        RequestModel.from(request, registry, utcTimeProvider).map(model => RequestModelResult(model, None))
+        RequestModel
+          .from(request, registry, utcTimeProvider = utcTimeProvider, userTimeZoneProvider = userTimeZoneProvider)
+          .map(model => RequestModelResult(model, None))
     }
   }
 }

@@ -128,7 +128,7 @@ class DerivedRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTe
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -159,7 +159,7 @@ class DerivedRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTe
     registryBuilder.register(druid_pubfact(Set.empty))
     registerDims(registryBuilder)
     val registry = registryBuilder.build()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 

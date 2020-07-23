@@ -26,7 +26,7 @@ class PrestoQueryGeneratorTest extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -78,7 +78,7 @@ ORDER BY mang_impressions ASC
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -121,7 +121,7 @@ FROM s_stats_fact_underlying
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -165,7 +165,7 @@ FROM s_stats_fact_underlying
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -195,7 +195,7 @@ FROM s_stats_fact_underlying
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -217,7 +217,7 @@ FROM s_stats_fact_underlying
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -265,7 +265,7 @@ FROM s_stats_fact_underlying
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -318,7 +318,7 @@ FROM s_stats_fact_underlying
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -373,7 +373,7 @@ FROM s_stats_fact_underlying
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -407,7 +407,7 @@ FROM s_stats_fact_underlying
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -472,7 +472,7 @@ FROM s_stats_fact_underlying
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 

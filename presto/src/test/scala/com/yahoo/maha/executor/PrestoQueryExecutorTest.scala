@@ -543,7 +543,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty).get.build()
@@ -593,7 +593,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty).get.build()
@@ -658,7 +658,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty, None, BucketParams())._1.get.build()
@@ -714,7 +714,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipeline = queryPipelineFactory.builder(requestModel.toOption.get, QueryAttributes.empty, None, BucketParams())._1.get.build()
@@ -843,7 +843,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
@@ -898,7 +898,7 @@ class PrestoQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)

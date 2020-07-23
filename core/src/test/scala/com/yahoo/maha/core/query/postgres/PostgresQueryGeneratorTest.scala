@@ -138,7 +138,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -156,7 +156,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -174,7 +174,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -192,7 +192,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -229,7 +229,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -247,7 +247,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -265,7 +265,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -281,7 +281,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -300,7 +300,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -321,7 +321,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -339,7 +339,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -357,7 +357,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -375,7 +375,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -393,7 +393,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -412,7 +412,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -433,7 +433,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -452,7 +452,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -473,7 +473,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     assert(requestModel.toOption.get.isFactDriven)
 
@@ -498,7 +498,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     assert(requestModel.toOption.get.isFactDriven)
 
@@ -525,7 +525,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     assert(requestModel.toOption.get.isFactDriven)
 
@@ -544,7 +544,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     assert(requestModel.toOption.get.isFactDriven)
 
@@ -589,7 +589,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -661,7 +661,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -739,7 +739,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -808,7 +808,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -839,7 +839,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -869,7 +869,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -900,7 +900,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -930,7 +930,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -946,7 +946,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -963,7 +963,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -1016,7 +1016,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isFailure, requestModel.errorMessage("Building request model should failed because days window exceeds the maximum"))
     assert(requestModel.checkFailureMessage("Max days window"), requestModel.errorMessage("Invalid error message"))
   }
@@ -1044,7 +1044,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isFailure, requestModel.errorMessage("Building request model should failed because days look back exceeds the maximum"))
     assert(requestModel.checkFailureMessage("Max look back window"), requestModel.errorMessage("Invalid error message"))
   }
@@ -1072,7 +1072,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isFailure, requestModel.errorMessage("Building request model should failed because days window exceeds the maximum"))
     assert(requestModel.checkFailureMessage("Max days window"), requestModel.errorMessage("Invalid error message"))
   }
@@ -1100,7 +1100,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isFailure, requestModel.errorMessage("Building request model should failed because days look back exceeds the maximum"))
     assert(requestModel.checkFailureMessage("Max look back window"), requestModel.errorMessage("Invalid error message"))
   }
@@ -1128,7 +1128,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isFailure, requestModel.errorMessage("Building request model should failed because days look back exceeds the maximum"))
     assert(requestModel.checkFailureMessage("Max look back window"), requestModel.errorMessage("Invalid error message"))
   }
@@ -1155,7 +1155,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -1173,7 +1173,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -1190,7 +1190,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -1208,7 +1208,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -1226,7 +1226,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -1244,7 +1244,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .getLines().mkString.replace("{from_date}", fromDate).replace("{to_date}", toDate)
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -1280,7 +1280,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -1317,7 +1317,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -1355,7 +1355,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -1431,7 +1431,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -1496,7 +1496,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -1566,7 +1566,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -1598,7 +1598,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -1666,7 +1666,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -1736,7 +1736,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -1816,7 +1816,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -1890,7 +1890,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -1939,7 +1939,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
       .copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     assert(requestModel.toOption.get.isDebugEnabled, requestModel.errorMessage("Debug should be enabled!"))
 
@@ -1995,7 +1995,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -2058,7 +2058,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -2132,7 +2132,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -2201,7 +2201,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -2271,7 +2271,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("Both fields being compared must be the same Data Type."))
   }
 
@@ -2314,7 +2314,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("Both fields being compared must be the same Data Type."))
   }
 
@@ -2357,7 +2357,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("10009 Field found only in Dimension table is not comparable with Fact fields"))
   }
 
@@ -2399,7 +2399,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("Both fields being compared must be the same Data Type."))
   }
 
@@ -2441,7 +2441,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("10009 Field found only in Dimension table is not comparable with Fact fields"))
   }
 
@@ -2483,7 +2483,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isFailure && requestModel.failed.get.getMessage.contains("10009 Field found only in Dimension table is not comparable with Fact fields"))
   }
 
@@ -2527,7 +2527,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -2582,7 +2582,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true), Parameter.Distinct -> DistinctValue(true)))
 
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -2649,7 +2649,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val requestOption = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(requestOption.toOption.get, registry)
+    val requestModel = getRequestModel(requestOption.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -2735,7 +2735,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), ResellerSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -2814,7 +2814,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), ResellerSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -2893,7 +2893,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -2960,7 +2960,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -3061,7 +3061,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSyncWithFactBias(jsonString, ResellerSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -3122,7 +3122,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
       .deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
       .copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true), Parameter.TimeZone->TimeZoneValue("PST")))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     assert(requestModel.toOption.get.isDebugEnabled, requestModel.errorMessage("Debug should be enabled!"))
 
@@ -3178,7 +3178,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -3238,7 +3238,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -3318,7 +3318,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSyncWithFactBias(jsonString, ResellerSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -3403,7 +3403,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSyncWithFactBias(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -3461,7 +3461,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val requestOption = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(requestOption.toOption.get, registry)
+    val requestModel = getRequestModel(requestOption.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -3497,7 +3497,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val requestOption = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(requestOption.toOption.get, registry)
+    val requestModel = getRequestModel(requestOption.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -3533,7 +3533,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val requestOption = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), PublisherSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(requestOption.toOption.get, registry)
+    val requestModel = getRequestModel(requestOption.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -3581,7 +3581,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val requestOption = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), PublisherSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(requestOption.toOption.get, registry)
+    val requestModel = getRequestModel(requestOption.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -3658,7 +3658,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), ResellerSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -3732,7 +3732,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val requestOption = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(requestOption.toOption.get, registry)
+    val requestModel = getRequestModel(requestOption.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -3801,7 +3801,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -3882,7 +3882,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -3949,7 +3949,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), ResellerSchema).toOption.get
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -4015,7 +4015,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -4080,7 +4080,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -4134,7 +4134,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request.toOption.get, registry)
+    val requestModel = getRequestModel(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -4201,7 +4201,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request.toOption.get, registry)
+    val requestModel = getRequestModel(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -4269,7 +4269,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request.toOption.get, registry)
+    val requestModel = getRequestModel(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -4335,7 +4335,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request.toOption.get, registry)
+    val requestModel = getRequestModel(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -4411,7 +4411,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request.toOption.get, registry)
+    val requestModel = getRequestModel(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -4525,7 +4525,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request.toOption.get, registry)
+    val requestModel = getRequestModel(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -4631,7 +4631,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request.toOption.get, registry)
+    val requestModel = getRequestModel(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -4709,7 +4709,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request.toOption.get, registry)
+    val requestModel = getRequestModel(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -4811,7 +4811,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request.toOption.get, registry)
+    val requestModel = getRequestModel(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -4881,7 +4881,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request.toOption.get, registry)
+    val requestModel = getRequestModel(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -4947,7 +4947,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request.toOption.get, registry)
+    val requestModel = getRequestModel(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -5020,7 +5020,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request.toOption.get, registry)
+    val requestModel = getRequestModel(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -5088,7 +5088,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request.toOption.get, registry)
+    val requestModel = getRequestModel(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -5156,7 +5156,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), AdvertiserSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request.toOption.get, registry)
+    val requestModel = getRequestModel(request.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -5226,7 +5226,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -5291,7 +5291,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString, ResellerSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -5371,7 +5371,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val requestOption = ReportingRequest.deserializeSyncWithFactBias(jsonString.getBytes(StandardCharsets.UTF_8), PublisherSchema)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(requestOption.toOption.get, registry)
+    val requestModel = getRequestModel(requestOption.toOption.get, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -5426,7 +5426,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                           }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry, revision = Option(1))
+    val requestModel = getRequestModel(request, registry, revision = Option(1))
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -5539,7 +5539,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                           }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry, revision = Option(1))
+    val requestModel = getRequestModel(request, registry, revision = Option(1))
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -5634,7 +5634,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                           }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry, revision = Option(1))
+    val requestModel = getRequestModel(request, registry, revision = Option(1))
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -5728,7 +5728,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                           }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry, revision = Option(1))
+    val requestModel = getRequestModel(request, registry, revision = Option(1))
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -5833,7 +5833,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -5882,7 +5882,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -5944,7 +5944,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                           }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry, revision = Option(1))
+    val requestModel = getRequestModel(request, registry, revision = Option(1))
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -6029,7 +6029,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
                           }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry, revision = Option(1))
+    val requestModel = getRequestModel(request, registry, revision = Option(1))
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -6103,7 +6103,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -6156,7 +6156,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
        """.stripMargin
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -6257,4 +6257,263 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
 
   }
 
+  test("successfully generate fact driven query for minute grain with datetime between filter") {
+    val jsonString = s"""{
+                          "cube": "k_stats_minute",
+                          "selectFields": [
+                              {"field": "Keyword ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Ad Group Status"},
+                              {"field": "Campaign Status"},
+                              {"field": "Count"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "datetimebetween", "from": "$fromDateTime", "to": "$toDateTime", "format": "$iso8601Format"}
+                          ],
+                          "sortBy": [
+                              {"field": "Campaign Status", "order": "ASC"}
+                          ],
+                          "forceFactDriven": true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
+    val expected =
+      s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
+         |FROM (SELECT f0.keyword_id "Keyword ID", agp2.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", agp2."Ad Group Status" "Ad Group Status", cp1."Campaign Status" "Campaign Status", f0."count_col" "Count"
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
+         |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", COUNT(*) AS "count_col"
+         |            FROM fact2 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= '$fromDateTime'::timestamptz AND stats_date <= '$toDateTime'::timestamptz)
+         |            GROUP BY ad_group_id, campaign_id, keyword_id
+         |
+         |           ) f0
+         |           LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Campaign Status", id, advertiser_id
+         |            FROM campaign_postgres
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           cp1 ON (f0.campaign_id = cp1.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT  campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id, advertiser_id
+         |            FROM ad_group_postgres
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           agp2 ON (f0.ad_group_id = agp2.id)
+         |
+         |) sqalias1
+         |   ORDER BY "Campaign Status" ASC NULLS LAST) sqalias2 LIMIT 120) D ) sqalias3 WHERE ROWNUM >= 21 AND ROWNUM <= 120
+         |   """.stripMargin
+    result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
+  }
+
+  test("successfully generate dimension driven query for minute grain with datetime between filter") {
+    val jsonString = s"""{
+                          "cube": "k_stats_minute",
+                          "selectFields": [
+                              {"field": "Keyword ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Ad Group Status"},
+                              {"field": "Campaign Status"},
+                              {"field": "Count"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "datetimebetween", "from": "$fromDateTime", "to": "$toDateTime", "format": "$iso8601Format"}
+                          ],
+                          "sortBy": [
+                              {"field": "Campaign Status", "order": "ASC"}
+                          ],
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
+    val expected =
+      s"""SELECT *
+         |FROM (SELECT pt3.id "Keyword ID", agp2.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", agp2."Ad Group Status" "Ad Group Status", cp1."Campaign Status" "Campaign Status", f0."count_col" "Count"
+         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
+         |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", COUNT(*) AS "count_col"
+         |            FROM fact2 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= '$fromDateTime'::timestamptz AND stats_date <= '$toDateTime'::timestamptz)
+         |            GROUP BY ad_group_id, campaign_id, keyword_id
+         |
+         |           ) f0
+         |           RIGHT OUTER JOIN
+         |               ( (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  parent_id, id, advertiser_id
+         |            FROM pg_targetingattribute
+         |            WHERE (advertiser_id = 12345)
+         |             ) sqalias1 LIMIT 120) D ) sqalias2 WHERE ROWNUM >= 21 AND ROWNUM <= 120) pt3
+         |          INNER JOIN
+         |            (SELECT  campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id, advertiser_id
+         |            FROM ad_group_postgres
+         |            WHERE (advertiser_id = 12345)
+         |             ) agp2
+         |              ON( pt3.advertiser_id = agp2.advertiser_id AND pt3.parent_id = agp2.id )
+         |               INNER JOIN
+         |            (SELECT /*+ CampaignHint */ CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Campaign Status", id, advertiser_id
+         |            FROM campaign_postgres
+         |            WHERE (advertiser_id = 12345)
+         |             ) cp1
+         |              ON( agp2.advertiser_id = cp1.advertiser_id AND agp2.campaign_id = cp1.id )
+         |               )  ON (f0.keyword_id = pt3.id)
+         |
+         |) sqalias3
+         |   ORDER BY "Campaign Status" ASC NULLS LAST
+         |   """.stripMargin
+    result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
+  }
+
+  test("successfully generate fact driven query for day grain with datetime between filter") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Keyword ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Ad Group Status"},
+                              {"field": "Campaign Status"},
+                              {"field": "Count"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "datetimebetween", "from": "$fromDateTime", "to": "$toDateTime", "format": "$iso8601Format"}
+                          ],
+                          "sortBy": [
+                              {"field": "Campaign Status", "order": "ASC"}
+                          ],
+                          "forceFactDriven": true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
+    val expected =
+      s"""SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT *
+         |FROM (SELECT f0.keyword_id "Keyword ID", agp2.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", agp2."Ad Group Status" "Ad Group Status", cp1."Campaign Status" "Campaign Status", f0."count_col" "Count"
+         |      FROM (SELECT /*+ PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT4 */
+         |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", COUNT(*) AS "count_col"
+         |            FROM fact2 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= to_date('$fromDate', 'YYYY-MM-DD') AND stats_date <= to_date('$toDate', 'YYYY-MM-DD'))
+         |            GROUP BY ad_group_id, campaign_id, keyword_id
+         |
+         |           ) f0
+         |           LEFT OUTER JOIN
+         |           (SELECT /*+ CampaignHint */ CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Campaign Status", id, advertiser_id
+         |            FROM campaign_postgres
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           cp1 ON (f0.campaign_id = cp1.id)
+         |           LEFT OUTER JOIN
+         |           (SELECT  campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id, advertiser_id
+         |            FROM ad_group_postgres
+         |            WHERE (advertiser_id = 12345)
+         |             )
+         |           agp2 ON (f0.ad_group_id = agp2.id)
+         |
+         |) sqalias1
+         |   ORDER BY "Campaign Status" ASC NULLS LAST) sqalias2 LIMIT 120) D ) sqalias3 WHERE ROWNUM >= 21 AND ROWNUM <= 120
+         |   """.stripMargin
+    result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
+  }
+
+  test("successfully generate dimension driven query for day grain with datetime between filter") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Keyword ID"},
+                              {"field": "Campaign ID"},
+                              {"field": "Impressions"},
+                              {"field": "Ad Group Status"},
+                              {"field": "Campaign Status"},
+                              {"field": "Count"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "datetimebetween", "from": "$fromDateTime", "to": "$toDateTime", "format": "$iso8601Format"}
+                          ],
+                          "sortBy": [
+                              {"field": "Campaign Status", "order": "ASC"}
+                          ],
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PostgresQuery].asString
+    val expected =
+      s"""SELECT *
+         |FROM (SELECT pt3.id "Keyword ID", agp2.campaign_id "Campaign ID", coalesce(f0."impressions", 1) "Impressions", agp2."Ad Group Status" "Ad Group Status", cp1."Campaign Status" "Campaign Status", f0."count_col" "Count"
+         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
+         |                   ad_group_id, campaign_id, keyword_id, SUM(impressions) AS "impressions", COUNT(*) AS "count_col"
+         |            FROM fact2 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 2) AND (stats_date >= to_date('$fromDate', 'YYYY-MM-DD') AND stats_date <= to_date('$toDate', 'YYYY-MM-DD'))
+         |            GROUP BY ad_group_id, campaign_id, keyword_id
+         |
+         |           ) f0
+         |           RIGHT OUTER JOIN
+         |               ( (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  parent_id, id, advertiser_id
+         |            FROM pg_targetingattribute
+         |            WHERE (advertiser_id = 12345)
+         |             ) sqalias1 LIMIT 120) D ) sqalias2 WHERE ROWNUM >= 21 AND ROWNUM <= 120) pt3
+         |          INNER JOIN
+         |            (SELECT  campaign_id, CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Ad Group Status", id, advertiser_id
+         |            FROM ad_group_postgres
+         |            WHERE (advertiser_id = 12345)
+         |             ) agp2
+         |              ON( pt3.advertiser_id = agp2.advertiser_id AND pt3.parent_id = agp2.id )
+         |               INNER JOIN
+         |            (SELECT /*+ CampaignHint */ CASE WHEN status = 'ON' THEN 'ON' ELSE 'OFF' END AS "Campaign Status", id, advertiser_id
+         |            FROM campaign_postgres
+         |            WHERE (advertiser_id = 12345)
+         |             ) cp1
+         |              ON( agp2.advertiser_id = cp1.advertiser_id AND agp2.campaign_id = cp1.id )
+         |               )  ON (f0.keyword_id = pt3.id)
+         |
+         |) sqalias3
+         |   ORDER BY "Campaign Status" ASC NULLS LAST
+         |   """.stripMargin
+    result should equal (expected) (after being whiteSpaceNormalised)
+    testQuery(result)
+  }
 }

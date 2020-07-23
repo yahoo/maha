@@ -158,12 +158,11 @@ class DruidLiteralMapper extends LiteralMapper {
           grain.toFormattedString(grain.fromFormattedString(value))
         }
       case TimestampType(fmt) =>
-        //TODO: validate format
         if(fmt.isDefined) {
           val dtf = DateTimeFormat.forPattern(fmt.get)
-          dtf.print(grain.fromFormattedString(value))
+          dtf.print(grain.fromFullFormattedString(value))
         } else {
-          grain.toFormattedString(grain.fromFormattedString(value))
+          grain.toFullFormattedString(grain.fromFullFormattedString(value))
         }
       case _ => value
     }

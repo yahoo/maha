@@ -32,9 +32,11 @@ class BaseUTCTimeProvider extends UTCTimeProvider with Logging {
       if (timezone.contains(DateTimeZone.UTC.toString))
         return (utcDateTimeFilter, None, None)
 
-      val dateTimeZone = DateTimeZone.forID(timezone.get)
-      val requestDTF = localTimeDayFilter.asInstanceOf[DateTimeFilter]
-      utcDateTimeFilter = requestDTF.convertToUTCFromLocalZone(dateTimeZone)
+      if (timezone.isDefined) {
+        val dateTimeZone = DateTimeZone.forID(timezone.get)
+        val requestDTF = localTimeDayFilter.asInstanceOf[DateTimeFilter]
+        utcDateTimeFilter = requestDTF.convertToUTCFromLocalZone(dateTimeZone)
+      }
       (utcDateTimeFilter, None, None)
     } else {
       handleLegacyDayHourMinuteFilter(localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter, timezone, isDebugEnabled)
