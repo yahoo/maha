@@ -112,13 +112,13 @@ class TimeShiftCurator (override val requestModelValidator: CuratorRequestModelV
     requestModelResultTry
   }
 
-  override def process(resultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]]
+  override def process(resultMap: Map[String, Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]]
                        , mahaRequestContext: MahaRequestContext
                        , mahaService: MahaService
                        , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
                        , curatorConfig: CuratorConfig
                        , curatorInjector: CuratorInjector
-                      ) : Either[CuratorError, ParRequest[CuratorResult]] = {
+                      ) : Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = {
 
     val parallelServiceExecutor = mahaService.getParallelServiceExecutor(mahaRequestContext)
     val parRequestLabel = "processTimeshiftCurator"

@@ -21,13 +21,13 @@ class FailingCurator extends Curator {
 
   override def priority: Int = 0
 
-  override def process(resultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]]
+  override def process(resultMap: Map[String, Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]]
                        , mahaRequestContext: MahaRequestContext
                        , mahaService: MahaService
                        , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
                        , curatorConfig: CuratorConfig
                        , curatorInjector: CuratorInjector
-                      ) : Either[CuratorError, ParRequest[CuratorResult]] = {
+                      ) : Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = {
     val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)
     mahaRequestContext.context.get("faillevel") match {
       case Some("requestresult") =>
@@ -38,11 +38,11 @@ class FailingCurator extends Curator {
         val curatorResultEither: Either[GeneralError, CuratorResult] = new Right(curatorResult)
         val parRequest: ParRequest[CuratorResult] =
           pse.immediateResult("fail", curatorResultEither)
-        new Right(parRequest)
+        new Right(IndexedSeq(parRequest))
       case Some("curatorresult") =>
         val parRequest: ParRequest[CuratorResult] =
           pse.immediateResult("fail", withParRequestError(curatorConfig, GeneralError.from("fail", "failed")))
-        new Right(parRequest)
+        new Right(IndexedSeq(parRequest))
       case _ =>
         withError(curatorConfig, GeneralError.from("fail", "failed"))
     }

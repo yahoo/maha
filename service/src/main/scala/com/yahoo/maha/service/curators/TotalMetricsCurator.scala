@@ -61,13 +61,13 @@ case class TotalMetricsCurator(override val requestModelValidator: CuratorReques
       .leftMap[JsonScalaz.Error](t => JsonScalaz.UncategorizedError("parseTotalMetricsConfigValidation", t.getMessage, List.empty)).toValidationNel
   }
 
-  override def process(resultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]]
+  override def process(resultMap: Map[String, Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]]
                        , mahaRequestContext: MahaRequestContext
                        , mahaService: MahaService
                        , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
                        , curatorConfig: CuratorConfig
                        , curatorInjector: CuratorInjector
-                      ) : Either[CuratorError, ParRequest[CuratorResult]] = {
+                      ) : Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = {
 
     val registryConfig = mahaService.getMahaServiceConfig.registry.get(mahaRequestContext.registryName).get
     val parallelServiceExecutor = registryConfig.parallelServiceExecutor

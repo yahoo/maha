@@ -49,7 +49,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown")).toOption.get
+    val drillDownConfig : DrilldownRequest = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown")).toOption.get.requests.head
 
     
     assert(drillDownConfig.enforceFilters)
@@ -94,7 +94,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown")).toOption.get
+    val drillDownConfig : DrilldownRequest = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown")).toOption.get.requests.head
 
 
     assert(drillDownConfig.enforceFilters)
@@ -102,6 +102,67 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     assert(drillDownConfig.ordering.contains(SortBy("Class ID", DESC)))
     assert(drillDownConfig.dimensions == List(Field("Section ID", None, None)))
     assert(drillDownConfig.cube == "")
+  }
+
+  test("Create a valid DrillDownConfig with multiple requests") {
+    val json : String =
+      s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : [{
+                                "enforceFilters": "true",
+                                "dimension": "Section ID",
+                                "ordering": [{
+                                              "field": "Class ID",
+                                              "order": "asc"
+                                              }],
+                                "mr": 1000
+                              }
+                              , {
+                                "enforceFilters": "true",
+                                "dimension": "Section ID",
+                                "ordering": [{
+                                              "field": "Class ID",
+                                              "order": "desc"
+                                              }],
+                                "mr": 1000
+                              }]
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "2018-01-01", "to": "2018-01-02"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(json.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess, reportingRequestResult)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown")).toOption.get
+
+    val req1 = drillDownConfig.requests(0)
+    val req2 = drillDownConfig.requests(1)
+
+    assert(req1.enforceFilters)
+    assert(req1.maxRows == 1000)
+    assert(req1.ordering.contains(SortBy("Class ID", ASC)))
+    assert(req1.dimensions == List(Field("Section ID", None, None)))
+    assert(req1.cube == "")
+    assert(req2.enforceFilters)
+    assert(req2.maxRows == 1000)
+    assert(req2.ordering.contains(SortBy("Class ID", DESC)))
+    assert(req2.dimensions == List(Field("Section ID", None, None)))
+    assert(req2.cube == "")
   }
 
   test("Create a valid DrillDownConfig with invalid ordering") {
@@ -143,6 +204,55 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
       DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown"))
     }
     assert(thrown.getMessage.contains("order must be asc|desc not willfail"))
+  }
+
+  test("DrildownConfig with one request error should error") {
+    val json : String =
+      s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : [{
+                                "enforceFilters": "true",
+                                "dimension": "Section ID",
+                                "ordering": [{
+                                              "field": "Class ID",
+                                              "order": "asc"
+                                              }],
+                                "mr": 1000
+                              }
+                              , {
+                                "enforceFilters": "true",
+                                "ordering": [{
+                                              "field": "Class ID",
+                                              "order": "desc"
+                                              }],
+                                "mr": 1000
+                              }]
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "2018-01-01", "to": "2018-01-02"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(json.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess, reportingRequestResult)
+    val reportingRequest = reportingRequestResult.toOption.get
+
+    val thrown = intercept[Exception] {
+      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown"))
+    }
+    assert(thrown.getMessage.contains("CuratorConfig for a DrillDown should have a dimension or dimensions declared"), thrown.getMessage)
   }
 
   test("DrillDownConfig should throw error on no dimension.") {
@@ -222,7 +332,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown")).toOption.get
+    val drillDownConfig : DrilldownRequest = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown")).toOption.get.requests.head
 
 
     assert(drillDownConfig.enforceFilters)
@@ -263,7 +373,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val drillDownConfig : DrilldownConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown")).toOption.get
+    val drillDownConfig : DrilldownRequest = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown")).toOption.get.requests.head
 
 
     assert(!drillDownConfig.enforceFilters)

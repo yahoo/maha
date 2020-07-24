@@ -150,7 +150,7 @@ class MahaServiceExampleTest extends BaseMahaServiceTest with Logging with Befor
 
     def fn = {
       (requestCoordinatorResult: RequestCoordinatorResult) => {
-        val requestResult = requestCoordinatorResult.successResults.head._2
+        val requestResult = requestCoordinatorResult.successResults.head._2.head.requestResult
         assert(requestResult.queryPipelineResult.rowList.columns.size  ==  4)
         assert(requestResult.queryPipelineResult.rowList.asInstanceOf[QueryRowList].columnNames.contains("Total Marks"))
         logger.info("Inside onSuccess function")

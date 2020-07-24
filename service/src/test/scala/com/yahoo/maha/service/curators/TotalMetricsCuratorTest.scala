@@ -105,11 +105,11 @@ class TotalMetricsCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll
     assert(totalMetricsConfig.forceRevision === Option(0))
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
-    val totalMetricsCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = totalMetricsCurator
+    val totalMetricsCuratorResult: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = totalMetricsCurator
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     val queryPipelineResult = totalMetricsCuratorResult
-      .right.get.get().right.get.parRequestResultOption.get.prodRun.get().right.get.queryPipelineResult
+      .right.get.head.get().right.get.parRequestResultOption.get.prodRun.get().right.get.queryPipelineResult
     var rowCount = 0
     queryPipelineResult.rowList.foreach {
       row=>
@@ -159,7 +159,7 @@ class TotalMetricsCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll
     val totalMetricsCurator = TotalMetricsCurator()
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
-    val totalMetricsCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = totalMetricsCurator
+    val totalMetricsCuratorResult: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = totalMetricsCurator
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     assert(totalMetricsCuratorResult.isLeft)
@@ -205,12 +205,12 @@ class TotalMetricsCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll
     val totalMetricsCurator = TotalMetricsCurator()
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
-    val totalMetricsCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = totalMetricsCurator
+    val totalMetricsCuratorResult: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = totalMetricsCurator
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     assert(totalMetricsCuratorResult.isRight)
     val parRequest = totalMetricsCuratorResult.right.get
-    val parRequestResult = parRequest.get(1000)
+    val parRequestResult = parRequest.head.get(1000)
     assert(parRequestResult.right.get.parRequestResultOption.get.prodRun.get(1000).isLeft)
   }
 
@@ -253,7 +253,7 @@ class TotalMetricsCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll
     val totalMetricsCurator = TotalMetricsCurator(new BadTestRequestModelValidator)
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
-    val totalMetricsCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = totalMetricsCurator
+    val totalMetricsCuratorResult: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = totalMetricsCurator
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     assert(totalMetricsCuratorResult.isLeft)

@@ -13,7 +13,7 @@ import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{Engine, OracleEngine, RequestModelResult}
 import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
-import com.yahoo.maha.service.{MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
+import com.yahoo.maha.service.{CuratorAndRequestResult, MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
 import org.scalatest.FunSuite
 
 import scala.util.Try
@@ -109,8 +109,10 @@ class JsonStreamingOutputTest extends FunSuite {
     mahaRequestContext.mutableState.put(RowCountCurator.name, 1)
     val curatorResults= IndexedSeq(curatorResult)
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator)
-      , Map(DefaultCurator.name -> curatorResult)
-      , Map.empty, Map(DefaultCurator.name -> curatorResult.parRequestResultOption.get.prodRun.get().right.get)
+      , Map.empty, Map(DefaultCurator.name -> IndexedSeq(
+        CuratorAndRequestResult(curatorResult,
+          curatorResult.parRequestResultOption.get.prodRun.get().right.get))
+      )
       , mahaRequestContext)
     val jsonStreamingOutput = new JsonStreamingOutput(requestCoordinatorResult
       , Map(OracleEngine-> TestOracleIngestionTimeUpdater(OracleEngine, "testSource")))
@@ -153,10 +155,13 @@ class JsonStreamingOutputTest extends FunSuite {
       jsonRequest.getBytes,
       Map.empty, "rid", "uid")
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator, testCurator)
-      , Map(DefaultCurator.name -> curatorResult1, "TestCurator" -> curatorResult2)
       , Map.empty
-      , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get
-        , "TestCurator" -> curatorResult2.parRequestResultOption.get.prodRun.get().right.get
+      , Map(DefaultCurator.name -> IndexedSeq(
+        CuratorAndRequestResult(curatorResult1,
+          curatorResult1.parRequestResultOption.get.prodRun.get().right.get))
+        , "TestCurator" -> IndexedSeq(
+          CuratorAndRequestResult(curatorResult2,
+            curatorResult2.parRequestResultOption.get.prodRun.get().right.get))
       )
       , mahaRequestContext)
 

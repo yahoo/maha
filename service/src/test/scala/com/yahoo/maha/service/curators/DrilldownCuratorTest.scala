@@ -104,7 +104,7 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val drilldownCurator = new DrilldownCurator()
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
-    val drilldownCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = drilldownCurator
+    val drilldownCuratorResult: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = drilldownCurator
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     assert(drilldownCuratorResult.isLeft)
@@ -115,8 +115,10 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val jsonRequest = s"""{
                           "cube": "student_performance",
                           "curators" : {
-                            "totalmetrics" : {
+                            "drilldown" : {
                               "config" : {
+                                "dimension": "Remarks",
+                                "enforceFilters": true
                               }
                             }
                           },
@@ -151,11 +153,11 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val defaultCurator = new DefaultCurator()
     val drilldownCurator = new DrilldownCurator()
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
-    val resultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]] = Map(
+    val resultMap: Map[String, Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]] = Map(
       DefaultCurator.name -> new Left(CuratorError(defaultCurator, NoConfig, GeneralError.from("stage","error")))
     )
 
-    val drilldownCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = drilldownCurator
+    val drilldownCuratorResult: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = drilldownCurator
       .process(resultMap, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     assert(drilldownCuratorResult.isLeft)
@@ -166,8 +168,76 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val jsonRequest = s"""{
                           "cube": "student_performance",
                           "curators" : {
-                            "totalmetrics" : {
+                            "drilldown" : {
                               "config" : {
+                                "dimension": "Remarks",
+                                "enforceFilters": true
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Class ID"},
+                            {"field": "Section ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ]
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get
+    val curatorConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap(DrilldownCurator.name)).toOption.get
+
+    val bucketParams = BucketParams(UserInfo("uid", true))
+
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+    val curatorMahaRequestLogHelper =  CuratorMahaRequestLogHelper(mahaRequestLogHelper)
+
+
+    val pse = mahaService.getParallelServiceExecutor(mahaRequestContext)
+    val requestModelResult = mahaService
+      .generateRequestModel(REGISTRY, reportingRequest, bucketParams).toOption.get
+    val qp = mahaService.generateQueryPipelines(REGISTRY, requestModelResult.model, bucketParams)._1
+    val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
+    val defaultCurator = new DefaultCurator()
+    //val requestResultParRequest: ParRequest[RequestResult] = pse.immediateResult("requestResult", new Left[GeneralError, RequestResult](GeneralError.from("stage","fail")))
+    //val parRequestResult = ParRequestResult(qp, requestResultParRequest, None)
+    val defaultParRequest: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = new Right(IndexedSeq(pse.immediateResult("curatorResult",
+      new Right(CuratorResult(defaultCurator, curatorConfig, None, requestModelResult)))
+    ))
+    val drilldownCurator = new DrilldownCurator()
+    val resultMap: Map[String, Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]] = Map(
+      DefaultCurator.name -> defaultParRequest
+    )
+
+    val drilldownCuratorResult: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = drilldownCurator
+      .process(resultMap, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, curatorConfig, curatorInjector)
+
+    assert(drilldownCuratorResult.isRight)
+
+    val result = drilldownCuratorResult.right.get.head.get()
+    assert(result.isLeft)
+    assert(result.left.get.message === "no result from default curator, cannot continue")
+  }
+
+  test("Test failure of DrilldownCurator with bad config") {
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : {
+                                "dimension": "Remarks",
+                                "enforceFilters": true
                               }
                             }
                           },
@@ -207,30 +277,29 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val defaultCurator = new DefaultCurator()
     //val requestResultParRequest: ParRequest[RequestResult] = pse.immediateResult("requestResult", new Left[GeneralError, RequestResult](GeneralError.from("stage","fail")))
     //val parRequestResult = ParRequestResult(qp, requestResultParRequest, None)
-    val defaultParRequest: Either[CuratorError, ParRequest[CuratorResult]] = new Right(pse.immediateResult("curatorResult",
-      new Right(CuratorResult(defaultCurator, NoConfig, None, requestModelResult))
+    val defaultParRequest: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = new Right(IndexedSeq(pse.immediateResult("curatorResult",
+      new Right(CuratorResult(defaultCurator, NoConfig, None, requestModelResult)))
     ))
     val drilldownCurator = new DrilldownCurator()
-    val resultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]] = Map(
+    val resultMap: Map[String, Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]] = Map(
       DefaultCurator.name -> defaultParRequest
     )
 
-    val drilldownCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = drilldownCurator
+    val drilldownCuratorResult: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = drilldownCurator
       .process(resultMap, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
-    assert(drilldownCuratorResult.isRight)
-
-    val result = drilldownCuratorResult.right.get.get()
-    assert(result.isLeft)
-    assert(result.left.get.message === "no result from default curator, cannot continue")
+    assert(drilldownCuratorResult.isLeft)
+    assert(drilldownCuratorResult.left.get.message === "Invalid config type NoConfig$")
   }
 
   test("Test failure of DrilldownCurator with failing default curator request result") {
     val jsonRequest = s"""{
                           "cube": "student_performance",
                           "curators" : {
-                            "totalmetrics" : {
+                            "drilldown" : {
                               "config" : {
+                                "dimension": "Remarks",
+                                "enforceFilters": true
                               }
                             }
                           },
@@ -248,6 +317,7 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
+    val curatorConfig = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap(DrilldownCurator.name)).toOption.get
 
     val bucketParams = BucketParams(UserInfo("uid", true))
 
@@ -271,20 +341,20 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val requestResultParRequest: ParRequest[RequestResult] = pse.immediateResult("requestResult"
       , new Left[GeneralError, RequestResult](GeneralError.from("stage","fail")))
     val parRequestResult = ParRequestResult(qp, requestResultParRequest, None)
-    val defaultParRequest: Either[CuratorError, ParRequest[CuratorResult]] = new Right(pse.immediateResult("curatorResult",
-      new Right(CuratorResult(defaultCurator, NoConfig, Option(parRequestResult), requestModelResult))
+    val defaultParRequest: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = new Right(IndexedSeq(pse.immediateResult("curatorResult",
+      new Right(CuratorResult(defaultCurator, curatorConfig, Option(parRequestResult), requestModelResult)))
     ))
     val drilldownCurator = new DrilldownCurator()
-    val resultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]] = Map(
+    val resultMap: Map[String, Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]] = Map(
       DefaultCurator.name -> defaultParRequest
     )
 
-    val drilldownCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = drilldownCurator
-      .process(resultMap, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
+    val drilldownCuratorResult: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = drilldownCurator
+      .process(resultMap, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, curatorConfig, curatorInjector)
 
     assert(drilldownCuratorResult.isRight)
 
-    val result = drilldownCuratorResult.right.get.get()
+    val result = drilldownCuratorResult.right.get.head.get()
     assert(result.isLeft)
     assert(result.left.get.message === "fail")
   }
@@ -313,9 +383,9 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
          |                          "curators" : {
          |                            "drilldown" : {
          |                              "config": {
-                         |                "dimension": "Remarks",
-                         |                "enforceFilters": true
-                         |            }
+         |                                "dimension": "Remarks",
+         |                                "enforceFilters": true
+         |                              }
          |                            }
          |                          },
          |                          "selectFields": [
@@ -353,7 +423,7 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val defaultCurator = DefaultCurator(curatorResultPostProcessor = new CuratorCustomPostProcessor)
 
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set("default"))
-    val defaultParRequest: Either[CuratorError, ParRequest[CuratorResult]] = defaultCurator
+    val defaultParRequest: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = defaultCurator
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     val parseDDConfig = ddCurator.parseConfig(reportingRequest.curatorJsonConfigMap(DrilldownCurator.name))
@@ -362,11 +432,11 @@ class DrilldownCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     //assert(totalMetricsConfig.forceRevision === Option(0))
     //val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
-    val ddCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = ddCurator
+    val ddCuratorResult: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = ddCurator
       .process(Map("default" -> defaultParRequest), mahaRequestContext, mahaService, curatorMahaRequestLogHelper, ddConfig, curatorInjector)
 
     val queryPipelineResult = ddCuratorResult
-      .right.get.get().right.get.parRequestResultOption.get.prodRun.get().right.get.queryPipelineResult
+      .right.get.head.get().right.get.parRequestResultOption.get.prodRun.get().right.get.queryPipelineResult
     var rowCount = 0
     queryPipelineResult.rowList.foreach {
       row=>

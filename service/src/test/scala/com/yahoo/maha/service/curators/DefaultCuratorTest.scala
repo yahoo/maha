@@ -75,7 +75,7 @@ class DefaultCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll{
     val defaultCurator = DefaultCurator(curatorResultPostProcessor = new CuratorCustomPostProcessor)
 
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
-    val defaultParRequest: Either[CuratorError, ParRequest[CuratorResult]] = defaultCurator
+    val defaultParRequest: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = defaultCurator
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     assert(defaultParRequest.isRight)
@@ -94,10 +94,10 @@ class DefaultCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll{
     val defaultCurator = DefaultCurator(curatorResultPostProcessor = new CuratorCustomPostProcessor())
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
-    val defaultParRequest: Either[GeneralError, ParRequest[CuratorResult]] = defaultCurator
+    val defaultParRequest: Either[GeneralError, IndexedSeq[ParRequest[CuratorResult]]] = defaultCurator
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
-    defaultParRequest.right.get.resultMap[CuratorResult](
+    defaultParRequest.right.get.head.resultMap[CuratorResult](
         ParFunction.fromScala(
      (curatorResult: CuratorResult) => {
        assert(curatorResult.parRequestResultOption.get.prodRun.get().isRight)
@@ -112,7 +112,7 @@ class DefaultCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll{
     val defaultCurator = DefaultCurator(new BadTestRequestModelValidator)
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
-    val defaultParRequest: Either[GeneralError, ParRequest[CuratorResult]] = defaultCurator
+    val defaultParRequest: Either[GeneralError, IndexedSeq[ParRequest[CuratorResult]]] = defaultCurator
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     assert(defaultParRequest.isLeft)
