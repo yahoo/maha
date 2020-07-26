@@ -185,6 +185,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestVa
             case DruidEngine => ReportingRequest.forceDruid(withDebug)
             case HiveEngine => ReportingRequest.forceHive(withDebug)
             case PrestoEngine => ReportingRequest.forcePresto(withDebug)
+            case PostgresEngine => ReportingRequest.forcePostgres(withDebug)
             case _ => withDebug
           }
         } else {
