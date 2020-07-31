@@ -24,13 +24,19 @@ trait BaseQueryGeneratorTest {
 
   protected[this] def defaultFactEngine: Engine = OracleEngine
 
+  protected[this] val baseDate = DateTime.now(DateTimeZone.UTC)
+  protected[this] val iso8601Format = DateTimeBetweenFilterHelper.iso8601FormatString
   protected[this] val druidMultiQueryEngineList = DefaultQueryPipelineFactory.druidMultiQueryEngineList
-  protected[this] val fromDate = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7))
-  protected[this] val fromDateMinusOne = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(8))
-  protected[this] val fromDateMinus10 = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7).minusDays(10))
-  protected[this] val toDate = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
-  protected[this] val toDateMinus10 = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(10))
-  protected[this] val toDateMinusOne = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(1))
+  protected[this] val fromDate = DailyGrain.toFormattedString(baseDate.minusDays(7))
+  protected[this] val fromDateMinusOne = DailyGrain.toFormattedString(baseDate.minusDays(8))
+  protected[this] val fromDateMinus10 = DailyGrain.toFormattedString(baseDate.minusDays(7).minusDays(10))
+  protected[this] val fromDateTime = DateTimeBetweenFilterHelper.iso8601FormattedString(baseDate.minusDays(7))
+  protected[this] val toDate = DailyGrain.toFormattedString(baseDate)
+  protected[this] val toDateMinus10 = DailyGrain.toFormattedString(baseDate.minusDays(10))
+  protected[this] val toDateMinusOne = DailyGrain.toFormattedString(baseDate.minusDays(1))
+  protected[this] val toDateTime = DateTimeBetweenFilterHelper.iso8601FormattedString(baseDate)
+  protected[this] val toDateTimeMinusTwoHours = DateTimeBetweenFilterHelper.iso8601FormattedString(baseDate.minusHours(2))
+  protected[this] val toDateTimeMinusTenMinutes = DateTimeBetweenFilterHelper.iso8601FormattedString(baseDate.minusMinutes(10))
 
   protected[this] val fromDateHive = fromDate.replaceAll("-","")
   protected[this] val toDateHive = toDate.replaceAll("-","")
@@ -50,6 +56,14 @@ trait BaseQueryGeneratorTest {
     registryBuilder.build()
   }
 
+  protected[this] def getRequestModel(request: ReportingRequest
+                      , registry: Registry
+                      , userTimeZoneProvider: UserTimeZoneProvider = NoopUserTimeZoneProvider
+                      , utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider
+                      , revision: Option[Int] = None): Try[RequestModel] = {
+    RequestModel.from(request, registry, userTimeZoneProvider, utcTimeProvider, revision)
+  }
+
   protected[this] def getReportingRequestAsync(jsonString: String, schema: Schema = AdvertiserSchema) = {
     val reportingRequestOption = ReportingRequest.deserializeAsync(jsonString.getBytes(StandardCharsets.UTF_8), schema)
     require(reportingRequestOption.isSuccess)
@@ -57,7 +71,9 @@ trait BaseQueryGeneratorTest {
   }
 
   protected[this] def getReportingRequestSync(jsonString: String, schema: Schema = AdvertiserSchema) = {
-    ReportingRequest.deserializeSync(jsonString.getBytes(StandardCharsets.UTF_8), schema).toOption.get
+    val result = ReportingRequest.deserializeSync(jsonString.getBytes(StandardCharsets.UTF_8), schema)
+    require(result.isSuccess, result)
+    result.toOption.get
   }
 
   protected[this] def getReportingRequestSyncWithFactBias(jsonString: String, schema: Schema = AdvertiserSchema) = {

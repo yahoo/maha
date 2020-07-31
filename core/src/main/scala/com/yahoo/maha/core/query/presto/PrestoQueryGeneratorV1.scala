@@ -184,7 +184,7 @@ class PrestoQueryGeneratorV1(partitionColumnRenderer:PartitionColumnRenderer, ud
               case any =>
                 throw new UnsupportedOperationException(s"Found non fact column : $any")
             }
-          val result = QueryGeneratorHelper.handleFilterRender(filter, publicFact, fact, aliasToNameMapFull, queryContext, PrestoEngine, prestoLiteralMapper, colRenderFn)
+          val result = QueryGeneratorHelper.handleFilterSqlRender(filter, publicFact, fact, aliasToNameMapFull, queryContext, PrestoEngine, prestoLiteralMapper, colRenderFn)
 
           if (fact.dimColMap.contains(name)) {
             whereFilters += result.filter

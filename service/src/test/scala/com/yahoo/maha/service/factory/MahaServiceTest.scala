@@ -24,6 +24,7 @@ class MahaServiceTest extends BaseFactoryTest {
                        |			"executors": ["e1", "e2"],
                        |			"generators": ["g1", "g2"],
                        |			"bucketingConfigName": "OtherBucket",
+                       |			"userTimeZoneProviderName": "erUserTimeZone",
                        |			"utcTimeProviderName": "erUTC",
                        |			"parallelServiceExecutorName": "erPSE",
                        |			"dimEstimatorFactoryClass": "dimEstFactoryClass",
@@ -78,6 +79,20 @@ class MahaServiceTest extends BaseFactoryTest {
                        |			}
                        |		}
                        |
+                       |	},
+                       |	"userTimeZoneProviderMap": {
+                       |		"erUserTimeZone": {
+                       |			"factoryClass": "erUserTimeZoneClass",
+                       |			"config": {
+                       |				"k": "v"
+                       |			}
+                       |		},
+                       |		"irUserTimeZone": {
+                       |			"factoryClass": "irUserTimeZoneClass",
+                       |			"config": {
+                       |				"k": "v"
+                       |			}
+                       |		}
                        |	},
                        |	"utcTimeProviderMap": {
                        |		"erUTC": {
@@ -148,6 +163,7 @@ class MahaServiceTest extends BaseFactoryTest {
                        |			"executors": ["e1", "e2"],
                        |			"generators": ["g1", "g2"],
                        |			"bucketingConfigName": "erBucket",
+                       |			"userTimeZoneProviderName": "erUserTimeZone",
                        |			"utcTimeProviderName": "erUTC",
                        |			"parallelServiceExecutorName": "erParallelExec",
                        |			"dimEstimatorFactoryClass": "dimEstFactoryClass",
@@ -202,6 +218,20 @@ class MahaServiceTest extends BaseFactoryTest {
                        |			}
                        |		}
                        |
+                       |	},
+                       |	"userTimeZoneProviderMap": {
+                       |		"erUserTimeZone": {
+                       |			"factoryClass": "erUserTimeZoneClass",
+                       |			"config": {
+                       |				"k": "v"
+                       |			}
+                       |		},
+                       |		"irUserTimeZone": {
+                       |			"factoryClass": "irUserTimeZoneClass",
+                       |			"config": {
+                       |				"k": "v"
+                       |			}
+                       |		}
                        |	},
                        |	"utcTimeProviderMap": {
                        |		"erUTC": {
@@ -286,6 +316,7 @@ class MahaServiceTest extends BaseFactoryTest {
                          |            "druid"
                          |         ],
                          |         "bucketingConfigName": "erBucket",
+                         |         "userTimeZoneProviderName": "erUserTimeZone",
                          |         "utcTimeProviderName": "erUTC",
                          |         "parallelServiceExecutorName": "erParallelExec",
                          |         "dimEstimatorFactoryClass": "com.yahoo.maha.service.factory.DefaultDimCostEstimatorFactory",
@@ -483,6 +514,20 @@ class MahaServiceTest extends BaseFactoryTest {
                          |}]
                          |      }
                          |   },
+                         |   "userTimeZoneProviderMap": {
+                         |      "erUserTimeZone": {
+                         |         "factoryClass": "com.yahoo.maha.service.factory.NoopUserTimeZoneProviderFactory",
+                         |         "config": {
+                         |            "k": "v"
+                         |         }
+                         |      },
+                         |      "irUserTimeZone": {
+                         |         "factoryClass": "com.yahoo.maha.service.factory.NoopUserTimeZoneProviderFactory",
+                         |         "config": {
+                         |            "k": "v"
+                         |         }
+                         |      }
+                         |   },
                          |   "utcTimeProviderMap": {
                          |      "erUTC": {
                          |         "factoryClass": "com.yahoo.maha.service.factory.PassThroughUTCTimeProviderFactory",
@@ -612,8 +657,9 @@ class MahaServiceTest extends BaseFactoryTest {
 				"presto"
 			],
 			"bucketingConfigName": "commonBucket",
-			"utcTimeProviderName": "commonUTC",
-			"parallelServiceExecutorName": "commonParallelExec",
+			"userTimeZoneProviderName": "commonUserTimeZone",
+      "utcTimeProviderName": "commonUTC",
+      "parallelServiceExecutorName": "commonParallelExec",
 			"dimEstimatorFactoryClass": "com.yahoo.maha.service.factory.DefaultDimCostEstimatorFactory",
 			"dimEstimatorFactoryConfig": {},
 			"factEstimatorFactoryClass": "com.yahoo.maha.service.factory.DefaultFactCostEstimatorFactory",
@@ -802,6 +848,14 @@ class MahaServiceTest extends BaseFactoryTest {
 					}
 				],
 				"queryGenerator": []
+			}
+		}
+	},
+ 	"userTimeZoneProviderMap": {
+		"commonUserTimeZone": {
+			"factoryClass": "com.yahoo.maha.service.factory.NoopUserTimeZoneProviderFactory",
+			"config": {
+				"k": "v"
 			}
 		}
 	},

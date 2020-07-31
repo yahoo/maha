@@ -630,7 +630,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -685,7 +685,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -739,7 +739,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -805,7 +805,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -872,7 +872,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
 
       val request: ReportingRequest = getReportingRequestSync(jsonString).copy(additionalParameters = Map(Parameter.Debug -> DebugValue(true)))
       val registry = defaultRegistry
-      val requestModel = RequestModel.from(request, registry)
+      val requestModel = getRequestModel(request, registry)
       assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
       val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -933,7 +933,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
 
       val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
       val registry = defaultRegistry
-      val requestModel = RequestModel.from(request, registry)
+      val requestModel = getRequestModel(request, registry)
       assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
       val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -988,7 +988,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -1032,7 +1032,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -1071,7 +1071,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
       //override def query: Query = {q}
@@ -1167,7 +1167,7 @@ class PostgresQueryExecutorTest extends FunSuite with Matchers with BeforeAndAft
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)

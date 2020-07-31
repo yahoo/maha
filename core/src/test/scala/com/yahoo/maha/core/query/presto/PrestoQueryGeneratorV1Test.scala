@@ -25,7 +25,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -77,7 +77,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -120,7 +120,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -163,7 +163,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -192,7 +192,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -213,7 +213,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -261,7 +261,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -313,7 +313,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -368,7 +368,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -402,7 +402,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -467,7 +467,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -536,7 +536,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -607,7 +607,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -678,7 +678,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -762,7 +762,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -815,7 +815,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -897,7 +897,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -974,7 +974,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1043,7 +1043,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1115,7 +1115,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1187,7 +1187,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1256,7 +1256,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1335,7 +1335,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1427,7 +1427,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1525,7 +1525,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1593,7 +1593,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1654,7 +1654,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1719,7 +1719,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1788,7 +1788,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1855,7 +1855,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1921,7 +1921,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -1996,7 +1996,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2035,7 +2035,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2106,7 +2106,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2171,7 +2171,7 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
 
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
@@ -2210,5 +2210,148 @@ class PrestoQueryGeneratorV1Test extends BasePrestoQueryGeneratorTest {
          |        queryAlias LIMIT 200
        """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
+  }
+
+  test("successfully generate fact driven query for day grain with datetime between filter") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats",
+                          "selectFields": [
+                              {"field": "Advertiser Name"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "datetimebetween", "from": "$fromDateTime", "to": "$toDateTime", "format": "$iso8601Format"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                          "sortBy": [{"field": "Advertiser Name", "order": "Desc"},  {"field": "Impressions", "order": "DESC"}]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    val expected =
+      s"""SELECT CAST(mang_advertiser_name as VARCHAR) AS mang_advertiser_name, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |FROM(
+         |SELECT mang_advertiser_name AS mang_advertiser_name, impressions AS mang_impressions
+         |FROM(
+         |SELECT COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, SUM(impressions) AS impressions
+         |FROM(SELECT account_id, SUM(impressions) impressions
+         |FROM s_stats_fact_underlying
+         |WHERE (account_id = 12345) AND (stats_date >= date('$fromDate') AND stats_date <= date('$toDate'))
+         |GROUP BY account_id
+         |HAVING (SUM(impressions) > 1608)
+         |       )
+         |ssfu0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM advertiser_presto
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |ssfu0.account_id = a1.a1_id
+         |
+         |GROUP BY COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA')
+         |ORDER BY mang_advertiser_name DESC, impressions DESC) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         |        """.stripMargin
+      s"""
+         |SELECT CONCAT_WS(',', CAST(NVL(mang_advertiser_name,'') AS STRING),CAST(NVL(mang_impressions,'') AS STRING))
+         |FROM(
+         |SELECT mang_advertiser_name AS mang_advertiser_name, impressions AS mang_impressions
+         |FROM(
+         |SELECT COALESCE(a1.mang_advertiser_name, 'NA') mang_advertiser_name, SUM(impressions) AS impressions
+         |FROM(SELECT account_id, SUM(impressions) impressions
+         |FROM s_stats_fact
+         |WHERE (account_id = 12345) AND (stats_date >= cast('$fromDate' as date) AND stats_date <= cast('$toDate' as date))
+         |GROUP BY account_id
+         |HAVING (SUM(impressions) > 1608)
+         |       )
+         |ssf0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM advertiser_hive
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |ssf0.account_id = a1.a1_id
+         |
+         |GROUP BY COALESCE(a1.mang_advertiser_name, 'NA')
+         |ORDER BY mang_advertiser_name DESC, impressions DESC) OgbQueryAlias
+         |) queryAlias LIMIT 200
+         |
+       """.stripMargin
+
+    result should equal (expected) (after being whiteSpaceNormalised)
+
+  }
+
+  test("successfully generate fact driven query for minute grain with datetime between filter") {
+    val jsonString =
+      s"""{
+                          "cube": "s_stats_minute",
+                          "selectFields": [
+                              {"field": "Advertiser Name"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "datetimebetween", "from": "$fromDateTime", "to": "$toDateTime", "format": "$iso8601Format"},
+                              {"field": "Impressions", "operator": ">", "value": "1608"}
+                          ],
+                          "sortBy": [{"field": "Advertiser Name", "order": "Desc"},  {"field": "Impressions", "order": "DESC"}]
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = getRequestModel(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipelineForQgenVersion(registry, requestModel.toOption.get, Version.v1)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[PrestoQuery].asString
+
+    val expected =
+      s"""SELECT CAST(mang_advertiser_name as VARCHAR) AS mang_advertiser_name, CAST(mang_impressions as VARCHAR) AS mang_impressions
+         |FROM(
+         |SELECT mang_advertiser_name AS mang_advertiser_name, impressions AS mang_impressions
+         |FROM(
+         |SELECT COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA') mang_advertiser_name, SUM(impressions) AS impressions
+         |FROM(SELECT account_id, SUM(impressions) impressions
+         |FROM s_stats_fact_underlying
+         |WHERE (account_id = 12345) AND (stats_date >= from_iso8601_timestamp('$fromDateTime') AND stats_date <= from_iso8601_timestamp('$toDateTime'))
+         |GROUP BY account_id
+         |HAVING (SUM(impressions) > 1608)
+         |       )
+         |ssfu0
+         |LEFT OUTER JOIN (
+         |SELECT name AS mang_advertiser_name, id a1_id
+         |FROM advertiser_presto
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (id = 12345)
+         |)
+         |a1
+         |ON
+         |ssfu0.account_id = a1.a1_id
+         |
+         |GROUP BY COALESCE(CAST(a1.mang_advertiser_name as VARCHAR), 'NA')
+         |ORDER BY mang_advertiser_name DESC, impressions DESC) OgbQueryAlias
+         |)
+         |        queryAlias LIMIT 200
+         |        """.stripMargin
+    result should equal (expected) (after being whiteSpaceNormalised)
   }
 }

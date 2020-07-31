@@ -91,6 +91,11 @@ case class ReportingRequest(cube: String
       additionalParameters(Parameter.Labels).asInstanceOf[LabelsValue].value
     } else List.empty
   }
+  def getTimezone : Option[String] = {
+    additionalParameters.get(Parameter.TimeZone) collect {
+      case TimeZoneValue(value) => value
+    }
+  }
 }
 
 trait BaseRequest {
@@ -316,6 +321,9 @@ trait BaseRequest {
         (date, date)
       case BetweenFilter(_,from,to) =>
         (DailyGrain.fromFormattedString(from), DailyGrain.fromFormattedString(to))
+      case dtf: DateTimeBetweenFilter =>
+        (DailyGrain.fromFormattedString(DailyGrain.toFormattedString(dtf.fromDateTime))
+          , DailyGrain.fromFormattedString(DailyGrain.toFormattedString(dtf.toDateTime)))
       case a =>
         throw new IllegalArgumentException(s"Cannot handle $dayFilter while sending scheduled email")
     }

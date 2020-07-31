@@ -14,6 +14,7 @@
         "druid"
       ],
       "bucketingConfigName": "academicBucket",
+      "userTimeZoneProviderName": "academicUserTimeZone",
       "utcTimeProviderName": "academicUTC",
       "parallelServiceExecutorName": "academicParallelExec",
       "dimEstimatorFactoryClass": "com.yahoo.maha.service.factory.DefaultDimCostEstimatorFactory",
@@ -203,6 +204,14 @@
           }
         ],
         "queryGenerator": []
+      }
+    }
+  },
+  "userTimeZoneProviderMap": {
+    "academicUserTimeZone": {
+      "factoryClass": "com.yahoo.maha.service.factory.NoopUserTimeZoneProviderFactory",
+      "config": {
+        "k": "v"
       }
     }
   },

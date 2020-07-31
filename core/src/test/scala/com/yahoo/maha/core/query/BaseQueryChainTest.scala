@@ -121,7 +121,7 @@ trait BaseQueryChainTest {
   def getRequestModel(jsonString: String): RequestModel = {
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val res = RequestModel.from(request, registry)
+    val res = getRequestModel(request, registry)
     assert(res.isSuccess, res.errorMessage("Failed to build request model"))
     res.toOption.get
   }

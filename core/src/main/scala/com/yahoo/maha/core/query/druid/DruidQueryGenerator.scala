@@ -425,7 +425,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
           val builder: TopNQueryBuilder = new TopNQueryBuilder()
             .dataSource(dataSource)
-            .intervals(getInterval(model))
+            .intervals(getInterval(model, fact))
             .granularity(getGranularity(queryContext))
             .metric(metric)
             .threshold(threshold)
@@ -457,7 +457,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
           && queryContext.requestModel.isTimeSeries) {
           val builder = Druids.newTimeseriesQueryBuilder()
             .dataSource(dataSource)
-            .intervals(getInterval(model))
+            .intervals(getInterval(model, fact))
             .granularity(getGranularity(queryContext))
             .context(context)
 
@@ -477,7 +477,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
         else {
           val builder = GroupByQuery.builder()
             .setDataSource(dataSource)
-            .setQuerySegmentSpec(getInterval(model))
+            .setQuerySegmentSpec(getInterval(model, fact))
             .setGranularity(getGranularity(queryContext))
             .setContext(context)
 
@@ -536,7 +536,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
         val builder = Druids.newScanQueryBuilder()
           .dataSource(dataSource)
-          .intervals(getInterval(model))
+          .intervals(getInterval(model, fact))
           .context(context)
 
         builder.limit(threshold)
@@ -673,7 +673,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
 
       val outerQueryBuilder = GroupByQuery.builder()
         .setDataSource(innerGroupByQueryBuilder.build())
-        .setQuerySegmentSpec(getInterval(queryContext.requestModel))
+        .setQuerySegmentSpec(getInterval(queryContext.requestModel, queryContext.factBestCandidate.fact))
         .setGranularity(getGranularity(queryContext))
         .setContext(context)
 
@@ -727,7 +727,12 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       }
 
       if(hasExpensiveDateDimFilter) {
-        outerQueryDimFilterList ++= FilterDruid.renderDateDimFilters(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, queryContext.factBestCandidate.fact.columnsByNameMap, forOuterQuery = true)
+        outerQueryDimFilterList ++= FilterDruid.renderDateDimFilters(
+          queryContext.requestModel
+          , queryContext.factBestCandidate.publicFact.aliasToNameColumnMap
+          , queryContext.factBestCandidate.fact.columnsByNameMap
+          , queryContext.factBestCandidate.fact.grain
+          , forOuterQuery = true)
       }
 
       if (outerQueryDimFilterList.nonEmpty) {
@@ -765,7 +770,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
       //overwrite query
       val rowCountQueryBuilder = GroupByQuery.builder()
         .setDataSource(groupByQuery)
-        .setQuerySegmentSpec(getInterval(queryContext.requestModel))
+        .setQuerySegmentSpec(getInterval(queryContext.requestModel, queryContext.factBestCandidate.fact))
         .setGranularity(getGranularity(queryContext))
         .setContext(context)
       val countAggregatorFactory: AggregatorFactory = new CountAggregatorFactory(QueryRowList.ROW_COUNT_ALIAS)
@@ -828,8 +833,14 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     }
   }
 
-  private[this] def getInterval(model: RequestModel): QuerySegmentSpec = {
+  private[this] def getInterval(model: RequestModel, fact:Fact): QuerySegmentSpec = {
     model.utcTimeDayFilter match {
+      case dtf: DateTimeBetweenFilter =>
+        val f = dtf.fromDateTime
+        //since to is exclusive, we add 1 unit
+        val t = fact.grain.incrementOne(dtf.toDateTime)
+        val interval = new Interval(f, t)
+        new MultipleIntervalSegmentSpec(java.util.Arrays.asList(interval))
       case BetweenFilter(_, from, to) =>
         val (f, t) = getBetweenDates(model)
         val interval = new Interval(f, t)
@@ -1492,7 +1503,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
     val filters = queryContext.factBestCandidate.filters
     val whereFilters = new ArrayBuffer[DimFilter](filters.size)
     if (queryContext.factBestCandidate.publicFact.renderLocalTimeFilter) {
-      whereFilters ++= FilterDruid.renderDateDimFilters(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, fact.columnsByNameMap)
+      whereFilters ++= FilterDruid.renderDateDimFilters(queryContext.requestModel, queryContext.factBestCandidate.publicFact.aliasToNameColumnMap, fact.columnsByNameMap, fact.grain)
     }
     whereFilters
   }

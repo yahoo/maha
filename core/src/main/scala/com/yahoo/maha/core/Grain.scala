@@ -13,6 +13,9 @@ sealed trait Grain {
   //value between 0 and 9
   def level: Int
   def formatString: String
+  def fullFormatString: String
+  def toFullFormattedString(dt: DateTime) : String
+  def fromFullFormattedString(date: String) : DateTime
   def toFormattedString(dt: DateTime) : String
   def fromFormattedString(date: String) : DateTime
   def incrementOne(dt: DateTime): DateTime
@@ -25,14 +28,17 @@ object Grain {
 }
 
 case object DailyGrain extends Grain with Logging {
-  
+
   val level = 0
-  
+
   val DAY_FILTER_FIELD: String = "Day"
 
-  override val formatString = "YYYY-MM-dd"
+  override val formatString = "yyyy-MM-dd"
   private[this] val datetimeFormat = DateTimeFormat.forPattern(formatString).withZoneUTC()
-  
+  override val fullFormatString = formatString
+
+  def toFullFormattedString(dt: DateTime) : String = toFormattedString(dt)
+  def fromFullFormattedString(date: String) : DateTime = fromFormattedString(date)
   def toFormattedString(dt: DateTime) : String = datetimeFormat.print(dt)
   def fromFormattedString(date: String) : DateTime = datetimeFormat.parseDateTime(date)
   def fromFormattedStringAndZone(date: String, timezone: String) : DateTime = DateTimeFormat.forPattern(formatString).withZone(DateTimeZone.forID(timezone)).parseDateTime(date)
@@ -40,6 +46,8 @@ case object DailyGrain extends Grain with Logging {
 
   def validateFilterAndGetNumDays(filter: Filter): Int = {
     filter match {
+      case dtf: DateTimeBetweenFilter =>
+        dtf.daysBetween
       case BetweenFilter(field, from, to) =>
         validateFormat(field, from)
         validateFormat(field, to)
@@ -94,12 +102,17 @@ case object DailyGrain extends Grain with Logging {
 case object HourlyGrain extends Grain {
 
   val level = 1
-  
-  val HOUR_FILTER_FIELD: String = "Hour"
-  
-  override val formatString = "HH"
-  private[this] val datetimeFormat = DateTimeFormat.forPattern(formatString)
 
+  val HOUR_FILTER_FIELD: String = "Hour"
+
+  override val formatString = "HH"
+  private[this] val datetimeFormat = DateTimeFormat.forPattern(formatString).withZoneUTC()
+
+  override val fullFormatString = s"${DailyGrain.fullFormatString}'T'$formatString"
+  private[this] val fullDatetimeFormat = DateTimeFormat.forPattern(fullFormatString).withZoneUTC()
+
+  def toFullFormattedString(dt: DateTime) : String = fullDatetimeFormat.print(dt)
+  def fromFullFormattedString(date: String) : DateTime = fullDatetimeFormat.parseDateTime(date)
   def toFormattedString(dt: DateTime) : String = datetimeFormat.print(dt)
   def fromFormattedString(date: String) : DateTime = datetimeFormat.parseDateTime(date)
   def incrementOne(dt: DateTime): DateTime = dt.plusHours(1)
@@ -134,8 +147,12 @@ case object MinuteGrain extends Grain {
   val MINUTE_FILTER_FIELD: String = "Minute"
 
   override val formatString = "mm"
-  private[this] val datetimeFormat = DateTimeFormat.forPattern(formatString)
+  private[this] val datetimeFormat = DateTimeFormat.forPattern(formatString).withZoneUTC()
+  override val fullFormatString = s"${HourlyGrain.fullFormatString}:$formatString"
+  private[this] val fullDatetimeFormat = DateTimeFormat.forPattern(fullFormatString).withZoneUTC()
 
+  def toFullFormattedString(dt: DateTime) : String = fullDatetimeFormat.print(dt)
+  def fromFullFormattedString(date: String) : DateTime = fullDatetimeFormat.parseDateTime(date)
   def toFormattedString(dt: DateTime) : String = datetimeFormat.print(dt)
   def fromFormattedString(date: String) : DateTime = datetimeFormat.parseDateTime(date)
   def incrementOne(dt: DateTime): DateTime = dt.plusMinutes(1)

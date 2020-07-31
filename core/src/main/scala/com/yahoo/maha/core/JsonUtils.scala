@@ -6,6 +6,7 @@ import org.json4s._
 import org.json4s.scalaz.JsonScalaz
 import org.json4s.scalaz.JsonScalaz._
 import _root_.scalaz.{Scalaz, syntax}
+import org.joda.time.DateTimeZone
 import org.json4s.JsonAST.{JArray, JValue}
 import syntax.validation._
 
@@ -46,6 +47,8 @@ object JsonUtils {
 
   def booleanFalse(json: JValue): Result[Boolean] = false.successNel
 
+  def optionNone[T](json: JValue): Result[Option[T]] = None.successNel
+  def noneDateTimeZone(json: JValue): Result[Option[DateTimeZone]] = None.successNel
   /**
    * Implicits used for JSON converters, IE Set, Map, Annotations, etc.
    */

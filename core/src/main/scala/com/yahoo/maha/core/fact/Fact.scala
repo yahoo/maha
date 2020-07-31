@@ -2057,6 +2057,9 @@ case class PublicFactTable private[fact](name: String
           case BetweenFilter(_,from,to) =>
             val fromDateMills = DailyGrain.fromFormattedString(from).getMillis
             availableFromDate.isBefore(fromDateMills) || availableFromDate.isEqual(fromDateMills)
+          case dtf: DateTimeBetweenFilter =>
+            val fromDateMills = dtf.fromDateTime.getMillis
+            availableFromDate.isBefore(fromDateMills) || availableFromDate.isEqual(fromDateMills)
           case InFilter(_,dates, _, _) =>
             val minDateMills = dates.map(DailyGrain.fromFormattedString(_).getMillis).min
             availableFromDate.isBefore(minDateMills) || availableFromDate.isEqual(minDateMills)

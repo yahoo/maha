@@ -2,7 +2,6 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service
 
-import com.netflix.archaius.config.PollingDynamicConfig
 import com.yahoo.maha.service.config.dynamic.DynamicConfigurations
 import com.yahoo.maha.service.config.dynamic.DynamicConfigurationUtils._
 import grizzled.slf4j.Logging

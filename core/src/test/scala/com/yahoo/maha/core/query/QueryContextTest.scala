@@ -46,7 +46,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     //test with oracle
@@ -117,7 +117,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     intercept[IllegalArgumentException] {
@@ -131,7 +131,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     //test with oracle
@@ -204,7 +204,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     intercept[IllegalArgumentException] {
       val builder = new QueryContextBuilder(FactOnlyQuery, requestModel.get)
@@ -240,7 +240,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     intercept[IllegalArgumentException] {
       val builder = new QueryContextBuilder(FactOnlyQuery, requestModel.get)
@@ -254,7 +254,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     //test with oracle only
@@ -325,7 +325,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     //test with oracle only
@@ -410,7 +410,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     intercept[IllegalArgumentException] {
       val builder = new QueryContextBuilder(DimFactQuery, requestModel.get)
@@ -439,7 +439,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     val builder = new QueryContextBuilder(DimOnlyQuery, requestModel.get)
     val dimMapping = DefaultQueryPipelineFactory.findDimCandidatesMapping(requestModel.get)
@@ -473,7 +473,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     val builder = new QueryContextBuilder(DimOnlyQuery, requestModel.get)
 
@@ -507,7 +507,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     val builder = new QueryContextBuilder(FactOnlyQuery, requestModel.get)
     val bestFact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, Set.empty, Set(OracleEngine, DruidEngine), queryGeneratorRegistry = queryGeneratorRegistry )
@@ -547,7 +547,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     val builder = new QueryContextBuilder(DimFactOuterGroupByQuery, requestModel.get)
 
@@ -587,7 +587,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     val builder = new QueryContextBuilder(FactOnlyQuery, requestModel.get)
     val bestFact = DefaultQueryPipelineFactory.findBestFactCandidate(requestModel.get, Set(OracleEngine), Set(OracleEngine, DruidEngine), queryGeneratorRegistry = queryGeneratorRegistry )
@@ -618,7 +618,7 @@ class QueryContextTest extends FunSuite with Matchers with BeforeAndAfterAll wit
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
     val builder = new QueryContextBuilder(FactOnlyQuery, requestModel.get)
     intercept[IllegalArgumentException] {

@@ -40,6 +40,7 @@ trait BasePrestoQueryGeneratorTest
     registryBuilder.register(bidReco())
     registryBuilder.register(pubfact5())
     registryBuilder.register(pubfact2(forcedFilters))
+    registryBuilder.register(pubfact3(forcedFilters))
   }
 
   protected[this] def s_stats_fact(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
@@ -532,6 +533,83 @@ trait BasePrestoQueryGeneratorTest
           PublicFactCol("impression_share_rounded", "Impression Share", InBetweenEquality)
         ),
         forcedFilters,
+        getMaxDaysWindow, getMaxDaysLookBack
+      )
+  }
+
+  def pubfact3(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    import PrestoExpression._
+    import com.yahoo.maha.core.BasePrestoExpressionTest._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      Fact.newFact(
+        "s_stats_fact", MinuteGrain, PrestoEngine, Set(AdvertiserSchema),
+        Set(
+          DimCol("campaign_id", StrType(), annotations = Set(ForeignKey("campaign")))
+          , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
+          , DimCol("account_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("keyword_id", IntType())
+          , DimCol("keyword", StrType(), annotations = Set(EscapingRequired))
+          , DimCol("search_term", StrType(50,default = "None"))
+          , DimCol("delivered_match_type", IntType(3, (Map(1 -> "Exact", 2 -> "Broad", 3 -> "Phrase"), "UNKNOWN")))
+          , DimCol("stats_source", IntType(3))
+          , DimCol("source_name", IntType(3), alias = Option("stats_source"))
+          , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
+          , DimCol("device_id", IntType(3, (Map(11 -> "Desktop", 22 -> "Tablet", 33 -> "SmartPhone", -1 -> "UNKNOWN"), "UNKNOWN")))
+          , DimCol("network_type", StrType(100, (Map("TEST_PUBLISHER" -> "Test Publisher", "CONTENT_S" -> "Content Secured", "EXTERNAL" -> "External Partners" ,  "INTERNAL" -> "Internal Properties"), "NONE")))
+          , DimCol("start_time", IntType())
+          , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
+          , DimCol("stats_date", TimestampType())
+          , DimCol("column_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned")))
+          , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
+          , PrestoDerDimCol("Ad Group Start Date Full", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "YYYY-MM-dd HH:mm:ss"))
+
+        ),
+        Set(
+          FactCol("impressions", IntType(3, 1))
+          , FactCol("clicks", IntType(3, 0, 1, 800))
+          , FactCol("spend", DecType(0, "0.0"))
+          , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
+          , FactCol("weighted_position", DecType(0, "0.0"))
+          , PrestoDerFactCol("Average CPC", DecType(), "{spend}" /- "{clicks}", rollupExpression = NoopRollup)
+          , PrestoDerFactCol("Average CPC Cents", DecType(), "{Average CPC}" * "100", rollupExpression = NoopRollup)
+          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PrestoCustomRollup(SUM("{weighted_position}" * "{impressions}") /- SUM("{impressions}")))
+          , ConstFactCol("constantFact", IntType(), "0")
+          , FactCol("Count", IntType(), rollupExpression = CountRollup)
+        ),underlyingTableName = Some("s_stats_fact_underlying")
+      )
+    }
+      .toPublicFact("s_stats_minute",
+        Set(
+          PubCol("stats_date", "Day", InBetweenEquality),
+          PubCol("ad_group_id", "Ad Group ID", InEqualityFieldEquality),
+          PubCol("campaign_id", "Campaign ID", InEquality),
+          PubCol("account_id", "Advertiser ID", InEqualityFieldEquality),
+          PubCol("keyword_id", "Keyword ID", InEquality),
+          PubCol("keyword", "Keyword", InEquality),
+          PubCol("search_term", "Search Term", InEquality),
+          PubCol("delivered_match_type", "Delivered Match Type", InEquality),
+          PubCol("stats_source", "Source", Equality, incompatibleColumns = Set("Source Name")),
+          PubCol("source_name", "Source Name", Equality, incompatibleColumns = Set("Source")),
+          PubCol("price_type", "Pricing Type", In),
+          PubCol("landing_page_url", "Destination URL", Set.empty),
+          PubCol("column_id", "Column ID", Equality),
+          PubCol("column2_id", "Column2 ID", Equality),
+          PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality),
+          PubCol("network_type", "Network ID", InEquality),
+          PubCol("device_id", "Device ID", InEquality)
+        ),
+        Set(
+          PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
+          PublicFactCol("clicks", "Clicks", InBetweenEquality),
+          PublicFactCol("spend", "Spend", FieldEquality),
+          PublicFactCol("avg_pos", "Average Position", Set.empty),
+          PublicFactCol("constantFact", "Constant Fact", Set.empty),
+          PublicFactCol("max_bid", "Max Bid", FieldEquality),
+          PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
+          PublicFactCol("Average CPC Cents", "Average CPC Cents", InBetweenEquality),
+          PublicFactCol("Count", "Count", InBetweenEquality)
+        ),
+        Set(),
         getMaxDaysWindow, getMaxDaysLookBack
       )
   }
