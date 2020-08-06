@@ -50,7 +50,7 @@ class MahaSyncRequestProcessorTest extends BaseMahaServiceTest with BeforeAndAft
       mahaServiceConfig.mahaRequestLogWriter
     )
     mahaRequestProcessor.onSuccess((requestCoordinatorResult: RequestCoordinatorResult) => {
-      assert(requestCoordinatorResult.successResults.head._2.queryPipelineResult.rowList.columns.nonEmpty)
+      assert(requestCoordinatorResult.successResults.head._2.head.requestResult.queryPipelineResult.rowList.columns.nonEmpty)
       assertCount+=1
     })
     mahaRequestProcessor.onFailure((ge) => {

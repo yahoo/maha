@@ -13,7 +13,7 @@ import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
-import com.yahoo.maha.service.{BaseMahaServiceTest, CuratorInjector, MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
+import com.yahoo.maha.service.{BaseMahaServiceTest, CuratorAndRequestResult, CuratorInjector, MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
 import org.json4s.JsonAST.{JInt, JObject}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should
@@ -134,8 +134,9 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val curatorResult = CuratorResult(defaultCurator, NoConfig, Option(parRequestResult), requestModelResult)
 
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator)
-      , Map(DefaultCurator.name -> curatorResult)
-      , Map.empty, Map(DefaultCurator.name -> curatorResult.parRequestResultOption.get.prodRun.get().right.get)
+      , Map.empty
+      , Map(DefaultCurator.name -> IndexedSeq(CuratorAndRequestResult(curatorResult
+        , curatorResult.parRequestResultOption.get.prodRun.get().right.get)))
       , mahaRequestContext)
 
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult
@@ -187,10 +188,9 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val curatorResults = IndexedSeq(curatorResult1, curatorResult2)
 
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator, testCurator)
-      , Map(DefaultCurator.name -> curatorResult1, curatorResult2.curator.name -> curatorResult2)
       , Map.empty
-      , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get
-        , "TestCurator" -> curatorResult2.parRequestResultOption.get.prodRun.get().right.get
+      , Map(DefaultCurator.name -> IndexedSeq(CuratorAndRequestResult(curatorResult1, curatorResult1.parRequestResultOption.get.prodRun.get().right.get))
+        , "TestCurator" -> IndexedSeq(CuratorAndRequestResult(curatorResult2, curatorResult2.parRequestResultOption.get.prodRun.get().right.get))
       )
       , mahaRequestContext)
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
@@ -229,9 +229,8 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val curatorResults = IndexedSeq(curatorResult1, curatorResult2)
 
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator, failingCurator)
-      , Map(DefaultCurator.name -> curatorResult1)
-      , Map(failingCurator.name -> curatorResult2.left.get)
-      , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get)
+      , Map(failingCurator.name -> IndexedSeq(curatorResult2.left.get))
+      , Map(DefaultCurator.name -> IndexedSeq(CuratorAndRequestResult(curatorResult1, curatorResult1.parRequestResultOption.get.prodRun.get().right.get)))
       , mahaRequestContext)
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 
@@ -267,9 +266,8 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val curatorResults = IndexedSeq(curatorResult1)
 
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator)
-      , Map(DefaultCurator.name -> curatorResult1)
       , Map.empty
-      , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get)
+      , Map(DefaultCurator.name -> IndexedSeq(CuratorAndRequestResult(curatorResult1, curatorResult1.parRequestResultOption.get.prodRun.get().right.get)))
       , mahaRequestContext)
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 
@@ -304,9 +302,8 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val curatorResults = IndexedSeq(curatorResult1)
 
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator)
-      , Map(DefaultCurator.name -> curatorResult1)
       , Map.empty
-      , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get)
+      , Map(DefaultCurator.name -> IndexedSeq(CuratorAndRequestResult(curatorResult1, curatorResult1.parRequestResultOption.get.prodRun.get().right.get)))
       , mahaRequestContext)
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 
@@ -372,10 +369,10 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val curatorResult2 = CuratorResult(rowCountCurator, NoConfig, Option(parRequestResult), requestModelResult)
 
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator, rowCountCurator)
-      , Map(DefaultCurator.name -> curatorResult1, RowCountCurator.name -> curatorResult2)
       , Map.empty
-      , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get,
-            RowCountCurator.name -> curatorResult2.parRequestResultOption.get.prodRun.get().right.get)
+      , Map(DefaultCurator.name -> IndexedSeq(CuratorAndRequestResult(curatorResult1, curatorResult1.parRequestResultOption.get.prodRun.get().right.get)),
+            RowCountCurator.name -> IndexedSeq(CuratorAndRequestResult(curatorResult2, curatorResult2.parRequestResultOption.get.prodRun.get().right.get))
+      )
       , mahaRequestContext)
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 

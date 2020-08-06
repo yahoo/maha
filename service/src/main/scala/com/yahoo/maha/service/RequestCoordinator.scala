@@ -25,10 +25,10 @@ object RequestCoordinatorError {
   }
 }
 
+case class CuratorAndRequestResult(curatorResult: CuratorResult, requestResult: RequestResult)
 case class RequestCoordinatorResult(orderedList: IndexedSeq[Curator]
-                                    , curatorResult: Map[String, CuratorResult]
-                                    , failureResults: Map[String, CuratorError]
-                                    , successResults: Map[String, RequestResult]
+                                    , failureResults: Map[String, IndexedSeq[CuratorError]]
+                                    , successResults: Map[String, IndexedSeq[CuratorAndRequestResult]]
                                     , mahaRequestContext: MahaRequestContext
                                    )
 
@@ -46,19 +46,19 @@ class CuratorInjector(initialSize: Int
                       , requestedCurators: Set[String]
                      ) {
   val curatorList: ArrayBuffer[Curator] = new ArrayBuffer[Curator](initialSize)
-  val orderedResultList: ArrayBuffer[Either[CuratorError, ParRequest[CuratorResult]]] =
+  val orderedResultList: ArrayBuffer[Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]] =
     new ArrayBuffer(initialSize = initialSize)
-  var resultMap: Map[String, Either[GeneralError, ParRequest[CuratorResult]]] = Map.empty
+  var resultMap: Map[String, Either[GeneralError, IndexedSeq[ParRequest[CuratorResult]]]] = Map.empty
 
   def injectCurator(curatorName: String
-                    , inputResultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]]
+                    , inputResultMap: Map[String, Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]]
                     , mahaRequestContext: MahaRequestContext
                     , curatorConfig: CuratorConfig): Unit = {
     try {
       require(!requestedCurators(curatorName), s"Cannot inject curator already requested : $curatorName")
       mahaService.getMahaServiceConfig.curatorMap.get(curatorName).foreach {
         curatorToInject =>
-          val result: Either[CuratorError, ParRequest[CuratorResult]] = curatorToInject.process(inputResultMap
+          val result: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = curatorToInject.process(inputResultMap
             , mahaRequestContext
             , mahaService
             , mahaRequestLogBuilder.curatorLogBuilder(curatorToInject)
@@ -141,16 +141,16 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
 
         val curatorInjector = new CuratorInjector(curatorsOrdered.size
           , mahaService, mahaRequestLogBuilder, curatorConfigMapFromRequest.keySet)
-        val orderedResultList: ArrayBuffer[Either[CuratorError, ParRequest[CuratorResult]]] =
+        val orderedResultList: ArrayBuffer[Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]] =
           new ArrayBuffer(initialSize = curatorsOrdered.size + 1)
 
         //inject default if required
-        val initialResultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]] = {
+        val initialResultMap: Map[String, Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]] = {
           if (curatorsOrdered.exists(_.requiresDefaultCurator)) {
             debugInfo(s"injecting default curator", mahaRequestContext)
             val curator = curatorMap(DefaultCurator.name)
             val logHelper = mahaRequestLogBuilder.curatorLogBuilder(curator)
-            val result: Either[CuratorError, ParRequest[CuratorResult]] = curator
+            val result: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = curator
               .process(Map.empty, mahaRequestContext, mahaService, logHelper, NoConfig, curatorInjector)
             //short circuit on default failure
             if (result.isLeft) {
@@ -161,7 +161,7 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
           } else Map.empty
         }
 
-        val resultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]] = curatorsOrdered.foldLeft(initialResultMap) {
+        val resultMap: Map[String, Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]] = curatorsOrdered.foldLeft(initialResultMap) {
           (prevResult, curator) =>
             val config = curatorConfigMapFromRequest(curator.name)
             val logHelper = mahaRequestLogBuilder.curatorLogBuilder(curator)
@@ -179,9 +179,9 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
             .view.map {
             case Right(parRequest) =>
               parRequest
-            case error: Left[CuratorError, ParRequest[CuratorResult]] =>
-              pse.immediateResult[ParRequest[CuratorResult]]("combinedResultList", error)
-          }.map(_.asInstanceOf[CombinableRequest[CuratorResult]]).toList.asJava
+            case error: Left[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] =>
+              IndexedSeq[ParRequest[CuratorResult]](pse.immediateResult[CuratorResult]("combinedResultList", new Left[CuratorError, CuratorResult](error.value)))
+          }.toList.flatten.map(_.asInstanceOf[CombinableRequest[CuratorResult]]).asJava
           pse.combineListEither(futures)
         }
 
@@ -204,14 +204,21 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
                   ParFunction.fromScala {
                     firstRequestResult =>
                       var i = 0
-                      val failureResults = new scala.collection.mutable.HashMap[String, CuratorError]
+                      val failureResults = new scala.collection.mutable.HashMap[String, scala.collection.mutable.ArrayBuffer[CuratorError]]
                       val inProgressResults = new scala.collection.mutable.ArrayBuffer[CuratorResult]
                       while (i < seq.size) {
                         val errorOrResult = seq(i)
                         if (errorOrResult.isLeft) {
                           errorOrResult.left.get match {
                             case ce: CuratorError =>
-                              failureResults.put(ce.curator.name, ce)
+                              if(!failureResults.contains(ce.curator.name)) {
+                                val newList = new scala.collection.mutable.ArrayBuffer[CuratorError]
+                                newList += ce
+                                failureResults.put(ce.curator.name, newList)
+                              } else {
+                                val list = failureResults(ce.curator.name)
+                                list += ce
+                              }
                             case ge: GeneralError =>
                               if (ge.throwableOption.isDefined) {
                                 logger.error(s"Unknown curator error : ${ge.stage} : ${ge.message}", ge.throwableOption.get)
@@ -235,25 +242,47 @@ case class DefaultRequestCoordinator(protected val mahaService: MahaService) ext
                           javaRequestResult =>
                             val requestResultSeq = javaRequestResult.asScala.toIndexedSeq
                             var j = 0
-                            val successResults = new scala.collection.mutable.HashMap[String, RequestResult]
+                            val successResults = new scala.collection.mutable.HashMap[String, scala.collection.mutable.ArrayBuffer[CuratorAndRequestResult]]
                             while (j < requestResultSeq.size) {
                               val curatorResult = inProgressResults(j)
                               val errorOrResult = requestResultSeq(j)
                               if (errorOrResult.isLeft) {
                                 errorOrResult.left.get match {
                                   case ce: CuratorError =>
-                                    failureResults.put(ce.curator.name, ce)
+                                    if(!failureResults.contains(ce.curator.name)) {
+                                      val newList = new scala.collection.mutable.ArrayBuffer[CuratorError]
+                                      newList += ce
+                                      failureResults.put(ce.curator.name, newList)
+                                    } else {
+                                      val list = failureResults(ce.curator.name)
+                                      list += ce
+                                    }
                                   case ge: GeneralError =>
-                                    failureResults.put(curatorResult.curator.name, CuratorError(curatorResult.curator, curatorResult.curatorConfig, ge))
+                                    val ce: CuratorError = CuratorError(curatorResult.curator, curatorResult.curatorConfig, ge)
+                                    if(!failureResults.contains(ce.curator.name)) {
+                                      val newList = new scala.collection.mutable.ArrayBuffer[CuratorError]
+                                      newList += ce
+                                      failureResults.put(ce.curator.name, newList)
+                                    } else {
+                                      val list = failureResults(ce.curator.name)
+                                      list += ce
+                                    }
                                 }
                               } else {
-                                successResults.put(curatorResult.curator.name, errorOrResult.right.get)
+                                val result = errorOrResult.right.get
+                                if(!successResults.contains(curatorResult.curator.name)) {
+                                  val newList = new scala.collection.mutable.ArrayBuffer[CuratorAndRequestResult]()
+                                  newList += CuratorAndRequestResult(curatorResult, result)
+                                  successResults.put(curatorResult.curator.name, newList)
+                                } else {
+                                  val list = successResults(curatorResult.curator.name)
+                                  list += CuratorAndRequestResult(curatorResult, result)
+                                }
                               }
                               j += 1
                             }
                             val finalOrderedList: IndexedSeq[Curator] = curatorsOrdered.toIndexedSeq ++ curatorInjector.curatorList
-                            val curatorResultMap: Map[String, CuratorResult] = inProgressResults.map(cr => cr.curator.name -> cr).toMap
-                            new Right(RequestCoordinatorResult(finalOrderedList, curatorResultMap, failureResults.toMap, successResults.toMap, mahaRequestContext))
+                            new Right(RequestCoordinatorResult(finalOrderedList, failureResults.toMap, successResults.toMap, mahaRequestContext))
                         }
                       )
                   })

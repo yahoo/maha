@@ -10,7 +10,7 @@ import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.log.MahaRequestLogWriter
-import com.yahoo.maha.service.curators.DefaultCurator
+import com.yahoo.maha.service.curators.{DefaultCurator, DrilldownCurator}
 import com.yahoo.maha.service.{MahaRequestContext, MahaServiceConfig}
 import org.apache.druid.common.config.NullHandling
 import org.mockito.Mockito._
@@ -149,7 +149,7 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     mahaRequestLogHelper.setJobId(12345)
     mahaRequestLogHelper.logQueryStats(queryAttributeBuilder.build)
     val curatorLogBuilder = mahaRequestLogHelper.curatorLogBuilder(new DefaultCurator())
-    val curatorHelper = CuratorMahaRequestLogHelper(curatorLogBuilder)
+    val curatorHelper = curatorLogBuilder.copy(new DrilldownCurator())
     curatorHelper.setJobIdString("abcd")
     curatorHelper.logFailed("a second new error message")
   }
