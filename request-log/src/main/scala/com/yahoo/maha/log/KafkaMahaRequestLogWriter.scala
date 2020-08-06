@@ -37,7 +37,7 @@ case class KafkaRequestLoggingConfig(kafkaBrokerList: String,
                                      maxBlockMs: String)
 
 class KafkaMahaRequestLogWriter(kafkaRequestLoggingConfig: KafkaRequestLoggingConfig, loggingEnabled: Boolean) extends MahaRequestLogWriter with Logging {
-  
+
   val props: Properties = new Properties
   props.put("bootstrap.servers", kafkaRequestLoggingConfig.bootstrapServers)
   props.put("value.serializer", kafkaRequestLoggingConfig.serializerClass)
