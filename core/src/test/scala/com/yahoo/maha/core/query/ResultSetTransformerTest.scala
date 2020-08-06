@@ -64,10 +64,10 @@ class ResultSetTransformerTest extends FunSuite with Matchers{
     val retVal4 = bigDecimalTransformer.transform(DailyGrain, "Day", decColScale, 10)
     
     val retVal5 = bigDecimalTransformer.transform(DailyGrain, "Day", decColBoth, 10)
-    println(retVal5)
+    //println(retVal5)
     val retVal6 = bigDecimalTransformer.transform(DailyGrain, "Avg Position", decColDefault, 0.4699999988)
     assert(retVal6 == 0.47)
-    println(retVal6)
+    //println(retVal6)
 
     assert(!ResultSetTransformer.DEFAULT_TRANSFORMS.isEmpty)
     assert(bigDecimalTransformer.transform(DailyGrain, "NOT_DAY", decCol, 10) == 10)

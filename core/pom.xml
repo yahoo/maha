@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.328-SNAPSHOT</version>
+        <version>6.1-SNAPSHOT</version>
     </parent>
 
     <name>maha core</name>
@@ -131,22 +131,16 @@
             <artifactId>jackson-dataformat-smile</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.druid</groupId>
+            <groupId>org.apache.druid</groupId>
             <artifactId>druid-processing</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.druid</groupId>
+            <groupId>org.apache.druid</groupId>
             <artifactId>druid-server</artifactId>
             <version>${druid.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>*</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
-            <groupId>io.druid.extensions</groupId>
+            <groupId>org.apache.druid.extensions</groupId>
             <artifactId>druid-histogram</artifactId>
         </dependency>
         <dependency>
@@ -190,6 +184,18 @@
             <artifactId>scala-arm_${scala.major.version}</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.opentable.components</groupId>
+            <artifactId>otj-pg-embedded</artifactId>
+            <version>${pg.embedded.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgres.jdbc.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <scope>test</scope>
@@ -208,7 +214,7 @@
             <artifactId>commons-math3</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.druid.extensions</groupId>
+            <groupId>org.apache.druid.extensions</groupId>
             <artifactId>druid-datasketches</artifactId>
             <version>${druid.version}</version>
         </dependency>

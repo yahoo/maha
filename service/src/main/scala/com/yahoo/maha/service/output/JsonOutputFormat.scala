@@ -7,7 +7,7 @@ import java.io.OutputStream
 import com.fasterxml.jackson.core.{JsonEncoding, JsonGenerator}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.yahoo.maha.core.query.{InMemRowList, QueryRowList, RowList}
-import com.yahoo.maha.core.request.ReportingRequest
+import com.yahoo.maha.core.request.{ReportingRequest, RowCountQuery}
 import com.yahoo.maha.core.{ColumnInfo, DimColumnInfo, Engine, FactColumnInfo}
 import com.yahoo.maha.service.RequestCoordinatorResult
 import com.yahoo.maha.service.curators.{Curator, DefaultCurator, RowCountCurator}
@@ -220,22 +220,28 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
       case _ => None
     }
 
-    rowList.foreach {
-      row => {
-        jsonGenerator.writeStartArray()
-        var i = 0
-        while(i < numColumns) {
-          jsonGenerator.writeObject(row.getValue(i))
-          i+=1
+    if (reportingRequest.queryType == RowCountQuery && rowList.isEmpty) {
+      jsonGenerator.writeStartArray()
+      jsonGenerator.writeObject(0)
+      jsonGenerator.writeEndArray()
+    } else {
+      rowList.foreach {
+        row => {
+          jsonGenerator.writeStartArray()
+          var i = 0
+          while(i < numColumns) {
+            jsonGenerator.writeObject(row.getValue(i))
+            i+=1
+          }
+          if (reportingRequest.includeRowCount && rowCountOption.isDefined) {
+            jsonGenerator.writeObject(rowCountOption.get)
+          } else if(reportingRequest.includeRowCount && row.aliasMap.contains(QueryRowList.ROW_COUNT_ALIAS)) {
+            jsonGenerator.writeObject(row.getValue(QueryRowList.ROW_COUNT_ALIAS))
+          } else if(reportingRequest.includeRowCount && rowListSize.isDefined) {
+            jsonGenerator.writeObject(rowListSize.get)
+          }
+          jsonGenerator.writeEndArray()
         }
-        if (reportingRequest.includeRowCount && rowCountOption.isDefined) {
-          jsonGenerator.writeObject(rowCountOption.get)
-        } else if(reportingRequest.includeRowCount && row.aliasMap.contains(QueryRowList.ROW_COUNT_ALIAS)) {
-          jsonGenerator.writeObject(row.getValue(QueryRowList.ROW_COUNT_ALIAS))
-        } else if(reportingRequest.includeRowCount && rowListSize.isDefined) {
-              jsonGenerator.writeObject(rowListSize.get)
-        }
-        jsonGenerator.writeEndArray()
       }
     }
     jsonGenerator.writeEndArray() // ]

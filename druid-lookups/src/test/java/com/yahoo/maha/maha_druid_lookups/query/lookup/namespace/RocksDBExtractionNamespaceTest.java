@@ -7,7 +7,8 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.fasterxml.jackson.datatype.joda.deser.DurationDeserializer;
 import com.fasterxml.jackson.datatype.joda.deser.PeriodDeserializer;
 import com.fasterxml.jackson.datatype.joda.deser.key.DateTimeKeyDeserializer;
-import io.druid.jackson.DefaultObjectMapper;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer;
+import org.apache.druid.jackson.DefaultObjectMapper;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.joda.time.Interval;
@@ -16,6 +17,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
 /**
  * Note: these classes are testing Jackson version 2.9.9, and druid-server
@@ -70,5 +72,33 @@ public class RocksDBExtractionNamespaceTest {
         assertEquals(namespace.getPollMs(), 30000);
         assertEquals(namespace.isCacheEnabled(), true);
         assertEquals(namespace.getLookupName(), "advertiser_lookup");
+        assertEquals(namespace.getOverrideLookupServiceHosts(), "[]");
+        assertEquals(namespace.getOverrideLookupServiceHostsList().size(), 0);
     }
+
+    @Test
+    public void testOverrideLookupHosts() throws Exception{
+        RocksDBExtractionNamespace namespace = objectMapper
+                .readValue(ClassLoader.getSystemClassLoader().getResourceAsStream("rocksdb_extraction_namespace_w_serviceHostList.json")
+                        , RocksDBExtractionNamespace.class);
+        assertEquals(namespace.getOverrideLookupServiceHosts(),"[http://test.com:1234,http://localhost:8090,https://test.com:8090,http://127.0.0.1:9999]");
+        assertEquals(namespace.getOverrideLookupServiceHostsList().size(), 4);
+    }
+
+    @Test
+    public void successfullyDeserializeFullNamespaceFromJSONWithFlatBufferCacheaActionRunner() throws Exception {
+        RocksDBExtractionNamespace namespace = objectMapper
+                .readValue(ClassLoader.getSystemClassLoader().getResourceAsStream("rocksdb_extraction_namespace_flatbuffer.json")
+                        , RocksDBExtractionNamespace.class);
+        assertEquals(namespace.getNamespace(), "advertiser");
+        assertEquals(namespace.getRocksDbInstanceHDFSPath(), "/data/druid/lookups/snapshots/advertiser");
+        assertEquals(namespace.getLookupAuditingHDFSPath(), "/data/druid/lookups/audits/advertiser");
+        assertEquals(namespace.getPollMs(), 30000);
+        assertEquals(namespace.isCacheEnabled(), true);
+        assertEquals(namespace.getLookupName(), "advertiser_lookup");
+        assertEquals(namespace.getCacheActionRunner().getSchemaType(), ExtractionNameSpaceSchemaType.FlatBuffer);
+        assertEquals(namespace.getCacheActionRunnerName(), "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer");
+        assertTrue(namespace.getCacheActionRunner() instanceof CacheActionRunnerFlatBuffer);
+    }
+
 }

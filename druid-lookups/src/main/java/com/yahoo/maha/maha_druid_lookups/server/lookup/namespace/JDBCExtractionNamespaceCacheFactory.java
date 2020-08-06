@@ -3,8 +3,8 @@
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
 import com.google.inject.Inject;
-import com.metamx.common.logger.Logger;
-import com.metamx.emitter.service.ServiceEmitter;
+import org.apache.druid.java.util.common.logger.Logger;
+import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.ExtractionNamespaceCacheFactory;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
@@ -195,9 +195,18 @@ public class JDBCExtractionNamespaceCacheFactory
                         namespace.getConnectorConfig().getConnectURI(),
                         namespace.getKerberosProperties()
                 );
+            } else if (namespace.ismTLSPropertiesEnabled() && namespace.hasmTLSProperties()) {
+                LOG.info("Connecting %s using mTLS", namespace.getConnectorConfig().getConnectURI());
+                dbi = new DBI(
+                        namespace.getConnectorConfig().getConnectURI(),
+                        namespace.getmTLSProperties()
+                );
             } else {
                 if (namespace.isKerberosPropertiesEnabled() && !namespace.hasKerberosProperties()) {
                     LOG.warn("KerberosProperties cannot be empty when KerberosPropertiesEnabled is true! Failing over to create DBI using user and password.");
+                }
+                if (namespace.ismTLSPropertiesEnabled() && !namespace.hasmTLSProperties()) {
+                    LOG.warn("mTLSProperties cannot be empty when mTLSPropertiesEnabled is true! Failing over to create DBI using user and password.");
                 }
                 LOG.info("Connecting %s using user and password", namespace.getConnectorConfig().getConnectURI());
                 dbi = new DBI(

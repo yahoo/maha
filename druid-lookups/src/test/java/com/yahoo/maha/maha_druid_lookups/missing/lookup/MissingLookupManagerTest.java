@@ -9,7 +9,7 @@ import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractio
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.MissingLookupConfig;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestPasswordProvider;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
-import io.druid.metadata.MetadataStorageConnectorConfig;
+import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -51,7 +51,7 @@ public class MissingLookupManagerTest {
         List<ConsumerRecord<String, byte[]>> records = new ArrayList<>();
         MetadataStorageConnectorConfig metadataStorageConnectorConfig = objectMapper.readValue("{ \"createTables\": false,\"connectURI\": \"jdbc:oracle:thin:@testdb\",\"user\": \"test_user\",\"password\":\"test_user.db.prod.pwd\"}", MetadataStorageConnectorConfig.class);
         RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
-                "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"), "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopCacheActionRunner"
+                "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", new MissingLookupConfig(metadataStorageConnectorConfig, "na_reporting.ad", "id", "missing_ad_lookup_topic"), "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopCacheActionRunner", null
         );
         objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         byte[] byteArray = objectMapper.writeValueAsBytes(extractionNamespace);

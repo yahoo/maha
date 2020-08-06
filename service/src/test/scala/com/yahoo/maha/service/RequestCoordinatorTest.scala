@@ -12,6 +12,7 @@ import com.yahoo.maha.service.error.MahaServiceExecutionException
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.output.{JsonOutputFormat, StringStream}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
+import org.apache.druid.common.config.NullHandling
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.scalatest.BeforeAndAfterAll
@@ -1064,7 +1065,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                           "curators" : {
                             "drilldown" : {
                               "config" : {
-                                "dimension": "Remarks"
+                                "dimensions": ["Year", "Remarks"]
                               }
                             }
                           },
@@ -1100,15 +1101,15 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
     val drillDownCuratorResult: RequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name)
     val expectedSet = Set(
-      "Row(Map(Remarks -> 0, Student ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 1, 213, 125))",
-      "Row(Map(Remarks -> 0, Student ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 2, 213, 180))",
-      "Row(Map(Remarks -> 0, Student ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 3, 213, 175))"
+      "Row(Map(Year -> 0, Remarks -> 1, Student ID -> 2, Total Marks -> 3),ArrayBuffer(Freshman, some comment 1, 213, 125))",
+      "Row(Map(Year -> 0, Remarks -> 1, Student ID -> 2, Total Marks -> 3),ArrayBuffer(Freshman, some comment 2, 213, 180))",
+      "Row(Map(Year -> 0, Remarks -> 1, Student ID -> 2, Total Marks -> 3),ArrayBuffer(Freshman, some comment 3, 213, 175))",
     )
 
     var cnt = 0
     drillDownCuratorResult.queryPipelineResult.rowList.foreach( row => {
       
-      assert(expectedSet.contains(row.toString))
+      assert(expectedSet.contains(row.toString), row.toString)
       cnt+=1
     })
 
@@ -1509,7 +1510,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
-//    println(result)
+//
     val expectedJson = """\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"Student ID","fieldType":"DIM"\},\{"fieldName":"Class ID","fieldType":"DIM"\},\{"fieldName":"Section ID","fieldType":"DIM"\},\{"fieldName":"Total Marks","fieldType":"FACT"\},\{"fieldName":"Student Name","fieldType":"DIM"\},\{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"\}\],"maxRows":200\},"rows":\[\[213,200,100,99,"ACTIVE",1\]\],"curators":\{.*\}\}"""
     result should fullyMatch regex expectedJson
 
@@ -1536,7 +1537,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                           "selectFields": [
                             {"field": "Student ID"},
                             {"field": "Total Marks"},
-                            {"field": "Remarks"},
+                            {"field": "Remarks2"},
                             {"field": "Class ID"},
                             {"field": "Performance Factor"}
                           ],
@@ -1709,7 +1710,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
 
-    println(result)
+
 
     val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Performance Factor","fieldType":"FACT"}],"maxRows":200,"debug":{}},"rows":[[213,125,"ACTIVE",200,1.0]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[198,213,180],[199,213,175],[200,213,125]]}}}}"""
 
@@ -1834,7 +1835,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
 
-    println(result)
+
 
     val expectedJson = s"""{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200,"debug":{}},"rows":[[213,305,100],[213,175,200]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[null,0,305],[null,0,175]]}}}}"""
 
@@ -1903,7 +1904,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
 
-    println(result)
+
 
     val expectedJson = s"""{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200,"debug":{}},"rows":[],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[]}}}}"""
 
@@ -1973,7 +1974,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
 
-    println(result)
+
 
     val expectedJson = s"""{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200,"debug":{}},"rows":[[213,175,200]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[null,0,175]]}}}}"""
 
@@ -2026,9 +2027,9 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val stringStream =  new StringStream()
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
-//    println(result)
+//
 
-    val expectedJson = """\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"Student ID","fieldType":"DIM"\},\{"fieldName":"Class ID","fieldType":"DIM"\},\{"fieldName":"Section ID","fieldType":"DIM"\},\{"fieldName":"Total Marks","fieldType":"FACT"\}\],"maxRows":200\},"rows":\[\[213,200,100,99\]\],"curators":\{"rowcount":\{"result":\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"TOTALROWS","fieldType":"FACT"\}\],"maxRows":200\},"rows":\[\[.*\]\]\}\}\}\}"""
+    val expectedJson = """\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"Student ID","fieldType":"DIM"\},\{"fieldName":"Class ID","fieldType":"DIM"\},\{"fieldName":"Section ID","fieldType":"DIM"\},\{"fieldName":"Total Marks","fieldType":"FACT"\}\],"maxRows":200\},"rows":\[\[213,200,100,99\]\],"curators":\{"rowcount":\{"result":\{"header":\{"cube":"student_performance","fields":\[\{"fieldName":"TOTALROWS","fieldType":"FACT"\}\],"maxRows":1\},"rows":\[\[.*\]\]\}\}\}\}"""
 
     result should fullyMatch regex expectedJson
 

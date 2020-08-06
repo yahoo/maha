@@ -49,7 +49,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -281,7 +281,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
 
       val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
       val registry = getDefaultRegistry()
-      val requestModel = RequestModel.from(request, registry)
+      val requestModel = getRequestModel(request, registry)
       assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -440,7 +440,7 @@ class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDi
         )
       )
     }
-      .newRollUp("fact_table_keywords", "fact0_table_keywords", discarding = Set("ad_id"), columnAliasMap = Map("price_type" -> "pricing_type"))
+      .newRollUp("fact_table_keywords", "fact0_table_keywords", discarding = Set("ad_id"), columnAliasMap = Map("price_type" -> "pricing_type"), availableOnwardsDate = Some("2010-01-01"))
       .toPublicFact("k_stats",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),

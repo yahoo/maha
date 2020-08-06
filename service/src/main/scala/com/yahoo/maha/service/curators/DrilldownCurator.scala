@@ -128,7 +128,7 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
           publicFact.columnsByAlias(filter.field)
       }
     } else IndexedSeq.empty
-    val allSelectedFields : IndexedSeq[Field] = (IndexedSeq(drilldownConfig.dimension, primaryKeyField).filter{_!=null} ++ factFields).distinct
+    val allSelectedFields : IndexedSeq[Field] = ((drilldownConfig.dimensions ++ IndexedSeq(primaryKeyField)).filter{_!=null} ++ factFields).distinct
     val selectedFieldAliasSet:Set[String] = allSelectedFields.map(f=> f.field).toSet
     val drillDownOrdering = reportingRequest.sortBy.filter(sort => selectedFieldAliasSet.contains(sort.field))
     reportingRequest.copy(cube = cube
@@ -307,7 +307,14 @@ class DrilldownCurator (override val requestModelValidator: CuratorRequestModelV
                         val rowList = defaultRequestResult.queryPipelineResult.rowList
                         var values: Set[String] = Set.empty
                         rowList.foreach {
-                          row => values = values ++ List(row.cols(row.aliasMap(fieldAlias)).toString)
+                          row =>
+                            val aliasPosition = row.aliasMap(fieldAlias)
+                            if (row.cols(aliasPosition) != null) {
+                              values = values ++ List(row.cols(row.aliasMap(fieldAlias)).toString)
+                            }
+                            else {
+                              logger.error(s"Row has null $fieldAlias (position $aliasPosition)!  Found row ${row.cols.mkString("[", ",", "]")}")
+                            }
                         }
 
                         val newReportingRequest = implementDrilldownRequestMinimization(

@@ -39,6 +39,7 @@ trait BasePostgresQueryGeneratorTest
     registryBuilder.register(pubfact8(forcedFilters))
     registryBuilder.register(pubfact9(forcedFilters))
     registryBuilder.register(pubFactCombined(forcedFilters))
+    registryBuilder.register(pubfact11(forcedFilters))
 
   }
 
@@ -73,10 +74,10 @@ trait BasePostgresQueryGeneratorTest
           , FactCol("clicks", IntType(3, 0, 1, 800))
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-          , FactCol("Average CPC", DecType(), PostgresCustomRollup("{spend}" / "{clicks}"))
+          , FactCol("Average CPC", DecType(), PostgresCustomRollup(SUM("{spend}") / SUM("{clicks}")))
           , FactCol("CTR", DecType(), PostgresCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PostgresCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
-          , FactCol("Count", IntType(), rollupExpression = CountRollup)
+          , FactCol("Count", IntType(), rollupExpression = CountRollup, alias = Option("count_col"))
           , FactCol("Avg", IntType(), rollupExpression = AverageRollup, alias = Option("avg_col"))
           , FactCol("Max", IntType(), rollupExpression = MaxRollup, alias = Option("max_col"))
           , FactCol("Min", IntType(), rollupExpression = MinRollup, alias = Option("min_col"))
@@ -98,7 +99,7 @@ trait BasePostgresQueryGeneratorTest
           , PostgresFactConditionalHint(FactCondition(Option(true), Option(false), Option(false), Option(false)), "CONDITIONAL_HINT4")
           , PostgresFactConditionalHint(FactCondition(None, minRowsEstimate = Option(900L))
             , "CONDITIONAL_HINT5")
-        )
+        ), availableOnwardsDate = Some("2010-01-01")
       ).toPublicFact("k_stats",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
@@ -252,8 +253,8 @@ trait BasePostgresQueryGeneratorTest
           , DimCol("start_time", IntType())
           , DimCol("stats_date", DateType("YYYY-MM-DD"))
           , DimCol("show_flag", IntType())
-          , PostgresDerDimCol("Business Name", StrType(), DECODE_DIM("{stats_source}", "1", "Native", "2", "Search", "Unknown"))
-          , PostgresDerDimCol("Business Name 2", StrType(), DECODE_DIM("{stats_source}", "1", "Expensive", "2", "Cheap", "Unknown"))
+          , PostgresDerDimCol("Business Name", StrType(), DECODE_DIM("{stats_source}", "1", "'Native'", "2", "'Search'", "'Unknown'"))
+          , PostgresDerDimCol("Business Name 2", StrType(), DECODE_DIM("{stats_source}", "1", "'Expensive'", "2", "'Cheap'", "'Unknown'"))
           , PostgresDerDimCol("Month", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
           , PostgresDerDimCol("Week", DateType(), GET_INTERVAL_DATE("{stats_date}", "W"))
         ),
@@ -356,7 +357,7 @@ trait BasePostgresQueryGeneratorTest
           , FactCol("clicks", IntType(3, 0, 1, 800))
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-          , FactCol("Average CPC", DecType(), PostgresCustomRollup("{spend}" / "{clicks}"))
+          , FactCol("Average CPC", DecType(), PostgresCustomRollup(SUM("{spend}") / SUM("{clicks}")))
           , FactCol("CTR", DecType(), PostgresCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PostgresCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
         ),
@@ -367,7 +368,7 @@ trait BasePostgresQueryGeneratorTest
         )
       )
     }
-      .newRollUp("k_stats_fact1", "k_stats_new_partitioning", discarding = Set("ad_id"), columnAliasMap = Map("price_type" -> "pricing_type"))
+      .newRollUp("k_stats_fact1", "k_stats_new_partitioning", discarding = Set("ad_id"), columnAliasMap = Map("price_type" -> "pricing_type"), availableOnwardsDate = Some("2010-01-01"))
       .toPublicFact("k_stats_new",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
@@ -433,7 +434,7 @@ trait BasePostgresQueryGeneratorTest
               , ConstFactCol("constantFact", IntType(3, 0, 1, 800), "0")
               , FactCol("spend", DecType(0, "0.0"))
               , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-              , FactCol("Average CPC", DecType(), PostgresCustomRollup("{spend}" / "{clicks}"))
+              , FactCol("Average CPC", DecType(), PostgresCustomRollup(SUM("{spend}") / SUM("{clicks}")))
               , FactCol("CTR", DecType(), PostgresCustomRollup(SUM("{clicks}" /- "{impressions}")))
               , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PostgresCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
             ),
@@ -475,7 +476,7 @@ trait BasePostgresQueryGeneratorTest
               , ConstFactCol("constantFact", IntType(3, 0, 1, 800), "0")
               , FactCol("spend", DecType(0, "0.0"))
               , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-              , FactCol("Average CPC", DecType(), PostgresCustomRollup("{spend}" / "{clicks}"))
+              , FactCol("Average CPC", DecType(), PostgresCustomRollup(SUM("{spend}") / SUM("{clicks}")))
               , FactCol("CTR", DecType(), PostgresCustomRollup(SUM("{clicks}" /- "{impressions}")))
               , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PostgresCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
             ),
@@ -517,7 +518,7 @@ trait BasePostgresQueryGeneratorTest
           , FactCol("clicks", IntType(3, 0, 1, 800))
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-          , FactCol("Average CPC", DecType(), PostgresCustomRollup("{spend}" / "{clicks}"))
+          , FactCol("Average CPC", DecType(), PostgresCustomRollup(SUM("{spend}") / SUM("{clicks}")))
           , FactCol("CTR", DecType(), PostgresCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PostgresCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
         ),
@@ -528,7 +529,7 @@ trait BasePostgresQueryGeneratorTest
         )
       )
     }
-      .newRollUp("k_stats_fact1", "k_stats_new_partitioning", discarding = Set("ad_id"), columnAliasMap = Map("price_type" -> "pricing_type"))
+      .newRollUp("k_stats_fact1", "k_stats_new_partitioning", discarding = Set("ad_id"), columnAliasMap = Map("price_type" -> "pricing_type"), availableOnwardsDate = Some("2010-01-01"))
       .toPublicFact("keyword_view_test",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
@@ -688,7 +689,7 @@ trait BasePostgresQueryGeneratorTest
       ColumnContext.withColumnContext {
         implicit dc: ColumnContext =>
           Fact.newFact(
-            "v_publisher_stats", DailyGrain, PostgresEngine, Set(PublisherSchema),
+            "v_publisher_stats_str", DailyGrain, PostgresEngine, Set(PublisherSchema),
             Set(
               DimCol("publisher_id", IntType())
               , DimCol("date_sid", StrType(), annotations = Set(DayColumn("YYYYMMDD")))
@@ -745,7 +746,7 @@ trait BasePostgresQueryGeneratorTest
           , FactCol("clicks", IntType(3, 0, 1, 800))
           , FactCol("spend", DecType(0, "0.0"))
           , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
-          , FactCol("Average CPC", DecType(), PostgresCustomRollup("{spend}" / "{clicks}"))
+          , FactCol("Average CPC", DecType(), PostgresCustomRollup(SUM("{spend}") / SUM("{clicks}")))
           , FactCol("CTR", DecType(), PostgresCustomRollup(SUM("{clicks}" /- "{impressions}")))
           , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PostgresCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
         ),
@@ -756,7 +757,7 @@ trait BasePostgresQueryGeneratorTest
         )
       )
     }
-      .newRollUp("fact2", "fact1", discarding = Set("ad_id"), columnAliasMap = Map("price_type" -> "pricing_type", "source_name" -> "stats_source"))
+      .newRollUp("fact2", "fact1", discarding = Set("ad_id"), columnAliasMap = Map("price_type" -> "pricing_type", "source_name" -> "stats_source"), availableOnwardsDate = Some("2010-01-01"))
       .toPublicFact("k_stats_new_freq",
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
@@ -855,6 +856,103 @@ trait BasePostgresQueryGeneratorTest
     , Set(
         PublicFactCol("num_students", "Students", Equality)
       ), Set.empty, getMaxDaysWindow, getMaxDaysLookBack)
+  }
+
+  def pubfact11(forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+    import PostgresExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      Fact.newFact(
+        "fact1", DailyGrain, PostgresEngine, Set(AdvertiserSchema, ResellerSchema),
+        Set(
+          DimCol("keyword_id", IntType(), annotations = Set(ForeignKey("keyword")))
+          , DimCol("ad_id", IntType(), annotations = Set(ForeignKey("ad")))
+          , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
+          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+          , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("stats_source", IntType(3))
+          , DimCol("source_name", IntType(3, (Map(1 -> "Native", 2 -> "Search", -1 -> "UNKNOWN"), "UNKNOWN")), alias = Option("stats_source"))
+          , DimCol("price_type", IntType(3, (Map(1 -> "CPC", 2 -> "CPA", 3 -> "CPM", 6 -> "CPV", 7 -> "CPCV", -10 -> "CPE", -20 -> "CPF"), "NONE")))
+          , DimCol("device_id", IntType(3, (Map(1 -> "Desktop", 2 -> "Tablet", 3 -> "SmartPhone", -1 -> "UNKNOWN"), "UNKNOWN")))
+          , DimCol("network_type", StrType(100, (Map("TEST_PUBLISHER" -> "Test Publisher", "CONTENT_SYNDICATION" -> "Content Syndication", "EXTERNAL" -> "Yahoo Partners" ,  "INTERNAL" -> "Yahoo Properties"), "NONE")))
+          , DimCol("start_time", IntType())
+          , DimCol("landing_page_url", StrType(), annotations = Set(EscapingRequired))
+          , DimCol("target_page_url", StrType(), annotations = Set(CaseInsensitive))
+          , DimCol("stats_date", TimestampType())
+          , DimCol("column_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned")))
+          , DimCol("column2_id", IntType(), annotations = Set(ForeignKey("non_hash_partitioned_with_singleton")))
+          , PostgresDerDimCol("Ad Group Start Date Full", StrType(), TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "YYYY-MM-dd HH:mm:ss"))
+          , PostgresDerDimCol("Month", DateType(), GET_INTERVAL_DATE("{stats_date}", "M"))
+          , PostgresDerDimCol("Week", DateType(), GET_INTERVAL_DATE("{stats_date}", "W"))
+        ),
+        Set(
+          FactCol("impressions", IntType(3, 1))
+          , FactCol("clicks", IntType(3, 0, 1, 800))
+          , FactCol("spend", DecType(0, "0.0"))
+          , FactCol("max_bid", DecType(0, "0.0"), MaxRollup)
+          , FactCol("Average CPC", DecType(), PostgresCustomRollup(SUM("{spend}") / SUM("{clicks}")))
+          , FactCol("CTR", DecType(), PostgresCustomRollup(SUM("{clicks}" /- "{impressions}")))
+          , FactCol("avg_pos", DecType(3, "0.0", "0.1", "500"), PostgresCustomRollup(SUM("{avg_pos}" * "{impressions}") /- SUM("{impressions}")))
+          , FactCol("Count", IntType(), rollupExpression = CountRollup, alias = Option("count_col"))
+          , FactCol("Avg", IntType(), rollupExpression = AverageRollup, alias = Option("avg_col"))
+          , FactCol("Max", IntType(), rollupExpression = MaxRollup, alias = Option("max_col"))
+          , FactCol("Min", IntType(), rollupExpression = MinRollup, alias = Option("min_col"))
+        ),
+        annotations = Set(
+          PostgresFactStaticHint("PARALLEL_INDEX(cb_campaign_k_stats 4)"),
+          PostgresFactDimDrivenHint("PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4)")
+        )
+      )
+    }
+      .newRollUp("fact2"
+        , "fact1"
+        , discarding = Set("ad_id")
+        , columnAliasMap = Map("price_type" -> "pricing_type", "source_name" -> "stats_source")
+        , overrideAnnotations = Set(
+          PostgresFactConditionalHint(FactCondition(Option(true)), "CONDITIONAL_HINT1")
+          , PostgresFactConditionalHint(FactCondition(Option(true), Option(false)), "CONDITIONAL_HINT2")
+          , PostgresFactConditionalHint(FactCondition(Option(true), Option(false), Option(true)), "CONDITIONAL_HINT3")
+          , PostgresFactConditionalHint(FactCondition(Option(true), Option(false), Option(false), Option(false)), "CONDITIONAL_HINT4")
+          , PostgresFactConditionalHint(FactCondition(None, minRowsEstimate = Option(900L))
+            , "CONDITIONAL_HINT5")
+        ), availableOnwardsDate = Some("2010-01-01")
+      ).toPublicFact("k_stats_minute",
+      Set(
+        PubCol("stats_date", "Day", InBetweenEquality),
+        PubCol("keyword_id", "Keyword ID", InEquality),
+        PubCol("ad_id", "Ad ID", InEquality),
+        PubCol("ad_group_id", "Ad Group ID", InEquality),
+        PubCol("campaign_id", "Campaign ID", InEquality),
+        PubCol("advertiser_id", "Advertiser ID", InEquality),
+        PubCol("network_type", "Network Type", InEquality),
+        PubCol("stats_source", "Source", EqualityFieldEquality, incompatibleColumns = Set("Source Name")),
+        PubCol("source_name", "Source Name", InNotInBetweenEqualityNotEqualsGreaterLesser, incompatibleColumns = Set("Source")),
+        PubCol("price_type", "Pricing Type", In),
+        PubCol("landing_page_url", "Destination URL", FieldEquality, isImageColumn = true),
+        PubCol("target_page_url", "Source URL", FieldEquality),
+        PubCol("column_id", "Column ID", Equality),
+        PubCol("column2_id", "Column2 ID", Equality),
+        PubCol("Ad Group Start Date Full", "Ad Group Start Date Full", InEquality),
+        PubCol("Month", "Month", Equality),
+        PubCol("Week", "Week", Equality),
+        PubCol("device_id", "Device ID", InEquality)
+      ),
+      Set(
+        PublicFactCol("impressions", "Impressions", InNotInBetweenEqualityNotEqualsGreaterLesser),
+        PublicFactCol("impressions", "Total Impressions", InBetweenEquality),
+        PublicFactCol("clicks", "Clicks", InBetweenEqualityFieldEquality),
+        PublicFactCol("spend", "Spend", FieldEquality),
+        PublicFactCol("avg_pos", "Average Position", FieldEquality),
+        PublicFactCol("max_bid", "Max Bid", Set.empty),
+        PublicFactCol("Average CPC", "Average CPC", InBetweenEquality),
+        PublicFactCol("CTR", "CTR", InBetweenEquality),
+        PublicFactCol("Count", "Count", InBetweenEquality),
+        PublicFactCol("Avg", "Avg", InBetweenEquality),
+        PublicFactCol("Max", "Max", InBetweenEquality),
+        PublicFactCol("Min", "Min", InBetweenEquality)
+      ),
+      Set(EqualityFilter("Source", "2", true, true)),
+      getMaxDaysWindow, getMaxDaysLookBack
+    )
   }
 
 }

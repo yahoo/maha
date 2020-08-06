@@ -4,12 +4,13 @@ package com.yahoo.maha.core
 
 import com.yahoo.maha.core.dimension.DimCol
 import com.yahoo.maha.core.fact.ForceFilter
-import io.druid.query.filter.{NotDimFilter, SearchQueryDimFilter}
-import io.druid.query.search.InsensitiveContainsSearchQuerySpec
-import io.druid.segment.filter.BoundFilter
+import org.apache.druid.query.filter.{NotDimFilter, SearchQueryDimFilter}
+import org.apache.druid.query.search.InsensitiveContainsSearchQuerySpec
+import org.apache.druid.segment.filter.BoundFilter
 import org.joda.time.DateTime
 import org.json4s.JsonAST.{JArray, JObject, JString, JValue}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.immutable.TreeSet
 
@@ -17,23 +18,26 @@ import scala.collection.immutable.TreeSet
  * Created by jians on 11/10/15.
  */
 
-class FilterTest extends FunSuite with Matchers {
+class FilterTest extends AnyFunSuite with Matchers {
+
+  System.setProperty("user.timezone", "GMT")
 
   val oracleLiteralMapper = new OracleLiteralMapper
+  val postgresLiteralMapper = new PostgresLiteralMapper
   val hiveLiteralMapper = new HiveLiteralMapper
-  val druidLiteralMapper = new DruidLiteralMapper
 
-  def render[T, O](renderer: FilterRenderer[T, O], filter: T, literalMapper: LiteralMapper, engine: Engine, column: Column, aliasToRenderedSqlMap: Map[String, (String, String)]) : O = {
+  def render[T, O](renderer: FilterRenderer[T, O], filter: T, literalMapper: SqlLiteralMapper, engine: Engine, column: Column, aliasToRenderedSqlMap: Map[String, (String, String)]) : O = {
     renderer.render(aliasToRenderedSqlMap, filter, literalMapper, column, engine, None)
   }
 
-  def renderWithGrain[T, O](renderer: FilterRenderer[T, O], filter: T, literalMapper: LiteralMapper, engine: Engine, column: Column, grain : Grain, aliasToRenderedSqlMap: Map[String, (String, String)]) : O = {
+  def renderWithGrain[T, O](renderer: FilterRenderer[T, O], filter: T, literalMapper: SqlLiteralMapper, engine: Engine, column: Column, grain : Grain, aliasToRenderedSqlMap: Map[String, (String, String)]) : O = {
     renderer.render(aliasToRenderedSqlMap, filter, literalMapper, column, engine, Some(grain))
   }
   
   implicit val columnContext: ColumnContext = new ColumnContext
   val col = DimCol("field1", StrType())
   val dateCol = DimCol("stats_date", DateType())
+  val timestampCol = DimCol("timestamp_date", TimestampType())
   val intDateCol = DimCol("date_sid", IntType(), annotations = Set(DayColumn("YYYYMMDD")))
   val strDateCol = DimCol("date_sid2", StrType(), annotations = Set(DayColumn("YYYYMMDD")))
   val insensitiveCol = DimCol("insensitive", StrType(), annotations = Set(CaseInsensitive))
@@ -62,6 +66,88 @@ class FilterTest extends FunSuite with Matchers {
     val strBetweenfilter = BetweenFilter("date_sid2", "2018-01-01", "2018-01-02")
     val strHourlyResult = renderWithGrain(SqlBetweenFilterRenderer, strBetweenfilter, oracleLiteralMapper, OracleEngine, strDateCol, HourlyGrain, Map("date_sid2" -> ("date_sid2", "date_sid2"))).filter
     strHourlyResult shouldBe "date_sid2 >= to_date('2018-01-01', 'HH24') AND date_sid2 <= to_date('2018-01-02', 'HH24')"
+  }
+
+  test("successfully render DateTimeBetweenFilter with daily and hourly grain and date type on oracle engine") {
+    val filter = DateTimeBetweenFilter(dateCol.name, "2018-01-01T01:10:50", "2018-01-06T10:20:30", "yyyy-MM-dd'T'HH:mm:ss")
+    val dailyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, dateCol, DailyGrain, Map("stats_date" -> ("stats_date", "stats_date"))).filter
+    dailyResult shouldBe "stats_date >= to_date('2018-01-01', 'YYYY-MM-DD') AND stats_date <= to_date('2018-01-06', 'YYYY-MM-DD')"
+    val hourlyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, dateCol, HourlyGrain, Map("stats_date" -> ("stats_date", "stats_date"))).filter
+    hourlyResult shouldBe "stats_date >= to_date('2018-01-01', 'YYYY-MM-DD') AND stats_date <= to_date('2018-01-06', 'YYYY-MM-DD')"
+  }
+
+  test("successfully render DateTimeBetweenFilter with daily and hourly grain and timestamp type on oracle engine") {
+    val filter = DateTimeBetweenFilter(timestampCol.name, "2018-01-01T01:10:50", "2018-01-06T10:20:30", "yyyy-MM-dd'T'HH:mm:ss")
+    val dailyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, timestampCol, DailyGrain, Map("timestamp_date" -> ("timestamp_date", "timestamp_date"))).filter
+    dailyResult shouldBe "timestamp_date >= TO_UTC_TIMESTAMP_TZ('2018-01-01T01:10:50.000Z') AND timestamp_date <= TO_UTC_TIMESTAMP_TZ('2018-01-06T10:20:30.000Z')"
+    val hourlyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, timestampCol, HourlyGrain, Map("timestamp_date" -> ("timestamp_date", "timestamp_date"))).filter
+    hourlyResult shouldBe "timestamp_date >= TO_UTC_TIMESTAMP_TZ('2018-01-01T01:10:50.000Z') AND timestamp_date <= TO_UTC_TIMESTAMP_TZ('2018-01-06T10:20:30.000Z')"
+  }
+
+  test("successfully render DateTimeBetweenFilter with daily and hourly grain and date type on postgres engine") {
+    val filter = DateTimeBetweenFilter(dateCol.name, "2018-01-01T01:10:50", "2018-01-06T10:20:30", "yyyy-MM-dd'T'HH:mm:ss")
+    val dailyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, postgresLiteralMapper, PostgresEngine, dateCol, DailyGrain, Map("stats_date" -> ("stats_date", "stats_date"))).filter
+    dailyResult shouldBe "stats_date >= to_date('2018-01-01', 'YYYY-MM-DD') AND stats_date <= to_date('2018-01-06', 'YYYY-MM-DD')"
+    val hourlyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, postgresLiteralMapper, PostgresEngine, dateCol, HourlyGrain, Map("stats_date" -> ("stats_date", "stats_date"))).filter
+    hourlyResult shouldBe "stats_date >= to_date('2018-01-01', 'YYYY-MM-DD') AND stats_date <= to_date('2018-01-06', 'YYYY-MM-DD')"
+  }
+
+  test("successfully render DateTimeBetweenFilter with daily and hourly grain and timestamp type on postgres engine") {
+    val filter = DateTimeBetweenFilter(timestampCol.name, "2018-01-01T01:10:50", "2018-01-06T10:20:30", "yyyy-MM-dd'T'HH:mm:ss")
+    val dailyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, postgresLiteralMapper, PostgresEngine, timestampCol, DailyGrain, Map("timestamp_date" -> ("timestamp_date", "timestamp_date"))).filter
+    dailyResult shouldBe "timestamp_date >= '2018-01-01T01:10:50.000Z'::timestamptz AND timestamp_date <= '2018-01-06T10:20:30.000Z'::timestamptz"
+    val hourlyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, postgresLiteralMapper, PostgresEngine, timestampCol, HourlyGrain, Map("timestamp_date" -> ("timestamp_date", "timestamp_date"))).filter
+    hourlyResult shouldBe "timestamp_date >= '2018-01-01T01:10:50.000Z'::timestamptz AND timestamp_date <= '2018-01-06T10:20:30.000Z'::timestamptz"
+  }
+
+  test("successfully render DateTimeBetweenFilter with daily and hourly grain and date type on hive engine") {
+    val filter = DateTimeBetweenFilter(dateCol.name, "2018-01-01T01:10:50", "2018-01-06T10:20:30", "yyyy-MM-dd'T'HH:mm:ss")
+    val dailyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, hiveLiteralMapper, HiveEngine, dateCol, DailyGrain, Map("stats_date" -> ("stats_date", "stats_date"))).filter
+    dailyResult shouldBe "stats_date >= cast('2018-01-01' as date) AND stats_date <= cast('2018-01-06' as date)"
+    val hourlyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, hiveLiteralMapper, HiveEngine, dateCol, HourlyGrain, Map("stats_date" -> ("stats_date", "stats_date"))).filter
+    hourlyResult shouldBe "stats_date >= cast('2018-01-01' as date) AND stats_date <= cast('2018-01-06' as date)"
+  }
+
+  test("successfully render DateTimeBetweenFilter with daily and hourly grain and timestamp type on hive engine") {
+    val filter = DateTimeBetweenFilter(timestampCol.name, "2018-01-01T01:10:50", "2018-01-06T10:20:30", "yyyy-MM-dd'T'HH:mm:ss")
+    val dailyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, hiveLiteralMapper, HiveEngine, timestampCol, DailyGrain, Map("timestamp_date" -> ("timestamp_date", "timestamp_date"))).filter
+    dailyResult shouldBe "timestamp_date >= cast('2018-01-01T01:10:50.000' as timestamp) AND timestamp_date <= cast('2018-01-06T10:20:30.000' as timestamp)"
+    val hourlyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, hiveLiteralMapper, HiveEngine, timestampCol, HourlyGrain, Map("timestamp_date" -> ("timestamp_date", "timestamp_date"))).filter
+    hourlyResult shouldBe "timestamp_date >= cast('2018-01-01T01:10:50.000' as timestamp) AND timestamp_date <= cast('2018-01-06T10:20:30.000' as timestamp)"
+  }
+
+  test("successfully render DateTimeBetweenFilter with daily and hourly grain and date type on presto engine") {
+    val filter = DateTimeBetweenFilter(dateCol.name, "2018-01-01T01:10:50", "2018-01-06T10:20:30", "yyyy-MM-dd'T'HH:mm:ss")
+    val dailyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, hiveLiteralMapper, PrestoEngine, dateCol, DailyGrain, Map("stats_date" -> ("stats_date", "stats_date"))).filter
+    dailyResult shouldBe "stats_date >= date('2018-01-01') AND stats_date <= date('2018-01-06')"
+    val hourlyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, hiveLiteralMapper, PrestoEngine, dateCol, HourlyGrain, Map("stats_date" -> ("stats_date", "stats_date"))).filter
+    hourlyResult shouldBe "stats_date >= date('2018-01-01') AND stats_date <= date('2018-01-06')"
+  }
+
+  test("successfully render DateTimeBetweenFilter with daily and hourly grain and timestamp type on presto engine") {
+    val filter = DateTimeBetweenFilter(timestampCol.name, "2018-01-01T01:10:50", "2018-01-06T10:20:30", "yyyy-MM-dd'T'HH:mm:ss")
+    val dailyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, hiveLiteralMapper, PrestoEngine, timestampCol, DailyGrain, Map("timestamp_date" -> ("timestamp_date", "timestamp_date"))).filter
+    dailyResult shouldBe "timestamp_date >= from_iso8601_timestamp('2018-01-01T01:10:50.000Z') AND timestamp_date <= from_iso8601_timestamp('2018-01-06T10:20:30.000Z')"
+    val hourlyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, hiveLiteralMapper, PrestoEngine, timestampCol, HourlyGrain, Map("timestamp_date" -> ("timestamp_date", "timestamp_date"))).filter
+    hourlyResult shouldBe "timestamp_date >= from_iso8601_timestamp('2018-01-01T01:10:50.000Z') AND timestamp_date <= from_iso8601_timestamp('2018-01-06T10:20:30.000Z')"
+  }
+
+  //we only need to test one engine here since only diff is the timezone input
+  test("successfully render DateTimeBetweenFilter with input zone offset, daily and hourly grain and date type on oracle engine") {
+    val filter = DateTimeBetweenFilter(dateCol.name, "2018-01-01T01:10:50+08:00", "2018-01-06T10:20:30+08:00", "yyyy-MM-dd'T'HH:mm:ssZZ")
+    val dailyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, dateCol, DailyGrain, Map("stats_date" -> ("stats_date", "stats_date"))).filter
+    dailyResult shouldBe "stats_date >= to_date('2017-12-31', 'YYYY-MM-DD') AND stats_date <= to_date('2018-01-06', 'YYYY-MM-DD')"
+    val hourlyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, dateCol, HourlyGrain, Map("stats_date" -> ("stats_date", "stats_date"))).filter
+    hourlyResult shouldBe "stats_date >= to_date('2017-12-31', 'YYYY-MM-DD') AND stats_date <= to_date('2018-01-06', 'YYYY-MM-DD')"
+  }
+
+  //we only need to test one engine here since only diff is the timezone input
+  test("successfully render DateTimeBetweenFilter with input zone offset, daily and hourly grain and timestamp type on oracle engine") {
+    val filter = DateTimeBetweenFilter(timestampCol.name, "2018-01-01T01:10:50+08:00", "2018-01-06T10:20:30+08:00", "yyyy-MM-dd'T'HH:mm:ssZZ")
+    val dailyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, timestampCol, DailyGrain, Map("timestamp_date" -> ("timestamp_date", "timestamp_date"))).filter
+    dailyResult shouldBe "timestamp_date >= TO_UTC_TIMESTAMP_TZ('2017-12-31T17:10:50.000Z') AND timestamp_date <= TO_UTC_TIMESTAMP_TZ('2018-01-06T02:20:30.000Z')"
+    val hourlyResult = renderWithGrain(SqlDateTimeBetweenFilterRenderer, filter, oracleLiteralMapper, OracleEngine, timestampCol, HourlyGrain, Map("timestamp_date" -> ("timestamp_date", "timestamp_date"))).filter
+    hourlyResult shouldBe "timestamp_date >= TO_UTC_TIMESTAMP_TZ('2017-12-31T17:10:50.000Z') AND timestamp_date <= TO_UTC_TIMESTAMP_TZ('2018-01-06T02:20:30.000Z')"
   }
 
   test("Filter Types in Druid should return valid MaxDate") {
@@ -238,7 +324,7 @@ class FilterTest extends FunSuite with Matchers {
       , "field2" -> ("stats_date", "field2")
       , "field3" -> ("date_sid", "field3"))
     val engine : Engine = OracleEngine
-    val mapper : LiteralMapper = oracleLiteralMapper
+    val mapper : SqlLiteralMapper = oracleLiteralMapper
     val grainOption : Option[Grain] = Some(DailyGrain)
     val retVal = FilterSql.renderFilterWithAlias(orFilter, aliasToRenderedSqlMap, orCol, engine, mapper, grainOption)
     val expectedRenderedString : String = "(field1 IN ('abc','def','ghi')) OR (field2 >= trunc(to_date('def', 'YYYY-MM-DD')) AND field2 <= trunc(to_date('ghi', 'YYYY-MM-DD'))) OR (field3 = to_date('ghi', 'YYYY-MM-DD'))"
@@ -288,7 +374,7 @@ class FilterTest extends FunSuite with Matchers {
       , "field2" -> ("stats_date", "field2")
       , "field3" -> ("date_sid", "field3"))
     val engine : Engine = OracleEngine
-    val mapper : LiteralMapper = oracleLiteralMapper
+    val mapper : SqlLiteralMapper = oracleLiteralMapper
     val grainOption : Option[Grain] = Some(DailyGrain)
     val retVal = FilterSql.renderFilterWithAlias(andFilter, aliasToRenderedSqlMap, andCol, engine, mapper, grainOption)
     val expectedRenderedString : String = "(field1 IN ('abc','def','ghi')) AND (field2 >= trunc(to_date('def', 'YYYY-MM-DD')) AND field2 <= trunc(to_date('ghi', 'YYYY-MM-DD'))) AND (field3 = to_date('ghi', 'YYYY-MM-DD'))"
@@ -333,7 +419,7 @@ class FilterTest extends FunSuite with Matchers {
   test("BetweenFilter should fail for Druid engine") {
     val filter = BetweenFilter("filed1", "abc", "def")
     val thrown = intercept[IllegalArgumentException] {
-      render(SqlBetweenFilterRenderer, filter, druidLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
+      render(SqlBetweenFilterRenderer, filter, oracleLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
     }
     thrown.getMessage should startWith ("Unsupported engine for BetweenFilterRenderer Druid")
   }
@@ -346,7 +432,7 @@ class FilterTest extends FunSuite with Matchers {
   test("InFilter should fail for Druid engine") {
     val filter = InFilter("filed1", List("abc", "ads"))
     val thrown = intercept[IllegalArgumentException] {
-      render(SqlInFilterRenderer, filter, druidLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
+      render(SqlInFilterRenderer, filter, oracleLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
     }
     thrown.getMessage should startWith ("Unsupported engine for InFilterRenderer Druid")
   }
@@ -354,7 +440,7 @@ class FilterTest extends FunSuite with Matchers {
   test("NotInFilter should fail for Druid engine") {
     val filter = NotInFilter("filed1", List("abc", "ads"))
     val thrown = intercept[IllegalArgumentException] {
-      render(SqlNotInFilterRenderer, filter, druidLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
+      render(SqlNotInFilterRenderer, filter, oracleLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
     }
     thrown.getMessage should startWith ("Unsupported engine for NotInFilterRenderer Druid")
   }
@@ -362,7 +448,7 @@ class FilterTest extends FunSuite with Matchers {
   test("EqualityFilter should fail for Druid engine") {
     val filter = EqualityFilter("filed1", "abc")
     val thrown = intercept[IllegalArgumentException] {
-      render(SqlEqualityFilterRenderer, filter, druidLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
+      render(SqlEqualityFilterRenderer, filter, oracleLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
     }
     thrown.getMessage should startWith ("Unsupported engine for EqualityFilterRenderer Druid")
   }
@@ -370,27 +456,24 @@ class FilterTest extends FunSuite with Matchers {
   test("LikeFilter should fail for Druid engine") {
     val filter = LikeFilter("filed1", "ads")
     val thrown = intercept[IllegalArgumentException] {
-      render(SqlLikeFilterRenderer, filter, druidLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
+      render(SqlLikeFilterRenderer, filter, oracleLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
     }
     thrown.getMessage should startWith ("Unsupported engine for LikeFilterRenderer Druid")
   }
 
   test("SqlLikeFilterRenderer edit strings") {
     val filter = LikeFilter("%sfield__1", "ad%s")
-    val intFilter = LikeFilter("%sfield__2", "ads")
     val normalFilter = LikeFilter("field1", "ads")
-    val rendered = render(SqlLikeFilterRenderer, filter, druidLiteralMapper, OracleEngine, escapedCol,  Map("%sfield__1" -> ("%sfield__1", "%sfield__1")))
-    val renderedInt = render(SqlLikeFilterRenderer, intFilter, druidLiteralMapper, OracleEngine, escapedIntCol,  Map("%sfield__2" -> ("%sfield__2", "%sfield__2")))
-    val renderedNonEscaped = render(SqlLikeFilterRenderer, normalFilter, druidLiteralMapper, OracleEngine, col,  Map("field1" -> ("field1", "field1")))
+    val rendered = render(SqlLikeFilterRenderer, filter, oracleLiteralMapper, OracleEngine, escapedCol,  Map("%sfield__1" -> ("%sfield__1", "%sfield__1")))
+    val renderedNonEscaped = render(SqlLikeFilterRenderer, normalFilter, oracleLiteralMapper, OracleEngine, col,  Map("field1" -> ("field1", "field1")))
     assert(rendered.isInstanceOf[DefaultResult])
-    assert(renderedInt.isInstanceOf[DefaultResult])
     assert(renderedNonEscaped.isInstanceOf[DefaultResult])
   }
 
   test("NotEqualToFilter should fail for Druid engine") {
     val filter = NotEqualToFilter("filed1", "ads")
     val thrown = intercept[IllegalArgumentException] {
-      render(SqlNotEqualToFilterRenderer, filter, druidLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
+      render(SqlNotEqualToFilterRenderer, filter, oracleLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
     }
     thrown.getMessage should startWith ("Unsupported engine for NotEqualToFilterRenderer Druid")
   }
@@ -403,7 +486,7 @@ class FilterTest extends FunSuite with Matchers {
   test("IsNullFilter should fail for Druid engine") {
     val filter = IsNullFilter("filed1")
     val thrown = intercept[IllegalArgumentException] {
-      render(SqlIsNullFilterRenderer, filter, druidLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
+      render(SqlIsNullFilterRenderer, filter, oracleLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
     }
     thrown.getMessage should startWith ("Unsupported engine for IsNullFilterRenderer Druid")
   }
@@ -411,7 +494,7 @@ class FilterTest extends FunSuite with Matchers {
   test("IsNotNullFilter should fail for Druid engine") {
     val filter = IsNotNullFilter("filed1")
     val thrown = intercept[IllegalArgumentException] {
-      render(SqlIsNotNullFilterRenderer, filter, druidLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
+      render(SqlIsNotNullFilterRenderer, filter, oracleLiteralMapper, DruidEngine, col,  Map("filed1" -> ("filed1", "filed1")))
     }
     thrown.getMessage should startWith ("Unsupported engine for IsNotNullFilterRenderer Druid")
   }
@@ -548,6 +631,7 @@ class FilterTest extends FunSuite with Matchers {
     val pushDownFilter = PushDownFilter(EqualityFilter("field13", "a"))
     val fieldEqualityFilter = FieldEqualityFilter("field15", "field16")
     val jsFilter = JavaScriptFilter("field14", "this filter will fail.") //This rendering fn is not defined, so being used as fallthrough to test failure in field set rendering.
+    val notLikeFilter = NotLikeFilter("field18", "a")
 
     val returnedFields: Set[String] = Filter.returnFieldSetOnMultipleFiltersWithoutValidation(
       Set(equalityFilter
@@ -564,7 +648,8 @@ class FilterTest extends FunSuite with Matchers {
         , likeFilter
         , isNullFilter
         , pushDownFilter
-        , fieldEqualityFilter)
+        , fieldEqualityFilter
+        , notLikeFilter)
     )
 
     val expectedReturnedFields : Set[String] =
@@ -584,6 +669,7 @@ class FilterTest extends FunSuite with Matchers {
         , "field15"
         , "field16"
         //, "field17"     AndFilter returns no fields.
+        , "field18"
       )
 
     assert(returnedFields == expectedReturnedFields, "Should return all expected fields!")
@@ -747,5 +833,20 @@ class FilterTest extends FunSuite with Matchers {
 
     assert(thrown.getMessage.contains("The field alias set for the input filter is undefined. "))
 
+  }
+
+  test("Test serialization/deserialization for Not like filter") {
+    val notLikeFilter: Filter = NotLikeFilter("testField", "testValue")
+    val renderedFilter = Filter.filterJSONW.write(notLikeFilter)
+    val  expectedRenderedJson : JObject =
+      new JObject(List[(String, JValue)](
+                  ("field", JString("testField"))
+                  , ("operator", JString("Not Like"))
+                  , ("value", JString("testValue"))
+                )
+              )
+    renderedFilter shouldEqual expectedRenderedJson
+    val readJsonFilter = Filter.filterJSONR.read(renderedFilter)
+    readJsonFilter.isSuccess shouldBe true
   }
 }

@@ -3,7 +3,7 @@
 package com.yahoo.maha.service.factory
 
 import com.yahoo.maha.service.config.PasswordProvider
-import com.yahoo.maha.core.UTCTimeProvider
+import com.yahoo.maha.core.{UTCTimeProvider, UserTimeZoneProvider}
 import com.yahoo.maha.core.query.ExecutionLifecycleListener
 import com.yahoo.maha.service.{DefaultMahaServiceConfigContext, MahaServiceConfigContext}
 import org.json4s.jackson.JsonMethods._
@@ -27,7 +27,7 @@ class FactoryTest extends BaseFactoryTest {
   }
 
   test("Test PassThroughUTCTimeProviderFactory ") {
-    val factoryResult = getFactory[UTCTimeProvideryFactory]("com.yahoo.maha.service.factory.PassThroughUTCTimeProviderFactory", closer)
+    val factoryResult = getFactory[UTCTimeProviderFactory]("com.yahoo.maha.service.factory.PassThroughUTCTimeProviderFactory", closer)
     assert(factoryResult.isSuccess)
     val factory = factoryResult.toOption.get
     assert(factory.supportedProperties.isEmpty)
@@ -49,11 +49,21 @@ class FactoryTest extends BaseFactoryTest {
   }
 
   test("Create a BaseUTCTimeProviderFactory") {
-    val factoryResult = getFactory[UTCTimeProvideryFactory]("com.yahoo.maha.service.factory.BaseUTCTimeProviderFactory", closer)
+    val factoryResult = getFactory[UTCTimeProviderFactory]("com.yahoo.maha.service.factory.BaseUTCTimeProviderFactory", closer)
     factoryResult.toOption.get.fromJson(parse("{}"))
     assert(factoryResult.isSuccess, "should successfully instantiate base factory.")
     assert(factoryResult.toOption.get.supportedProperties == List.empty, "No currently supported properties.")
   }
 
+  test("Test NoopUserTimeZoneProviderFactory ") {
+    val factoryResult = getFactory[UserTimeZoneProviderFactory]("com.yahoo.maha.service.factory.NoopUserTimeZoneProviderFactory", closer)
+    assert(factoryResult.isSuccess)
+    val factory = factoryResult.toOption.get
+    assert(factory.supportedProperties.isEmpty)
+    val json = parse("{}")
+    val generatorResult = factory.fromJson(json)
+    assert(generatorResult.isSuccess, generatorResult)
+    assert(generatorResult.toList.head.isInstanceOf[UserTimeZoneProvider])
+  }
 
 }

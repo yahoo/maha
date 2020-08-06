@@ -17,6 +17,7 @@
         "hive"
       ],
       "bucketingConfigName": "erBucket",
+      "userTimeZoneProviderName": "erUserTimeZone",
       "utcTimeProviderName": "erUTC",
       "parallelServiceExecutorName": "erParallelExec",
       "dimEstimatorFactoryClass": "com.yahoo.maha.service.factory.TestDimCostEstimatoryFactory",
@@ -136,6 +137,23 @@
           }
         ],
         "literalMapperClass": "com.yahoo.maha.service.factory.DefaultPostgresLiteralMapperFactory",
+        "literalMapperConfig": [
+          {
+            "key": "value"
+          }
+        ]
+      }
+    },
+    "postgres2": {
+      "factoryClass": "com.yahoo.maha.service.factory.PostgresQueryGeneratorFactory",
+      "config": {
+        "partitionColumnRendererClass": "com.yahoo.maha.service.factory.DefaultPartitionColumnRendererFactory",
+        "partitionColumnRendererConfig": [
+          {
+            "key": "value"
+          }
+        ],
+        "literalMapperClass": "com.yahoo.maha.service.factory.DefaultPostgresLiteralMapperUsingDriverFactory",
         "literalMapperConfig": [
           {
             "key": "value"
@@ -342,6 +360,20 @@
       ],
       "queryGenerator": [
       ]
+    }
+  },
+  "userTimeZoneProviderMap": {
+    "erUserTimeZone": {
+      "factoryClass": "com.yahoo.maha.service.factory.NoopUserTimeZoneProviderFactory",
+      "config": {
+        "k": "v"
+      }
+    },
+    "irUserTimeZone": {
+      "factoryClass": "com.yahoo.maha.service.factory.NoopUserTimeZoneProviderFactory",
+      "config": {
+        "k": "v"
+      }
     }
   },
   "utcTimeProviderMap": {

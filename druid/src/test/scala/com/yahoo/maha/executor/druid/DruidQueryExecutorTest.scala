@@ -19,8 +19,9 @@ import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.{DebugValue, Parameter, ReportingRequest, RowCountQuery, SyncRequest}
 import com.yahoo.maha.executor.MockOracleQueryExecutor
-import io.druid.query.Result
-import io.druid.query.select.SelectResultValue
+import org.apache.druid.common.config.NullHandling
+import org.apache.druid.query.Result
+import org.apache.druid.query.scan.ScanResultValue
 import org.http4s.server.blaze.BlazeBuilder
 import org.json4s.JsonAST._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
@@ -36,6 +37,7 @@ class TestAuthHeaderProvider extends AuthHeaderProvider {
 }
 
 class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema with TestWebService {
+
   var server: org.http4s.server.Server[IO] = null
 
   override def beforeAll(): Unit = {
@@ -451,7 +453,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -506,7 +508,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString).copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -560,7 +562,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -604,7 +606,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -650,7 +652,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -693,7 +695,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -732,7 +734,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -781,7 +783,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -852,7 +854,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -906,7 +908,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -950,7 +952,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -1053,7 +1055,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -1120,7 +1122,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -1187,7 +1189,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -1255,7 +1257,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -1322,7 +1324,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -1390,7 +1392,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -1428,7 +1430,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -1490,7 +1492,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -1568,7 +1570,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -1658,7 +1660,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -1738,7 +1740,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -1792,7 +1794,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -1839,7 +1841,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -1925,7 +1927,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -2007,7 +2009,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = getReportingRequestSync(jsonString).copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -2047,7 +2049,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -2091,7 +2093,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -2176,7 +2178,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSyncWithFactBias(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -2253,7 +2255,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -2327,7 +2329,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
     val request: ReportingRequest = ReportingRequest.forceDruid(getReportingRequestAsync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -2419,7 +2421,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSyncWithFactBias(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -2497,7 +2499,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
        """.stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString, InternalSchema))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -2601,7 +2603,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
        """.stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestAsync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -2697,7 +2699,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString, AdvertiserLowLatencySchema))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -2777,11 +2779,11 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
   }
 
-  test("successfully execute select query type") {
+  test("successfully execute scan query type") {
 
     val jsonString =
       s"""{
-                          "queryType": "select",
+                          "queryType": "scan",
                           "cube": "k_stats_select",
                           "selectFields": [
                             {"field": "Day"},
@@ -2797,7 +2799,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -2837,15 +2839,15 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
           }
         }
 
-        assert(result.pagination.isDefined)
+        assert(!result.pagination.isDefined)
     }
   }
 
-  test("fail to execute select query type with unhandled json") {
+  test("fail to execute scan query type with unhandled json") {
 
     val jsonString =
       s"""{
-                          "queryType": "select",
+                          "queryType": "scan",
                           "cube": "k_stats_select",
                           "selectFields": [
                             {"field": "Day"},
@@ -2861,7 +2863,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -2889,7 +2891,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
     val jsonString =
       s"""{
-                          "queryType": "select",
+                          "queryType": "scan",
                           "cube": "k_stats_select",
                           "selectFields": [
                             {"field": "Day"},
@@ -2905,7 +2907,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -2932,7 +2934,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
     val jsonString =
       s"""{
-                          "queryType": "select",
+                          "queryType": "scan",
                           "cube": "k_stats_select",
                           "selectFields": [
                             {"field": "Day"},
@@ -2948,7 +2950,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -2958,8 +2960,8 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
     val actualQuery = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]]
 
-    val query = new DruidQuery[Result[SelectResultValue]] {
-      override def query: io.druid.query.Query[Result[SelectResultValue]] = actualQuery.query.asInstanceOf[io.druid.query.Query[Result[SelectResultValue]]]
+    val query = new DruidQuery[Result[ScanResultValue]] {
+      override def query: org.apache.druid.query.Query[Result[ScanResultValue]] = actualQuery.query.asInstanceOf[org.apache.druid.query.Query[Result[ScanResultValue]]]
 
       override def maxRows: Int = actualQuery.maxRows
 
@@ -3001,7 +3003,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                         }""".stripMargin
     val request: ReportingRequest = ReportingRequest.forceOracle(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -3045,7 +3047,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
     // request from RowCountCurator has queryType = RowCountQuery
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString)).copy(queryType = RowCountQuery)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -3107,7 +3109,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry

@@ -10,16 +10,11 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-        <version>5.328-SNAPSHOT</version>
+        <version>6.1-SNAPSHOT</version>
     </parent>
 
     <name>maha postgres executor</name>
     <url>http://maven.apache.org</url>
-
-    <properties>
-        <pg.embedded.version>0.13.1</pg.embedded.version>
-        <postgres.jdbc.version>42.2.9</postgres.jdbc.version>
-    </properties>
 
     <dependencies>
         <dependency>
@@ -33,7 +28,7 @@
             <version>${project.version}</version>
             <exclusions>
                 <exclusion>
-                    <groupId>io.druid</groupId>
+                    <groupId>org.apache.druid</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>

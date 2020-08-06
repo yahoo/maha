@@ -5,12 +5,8 @@ package com.yahoo.maha.maha_druid_lookups.query.lookup.namespace;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.ProtobufSchemaFactory;
-import io.druid.metadata.MetadataStorageConnectorConfig;
-import org.apache.commons.lang.ArrayUtils;
+
+import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.joda.time.Period;
 
 import javax.annotation.Nullable;
@@ -18,7 +14,6 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.Properties;
 
@@ -47,10 +42,12 @@ public class JDBCExtractionNamespaceWithLeaderAndFollower extends JDBCExtraction
             @JsonProperty(value = "isLeader", required = true) final boolean isLeader,
             @JsonProperty(value = "kafkaProperties", required = true) final Properties kafkaProperties,
             @JsonProperty(value = "kerberosProperties", required = false) final Properties kerberosProperties,
+            @JsonProperty(value = "mTLSProperties", required = false) final Properties mTLSProperties,
             @JsonProperty(value = "tsColumnConfig", required = false) final TsColumnConfig tsColumnConfig,
-            @JsonProperty(value = "kerberosPropertiesEnabled", required = false) final boolean kerberosPropertiesEnabled
+            @JsonProperty(value = "kerberosPropertiesEnabled", required = false) final boolean kerberosPropertiesEnabled,
+            @JsonProperty(value = "mTLSPropertiesEnabled", required = false) final boolean mTLSPropertiesEnabled
             ) {
-        super(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, kerberosProperties, tsColumnConfig, kerberosPropertiesEnabled);
+        super(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, kerberosProperties, mTLSProperties, tsColumnConfig, kerberosPropertiesEnabled, mTLSPropertiesEnabled);
 
         this.kafkaTopic = Objects.nonNull(kafkaTopic) ? kafkaTopic : "unassigned";
 
@@ -74,7 +71,7 @@ public class JDBCExtractionNamespaceWithLeaderAndFollower extends JDBCExtraction
             final boolean isLeader,
             final Properties kafkaProperties
     ) {
-        this(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, kafkaTopic, isLeader, kafkaProperties, null, null, false);
+        this(connectorConfig, table, columnList, primaryKeyColumn, tsColumn, pollPeriod, cacheEnabled, lookupName, kafkaTopic, isLeader, kafkaProperties, null, null, null, false, false);
     }
 
     @Override

@@ -2,11 +2,11 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 
-import com.metamx.emitter.service.ServiceEmitter;
+import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.TsColumnConfig;
-import io.druid.metadata.MetadataStorageConnectorConfig;
+import org.apache.druid.metadata.MetadataStorageConnectorConfig;
 import org.joda.time.Period;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -109,8 +109,8 @@ public class JDBCExtractionNamespaceCacheFactoryTest {
         JDBCExtractionNamespace extractionNamespaceWithSecTsCol =
                 new JDBCExtractionNamespace(
                         metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
-                        "id", "", new Period(), true, "advertiser_lookup", new Properties(),
-                        new TsColumnConfig("primTsCol", "bigint", "YYYYMMDDhhmmss", "secTsCol", ">"), true);
+                        "id", "", new Period(), true, "advertiser_lookup", new Properties(), new Properties(),
+                        new TsColumnConfig("primTsCol", "bigint", "YYYYMMDDhhmmss", "secTsCol", ">"), true, false);
         String[] cache = new String[1];
         Mockito.doReturn("123").when(obj).getMaxValFromColumn(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
         Assert.assertEquals(obj.getSecondaryTsWhereCondition("id", extractionNamespaceWithSecTsCol, cache), " AND secTsCol > '123'");

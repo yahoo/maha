@@ -40,8 +40,13 @@ case object RowCountQuery extends QueryType {
   val stringValue: String = "rowcount"
 }
 
+@Deprecated
 case object SelectQuery extends QueryType {
   val stringValue: String = "select"
+}
+
+case object ScanQuery extends QueryType {
+  val stringValue: String = "scan"
 }
 
 case class RequestContext(requestId: String, userId: String)
@@ -86,6 +91,11 @@ case class ReportingRequest(cube: String
       additionalParameters(Parameter.Labels).asInstanceOf[LabelsValue].value
     } else List.empty
   }
+  def getTimezone : Option[String] = {
+    additionalParameters.get(Parameter.TimeZone) collect {
+      case TimeZoneValue(value) => value
+    }
+  }
 }
 
 trait BaseRequest {
@@ -110,7 +120,7 @@ trait BaseRequest {
   val DEFAULT_CURATOR_JSON_CONFIG_MAP: JsonScalaz.Result[Map[String, CuratorJsonConfig]] = Map("default" -> CuratorJsonConfig(parse("""{}"""))).successNel
   val DEFAULT_PAGINATION_CONFIG: JsonScalaz.Result[PaginationConfig] = PaginationConfig(Map.empty).successNel
   val GROUPBY_QUERY: JsonScalaz.Result[QueryType] = GroupByQuery.successNel
-  val SEARCH_QUERY: JsonScalaz.Result[QueryType] = SelectQuery.successNel
+  val SCAN_QUERY: JsonScalaz.Result[QueryType] = ScanQuery.successNel
 
   protected[this] val factBiasOption : Option[Bias] = Option(FactBias)
 
@@ -311,6 +321,9 @@ trait BaseRequest {
         (date, date)
       case BetweenFilter(_,from,to) =>
         (DailyGrain.fromFormattedString(from), DailyGrain.fromFormattedString(to))
+      case dtf: DateTimeBetweenFilter =>
+        (DailyGrain.fromFormattedString(DailyGrain.toFormattedString(dtf.fromDateTime))
+          , DailyGrain.fromFormattedString(DailyGrain.toFormattedString(dtf.toDateTime)))
       case a =>
         throw new IllegalArgumentException(s"Cannot handle $dayFilter while sending scheduled email")
     }
@@ -363,8 +376,8 @@ object ReportingRequest extends BaseRequest {
           optionalQueryType.fold(GROUPBY_QUERY) {
             case GroupByQuery.stringValue =>
               GROUPBY_QUERY
-            case SelectQuery.stringValue =>
-              SEARCH_QUERY
+            case ScanQuery.stringValue =>
+              SCAN_QUERY
             case any =>
               UncategorizedError("queryType", s"unknown query type : $any", List.empty).asInstanceOf[JsonScalaz.Error].failureNel[QueryType]
           }

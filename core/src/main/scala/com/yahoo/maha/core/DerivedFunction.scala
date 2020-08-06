@@ -151,6 +151,18 @@ object DruidDerivedFunction {
       )
   }
 
+  case class LOOKUP_WITH_RETAIN_MISSING_VALUE(lookupNamespace: String, valueColumn: String, dimensionOverrideMap: Map[String, String] = Map.empty) extends DruidDerivedFunction {
+    override def asJSON(): JObject =
+      makeObj(
+        List(
+          ("function_type" -> toJSON(this.getClass.getSimpleName))
+          , ("lookupNamespace" -> toJSON(lookupNamespace))
+          , ("valueColumn" -> toJSON(valueColumn))
+          , ("dimensionOverrideMap" -> toJSON(dimensionOverrideMap))
+        )
+      )
+  }
+
   case class LOOKUP_WITH_EMPTY_VALUE_OVERRIDE(lookupNamespace: String, valueColumn: String, overrideValue: String, dimensionOverrideMap: Map[String, String] = Map.empty) extends DruidDerivedFunction {
     override def asJSON(): JObject =
       makeObj(
@@ -256,6 +268,26 @@ object DruidDerivedFunction {
   }
 
   object DRUID_TIME_FORMAT {
+    val sourceDimColName = "__time"
+  }
+
+  case class DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY(
+    format: String,
+    period: String,
+    zone: DateTimeZone = DateTimeZone.UTC
+  ) extends DruidDerivedFunction {
+    override def asJSON(): JObject =
+      makeObj(
+        List(
+          ("function_type" -> toJSON(this.getClass.getSimpleName))
+          , ("format" -> toJSON(format))
+          , ("period" -> toJSON(period))
+          , ("zone" -> toJSON(zone.toString))
+        )
+      )
+  }
+
+  object DRUID_TIME_FORMAT_WITH_PERIOD_GRANULARITY {
     val sourceDimColName = "__time"
   }
 

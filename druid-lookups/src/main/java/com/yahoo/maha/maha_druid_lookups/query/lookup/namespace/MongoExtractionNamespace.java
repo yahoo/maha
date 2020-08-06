@@ -119,6 +119,11 @@ public class MongoExtractionNamespace implements OnlineDatastoreExtractionNamesp
     }
 
     @Override
+    public ExtractionNameSpaceSchemaType getSchemaType() {
+        return ExtractionNameSpaceSchemaType.None;
+    }
+
+    @Override
     public long getPollMs() {
         return pollPeriod.toStandardDuration().getMillis();
     }

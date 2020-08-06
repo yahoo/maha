@@ -6,7 +6,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.base.Preconditions;
-import com.metamx.common.logger.Logger;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.BaseCacheActionRunner;
+import org.apache.druid.java.util.common.logger.Logger;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.Period;
@@ -14,7 +15,8 @@ import org.joda.time.Period;
 import javax.annotation.Nullable;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Null;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 @JsonTypeName("maharocksdb")
@@ -48,7 +50,12 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     @JsonProperty
     public String cacheActionRunnerName = "";
 
-    private CacheActionRunner cacheActionRunner = null;
+    private BaseCacheActionRunner cacheActionRunner = null;
+
+    @JsonProperty
+    private String overrideLookupServiceHosts = null;
+    private List<String> overrideLookupServiceHostsList = null;
+
 
     @JsonCreator
     public RocksDBExtractionNamespace(@NotNull @JsonProperty(value = "namespace", required = true)
@@ -63,7 +70,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                                       @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName,
                                       @Nullable @JsonProperty(value = "tsColumn", required = false) final String tsColumn,
                                       @NotNull @JsonProperty(value = "missingLookupConfig", required = false) final MissingLookupConfig missingLookupConfig,
-                                      @JsonProperty(value = "cacheActionRunner", required = false) final String cacheActionRunnerName) {
+                                      @JsonProperty(value = "cacheActionRunner", required = false) final String cacheActionRunnerName,
+                                      @JsonProperty(value = "overrideLookupServiceHosts", required = false) final String overrideLookupServiceHosts) {
         this.rocksDbInstanceHDFSPath = Preconditions.checkNotNull(rocksDbInstanceHDFSPath, "rocksDbInstanceHDFSPath");
         this.lookupAuditingHDFSPath = Preconditions.checkNotNull(lookupAuditingHDFSPath, "lookupAuditingHDFSPath");
         this.namespace = Preconditions.checkNotNull(namespace, "namespace");
@@ -82,15 +90,27 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
             else {
                 //Check if the passed in runner is valid, else throw an exception to stop the program.
                 Object actionRunner = Class.forName(cacheActionRunnerName).newInstance();
-                Preconditions.checkArgument(actionRunner instanceof CacheActionRunner,
+                Preconditions.checkArgument(actionRunner instanceof BaseCacheActionRunner,
                         "Passed in runner should be a CacheActionRunner, but got a " + cacheActionRunnerName + " of class " + actionRunner.getClass().getName());
                 this.cacheActionRunnerName =  cacheActionRunnerName;
             }
-            this.cacheActionRunner = CacheActionRunner.class.cast(
+            this.cacheActionRunner = BaseCacheActionRunner.class.cast(
                 Class.forName(this.cacheActionRunnerName).newInstance());
         } catch (Throwable t) {
-            LOG.error("Found a blank or invalid CacheActionRunner, logging error and throwing Runtime ", t);
+            LOG.error(t, "Found a blank or invalid CacheActionRunner, logging error and throwing Runtime ");
             throw new RuntimeException("Found invalid passed in CacheActionRunner with String " + cacheActionRunner, t);
+        }
+
+        //overrideLookupServiceHosts
+        if(StringUtils.isBlank(overrideLookupServiceHosts)) {
+            LOG.info("no input from overrideLookupServiceHosts");
+            this.overrideLookupServiceHostsList = Collections.emptyList();
+            this.overrideLookupServiceHosts = this.overrideLookupServiceHostsList.toString();
+        } else {
+            LOG.info("input overrideLookupServiceHosts: " + overrideLookupServiceHosts);
+            this.overrideLookupServiceHostsList = parseOverrideLookupServiceHostsList(overrideLookupServiceHosts);
+            this.overrideLookupServiceHosts = overrideLookupServiceHostsList.toString().replaceAll("\\s+","");
+            LOG.info("valid overrideLookupServiceHosts: " + this.overrideLookupServiceHosts);
         }
     }
 
@@ -130,6 +150,11 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         return cacheEnabled;
     }
 
+    @Override
+    public ExtractionNameSpaceSchemaType getSchemaType() {
+        return this.cacheActionRunner.getSchemaType();
+    }
+
     public boolean isLookupAuditingEnabled() {
         return lookupAuditingEnabled;
     }
@@ -148,8 +173,17 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
 
     public String getCacheActionRunnerName() { return cacheActionRunnerName; }
 
-    public CacheActionRunner getCacheActionRunner() {
+    public BaseCacheActionRunner getCacheActionRunner() {
         return cacheActionRunner;
+    }
+
+    public String getOverrideLookupServiceHosts() {
+        return overrideLookupServiceHosts;
+    }
+
+    @Override
+    public List<String> getOverrideLookupServiceHostsList() {
+        return overrideLookupServiceHostsList;
     }
 
     @Override
@@ -167,6 +201,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 ", missingLookupConfig=" + missingLookupConfig +
                 ", lastUpdatedTime=" + lastUpdatedTime +
                 ", cacheActionRunner=" + cacheActionRunner +
+                ", overrideLookupServiceHosts=" + overrideLookupServiceHosts +
                 '}';
     }
 
@@ -185,7 +220,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 Objects.equals(lookupName, that.lookupName) &&
                 Objects.equals(tsColumn, that.tsColumn) &&
                 Objects.equals(missingLookupConfig, that.missingLookupConfig) &&
-                Objects.equals(cacheActionRunnerName, that.cacheActionRunnerName);
+                Objects.equals(cacheActionRunnerName, that.cacheActionRunnerName) &&
+                Objects.equals(overrideLookupServiceHosts, that.overrideLookupServiceHosts);
     }
 
     @Override
@@ -201,6 +237,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 lookupName,
                 tsColumn,
                 missingLookupConfig,
-                cacheActionRunnerName);
+                cacheActionRunnerName,
+                overrideLookupServiceHosts);
     }
 }

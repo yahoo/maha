@@ -99,7 +99,8 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
             , DimCol("section_id", IntType(3))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
-            , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
+            , DimCol("comment", StrType(), annotations = Set(EscapingRequired, ForeignKey("remarks")))
+            , DimCol("comment2", StrType(), annotations = Set(EscapingRequired))
             , DimCol("date", DateType())
             , DimCol("month", DateType())
             , DimCol("top_student_id", IntType())
@@ -120,6 +121,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
             PubCol("month", "Month", InEquality),
             PubCol("year", "Year", Equality),
             PubCol("comment", "Remarks", InEqualityLike),
+            PubCol("comment2", "Remarks2", InEqualityLike),
             PubCol("top_student_id", "Top Student ID", FieldEquality)
           ),
           Set(
@@ -206,6 +208,30 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
         )
       }
     }
+
+    val remarks_dim: PublicDimension = {
+      ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+        Dimension.newDimension("remarks", DruidEngine, LevelTwo, Set(StudentSchema),
+          Set(
+            DimCol("id", StrType(), annotations = Set(PrimaryKey))
+            , DimCol("name", StrType())
+            , DimCol("department_id", IntType())
+            , DimCol("admitted_year", IntType())
+            , DimCol("status", StrType())
+            , DimCol("profile_url", StrType())
+          )
+          , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+        ).toPublicDimension("remarks","remarks",
+          Set(
+            PubCol("id", "Remarks", InBetweenEqualityFieldEquality)
+            , PubCol("name", "Remark Name", EqualityFieldEquality)
+            , PubCol("admitted_year", "Remark Year", InEquality, hiddenFromJson = true)
+            , PubCol("status", "Remark Status", InEqualityFieldEquality)
+            , PubCol("profile_url", "Remark URL", InEqualityLike, isImageColumn = true)
+          )
+        )
+      }
+    }
     // TODO: fix class, should be level to 2 and should contain foreign keys to student
 
     val class_dim: PublicDimension = {
@@ -266,5 +292,6 @@ class SampleDimensionSchemaRegistrationFactory extends DimensionRegistrationFact
     registry.register(section_dim)
     registry.register(class_dim)
     registry.register(student_dim)
+    registry.register(remarks_dim)
   }
 }

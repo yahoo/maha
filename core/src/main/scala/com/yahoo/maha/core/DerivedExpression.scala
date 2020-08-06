@@ -12,11 +12,11 @@ import java.util.concurrent.atomic.AtomicLong
 import com.google.common.collect.Lists
 import com.yahoo.maha.core.ThetaSketchSetOp.ThetaSketchSetOp
 import com.yahoo.maha.core.fact.FactCol
-import io.druid.js.JavaScriptConfig
-import io.druid.query.aggregation.PostAggregator
-import io.druid.query.aggregation.hyperloglog.HyperUniqueFinalizingPostAggregator
-import io.druid.query.aggregation.datasketches.theta.{SketchEstimatePostAggregator, SketchSetPostAggregator}
-import io.druid.query.aggregation.post.{ArithmeticPostAggregator, ConstantPostAggregator, FieldAccessPostAggregator, JavaScriptPostAggregator}
+import org.apache.druid.js.JavaScriptConfig
+import org.apache.druid.query.aggregation.PostAggregator
+import org.apache.druid.query.aggregation.hyperloglog.HyperUniqueFinalizingPostAggregator
+import org.apache.druid.query.aggregation.datasketches.theta.{SketchEstimatePostAggregator, SketchSetPostAggregator}
+import org.apache.druid.query.aggregation.post.{ArithmeticPostAggregator, ConstantPostAggregator, FieldAccessPostAggregator, JavaScriptPostAggregator}
 
 import scala.collection.mutable.ListBuffer
 import org.json4s.JsonAST.{JArray, JNull, JObject, JValue}
@@ -175,17 +175,17 @@ object PostgresExpression {
       fmt.toLowerCase match {
         case "d" =>
           // TRUNC(DateString,"DD") does not work for Hive
-          s"TRUNC($exp)"
+          s"DATE_TRUNC('day', $exp)::DATE"
         case "w" =>
           //TRUNC(stats_date, 'IW') "Week"
-          s"TRUNC($exp, 'IW')"
+          s"DATE_TRUNC('week', $exp)::DATE"
         case "m" =>
           //TRUNC(stats_date, 'MM') "Month"
-          s"TRUNC($exp, 'MM')"
+          s"DATE_TRUNC('month', $exp)::DATE"
         case "day" =>
           s"TO_CHAR($exp, 'DAY')"
         case "yr" =>
-          s"TO_CHAR($exp, 'yyyy')"
+          s"TO_CHAR($exp, 'YYYY')"
         case s => throw new IllegalArgumentException(s"Format for get_interval_date must be d|w|m|day|yr not $fmt")
       }
     }

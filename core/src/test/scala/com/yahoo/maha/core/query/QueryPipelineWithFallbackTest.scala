@@ -98,7 +98,7 @@ class QueryPipelineWithFallbackTest extends FunSuite with Matchers with BeforeAn
 
     val request: ReportingRequest = getReportingRequestAsync(jsonRequest)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry
@@ -111,7 +111,7 @@ class QueryPipelineWithFallbackTest extends FunSuite with Matchers with BeforeAn
 
     val oracleExecutor = new MockOracleQueryExecutor(
       { rl =>
-        println(rl.query.asString)
+        //println(rl.query.asString)
         val expected =
           s"""
              |SELECT *
@@ -193,7 +193,7 @@ class QueryPipelineWithFallbackTest extends FunSuite with Matchers with BeforeAn
 
     val request: ReportingRequest = getReportingRequestAsync(jsonRequest)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val altQueryGeneratorRegistry = new QueryGeneratorRegistry

@@ -7,25 +7,38 @@ An extension to druid which provides for MongoDB, JDBC and RocksDB (for high car
 * High cardinality support - Druid's default lookup extension provides both off-heap and on-heap implementations for simple key/value pair.  We extend this by allowing multiple columns and using RocksDB for on SSD lookups with off-heap LRU for high cardinality use cases.
 * Lookup service for real-time tasks - Provides a built in lookup service which is used to query lookups on historicals at query time for real-time tasks.  Otherwise, real-time tasks would have to keep local copy of all lookups and that can get costly if they are high cardinality.
 
+#### Assumptions:
+* You have some dimension dataset on HDFS in a readable format from a Java application(e.g. CSV, TSV, or some delimited format).
+* The dataset is snapshot of all dimension data at some interval. E.g. daily snapshot. Each how has the last updated timestamp column.
+* You have a Kafka topic with a TTL at slightly larger then the snapshot interval. E.g. snapshot is every 24 hours, the Kafka topic retains messages for 26 hours.
+* You have updates to the dimensions which you can publish to a kafka topic in the same key/value format you create the rocksdb instance (see below) with a valid last updated timestamp from your source of truth system.
+
+#### Steps:
+* Define your protobuf message format. Remember to include the last updated timestamp column. Create a jar library which has the java protobuf definitions so you can copy it to the druid historical nodes and put it in the druid libs folder.
+* Create a application which reads your dataset from HDFS and creates a rocksdb instance and inserts all the rows into the rocksdb instance in the same format as you expect to read it in maha druid lookups. E.g. the key would just be the String.getBytes() and the value would be the serialized protobuf bytes. Once all rows are inserted close the rocksDb instance, zip it up and upload it to HDFS path.
+* Schedule your application to run every day after your dimension snapshots are available.
+* Configure maha druid lookup extension on your historicals.
+* Register your lookup via the API
+
 ## Getting Started
 Here is tutorial of how to set up maha-druid-lookups as an extensions of Druid in your local box.  
 For convenience, we use `/druid` as our druid root path for the following document.
 ### Requirement
-* [druid-0.11.0](http://druid.io/docs/0.11.0/tutorials/quickstart.html)
+* [druid-0.17.1](http://druid.io/docs/0.17.1/tutorials/quickstart.html)
 * zookeeper
 * your local datasource (mysql, oracle, etc.)
 
 ### Zookeeper setup
 #### Download:
 ```
-curl http://www.gtlib.gatech.edu/pub/apache/zookeeper/zookeeper-3.4.10/zookeeper-3.4.10.tar.gz -o zookeeper-3.4.10.tar.gz
-tar -xzf zookeeper-3.4.10.tar.gz
-cd zookeeper-3.4.10
+wget http://www.gtlib.gatech.edu/pub/apache/zookeeper/zookeeper-3.4.14/zookeeper-3.4.14.tar.gz
+tar -xzf zookeeper-3.4.14.tar.gz
+cd zookeeper-3.4.14
 cp conf/zoo_sample.cfg conf/zoo.cfg
 ```
 #### Starting up zookeeper:
 ```
-cd zookeeper-3.4.10
+cd zookeeper-3.4.14
 ./bin/zkServer.sh start
 ```
 
@@ -45,10 +58,10 @@ Now unzip assembled zip file and move all the jars to a new repo for your packag
 The path will be something like:
 ```/druid/extensions/maha-druid-lookups/some-jar-file.jar```
 
-### Configuration: using conf-quickstart for quick setup
-Here we take advantage of config files under `/druid/conf-quickstart`, which is originally for druid tutorial, for our local setup, there are multiple files we need to modify:
+### Configuration: using micro-quickstart for quick setup
+Here we take advantage of config files under `/druid/conf/druid/single-server/micro-quickstart/`, which is originally for druid tutorial, for our local setup, there are multiple files we need to modify:
 
-#### /druid/conf-quickstart/druid/_common/common.runtime.properties
+#### /druid/conf/druid/single-server/micro-quickstart/_common/common.runtime.properties
 1. add package name **maha-druid-lookups** to druid.extensions.loadList:
 
 ```druid.extensions.loadList=["extension1", "extension2" , … , "maha-druid-lookups"]```
@@ -59,7 +72,7 @@ Here we take advantage of config files under `/druid/conf-quickstart`, which is 
 druid.lookup.maha.namespace.authHeaderFactory=com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.NoopAuthHeaderFactory
 
 # This is your implementation of protobuf schema factory, only needed for RocksDB based lookups which require protobuf schema
-druid.lookup.maha.namespace.schemaFactory=com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopProtobufSchemaFactory
+druid.lookup.maha.namespace.schemaFactory=com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.protobuf.NoopProtobufSchemaFactory
 
 # This is the scheme used by the lookup service, which is used by real-time nodes for looking up on historicals.  Set this to https if using secured druid.
 druid.lookup.maha.namespace.lookupService.service_scheme=http
@@ -77,38 +90,29 @@ druid.lookup.maha.namespace.rocksdb.localStorageDirectory=/tmp
 druid.lookup.maha.namespace.rocksdb.blockCacheSize=1048576
 ```
 
-#### /druid/conf-quickstart/druid/historical/runtime.properties
+#### /druid/conf/druid/single-server/micro-quickstart/historical/runtime.properties
 add a line for historical lookup tier:
 ```druid.lookup.lookupTier=historicalLookupTier```
 
-#### conf-quickstart/druid/broker/runtime.properties (Optional)
+####/druid/conf/druid/single-server/micro-quickstart/broker/runtime.properties (Optional)
 add a line for broker lookup tier:
 ```druid.lookup.lookupTier=brokerLookupTier```
 
 _NOTE: skip this setp if you just want to check the functionality of a lookup and don't need to query it via broker._
 
+#### Include hadoop dependencies in `bin/run-druid`
+Add `hadoop-dependencies/hadoop-client/2.8.5/*` into -cp list
+```
+exec "$JAVA_BIN"/java `cat "$CONFDIR"/"$WHATAMI"/jvm.config | xargs` \
+  -cp "$CONFDIR"/"$WHATAMI":"$CONFDIR"/_common:"$CONFDIR"/_common/hadoop-xml:"$CONFDIR"/../_common:"$CONFDIR"/../_common/hadoop-xml:"$WHEREAMI/../lib/*":hadoop-dependencies/hadoop-client/2.8.5/* \
+  `cat "$CONFDIR"/$WHATAMI/main.config | xargs`
+```
+
 ### Starting up Druid
-#### Init Druid: creating required repos for log
-```/druid/bin/init```
+#### Start Druid services: 
+```./bin/start-micro-quickstart```
 
-_NOTE: to reset druid for a clean start, do`rm -rf var/* && rm -rf log && bin/init`_
-
-#### Start coordinator node:
-```
-java `cat conf-quickstart/druid/coordinator/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/coordinator:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server coordinator
-```
-
-#### Start historical node:
-```
-java `cat conf-quickstart/druid/historical/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/historical:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server historical
-```
-
-#### Start broker node (Optional):
-```
-java `cat conf-quickstart/druid/broker/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/broker:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server broker
-```
-
-_NOTE: skip this setp if you just want to check the functionality of a lookup and don't need to query it via broker._
+_NOTE: to reset druid for a clean start, do`rm -rf var/* && rm -rf log && ./bin/start-micro-quickstart`_
 
 ### Troubleshooting
 * JDBC Driver
@@ -134,10 +138,7 @@ This is caused by lack of Hadoop dependency.
 
 **Solution:** 
 
-For Druid-0.11.0, it already has the hadoop client jars under `hadoop-dependencies/hadoop-client/2.7.3/*`.  Just make sure you have included the path in your command when trying to bring up the node, for example:
-```
-java `cat conf-quickstart/druid/coordinator/jvm.config | xargs` -cp "conf-quickstart/druid/_common:conf-quickstart/druid/coordinator:lib/*:hadoop-dependencies/hadoop-client/2.7.3/*" io.druid.cli.Main server coordinator
-```
+For Druid-0.17.1, it already has the hadoop client jars under `hadoop-dependencies/hadoop-client/2.8.5/*`.  Just make sure you have included the path in `bin/run-druid`
 
 ### Registering Druid Lookups
 Druid lookups are managed using APIs on coordinators.  Refer [here](http://druid.io/docs/latest/querying/lookups.html).
@@ -180,7 +181,7 @@ Example Lookup JSON:
 }
 ```
 
-_NOTE1: for the details of parameters, please check [here](http://druid.io/docs/0.11.0/development/extensions-core/lookups-cached-global.html)._
+_NOTE1: for the details of parameters, please check [here](http://druid.io/docs/0.17.1/development/extensions-core/lookups-cached-global.html)._
 
 _NOTE2: set "cacheEnabled" to true for building cache(hasmap) in the node._
 

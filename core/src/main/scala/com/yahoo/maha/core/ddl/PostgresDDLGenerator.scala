@@ -11,6 +11,7 @@ import scala.collection.mutable
 class PostgresDDLGenerator {
 
   def toDDL(table: BaseTable): String = {
+    val renderedColSet = new mutable.HashSet[String]
 
     def renderColumnDefn(name: String, col: Column): String = {
       val defaultClause = getDefaultClause(col.dataType)
@@ -18,17 +19,30 @@ class PostgresDDLGenerator {
         case "" => getColumnConstraint(false, col)
         case _ => getColumnConstraint(true, col)
       }
-      s"""$name\t${renderType(col.dataType)}\t$defaultClause\t$columnConstraints"""
+      val colName = col.alias.getOrElse(name).replaceAllLiterally(" ","_").toLowerCase()
+      if(!renderedColSet(colName)) {
+        renderedColSet += colName
+        s"""$colName\t${renderType(col.dataType)}\t$defaultClause\t$columnConstraints"""
+      } else ""
     }
 
     def renderType(dataType: DataType) : String = {
       dataType match {
         case IntType(length, _, _, _, _) =>
-          s"""NUMERIC($length)"""
+          if(length > 0)
+            s"""NUMERIC($length)"""
+          else
+            "NUMERIC"
         case DecType(length, scale, _, _, _, _) =>
-          s"""NUMERIC($length, $scale)"""
+          if(length > 0 && scale > 0)
+            s"""NUMERIC($length, $scale)"""
+          else
+            "NUMERIC"
         case StrType(length, _, _) =>
-          s"""VARCHAR($length)"""
+          if(length > 0)
+            s"""VARCHAR($length)"""
+          else
+            "VARCHAR"
         case _ =>
           s"""${dataType.jsonDataType.toUpperCase}"""
       }
@@ -80,13 +94,13 @@ class PostgresDDLGenerator {
 
     val tableName = table.name
 
-    val columns = table.columnsByNameMap.filter( m => !m._2.isInstanceOf[DerivedColumn] ) map {
+    val columns = table.columnsByNameMap.filter( m => !m._2.isInstanceOf[DerivedColumn] ).map {
       case (name, col) =>
         renderColumnDefn(name, col)
-    }
+    }.filterNot(_.isEmpty)
 
-    val partitionColumnNames = new mutable.HashSet[String]
-    val tablePrimaryKeys = new mutable.HashSet[String]
+    var partitionColumnNames = new mutable.HashSet[String]
+    var tablePrimaryKeys = new mutable.HashSet[String]
 
     table.ddlAnnotation match {
       case Some(ddlAnnotation) =>
@@ -95,12 +109,20 @@ class PostgresDDLGenerator {
       case None => //do nothing
     }
 
-    partitionColumnNames.foreach {
-      pc => require(table.columnsByNameMap.keySet.contains(pc), s"Partition column $pc does not exist in table $tableName")
+    partitionColumnNames = partitionColumnNames.map {
+      pc =>
+        require(table.columnsByNameMap.keySet.contains(pc), s"Partition column $pc does not exist in table $tableName")
+        val c = table.columnsByNameMap(pc)
+        val n = c.alias.getOrElse(c.name)
+        n
     }
 
-    tablePrimaryKeys.foreach {
-      pk => require(table.columnsByNameMap.keySet.contains(pk), s"Primary key column $pk does not exist in table $tableName")
+    tablePrimaryKeys = tablePrimaryKeys.map {
+      pk =>
+        require(table.columnsByNameMap.keySet.contains(pk), s"Primary key column $pk does not exist in table $tableName")
+        val c = table.columnsByNameMap(pk)
+        val n = c.alias.getOrElse(c.name)
+        n
     }
 
     s"""CREATE TABLE $tableName

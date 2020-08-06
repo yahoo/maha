@@ -197,6 +197,9 @@ b. Dim Driven
             case OracleDerDimCol(_,_,_,exp, _,_,_) =>
               dimSelectSet += s"""${exp.render(nameOrAlias, Map.empty)} AS "${nameOrAlias}""""
               s"""${dimAlias}."${nameOrAlias}""""
+            case DimCol(_, dt, cc, _, annotations, _) if dt.hasStaticMapping =>
+              dimSelectSet += s"""${renderStaticMappedDimension(column)} AS $nameOrAlias"""
+              s"""${dimAlias}.${nameOrAlias}"""
             case DimCol(_, _, _, _, _, _) | OraclePartDimCol(_, _, _, _, _,_) =>
               dimSelectSet += s"$nameOrAlias"
               s"""${dimAlias}.${nameOrAlias}"""
@@ -606,21 +609,17 @@ b. Dim Driven
   }
 
   private[this] def addOuterPaginationWrapper(queryString: String, mr: Int, si: Int, includePagination: Boolean, outerFiltersPresent: Boolean): String = {
-    if(includePagination) {
-      val paginationPredicates: ListBuffer[String] = new ListBuffer[String]()
-      val minPosition: Int = if (si < 0) 1 else si + 1
-      paginationPredicates += ("ROW_NUMBER >= " + minPosition)
-      if (mr > 0) {
-        val maxPosition: Int = if (si <= 0) mr else minPosition - 1 + mr
-        paginationPredicates += ("ROW_NUMBER <= " + maxPosition)
-      }
-      if (outerFiltersPresent)
-        String.format(OUTER_PAGINATION_WRAPPER_WITH_FILTERS, queryString, paginationPredicates.toList.mkString(" AND "))
-      else
-        String.format(OUTER_PAGINATION_WRAPPER, queryString, paginationPredicates.toList.mkString(" AND "))
-    } else {
-      queryString
+    val paginationPredicates: ListBuffer[String] = new ListBuffer[String]()
+    val minPosition: Int = if (si < 0) 1 else si + 1
+    paginationPredicates += ("ROW_NUMBER >= " + minPosition)
+    if (mr > 0) {
+      val maxPosition: Int = if (si <= 0) mr else minPosition - 1 + mr
+      paginationPredicates += ("ROW_NUMBER <= " + maxPosition)
     }
+    if (outerFiltersPresent)
+      String.format(OUTER_PAGINATION_WRAPPER_WITH_FILTERS, queryString, paginationPredicates.toList.mkString(" AND "))
+    else
+      String.format(OUTER_PAGINATION_WRAPPER, queryString, paginationPredicates.toList.mkString(" AND "))
   }
 
   private[this] def getDimensionOptionalHint(dimension: Dimension): Option[String] = {
@@ -669,7 +668,8 @@ b. Dim Driven
       }
     }
 
-    val includePagination = queryContext.requestModel.isSyncRequest
+    val includePagination = true // Include pagination wrapper always
+
     val aliasColumnMapOfRequestCols = new mutable.HashMap[String, Column]()
 
     val dimOnlyQueryContext = queryContext.asInstanceOf[DimQueryContext]
@@ -1075,7 +1075,7 @@ b. Dim Driven
                 case any =>
                   throw new UnsupportedOperationException(s"Found non fact column : $any")
               }
-            val result = QueryGeneratorHelper.handleFilterRender(filter, publicFact, fact, publicFact.aliasToNameColumnMap, queryContext, OracleEngine, literalMapper, colRenderFn)
+            val result = QueryGeneratorHelper.handleFilterSqlRender(filter, publicFact, fact, publicFact.aliasToNameColumnMap, queryContext, OracleEngine, literalMapper, colRenderFn)
 
             if(fact.dimColMap.contains(name)) {
               whereFilters += result.filter

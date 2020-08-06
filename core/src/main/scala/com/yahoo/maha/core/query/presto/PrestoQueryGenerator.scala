@@ -172,7 +172,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
           if (sm.isDefined) {
             s"""COALESCE(CAST($finalAlias as varchar), 'NA')"""
           } else {
-            s"""COALESCE($finalAlias, ${df.getOrElse(0)})"""
+            s"""COALESCE(CAST($finalAlias as bigint), ${df.getOrElse(0)})"""
           }
         case DateType(_) => s"""getFormattedDate($finalAlias)"""
         case StrType(_, sm, df) =>
@@ -363,7 +363,7 @@ class PrestoQueryGenerator(partitionColumnRenderer:PartitionColumnRenderer, udfS
               case any =>
                 throw new UnsupportedOperationException(s"Found non fact column : $any")
             }
-          val result = QueryGeneratorHelper.handleFilterRender(filter, publicFact, fact, aliasToNameMapFull, queryContext, PrestoEngine, prestoLiteralMapper, colRenderFn)
+          val result = QueryGeneratorHelper.handleFilterSqlRender(filter, publicFact, fact, aliasToNameMapFull, queryContext, PrestoEngine, prestoLiteralMapper, colRenderFn)
 
           if (fact.dimColMap.contains(name)) {
             whereFilters += result.filter

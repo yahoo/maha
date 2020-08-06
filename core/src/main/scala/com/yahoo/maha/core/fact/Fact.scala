@@ -3,6 +3,7 @@
 package com.yahoo.maha.core.fact
 
 import com.yahoo.maha.core._
+import com.yahoo.maha.core.NoopSchema.NoopSchema
 import com.yahoo.maha.core.ddl.{DDLAnnotation, HiveDDLAnnotation}
 import com.yahoo.maha.core.dimension.{BaseFunctionDimCol, ConstDimCol, DimensionColumn, PublicDimColumn}
 import com.yahoo.maha.core.fact.Fact.ViewTable
@@ -1241,6 +1242,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
     require(tableMap.contains(from), s"from table not valid $from")
     require(!tableMap.contains(name), s"table $name already exists")
     require(discarding.nonEmpty, "discarding set should never be empty")
+    require(availableOnwardsDate.isDefined || schemas == Set(NoopSchema), "Public rollups should have a defined availableOnwardsDate")
 
     val fromTable = tableMap(from)
 
@@ -1344,6 +1346,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
     require(tableMap.contains(from), s"from table not valid $from")
     require(!tableMap.contains(name), s"table $name already exists")
     require(discarding.nonEmpty, "discardings should never be empty in rollup")
+    require(availableOnwardsDate.isDefined || schemas == Set(NoopSchema), "Public rollups should have a defined availableOnwardsDate")
+
     val fromTable = tableMap(from)
     discarding foreach {
       d =>
@@ -1522,6 +1526,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , revision: Int = 0
                    , dimRevision: Int = 0
                    , dimToRevisionMap: Map[String, Int] = Map.empty
+                   , requiredFilterColumns: Map[Schema, Set[String]] = Map.empty
                    ) : PublicFact = {
     new PublicFactTable(name
       , baseFact
@@ -1538,6 +1543,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , dimRevision
       , None
       , dimToRevisionMap
+      , requiredFilterColumns
     )
   }
 
@@ -1546,7 +1552,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                      , publicFact: PublicFact
                      , dimToRevisionOverrideMap: Map[String, Int] = Map.empty
                      , dimColOverrides: Set[PublicDimColumn] = Set.empty
-                     , factColOverrides: Set[PublicFactColumn] = Set.empty): PublicFact = {
+                     , factColOverrides: Set[PublicFactColumn] = Set.empty
+                     , requiredFilterColumns: Map[Schema, Set[String]] = Map.empty): PublicFact = {
     val overrideNames = dimColOverrides.map(col => col.alias) ++ factColOverrides.map(col => col.alias)
     val publicDimsWithOverrides = publicFact.dimCols.filterNot(col => overrideNames.contains(col.alias)) ++ dimColOverrides
     val publicFactsWithOverrides = publicFact.factCols.filterNot(col => overrideNames.contains(col.alias)) ++ factColOverrides
@@ -1566,6 +1573,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , publicFact.dimRevision
       , Some(publicFact)
       , publicFact.dimToRevisionMap ++ dimToRevisionOverrideMap
+      , requiredFilterColumns
     )
   }
 }
@@ -1581,6 +1589,7 @@ case class PublicFactCol (name: String
                           , hiddenFromJson: Boolean = false
                           , filteringRequired: Boolean = false
                           , isImageColumn: Boolean = false
+                          , isReplacement: Boolean = false
                           , restrictedSchemas: Set[Schema] = Set.empty) extends PublicFactColumn
 
 case class FactBestCandidate(fkCols: SortedSet[String]
@@ -1667,6 +1676,10 @@ case class BestCandidates(fkCols: SortedSet[String],
   }
 }
 
+/**
+ * requiredFilterColumns - Map from schema to all possibly filter-required cols in that schema.
+ * Only one of these columns is required in the request.
+ */
 trait PublicFact extends PublicTable {
   def baseFact: Fact
   def name: String
@@ -1695,6 +1708,7 @@ trait PublicFact extends PublicTable {
   def facts: Map[String, Fact]
   def parentFactTable: Option[PublicFact]
   def dimToRevisionMap: Map[String, Int]
+  def requiredFilterColumns: Map[Schema, Set[String]]
   def getSecondaryDimFactMap: Map[SortedSet[String], SortedSet[Fact]]
 }
 
@@ -1713,6 +1727,7 @@ case class PublicFactTable private[fact](name: String
                                          , dimRevision: Int
                                          , parentFactTable: Option[PublicFact] =  None
                                          , dimToRevisionMap: Map[String, Int] = Map.empty
+                                         , requiredFilterColumns: Map[Schema, Set[String]] = Map.empty
                                         ) extends PublicFact with Logging {
 
   def factList: Iterable[Fact] = facts.values
@@ -1998,13 +2013,13 @@ case class PublicFactTable private[fact](name: String
     require(maxDaysLookBack.nonEmpty, "No max days look back window defined, public fact supports no request types!")
     require(facts.nonEmpty, s"public fact $name has no underlying facts")
     require(columnsByAlias.size == (dimCols.size + factCols.size), "Column names size mismatch with dimCols + factCols")
-    require(lowerCaseAliases.size == (dimCols.size + factCols.size), "Column aliases size mismatch with dimCols + factCols")
+    require(lowerCaseAliases.size == (dimCols.filterNot(c => c.isReplacement).size + factCols.size), "Column aliases size mismatch with dimCols + factCols")
     
     //run post validate on each fact
     facts.values.foreach(_.postValidate(this))
 
     var dimColNames: Set[String] = Set()
-    dimCols.foreach { col =>
+    dimCols.filterNot(c => c.isReplacement).foreach { col =>
       require(!dimColNames.contains(col.name), "dim column names should be unique")
       dimColNames += col.name
     }
@@ -2041,6 +2056,9 @@ case class PublicFactTable private[fact](name: String
         localTimeDayFilter match {
           case BetweenFilter(_,from,to) =>
             val fromDateMills = DailyGrain.fromFormattedString(from).getMillis
+            availableFromDate.isBefore(fromDateMills) || availableFromDate.isEqual(fromDateMills)
+          case dtf: DateTimeBetweenFilter =>
+            val fromDateMills = dtf.fromDateTime.getMillis
             availableFromDate.isBefore(fromDateMills) || availableFromDate.isEqual(fromDateMills)
           case InFilter(_,dates, _, _) =>
             val minDateMills = dates.map(DailyGrain.fromFormattedString(_).getMillis).min

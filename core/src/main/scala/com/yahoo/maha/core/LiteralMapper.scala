@@ -13,12 +13,15 @@ import org.owasp.esapi.codecs.OracleCodec
 
 trait LiteralMapper {
   val ORACLE_CODEC = new OracleCodec
-  def getEscapedSqlString(s: String): String = {
+  protected def getEscapedSqlString(s: String): String = {
     ESAPI.encoder().encodeForSQL(ORACLE_CODEC, s)
   }
   def toLiteral(column: Column, value: String, grainOption: Option[Grain] = None) : String
 }
-class OracleLiteralMapper extends LiteralMapper {
+trait SqlLiteralMapper extends LiteralMapper {
+  def getDateFormatFromGrain(grain: Grain): String
+}
+class OracleLiteralMapper extends SqlLiteralMapper {
   def getDateFormatFromGrain(grain: Grain): String = {
     grain match {
       case DailyGrain => "YYYY-MM-DD"
@@ -51,7 +54,7 @@ class OracleLiteralMapper extends LiteralMapper {
   }
 }
 
-class PostgresLiteralMapper extends LiteralMapper {
+class PostgresLiteralMapper extends SqlLiteralMapper {
   def getDateFormatFromGrain(grain: Grain): String = {
     grain match {
       case DailyGrain => "YYYY-MM-DD"
@@ -84,7 +87,7 @@ class PostgresLiteralMapper extends LiteralMapper {
   }
 }
 
-class HiveLiteralMapper extends LiteralMapper {
+class HiveLiteralMapper extends SqlLiteralMapper {
   def getDateFormatFromGrain(grain: Grain): String = {
     grain match {
       case DailyGrain => "YYYYMMdd"
@@ -155,12 +158,11 @@ class DruidLiteralMapper extends LiteralMapper {
           grain.toFormattedString(grain.fromFormattedString(value))
         }
       case TimestampType(fmt) =>
-        //TODO: validate format
         if(fmt.isDefined) {
           val dtf = DateTimeFormat.forPattern(fmt.get)
-          dtf.print(grain.fromFormattedString(value))
+          dtf.print(grain.fromFullFormattedString(value))
         } else {
-          grain.toFormattedString(grain.fromFormattedString(value))
+          grain.toFullFormattedString(grain.fromFullFormattedString(value))
         }
       case _ => value
     }

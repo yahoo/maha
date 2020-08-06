@@ -39,7 +39,7 @@ class JobMetadataTest extends FunSuite with Matchers {
     val futurePassThough = new JobMetadataTest().insertJob(null)
     futurePassThroughJobMetadata.onComplete {
       result =>
-        println(result)
+
         assert(result.get.isEmpty)
     }
     futurePassThough.onComplete {
@@ -92,7 +92,7 @@ class JobMetadataTest extends FunSuite with Matchers {
       val futurePassThough = insertJob(null)
       futurePassThroughJobMetadata.onComplete {
         result =>
-          println(result)
+
           assert(result.get.isEmpty)
       }
       futurePassThough.onComplete {

@@ -19,6 +19,7 @@ import com.yahoo.maha.core.request._
 import com.yahoo.maha.executor.MockDruidQueryExecutor
 import com.yahoo.maha.jdbc._
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
+import org.apache.druid.common.config.NullHandling
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 /**
@@ -618,7 +619,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -673,7 +674,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -727,7 +728,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -793,7 +794,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -860,7 +861,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
       val request: ReportingRequest = getReportingRequestSync(jsonString).copy(additionalParameters = Map(Parameter.Debug -> DebugValue(true)))
       val registry = defaultRegistry
-      val requestModel = RequestModel.from(request, registry)
+      val requestModel = getRequestModel(request, registry)
       assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
       val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -921,7 +922,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
       val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
       val registry = defaultRegistry
-      val requestModel = RequestModel.from(request, registry)
+      val requestModel = getRequestModel(request, registry)
       assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
       val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -976,7 +977,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -1020,7 +1021,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)
@@ -1059,7 +1060,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
       //override def query: Query = {q}
@@ -1155,7 +1156,7 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
 
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     val queryPipelineTry = generatePipeline(requestModel.toOption.get)

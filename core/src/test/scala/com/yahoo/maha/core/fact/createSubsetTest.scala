@@ -3,6 +3,7 @@
 package com.yahoo.maha.core.fact
 
 import com.yahoo.maha.core.CoreSchema._
+import com.yahoo.maha.core.NoopSchema.NoopSchema
 import com.yahoo.maha.core.ddl.HiveDDLAnnotation
 import com.yahoo.maha.core.dimension.DimCol
 import com.yahoo.maha.core.request.SyncRequest
@@ -15,8 +16,16 @@ import com.yahoo.maha.core.{ColumnContext, DailyGrain, InFilter, InFilterOperati
 class createSubsetTest extends BaseFactTest {
   test("createSubSet should be successful with discarding fact columns") {
     val fact = fact1
-    fact.createSubset("fact2", "fact1", Set("clicks"), Set.empty)
+    fact.createSubset("fact2", "fact1", Set("clicks"), Set.empty, availableOnwardsDate = Some("2020-01-01"))
     val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, InFilter("Day", List(s"$toDate")))
+    require(bcOption.isDefined, "Failed to get candidates!")
+    assert(bcOption.get.facts.keys.exists(_ == "fact2") === true, "create subset failed")
+  }
+
+  test("createSubSet should be successful with noopschema") {
+    val fact = fact1
+    fact.createSubset("fact2", "fact1", Set("clicks"), Set(NoopSchema))
+    val bcOption = publicFact(fact).getCandidatesFor(NoopSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, InFilter("Day", List(s"$toDate")))
     require(bcOption.isDefined, "Failed to get candidates!")
     assert(bcOption.get.facts.keys.exists(_ == "fact2") === true, "create subset failed")
   }
@@ -24,22 +33,30 @@ class createSubsetTest extends BaseFactTest {
   test("createSubset should fail if trying to discard dim columns") {
     val fact = fact1
     val thrown = intercept[IllegalArgumentException] {
-      fact.createSubset("fact2", "fact1", Set("campaign_id"), Set(AdvertiserLowLatencySchema))
+      fact.createSubset("fact2", "fact1", Set("campaign_id"), Set(AdvertiserLowLatencySchema), availableOnwardsDate = Some("2010-01-01"))
     }
     thrown.getMessage should startWith ("requirement failed: Cannot discard dim column campaign_id with createSubset, use newRollup to discard")
+  }
+
+  test("createSubset should fail if trying to form public rollup without available onwards") {
+    val fact = fact1
+    val thrown = intercept[IllegalArgumentException] {
+      fact.createSubset("fact2", "fact1", Set("campaign_id"), Set(AdvertiserLowLatencySchema))
+    }
+    thrown.getMessage should startWith ("requirement failed: Public rollups should have a defined availableOnwardsDate")
   }
 
   test("createSubset should fail discarding non-exist columns") {
     val fact = fact1
     val thrown = intercept[IllegalArgumentException] {
-      fact.createSubset("fact2", "fact1", Set("column"), Set.empty)
+      fact.createSubset("fact2", "fact1", Set("column"), Set.empty, availableOnwardsDate = Some("2020-01-01"))
     }
     thrown.getMessage should startWith ("requirement failed: column column does not exist")
   }
 
   test("createSubset should discard column in hive ddl annotation") {
     val fact = fact1
-    fact.createSubset("fact2", "fact1", Set("clicks"), Set.empty)
+    fact.createSubset("fact2", "fact1", Set("clicks"), Set.empty, availableOnwardsDate = Some("2020-01-01"))
     val bcOption = publicFact(fact).getCandidatesFor(AdvertiserSchema, SyncRequest, Set("Advertiser Id", "Impressions"), Set.empty, Map("Advertiser Id" -> InFilterOperation), 1, 1, InFilter("Day", List(s"$toDate")))
     require(bcOption.isDefined, "Failed to get candidates!")
     assert(bcOption.get.facts.keys.exists(_ == "fact2") === true, "create subset failed")

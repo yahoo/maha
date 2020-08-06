@@ -65,6 +65,22 @@ object JsonBucketingConfig {
   }
 }
 
+case class JsonUserTimeZoneProviderConfig(className: String, json: JValue)
+
+object JsonUserTimeZoneProviderConfig {
+  import org.json4s.scalaz.JsonScalaz._
+
+  implicit def parse: JSONR[JsonUserTimeZoneProviderConfig] = new JSONR[JsonUserTimeZoneProviderConfig] {
+    override def read(json: JValue): Result[JsonUserTimeZoneProviderConfig] = {
+      val name: Result[String] = fieldExtended[String]("factoryClass")(json)
+      val config: Result[JValue] = fieldExtended[JValue]("config")(json)
+      (name |@| config){
+        (a,b) => JsonUserTimeZoneProviderConfig(a, b)
+      }
+    }
+  }
+}
+
 case class JsonUTCTimeProviderConfig(className: String, json: JValue)
 
 object JsonUTCTimeProviderConfig {
@@ -160,13 +176,14 @@ object JsonCuratorConfig {
   }
 }
 
-case class JsonRegistryConfig(factRegistrationdFactoryClass: String
-                              , dimensionRegistrationFactoryClass: String
-                              , executors:Set[String]
-                              , generators: Set[String]
-                              , bucketConfigName: String
-                              , utcTimeProviderName: String
-                              , parallelServiceExecutorName: String
+case class JsonRegistryConfig(factRegistrationFactoryClass: String //a
+                              , dimensionRegistrationFactoryClass: String //b
+                              , executors:Set[String] //c
+                              , generators: Set[String] //d
+                              , bucketConfigName: String //e
+                              , userTimeZoneProviderName: String //f
+                              , utcTimeProviderName: String //g
+                              , parallelServiceExecutorName: String //h
                               , dimEstimatorFactoryClass: String
                               , dimEstimatorFactoryConfig: JValue
                               , factEstimatorFactoryClass: String
@@ -188,6 +205,7 @@ object JsonRegistryConfig {
       val executors: Result[Set[String]] = fieldExtended[List[String]]("executors")(json).map(_.map(_.toLowerCase).toSet)
       val generators: Result[Set[String]] = fieldExtended[List[String]]("generators")(json).map(_.map(_.toLowerCase).toSet)
       val bucketingConfigName: Result[String] = fieldExtended[String]("bucketingConfigName")(json).map(_.toLowerCase)
+      val userTimeZoneProviderName: Result[String] = fieldExtended[String]("userTimeZoneProviderName")(json).map(_.toLowerCase)
       val utcTimeProviderName: Result[String] = fieldExtended[String]("utcTimeProviderName")(json).map(_.toLowerCase)
       val parallelServiceExecutorName: Result[String] = fieldExtended[String]("parallelServiceExecutorName")(json).map(_.toLowerCase)
 
@@ -200,15 +218,20 @@ object JsonRegistryConfig {
       val defaultFactEngine: Result[String] = fieldExtended[String]("defaultFactEngine")(json).map(_.toLowerCase)
       val druidMultiEngineQueryList: Result[List[String]] = fieldExtended[List[String]]("druidMultiEngineQueryList")(json).map(_.map(_.toLowerCase))
 
-
-      val builderConfig = (dimEstimatorFactoryClassResult |@| dimEstimatorFactoryConfigResult |@| factEstimatorFactoryClassResult |@| factEstimatorFactoryConfigResult |@|  defaultPublicFactRevisionMapResult |@|  defaultPublicDimRevisionMapResult |@| defaultFactEngine |@| druidMultiEngineQueryList) {
-        (a, b, c, d, f, g, h, i) => (a, b, c, d, f, g, h, i)
+      val timeConfig = (userTimeZoneProviderName |@| utcTimeProviderName) {
+        (a, b) => (a, b)
       }
 
-      (factRegistrationClass |@| dimensionRegistrationClass |@| executors |@| generators |@| bucketingConfigName |@| utcTimeProviderName |@| parallelServiceExecutorName
+      val builderConfig = (dimEstimatorFactoryClassResult |@| dimEstimatorFactoryConfigResult |@| factEstimatorFactoryClassResult |@| factEstimatorFactoryConfigResult |@|  defaultPublicFactRevisionMapResult |@|  defaultPublicDimRevisionMapResult |@| defaultFactEngine |@| druidMultiEngineQueryList) {
+        (a, b, c, d, e, f, g, h) => (a, b, c, d, e, f, g, h)
+      }
+
+      (factRegistrationClass |@| dimensionRegistrationClass |@| executors |@| generators |@| bucketingConfigName |@| parallelServiceExecutorName
+      |@| timeConfig
       |@| builderConfig
       ){
-        case (a, b, c, d, e, f, g, (h, i, j, k, m, n, o, p)) => JsonRegistryConfig(a, b, c, d, e, f, g, h, i, j, k, m, n, o, p)
+        case (a, b, c, d, e, h, (f, g), (aa, bb, cc, dd, ee, ff, gg, hh)) => JsonRegistryConfig(
+          a, b, c, d, e, f, g, h, aa, bb, cc, dd, ee, ff, gg, hh)
       }
     }
   }
@@ -218,6 +241,7 @@ case class JsonMahaServiceConfig(registryMap: Map[String, JsonRegistryConfig]
                                  , executorMap: Map[String, JsonQueryExecutorConfig]
                                  , generatorMap: Map[String, JsonQueryGeneratorConfig]
                                  , bucketingConfigMap: Map[String, JsonBucketingConfig]
+                                 , userTimeZoneProviderMap: Map[String, JsonUserTimeZoneProviderConfig]
                                  , utcTimeProviderMap: Map[String, JsonUTCTimeProviderConfig]
                                  , parallelServiceExecutorConfigMap: Map[String, JsonParallelServiceExecutorConfig]
                                  , datasourceMap: Map[String, JsonDataSourceConfig]
@@ -231,6 +255,7 @@ object JsonMahaServiceConfig {
   val EXECUTOR_MAP = "executorMap"
   val GENERATOR_MAP = "generatorMap"
   val BUCKETING_CONFIG_MAP = "bucketingConfigMap"
+  val USER_TIME_ZONE_PROVIDER_MAP = "userTimeZoneProviderMap"
   val UTC_TIME_PROVIDER_MAP = "utcTimeProviderMap"
   val PSE_CONFIG_MAP = "parallelServiceExecutorConfigMap"
   val DATASOURCE_MAP = "datasourceMap"
@@ -244,14 +269,15 @@ object JsonMahaServiceConfig {
       val executorMap: Result[Map[String, JsonQueryExecutorConfig]] = fieldExtended[Map[String, JsonQueryExecutorConfig]](EXECUTOR_MAP)(json).map(_.map(m=> m._1.toLowerCase -> m._2))
       val generatorMap: Result[Map[String, JsonQueryGeneratorConfig]] = fieldExtended[Map[String, JsonQueryGeneratorConfig]](GENERATOR_MAP)(json).map(_.map(m=> m._1.toLowerCase -> m._2))
       val bucketingConfigMap: Result[Map[String, JsonBucketingConfig]] = fieldExtended[Map[String, JsonBucketingConfig]](BUCKETING_CONFIG_MAP)(json).map(_.map(m=> m._1.toLowerCase -> m._2))
+      val userTimeZoneProviderMap: Result[Map[String, JsonUserTimeZoneProviderConfig]] = fieldExtended[Map[String, JsonUserTimeZoneProviderConfig]](USER_TIME_ZONE_PROVIDER_MAP)(json).map(_.map(m=> m._1.toLowerCase -> m._2))
       val utcTimeProviderMap: Result[Map[String, JsonUTCTimeProviderConfig]] = fieldExtended[Map[String, JsonUTCTimeProviderConfig]](UTC_TIME_PROVIDER_MAP)(json).map(_.map(m=> m._1.toLowerCase -> m._2))
       val parallelServiceExecutorConfigMap : Result[Map[String, JsonParallelServiceExecutorConfig]] = fieldExtended[Map[String, JsonParallelServiceExecutorConfig]](PSE_CONFIG_MAP)(json).map(_.map(m=> m._1.toLowerCase -> m._2))
       val datasourceMapResult: Result[Map[String, JsonDataSourceConfig]] = fieldExtended[Map[String, JsonDataSourceConfig]](DATASOURCE_MAP)(json).map(_.map(m=> m._1.toLowerCase -> m._2))
       val jsonMahaRequestLogConfigResult: Result[JsonMahaRequestLogConfig] = fieldExtended[JsonMahaRequestLogConfig](MAHA_REQUEST_LOGGING_CONFIG)(json)
       val curatorMap: Result[Map[String, JsonCuratorConfig]] = fieldExtended[Map[String, JsonCuratorConfig]](CURATOR_MAP)(json).map(_.map(m=> m._1.toLowerCase -> m._2))
 
-      (registryMap |@| executorMap |@| generatorMap |@| bucketingConfigMap |@| utcTimeProviderMap |@| parallelServiceExecutorConfigMap |@| datasourceMapResult |@| jsonMahaRequestLogConfigResult |@| curatorMap) {
-        (a, b, c, d, e, f, g, h, i) => JsonMahaServiceConfig(a, b, c, d, e, f, g, h, i)
+      (registryMap |@| executorMap |@| generatorMap |@| bucketingConfigMap |@| userTimeZoneProviderMap |@| utcTimeProviderMap |@| parallelServiceExecutorConfigMap |@| datasourceMapResult |@| jsonMahaRequestLogConfigResult |@| curatorMap) {
+        (a, b, c, d, e, f, g, h, i, j) => JsonMahaServiceConfig(a, b, c, d, e, f, g, h, i, j)
       }
 
     }

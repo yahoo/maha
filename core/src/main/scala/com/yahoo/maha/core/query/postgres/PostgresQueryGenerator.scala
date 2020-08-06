@@ -191,6 +191,9 @@ b. Dim Driven
             case PostgresDerDimCol(_,_,_,exp, _,_,_) =>
               dimSelectSet += s"""${exp.render(nameOrAlias, Map.empty)} AS "${nameOrAlias}""""
               s"""${dimAlias}."${nameOrAlias}""""
+            case DimCol(_, dt, cc, _, annotations, _) if dt.hasStaticMapping =>
+              dimSelectSet += s"""${renderStaticMappedDimension(column)} AS $nameOrAlias"""
+              s"""${dimAlias}.${nameOrAlias}"""
             case DimCol(_, _, _, _, _, _) | PostgresPartDimCol(_, _, _, _, _,_) =>
               dimSelectSet += s"$nameOrAlias"
               s"""${dimAlias}.${nameOrAlias}"""
@@ -279,7 +282,7 @@ b. Dim Driven
             $dimWhere"""
         RenderedDimension(dimAlias,
           s"""SELECT $optionalHint $dimSelect
-            FROM ( $innerSql )
+            FROM ( $innerSql ) J
             WHERE $MAX_SNAPSHOT_TS_ALIAS = $snapshotColumnName"""
           , None, None, hasPagination = false, hasTotalRows = false)
       } else {
@@ -561,13 +564,21 @@ b. Dim Driven
             if (subqueryBundles.size > 0) {
               val shouldIncludePagination = (includePagination && !nonPrimaryBundleHasFilters) || (includePagination && !isDimOnly)
               hasPagination = hasPagination || shouldIncludePagination
-              String.format(wrapDimJoinsTemplate
-                , String.format(dimJoinsTemplate
+              if (subqueryBundles.size > 1) {
+                String.format(wrapDimJoinsTemplate
+                  , String.format(dimJoinsTemplate
+                    , addPaginationWrapper(renderedPrimaryDim.sql, requestModel.maxRows, requestModel.startIndex, shouldIncludePagination, queryBuilderContext)
+                    , dimAlias
+                    , parentJoinsLOJBuilder.result()
+                  )
+                )
+              } else {
+                String.format(dimJoinsTemplate
                   , addPaginationWrapper(renderedPrimaryDim.sql, requestModel.maxRows, requestModel.startIndex, shouldIncludePagination, queryBuilderContext)
                   , dimAlias
                   , parentJoinsLOJBuilder.result()
                 )
-              )
+              }
             } else {
               hasPagination = true
               String.format(dimJoinsTemplate
@@ -1064,7 +1075,7 @@ b. Dim Driven
                 case any =>
                   throw new UnsupportedOperationException(s"Found non fact column : $any")
               }
-            val result = QueryGeneratorHelper.handleFilterRender(filter, publicFact, fact, publicFact.aliasToNameColumnMap, queryContext, PostgresEngine, literalMapper, colRenderFn)
+            val result = QueryGeneratorHelper.handleFilterSqlRender(filter, publicFact, fact, publicFact.aliasToNameColumnMap, queryContext, PostgresEngine, literalMapper, colRenderFn)
 
             if(fact.dimColMap.contains(name)) {
               whereFilters += result.filter
@@ -1263,9 +1274,10 @@ object PostgresQueryGenerator extends Logging {
   val ROW_COUNT_ALIAS: String = "TOTALROWS"
   val ANY_PARTITIONING_SCHEME = PostgresPartitioningScheme("") //no name needed since class name hashcode
 
-  def register(queryGeneratorRegistry: QueryGeneratorRegistry, partitionColumnRenderer:PartitionColumnRenderer) = {
+  def register(queryGeneratorRegistry: QueryGeneratorRegistry, partitionColumnRenderer:PartitionColumnRenderer
+               , postgresLiteralMapper: PostgresLiteralMapper = new PostgresLiteralMapper) = {
     if (!queryGeneratorRegistry.isEngineRegistered(PostgresEngine, Option(Version.DEFAULT))) {
-      val generator = new PostgresQueryGenerator(partitionColumnRenderer)
+      val generator = new PostgresQueryGenerator(partitionColumnRenderer, postgresLiteralMapper)
       queryGeneratorRegistry.register(PostgresEngine, generator)
     } else {
       queryGeneratorRegistry.getDefaultGenerator(PostgresEngine).foreach {

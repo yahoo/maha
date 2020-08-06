@@ -7,7 +7,7 @@ import java.nio.file.{Files, StandardOpenOption}
 
 import com.yahoo.maha.core.query.oracle.BaseOracleQueryGeneratorTest
 import com.yahoo.maha.core.request.ReportingRequest
-import com.yahoo.maha.core.{IntType, RequestModel, StrType}
+import com.yahoo.maha.core.{IntType, StrType}
 import com.yahoo.maha.report.{FileRowCSVWriterProvider, JsonRowList}
 
 import scala.collection.mutable.ArrayBuffer
@@ -41,7 +41,7 @@ class CSVRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTest {
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
 
@@ -75,7 +75,7 @@ class CSVRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTest {
 
     val request: ReportingRequest = getReportingRequestAsync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
 
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 

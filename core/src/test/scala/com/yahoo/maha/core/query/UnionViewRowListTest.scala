@@ -56,7 +56,7 @@ class UnionViewRowListTest extends BaseOracleQueryGeneratorTest with BaseRowList
 
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = getDefaultRegistry()
-    val requestModel = RequestModel.from(request, registry)
+    val requestModel = getRequestModel(request, registry)
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
     DruidQueryGenerator.register(queryGeneratorRegistry, useCustomRoundingSumAggregator = true)

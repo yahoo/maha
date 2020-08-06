@@ -89,7 +89,7 @@ class ReportingRequestTest extends FlatSpec {
                               {"field": "Product ID", "operator": "<>", "value": "-3"},
                               {"field": "Match Type", "operator": "isnull"},
                               {"field": "Pricing Type", "operator": "isnotnull"},
-                              {"field": "Day", "operator": "between", "from": "2014-04-01", "to": "2014-04-30"},
+                              {"field": "Day", "operator": "datetimebetween", "from": "2014-04-01T00:00:00.000Z", "to": "2014-04-30T00:00:00.000Z", "format": "yyyy-MM-dd'T'HH:mm:ss.SSSZZ"},
                               {"field": "Turtles", "operator": "==", "compareTo": "Llamas"},
                               {"field": "Viewers", "operator": ">", "value": "10"},
                               {"field": "Viewees", "operator": "<", "value": "10"}
@@ -105,12 +105,15 @@ class ReportingRequestTest extends FlatSpec {
     val request: ReportingRequest = getReportingRequest(jsonString, AdvertiserSchema)
     assert(request.requestType === AsyncRequest)
     val ser = new String(ReportingRequest.serialize(request), StandardCharsets.UTF_8)
+    val deser = getReportingRequest(ser, AdvertiserSchema)
 
+    assert(request === deser)
     assert(request.numDays === 29)
-    assert(request.dayFilter.operator === BetweenFilterOperation)
-    assert(request.dayFilter.asInstanceOf[BetweenFilter].field === "Day")
-    assert(request.dayFilter.asInstanceOf[BetweenFilter].from === "2014-04-01")
-    assert(request.dayFilter.asInstanceOf[BetweenFilter].to === "2014-04-30")
+    assert(request.dayFilter.operator === DateTimeBetweenFilterOperation)
+    assert(request.dayFilter.asInstanceOf[DateTimeBetweenFilter].field === "Day")
+    assert(request.dayFilter.asInstanceOf[DateTimeBetweenFilter].from === "2014-04-01T00:00:00.000Z")
+    assert(request.dayFilter.asInstanceOf[DateTimeBetweenFilter].to === "2014-04-30T00:00:00.000Z")
+    assert(request.dayFilter.asInstanceOf[DateTimeBetweenFilter].format === "yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
   }
 
   "ReportingRequest" should "should be extracted from a json object as sync request" in {
@@ -135,7 +138,46 @@ class ReportingRequestTest extends FlatSpec {
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     assert(request.requestType === SyncRequest)
     val ser = new String(ReportingRequest.serialize(request), StandardCharsets.UTF_8)
+    val deser = getReportingRequestSync(ser)
 
+    assert(request === deser)
+    assert(request.dayFilter.operator === BetweenFilterOperation)
+    assert(request.dayFilter.asInstanceOf[BetweenFilter].field === "Day")
+    assert(request.dayFilter.asInstanceOf[BetweenFilter].from === "2014-04-01")
+    assert(request.dayFilter.asInstanceOf[BetweenFilter].to === "2014-04-30")
+  }
+
+  "ReportingRequest" should "fail when datetime between filter with Hour and Minute filters are provided" in {
+    val jsonString = s"""{
+                          "cube": "k_stats_minute_grain",
+                          "selectFields": [
+                            {"field": "Week"},
+                            {"field": "Keyword ID"},
+                            {"field": "Keyword Value"},
+                            {"field": "Source"},
+                            {"field": "Clicks"},
+                            {"field": "CTR"},
+                            {"field": "Reblogs"},
+                            {"field": "Reblog Rate"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "datetimebetween", "from": "2020-01-01T00:00:00.000Z", "to": "2020-01-07T00:00:00.000Z", "format": "yyyy-MM-dd'T'HH:mm:ss.SSSZZ"},
+                            {"field": "Hour", "operator": "between", "from": "02", "to": "05"},
+                            {"field": "Minute", "operator": "between", "from": "59", "to": "03"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "sortBy": [
+                            {"field": "Impressions", "order": "Desc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                        }"""
+    val request: ValidationNel[JsonScalaz.Error, ReportingRequest] = getReportingRequestValidation(jsonString, AdvertiserSchema)
+    request.leftMap { nel =>
+      require(nel.list.exists(e => e.toString.contains("UncategorizedError") && e.toString.contains("Day and Hour filters operator mismatch") === true),
+        s"invalid json format did not throw error: $request")
+    }
   }
 
   "ReportingRequest without filters (except Day)" should "should be extracted from a json object" in {
@@ -1612,7 +1654,7 @@ class ReportingRequestTest extends FlatSpec {
 
   "ReportingRequest with select query type" should "succeed" in {
     val jsonString = """{
-                          "queryType": "select",
+                          "queryType": "scan",
                           "cube": "performance_stats",
                           "selectFields": [
                               {"field": "Ad ID"},
@@ -1638,7 +1680,7 @@ class ReportingRequestTest extends FlatSpec {
                         }"""
 
     val request: ReportingRequest = getReportingRequest(jsonString, AdvertiserSchema)
-    assert(request.queryType === SelectQuery)
+    assert(request.queryType === ScanQuery)
     assert(request.pagination.config.contains(DruidEngine))
     val paginationJValue = request.pagination.config(DruidEngine)
     val identifiers = paginationJValue.findField{ case (n, v) => n == "pagingIdentifiers" }

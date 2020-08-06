@@ -6,7 +6,8 @@ import com.google.common.io.Files;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.Parser;
-import com.metamx.emitter.service.ServiceEmitter;
+import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.schema.flatbuffer.TestFlatBufferSchemaFactory;
+import org.apache.druid.java.util.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.RocksDBExtractionNamespace;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.AdProtos;
 import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
@@ -50,8 +51,11 @@ public class RocksDBExtractionNamespaceCacheFactoryTest {
         MockitoAnnotations.initMocks(this);
         obj.rocksDBManager = rocksDBManager;
         obj.protobufSchemaFactory = new TestProtobufSchemaFactory();
+        obj.flatBufferSchemaFactory = new TestFlatBufferSchemaFactory();
         obj.emitter = serviceEmitter;
+
         noopObj.rocksDBManager = rocksDBManager;
+        noopObj.flatBufferSchemaFactory = new TestFlatBufferSchemaFactory();
         noopObj.protobufSchemaFactory = new TestProtobufSchemaFactory();
         noopObj.emitter = serviceEmitter;
     }
@@ -81,7 +85,7 @@ public class RocksDBExtractionNamespaceCacheFactoryTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner");
+            , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner", null);
 
             Message msgFromKafka = AdProtos.Ad.newBuilder()
                     .setId("32309719080")
@@ -147,7 +151,7 @@ public class RocksDBExtractionNamespaceCacheFactoryTest {
                     .build();
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopCacheActionRunner");
+                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopCacheActionRunner", null);
 
             noopObj.getCachePopulator("ad_lookup", extractionNamespace, "32309719080", new HashMap<>());
             noopObj.updateCache(extractionNamespace, new HashMap<>(), "32309719080", msgFromKafka.toByteArray());
@@ -188,7 +192,7 @@ public class RocksDBExtractionNamespaceCacheFactoryTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner");
+            , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunner", null);
 
             Message msgFromKafka = AdProtos.Ad.newBuilder()
                     .setId("32309719080")
@@ -249,7 +253,7 @@ public class RocksDBExtractionNamespaceCacheFactoryTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            , null);
+            , null, null);
 
             byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "title", Optional.empty());
 
@@ -281,7 +285,7 @@ public class RocksDBExtractionNamespaceCacheFactoryTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "ad_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-            , null);
+            , null, null);
 
             byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "title", Optional.empty());
 

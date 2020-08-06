@@ -156,7 +156,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
               case any =>
                 throw new UnsupportedOperationException(s"Found non fact column : $any")
             }
-          val result = QueryGeneratorHelper.handleFilterRender(filter, publicFact, fact, aliasToNameMapFull, null, PrestoEngine, prestoLiteralMapper, colRenderFn)
+          val result = QueryGeneratorHelper.handleFilterSqlRender(filter, publicFact, fact, aliasToNameMapFull, null, PrestoEngine, prestoLiteralMapper, colRenderFn)
 
           if (fact.dimColMap.contains(name)) {
             whereFilters += result.filter
@@ -554,7 +554,7 @@ abstract case class PrestoOuterGroupByQueryGenerator(partitionColumnRenderer:Par
             if (sm.isDefined) {
               handleStaticMappingInt(sm, finalAlias)
             } else {
-              s"""COALESCE($finalAlias, ${df.getOrElse(0)})"""
+              s"""COALESCE(CAST($finalAlias as BIGINT), ${df.getOrElse(0)})"""
             }
           case DateType(_) => s"""getFormattedDate($finalAlias)"""
           case StrType(_, sm, df) =>

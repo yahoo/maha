@@ -294,14 +294,14 @@ object QueryGeneratorHelper {
     }
   }
 
-  def handleFilterRender(filter: Filter,
-                         publicFact: PublicFact,
-                         fact: Fact,
-                         aliasToNameMapFull: Map[String, String],
-                         queryContext: CombinedQueryContext,
-                         engine: Engine,
-                         literalMapper: LiteralMapper,
-                         colFn: Column => String): SqlResult = {
+  def handleFilterSqlRender(filter: Filter,
+                            publicFact: PublicFact,
+                            fact: Fact,
+                            aliasToNameMapFull: Map[String, String],
+                            queryContext: CombinedQueryContext,
+                            engine: Engine,
+                            literalMapper: SqlLiteralMapper,
+                            colFn: Column => String): SqlResult = {
     val fieldNames: mutable.ArrayBuffer[String] = new ArrayBuffer[String]()
     val isMultiField: Boolean = filter.isInstanceOf[MultiFieldForcedFilter]
 

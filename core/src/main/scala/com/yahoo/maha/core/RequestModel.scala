@@ -5,7 +5,7 @@ package com.yahoo.maha.core
 import com.yahoo.maha.core
 import com.yahoo.maha.core.MetaType.MetaType
 import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, CubeBucketSelected}
-import com.yahoo.maha.core.dimension.PublicDimension
+import com.yahoo.maha.core.dimension.{PublicDim, PublicDimension, RequiredAlias}
 import com.yahoo.maha.core.fact.{BestCandidates, PublicFact, PublicFactCol, PublicFactColumn}
 import com.yahoo.maha.core.registry.{FactRowsCostEstimate, Registry}
 import com.yahoo.maha.core.request.Parameter.Distinct
@@ -14,6 +14,7 @@ import com.yahoo.maha.core.error._
 import com.yahoo.maha.core.query.{InnerJoin, JoinType, LeftOuterJoin, RightOuterJoin}
 import com.yahoo.maha.utils.DaysUtils
 import grizzled.slf4j.Logging
+import org.joda.time.DateTimeZone
 import org.slf4j.LoggerFactory
 
 import scala.collection.{SortedSet, mutable}
@@ -228,6 +229,9 @@ case class RequestModel(cube: String
   utcTimeDayFilter match {
     case BetweenFilter(field, from, to) =>
       require(!DaysUtils.isFutureDate(from), FutureDateNotSupportedError(from))
+    case dtb:DateTimeBetweenFilter =>
+      val from = DailyGrain.toFormattedString(dtb.fromDateTime)
+      require(!DaysUtils.isFutureDate(from), FutureDateNotSupportedError(from))
     case EqualityFilter(field, date, _, _) =>
       require(!DaysUtils.isFutureDate(date), FutureDateNotSupportedError(date))
     case InFilter(field, dates, _, _) =>
@@ -310,7 +314,14 @@ object RequestModel extends Logging {
 
   val Logger = LoggerFactory.getLogger(classOf[RequestModel])
 
-  def from(request: ReportingRequest, registry: Registry, utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider, revision: Option[Int] = None) : Try[RequestModel] = {
+  def from(request: ReportingRequest
+           , registry: Registry
+          //I've made userTimeZoneProvider required so on upgrade, users are forced to provide it
+          //instead of a silent failure with using a Noop provider
+           , userTimeZoneProvider: UserTimeZoneProvider
+           , utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider
+           , revision: Option[Int] = None
+          ) : Try[RequestModel] = {
     Try {
       registry.getFact(request.cube, revision) match {
         case None =>
@@ -342,9 +353,17 @@ object RequestModel extends Logging {
             Option.apply(DailyGrain)
           }
           val isDebugEnabled = request.isDebugEnabled
-          val localTimeMinuteFilter = request.minuteFilter
-          val localTimeHourFilter = request.hourFilter
-          val localTimeDayFilter = request.dayFilter
+          //the zone should come from request or user time zone provider, not UTC time provider
+          val timezone = request.getTimezone orElse userTimeZoneProvider.getTimeZone(request)
+          val (localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter) = if(timezone.isDefined) {
+            //we assume all dates are in the users local time
+            if (request.dayFilter.isInstanceOf[DateTimeFilter]) {
+              //if it is a DateTimeFilter, then we don't need separate hour and minute filter, they can be in day filter
+              (request.dayFilter, None, None)
+            } else //if it's not a DateTimeFilter then we just pass through since there won't be zone information in filter
+              (request.dayFilter, request.hourFilter, request.minuteFilter)
+          } else //if the user hasn't set a time zone, then we honor whatever the zone is in the parsed date itself
+            (request.dayFilter, request.hourFilter, request.minuteFilter)
           val maxDaysWindowOption = publicFact.maxDaysWindow.get(request.requestType, queryGrain.getOrElse(DailyGrain))
           val maxDaysLookBackOption = publicFact.maxDaysLookBack.get(request.requestType, queryGrain.getOrElse(DailyGrain))
           require(maxDaysLookBackOption.isDefined && maxDaysWindowOption.isDefined
@@ -352,7 +371,7 @@ object RequestModel extends Logging {
           val maxDaysWindow = maxDaysWindowOption.get
           val maxDaysLookBack = maxDaysLookBackOption.get
 
-          // validating max lookback againt public fact a
+          // validating max lookback against public fact a
           val (requestedDaysWindow, requestedDaysLookBack) = validateMaxLookBackWindow(localTimeDayFilter, publicFact.name, maxDaysWindow, maxDaysLookBack)
           val isAsyncFactDrivenQuery = request.requestType == AsyncRequest && !request.forceDimensionDriven
           val isSyncFactDrivenQuery = request.requestType == SyncRequest && request.forceFactDriven
@@ -464,7 +483,9 @@ object RequestModel extends Logging {
             initialMap ++ secondMap
           }
 
-          val colsWithRestrictedSchema: IndexedSeq[String] = requestedAliasList.collect {
+          val allFilters = request.filterExpressions.map(filter => filter.field)
+
+          val colsWithRestrictedSchema: IndexedSeq[String] = (requestedAliasList ++ allFilters).collect {
             case reqCol if (publicFact.restrictedSchemasMap.contains(reqCol)
               && !publicFact.restrictedSchemasMap(reqCol)(request.schema))
               => reqCol
@@ -569,6 +590,14 @@ object RequestModel extends Logging {
             alias =>
               require(filterMap.contains(alias), s"Missing required filter: cube=${publicFact.name}, field=$alias")
           }
+
+          val requiredFilterColumns = publicFact.requiredFilterColumns
+          require(
+            requiredFilterColumns.isEmpty
+              || requiredFilterColumns.get(request.schema).isEmpty
+              || requiredFilterColumns(request.schema).exists(col => filterMap.contains(col))
+            , s"Query must use at least one required filter: ${requiredFilterColumns.mkString("[", ",", "]")}"
+          )
 
           // populate all forced filters from fact
           publicFact.forcedFilters.foreach { filter =>
@@ -680,11 +709,9 @@ object RequestModel extends Logging {
               factSchemaRequiredAliasesMap.put(fact.name, schemaRequiredFilterAliases)
           })
 
-          val timezone = if(bestCandidatesOption.isDefined && bestCandidatesOption.get.publicFact.enableUTCTimeConversion) {
-            utcTimeProvider.getTimezone(request)
-          } else None
-
-          val (utcTimeDayFilter, utcTimeHourFilter, utcTimeMinuteFilter) = utcTimeProvider.getUTCDayHourMinuteFilter(localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter, timezone, isDebugEnabled)
+          val (utcTimeDayFilter, utcTimeHourFilter, utcTimeMinuteFilter) = if(bestCandidatesOption.isDefined && bestCandidatesOption.get.publicFact.enableUTCTimeConversion) {
+            utcTimeProvider.getUTCDayHourMinuteFilter(localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter, timezone, isDebugEnabled)
+          } else (localTimeDayFilter, localTimeHourFilter, localTimeMinuteFilter)
 
           //set fact flags
           //we don't count fk filters here
@@ -791,7 +818,7 @@ object RequestModel extends Logging {
           //produce dim candidates
           val allRequestedDimAliases = new mutable.TreeSet[String]()
           var dimOrder : Int = 0
-          val dimensionCandidates: SortedSet[DimensionCandidate] = {
+          val dimensionCandidatesPreValidation: SortedSet[DimensionCandidate] = {
             val intermediateCandidates = new mutable.TreeSet[DimensionCandidate]()
             val upperJoinCandidates = new mutable.TreeSet[PublicDimension]()
             finalAllRequestedDimensionPrimaryKeyAliases
@@ -991,6 +1018,27 @@ object RequestModel extends Logging {
             intermediateCandidates.to[SortedSet]
           }
 
+          //here we inject lower candidates since above we only inject upper candidates for dim driven queries
+          val dimensionCandidates: SortedSet[DimensionCandidate] = {
+            if(dimensionCandidatesPreValidation.size > 1 && !isFactDriven) {
+              var i: Int = 0
+              val intermediateCandidates = new mutable.TreeSet[DimensionCandidate]()
+              val dcSeq = dimensionCandidatesPreValidation.toIndexedSeq
+              intermediateCandidates+=dcSeq(i)
+              while ((i + 1) < dcSeq.size) {
+                val l = dcSeq(i)
+                val u = dcSeq(i+1)
+                if(!u.lowerCandidates.contains(l.dim) && l.upperCandidates.contains(u.dim)) {
+                  intermediateCandidates+=u.copy(lowerCandidates = u.lowerCandidates.+:(l.dim), fields = u.fields + l.dim.primaryKeyByAlias)
+                } else {
+                  intermediateCandidates+=u
+                }
+                i += 1
+              }
+              intermediateCandidates.to[SortedSet]
+            } else dimensionCandidatesPreValidation
+          }
+
           /*UNUSED Feature
           //if we are dim driven, and we have no ordering, and we only have a single primary key alias in request fields
           //add default ordering by that primary key alias
@@ -1080,6 +1128,22 @@ object RequestModel extends Logging {
             }
             DimensionRelations(relations)
           }
+          val isDimOnlyQuery = dimensionCandidates.nonEmpty && bestCandidatesOption.isEmpty
+          if (isDimOnlyQuery) {
+            val requiredAliasSetFromRelatedDims = dimensionCandidates.flatMap(dc=> {
+              dc.dim.foreignKeySources.map(fks => registry.getDimensionWithRevMap(fks, Some(publicFact.dimRevision), publicFact.dimToRevisionMap))
+            }).filter(_.isDefined).map(_.get.schemaRequiredAlias(request.schema)).filter(_.isDefined).map(_.get)
+
+            val selfDimSchemaRequiredAlias = dimensionCandidates.map(_.dim.schemaRequiredAlias(request.schema)).filter(_.isDefined).map(_.get)
+
+            validateRequiredFiltersForDimOnlyQuery(filterMap, (requiredAliasSetFromRelatedDims ++ selfDimSchemaRequiredAlias).toSet , request)
+          }
+          
+          // All Dim only queries are by default dim driven
+          val forceDimensionDriven:Boolean = if(isDimOnlyQuery) {
+            true
+          } else request.forceDimensionDriven
+
 
           val allFactWithoutOr = allFactFilters.filterNot(filter => allOrFilters.contains(filter))
           new RequestModel(request.cube, bestCandidatesOption, allFactWithoutOr.to[SortedSet], dimensionCandidates,
@@ -1099,7 +1163,7 @@ object RequestModel extends Logging {
             hasDimFilters = hasDimFilters,
             hasNonFKDimFilters = hasNonFKDimFilters,
             hasDimSortBy = hasDimSortBy,
-            forceDimDriven = request.forceDimensionDriven,
+            forceDimDriven = forceDimensionDriven,
             forceFactDriven = request.forceFactDriven,
             hasNonDrivingDimSortOrFilter = hasNonDrivingDimSortOrFilter,
             hasDrivingDimNonFKNonPKSortBy = hasDrivingDimNonFKNonPKSortBy,
@@ -1134,15 +1198,34 @@ object RequestModel extends Logging {
     }
   }
 
+  private[this] def validateRequiredFiltersForDimOnlyQuery(filterMap:mutable.HashMap[String, Filter],requiredAliasSet:Set[RequiredAlias], request:ReportingRequest): Unit = {
+    requiredAliasSet.foreach(
+      reqAlias => {
+        require(filterMap.contains(reqAlias.alias), s"Missing Dim Only query Schema(${request.schema}) required filter on '${reqAlias.alias}'")
+        val filter = filterMap.get(reqAlias.alias).get
+        require(FilterOperation.InEquality.contains(filter.operator), s"Invalid Schema Required Filter ${filter.field} operation, expected at least one of set(In,=), found ${filter.operator}")
+      }
+    )
+  }
+
   def validateMaxLookBackWindow(localTimeDayFilter:Filter, factName:String, maxDaysWindow:Int, maxDaysLookBack:Int): (Int, Int) = {
     localTimeDayFilter match {
+      case dtf: DateTimeBetweenFilter =>
+        val requestedDaysWindow = dtf.daysBetween
+        val requestedDaysLookBack = dtf.daysFromNow
+        require(requestedDaysWindow <= maxDaysWindow,
+          MaxWindowExceededError(maxDaysWindow, requestedDaysWindow, factName))
+        require(requestedDaysLookBack <= maxDaysLookBack,
+          MaxLookBackExceededError(maxDaysLookBack, requestedDaysLookBack, factName))
+        (requestedDaysWindow, requestedDaysLookBack)
+
       case BetweenFilter(_,from,to) =>
         val requestedDaysWindow = DailyGrain.getDaysBetween(from, to)
         val requestedDaysLookBack = DailyGrain.getDaysFromNow(from)
         require(requestedDaysWindow <= maxDaysWindow,
-          MaxWindowExceededError(maxDaysWindow, DailyGrain.getDaysBetween(from, to), factName))
+          MaxWindowExceededError(maxDaysWindow, requestedDaysWindow, factName))
         require(requestedDaysLookBack <= maxDaysLookBack,
-          MaxLookBackExceededError(maxDaysLookBack, DailyGrain.getDaysFromNow(from), factName))
+          MaxLookBackExceededError(maxDaysLookBack, requestedDaysLookBack, factName))
         (requestedDaysWindow, requestedDaysLookBack)
 
       case InFilter(_,dates, _, _) =>
@@ -1210,6 +1293,7 @@ object RequestModel extends Logging {
         case FieldEqualityFilter(_, value, _, _) => validateLength(List(value), length)
         case NotEqualToFilter(_, value, _, _) => validateLength(List(value), length)
         case LikeFilter(_, value, _, _) => validateLength(List(value), length)
+        case NotLikeFilter(_, value, _, _) => validateLength(List(value), length)
         case BetweenFilter(_, from, to) => validateLength(List(from, to), length)
         case IsNullFilter(_, _, _) | IsNotNullFilter(_, _, _) | PushDownFilter(_) | OuterFilter(_) | OrFilter(_) => (true, MAX_ALLOWED_STR_LEN)
         case _ => throw new Exception(s"Unhandled FilterOperation $filter.")
@@ -1280,12 +1364,18 @@ case class RequestModelResult(model: RequestModel, dryRunModelTry: Option[Try[Re
 
 object RequestModelFactory extends Logging {
   // If no revision is specified, return a Tuple of RequestModels 1-To serve the response 2-Optional dryrun to test new fact revisions
-  def fromBucketSelector(request: ReportingRequest, bucketParams: BucketParams, registry: Registry, bucketSelector: BucketSelector, utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider) : Try[RequestModelResult] = {
+  def fromBucketSelector(request: ReportingRequest
+                         , bucketParams: BucketParams
+                         , registry: Registry
+                         , bucketSelector: BucketSelector
+                         , utcTimeProvider: UTCTimeProvider = PassThroughUTCTimeProvider
+                         , userTimeZoneProvider: UserTimeZoneProvider = NoopUserTimeZoneProvider
+                        ) : Try[RequestModelResult] = {
     val selectedBucketsTry: Try[CubeBucketSelected] = bucketSelector.selectBucketsForCube(request.cube, bucketParams)
     selectedBucketsTry match {
       case Success(buckets: CubeBucketSelected) =>
         for {
-          defaultRequestModel <- RequestModel.from(request, registry, utcTimeProvider, Some(buckets.revision))
+          defaultRequestModel <- RequestModel.from(request, registry, userTimeZoneProvider, utcTimeProvider, Some(buckets.revision))
         } yield {
           val dryRunModel: Option[Try[RequestModel]] = if (buckets.dryRunRevision.isDefined) {
             Option(Try {
@@ -1305,7 +1395,7 @@ object RequestModelFactory extends Logging {
                     throw new IllegalArgumentException(s"Unknown engine: $a")
                 }
               } else request
-              RequestModel.from(updatedRequest, registry, utcTimeProvider, buckets.dryRunRevision)
+              RequestModel.from(updatedRequest, registry, userTimeZoneProvider, utcTimeProvider, buckets.dryRunRevision)
             }.flatten)
           } else None
           RequestModelResult(defaultRequestModel, dryRunModel)
@@ -1313,7 +1403,9 @@ object RequestModelFactory extends Logging {
 
       case Failure(t) =>
         warn("Failed to compute bucketing info, will use default revision to return response", t)
-        RequestModel.from(request, registry, utcTimeProvider).map(model => RequestModelResult(model, None))
+        RequestModel
+          .from(request, registry, utcTimeProvider = utcTimeProvider, userTimeZoneProvider = userTimeZoneProvider)
+          .map(model => RequestModelResult(model, None))
     }
   }
 }
