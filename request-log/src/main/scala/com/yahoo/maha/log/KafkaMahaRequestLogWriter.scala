@@ -37,7 +37,7 @@ case class KafkaRequestLoggingConfig(kafkaBrokerList: String,
                                      maxBlockMs: String)
 
 class KafkaMahaRequestLogWriter(kafkaRequestLoggingConfig: KafkaRequestLoggingConfig, loggingEnabled: Boolean) extends MahaRequestLogWriter with Logging {
-
+  
   val props: Properties = new Properties
   props.put("bootstrap.servers", kafkaRequestLoggingConfig.bootstrapServers)
   props.put("value.serializer", kafkaRequestLoggingConfig.serializerClass)
@@ -90,7 +90,10 @@ class KafkaMahaRequestLogWriter(kafkaRequestLoggingConfig: KafkaRequestLoggingCo
   }
 
   def write(proto: MahaRequestProto) : Unit = {
-    writeMahaRequestProto(proto)
+    implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
+    scala.concurrent.Future {
+      writeMahaRequestProto(proto)
+    }
   }
 
   def validate(reqLogBuilder: MahaRequestProto): Unit = {

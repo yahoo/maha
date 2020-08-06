@@ -8,15 +8,7 @@
     <parent>
         <groupId>com.yahoo.maha</groupId>
         <artifactId>maha-parent</artifactId>
-<<<<<<< HEAD
-<<<<<<< HEAD
-        <version>5.328-SNAPSHOT</version>
-=======
-        <version>5.349-SNAPSHOT</version>
->>>>>>> 6c03d07ebcc27eaa7291d47d6c1fa24ba7663ffc
-=======
         <version>6.1-SNAPSHOT</version>
->>>>>>> bb255373b459e54fcea8d189da5960db88212159
     </parent>
 
     <name>maha worker</name>
