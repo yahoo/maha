@@ -90,7 +90,10 @@ class KafkaMahaRequestLogWriter(kafkaRequestLoggingConfig: KafkaRequestLoggingCo
   }
 
   def write(proto: MahaRequestProto) : Unit = {
-    writeMahaRequestProto(proto)
+    implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
+    scala.concurrent.Future {
+      writeMahaRequestProto(proto)
+    }
   }
 
   def validate(reqLogBuilder: MahaRequestProto): Unit = {
