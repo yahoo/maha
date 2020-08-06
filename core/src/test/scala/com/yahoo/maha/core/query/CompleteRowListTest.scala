@@ -19,6 +19,41 @@ import com.yahoo.maha.core.{ColumnContext, DailyGrain, DateType, DecType, DruidE
  */
 class CompleteRowListTest extends BaseOracleQueryGeneratorTest with BaseRowListTest {
 
+  def queryWithAlias : Query = {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Campaign ID", "alias":"CampaignID"},
+                            {"field": "Impressions", "alias":"Impressions"},
+                            {"field": "Campaign Name", "alias":"CampaignName"},
+                            {"field": "Campaign Status", "alias":"CampaignStatus"},
+                            {"field": "CTR", "alias":"CTR"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                            {"field": "Campaign Name", "operator": "=", "value": "MegaCampaign"}
+                          ],
+                          "sortBy": [
+                            {"field": "Campaign Name", "order": "Asc"}
+                          ],
+                          "paginationStartIndex":-1,
+                          "rowsPerPage":100
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestAsync(jsonString)
+    val registry = getDefaultRegistry()
+    val requestModel = RequestModel.from(request, registry)
+
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery]
+  }
+
   private[this] def factBuilder(annotations: Set[FactAnnotation]): FactBuilder = {
     import DruidExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>

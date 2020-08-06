@@ -18,6 +18,8 @@ import io.druid.js.JavaScriptConfig
 import io.druid.query.dimension.{DefaultDimensionSpec, DimensionSpec}
 import io.druid.query.extraction.{RegexDimExtractionFn, SubstringDimExtractionFn, TimeDimExtractionFn, TimeFormatExtractionFn}
 import io.druid.query.filter.JavaScriptDimFilter
+import io.druid.query.ordering.StringComparator
+import io.druid.query.ordering.StringComparators.{LexicographicComparator, NumericComparator}
 import org.joda.time.DateTimeZone
 
 import scala.collection.{Iterable, mutable}
@@ -944,11 +946,20 @@ object FilterDruid {
     filter match {
       case PushDownFilter(f) =>
         renderFilterDim(f, aliasToNameMapFull, columnsByNameMap, grainOption)
-      case f : BetweenFilter =>
+      case f @ BetweenFilter(field, from, to) =>
         column.dataType match {
           case DateType(_) | TimestampType(_) =>
             throw new UnsupportedOperationException(s"Date or Timestamp rendering not supported by this method, use renderDateDimFilters")
+          case it: IntType =>
+            val fieldString = aliasToNameMapFull(field)
+            val filter = new BoundDimFilter(fieldString, from, to, false, false, false, null, new NumericComparator)
+            filter
+          case st : StrType =>
+            val fieldString = aliasToNameMapFull(field)
+            val filter = new BoundDimFilter(fieldString, from, to, false, false, false, null, new LexicographicComparator)
+            filter
           case _ =>
+            //currently
             throw new UnsupportedOperationException(s"Between filter not supported on Druid dimension fields : $f")
         }
       case f @ InFilter(alias, values, _, _) =>

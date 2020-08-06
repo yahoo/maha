@@ -96,4 +96,5 @@ message MahaRequestProto{
   optional string testName = 56;
   repeated string labels = 57;
   optional string requestHash = 58;
+  optional string jobIdString = 59;
 }

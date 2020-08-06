@@ -5,12 +5,13 @@ package com.yahoo.maha.maha_druid_lookups.server.lookup.namespace;
 import com.metamx.emitter.service.ServiceEmitter;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.DecodeConfig;
 import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespace;
-import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.JDBCExtractionNamespaceWithLeaderAndFollower;
-import com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.TestProtobufSchemaFactory;
+import com.yahoo.maha.maha_druid_lookups.query.lookup.namespace.TsColumnConfig;
 import io.druid.metadata.MetadataStorageConnectorConfig;
 import org.joda.time.Period;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
@@ -20,6 +21,7 @@ import java.util.*;
 
 public class JDBCExtractionNamespaceCacheFactoryTest {
 
+    @Spy
     @InjectMocks
     JDBCExtractionNamespaceCacheFactory obj = new JDBCExtractionNamespaceCacheFactory();
 
@@ -99,5 +101,28 @@ public class JDBCExtractionNamespaceCacheFactoryTest {
         decodeConfig2.setColumnIfValueMatched("currency");
         decodeConfig2.setColumnIfValueNotMatched("status");
         Assert.assertEquals(objProducer.getCacheValue(extractionNamespace, map, "12345", "name", Optional.of(decodeConfig2)), "ON".getBytes());
+    }
+
+    @Test
+    public void testGenerateSecondaryTsColCondition() {
+        MetadataStorageConnectorConfig metadataStorageConnectorConfig = new MetadataStorageConnectorConfig();
+        JDBCExtractionNamespace extractionNamespaceWithSecTsCol =
+                new JDBCExtractionNamespace(
+                        metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
+                        "id", "", new Period(), true, "advertiser_lookup", new Properties(),
+                        new TsColumnConfig("primTsCol", "bigint", "YYYYMMDDhhmmss", "secTsCol", ">"), true);
+        String[] cache = new String[1];
+        Mockito.doReturn("123").when(obj).getMaxValFromColumn(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+        Assert.assertEquals(obj.getSecondaryTsWhereCondition("id", extractionNamespaceWithSecTsCol, cache), " AND secTsCol > '123'");
+        //cached max updated ts into cache
+        Assert.assertEquals(cache[0], "123");
+
+        JDBCExtractionNamespace extractionNamespaceWithTsColOnly =
+                new JDBCExtractionNamespace(
+                        metadataStorageConnectorConfig, "advertiser", new ArrayList<>(Arrays.asList("id","name","currency","status")),
+                        "id", "", new Period(), true, "advertiser_lookup");
+
+        //condition string should an empty string if there is no secondaryTsCol
+        Assert.assertEquals(obj.getSecondaryTsWhereCondition("id", extractionNamespaceWithTsColOnly, cache), "");
     }
 }

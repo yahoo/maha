@@ -60,6 +60,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , DimCol("Landing URL Translation", StrType(100, (Map("Valid" -> "Something"), "Empty")), alias = Option("landing_page_url"))
           , DimCol("stats_date", DateType("yyyyMMdd"), Some("statsDate"))
           , DimCol("engagement_type", StrType(3))
+          , DimCol("null_type", PassthroughType())
           , DruidPostResultFuncDimCol("Month", DateType(), postResultFunction = START_OF_THE_MONTH("{stats_date}"))
           , DruidPostResultFuncDimCol("Week", DateType(), postResultFunction = START_OF_THE_WEEK("{stats_date}"))
           , DruidFuncDimCol("Day of Week", DateType(), DAY_OF_WEEK("{stats_date}"))
@@ -84,6 +85,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , FactCol("avg_pos_times_impressions", DecType(0, "0.0"), MaxRollup)
           , FactCol("avg_pos_times_impressions_trim", DecType(0, "0.0", "0", "1000"), MaxRollup)
           , FactCol("unique_ad_ids", IntType(), DruidHyperUniqueRollup("ad_id"))
+          , DruidDerFactCol("unique_ad_ids_count", DecType(), HyperUniqueCardinalityWrapper("{unique_ad_ids}"))
           , FactCol("engagement_count", IntType(0, 0))
           , ConstFactCol("const_a", IntType(0, 0), "0")
           , ConstFactCol("const_b", IntType(0, 0), "0")
@@ -97,7 +99,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
             EqualityFilter("engagement_type", "1"),
             EqualityFilter("campaign_id", "1")), "clicks", SumRollup))
           , DruidDerFactCol("Reblog Rate", DecType(), "{Reblogs}" /- "{impressions}" * "100")
-          , DruidDerFactCol("variance", DecType(), JavaScript("return clicks * Math.sqrt(impressions);", List("clicks", "impressions")))
+          , DruidDerFactCol("variance", DecType(), JavaScript("function(clicks,impressions){return clicks * Math.sqrt(impressions);}", List("{clicks}", "{impressions}")))
           , DruidPostResultDerivedFactCol("impression_share", StrType(), "{impressions}" /- "{sov_impressions}", postResultFunction = POST_RESULT_DECODE("{show_sov_flag}", "0", "N/A"))
           , FactCol("uniqueUserCount", DecType(0, "0.0"))
           , FactCol("blarghUserCount", DecType(0, "0.0"))
@@ -108,6 +110,8 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           , FactCol("conv_unique_users", DecType(), DruidFilteredRollup(JavaScriptFilter("segments", "function(x) { return x > 0; }"), "uniqueUserCount", DruidThetaSketchRollup))
           , DruidDerFactCol("Total Unique User Count", DecType(), ThetaSketchEstimator(INTERSECT, List("{ageBucket_unique_users}", "{woeids_unique_users}", "{segments_unique_users}")))
           , DruidDerFactCol("Conv Segments Unique User Count", DecType(), ThetaSketchEstimateWrapper("{conv_unique_users}") ++ ThetaSketchEstimateWrapper("{segments_unique_users}"))
+          , DruidDerFactCol("Derived User Count Plus Variance", DecType(), "{Conv Segments Unique User Count}" ++ "{variance}")
+          , DruidDerFactCol("Segment Count By Variance", DecType(), "{Derived User Count Plus Variance}" /- "{variance}")
         ),
         annotations = annotations
       )
@@ -298,6 +302,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
         Set(
           PubCol("stats_date", "Day", InBetweenEquality),
           PubCol("engagement_type", "engagement_type", Equality),
+          PubCol("null_type", "Null Type", InBetweenEquality),
           PubCol("id", "Keyword ID", InEqualityFieldEquality),
           PubCol("ad_id", "Ad ID", InEqualityFieldEquality),
           PubCol("ad_group_id", "Ad Group ID", InEqualityFieldEquality),
@@ -306,8 +311,8 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PubCol("stats_source", "Source", Equality, incompatibleColumns = Set("Source Name")),
           PubCol("source_name", "Source Name", InEquality, incompatibleColumns = Set("Source")),
           PubCol("price_type", "Pricing Type", In),
-          PubCol("Derived Pricing Type", "Derived Pricing Type", InEquality),
-          PubCol("landing_page_url", "Destination URL", InNotInEqualityNotEqualsLikeNullNotNull),
+          PubCol("Derived Pricing Type", "Derived Pricing Type", InBetweenEquality),
+          PubCol("landing_page_url", "Destination URL", InNotInEqualityNotEqualsLikeNullNotNullBetween),
           PubCol("Landing URL Translation", "Landing URL Translation", Set.empty),
           PubCol("Week", "Week", InBetweenEquality),
           PubCol("Month", "Month", InBetweenEquality),
@@ -341,6 +346,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("Click Rate Success Case", "Click Rate Success Case", InBetweenEquality),
           PublicFactCol("CTR", "CTR", InBetweenEquality),
           PublicFactCol("unique_ad_ids", "Unique Ad IDs", InBetweenEquality),
+          PublicFactCol("unique_ad_ids_count", "Unique Ad IDs Count", InBetweenEquality),
           PublicFactCol("uniqueUserCount", "Unique User Count", InBetweenEquality),
           PublicFactCol("ageBucket_unique_users", "ageBucket_unique_users", InBetweenEquality),
           PublicFactCol("woeids_unique_users", "woeids_unique_users", InBetweenEquality),
@@ -348,7 +354,8 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
           PublicFactCol("conv_unique_users", "Conversion User Count", InBetweenEquality),
           PublicFactCol("Total Unique User Count", "Total Unique User Count", InBetweenEquality),
           PublicFactCol("variance", "Variance", InBetweenEquality),
-          PublicFactCol("Conv Segments Unique User Count", "Conv Segments Unique User Count", InBetweenEquality)
+          PublicFactCol("Conv Segments Unique User Count", "Conv Segments Unique User Count", InBetweenEquality),
+          PublicFactCol("Segment Count By Variance", "Segment Count By Variance", InBetweenEquality)
         ),
         //Set(EqualityFilter("Source", "2")),
         Set(),
@@ -783,7 +790,7 @@ class BaseDruidQueryGeneratorTest extends FunSuite with Matchers with BeforeAndA
         PubCol("campaign_id", "Campaign ID", InEquality),
         PubCol("advertiser_id", "Advertiser ID", InEquality),
         PubCol("price_type", "Pricing Type", In),
-        PubCol("Derived Pricing Type", "Derived Pricing Type", InEquality),
+        PubCol("Derived Pricing Type", "Derived Pricing Type", InBetweenEquality),
       ),
       Set(
         PublicFactCol("impressions", "Impressions", InBetweenEquality)

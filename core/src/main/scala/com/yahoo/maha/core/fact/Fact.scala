@@ -12,6 +12,8 @@ import grizzled.slf4j.Logging
 
 import scala.collection.{SortedSet, mutable}
 import scala.util.Try
+import org.json4s.JsonAST.{JArray, JNull, JObject, JValue}
+import org.json4s.scalaz.JsonScalaz._
 
 /**
  * Created by hiral on 10/7/15.
@@ -27,6 +29,14 @@ trait FactColumn extends Column {
   def rollupExpression: RollupExpression
 
   val hasRollupWithEngineRequirement: Boolean = rollupExpression.isInstanceOf[EngineRequirement]
+
+  override def asJSON: JObject =
+    makeObj(
+      List(
+        ("FactColumn" -> super.asJSON)
+        ,("hasRollupWithEngineRequirement" -> toJSON(hasRollupWithEngineRequirement))
+      )
+    )
 }
 
 trait ConstFactColumn extends FactColumn with ConstColumn
@@ -98,6 +108,22 @@ case class FactCol(name: String,
         //normal rollup, do nothing
     }
   }
+
+  private val jUtils = JsonUtils
+
+
+  override def asJSON: JObject =
+    makeObj(
+      List(
+        ("FactCol" -> super.asJSON)
+        ,("name" -> toJSON(name))
+        ,("dataType" -> dataType.asJSON)
+        ,("rollupExpression" -> rollupExpression.asJSON)
+        ,("aliasOrName" -> toJSON(alias.getOrElse("")))
+        ,("annotations" -> jUtils.asJSON(annotations))
+        ,("filterOperationOverrides" -> jUtils.asJSON(filterOperationOverrides.map(op => op.toString)))
+      )
+    )
 }
 
 object FactCol {
@@ -663,7 +689,7 @@ case class FactTable private[fact](name: String
       c.derivedExpression.render(c.name)
     }
   }
-  
+
   private[this] def validateForeignKeyCols[T <: Column](columns: Set[T]) : Unit = {
     columns.foreach {
       col =>
@@ -742,7 +768,7 @@ case class FactTable private[fact](name: String
     require(forcedFiltersByBasenameMap.size == publicFact.forcedFilters.size, "Forced Filters public fact and map of forced base cols differ in size")
 
   }
-  
+
   def postValidate(publicFact: PublicFact) : Unit = {
     validateForceFilters(forceFilters, publicFact)
     validateForceFilterUniqueness(publicFact)
@@ -952,8 +978,8 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
     //override fact cols by name
     val overrideFactColsByName: Set[String] = overrideFactCols.map(_.name)
 
-    require(overrideDimColsByName.intersect(updatedDiscardingSet).isEmpty, "Cannot override dim col that is supposed to be discarded")
-    require(overrideFactColsByName.intersect(updatedDiscardingSet).isEmpty, "Cannot override fact col that is supposed to be discarded")
+    require(overrideDimColsByName.intersect(updatedDiscardingSet).isEmpty, "Cannot override dim col that is supposed to be discarded: " + overrideDimColsByName.intersect(updatedDiscardingSet).mkString(","))
+    require(overrideFactColsByName.intersect(updatedDiscardingSet).isEmpty, "Cannot override fact col that is supposed to be discarded: " + overrideFactColsByName.intersect(updatedDiscardingSet).mkString(","))
 
     // non engine specific columns (engine specific columns not needed) and filter out overrides
     var dimColMap = fromTable
@@ -1495,6 +1521,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , renderLocalTimeFilter: Boolean = true
                    , revision: Int = 0
                    , dimRevision: Int = 0
+                   , dimToRevisionMap: Map[String, Int] = Map.empty
                    ) : PublicFact = {
     new PublicFactTable(name
       , baseFact
@@ -1509,6 +1536,36 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , renderLocalTimeFilter
       , revision
       , dimRevision
+      , None
+      , dimToRevisionMap
+    )
+  }
+
+  def copyPublicFact(alias: String
+                     , revision: Int
+                     , publicFact: PublicFact
+                     , dimToRevisionOverrideMap: Map[String, Int] = Map.empty
+                     , dimColOverrides: Set[PublicDimColumn] = Set.empty
+                     , factColOverrides: Set[PublicFactColumn] = Set.empty): PublicFact = {
+    val overrideNames = dimColOverrides.map(col => col.alias) ++ factColOverrides.map(col => col.alias)
+    val publicDimsWithOverrides = publicFact.dimCols.filterNot(col => overrideNames.contains(col.alias)) ++ dimColOverrides
+    val publicFactsWithOverrides = publicFact.factCols.filterNot(col => overrideNames.contains(col.alias)) ++ factColOverrides
+    new PublicFactTable(
+      alias
+      , publicFact.baseFact
+      , publicDimsWithOverrides
+      , publicFactsWithOverrides
+      , publicFact.facts
+      , publicFact.forcedFilters
+      , publicFact.maxDaysWindow
+      , publicFact.maxDaysLookBack
+      , publicFact.dimCardinalityLookup
+      , publicFact.enableUTCTimeConversion
+      , publicFact.renderLocalTimeFilter
+      , revision
+      , publicFact.dimRevision
+      , Some(publicFact)
+      , publicFact.dimToRevisionMap ++ dimToRevisionOverrideMap
     )
   }
 }
@@ -1576,7 +1633,7 @@ case class BestCandidates(fkCols: SortedSet[String],
                           requestCols: Set[String],
                           requestJoinCols: Set[String],
                           facts: Map[String, FactCandidate],
-                          publicFact: PublicFact, 
+                          publicFact: PublicFact,
                           dimColMapping: Map[String, String], 
                           factColMapping: Map[String, String],
                           dimColAliases: Set[String],
@@ -1634,6 +1691,11 @@ trait PublicFact extends PublicTable {
   def renderLocalTimeFilter: Boolean
   def revision: Int
   def dimRevision: Int
+  def dimCardinalityLookup: Option[LongRangeLookup[Map[RequestType, Map[Engine, Int]]]]
+  def facts: Map[String, Fact]
+  def parentFactTable: Option[PublicFact]
+  def dimToRevisionMap: Map[String, Int]
+  def getSecondaryDimFactMap: Map[SortedSet[String], SortedSet[Fact]]
 }
 
 case class PublicFactTable private[fact](name: String
@@ -1649,6 +1711,8 @@ case class PublicFactTable private[fact](name: String
                                          , renderLocalTimeFilter: Boolean
                                          , revision: Int
                                          , dimRevision: Int
+                                         , parentFactTable: Option[PublicFact] =  None
+                                         , dimToRevisionMap: Map[String, Int] = Map.empty
                                         ) extends PublicFact with Logging {
 
   def factList: Iterable[Fact] = facts.values
@@ -1760,6 +1824,8 @@ case class PublicFactTable private[fact](name: String
       .to[SortedSet])*/
 
   private[this] val secondaryDimFactMap: Map[SortedSet[String], SortedSet[Fact]] =
+    if (this.parentFactTable.isDefined) parentFactTable.get.getSecondaryDimFactMap
+    else
     facts
       .values
       .map(f => (f.dimCols.filter(_.annotations.exists(_.isInstanceOf[ForeignKey])).map(col => col.name), f))
@@ -1771,6 +1837,8 @@ case class PublicFactTable private[fact](name: String
       .to[SortedSet])
 
   private[this] val dimColsByName = dimCols.map(_.name)
+
+  def getSecondaryDimFactMap: Map[SortedSet[String], SortedSet[Fact]] = secondaryDimFactMap
 
   def getCandidatesFor(schema: Schema, requestType: RequestType, requestAliases: Set[String], requestJoinAliases: Set[String], filterAliasAndOperation: Map[String, FilterOperation], requestedDaysWindow:Int, requestedDaysLookBack:Int, localTimeDayFilter:Filter) : Option[BestCandidates] = {
     val aliases = requestAliases ++ filterAliasAndOperation.keySet

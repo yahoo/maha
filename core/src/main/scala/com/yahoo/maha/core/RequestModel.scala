@@ -365,7 +365,7 @@ object RequestModel extends Logging {
           val allRequestedFkAliasToPublicDimMap =
             publicFact.foreignKeyAliases.filter(allProjectedAliases.contains(_)).map {
               case fkAlias =>
-               val dimensionOption = registry.getDimensionByPrimaryKeyAlias(fkAlias, revision)
+               val dimensionOption = registry.getPkDimensionUsingFactTable(fkAlias, Some(publicFact.dimRevision), publicFact.dimToRevisionMap)
                 require(dimensionOption.isDefined, s"Can not find the dimension for Foreign Key Alias $fkAlias in public fact ${publicFact.name}")
                 fkAlias -> dimensionOption.get
             }.toMap
@@ -436,11 +436,33 @@ object RequestModel extends Logging {
           }
 
 
-          val requestedDimAliasesToPublicDimMap: Map[String, PublicDimension] =
-            requestedAliasList
-            .filter(reqCol => registry.getDimColIdentity(reqCol).isDefined && registry.dimMap.contains(registry.getDimColIdentity(reqCol).get.publcDimName, publicFact.dimRevision))
-            .map(reqCol => reqCol -> registry.dimMap(registry.getDimColIdentity(reqCol).get.publcDimName, publicFact.dimRevision))
-            .toMap
+          val requestedDimAliasesToPublicDimMap: Map[String, PublicDimension] = {
+            val initialMap =
+              requestedAliasList
+                .filter(reqCol => registry.getDimColIdentity(reqCol).isDefined && registry.dimMap.contains(registry.getDimColIdentity(reqCol).get.publcDimName, publicFact.dimRevision))
+                .map(reqCol => reqCol -> registry.dimMap(registry.getDimColIdentity(reqCol).get.publcDimName, publicFact.dimRevision))
+                .toMap
+            val secondMap =
+              if(publicFact.dimToRevisionMap.isEmpty) Map.empty
+              else {
+                requestedAliasList
+                  .filter(reqCol => {
+                    if (registry.getDimColIdentity(reqCol).isDefined) {
+                      val pdName = registry.getDimColIdentity(reqCol).get.publcDimName
+                      publicFact.dimToRevisionMap.contains(pdName) && registry.dimMap.contains(pdName, publicFact.dimToRevisionMap(pdName))
+                    } else false
+                    }
+                  )
+                  .map(reqCol => {
+                    val pdName = registry.getDimColIdentity(reqCol).get.publcDimName
+                    reqCol -> registry.dimMap(pdName, publicFact.dimToRevisionMap(pdName))
+                  }
+                  )
+                  .toMap
+              }
+
+            initialMap ++ secondMap
+          }
 
           val colsWithRestrictedSchema: IndexedSeq[String] = requestedAliasList.collect {
             case reqCol if (publicFact.restrictedSchemasMap.contains(reqCol)
@@ -645,7 +667,7 @@ object RequestModel extends Logging {
               val fact = factCandidate.fact
               //check schema required aliases for facts
               val schemaRequiredFilterAliases = registry.getSchemaRequiredFilterAliasesForFact(fact.name, request.schema, publicFact.name)
-              val entitySet = schemaRequiredFilterAliases.map(f => registry.getDimensionByPrimaryKeyAlias(f, Option.apply(publicFact.dimRevision))).flatten.map {
+              val entitySet = schemaRequiredFilterAliases.map(f => registry.getPkDimensionUsingFactTable(f, Some(publicFact.dimRevision), publicFact.dimToRevisionMap)).flatten.map {
                 publicDim =>
                   entityPublicDimSet += publicDim
                   publicDim.name
@@ -733,14 +755,14 @@ object RequestModel extends Logging {
           if(dimDrivenRequestedDimensionPrimaryKeyAliases.nonEmpty && !isFactDriven) {
             val dimDrivenHighestLevelDim =
               dimDrivenRequestedDimensionPrimaryKeyAliases
-                .map(pk => registry.getDimensionByPrimaryKeyAlias(pk, Option.apply(publicFact.dimRevision)).get) //we can do .get since we already checked above
+                .map(pk => registry.getPkDimensionUsingFactTable(pk, Some(publicFact.dimRevision), publicFact.dimToRevisionMap).get) //we can do .get since we already checked above
                 .to[SortedSet]
                 .lastKey
 
             val addDim = {
               if(allRequestedDimensionPrimaryKeyAliases.nonEmpty) {
                 val requestedDims = allRequestedDimensionPrimaryKeyAliases
-                  .map(pk => registry.getDimensionByPrimaryKeyAlias(pk, Option.apply(publicFact.dimRevision)).get)
+                  .map(pk => registry.getPkDimensionUsingFactTable(pk, Some(publicFact.dimRevision), publicFact.dimToRevisionMap).get)
                   .to[SortedSet]
                 val allRequestedPKAlreadyExist =
                   dimDrivenRequestedDimensionPrimaryKeyAliases.forall(pk => requestedDims.exists(_.columnsByAlias(pk)))
@@ -764,7 +786,7 @@ object RequestModel extends Logging {
           val finalAllRequestedDimensionPrimaryKeyAliases = allRequestedDimensionPrimaryKeyAliases.toSet
 
           val finalAllRequestedDimsMap = finalAllRequestedDimensionPrimaryKeyAliases
-            .map(pk => pk -> registry.getDimensionByPrimaryKeyAlias(pk, Option.apply(publicFact.dimRevision)).get).toMap
+            .map(pk => pk -> registry.getPkDimensionUsingFactTable(pk, Some(publicFact.dimRevision), publicFact.dimToRevisionMap).get).toMap
 
           //produce dim candidates
           val allRequestedDimAliases = new mutable.TreeSet[String]()
@@ -773,7 +795,7 @@ object RequestModel extends Logging {
             val intermediateCandidates = new mutable.TreeSet[DimensionCandidate]()
             val upperJoinCandidates = new mutable.TreeSet[PublicDimension]()
             finalAllRequestedDimensionPrimaryKeyAliases
-              .flatMap(f => registry.getDimensionByPrimaryKeyAlias(f, Option.apply(publicFact.dimRevision)))
+              .flatMap(f => registry.getPkDimensionUsingFactTable(f, Some(publicFact.dimRevision), publicFact.dimToRevisionMap))
               .toIndexedSeq
               .sortWith((a, b) => b.dimLevel < a.dimLevel)
               .foreach {

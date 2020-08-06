@@ -1197,7 +1197,7 @@ trait SharedDimSchema {
       ColumnContext.withColumnContext { implicit cc: ColumnContext =>
         Dimension.newDimension("combined_class", OracleEngine, LevelOne, Set(AdvertiserSchema),
           Set(
-            DimCol("id", IntType(), annotations = Set(PrimaryKey))
+            DimCol("id", IntType(), alias = Option("id_alias"), annotations = Set(PrimaryKey))
             , DimCol("address", StrType(1000))
           )
           , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))

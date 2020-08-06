@@ -6,6 +6,7 @@ import com.yahoo.maha.core.dimension.DimCol
 import com.yahoo.maha.core.fact.ForceFilter
 import io.druid.query.filter.{NotDimFilter, SearchQueryDimFilter}
 import io.druid.query.search.InsensitiveContainsSearchQuerySpec
+import io.druid.segment.filter.BoundFilter
 import org.joda.time.DateTime
 import org.json4s.JsonAST.{JArray, JObject, JString, JValue}
 import org.scalatest.{FunSuite, Matchers}
@@ -523,11 +524,11 @@ class FilterTest extends FunSuite with Matchers {
   }
 
   test("Druid Filter Dim should be valid") {
-    val pdThrown = intercept[UnsupportedOperationException] {
+    val pdFilter = {
       val pdFilter = PushDownFilter(BetweenFilter("field1", "1", "2"))
       FilterDruid.renderFilterDim(pdFilter, Map("field1" -> "field1"), Map("field1" -> col), Option(DailyGrain))
     }
-    assert(pdThrown.getMessage.contains("Between filter not supported on Druid dimension fields :"))
+    assert(pdFilter.toFilter.isInstanceOf[BoundFilter])
   }
 
   test("Should return the expected filter sets") {

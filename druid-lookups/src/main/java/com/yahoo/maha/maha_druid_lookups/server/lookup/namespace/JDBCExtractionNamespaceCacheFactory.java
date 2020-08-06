@@ -32,8 +32,9 @@ public class JDBCExtractionNamespaceCacheFactory
     private static final Logger LOG = new Logger(JDBCExtractionNamespaceCacheFactory.class);
     private static final String COMMA_SEPARATOR = ",";
     private static final String FIRST_TIME_CACHING_WHERE_CLAUSE = " WHERE %s <= %s";
-    private static final String WHERE_CLAUSE_EXTENSION = " AND %s %s %s";
+    private static final String AND_SECOND_TS_WHERE_CLAUSE = " AND %s %s %s";
     private static final String SUBSEQUENT_CACHING_WHERE_CLAUSE = " WHERE %s > %s";
+    private static final String SECONDARY_TS_COL_ONLY_WHERE_CLAUSE = " WHERE %s %s %s";
     private static final String LAST_UPDATED_TIMESTAMP = ":lastUpdatedTimeStamp";
     private static final int FETCH_SIZE = 10000;
     private final ConcurrentMap<String, DBI> dbiCache = new ConcurrentHashMap<>();
@@ -50,17 +51,22 @@ public class JDBCExtractionNamespaceCacheFactory
             final Map<String, List<String>> cache
     ) {
         final long lastCheck = lastVersion == null ? Long.MIN_VALUE / 2 : Long.parseLong(lastVersion);
+
         if (!extractionNamespace.isCacheEnabled()) {
             return () -> String.valueOf(lastCheck);
         }
-        final Timestamp lastDBUpdate = lastUpdates(id, extractionNamespace, false);
+
+        final String[] maxTsCache = new String[1];
+        final String secondaryTsWhereCondition = getSecondaryTsWhereCondition(id, extractionNamespace, maxTsCache);
+        final Timestamp lastDBUpdate = lastUpdates(id, extractionNamespace, false, maxTsCache);
+
         if (lastDBUpdate != null && lastDBUpdate.getTime() <= lastCheck) {
             return () -> {
                 extractionNamespace.setPreviousLastUpdateTimestamp(lastDBUpdate);
                 return lastVersion;
             };
         }
-        final String whereClauseExtension = getWhereClauseExtension(id, extractionNamespace);
+
         return () -> {
             final DBI dbi = ensureDBI(id, extractionNamespace);
 
@@ -72,7 +78,7 @@ public class JDBCExtractionNamespaceCacheFactory
                                 extractionNamespace.getTable()
                         );
 
-                        populateRowListFromJDBC(extractionNamespace, query, lastDBUpdate, handle, new RowMapper(extractionNamespace, cache), whereClauseExtension);
+                        populateRowListFromJDBC(extractionNamespace, query, lastDBUpdate, handle, new RowMapper(extractionNamespace, cache), secondaryTsWhereCondition);
                         return null;
                     }
             );
@@ -99,7 +105,7 @@ public class JDBCExtractionNamespaceCacheFactory
             Timestamp lastDBUpdate,
             Handle handle,
             RowMapper rm,
-            String whereClauseExtension
+            String secondaryTsWhereCondition
     ) {
         Timestamp updateTS;
         if (extractionNamespace.isFirstTimeCaching()) {
@@ -107,7 +113,7 @@ public class JDBCExtractionNamespaceCacheFactory
             query = String.format("%s %s %s",
                     query,
                     getBaseWhereClause(FIRST_TIME_CACHING_WHERE_CLAUSE, extractionNamespace),
-                    whereClauseExtension
+                    secondaryTsWhereCondition
             );
             updateTS = lastDBUpdate;
 
@@ -115,7 +121,7 @@ public class JDBCExtractionNamespaceCacheFactory
             query = String.format("%s %s %s",
                     query,
                     getBaseWhereClause(SUBSEQUENT_CACHING_WHERE_CLAUSE, extractionNamespace),
-                    whereClauseExtension
+                    secondaryTsWhereCondition
             );
             updateTS = extractionNamespace.getPreviousLastUpdateTimestamp();
         }
@@ -129,17 +135,25 @@ public class JDBCExtractionNamespaceCacheFactory
         return null;
     }
 
-    protected String getWhereClauseExtension(String id, JDBCExtractionNamespace extractionNamespace) {
+    protected String getSecondaryTsWhereCondition(String id, JDBCExtractionNamespace extractionNamespace, String[] cache) {
         String whereClauseExtension = "";
-        if (extractionNamespace.hasTsColumnConfig() && extractionNamespace.getTsColumnConfig().hasSecondaryTsColumn()) {
-            String maxVal = (String) getMaxValFromColumn(id, extractionNamespace, StringMapper.FIRST, extractionNamespace.getTsColumnConfig().getSecondaryTsColumn(), extractionNamespace.getTable());
-            whereClauseExtension = String.format(WHERE_CLAUSE_EXTENSION,
-                    extractionNamespace.getTsColumnConfig().getSecondaryTsColumn(),
-                    extractionNamespace.getTsColumnConfig().getSecondaryTsColumnCondition(),
-                    StringUtil.quoteStringLiteral(maxVal)
-            );
+
+        if (extractionNamespace.hasSecondaryTsColumn()) {
+            String maxSecondaryTsVal = (String) getMaxValFromColumn(id, extractionNamespace, StringMapper.FIRST, extractionNamespace.getTsColumnConfig().getSecondaryTsColumn(), extractionNamespace.getTable());
+            cache[0] = maxSecondaryTsVal;
+            whereClauseExtension = formatSecondTsWhereClause(extractionNamespace, maxSecondaryTsVal, AND_SECOND_TS_WHERE_CLAUSE);
         }
+
         return whereClauseExtension;
+    }
+
+    protected String formatSecondTsWhereClause(JDBCExtractionNamespace extractionNamespace, String maxVal, String format) {
+        return String.format(
+                format,
+                extractionNamespace.getTsColumnConfig().getSecondaryTsColumn(),
+                extractionNamespace.getTsColumnConfig().getSecondaryTsColumnCondition(),
+                StringUtil.quoteStringLiteral(maxVal)
+        );
     }
 
     private Object getTsValue(JDBCExtractionNamespace extractionNamespace, Timestamp updateTS) {
@@ -148,7 +162,7 @@ public class JDBCExtractionNamespaceCacheFactory
             if (extractionNamespace.getTsColumnConfig().isVarchar()) {
                 tsValue = new SimpleDateFormat(extractionNamespace.getTsColumnConfig().getFormat()).format(updateTS);
             } else if (extractionNamespace.getTsColumnConfig().isBigint()) {
-                tsValue = updateTS.getTime();
+                tsValue = new Long(updateTS.getTime());
             }
         }
         return tsValue;
@@ -158,7 +172,7 @@ public class JDBCExtractionNamespaceCacheFactory
         return String.format(
                 baseClause,
                 namespace.getTsColumn(),
-                namespace.hasTsColumnConfig()?
+                namespace.hasTsColumnConfig() ?
                         (namespace.getTsColumnConfig().isVarchar() ?
                                 StringUtil.quoteStringLiteral(LAST_UPDATED_TIMESTAMP)
                                 : LAST_UPDATED_TIMESTAMP)
@@ -198,6 +212,10 @@ public class JDBCExtractionNamespaceCacheFactory
     }
 
     protected Timestamp lastUpdates(String id, JDBCExtractionNamespace namespace, Boolean isFollower) {
+        return lastUpdates(id, namespace, isFollower, new String[]{"0"});
+    }
+
+    protected Timestamp lastUpdates(String id, JDBCExtractionNamespace namespace, Boolean isFollower, String[] maxTsCache) {
         final String table = namespace.getTable();
         final String tsColumn = namespace.getTsColumn();
 
@@ -209,24 +227,23 @@ public class JDBCExtractionNamespaceCacheFactory
             return namespace.getPreviousLastUpdateTimestamp();
 
         final Timestamp lastUpdatedTimeStamp =
-                (Timestamp) getMaxValFromColumn(id, namespace,
-                        namespace.hasTsColumnConfig() && namespace.getTsColumnConfig().getFormat() != null ? new CustomizedTimestampMapper(1, namespace.getTsColumnConfig().getFormat()) : CustomizedTimestampMapper.FIRST
-                        , tsColumn, table);
+                (Timestamp) getMaxValFromColumn(id, namespace, CustomizedTimestampMapper.getInstance(namespace), tsColumn, table,
+                        namespace.hasSecondaryTsColumn() ? formatSecondTsWhereClause(namespace, maxTsCache[0], SECONDARY_TS_COL_ONLY_WHERE_CLAUSE) : "");
         return lastUpdatedTimeStamp;
 
     }
 
     protected Object getMaxValFromColumn(String id, JDBCExtractionNamespace namespace, TypedMapper mapper, String col, String table) {
-        final DBI dbi = ensureDBI(id, namespace);
-        return getMaxValFromColumn(dbi, mapper, col, table);
+        return getMaxValFromColumn(id, namespace, mapper, col, table, "");
     }
 
-    protected Object getMaxValFromColumn(DBI dbi, TypedMapper mapper, String col, String table) {
+    protected Object getMaxValFromColumn(String id, JDBCExtractionNamespace namespace, TypedMapper mapper, String col, String table, String whereClause) {
+        final DBI dbi = ensureDBI(id, namespace);
         final Object maxVal = dbi.withHandle(
                 handle -> {
                     final String query = String.format(
-                            "SELECT MAX(%s) FROM %s",
-                            col, table
+                            "SELECT MAX(%s) FROM %s %s",
+                            col, table, whereClause
                     );
                     return handle
                             .createQuery(query)

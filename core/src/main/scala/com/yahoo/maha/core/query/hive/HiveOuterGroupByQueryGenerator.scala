@@ -501,12 +501,12 @@ abstract case class HiveOuterGroupByQueryGenerator(partitionColumnRenderer:Parti
             s"""ROUND(COALESCE($finalAlias, ${default}), 10)"""
           case DecType(_, _, _, _, _, _) =>
             s"""ROUND(COALESCE($finalAlias, 0L), 10)"""
-          case IntType(_,sm,_,_,_) =>
+          case IntType(_,sm,df,_,_) =>
             if (sm.isDefined && isOuterGroupBy) {
               handleStaticMappingInt(sm, finalAlias)
             }
             else {
-              s"""COALESCE($finalAlias, 0L)"""
+              s"""COALESCE($finalAlias, ${df.getOrElse(0)}L)"""
             }
           case DateType(_) => s"""getFormattedDate($finalAlias)"""
           case StrType(_, sm, df) =>

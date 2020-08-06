@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
-import org.json4s.JsonAST.JObject
+import org.json4s.JsonAST.{JArray, JNull, JObject, JValue}
 import org.json4s.scalaz.JsonScalaz._
 
 import scala.collection.immutable.Nil
@@ -18,11 +18,32 @@ sealed trait DataType {
   def hasStaticMapping: Boolean
   def hasUniqueStaticMapping: Boolean
   def reverseStaticMapping: Map[String, Set[String]]
+
+  private val jUtils = JsonUtils
+
+  def asJSON: JObject =
+    makeObj(
+      List(
+        ("jsonDataType" -> toJSON(jsonDataType))
+        ,("constraint" -> toJSON(constraint.getOrElse("None")))
+        ,("hasStaticMapping" -> toJSON(hasStaticMapping))
+        ,("hasUniqueStaticMapping" -> toJSON(hasUniqueStaticMapping))
+        ,("reverseStaticMapping" -> toJSON(jUtils.asJSON(reverseStaticMapping)))
+      )
+    )
 }
 
 case class StaticMapping[T](tToStringMap: Map[T, String], default: String) {
   val stringToTMap: Map[String, Set[String]] = tToStringMap.groupBy(_._2).mapValues(_.map(_._1.toString).toSet)
   val hasUniqueMapping : Boolean = (!stringToTMap.contains(default)) && stringToTMap.keySet.size == tToStringMap.keySet.size
+
+  def asJSON: JObject =
+    makeObj(
+      List(
+        ("tToStringMap" -> toJSON(tToStringMap.mkString(",")))
+        ,("default" -> toJSON(default))
+      )
+    )
 }
 
 object StaticMapping {
@@ -42,6 +63,18 @@ case class IntType private(length: Int, staticMapping: Option[StaticMapping[Int]
   val reverseStaticMapping = staticMapping.map(_.stringToTMap).getOrElse(Map.empty)
   val jsonDataType = if (hasStaticMapping) "Enum" else "Number"
   val constraint: Option[String] = if (hasStaticMapping) Option.apply(reverseStaticMapping.keys.mkString("|")) else if (length > 0) Option.apply(length.toString) else None
+
+  override def asJSON: JObject =
+    makeObj(
+      List(
+        ("IntType" -> super.asJSON)
+        ,("length" -> toJSON(length))
+        ,("staticMapping" -> (if(staticMapping.isDefined) staticMapping.get.asJSON else JNull))
+        ,("default" -> toJSON(default.getOrElse(-1)))
+        ,("min" -> toJSON(min.getOrElse(-1)))
+        ,("max" -> toJSON(max.getOrElse(-1)))
+      )
+    )
 }
 
 case class StrType private(length: Int, staticMapping: Option[StaticMapping[String]], default: Option[String]) extends DataType {
@@ -54,6 +87,16 @@ case class StrType private(length: Int, staticMapping: Option[StaticMapping[Stri
   } else {
     if (length > 0) Option.apply(length.toString) else None
   }
+
+  override def asJSON: JObject =
+    makeObj(
+      List(
+        ("StrType" -> super.asJSON)
+        ,("length" -> toJSON(length))
+        ,("staticMapping" -> (if(staticMapping.isDefined) staticMapping.get.asJSON else JNull))
+        ,("default" -> toJSON(default.getOrElse("")))
+      )
+    )
 }
 case class DecType private(length: Int, scale:Int, default: Option[BigDecimal],
                            min: Option[BigDecimal], max: Option[BigDecimal], dummy: Int = 0) extends DataType {
@@ -62,6 +105,21 @@ case class DecType private(length: Int, scale:Int, default: Option[BigDecimal],
   val reverseStaticMapping : Map[String, Set[String]] = Map.empty
   val jsonDataType: String = "Number"
   val constraint: Option[String] = if (length > 0) Option.apply(length.toString) else None
+
+  private val jUtils = JsonUtils
+
+  override def asJSON: JObject =
+    makeObj(
+      List(
+        ("DecType" -> super.asJSON)
+        ,("length" -> toJSON(length))
+        ,("scale" -> toJSON(scale))
+        ,("default" -> jUtils.asJSON(default.getOrElse(BigDecimal(-1.0))))
+        ,("min" -> jUtils.asJSON(min.getOrElse(BigDecimal(-1.0))))
+        ,("max" -> jUtils.asJSON(max.getOrElse(BigDecimal(-1.0))))
+        ,("dummy" -> toJSON(dummy))
+      )
+    )
 }
 case class DateType private(format: Option[String]) extends DataType {
   val hasStaticMapping = false
@@ -69,6 +127,14 @@ case class DateType private(format: Option[String]) extends DataType {
   val reverseStaticMapping : Map[String, Set[String]] = Map.empty
   val jsonDataType: String = "Date"
   val constraint: Option[String] = format
+
+  override def asJSON: JObject =
+    makeObj(
+      List(
+        ("DateType" -> super.asJSON)
+        ,("format" -> toJSON(format.getOrElse("None")))
+      )
+    )
 }
 case class TimestampType private(format: Option[String]) extends DataType {
   val hasStaticMapping = false
@@ -76,6 +142,34 @@ case class TimestampType private(format: Option[String]) extends DataType {
   val reverseStaticMapping : Map[String, Set[String]] = Map.empty
   val jsonDataType: String = "Date"
   val constraint: Option[String] = format
+
+  override def asJSON: JObject =
+    makeObj(
+      List(
+        ("TimestampType" -> super.asJSON)
+        ,("format" -> toJSON(format.getOrElse("None")))
+      )
+    )
+}
+
+case class PassthroughType private(format: Option[String]) extends DataType {
+  val hasStaticMapping = false
+  val hasUniqueStaticMapping = false
+  val reverseStaticMapping : Map[String, Set[String]] = Map.empty
+  val jsonDataType: String = "Null"
+  val constraint: Option[String] = format
+
+  override def asJSON: JObject =
+    makeObj(
+      List(
+        ("PassthroughType" -> super.asJSON)
+        ,("format" -> toJSON(format.getOrElse("None")))
+      )
+    )
+}
+
+case object PassthroughType {
+  def apply(): PassthroughType = new PassthroughType(None)
 }
 
 case object IntType {

@@ -15,6 +15,7 @@ import com.yahoo.maha.core.query.{InnerJoin, LeftOuterJoin, RightOuterJoin}
 import com.yahoo.maha.core.registry.{Registry, RegistryBuilder}
 import com.yahoo.maha.core.request._
 import org.joda.time.{DateTime, DateTimeZone}
+import org.json4s.JObject
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.util.Random
@@ -83,6 +84,7 @@ class RequestModelTest extends FunSuite with Matchers {
           , DimCol("stats_date", DateType())
           , DimCol("network_type", StrType(100, (Map("TEST_PUBLISHER" -> "Test Publisher"), "NONE")))
           , DimCol("ad_format_id", IntType(3, (Map(2 -> "Single image"), "Other")))
+          , DimCol("unexposed_source", IntType())
           , HiveDerDimCol("Ad Group Start Date Full", StrType(),TIMESTAMP_TO_FORMATTED_DATE("{start_time}", "YYYY-MM-dd HH:mm:ss"))
 
         ),
@@ -341,6 +343,30 @@ class RequestModelTest extends FunSuite with Matchers {
     }
   }
 
+  def ad_dimv1: PublicDimension = {
+    ColumnContext.withColumnContext { implicit cc: ColumnContext =>
+      Dimension.newDimension("ad_dim", HiveEngine, LevelFour, Set(AdvertiserSchema),
+        Set(
+          DimCol("id", IntType(), annotations = Set(PrimaryKey))
+          , DimCol("advertiser_id", IntType(), annotations = Set(ForeignKey("advertiser")))
+          , DimCol("campaign_id", IntType(), annotations = Set(ForeignKey("campaign")))
+          , DimCol("ad_group_id", IntType(), annotations = Set(ForeignKey("ad_group")))
+          , DimCol("status", StrType())
+        )
+        , Option(Map(AsyncRequest -> 400, SyncRequest -> 400))
+      ).toPublicDimension("ad","ad",
+        Set(
+          PubCol("id", "Ad ID", InEquality)
+          , PubCol("advertiser_id", "Advertiser ID", InEquality)
+          , PubCol("campaign_id", "Campaign ID", InEquality)
+          , PubCol("ad_group_id", "Ad Group ID", InEquality)
+          , PubCol("status", "Ad Status", InEquality)
+        ), highCardinalityFilters = Set(NotInFilter("Ad Status", List("DELETED")))
+        , revision = 1
+      )
+    }
+  }
+
   def ad_group: PublicDimension = {
     ColumnContext.withColumnContext { implicit cc: ColumnContext =>
       Dimension.newDimension("ad_group", HiveEngine, LevelThree, Set(AdvertiserSchema),
@@ -446,6 +472,12 @@ class RequestModelTest extends FunSuite with Matchers {
     registryBuilder.register(ad_group)
     registryBuilder.register(keyword_dim)
     registryBuilder.register(product_ad_dim)
+    registryBuilder.registerAlias(
+      Set(("new_fact", Some(1))),
+      pubfact(forcedFilters),
+      dimColOverrides = Set(PubCol("unexposed_source", "Source", Equality)),
+      dimRevisionMap = Map("ad"-> 1)
+    )
     registryBuilder.build(factEstimator = new DefaultFactEstimator(Set("*-productAd","advertiser-ad","advertiser-adgroup","advertiser-campaign", "advertiser-campaign-adgroup", "advertiser-adgroup-ad", "advertiser-campaign-adgroup-ad")))
   }
 
@@ -5616,6 +5648,143 @@ class RequestModelTest extends FunSuite with Matchers {
     val failureResp = RequestModel.from(invalidRequest, registry)
     failureResp.isFailure shouldBe true
     failureResp.failed.get.getMessage should  startWith (s"requirement failed: ERROR_CODE:10007 (Advertiser Email) can't be used with publisher schema ")
+
+  }
+
+  test("Test rendering of columns to JSON") {
+    val registry = defaultRegistry
+    val pubFact = registry.getFact("publicFact")
+    val pubFactCols = pubFact.get.factCols
+    val pubDimCols = pubFact.get.dimCols
+    val fkAliases = pubFact.get.foreignKeySources
+    val fkTables = fkAliases.map(source => registry.getDimension(source).get)
+    val fkTableNames = fkTables.map(table => table.name)
+    val fkCols = fkTables.flatMap(dim => dim.columnsByAliasMap.map(_._2))
+    val allPubJSONs: Set[JObject] = (pubFactCols ++ pubDimCols ++ fkCols).map(col => col.asJSON)
+    val allOtherJSONS: Set[JObject] = (pubFact.get.baseFact.dimCols ++ pubFact.get.baseFact.factCols).map(col => col.asJSON)
+    println(s"""All tables with fact ${pubFact.get.name}: ${fkTableNames.mkString(",")}""")
+
+    val allPubCols: List[String] = List(
+      """{"name":"device_type","alias":"Device Type","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set(Device ID)","filters":"Set(In)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"name","alias":"Advertiser Name","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"network_type","alias":"Network Type","schemas":"List(advertiser)","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =, IsNotNull, Not In)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"status","alias":"Product Ad Status","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"id","alias":"Campaign ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"ad_format_id","alias":"Ad Format Name","schemas":"List(reseller)","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set()","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"status","alias":"Campaign Status","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"stats_date","alias":"Day","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, Between, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"landing_page_url","alias":"Destination URL","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set()","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"id","alias":"Product Ad ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"status","alias":"Ad Status","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"description","alias":"Product Ad Description","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"clicks","alias":"Clicks","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"id","alias":"Ad Group ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"Ad Group Start Date Full","alias":"Ad Group Start Date Full","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"name","alias":"Ad Group Name","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"stats_source","alias":"Source","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(=)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"status","alias":"Advertiser Status","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"advertiser_id","alias":"Advertiser ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"status","alias":"Ad Group Status","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"email","alias":"Advertiser Email","schemas":"List(internal)","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"product_ad_id","alias":"Product Ad ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"id","alias":"Ad ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"ad_group_id","alias":"Ad Group ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"campaign_id","alias":"Campaign ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"id","alias":"Advertiser ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"device_id","alias":"Device ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set(Device Type)","filters":"Set(In)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"ad_id","alias":"Ad ID","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"name","alias":"Campaign Name","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, =, Like)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"price_type","alias":"Pricing Type","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(<>, In, =, <, Between, Not In, >)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"spend","alias":"Spend","schemas":"List(reseller)","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, Between, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+      ,"""{"name":"impressions","alias":"Impressions","schemas":"List()","dependsOnColumns":"Set()","incompatibleColumns":"Set()","filters":"Set(In, Between, =)","required":false,"hiddenFromJson":false,"filteringRequired":false,"isImageColumn":false}"""
+    )
+    
+    val allBaseCols: List[String] = List(
+      """{"DimCol":{"DimensionColumn":{"name":"campaign_id","alias":"","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"annotations":"Set(ForeignKey(campaign))","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":true},"name":"campaign_id","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"aliasOrName":"","annotations":"Set(ForeignKey(campaign))","filterOperationOverrides":"Set()"}"""
+      ,"""{"FactCol":{"FactColumn":{"name":"spend","alias":"","dataType":{"DecType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"scale":0,"default":"0.0","min":"-1.0","max":"-1.0","dummy":0},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""",""""},"hasRollupWithEngineRequirement":false},"name":"spend","dataType":{"DecType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"scale":0,"default":"0.0","min":"-1.0","max":"-1.0","dummy":0},"rollupExpression":{"expressionName":"SumRollup$","hasDerivedExpression":false,"sourcePrimitiveColumns":"Set()"},"aliasOrName":"","annotations":"Set()","filterOperationOverrides":"Set()"}"""
+      ,"""{"DimCol":{"DimensionColumn":{"name":"price_type","alias":"","dataType":{"IntType":{"jsonDataType":"Enum","constraint":"CPCV|CPC|CPF|CPM|CPE|CPV|CPA","hasStaticMapping":true,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map(CPCV -> Set(7), CPC -> Set(1), CPF -> Set(10, -20), CPM -> Set(3), CPE -> Set(-10), CPV -> Set(6), CPA -> Set(2))"},"length":3,"staticMapping":{"tToStringMap":"10 -> CPF,1 -> CPC,6 -> CPV,2 -> CPA,-10 -> CPE,-20 -> CPF,7 -> CPCV,3 -> CPM","default":"NONE"},"default":-1,"min":-1,"max":-1},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":false},"name":"price_type","dataType":{"IntType":{"jsonDataType":"Enum","constraint":"CPCV|CPC|CPF|CPM|CPE|CPV|CPA","hasStaticMapping":true,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map(CPCV -> Set(7), CPC -> Set(1), CPF -> Set(10, -20), CPM -> Set(3), CPE -> Set(-10), CPV -> Set(6), CPA -> Set(2))"},"length":3,"staticMapping":{"tToStringMap":"10 -> CPF,1 -> CPC,6 -> CPV,2 -> CPA,-10 -> CPE,-20 -> CPF,7 -> CPCV,3 -> CPM","default":"NONE"},"default":-1,"min":-1,"max":-1},"aliasOrName":"","annotations":"Set()","filterOperationOverrides":"Set()"}"""
+      ,"""{"DimCol":{"DimensionColumn":{"name":"ad_id","alias":"","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"annotations":"Set(ForeignKey(ad))","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":true},"name":"ad_id","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"aliasOrName":"","annotations":"Set(ForeignKey(ad))","filterOperationOverrides":"Set()"}"""
+      ,"""{"DimCol":{"DimensionColumn":{"name":"advertiser_id","alias":"","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"annotations":"Set(ForeignKey(advertiser))","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":true},"name":"advertiser_id","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"aliasOrName":"","annotations":"Set(ForeignKey(advertiser))","filterOperationOverrides":"Set()"}"""
+      ,"""{"DimCol":{"DimensionColumn":{"name":"device_id","alias":"","dataType":{"IntType":{"jsonDataType":"Enum","constraint":"UNKNOWN|Desktop|SmartPhone|Tablet","hasStaticMapping":true,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map(UNKNOWN -> Set(-1), Desktop -> Set(3), SmartPhone -> Set(1), Tablet -> Set(2))"},"length":8,"staticMapping":{"tToStringMap":"1 -> SmartPhone,2 -> Tablet,3 -> Desktop,-1 -> UNKNOWN","default":"UNKNOWN"},"default":-1,"min":-1,"max":-1},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":false},"name":"device_id","dataType":{"IntType":{"jsonDataType":"Enum","constraint":"UNKNOWN|Desktop|SmartPhone|Tablet","hasStaticMapping":true,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map(UNKNOWN -> Set(-1), Desktop -> Set(3), SmartPhone -> Set(1), Tablet -> Set(2))"},"length":8,"staticMapping":{"tToStringMap":"1 -> SmartPhone,2 -> Tablet,3 -> Desktop,-1 -> UNKNOWN","default":"UNKNOWN"},"default":-1,"min":-1,"max":-1},"aliasOrName":"","annotations":"Set()","filterOperationOverrides":"Set()"}"""
+      ,"""{"FactCol":{"FactColumn":{"name":"clicks","alias":"","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""",""""},"hasRollupWithEngineRequirement":false},"name":"clicks","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"rollupExpression":{"expressionName":"SumRollup$","hasDerivedExpression":false,"sourcePrimitiveColumns":"Set()"},"aliasOrName":"","annotations":"Set()","filterOperationOverrides":"Set()"}"""
+      ,"""{"FactCol":{"FactColumn":{"name":"impressions","alias":"","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""",""""},"hasRollupWithEngineRequirement":false},"name":"impressions","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"rollupExpression":{"expressionName":"SumRollup$","hasDerivedExpression":false,"sourcePrimitiveColumns":"Set()"},"aliasOrName":"","annotations":"Set()","filterOperationOverrides":"Set()"}"""
+      ,"""{"DimCol":{"DimensionColumn":{"name":"device_type","alias":"device_id","dataType":{"IntType":{"jsonDataType":"Enum","constraint":"UNKNOWN|Desktop|SmartPhone|Tablet","hasStaticMapping":true,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map(UNKNOWN -> Set(-1), Desktop -> Set(3), SmartPhone -> Set(1), Tablet -> Set(2))"},"length":8,"staticMapping":{"tToStringMap":"1 -> SmartPhone,2 -> Tablet,3 -> Desktop,-1 -> UNKNOWN","default":"UNKNOWN"},"default":-1,"min":-1,"max":-1},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":false},"name":"device_type","dataType":{"IntType":{"jsonDataType":"Enum","constraint":"UNKNOWN|Desktop|SmartPhone|Tablet","hasStaticMapping":true,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map(UNKNOWN -> Set(-1), Desktop -> Set(3), SmartPhone -> Set(1), Tablet -> Set(2))"},"length":8,"staticMapping":{"tToStringMap":"1 -> SmartPhone,2 -> Tablet,3 -> Desktop,-1 -> UNKNOWN","default":"UNKNOWN"},"default":-1,"min":-1,"max":-1},"aliasOrName":"device_id","annotations":"Set()","filterOperationOverrides":"Set()"}"""
+      ,"""{"DimCol":{"DimensionColumn":{"name":"network_type","alias":"","dataType":{"StrType":{"jsonDataType":"Enum","constraint":"Test Publisher","hasStaticMapping":true,"hasUniqueStaticMapping":true,"reverseStaticMapping":"Map(Test Publisher -> Set(TEST_PUBLISHER))"},"length":100,"staticMapping":{"tToStringMap":"TEST_PUBLISHER -> Test Publisher","default":"NONE"},"default":""},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":false},"name":"network_type","dataType":{"StrType":{"jsonDataType":"Enum","constraint":"Test Publisher","hasStaticMapping":true,"hasUniqueStaticMapping":true,"reverseStaticMapping":"Map(Test Publisher -> Set(TEST_PUBLISHER))"},"length":100,"staticMapping":{"tToStringMap":"TEST_PUBLISHER -> Test Publisher","default":"NONE"},"default":""},"aliasOrName":"","annotations":"Set()","filterOperationOverrides":"Set()"}"""
+      ,"""{"DimCol":{"DimensionColumn":{"name":"stats_source","alias":"","dataType":{"IntType":{"jsonDataType":"Number","constraint":"3","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":3,"staticMapping":null,"default":-1,"min":-1,"max":-1},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":false},"name":"stats_source","dataType":{"IntType":{"jsonDataType":"Number","constraint":"3","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":3,"staticMapping":null,"default":-1,"min":-1,"max":-1},"aliasOrName":"","annotations":"Set()","filterOperationOverrides":"Set()"}"""
+      ,"""{"DimCol":{"DimensionColumn":{"name":"product_ad_id","alias":"","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"annotations":"Set(ForeignKey(productAd))","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":true},"name":"product_ad_id","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"aliasOrName":"","annotations":"Set(ForeignKey(productAd))","filterOperationOverrides":"Set()"}"""
+      ,"""{"DimCol":{"DimensionColumn":{"name":"landing_page_url","alias":"","dataType":{"StrType":{"jsonDataType":"String","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":""},"annotations":"Set(EscapingRequired)","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":false},"name":"landing_page_url","dataType":{"StrType":{"jsonDataType":"String","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":""},"aliasOrName":"","annotations":"Set(EscapingRequired)","filterOperationOverrides":"Set()"}"""
+      ,"""{"DerivedColumn":{"DimensionColumn":{"name":"Ad Group Start Date Full","alias":"","dataType":{"StrType":{"jsonDataType":"String","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":""},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":false},"derivedExpression":{"expression":{"expression":"TIMESTAMP_TO_FORMATTED_DATE","hasNumericOperation":false,"hasRollupExpression":false},"sourcePrimitiveColumns":"Set(start_time)"}}"""
+      ,"""{"DimCol":{"DimensionColumn":{"name":"ad_format_id","alias":"","dataType":{"IntType":{"jsonDataType":"Enum","constraint":"Single image","hasStaticMapping":true,"hasUniqueStaticMapping":true,"reverseStaticMapping":"Map(Single image -> Set(2))"},"length":3,"staticMapping":{"tToStringMap":"2 -> Single image","default":"Other"},"default":-1,"min":-1,"max":-1},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":false},"name":"ad_format_id","dataType":{"IntType":{"jsonDataType":"Enum","constraint":"Single image","hasStaticMapping":true,"hasUniqueStaticMapping":true,"reverseStaticMapping":"Map(Single image -> Set(2))"},"length":3,"staticMapping":{"tToStringMap":"2 -> Single image","default":"Other"},"default":-1,"min":-1,"max":-1},"aliasOrName":"","annotations":"Set()","filterOperationOverrides":"Set()"}"""
+      ,"""{"DimCol":{"DimensionColumn":{"name":"ad_group_id","alias":"","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"annotations":"Set(ForeignKey(ad_group))","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":true},"name":"ad_group_id","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"aliasOrName":"","annotations":"Set(ForeignKey(ad_group))","filterOperationOverrides":"Set()"}"""
+      ,"""{"DimCol":{"DimensionColumn":{"name":"stats_date","alias":"","dataType":{"DateType":{"jsonDataType":"Date","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"format":"None"},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":false},"name":"stats_date","dataType":{"DateType":{"jsonDataType":"Date","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"format":"None"},"aliasOrName":"","annotations":"Set()","filterOperationOverrides":"Set()"}"""
+      ,"""{"DimCol":{"DimensionColumn":{"name":"start_time","alias":"","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""",""""},"isForeignKey":false},"name":"start_time","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"aliasOrName":"","annotations":"Set()","filterOperationOverrides":"Set()"}"""
+    )
+    
+    import org.json4s._
+    import org.json4s.jackson.JsonMethods._
+    implicit val formats = DefaultFormats
+    val pubJsonsString = allPubJSONs.map(json => compact(json)).mkString(",")
+    val baseJsonsString = allOtherJSONS.map(json => compact(json)).mkString(",")
+    //println("pubCols:\n" + allPubJSONs.map(json => "\"\"\"" + compact(json) + "\"\"\"").mkString("\n,"))
+    //println("baseCols:\n" + allOtherJSONS.map(json => "\"\"\"" + compact(json) + "\"\"\"").mkString("\n,"))
+    assert(allPubCols.forall(pub => pubJsonsString.contains(pub)))
+    assert(allBaseCols.forall(base => baseJsonsString.contains(base)))
+  }
+
+  test("""Should create a valid request model in an aliased fact""") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Campaign ID"},
+                              {"field": "Campaign Status"},
+                              {"field": "Impressions"},
+                              {"field": "Advertiser Status"},
+                              {"field": "Advertiser Email"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val registry = defaultRegistry
+
+    val validRequest: ReportingRequest = getReportingRequestSync(jsonString, InternalSchema)
+    val validResp = RequestModel.from(validRequest, registry, revision = Some(1))
+    assert(validResp.isSuccess, validResp)
+
+  }
+
+  test("""Should fail at creating a dim""") {
+    val jsonString = s"""{
+                          "cube": "publicFact",
+                          "selectFields": [
+                              {"field": "Ad ID"},
+                              {"field": "Day"},
+                              {"field": "Source"},
+                              {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val registry = defaultRegistry
+
+    val validRequest: ReportingRequest = getReportingRequestSync(jsonString, InternalSchema)
+    val validResp = RequestModel.from(validRequest, registry)
+    assert(validResp.isSuccess, validResp)
+
+
 
   }
 }

@@ -72,6 +72,29 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
                           "paginationStartIndex":0,
                           "rowsPerPage":100
                           }"""
+  val factRequestWithNoSortAndKeywordIdForInvalidQuery = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Advertiser ID"},
+                              {"field": "Ad Group Status"},
+                              {"field": "Ad Group ID"},
+                              {"field": "Source"},
+                              {"field": "Pricing Type"},
+                              {"field": "Destination URL"},
+                              {"field": "Spend"},
+                              {"field": "Impressions"},
+                              {"field": "Clicks"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [],
+                          "includeRowCount" : false,
+                          "forceDimensionDriven": false,
+                          "paginationStartIndex":0,
+                          "rowsPerPage":100
+                          }"""
   val factRequestWithMetricSort = s"""{
                           "cube": "k_stats",
                           "selectFields": [
@@ -1893,5 +1916,27 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     assert(pipeline.queryChain.isInstanceOf[SingleEngineQuery])
     assert(queryPipelineTry._2.isDefined && queryPipelineTry._2.get.isSuccess)
     assert(queryPipelineTry._2.get.get.queryChain.drivingQuery.engine.equals(HiveEngine))
+  }
+
+  test("test fact and dim revisioning logic") {
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(factRequestWithNoSort))
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry, revision = Some(10))
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    val query = pipeline.queryChain.drivingQuery.asString
+    assert(query.contains("stats_source2"))
+  }
+
+  test("Drop into V0 if selected revision is fake.") {
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(factRequestWithNoSortAndKeywordIdForInvalidQuery))
+    val registry = defaultRegistry
+    val requestModel = RequestModel.from(request, registry, revision = Some(10))
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+    assert(requestModel.toOption.get.dimensionsCandidates.head.dim.name == "ad_group")
   }
 }

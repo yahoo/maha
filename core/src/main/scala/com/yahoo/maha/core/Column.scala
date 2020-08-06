@@ -3,6 +3,8 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.core.dimension.DimensionColumn
+import org.json4s.JsonAST.{JArray, JObject, JValue}
+import org.json4s.scalaz.JsonScalaz._
 
 /**
  * Created by hiral on 10/13/15.
@@ -19,6 +21,24 @@ trait PublicColumn {
   def filteringRequired: Boolean
   def restrictedSchemas: Set[Schema]
   def isImageColumn: Boolean
+
+  private val jUtils = JsonUtils
+
+  def asJSON: JObject = {
+    makeObj(
+      List(("name" -> toJSON(name))
+        ,("alias" -> toJSON(alias))
+        ,("schemas" -> jUtils.asJSON(restrictedSchemas.toList))
+        ,("dependsOnColumns" -> jUtils.asJSON(dependsOnColumns))
+        ,("incompatibleColumns" -> jUtils.asJSON(incompatibleColumns))
+        ,("filters" -> jUtils.asJSON(filters.map(f => f.toString)))
+        ,("required" -> toJSON(required))
+        ,("hiddenFromJson" -> toJSON(hiddenFromJson))
+        ,("filteringRequired" -> toJSON(filteringRequired))
+        ,("isImageColumn" -> toJSON(isImageColumn))
+      )
+    )
+  }
 }
 
 trait Column {
@@ -44,30 +64,90 @@ trait Column {
   def escapingRequired : Boolean = annotations.contains(EscapingRequired)
 
   def annotationsWithEngineRequirement: Set[ColumnAnnotation] = annotations.filter(_.isInstanceOf[EngineRequirement])
+
+  private val jUtils = JsonUtils
+
+  def asJSON: JObject = {
+    makeObj(
+      List(
+        ("name" -> toJSON(name))
+        ,("alias" -> toJSON(alias.getOrElse("")))
+        ,("dataType" -> dataType.asJSON)
+        ,("annotations" -> jUtils.asJSON(annotations))
+        ,("filterOperationOverrides", jUtils.asJSON(filterOperationOverrides))
+        ,("columnContext" -> toJSON(columnContext.toString))
+      )
+    )
+  }
 }
 
 trait ConstColumn extends Column {
   def constantValue: String
+
+  override def asJSON: JObject = {
+    makeObj(
+      List(
+        ("ConstColumn" -> super.asJSON)
+        ,("constantValue" -> toJSON(constantValue))
+      )
+    )
+  }
 }
 
 trait DerivedColumn extends Column {
   override val isDerivedColumn: Boolean = true
   def derivedExpression : DerivedExpression[_]
+
+  override def asJSON: JObject = {
+    makeObj(
+      List(
+        ("DerivedColumn" -> super.asJSON)
+        ,("derivedExpression" -> derivedExpression.asJSON)
+      )
+    )
+  }
 }
 
 trait DerivedFunctionColumn extends Column {
   override val isDerivedColumn: Boolean = false
   def derivedFunction : DerivedFunction
+
+  override def asJSON: JObject = {
+    makeObj(
+      List(
+        ("DerivedFunctionColumn" -> super.asJSON)
+        ,("derivedFunction" -> derivedFunction.asJSON)
+      )
+    )
+  }
 }
 
 trait PostResultColumn extends Column {
   override val isDerivedColumn: Boolean = false
   def postResultFunction: PostResultFunction
   def validate()
+
+  override def asJSON: JObject = {
+    makeObj(
+      List(
+        ("PostResultColumn" -> super.asJSON)
+        ,("postResultFunction" -> postResultFunction.asJSON)
+      )
+    )
+  }
 }
 
 trait PartitionColumn extends Column {
   def partitionLevel : PartitionLevel
+
+  override def asJSON: JObject = {
+    makeObj(
+      List(
+        ("PartitionColumn" -> super.asJSON)
+        ,("partitionLevel" -> partitionLevel.asJSON)
+      )
+    )
+  }
 }
 
 object PartitionColumn {
@@ -123,6 +203,10 @@ class ColumnContext {
     } else {
       c.isInstanceOf[DimensionColumn]
     }
+  }
+
+  override def toString: String = {
+    this.hashCode().toString
   }
 }
 

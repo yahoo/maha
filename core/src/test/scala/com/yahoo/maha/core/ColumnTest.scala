@@ -2,7 +2,7 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
-import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol}
+import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol, HivePartDimCol}
 import com.yahoo.maha.core.fact.{ConstFactCol, DruidConstDerFactCol, HiveDerFactCol, NoopRollup}
 import org.scalatest.{FunSuite, Matchers}
 
@@ -38,8 +38,10 @@ class ColumnTest extends FunSuite with Matchers {
     ColumnContext.withColumnContext {implicit cc : ColumnContext =>
       val col = ConstFactCol("field", IntType(), "0")
       require(col.constantValue == "0")
+      require(col.asJSON.values.contains("ConstColumn"))
       val dimCol = ConstDimCol("field1", StrType(), "Y")
       require(dimCol.constantValue == "Y")
+      require(dimCol.asJSON.values.contains("ConstColumn"))
       val colname = cc.getColumnByName("field")
       assert(colname.get.dataType == IntType(0,None,None,None,None))
     }
@@ -50,7 +52,9 @@ class ColumnTest extends FunSuite with Matchers {
       import HiveExpression._
       val col = DimCol("dimcol100", IntType())
       val col2 = HiveDerFactCol("noop_rollup_spend", DecType(0, "0.0"), HiveDerivedExpression("{spend}" * "{forecasted_clicks}" / "{actual_clicks}" * "{recommended_bid}" / "{modified_bid}"), rollupExpression = NoopRollup)
+      val part = HivePartDimCol("year", StrType(), partitionLevel = FirstPartitionLevel)
       ColumnContext.validateColumnContext(Set(col, col2), "no prefix")
+     assert(part.asJSON.values.contains("partitionLevel"))
     }
   }
 

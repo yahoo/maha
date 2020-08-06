@@ -7,6 +7,7 @@ import com.yahoo.maha.core.DruidPostResultFunction.POST_RESULT_DECODE
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import io.druid.jackson.DefaultObjectMapper
+import org.json4s.JsonAST.JObject
 import org.scalatest.{FunSuite, Matchers}
 
 /**
@@ -118,6 +119,72 @@ class DerivedExpressionTest extends FunSuite with Matchers {
     }
   }
 
+  test("Should correctly display source columns when the source is also derived") {
+    import DruidExpression._
+    ColumnContext.withColumnContext { implicit dc: ColumnContext =>
+      //register dependent column
+      DimCol("clicks", IntType())
+      DimCol("impressions", IntType())
+
+      val col = DruidDerFactCol("BLAH", IntType(), "{clicks}" ++ "{impressions}")
+      val col2 = DimCol("fakeDim", IntType(), alias = Option("account_id"))
+
+      val anotherCol = DruidDerFactCol("newCol", IntType(), "{clicks}" ++ "{BLAH}")
+      val anotherCol2 = FactCol("fakeMet", IntType(), DruidFilteredRollup(EqualityFilter("fakeDim", "1"), "newCol", SumRollup))
+
+      assert(anotherCol.derivedExpression.sourceColumns.contains("clicks") && anotherCol.derivedExpression.sourceColumns.contains("BLAH"))
+      assert(anotherCol.derivedExpression.sourcePrimitiveColumns.contains("clicks") && anotherCol.derivedExpression.sourcePrimitiveColumns.contains("impressions"))
+
+      val sourceCols = anotherCol2.rollupExpression.sourceColumns
+      val realSources2: Set[String] = anotherCol2.rollupExpression.sourceColumns.map(colName => {
+        val col = anotherCol2.columnContext.getColumnByName(colName)
+        if (!col.isDefined) {
+          Set.empty
+        } else if (!col.get.isDerivedColumn) {
+          Set(col.get.alias.getOrElse(col.get.name))
+        } else {
+          col.get.asInstanceOf[DerivedColumn].derivedExpression.sourcePrimitiveColumns
+        }
+      }).flatten
+
+      assert(sourceCols.contains("newCol") && sourceCols.contains("fakeDim"))
+      assert(realSources2.contains("clicks") && realSources2.contains("impressions") && realSources2.contains("account_id"))
+
+      val derColWithRollup = DruidDerFactCol("newCol2", IntType(), "{clicks}" ++ "{fakeMet}")
+
+      val derRollupSources = derColWithRollup.derivedExpression.sourcePrimitiveColumns
+
+      assert(derRollupSources.contains("impressions") && derRollupSources.contains("clicks") && derRollupSources.contains("account_id"))
+
+    }
+  }
+
+  test("Should create a column from a tree of derivation") {
+    import DruidExpression._
+    ColumnContext.withColumnContext{
+      implicit ctx: ColumnContext =>
+        DimCol("clicks", IntType())
+        FactCol("impressions", IntType())
+        DimCol("account_id", IntType())
+        DimCol("adv_id", IntType(), alias = Option("account_id"))
+
+        FactCol("additive", IntType())
+
+        DruidDerFactCol("derived_clicks_count", IntType(), "{clicks}" ++ "{impressions}")
+        FactCol("rollup_clicks", IntType(), DruidFilteredRollup(EqualityFilter("adv_id", "10"), "derived_clicks_count", SumRollup))
+        DruidDerFactCol("derived_rollup", IntType(), "{impressions}" ++ "{rollup_clicks}")
+        FactCol("filtered_derived_filter", IntType(), DruidFilteredListRollup(List(EqualityFilter("impressions", "1"), EqualityFilter("rollup_clicks", "2")), "derived_rollup", SumRollup))
+        DruidDerFactCol("mega_col", IntType(), "{additive}" ++ "{filtered_derived_filter}")
+        val additiveRollup = FactCol("new_id", IntType(), DruidCustomRollup("{new_id}" ++ "{derived_rollup}"))
+        val finalDerived = DruidDerFactCol("self_call", IntType(), "{self_call}" ++ "{new_id}")
+
+        val finalSources: Set[String] = finalDerived.derivedExpression.sourcePrimitiveColumns
+        val finalRollup: Set[String] = additiveRollup.rollupExpression.sourcePrimitiveColumns
+        assert(finalSources.contains("impressions") && finalSources.contains("account_id") && finalSources.contains("clicks"))
+        assert(finalRollup.contains("impressions") && finalRollup.contains("account_id") && finalRollup.contains("clicks"))
+    }
+  }
+
   test("successfully derive dependent columns from DruidDerivedExpression") {
     import DruidExpression._
     ColumnContext.withColumnContext { implicit dc: ColumnContext =>
@@ -130,7 +197,7 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       col.derivedExpression.sourceColumns.contains("clicks") should equal(true)
       col.derivedExpression.sourceColumns.contains("impressions") should equal(true)
       val json = om.writeValueAsString(col.derivedExpression.render(col.name)("BLAH", Map("clicks"->"Clicks")))
-      
+
       json should equal("""{"type":"arithmetic","name":"BLAH","fn":"+","fields":[{"type":"fieldAccess","name":"clicks","fieldName":"Clicks"},{"type":"fieldAccess","name":"impressions","fieldName":"impressions"}],"ordering":null}""")
 
       val cc = new ColumnContext
@@ -628,7 +695,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create Postgres NVL and parse parameters") {
     import PostgresExpression._
-    implicit val cc = new ColumnContext
     val nvlVal = NVL("{col_name}", "{default_str}")
     assert(!nvlVal.hasRollupExpression)
     assert(!nvlVal.hasNumericOperation)
@@ -637,7 +703,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create hive NVL and parse parameters") {
     import HiveExpression._
-    implicit val cc = new ColumnContext
     val nvlVal = NVL("{col_name}", "{default_str}")
     assert(!nvlVal.hasRollupExpression)
     assert(!nvlVal.hasNumericOperation)
@@ -646,7 +711,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create presto NVL and parse parameters") {
     import PrestoExpression._
-    implicit val cc = new ColumnContext
     val nvlVal = NVL("{col_name}", "{default_str}")
     assert(!nvlVal.hasRollupExpression)
     assert(!nvlVal.hasNumericOperation)
@@ -655,7 +719,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create oracle TRUNC and parse parameters") {
     import OracleExpression._
-    implicit val cc = new ColumnContext
     val truncVal = TRUNC("{col_name}")
     assert(!truncVal.hasRollupExpression)
     assert(!truncVal.hasNumericOperation)
@@ -664,7 +727,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create Postgres TRUNC and parse parameters") {
     import PostgresExpression._
-    implicit val cc = new ColumnContext
     val truncVal = TRUNC("{col_name}")
     assert(!truncVal.hasRollupExpression)
     assert(!truncVal.hasNumericOperation)
@@ -673,7 +735,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create oracle COALESCE and parse parameters") {
     import OracleExpression._
-    implicit val cc = new ColumnContext
     val coalesceVal = COALESCE("{col_name}", "''")
     assert(!coalesceVal.hasRollupExpression)
     assert(!coalesceVal.hasNumericOperation)
@@ -682,7 +743,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create Postgres COALESCE and parse parameters") {
     import PostgresExpression._
-    implicit val cc = new ColumnContext
     val coalesceVal = COALESCE("{col_name}", "''")
     assert(!coalesceVal.hasRollupExpression)
     assert(!coalesceVal.hasNumericOperation)
@@ -691,7 +751,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create hive COALESCE and parse parameters") {
     import HiveExpression._
-    implicit val cc = new ColumnContext
     val coalesceVal = COALESCE("{col_name}", "''")
     assert(!coalesceVal.hasRollupExpression)
     assert(!coalesceVal.hasNumericOperation)
@@ -700,7 +759,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create presto COALESCE and parse parameters") {
     import PrestoExpression._
-    implicit val cc = new ColumnContext
     val coalesceVal = COALESCE("{col_name}", "''")
     assert(!coalesceVal.hasRollupExpression)
     assert(!coalesceVal.hasNumericOperation)
@@ -709,7 +767,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create oracle TO_CHAR and parse parameters") {
     import OracleExpression._
-    implicit val cc = new ColumnContext
     val tocharVal = TO_CHAR("{col_name}", "''")
     assert(!tocharVal.hasRollupExpression)
     assert(!tocharVal.hasNumericOperation)
@@ -718,7 +775,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create Postgres TO_CHAR and parse parameters") {
     import PostgresExpression._
-    implicit val cc = new ColumnContext
     val tocharVal = TO_CHAR("{col_name}", "''")
     assert(!tocharVal.hasRollupExpression)
     assert(!tocharVal.hasNumericOperation)
@@ -727,7 +783,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create oracle ROUND and parse parameters") {
     import OracleExpression._
-    implicit val cc = new ColumnContext
     val roundVal = ROUND("{col_name}", 1)
     assert(!roundVal.hasRollupExpression)
     assert(!roundVal.hasNumericOperation)
@@ -736,7 +791,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create Postgres ROUND and parse parameters") {
     import PostgresExpression._
-    implicit val cc = new ColumnContext
     val roundVal = ROUND("{col_name}", 1)
     assert(!roundVal.hasRollupExpression)
     assert(!roundVal.hasNumericOperation)
@@ -745,7 +799,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create hive ROUND and parse parameters") {
     import HiveExpression._
-    implicit val cc = new ColumnContext
     val roundVal = ROUND("{col_name}", 1)
     assert(!roundVal.hasRollupExpression)
     assert(!roundVal.hasNumericOperation)
@@ -754,7 +807,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create presto ROUND and parse parameters") {
     import PrestoExpression._
-    implicit val cc = new ColumnContext
     val roundVal = ROUND("{col_name}", 1)
     assert(!roundVal.hasRollupExpression)
     assert(!roundVal.hasNumericOperation)
@@ -763,7 +815,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create presto TRIM and parse parameters") {
     import PrestoExpression._
-    implicit val cc = new ColumnContext
     val roundVal = TRIM("{col_name}")
     assert(!roundVal.hasRollupExpression)
     assert(!roundVal.hasNumericOperation)
@@ -772,7 +823,6 @@ class DerivedExpressionTest extends FunSuite with Matchers {
 
   test("Create presto MAX and parse parameters") {
     import PrestoExpression._
-    implicit val cc = new ColumnContext
     val roundVal = MAX("{col_name}")
     assert(roundVal.hasRollupExpression)
     assert(roundVal.hasNumericOperation)
@@ -788,6 +838,56 @@ class DerivedExpressionTest extends FunSuite with Matchers {
       col1.derivedExpression.render(col1.name) should equal("CASE WHEN LENGTH(regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$)', 2)) > 0 THEN regexp_extract(internal_bucket_id, '(cl-)(.*?)(,|$)', 2) ELSE '-3' END")
       val col2 = PrestoDerDimCol("Default Exp ID", StrType(), REGEX_EXTRACT("internal_bucket_id", "(df-)(.*?)(,|$)", 2, replaceMissingValue = false, ""))
       col2.derivedExpression.render(col2.name) should equal("regexp_extract(internal_bucket_id, '(df-)(.*?)(,|$)', 2)")
+    }
+  }
+
+  test("All column types with all expressions, dataTypes, & rollups should render JSON properly.") {
+    import com.yahoo.maha.core.DruidDerivedFunction._
+    import com.yahoo.maha.core.DruidPostResultFunction._
+    ColumnContext.withColumnContext {
+      implicit cc: ColumnContext =>
+        import DruidExpression._
+        DimCol("clicks", IntType())
+        FactCol("impressions", IntType())
+        DimCol("account_id", IntType())
+        DimCol("adv_id", IntType(), alias = Option("account_id"))
+        DimCol("date", DateType("yyyyMMdd"))
+
+        FactCol("additive", IntType())
+
+        DruidDerFactCol("derived_clicks_count", IntType(), "{clicks}" ++ "{impressions}")
+        FactCol("rollup_clicks", IntType(), DruidFilteredRollup(EqualityFilter("adv_id", "10"), "derived_clicks_count", SumRollup))
+        DruidDerFactCol("derived_rollup", IntType(), "{impressions}" ++ "{rollup_clicks}")
+        FactCol("filtered_derived_filter", IntType(), DruidFilteredListRollup(List(EqualityFilter("impressions", "1"), EqualityFilter("rollup_clicks", "2")), "derived_rollup", SumRollup))
+        DruidDerFactCol("mega_col", IntType(), "{additive}" ++ "{filtered_derived_filter}")
+        val additiveRollup = FactCol("new_id", IntType(), DruidCustomRollup("{new_id}" ++ "{derived_rollup}"))
+        val finalDerived = DruidDerFactCol("self_call", IntType(3, (Map(1 -> "2"), "1")), "{self_call}" ++ "{new_id}")
+        val strCol = DimCol("blue_id", StrType())
+        val dateCol = DruidFuncDimCol("date_id", DateType("yyyyMMdd"), DATETIME_FORMATTER("{date}", 0, 3))
+        val tsCol = DimCol("ts_id", TimestampType())
+        val passthroughCol = DimCol("pt_col", PassthroughType())
+        val prCol = DruidPostResultFuncDimCol("pr_col", IntType(), postResultFunction = START_OF_THE_WEEK("{date_id}"))
+
+        val allExpectedStrings: List[String] = List(
+          s"""{"DimCol":{"DimensionColumn":{"name":"blue_id","alias":"","dataType":{"StrType":{"jsonDataType":"String","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":""},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""", """"},"isForeignKey":false},"name":"blue_id","dataType":{"StrType":{"jsonDataType":"String","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":""},"aliasOrName":"","annotations":"Set()","filterOperationOverrides":"Set()"}"""
+          ,s"""{"DerivedFunctionColumn":{"DimensionColumn":{"name":"date_id","alias":"","dataType":{"DateType":{"jsonDataType":"Date","constraint":"yyyyMMdd","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"format":"yyyyMMdd"},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""", """"},"isForeignKey":false},"derivedFunction":{"function_type":"DATETIME_FORMATTER","fieldName":"{date}","index":0,"length":3}}"""
+          ,s"""{"DimCol":{"DimensionColumn":{"name":"pt_col","alias":"","dataType":{"PassthroughType":{"jsonDataType":"Null","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"format":"None"},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""", """"},"isForeignKey":false},"name":"pt_col","dataType":{"PassthroughType":{"jsonDataType":"Null","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"format":"None"},"aliasOrName":"","annotations":"Set()","filterOperationOverrides":"Set()"}"""
+          ,s"""{"FactCol":{"FactColumn":{"name":"new_id","alias":"","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""", """"},"hasRollupWithEngineRequirement":true},"name":"new_id","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"rollupExpression":{"expressionName":"DruidCustomRollup","hasDerivedExpression":true,"sourcePrimitiveColumns":"Set(impressions, account_id, clicks)"},"aliasOrName":"","annotations":"Set()","filterOperationOverrides":"Set()"}"""
+          ,s"""{"PostResultColumn":{"DimensionColumn":{"name":"pr_col","alias":"","dataType":{"IntType":{"jsonDataType":"Number","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"length":0,"staticMapping":null,"default":-1,"min":-1,"max":-1},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""", """"},"isForeignKey":false},"postResultFunction":{"postResultFunction":"START_OF_THE_WEEK","expression":"{date_id}"}}"""
+          ,s"""{"DimCol":{"DimensionColumn":{"name":"ts_id","alias":"","dataType":{"TimestampType":{"jsonDataType":"Date","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"format":"None"},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""", """"},"isForeignKey":false},"name":"ts_id","dataType":{"TimestampType":{"jsonDataType":"Date","constraint":"None","hasStaticMapping":false,"hasUniqueStaticMapping":false,"reverseStaticMapping":"Map()"},"format":"None"},"aliasOrName":"","annotations":"Set()","filterOperationOverrides":"Set()"}"""
+          ,s"""{"DerivedColumn":{"FactColumn":{"name":"self_call","alias":"","dataType":{"IntType":{"jsonDataType":"Enum","constraint":"2","hasStaticMapping":true,"hasUniqueStaticMapping":true,"reverseStaticMapping":"Map(2 -> Set(1))"},"length":3,"staticMapping":{"tToStringMap":"1 -> 2","default":"1"},"default":-1,"min":-1,"max":-1},"annotations":"Set()","filterOperationOverrides":"Set()","columnContext":"""", """"},"hasRollupWithEngineRequirement":false},"derivedExpression":{"expression":{"expression":"Arithmetic","hasNumericOperation":true,"hasRollupExpression":false},"sourcePrimitiveColumns":"Set(impressions, account_id, clicks)"}}"""
+        )
+
+        val allCols: Set[Column] = Set(additiveRollup, finalDerived, strCol, dateCol, tsCol, passthroughCol, prCol)
+
+        val allJSONs: Set[JObject] = allCols.map(col => col.asJSON)
+
+        import org.json4s._
+        import org.json4s.jackson.JsonMethods._
+        implicit val formats = DefaultFormats
+        val allCompactJSONs: String = allJSONs.map(col => compact(col)).mkString(",")
+        //println(allCompactJSONs.split(",").mkString("\n,"))
+        assert(allExpectedStrings.forall(json => allCompactJSONs.contains(json)))
     }
   }
 }

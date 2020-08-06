@@ -2,11 +2,19 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
+import org.json4s.JsonAST.{JNull, JObject, JValue}
+import org.json4s.scalaz.JsonScalaz._
 /**
  * Created by hiral on 10/2/15.
  */
 
-sealed trait ColumnAnnotation
+sealed trait ColumnAnnotation {
+  def asJSON: JObject = makeObj(
+    List(
+      ("annotation" -> toJSON(this.getClass.getSimpleName))
+    )
+  )
+}
 
 sealed trait SingletonColumn
 
@@ -21,6 +29,16 @@ sealed trait ColumnAnnotationInstance extends ColumnAnnotation with ClassNameHas
 
 case class HiveShardingExpression(expression: HiveDerivedExpression) extends ColumnAnnotationInstance with WithHiveEngine {
   def instance: ColumnAnnotation = HiveShardingExpression.instance
+
+  val jUtils = JsonUtils
+
+  override def asJSON(): JObject =
+    makeObj(
+      List(
+        ("annotation" -> toJSON(this.getClass.getSimpleName))
+        ,("expression" -> jUtils.asJSON(expression))
+      )
+    )
 }
 case object HiveShardingExpression {
   val instance: ColumnAnnotation = HiveShardingExpression(null)
@@ -28,6 +46,16 @@ case object HiveShardingExpression {
 
 case class PrestoShardingExpression(expression: PrestoDerivedExpression) extends ColumnAnnotationInstance with WithPrestoEngine {
   def instance: ColumnAnnotation = PrestoShardingExpression.instance
+
+  val jUtils = JsonUtils
+
+  override def asJSON(): JObject =
+    makeObj(
+      List(
+        ("annotation" -> toJSON(this.getClass.getSimpleName))
+        ,("expression" -> jUtils.asJSON(expression))
+      )
+    )
 }
 case object PrestoShardingExpression {
   val instance: ColumnAnnotation = PrestoShardingExpression(null)
@@ -42,12 +70,28 @@ case object IsAggregation extends ColumnAnnotation
 case object CaseInsensitive extends ColumnAnnotation
 case class ForeignKey(publicDimName: String) extends ColumnAnnotationInstance {
   def instance: ColumnAnnotation = ForeignKey.instance
+
+  override def asJSON(): JObject =
+    makeObj(
+      List(
+        ("annotation" -> toJSON(this.getClass.getSimpleName))
+        ,("publicDimName" -> toJSON(publicDimName))
+      )
+    )
 }
 case object ForeignKey {
   val instance: ColumnAnnotation = ForeignKey("instance")
 }
 case class DayColumn(fmt: String) extends ColumnAnnotationInstance {
   def instance: ColumnAnnotation = DayColumn.instance
+
+  override def asJSON(): JObject =
+    makeObj(
+      List(
+        ("annotation" -> toJSON(this.getClass.getSimpleName))
+        ,("fmt" -> toJSON(fmt))
+      )
+    )
 }
 case object DayColumn {
   val instance: ColumnAnnotation = DayColumn("instance")

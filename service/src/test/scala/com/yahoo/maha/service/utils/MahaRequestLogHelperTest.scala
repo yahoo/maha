@@ -96,6 +96,7 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     MDC.put(MahaConstants.USER_ID,"abc")
     mahaRequestLogHelper.setDryRun()
     mahaRequestLogHelper.setJobId(12345)
+    mahaRequestLogHelper.setJobIdString("abcdefg")
     mahaRequestLogHelper.setAsyncQueueParams()
     mahaRequestLogHelper.logQueryStats(queryAttributeBuilder.build)
     when(mahaServiceConf.mahaRequestLogWriter).thenReturn(mahaRequestLogWriter)
@@ -147,6 +148,7 @@ class MahaRequestLogHelperTest extends FunSuite with Matchers {
     mahaRequestLogHelper.logQueryStats(queryAttributeBuilder.build)
     val curatorLogBuilder = mahaRequestLogHelper.curatorLogBuilder(new DefaultCurator())
     val curatorHelper = CuratorMahaRequestLogHelper(curatorLogBuilder)
+    curatorHelper.setJobIdString("abcd")
     curatorHelper.logFailed("a second new error message")
   }
 }
