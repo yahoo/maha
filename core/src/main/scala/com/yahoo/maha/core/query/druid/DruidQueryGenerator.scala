@@ -497,7 +497,7 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
           if (postAggregatorList.nonEmpty)
             builder.setPostAggregatorSpecs(postAggregatorList.asJava)
 
-          val orderByColumnSpecList = queryContext.requestModel.requestSortByCols
+          val orderByFactColumnSpecList = queryContext.requestModel.requestSortByCols
             .view
             .filter(_.isInstanceOf[FactSortByColumnInfo])
             .map(_.asInstanceOf[FactSortByColumnInfo])
@@ -505,6 +505,17 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
             .map { fsc: FactSortByColumnInfo =>
               new OrderByColumnSpec(fsc.alias, findDirection(fsc.order), findComparator(aliasColumnMap(fsc.alias).dataType))
             }
+
+          val orderByDimColumnSpecList = queryContext.requestModel.requestSortByCols
+            .view
+            .filter(_.isInstanceOf[DimSortByColumnInfo])
+            .map(_.asInstanceOf[DimSortByColumnInfo])
+            .filter(fsc => !aliasColumnMap(fsc.alias).isInstanceOf[ConstDimCol])
+            .map { fsc: DimSortByColumnInfo =>
+              new OrderByColumnSpec(fsc.alias, findDirection(fsc.order), findComparator(aliasColumnMap(fsc.alias).dataType))
+            }
+
+          val orderByColumnSpecList = orderByFactColumnSpecList ++ orderByDimColumnSpecList
 
           val limitSpec = if (orderByColumnSpecList.nonEmpty) {
             new DefaultLimitSpec(orderByColumnSpecList.asJava, threshold)
