@@ -506,14 +506,18 @@ class DruidQueryGenerator(queryOptimizer: DruidQueryOptimizer
               new OrderByColumnSpec(fsc.alias, findDirection(fsc.order), findComparator(aliasColumnMap(fsc.alias).dataType))
             }
 
-          val orderByDimColumnSpecList = queryContext.requestModel.requestSortByCols
-            .view
-            .filter(_.isInstanceOf[DimSortByColumnInfo])
-            .map(_.asInstanceOf[DimSortByColumnInfo])
-            .filter(fsc => !aliasColumnMap(fsc.alias).isInstanceOf[ConstDimCol])
-            .map { fsc: DimSortByColumnInfo =>
-              new OrderByColumnSpec(fsc.alias, findDirection(fsc.order), findComparator(aliasColumnMap(fsc.alias).dataType))
-            }
+
+
+          val orderByDimColumnSpecList = if (isUsingDruidLookup) {
+            queryContext.requestModel.requestSortByCols
+              .view
+              .filter(_.isInstanceOf[DimSortByColumnInfo])
+              .map(_.asInstanceOf[DimSortByColumnInfo])
+              .filter(fsc => !aliasColumnMap(fsc.alias).isInstanceOf[ConstDimCol])
+              .map { fsc: DimSortByColumnInfo =>
+                new OrderByColumnSpec(fsc.alias, findDirection(fsc.order), findComparator(aliasColumnMap(fsc.alias).dataType))
+              }
+          } else IndexedSeq.empty[OrderByColumnSpec]
 
           val orderByColumnSpecList = orderByFactColumnSpecList ++ orderByDimColumnSpecList
 
