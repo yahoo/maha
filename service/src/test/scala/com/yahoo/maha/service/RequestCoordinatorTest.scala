@@ -12,11 +12,10 @@ import com.yahoo.maha.service.error.MahaServiceExecutionException
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.output.{JsonOutputFormat, StringStream}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
-import org.apache.druid.common.config.NullHandling
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.scalatest.BeforeAndAfterAll
-import org.scalatest.Matchers._
+import org.scalatest.matchers.should.Matchers._
 
 class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
@@ -1852,12 +1851,16 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                               "config" : [{
                                 "enforceFilters": true,
                                 "dimension": "Section Status",
-                                "cube": "student_performance2"
+                                "cube": "student_performance2",
+                                "facts": [{"field": "Marks Obtained"}],
+                                "additiveFacts": true
                               },
                               {
                                 "enforceFilters": true,
                                 "dimension": "Section Start Year",
-                                "cube": "student_performance2"
+                                "cube": "student_performance2",
+                                "facts": [{"field": "Marks Obtained"}],
+                                "additiveFacts": false
                               }]
                             }
                           },
@@ -1896,6 +1899,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
     assert(requestCoordinatorResult.successResults.contains(DrilldownCurator.name))
 
+    //this checks first request
     val drillDownCuratorAndRequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name).head
     val drillDownCuratorResult = drillDownCuratorAndRequestResult.curatorResult
 
@@ -1904,16 +1908,21 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(drillDownReportingRequest.sortBy.size == 1)
     assert(drillDownReportingRequest.sortBy.map(_.field).contains("Total Marks"))
 
+    //this checks second request
+    val drillDownCuratorAndRequestResult2 = requestCoordinatorResult.successResults(DrilldownCurator.name).last
+    val drillDownCuratorResult2 = drillDownCuratorAndRequestResult2.curatorResult
+
+    val drillDownReportingRequest2 = drillDownCuratorResult2.requestModelReference.model.reportingRequest
+
+    assert(drillDownReportingRequest2.sortBy.isEmpty)
+
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 
     val stringStream =  new StringStream()
 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
-
-
-
-    val expectedJson = """{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200,"debug":{}},"rows":[[213,305,100],[213,175,200]],"curators":{"drilldown":{"results":[{"index":0,"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[null,0,305],[null,0,175]]},{"index":1,"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Start Year","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[0,0,305],[0,0,175]]}]}}}""".stripMargin
+    val expectedJson = """{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200,"debug":{}},"rows":[[213,305,100],[213,175,200]],"curators":{"drilldown":{"results":[{"index":0,"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Marks Obtained","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[null,0,305,305],[null,0,175,175]]},{"index":1,"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Start Year","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Marks Obtained","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[0,0,305],[0,0,175]]}]}}}"""
     assert(result === expectedJson)
   }
 
