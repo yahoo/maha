@@ -1,17 +1,20 @@
 package com.yahoo.maha.core.fact
 
+import java.io.File
+
 import com.twitter.chill.ScalaKryoInstantiator
-import com.yahoo.maha.rocksdb.RocksDBAccessorBuilder
+import com.yahoo.maha.rocksdb.{RocksDBAccessor, RocksDBAccessorBuilder}
 import com.yahoo.maha.serde.SerDe
 
 import scala.collection.{SortedSet, mutable}
 
-case class FactSearchKey(cube: String, fkSet: SortedSet[String])
+case class FactSearchKey(fkSet: SortedSet[String])
 
 trait PowerSetStorage {
   def store(searchKey: FactSearchKey, facts: SortedSet[String]): Unit
   def search(searchKey: FactSearchKey) : Option[SortedSet[String]]
   def size: Long
+  def isEmpty: Boolean
 }
 
 class DefaultPowerSetStorage extends PowerSetStorage {
@@ -26,9 +29,19 @@ class DefaultPowerSetStorage extends PowerSetStorage {
   }
 
   override def size: Long = secondaryDimFactMap.size
+
+  override def isEmpty: Boolean = secondaryDimFactMap.isEmpty
 }
 
 case class RocksDBPowerSetStorage(baseDirOption: Option[String]) extends PowerSetStorage {
+
+  if (baseDirOption.isDefined) {
+    val file = new File(baseDirOption.get)
+    if (!file.exists()) {
+      file.mkdirs()
+    }
+    RocksDBAccessor.cleanupBaseDir(baseDirOption.get)
+  }
 
   private[this] val rocksDB = new RocksDBAccessorBuilder(s"PowerSetStorage_", baseDirOption)
     .addKeySerDe(FactSearchKeySerDe)
@@ -45,6 +58,8 @@ case class RocksDBPowerSetStorage(baseDirOption: Option[String]) extends PowerSe
   }
 
   override def size: Long = count
+
+  override def isEmpty: Boolean = (size == 0)
 }
 
 object FactSearchKeySerDe extends SerDe[FactSearchKey] {

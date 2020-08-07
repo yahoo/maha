@@ -175,7 +175,7 @@ trait BaseFactTest extends FunSuite with Matchers {
     }
   }
 
-  def publicFact(fb: FactBuilder, forcedFilters: Set[ForcedFilter] = Set.empty): PublicFact = {
+  def publicFact(fb: FactBuilder, forcedFilters: Set[ForcedFilter] = Set.empty, powerSetStorage: PowerSetStorage = new DefaultPowerSetStorage): PublicFact = {
     fb.toPublicFact("publicFact",
       Set(
         PubCol("account_id", "Advertiser Id", InEquality),
@@ -188,7 +188,8 @@ trait BaseFactTest extends FunSuite with Matchers {
         PublicFactCol("clicks", "Clicks", In)
       ),
       forcedFilters,
-      getMaxDaysWindow, getMaxDaysLookBack
+      getMaxDaysWindow, getMaxDaysLookBack,
+      powerSetStorage = powerSetStorage
     )
   }
 
