@@ -1527,6 +1527,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , dimRevision: Int = 0
                    , dimToRevisionMap: Map[String, Int] = Map.empty
                    , requiredFilterColumns: Map[Schema, Set[String]] = Map.empty
+                   , powerSetStorage: PowerSetStorage = new DefaultPowerSetStorage
                    ) : PublicFact = {
     new PublicFactTable(name
       , baseFact
@@ -1544,6 +1545,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , None
       , dimToRevisionMap
       , requiredFilterColumns
+      , powerSetStorage
     )
   }
 
@@ -1574,6 +1576,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , Some(publicFact)
       , publicFact.dimToRevisionMap ++ dimToRevisionOverrideMap
       , requiredFilterColumns
+      , publicFact.getPowerSetStorage
     )
   }
 }
@@ -1709,7 +1712,8 @@ trait PublicFact extends PublicTable {
   def parentFactTable: Option[PublicFact]
   def dimToRevisionMap: Map[String, Int]
   def requiredFilterColumns: Map[Schema, Set[String]]
-  def getSecondaryDimFactMap: Map[SortedSet[String], SortedSet[String]]
+  //def getSecondaryDimFactMap: Map[SortedSet[String], SortedSet[String]]
+  def getPowerSetStorage: PowerSetStorage
 }
 
 case class PublicFactTable private[fact](name: String
@@ -1728,6 +1732,7 @@ case class PublicFactTable private[fact](name: String
                                          , parentFactTable: Option[PublicFact] =  None
                                          , dimToRevisionMap: Map[String, Int] = Map.empty
                                          , requiredFilterColumns: Map[Schema, Set[String]] = Map.empty
+                                         , powerSetStorage: PowerSetStorage
                                         ) extends PublicFact with Logging {
 
   def factList: Iterable[Fact] = facts.values
@@ -1838,10 +1843,13 @@ case class PublicFactTable private[fact](name: String
       .mapValues(_.map(tpl => tpl._2)
       .to[SortedSet])*/
 
+/*
   private[this] val secondaryDimFactMap: Map[SortedSet[String], SortedSet[String]] =
     if (this.parentFactTable.isDefined) parentFactTable.get.getSecondaryDimFactMap
     else
-    facts
+*/
+   if (parentFactTable.isEmpty) {
+     facts
       .values
       .map(f => (f.dimCols.filter(_.annotations.exists(_.isInstanceOf[ForeignKey])).map(col => col.name), f.name))
       .par
@@ -1849,11 +1857,18 @@ case class PublicFactTable private[fact](name: String
       .toIndexedSeq
       .groupBy(_._1)
       .mapValues(_.map(tpl => tpl._2)
-      .to[SortedSet])
+      .to[SortedSet]).foreach {
+      entry=>
+        powerSetStorage.store(FactSearchKey(name, entry._1), entry._2)
+    }
+   }
 
   private[this] val dimColsByName = dimCols.map(_.name)
 
-  def getSecondaryDimFactMap: Map[SortedSet[String], SortedSet[String]] = secondaryDimFactMap
+  def getPowerSetStorage: PowerSetStorage = {
+    if (parentFactTable.isDefined) parentFactTable.get.getPowerSetStorage
+    else powerSetStorage
+  }
 
   def getCandidatesFor(schema: Schema, requestType: RequestType, requestAliases: Set[String], requestJoinAliases: Set[String], filterAliasAndOperation: Map[String, FilterOperation], requestedDaysWindow:Int, requestedDaysLookBack:Int, localTimeDayFilter:Filter) : Option[BestCandidates] = {
     val aliases = requestAliases ++ filterAliasAndOperation.keySet
@@ -1938,7 +1953,7 @@ case class PublicFactTable private[fact](name: String
 
         val factsToSearch = {
           if(fkCols.nonEmpty) {
-            secondaryDimFactMap.get(fkCols).map(nameSet=> nameSet.map(name=> facts(name)).toSet)
+            getPowerSetStorage.search(FactSearchKey(name, fkCols)).map(nameSet=> nameSet.map(name=> facts(name)).toSet)
           } else {
             Option(facts.values)
           }
