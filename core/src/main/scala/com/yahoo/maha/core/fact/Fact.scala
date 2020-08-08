@@ -1848,20 +1848,7 @@ case class PublicFactTable private[fact](name: String
     if (this.parentFactTable.isDefined) parentFactTable.get.getSecondaryDimFactMap
     else
 */
-   if (getPowerSetStorage.isEmpty) {
-     facts
-      .values
-      .map(f => (f.dimCols.filter(_.annotations.exists(_.isInstanceOf[ForeignKey])).map(col => col.name), f.name))
-      .par
-      .flatMap(tpl => utils.power(tpl._1, tpl._1.size).map(s => (s.to[SortedSet], tpl._2)))
-      .toIndexedSeq
-      .groupBy(_._1)
-      .mapValues(_.map(tpl => tpl._2)
-      .to[SortedSet]).foreach {
-      entry=>
-        powerSetStorage.store(FactSearchKey(entry._1), entry._2)
-    }
-   }
+  getPowerSetStorage.store(facts.values)
 
   private[this] val dimColsByName = dimCols.map(_.name)
 
@@ -1953,7 +1940,7 @@ case class PublicFactTable private[fact](name: String
 
         val factsToSearch = {
           if(fkCols.nonEmpty) {
-            getPowerSetStorage.search(FactSearchKey(fkCols)).map(nameSet=> nameSet.map(name=> facts(name)))
+            getPowerSetStorage.search(fkCols)
           } else {
             Option(facts.values)
           }
