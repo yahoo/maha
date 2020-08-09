@@ -30,6 +30,57 @@ import scalaz.{NonEmptyList, Validation}
  */
 object DrilldownCurator {
   val name: String = "drilldown"
+
+  val INCLUDE_ROW_COUNT_DRILLDOWN: Boolean = false
+
+  /**
+   * Copy the current ReportingRequest with:
+   * - Requested DrillDown Dim as primary.
+   * - Primary key of primary table.
+   * - All metrics (facts).
+   *
+   * @param reportingRequest : Original reporting request to transform
+   * @param factFields       : All fact fields from the request model
+   * @param primaryKeyField  : Primary key from most granular table
+   */
+  def drilldownReportingRequest(reportingRequest: ReportingRequest,
+                                factFields: IndexedSeq[Field],
+                                primaryKeyField: Field,
+                                drilldownRequest: DrilldownRequest,
+                                publicFact: PublicFact
+                               ): ReportingRequest = {
+    val cube: String = if (drilldownRequest.cube.nonEmpty) drilldownRequest.cube else reportingRequest.cube
+    val filterExpressions: IndexedSeq[Filter] = if (drilldownRequest.enforceFilters) {
+      //only include fact filters, dimension filter should have been done by the default curator
+      reportingRequest.filterExpressions.filter {
+        filter =>
+          publicFact.columnsByAlias(filter.field)
+      }
+    } else IndexedSeq.empty
+
+    //Determine what facts we are requesting
+    val finalFacts: IndexedSeq[Field] = if (drilldownRequest.facts.nonEmpty) {
+      if (drilldownRequest.additiveFacts) {
+        factFields ++ drilldownRequest.facts
+      } else drilldownRequest.facts
+    } else factFields
+
+    val allSelectedFields: IndexedSeq[Field] = ((drilldownRequest.dimensions ++ IndexedSeq(primaryKeyField)).filter {
+      _ != null
+    } ++ finalFacts).distinct
+    val selectedFieldAliasSet: Set[String] = allSelectedFields.map(f => f.field).toSet
+    val drillDownOrdering = reportingRequest.sortBy.filter(sort => selectedFieldAliasSet.contains(sort.field))
+    reportingRequest.copy(cube = cube
+      , selectFields = allSelectedFields
+      , sortBy = if (drilldownRequest.ordering.nonEmpty) drilldownRequest.ordering else drillDownOrdering
+      , rowsPerPage = drilldownRequest.maxRows.toInt
+      , paginationStartIndex = 0 // DrillDown Curator do not care about the start index as it look up the data based on the injected filters from base requests
+      , forceDimensionDriven = false
+      , forceFactDriven = true
+      , filterExpressions = filterExpressions
+      , includeRowCount = INCLUDE_ROW_COUNT_DRILLDOWN
+      , curatorJsonConfigMap = Map.empty)
+  }
 }
 
 case class DrilldownIntermediateResult(fieldAlias: String, values: Set[String])
@@ -40,11 +91,12 @@ case class DrilldownIntermediateResult(fieldAlias: String, values: Set[String])
  */
 class DrilldownCurator(override val requestModelValidator: CuratorRequestModelValidator = NoopCuratorRequestModelValidator) extends Curator with Logging {
 
+  import DrilldownCurator.INCLUDE_ROW_COUNT_DRILLDOWN
+
   override val name: String = DrilldownCurator.name
   override val level: Int = 10
   override val priority: Int = 0
   override val isSingleton: Boolean = false
-  private val INCLUDE_ROW_COUNT_DRILLDOWN: Boolean = false
   override val requiresDefaultCurator: Boolean = true
 
   override def parseConfig(config: CuratorJsonConfig): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
@@ -111,46 +163,6 @@ class DrilldownCurator(override val requestModelValidator: CuratorRequestModelVa
     else None
   }
 
-  /**
-   * Copy the current ReportingRequest with:
-   * - Requested DrillDown Dim as primary.
-   * - Primary key of primary table.
-   * - All metrics (facts).
-   *
-   * @param reportingRequest : Original reporting request to transform
-   * @param factFields       : All fact fields from the request model
-   * @param primaryKeyField  : Primary key from most granular table
-   */
-  private def drilldownReportingRequest(reportingRequest: ReportingRequest,
-                                        factFields: IndexedSeq[Field],
-                                        primaryKeyField: Field,
-                                        drilldownConfig: DrilldownRequest,
-                                        publicFact: PublicFact
-                                       ): ReportingRequest = {
-    val cube: String = if (drilldownConfig.cube.nonEmpty) drilldownConfig.cube else reportingRequest.cube
-    val filterExpressions: IndexedSeq[Filter] = if (drilldownConfig.enforceFilters) {
-      //only include fact filters, dimension filter should have been done by the default curator
-      reportingRequest.filterExpressions.filter {
-        filter =>
-          publicFact.columnsByAlias(filter.field)
-      }
-    } else IndexedSeq.empty
-    val allSelectedFields: IndexedSeq[Field] = ((drilldownConfig.dimensions ++ IndexedSeq(primaryKeyField)).filter {
-      _ != null
-    } ++ factFields).distinct
-    val selectedFieldAliasSet: Set[String] = allSelectedFields.map(f => f.field).toSet
-    val drillDownOrdering = reportingRequest.sortBy.filter(sort => selectedFieldAliasSet.contains(sort.field))
-    reportingRequest.copy(cube = cube
-      , selectFields = allSelectedFields
-      , sortBy = if (drilldownConfig.ordering != IndexedSeq.empty) drilldownConfig.ordering else drillDownOrdering
-      , rowsPerPage = drilldownConfig.maxRows.toInt
-      , paginationStartIndex = 0 // DrillDown Curator do not care about the start index as it look up the data based on the injected filters from base requests
-      , forceDimensionDriven = false
-      , forceFactDriven = true
-      , filterExpressions = filterExpressions
-      , includeRowCount = INCLUDE_ROW_COUNT_DRILLDOWN
-      , curatorJsonConfigMap = Map.empty)
-  }
 
   /**
    * With the returned values on the drilldown, create a
@@ -203,7 +215,7 @@ class DrilldownCurator(override val requestModelValidator: CuratorRequestModelVa
 
     //cannot do drilldown with no best candidates, assume validation checked this
     val publicFact = rm.bestCandidates.get.publicFact
-    val rr = drilldownReportingRequest(reportingRequest, fields_reduced, primaryField, drilldownConfig, publicFact)
+    val rr = DrilldownCurator.drilldownReportingRequest(reportingRequest, fields_reduced, primaryField, drilldownConfig, publicFact)
     rr
   }
 
@@ -358,7 +370,7 @@ class DrilldownCurator(override val requestModelValidator: CuratorRequestModelVa
               , ParFunction.fromScala {
                 intermediateResult =>
                   //we need to have separate log for each request
-                  val curatorMahaRequestLogBuilder = if(idx > 0) {
+                  val curatorMahaRequestLogBuilder = if (idx > 0) {
                     mahaRequestLogBuilder.copy(this)
                   } else mahaRequestLogBuilder
                   try {

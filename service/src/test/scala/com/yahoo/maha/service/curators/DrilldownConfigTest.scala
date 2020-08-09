@@ -21,7 +21,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
                           "curators" : {
                             "drilldown" : {
                               "config" : {
-                                "enforceFilters": "true",
+                                "enforceFilters": true,
                                 "dimension": "Section ID",
                                 "ordering": [{
                                               "field": "Class ID",
@@ -66,7 +66,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
                           "curators" : {
                             "drilldown" : {
                               "config" : {
-                                "enforceFilters": "true",
+                                "enforceFilters": true,
                                 "dimension": "Section ID",
                                 "ordering": [{
                                               "field": "Class ID",
@@ -111,7 +111,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
                           "curators" : {
                             "drilldown" : {
                               "config" : [{
-                                "enforceFilters": "true",
+                                "enforceFilters": true,
                                 "dimension": "Section ID",
                                 "ordering": [{
                                               "field": "Class ID",
@@ -120,7 +120,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
                                 "mr": 1000
                               }
                               , {
-                                "enforceFilters": "true",
+                                "enforceFilters": true,
                                 "dimension": "Section ID",
                                 "ordering": [{
                                               "field": "Class ID",
@@ -172,7 +172,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
                           "curators" : {
                             "drilldown" : {
                               "config" : {
-                                "enforceFilters": "true",
+                                "enforceFilters": true,
                                 "dimension": "Section ID",
                                 "ordering": [{
                                               "field": "Class ID",
@@ -200,10 +200,8 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val thrown = intercept[Exception] {
-      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown"))
-    }
-    assert(thrown.getMessage.contains("order must be asc|desc not willfail"))
+    val result = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown"))
+    assert(result.toEither.left.get.head.toString.contains("order must be asc|desc not willfail"))
   }
 
   test("DrildownConfig with one request error should error") {
@@ -213,7 +211,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
                           "curators" : {
                             "drilldown" : {
                               "config" : [{
-                                "enforceFilters": "true",
+                                "enforceFilters": true,
                                 "dimension": "Section ID",
                                 "ordering": [{
                                               "field": "Class ID",
@@ -249,10 +247,8 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     require(reportingRequestResult.isSuccess, reportingRequestResult)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val thrown = intercept[Exception] {
-      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown"))
-    }
-    assert(thrown.getMessage.contains("CuratorConfig for a DrillDown should have a dimension or dimensions declared"), thrown.getMessage)
+    val result = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown"))
+    assert(result.toEither.left.get.head.toString.contains("NoSuchFieldError(dimension,"))
   }
 
   test("DrillDownConfig should throw error on no dimension.") {
@@ -262,7 +258,7 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
                           "curators" : {
                             "drilldown" : {
                               "config" : {
-                                "enforceFilters": "true",
+                                "enforceFilters": true,
                                 "ordering": [{
                                               "field": "Class ID",
                                               "order": "asc"
@@ -289,10 +285,8 @@ class DrilldownConfigTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     require(reportingRequestResult.isSuccess)
     val reportingRequest = reportingRequestResult.toOption.get
 
-    val thrown = intercept[Exception] {
-      DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown"))
-    }
-    assert(thrown.getMessage.contains("CuratorConfig for a DrillDown should have a dimension or dimensions declared"))
+    val result = DrilldownConfig.parse(reportingRequest.curatorJsonConfigMap("drilldown"))
+    assert(result.toEither.left.get.head.toString.contains("NoSuchFieldError(dimension,"))
   }
 
   test("Create a valid DrillDownConfig with Descending order and multiple orderings") {

@@ -3,8 +3,6 @@ package com.yahoo.maha.service.curators
 import org.json4s.DefaultFormats
 import org.json4s.scalaz.JsonScalaz._
 import com.yahoo.maha.core.request._
-import com.yahoo.maha.service.MahaServiceConfig
-import com.yahoo.maha.service.factory._
 import org.json4s.JValue
 import org.json4s.JsonAST.{JArray, JObject}
 import org.json4s.scalaz.JsonScalaz
@@ -30,78 +28,83 @@ object DrilldownConfig {
 
 case class DrilldownConfig(requests: IndexedSeq[DrilldownRequest]) extends CuratorConfig
 
+import _root_.scalaz.syntax.validation._
+
 object DrilldownRequest {
-  val MAXIMUM_ROWS: BigInt = 1000
-  val DEFAULT_ENFORCE_FILTERS: Boolean = true
+  val DEFAULT_CUBE: JsonScalaz.Result[String] = "".successNel
+  val DEFAULT_MAXIMUM_ROWS: JsonScalaz.Result[Int] = 1000.successNel
+  val DEFAULT_ENFORCE_FILTERS: JsonScalaz.Result[Boolean] = true.successNel
+  val DEFAULT_ADDITIVE_METRICS: JsonScalaz.Result[Boolean] = true.successNel
+  val DEFAULT_FACTS: JsonScalaz.Result[List[Field]] = List.empty.successNel
+  val DEFAULT_ORDERING: JsonScalaz.Result[List[SortBy]] = List.empty.successNel
+  val ENFORCE_FILTERS_FIELD = "enforceFilters"
+  val ADDITIVE_METRICS_FIELD = "additiveFacts"
 
   def parse(config: JValue): JsonScalaz.Result[DrilldownRequest] = {
-    import _root_.scalaz.syntax.validation._
+    import _root_.scalaz.syntax.applicative._
 
-    val dimensions: List[Field] = assignDim(config)
+    val dimensions: JsonScalaz.Result[List[Field]] = assignDim(config)
 
-    val maxRows: BigInt = assignMaxRows(config)
+    val maxRows: JsonScalaz.Result[Int] = assignMaxRows(config)
 
-    val enforceFilters: Boolean = assignEnforceFilters(config)
+    //we are doing orElse here since the old code ignored parse errors instead of reporting them upstream so keeping
+    //backwards compatibility
+    val enforceFilters: JsonScalaz.Result[Boolean] = assignBooleanField(config, ENFORCE_FILTERS_FIELD, DEFAULT_ENFORCE_FILTERS) orElse DEFAULT_ENFORCE_FILTERS
 
-    val ordering: IndexedSeq[SortBy] = assignOrdering(config)
+    val ordering: JsonScalaz.Result[List[SortBy]] = assignOrdering(config)
 
-    val cube: String = assignCube(config, "")
+    val cube: JsonScalaz.Result[String] = assignCube(config)
 
-    DrilldownRequest(enforceFilters, dimensions.toIndexedSeq, cube, ordering, maxRows).successNel
+    val additiveFacts: JsonScalaz.Result[Boolean] = assignBooleanField(config, ADDITIVE_METRICS_FIELD, DEFAULT_ADDITIVE_METRICS)
+
+    val facts: JsonScalaz.Result[List[Field]] = assignFacts(config)
+
+    (enforceFilters |@| dimensions |@| cube |@| ordering |@| maxRows |@| facts |@| additiveFacts) ((a, b, c, d, e, f, g) => {
+      DrilldownRequest(a, b.toIndexedSeq, c, d.toIndexedSeq, e, f.toIndexedSeq, g)
+    })
   }
 
 
-  private def assignCube(config: JValue, default: String): String = {
-    val cubeResult: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("cube")(config)
-    if (cubeResult.isSuccess) {
-      cubeResult.toOption.get
-    }
-    else {
-      default
-    }
+  private def assignCube(config: JValue): JsonScalaz.Result[String] = {
+    val cubeField = config.findField(tpl => tpl._1 == "cube")
+    if (cubeField.isDefined) {
+      fieldExtended[String]("cube")(config)
+    } else DEFAULT_CUBE
   }
 
-  private def assignDim(config: JValue): List[Field] = {
-    val drillDim: MahaServiceConfig.MahaConfigResult[String] = fieldExtended[String]("dimension")(config)
-    val drillDims: MahaServiceConfig.MahaConfigResult[List[String]] = fieldExtended[List[String]]("dimensions")(config)
-    val dims: MahaServiceConfig.MahaConfigResult[List[String]] = drillDims orElse drillDim.map(s => List(s))
-    require(dims.isSuccess, "CuratorConfig for a DrillDown should have a dimension or dimensions declared!")
-    dims.toOption.get.map {
-      s => Field(s, None, None)
-    }
+  private def assignFacts(config: JValue): JsonScalaz.Result[List[Field]] = {
+    val factsField = config.findField(tpl => tpl._1 == "facts")
+    if (factsField.isDefined) {
+      fieldExtended[List[Field]]("facts")(config)
+    } else DEFAULT_FACTS
   }
 
-  private def assignMaxRows(config: JValue): BigInt = {
-    val maxRowsLimitResult: MahaServiceConfig.MahaConfigResult[Int] = fieldExtended[Int]("mr")(config)
-    if (maxRowsLimitResult.isSuccess) {
-      maxRowsLimitResult.toOption.get
-    }
-    else {
-      MAXIMUM_ROWS
-    }
+  private def assignDim(config: JValue): JsonScalaz.Result[List[Field]] = {
+    val drillDim: JsonScalaz.Result[String] = fieldExtended[String]("dimension")(config)
+    val drillDims: JsonScalaz.Result[List[String]] = fieldExtended[List[String]]("dimensions")(config)
+    val dims: JsonScalaz.Result[List[String]] = drillDims orElse drillDim.map(s => List(s))
+    dims.map(l => l.map(s => Field(s, None, None)))
   }
 
-  private def assignEnforceFilters(config: JValue): Boolean = {
-    val enforceFiltersResult: MahaServiceConfig.MahaConfigResult[Boolean] = fieldExtended[Boolean]("enforceFilters")(config)
-    if (enforceFiltersResult.isSuccess)
-      enforceFiltersResult.toOption.get
-    else {
-      DEFAULT_ENFORCE_FILTERS
-    }
+  private def assignMaxRows(config: JValue): JsonScalaz.Result[Int] = {
+    val mrField = config.findField(tpl => tpl._1 == "mr")
+    if (mrField.isDefined) {
+      fieldExtended[Int]("mr")(config)
+    } else DEFAULT_MAXIMUM_ROWS
   }
 
-  private def assignOrdering(config: JValue): IndexedSeq[SortBy] = {
-    val orderingResult: MahaServiceConfig.MahaConfigResult[List[SortBy]] = fieldExtended[List[SortBy]]("ordering")(config)
-    if (orderingResult.isSuccess) {
-      orderingResult.toOption.get.toIndexedSeq
-    } else {
-      if (orderingResult.toEither.left.get.toString().contains("order must be asc|desc not")) {
-        throw new IllegalArgumentException(orderingResult.toEither.left.get.head.message)
-      }
-      else {
-        IndexedSeq.empty
-      }
-    }
+  private def assignBooleanField(config: JValue, fieldName: String, defaultValue: JsonScalaz.Result[Boolean]): JsonScalaz.Result[Boolean] = {
+    val booleanField = config.findField(tpl => tpl._1 == fieldName)
+    if (booleanField.isDefined) {
+      fieldExtended[Boolean](fieldName)(config)
+    } else defaultValue
+  }
+
+  private def assignOrdering(config: JValue): JsonScalaz.Result[List[SortBy]] = {
+    val orderingField = config.findField(tpl => tpl._1 == "ordering")
+    if (orderingField.isDefined) {
+      fieldExtended[List[SortBy]]("ordering")(config)
+    } else DEFAULT_ORDERING
   }
 }
 
@@ -109,4 +112,7 @@ case class DrilldownRequest(enforceFilters: Boolean,
                             dimensions: IndexedSeq[Field],
                             cube: String,
                             ordering: IndexedSeq[SortBy],
-                            maxRows: BigInt) extends CuratorConfig
+                            maxRows: BigInt,
+                            facts: IndexedSeq[Field],
+                            additiveFacts: Boolean
+                           ) extends CuratorConfig
