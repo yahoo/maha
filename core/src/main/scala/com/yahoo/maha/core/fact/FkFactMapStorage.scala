@@ -21,7 +21,7 @@ trait FkFactMapStorage {
   def isEmpty: Boolean
 }
 
-class DefaultPowerSetFkFactMapStorage extends FkFactMapStorage {
+class PowerSetFkFactMapStorage extends FkFactMapStorage {
   private[this] val secondaryDimFactMap = new scala.collection.concurrent.TrieMap[SortedSet[String], SortedSet[Fact]]()
 
   override def store(facts: Iterable[Fact]): Unit = {

@@ -1527,7 +1527,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , dimRevision: Int = 0
                    , dimToRevisionMap: Map[String, Int] = Map.empty
                    , requiredFilterColumns: Map[Schema, Set[String]] = Map.empty
-                   , powerSetStorage: FkFactMapStorage = new DefaultPowerSetFkFactMapStorage
+                   , powerSetStorage: FkFactMapStorage = new PowerSetFkFactMapStorage
                    ) : PublicFact = {
     new PublicFactTable(name
       , baseFact
@@ -1576,7 +1576,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
       , Some(publicFact)
       , publicFact.dimToRevisionMap ++ dimToRevisionOverrideMap
       , requiredFilterColumns
-      , publicFact.getPowerSetStorage
+      , publicFact.getFkFactMapStorage
     )
   }
 }
@@ -1640,13 +1640,13 @@ case class FactBestCandidate(fkCols: SortedSet[String]
 }
 
 case class FactCandidate(fact: Fact, publicFact: PublicFact, filterCols: Set[String])
-case class BestCandidates(fkCols: SortedSet[String], 
-                          nonFkCols: Set[String], 
+case class BestCandidates(fkCols: SortedSet[String],
+                          nonFkCols: Set[String],
                           requestCols: Set[String],
                           requestJoinCols: Set[String],
                           facts: Map[String, FactCandidate],
                           publicFact: PublicFact,
-                          dimColMapping: Map[String, String], 
+                          dimColMapping: Map[String, String],
                           factColMapping: Map[String, String],
                           dimColAliases: Set[String],
                           factColAliases: Set[String],
@@ -1713,7 +1713,7 @@ trait PublicFact extends PublicTable {
   def dimToRevisionMap: Map[String, Int]
   def requiredFilterColumns: Map[Schema, Set[String]]
   //def getSecondaryDimFactMap: Map[SortedSet[String], SortedSet[String]]
-  def getPowerSetStorage: FkFactMapStorage
+  def getFkFactMapStorage: FkFactMapStorage
 }
 
 case class PublicFactTable private[fact](name: String
@@ -1732,7 +1732,7 @@ case class PublicFactTable private[fact](name: String
                                          , parentFactTable: Option[PublicFact] =  None
                                          , dimToRevisionMap: Map[String, Int] = Map.empty
                                          , requiredFilterColumns: Map[Schema, Set[String]] = Map.empty
-                                         , powerSetStorage: FkFactMapStorage
+                                         , fkFactMapStorage: FkFactMapStorage
                                         ) extends PublicFact with Logging {
 
   def factList: Iterable[Fact] = facts.values
@@ -1761,7 +1761,7 @@ case class PublicFactTable private[fact](name: String
       .map {
       case (colName, nameAndAliasList) => colName -> nameAndAliasList.map(_._2).toSet
     }
-  
+
   val factSchemaMap: Map[String, Set[Schema]] = facts.mapValues(_.schemas)
 
   val aliasToReverseStaticMapping : Map[String, Map[String, Set[String]]] = {
@@ -1793,7 +1793,7 @@ case class PublicFactTable private[fact](name: String
     mutableMap.toMap
   }
 
-  val columnsByAliasMap: Map[String, PublicColumn] = 
+  val columnsByAliasMap: Map[String, PublicColumn] =
     dimCols.map(pdc => pdc.alias -> pdc).toMap ++ factCols.map(pdc => pdc.alias -> pdc).toMap
 
   val requiredAliases : Set[String] =
@@ -1848,13 +1848,13 @@ case class PublicFactTable private[fact](name: String
     if (this.parentFactTable.isDefined) parentFactTable.get.getSecondaryDimFactMap
     else
 */
-  getPowerSetStorage.store(facts.values)
+  getFkFactMapStorage.store(facts.values)
 
   private[this] val dimColsByName = dimCols.map(_.name)
 
-  def getPowerSetStorage: FkFactMapStorage = {
-    if (parentFactTable.isDefined) parentFactTable.get.getPowerSetStorage
-    else powerSetStorage
+  def getFkFactMapStorage: FkFactMapStorage = {
+    if (parentFactTable.isDefined) parentFactTable.get.getFkFactMapStorage
+    else fkFactMapStorage
   }
 
   def getCandidatesFor(schema: Schema, requestType: RequestType, requestAliases: Set[String], requestJoinAliases: Set[String], filterAliasAndOperation: Map[String, FilterOperation], requestedDaysWindow:Int, requestedDaysLookBack:Int, localTimeDayFilter:Filter) : Option[BestCandidates] = {
@@ -1940,7 +1940,7 @@ case class PublicFactTable private[fact](name: String
 
         val factsToSearch = {
           if(fkCols.nonEmpty) {
-            getPowerSetStorage.search(fkCols)
+            getFkFactMapStorage.search(fkCols)
           } else {
             Option(facts.values)
           }

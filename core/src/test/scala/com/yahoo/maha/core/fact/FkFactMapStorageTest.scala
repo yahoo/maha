@@ -5,7 +5,7 @@ import scala.collection.SortedSet
 class FkFactMapStorageTest extends BaseFactTest {
 
   test("test default powerset storage") {
-    val result = publicFact(fact1).getPowerSetStorage
+    val result = publicFact(fact1, fkFactMapStorage = new PowerSetFkFactMapStorage).getFkFactMapStorage
     assert(result.size == 15)
     val searchResult = result.search(SortedSet("account_id", "campaign_id"))
     assert(searchResult.isDefined)
@@ -15,7 +15,7 @@ class FkFactMapStorageTest extends BaseFactTest {
   }
 
   test("test rocksb powerset storage") {
-    val result = publicFact(fact1, powerSetStorage = RocksDBFkFactMapStorage(Some("target/test"))).getPowerSetStorage
+    val result = publicFact(fact1, fkFactMapStorage = RocksDBFkFactMapStorage(Some("target/test"))).getFkFactMapStorage
     assert(result.size == 15)
     val searchResult = result.search(SortedSet("account_id", "campaign_id"))
     assert(searchResult.isDefined)
@@ -25,7 +25,7 @@ class FkFactMapStorageTest extends BaseFactTest {
   }
 
   test("test roaring bitmap powerset storage") {
-    val result = publicFact(fact1, powerSetStorage = RoaringBitmapFkFactMapStorage()).getPowerSetStorage
+    val result = publicFact(fact1, fkFactMapStorage = RoaringBitmapFkFactMapStorage()).getFkFactMapStorage
     assert(result.size === 1)
     val searchResult = result.search(SortedSet("account_id", "campaign_id"))
     assert(searchResult.isDefined)
