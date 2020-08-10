@@ -1527,7 +1527,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , dimRevision: Int = 0
                    , dimToRevisionMap: Map[String, Int] = Map.empty
                    , requiredFilterColumns: Map[Schema, Set[String]] = Map.empty
-                   , powerSetStorage: FkFactMapStorage = new PowerSetFkFactMapStorage
+                   , powerSetStorage: FkFactMapStorage = RoaringBitmapFkFactMapStorage()
                    ) : PublicFact = {
     new PublicFactTable(name
       , baseFact
