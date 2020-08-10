@@ -1527,7 +1527,7 @@ case class FactBuilder private[fact](private val baseFact: Fact, private var tab
                    , dimRevision: Int = 0
                    , dimToRevisionMap: Map[String, Int] = Map.empty
                    , requiredFilterColumns: Map[Schema, Set[String]] = Map.empty
-                   , powerSetStorage: PowerSetStorage = new DefaultPowerSetStorage
+                   , powerSetStorage: FkFactMapStorage = new DefaultPowerSetFkFactMapStorage
                    ) : PublicFact = {
     new PublicFactTable(name
       , baseFact
@@ -1713,7 +1713,7 @@ trait PublicFact extends PublicTable {
   def dimToRevisionMap: Map[String, Int]
   def requiredFilterColumns: Map[Schema, Set[String]]
   //def getSecondaryDimFactMap: Map[SortedSet[String], SortedSet[String]]
-  def getPowerSetStorage: PowerSetStorage
+  def getPowerSetStorage: FkFactMapStorage
 }
 
 case class PublicFactTable private[fact](name: String
@@ -1732,7 +1732,7 @@ case class PublicFactTable private[fact](name: String
                                          , parentFactTable: Option[PublicFact] =  None
                                          , dimToRevisionMap: Map[String, Int] = Map.empty
                                          , requiredFilterColumns: Map[Schema, Set[String]] = Map.empty
-                                         , powerSetStorage: PowerSetStorage
+                                         , powerSetStorage: FkFactMapStorage
                                         ) extends PublicFact with Logging {
 
   def factList: Iterable[Fact] = facts.values
@@ -1852,7 +1852,7 @@ case class PublicFactTable private[fact](name: String
 
   private[this] val dimColsByName = dimCols.map(_.name)
 
-  def getPowerSetStorage: PowerSetStorage = {
+  def getPowerSetStorage: FkFactMapStorage = {
     if (parentFactTable.isDefined) parentFactTable.get.getPowerSetStorage
     else powerSetStorage
   }

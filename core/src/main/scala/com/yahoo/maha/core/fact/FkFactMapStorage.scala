@@ -11,7 +11,7 @@ import com.yahoo.maha.serde.SerDe
 
 import scala.collection.SortedSet
 
-trait PowerSetStorage {
+trait FkFactMapStorage {
   def store(facts: Iterable[Fact]): Unit
 
   def search(searchKey: SortedSet[String]): Option[SortedSet[Fact]]
@@ -21,7 +21,7 @@ trait PowerSetStorage {
   def isEmpty: Boolean
 }
 
-class DefaultPowerSetStorage extends PowerSetStorage {
+class DefaultPowerSetFkFactMapStorage extends FkFactMapStorage {
   private[this] val secondaryDimFactMap = new scala.collection.concurrent.TrieMap[SortedSet[String], SortedSet[Fact]]()
 
   override def store(facts: Iterable[Fact]): Unit = {
@@ -47,7 +47,7 @@ class DefaultPowerSetStorage extends PowerSetStorage {
   override def isEmpty: Boolean = secondaryDimFactMap.isEmpty
 }
 
-case class RocksDBPowerSetStorage(baseDirOption: Option[String]) extends PowerSetStorage {
+case class RocksDBFkFactMapStorage(baseDirOption: Option[String]) extends FkFactMapStorage {
 
   if (baseDirOption.isDefined) {
     val file = new File(baseDirOption.get)
@@ -96,7 +96,7 @@ object FactSearchSerDe extends SerDe[SortedSet[String]] {
   override def deserialize(bytes: Array[Byte]): SortedSet[String] = ScalaKryoInstantiator.defaultPool.fromBytes(bytes).asInstanceOf[SortedSet[String]]
 }
 
-case class RoaringBitmapPowerSetStorage(lruSize: Int = 1000) extends PowerSetStorage {
+case class RoaringBitmapFkFactMapStorage(lruSize: Int = 1000) extends FkFactMapStorage {
 
   import org.roaringbitmap.RoaringBitmap
 

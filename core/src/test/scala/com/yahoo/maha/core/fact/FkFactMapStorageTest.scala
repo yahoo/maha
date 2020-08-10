@@ -2,7 +2,7 @@ package com.yahoo.maha.core.fact
 
 import scala.collection.SortedSet
 
-class PowerSetStorageTest extends BaseFactTest {
+class FkFactMapStorageTest extends BaseFactTest {
 
   test("test default powerset storage") {
     val result = publicFact(fact1).getPowerSetStorage
@@ -15,7 +15,7 @@ class PowerSetStorageTest extends BaseFactTest {
   }
 
   test("test rocksb powerset storage") {
-    val result = publicFact(fact1, powerSetStorage = RocksDBPowerSetStorage(Some("target/test"))).getPowerSetStorage
+    val result = publicFact(fact1, powerSetStorage = RocksDBFkFactMapStorage(Some("target/test"))).getPowerSetStorage
     assert(result.size == 15)
     val searchResult = result.search(SortedSet("account_id", "campaign_id"))
     assert(searchResult.isDefined)
@@ -25,7 +25,7 @@ class PowerSetStorageTest extends BaseFactTest {
   }
 
   test("test roaring bitmap powerset storage") {
-    val result = publicFact(fact1, powerSetStorage = RoaringBitmapPowerSetStorage()).getPowerSetStorage
+    val result = publicFact(fact1, powerSetStorage = RoaringBitmapFkFactMapStorage()).getPowerSetStorage
     assert(result.size === 1)
     val searchResult = result.search(SortedSet("account_id", "campaign_id"))
     assert(searchResult.isDefined)

@@ -175,7 +175,7 @@ trait BaseFactTest extends FunSuite with Matchers {
     }
   }
 
-  def publicFact(fb: FactBuilder, forcedFilters: Set[ForcedFilter] = Set.empty, powerSetStorage: PowerSetStorage = new DefaultPowerSetStorage): PublicFact = {
+  def publicFact(fb: FactBuilder, forcedFilters: Set[ForcedFilter] = Set.empty, powerSetStorage: FkFactMapStorage = new DefaultPowerSetFkFactMapStorage): PublicFact = {
     fb.toPublicFact("publicFact",
       Set(
         PubCol("account_id", "Advertiser Id", InEquality),
