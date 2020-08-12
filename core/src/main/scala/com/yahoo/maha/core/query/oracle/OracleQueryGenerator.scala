@@ -611,10 +611,10 @@ b. Dim Driven
   private[this] def addOuterPaginationWrapper(queryString: String, mr: Int, si: Int, includePagination: Boolean, outerFiltersPresent: Boolean): String = {
     val paginationPredicates: ListBuffer[String] = new ListBuffer[String]()
     val minPosition: Int = if (si < 0) 1 else si + 1
-    paginationPredicates += ("ROW_NUMBER >= " + minPosition)
+    paginationPredicates += (if(includePagination) ("ROW_NUMBER >= " + minPosition) else ("ROWNUM >= " + minPosition))
     if (mr > 0) {
       val maxPosition: Int = if (si <= 0) mr else minPosition - 1 + mr
-      paginationPredicates += ("ROW_NUMBER <= " + maxPosition)
+      paginationPredicates += (if(includePagination) ("ROW_NUMBER <= " + maxPosition) else ("ROWNUM <= " + maxPosition))
     }
     if (outerFiltersPresent)
       String.format(OUTER_PAGINATION_WRAPPER_WITH_FILTERS, queryString, paginationPredicates.toList.mkString(" AND "))
@@ -668,7 +668,7 @@ b. Dim Driven
       }
     }
 
-    val includePagination = true // Include pagination wrapper always
+    val includePagination = queryContext.requestModel.includeRowCount || queryContext.requestModel.reportingRequest.includeRowCount // Include pagination wrapper always
 
     val aliasColumnMapOfRequestCols = new mutable.HashMap[String, Column]()
 

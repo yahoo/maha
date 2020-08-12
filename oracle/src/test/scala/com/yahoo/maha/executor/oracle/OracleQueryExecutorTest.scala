@@ -917,7 +917,8 @@ class OracleQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfter
                             {"field": "Impressions", "order": "Desc"}
                           ],
                           "paginationStartIndex":0,
-                          "rowsPerPage":100
+                          "rowsPerPage":100,
+                          "includeRowCount" : true
                         }"""
 
       val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
