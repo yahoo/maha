@@ -3,8 +3,8 @@
 package com.yahoo.maha.service.curators
 
 import com.yahoo.maha.core._
-import com.yahoo.maha.core.bucketing.{BucketParams, CubeBucketSelected, BucketSelector}
-import com.yahoo.maha.core.fact.PublicFact
+import com.yahoo.maha.core.bucketing.{BucketParams, BucketSelector, CubeBucketSelected}
+import com.yahoo.maha.core.fact.{FactBestCandidate, PublicFact}
 import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.request.{CuratorJsonConfig, Field, ReportingRequest}
 import com.yahoo.maha.parrequest2.GeneralError
@@ -320,9 +320,15 @@ class DrilldownCurator(override val requestModelValidator: CuratorRequestModelVa
                 , ParFunction.fromScala {
                   defaultRequestResult =>
                     try {
-                      val fieldAliasOption = mostGranularPrimaryKeyAlias(
+                      val mostGranularPrimaryKeyOption = mostGranularPrimaryKeyAlias(
                         registryConfig.registry, defaultCuratorResult.requestModelReference.model)
-                      if (fieldAliasOption.isEmpty || !defaultRequestResult.queryPipelineResult.queryPipeline.requestModel.requestColsSet(fieldAliasOption.get)) {
+                        .filter(defaultRequestResult.queryPipelineResult.queryPipeline.requestModel.requestColsSet) //must be requested
+                      //if no fk then maybe a pk in fact itself
+                      val fieldAliasOption = mostGranularPrimaryKeyOption orElse {
+                        val fc: FactBestCandidate = defaultRequestResult.queryPipelineResult.queryPipeline.factBestCandidate.get
+                        fc.nonFkCols.map(fc.fact.columnsByNameMap).find(_.isKey).map(c => fc.dimColMapping(c.name))
+                      }
+                      if (fieldAliasOption.isEmpty) {
                         mahaRequestLogBuilder.logFailed("no primary key alias found in request")
                         withParRequestError(curatorConfig, GeneralError.from(parRequestLabel
                           , "no primary key alias found in request"

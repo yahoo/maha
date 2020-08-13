@@ -42,7 +42,7 @@ class SampleFactSchemaRegistrationFactory extends FactRegistrationFactory {
           Set(
             DimCol("class_id", IntType(), annotations = Set(ForeignKey("class")))
             , DimCol("student_id", IntType(), annotations = Set(ForeignKey("student")))
-            , DimCol("section_id", IntType(3))
+            , DimCol("section_id", IntType(3), annotations = Set(PrimaryKey))
             , DimCol("year", IntType(3, (Map(1 -> "Freshman", 2 -> "Sophomore", 3 -> "Junior", 4 -> "Senior"), "Other")))
             , DimCol("comment", StrType(), annotations = Set(EscapingRequired))
             , DimCol("date", DateType())

@@ -1175,6 +1175,67 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(expectedSet.size == cnt)
   }
 
+  test("Test successful processing of Drilldown curator with primary key and no dims") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : {
+                                "dimension": "Remarks",
+                                "enforceFilters": true
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Section ID"},
+                            {"field": "Top Student ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "214"}
+                          ],
+                          "includeRowCount": false
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = ReportingRequest.enableDebug(reportingRequestResult.toOption.get)
+
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+    assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
+    assert(requestCoordinatorResult.successResults.contains(DrilldownCurator.name), requestCoordinatorResult.failureResults)
+    val drillDownCuratorResult: RequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name).head.requestResult
+    val expectedSet = Set(
+      "Row(Map(Remarks -> 0, Section ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 1, 311, 225))"
+      , "Row(Map(Remarks -> 0, Section ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 2, 311, 180))"
+      , "Row(Map(Remarks -> 0, Section ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 3, 311, 175))"
+    )
+
+    var cnt = 0
+    drillDownCuratorResult.queryPipelineResult.rowList.foreach( row => {
+
+      assert(expectedSet.contains(row.toString))
+      cnt+=1
+    })
+
+    assert(expectedSet.size == cnt)
+  }
+
   test("Test successful processing of Drilldown curator with dim candidates without enforcing filters") {
 
     val jsonRequest = s"""{
