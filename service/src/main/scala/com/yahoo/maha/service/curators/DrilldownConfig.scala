@@ -1,5 +1,6 @@
 package com.yahoo.maha.service.curators
 
+import com.yahoo.maha.core.Filter
 import org.json4s.DefaultFormats
 import org.json4s.scalaz.JsonScalaz._
 import com.yahoo.maha.core.request._
@@ -36,6 +37,7 @@ object DrilldownRequest {
   val DEFAULT_ENFORCE_FILTERS: JsonScalaz.Result[Boolean] = true.successNel
   val DEFAULT_ADDITIVE_METRICS: JsonScalaz.Result[Boolean] = true.successNel
   val DEFAULT_FACTS: JsonScalaz.Result[List[Field]] = List.empty.successNel
+  val DEFAULT_FILTERS: JsonScalaz.Result[List[Filter]] = List.empty.successNel
   val DEFAULT_ORDERING: JsonScalaz.Result[List[SortBy]] = List.empty.successNel
   val ENFORCE_FILTERS_FIELD = "enforceFilters"
   val ADDITIVE_METRICS_FIELD = "additiveFacts"
@@ -59,8 +61,10 @@ object DrilldownRequest {
 
     val facts: JsonScalaz.Result[List[Field]] = assignFacts(config)
 
-    (enforceFilters |@| dimensions |@| cube |@| ordering |@| maxRows |@| facts |@| additiveFacts) ((a, b, c, d, e, f, g) => {
-      DrilldownRequest(a, b.toIndexedSeq, c, d.toIndexedSeq, e, f.toIndexedSeq, g)
+    val filters: JsonScalaz.Result[List[Filter]] = assignFilters(config)
+
+    (enforceFilters |@| dimensions |@| cube |@| ordering |@| maxRows |@| facts |@| additiveFacts |@| filters) ((a, b, c, d, e, f, g, h) => {
+      DrilldownRequest(a, b.toIndexedSeq, c, d.toIndexedSeq, e, f.toIndexedSeq, g, h.toIndexedSeq)
     })
   }
 
@@ -77,6 +81,13 @@ object DrilldownRequest {
     if (factsField.isDefined) {
       fieldExtended[List[Field]]("facts")(config)
     } else DEFAULT_FACTS
+  }
+
+  private def assignFilters(config: JValue): JsonScalaz.Result[List[Filter]] = {
+    val filtersField = config.findField(tpl => tpl._1 == "filters")
+    if (filtersField.isDefined) {
+      fieldExtended[List[Filter]]("filters")(config)
+    } else DEFAULT_FILTERS
   }
 
   private def assignDim(config: JValue): JsonScalaz.Result[List[Field]] = {
@@ -114,5 +125,6 @@ case class DrilldownRequest(enforceFilters: Boolean,
                             ordering: IndexedSeq[SortBy],
                             maxRows: BigInt,
                             facts: IndexedSeq[Field],
-                            additiveFacts: Boolean
+                            additiveFacts: Boolean,
+                            filters: IndexedSeq[Filter]
                            ) extends CuratorConfig

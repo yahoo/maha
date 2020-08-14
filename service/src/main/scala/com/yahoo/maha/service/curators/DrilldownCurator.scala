@@ -50,13 +50,20 @@ object DrilldownCurator {
                                 publicFact: PublicFact
                                ): ReportingRequest = {
     val cube: String = if (drilldownRequest.cube.nonEmpty) drilldownRequest.cube else reportingRequest.cube
-    val filterExpressions: IndexedSeq[Filter] = if (drilldownRequest.enforceFilters) {
-      //only include fact filters, dimension filter should have been done by the default curator
-      reportingRequest.filterExpressions.filter {
-        filter =>
-          publicFact.columnsByAlias(filter.field)
-      }
-    } else IndexedSeq.empty
+    val filterExpressions: IndexedSeq[Filter] = {
+      val enforcedFilters = if (drilldownRequest.enforceFilters) {
+        //only include fact filters, dimension filter should have been done by the default curator
+        reportingRequest.filterExpressions.filter {
+          filter =>
+            publicFact.columnsByAlias(filter.field)
+        }
+      } else IndexedSeq.empty
+      if(drilldownRequest.filters.nonEmpty) {
+        val enforcedFiltersFields = enforcedFilters.map(_.field).toSet
+        //add drill down request filters which aren't already enforced
+        enforcedFilters ++ drilldownRequest.filters.filterNot(f => enforcedFiltersFields(f.field))
+      } else enforcedFilters
+    }
 
     //Determine what facts we are requesting
     val finalFacts: IndexedSeq[Field] = if (drilldownRequest.facts.nonEmpty) {
