@@ -38,6 +38,7 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
   final protected[this] val OUTER_PAGINATION_WRAPPER: String = "%s WHERE %s"
   final protected[this] val OUTER_PAGINATION_WRAPPER_WITH_FILTERS: String = "%s AND %s"
   final protected[this] val PAGINATION_WRAPPER_UNION: String = "SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (%s) D )"
+  final protected[this] val UNION_WITHOUT_PAGINATION: String = "SELECT * FROM (SELECT D.* FROM (%s) D )"
   final protected[this] val PAGINATION_ROW_COUNT_COL = ColumnContext.withColumnContext { implicit cc =>
     DimCol(OracleQueryGenerator.ROW_COUNT_ALIAS, IntType())
   }
