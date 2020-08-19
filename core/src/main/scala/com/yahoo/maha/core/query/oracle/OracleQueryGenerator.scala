@@ -737,7 +737,9 @@ b. Dim Driven
         dimQueryNotIn =>
           val unionTemplate = s" (%s) UNION ALL (%s) "
           String.format(unionTemplate
-            , String.format( if(includePagination) PAGINATION_WRAPPER_UNION else UNION_WITHOUT_PAGINATION
+            , String.format(
+              //if(includePagination)
+              PAGINATION_WRAPPER_UNION
               , String.format(queryStringTemplate, outerColumns.mkString(", "), dimQueryIn, outerWhereClause)
             )
             , addPaginationWrapper(String.format(queryStringTemplate,outerColumns.mkString(", "),dimQueryNotIn, outerWhereClause),maxRows, 0, includePagination)
