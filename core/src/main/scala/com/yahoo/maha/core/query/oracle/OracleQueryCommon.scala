@@ -34,15 +34,15 @@ trait OracleQueryCommon extends  BaseQueryGenerator[WithOracleEngine] {
   final protected[this] val ADDITIONAL_PAGINATION_COLUMN: IndexedSeq[String] = IndexedSeq(OracleQueryGenerator.ROW_COUNT_ALIAS)
   final protected[this] val PAGINATION_ROW_COUNT: String = s"""Count(*) OVER() ${OracleQueryGenerator.ROW_COUNT_ALIAS}"""
   final protected[this] val supportingDimPostfix: String = "_indexed"
-  final protected[this] val PAGINATION_WRAPPER: String = "SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (%s) %s) D ) WHERE %s"
+  final protected[this] val ROW_NUMBER_ALIAS = "ROWNUM AS ROW_NUMBER"
+  final protected[this] val PAGINATION_WRAPPER: String = s"SELECT * FROM (SELECT D.*, $ROW_NUMBER_ALIAS FROM (SELECT * FROM (%s) %s) D ) WHERE %s"
   final protected[this] val OUTER_PAGINATION_WRAPPER: String = "%s WHERE %s"
   final protected[this] val OUTER_PAGINATION_WRAPPER_WITH_FILTERS: String = "%s AND %s"
-  final protected[this] val PAGINATION_WRAPPER_UNION: String = "SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (%s) D )"
+  final protected[this] val PAGINATION_WRAPPER_UNION: String = s"SELECT * FROM (SELECT D.*, $ROW_NUMBER_ALIAS FROM (%s) D )"
   final protected[this] val UNION_WITHOUT_PAGINATION: String = "SELECT * FROM (SELECT D.* FROM (%s) D )"
   final protected[this] val PAGINATION_ROW_COUNT_COL = ColumnContext.withColumnContext { implicit cc =>
     DimCol(OracleQueryGenerator.ROW_COUNT_ALIAS, IntType())
   }
-  final protected[this] val ROW_NUMBER_ALIAS = "ROWNUM as ROW_NUMBER"
 
   // Definition Prototypes
   def generateDimensionSql(queryContext: QueryContext, queryBuilderContext: QueryBuilderContext, includePagination: Boolean): DimensionSql
