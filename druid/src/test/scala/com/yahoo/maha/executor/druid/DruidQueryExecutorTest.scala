@@ -1837,8 +1837,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                             {"field": "Impressions", "order": "Asc"}
                           ],
                           "paginationStartIndex":0,
-                          "rowsPerPage":100,
-                          "includeRowCount" : true
+                          "rowsPerPage":100
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
@@ -1924,8 +1923,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                             {"field": "Keyword ID", "order": "Asc"}
                           ],
                           "paginationStartIndex":0,
-                          "rowsPerPage":100,
-                          "includeRowCount" : true
+                          "rowsPerPage":100
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
     val registry = defaultRegistry
@@ -2697,8 +2695,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
                           ],
                           "paginationStartIndex":0,
                           "rowsPerPage":100,
-                          "isDimDriven" : true,
-                          "includeRowCount" : true
+                          "isDimDriven" : true
                         }"""
     val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString, AdvertiserLowLatencySchema))
     val registry = defaultRegistry
