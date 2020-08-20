@@ -1887,29 +1887,34 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
-    val expected = """SELECT  *
-                     |      FROM (SELECT co1.id "Campaign ID", ado2.ad_group_id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", ado2.id "Ad ID", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
-                     |            FROM
-                     |               ( (SELECT  advertiser_id, campaign_id, ad_group_id, id
-                     |            FROM ad_dim_oracle
-                     |            WHERE (id = ad_group_id) AND (advertiser_id = 12345)
-                     |             ) ado2
-                     |          INNER JOIN
-                     |            (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
-                     |            FROM campaign_oracle
-                     |            WHERE (advertiser_id = 12345)
-                     |             ) co1
-                     |              ON( ado2.advertiser_id = co1.advertiser_id AND ado2.campaign_id = co1.id )
-                     |               INNER JOIN
-                     |            (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
-                     |            FROM advertiser_oracle
-                     |            WHERE (id = 12345) AND (DECODE(status, 'ON', 'ON', 'OFF') IN ('ON'))
-                     |             ) ao0
-                     |              ON( co1.advertiser_id = ao0.id )
-                     |               )
-                     |
-                     |           )
-                     |             WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
+    val expected =
+      """
+        |SELECT  *
+        |      FROM (
+        |          SELECT "Campaign ID", "Ad Group ID", "Advertiser Status", "Campaign Name", "Ad ID", "TOTALROWS", ROWNUM AS ROW_NUMBER
+        |              FROM(SELECT co1.id "Campaign ID", ado2.ad_group_id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", ado2.id "Ad ID", Count(*) OVER() TOTALROWS
+        |                  FROM
+        |               ( (SELECT  advertiser_id, campaign_id, ad_group_id, id
+        |            FROM ad_dim_oracle
+        |            WHERE (id = ad_group_id) AND (advertiser_id = 12345)
+        |             ) ado2
+        |          INNER JOIN
+        |            (SELECT /*+ CampaignHint */ advertiser_id, campaign_name, id
+        |            FROM campaign_oracle
+        |            WHERE (advertiser_id = 12345)
+        |             ) co1
+        |              ON( ado2.advertiser_id = co1.advertiser_id AND ado2.campaign_id = co1.id )
+        |               INNER JOIN
+        |            (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+        |            FROM advertiser_oracle
+        |            WHERE (id = 12345) AND (DECODE(status, 'ON', 'ON', 'OFF') IN ('ON'))
+        |             ) ao0
+        |              ON( co1.advertiser_id = ao0.id )
+        |               )
+        |
+        |                  ))
+        |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
+        |""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
   }
@@ -2410,15 +2415,17 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       """
         |SELECT *
-        |      FROM (SELECT DISTINCT ao0."Advertiser Status" "Advertiser Status", ROWNUM as ROW_NUMBER
-        |            FROM
+        |      FROM (
+        |            SELECT "Advertiser Status", ROWNUM AS ROW_NUMBER
+        |                FROM (SELECT DISTINCT ao0."Advertiser Status" "Advertiser Status"
+        |                    FROM
         |                (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
         |            FROM advertiser_oracle
         |            WHERE (id = 12345)
         |             ) ao0
         |
         |
-        |           )
+        |                    ))
         |             WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
       """.stripMargin
 
@@ -2474,8 +2481,10 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = """
                      |SELECT  *
-                     |      FROM (SELECT ago2.campaign_id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", '2' AS "Source", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
-                     |            FROM
+                     |      FROM (
+                     |          SELECT "Campaign ID", "Ad Group ID", "Advertiser Status", "Campaign Name", "Source", "TOTALROWS", ROWNUM AS ROW_NUMBER
+                     |              FROM(SELECT ago2.campaign_id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", '2' AS "Source", Count(*) OVER() TOTALROWS
+                     |                  FROM
                      |               ( (SELECT  campaign_id, advertiser_id, id
                      |            FROM ad_group_oracle
                      |            WHERE (advertiser_id = 12345)
@@ -2494,8 +2503,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                      |              ON( co1.advertiser_id = ao0.id )
                      |               )
                      |
-                     |           )
-                     |             WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
+                     |                  ))
+                     |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
                      |""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -2550,28 +2559,30 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = """
                      |SELECT  *
-                     |        FROM (SELECT ago2.campaign_id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", '2' AS "Source", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
-                     |              FROM
-                     |                 ( (SELECT  campaign_id, advertiser_id, id
-                     |              FROM ad_group_oracle
-                     |              WHERE (advertiser_id = 12345)
-                     |              ORDER BY 1 ASC  ) ago2
-                     |            INNER JOIN
-                     |              (SELECT /*+ CampaignHint */ id, advertiser_id, campaign_name
-                     |              FROM campaign_oracle
-                     |              WHERE (advertiser_id = 12345)
-                     |               ) co1
-                     |                ON( ago2.advertiser_id = co1.advertiser_id AND ago2.campaign_id = co1.id )
-                     |                 INNER JOIN
-                     |              (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
-                     |              FROM advertiser_oracle
-                     |              WHERE (id = 12345)
-                     |               ) ao0
-                     |                ON( co1.advertiser_id = ao0.id )
-                     |                 )
+                     |      FROM (
+                     |          SELECT "Campaign ID", "Ad Group ID", "Advertiser Status", "Campaign Name", "Source", "TOTALROWS", ROWNUM AS ROW_NUMBER
+                     |              FROM(SELECT ago2.campaign_id "Campaign ID", ago2.id "Ad Group ID", ao0."Advertiser Status" "Advertiser Status", co1.campaign_name "Campaign Name", '2' AS "Source", Count(*) OVER() TOTALROWS
+                     |                  FROM
+                     |               ( (SELECT  campaign_id, advertiser_id, id
+                     |            FROM ad_group_oracle
+                     |            WHERE (advertiser_id = 12345)
+                     |            ORDER BY 1 ASC  ) ago2
+                     |          INNER JOIN
+                     |            (SELECT /*+ CampaignHint */ id, advertiser_id, campaign_name
+                     |            FROM campaign_oracle
+                     |            WHERE (advertiser_id = 12345)
+                     |             ) co1
+                     |              ON( ago2.advertiser_id = co1.advertiser_id AND ago2.campaign_id = co1.id )
+                     |               INNER JOIN
+                     |            (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+                     |            FROM advertiser_oracle
+                     |            WHERE (id = 12345)
+                     |             ) ao0
+                     |              ON( co1.advertiser_id = ao0.id )
+                     |               )
                      |
-                     |             )
-                     |               WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
+                     |                  ))
+                     |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
                      |""".stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -3620,8 +3631,10 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = """
                      |SELECT  *
-                     |      FROM (SELECT ao0.id "Advertiser ID", co1.id "Campaign ID", co1.campaign_name "Campaign Name", ago2.id "Ad Group ID", ago2."Ad Group Status" "Ad Group Status", '2' AS "Source", ROWNUM as ROW_NUMBER
-                     |            FROM
+                     |      FROM (
+                     |          SELECT "Advertiser ID", "Campaign ID", "Campaign Name", "Ad Group ID", "Ad Group Status", "Source", ROWNUM AS ROW_NUMBER
+                     |              FROM(SELECT ao0.id "Advertiser ID", co1.id "Campaign ID", co1.campaign_name "Campaign Name", ago2.id "Ad Group ID", ago2."Ad Group Status" "Ad Group Status", '2' AS "Source"
+                     |                  FROM
                      |               ( (SELECT  campaign_id, advertiser_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
                      |            FROM ad_group_oracle
                      |            WHERE (advertiser_id = 12345)
@@ -3640,8 +3653,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                      |              ON( co1.advertiser_id = ao0.id )
                      |               )
                      |
-                     |           )
-                     |            WHERE ( "Ad Group ID"   IS NULL) AND ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
+                     |                  ))
+                     |                  WHERE ( "Ad Group ID"   IS NULL) AND ROW_NUMBER >= 1 AND ROW_NUMBER <= 100
                      |           """.stripMargin
 
     result should equal (expected) (after being whiteSpaceNormalised)
@@ -3835,8 +3848,10 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = s"""
                       |SELECT  *
-                      |      FROM (SELECT co1.id "Campaign ID", co1.campaign_name "Campaign Name", ago2.id "Ad Group ID", ROWNUM as ROW_NUMBER
-                      |            FROM
+                      |      FROM (
+                      |          SELECT "Campaign ID", "Campaign Name", "Ad Group ID", ROWNUM AS ROW_NUMBER
+                      |              FROM(SELECT co1.id "Campaign ID", co1.campaign_name "Campaign Name", ago2.id "Ad Group ID"
+                      |                  FROM
                       |               ( (SELECT  advertiser_id, campaign_id, id
                       |            FROM ad_group_oracle
                       |
@@ -3855,8 +3870,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |              ON( co1.advertiser_id = ao0.id )
                       |               )
                       |
-                      |           )
-                      |            WHERE ( "Ad Group ID"   IS NULL) AND ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+                      |                  ))
+                      |                  WHERE ( "Ad Group ID"   IS NULL) AND ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
                       |""".stripMargin
 
 
@@ -3906,8 +3921,10 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
     val expected = s"""
                       |SELECT  *
-                      |      FROM (SELECT ado2.ad_group_id "Ad Group ID", co1.campaign_name "Campaign Name", ado2.title "Ad Title", ROWNUM as ROW_NUMBER
-                      |            FROM
+                      |      FROM (
+                      |          SELECT "Ad Group ID", "Campaign Name", "Ad Title", ROWNUM AS ROW_NUMBER
+                      |              FROM(SELECT ado2.ad_group_id "Ad Group ID", co1.campaign_name "Campaign Name", ado2.title "Ad Title"
+                      |                  FROM
                       |               ( (SELECT  campaign_id, id, title, ad_group_id, advertiser_id
                       |            FROM ad_dim_oracle
                       |
@@ -3926,8 +3943,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                       |              ON( co1.advertiser_id = ao0.id )
                       |               )
                       |
-                      |           )
-                      |            WHERE ( "Ad Group ID"   IS NULL) AND ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+                      |                  ))
+                      |                  WHERE ( "Ad Group ID"   IS NULL) AND ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
                       |""".stripMargin
 
 
@@ -5392,8 +5409,10 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          | (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
-         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID", '2' AS "Country WOEID"
-         |            FROM
+         |      FROM (
+         |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
+         |              FROM(SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID", '2' AS "Country WOEID"
+         |                  FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle
          |            WHERE (advertiser_id = 213) AND (id IN (10))
@@ -5412,10 +5431,12 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |              ON( co1.advertiser_id = ao0.id )
          |               )
          |
- |           )
-         |            ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
-         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID", '2' AS "Country WOEID"
-         |            FROM
+         |                  ))
+         |                  ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+         |      FROM (
+         |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
+         |              FROM(SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID", '2' AS "Country WOEID"
+         |                  FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle
          |            WHERE (advertiser_id = 213) AND (id NOT IN (10))
@@ -5434,8 +5455,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |              ON( co1.advertiser_id = ao0.id )
          |               )
          |
- |           )
-         |            ) WHERE ROWNUM <= 10) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 10)
+         |                  ))
+         |                  ) WHERE ROWNUM <= 10) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 10)
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -5510,8 +5531,10 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          | SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
-         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
-         |            FROM
+         |      FROM (
+         |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
+         |              FROM(SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
+         |                  FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle
          |            WHERE (advertiser_id = 213) AND (id IN (12,19,15,11,13,16,17,14,20,18))
@@ -5530,8 +5553,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |              ON( co1.advertiser_id = ao0.id )
          |               )
          |
-         |           )
-         |            ) WHERE ROWNUM <= 10) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 10
+         |                  ))
+         |                  ) WHERE ROWNUM <= 10) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 10
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -5605,8 +5628,10 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          | SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
-         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
-         |            FROM
+         |      FROM (
+         |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
+         |              FROM(SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
+         |                  FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle
          |            WHERE (advertiser_id = 213) AND (id IN (45,34,12,51,19,23,40,15,11,44,33,22,55,26,50,37,13,46,24,35,16,48,21,54,43,32,49,36,39,17,25,14,47,31,53,42,20,27,38,18,30,29,41,52,28))
@@ -5625,8 +5650,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |              ON( co1.advertiser_id = ao0.id )
          |               )
          |
-         |           )
-         |            ) WHERE ROWNUM <= 45) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 45
+         |                  ))
+         |                  ) WHERE ROWNUM <= 45) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 45
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -5699,8 +5724,10 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          |(SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
-         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
-         |            FROM
+         |      FROM (
+         |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
+         |              FROM(SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
+         |                  FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle
          |            WHERE (advertiser_id = 213) AND (id IN (12,19,23,15,11,22,13,24,16,21,17,25,14,20,18))
@@ -5719,10 +5746,12 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |              ON( co1.advertiser_id = ao0.id )
          |               )
          |
-         |           )
-         |            ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
-         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
-         |            FROM
+         |                  ))
+         |                  ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+         |      FROM (
+         |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
+         |              FROM(SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
+         |                  FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle
          |            WHERE (advertiser_id = 213) AND (id NOT IN (12,19,23,15,11,22,13,24,16,21,17,25,14,20,18))
@@ -5741,8 +5770,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |              ON( co1.advertiser_id = ao0.id )
          |               )
          |
-         |           )
-         |            ) WHERE ROWNUM <= 20) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 20)
+         |                  ))
+         |                  ) WHERE ROWNUM <= 20) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 20)
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -6026,8 +6055,10 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          |SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
-         |      FROM (SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
-         |            FROM
+         |      FROM (
+         |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
+         |              FROM(SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
+         |                  FROM
          |               ( (SELECT  advertiser_id, campaign_id, DECODE(status, 'ON', 'ON', 'OFF') AS "Ad Group Status", id
          |            FROM ad_group_oracle
          |            WHERE (advertiser_id = 213) AND (id IN (10))
@@ -6046,8 +6077,8 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |              ON( co1.advertiser_id = ao0.id )
          |               )
          |
- |           )
-         |            ) WHERE ROWNUM <= 10) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 10
+         |                  ))
+         |                  ) WHERE ROWNUM <= 10) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 10
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
   }
@@ -6107,16 +6138,18 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
     val expected =
       s"""
          |SELECT  *
-         |      FROM (SELECT co0.campaign_name "Campaign Name", co0.id "Campaign ID", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
-         |            FROM
+         |      FROM (
+         |          SELECT "Campaign Name", "Campaign ID", "TOTALROWS", ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT co0.campaign_name "Campaign Name", co0.id "Campaign ID", Count(*) OVER() TOTALROWS
+         |                  FROM
          |                (SELECT /*+ CampaignHint */ campaign_name, id, advertiser_id
          |            FROM campaign_oracle
          |            WHERE (advertiser_id = 213) AND (DECODE(status, 'ON', 'ON', 'OFF') NOT IN ('DELETED'))
          |            ORDER BY 1 DESC NULLS LAST, 2 DESC  ) co0
          |
          |
-         |           )
-         |             WHERE ROW_NUMBER >= 3 AND ROW_NUMBER <= 42
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 3 AND ROW_NUMBER <= 42
        """.stripMargin
     resultSql should equal (expected)(after being whiteSpaceNormalised)
   }

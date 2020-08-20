@@ -1878,26 +1878,30 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         val expected =
           """
             | (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
-            |      FROM (SELECT t0.id "Keyword ID", t0.value "Keyword Value"
-            |            FROM
+            |      FROM (
+            |          SELECT "Keyword ID", "Keyword Value"
+            |              FROM(SELECT t0.id "Keyword ID", t0.value "Keyword Value"
+            |                  FROM
             |                (SELECT  value, id, advertiser_id
             |            FROM targetingattribute
             |            WHERE (advertiser_id = 213) AND (id IN (13,14))
             |             ) t0
             |
             |
-            |           )
-            |            ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
-            |      FROM (SELECT t0.id "Keyword ID", t0.value "Keyword Value"
-            |            FROM
+            |                  ))
+            |                  ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+            |      FROM (
+            |          SELECT "Keyword ID", "Keyword Value"
+            |              FROM(SELECT t0.id "Keyword ID", t0.value "Keyword Value"
+            |                  FROM
             |                (SELECT  value, id, advertiser_id
             |            FROM targetingattribute
             |            WHERE (advertiser_id = 213) AND (id NOT IN (13,14))
             |             ) t0
             |
             |
-            |           )
-            |            ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100)
+            |                  ))
+            |                  ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100)
             |  """.stripMargin
 
         oracleQuery.asString should equal(expected)(after being whiteSpaceNormalised)
@@ -1963,26 +1967,30 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
         val expected =
           s"""
              | (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
-             |      FROM (SELECT t0.id "Keyword ID", t0.value "Keyword Value"
-             |            FROM
+             |      FROM (
+             |          SELECT "Keyword ID", "Keyword Value"
+             |              FROM(SELECT t0.id "Keyword ID", t0.value "Keyword Value"
+             |                  FROM
              |                (SELECT  id, value, advertiser_id
              |            FROM targetingattribute
              |            WHERE (advertiser_id = 213) AND (id IN (13,14))
              |            ORDER BY 1 ASC  ) t0
              |
-                       |
-                       |           )
-             |            ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
-             |      FROM (SELECT t0.id "Keyword ID", t0.value "Keyword Value"
-             |            FROM
+             |
+             |                  ))
+             |                  ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+             |      FROM (
+             |          SELECT "Keyword ID", "Keyword Value"
+             |              FROM(SELECT t0.id "Keyword ID", t0.value "Keyword Value"
+             |                  FROM
              |                (SELECT  id, value, advertiser_id
              |            FROM targetingattribute
              |            WHERE (advertiser_id = 213) AND (id NOT IN (13,14))
              |            ORDER BY 1 ASC  ) t0
              |
-                       |
-                       |           )
-             |            ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100)  """
+             |
+             |                  ))
+             |                  ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100)"""
             .stripMargin
 
         oracleQuery.asString should equal(expected)(after being whiteSpaceNormalised)
@@ -2738,10 +2746,11 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
 
         val expected =
           """
-            |
-            | (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
-            |      FROM (SELECT ago1.id "Ad Group ID", co0.id "Campaign ID", co0.campaign_name "Campaign Name"
-            |            FROM
+            |(SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT  *
+            |      FROM (
+            |          SELECT "Ad Group ID", "Campaign ID", "Campaign Name"
+            |              FROM(SELECT ago1.id "Ad Group ID", co0.id "Campaign ID", co0.campaign_name "Campaign Name"
+            |                  FROM
             |               ( (SELECT  campaign_id, id, advertiser_id
             |            FROM ad_group_oracle
             |            WHERE (advertiser_id = 213) AND (id IN (113,114)) AND (DECODE(status, 'ON', 'ON', 'OFF') NOT IN ('DELETED'))
@@ -2754,10 +2763,12 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
             |              ON( ago1.advertiser_id = co0.advertiser_id AND ago1.campaign_id = co0.id )
             |               )
             |
-            |           )
-            |            ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
-            |      FROM (SELECT ago1.id "Ad Group ID", co0.id "Campaign ID", co0.campaign_name "Campaign Name"
-            |            FROM
+            |                  ))
+            |                  ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+            |      FROM (
+            |          SELECT "Ad Group ID", "Campaign ID", "Campaign Name"
+            |              FROM(SELECT ago1.id "Ad Group ID", co0.id "Campaign ID", co0.campaign_name "Campaign Name"
+            |                  FROM
             |               ( (SELECT  campaign_id, id, advertiser_id
             |            FROM ad_group_oracle
             |            WHERE (advertiser_id = 213) AND (id NOT IN (113,114)) AND (DECODE(status, 'ON', 'ON', 'OFF') NOT IN ('DELETED'))
@@ -2770,8 +2781,8 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
             |              ON( ago1.advertiser_id = co0.advertiser_id AND ago1.campaign_id = co0.id )
             |               )
             |
-            |           )
-            |            ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100)
+            |                  ))
+            |                  ) WHERE ROWNUM <= 100) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100)
             |  """.stripMargin
 
         oracleQuery.asString should equal(expected)(after being whiteSpaceNormalised)

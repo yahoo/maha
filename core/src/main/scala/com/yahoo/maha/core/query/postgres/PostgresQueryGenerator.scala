@@ -653,18 +653,24 @@ b. Dim Driven
     val queryStringTemplate = {
       if(!requestModel.isRequestingDistict) {
         s"""SELECT $dimDrivenFirstRowOptimization *
-      FROM (SELECT %s
-            FROM %s
-           ) %s
+      FROM (
+          SELECT %s
+              FROM(SELECT %s
+                  FROM %s
+                  ) %s ) %s
             %s"""
       } else {
         s"""SELECT *
-      FROM (SELECT DISTINCT %s
-            FROM %s
-           ) %s
+      FROM (
+          SELECT %s
+              FROM (SELECT DISTINCT %s
+                  FROM %s
+                  ) %s ) %s
             %s"""
       }
     }
+
+    val outerAliases = new mutable.LinkedHashSet[String]
 
     val includePagination = queryContext.requestModel.isSyncRequest
     val aliasColumnMapOfRequestCols = new mutable.HashMap[String, Column]()
@@ -717,6 +723,7 @@ b. Dim Driven
         ci =>
           if (aliasColumnMap.contains(ci.alias)) {
             aliasColumnMapOfRequestCols += (ci.alias -> aliasColumnMap(ci.alias))
+            outerAliases += "\"" + ci.alias + "\""
             outerColumns += concat(renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext))
           } else if (ci.isInstanceOf[ConstantColumnInfo]) {
             outerColumns += concat(renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext))
@@ -729,17 +736,17 @@ b. Dim Driven
       }
 
       dimQueryNotInOption.fold {
-        addPaginationWrapper(String.format(queryStringTemplate, outerColumns.mkString(", "), dimQueryIn, queryBuilderContext.getSubqueryAlias, outerWhereClause)
+        addPaginationWrapper(String.format(queryStringTemplate, outerAliases.mkString(", "), outerColumns.mkString(", "), dimQueryIn, queryBuilderContext.getSubqueryAlias, queryBuilderContext.getSubqueryAlias, outerWhereClause)
           , maxRows, 0, includePagination, queryBuilderContext)
       } {
         dimQueryNotIn =>
           val unionTemplate = s" (%s) UNION ALL (%s) "
           String.format(unionTemplate
             , String.format(PAGINATION_WRAPPER_UNION
-              , String.format(queryStringTemplate, outerColumns.mkString(", "), dimQueryIn, queryBuilderContext.getSubqueryAlias, outerWhereClause)
+              , String.format(queryStringTemplate, outerAliases.mkString(", "), outerColumns.mkString(", "), dimQueryIn, queryBuilderContext.getSubqueryAlias, queryBuilderContext.getSubqueryAlias, outerWhereClause)
               , queryBuilderContext.getSubqueryAlias
             )
-            , addPaginationWrapper(String.format(queryStringTemplate,outerColumns.mkString(", "),dimQueryNotIn, queryBuilderContext.getSubqueryAlias, outerWhereClause)
+            , addPaginationWrapper(String.format(queryStringTemplate, outerAliases.mkString(", "), outerColumns.mkString(", "),dimQueryNotIn, queryBuilderContext.getSubqueryAlias, queryBuilderContext.getSubqueryAlias, outerWhereClause)
               ,maxRows, 0, includePagination, queryBuilderContext)
           )
       }
@@ -767,8 +774,10 @@ b. Dim Driven
         ci =>
           if (aliasColumnMap.contains(ci.alias)) {
             aliasColumnMapOfRequestCols += (ci.alias -> aliasColumnMap(ci.alias))
+            outerAliases += "\"" + ci.alias + "\""
             outerColumns += concat(renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext))
           } else if (ci.isInstanceOf[ConstantColumnInfo]) {
+            outerAliases += "\"" + ci.alias + "\""
             outerColumns += concat(renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext))
           }
       }
@@ -778,6 +787,7 @@ b. Dim Driven
           if((!aliasColumnMapOfRequestCols.contains(alias)) && queryContext.indexAliasOption.contains(alias)) {
             val ci = DimColumnInfo(alias)
             aliasColumnMapOfRequestCols += (ci.alias -> aliasColumnMap(ci.alias))
+            outerAliases += "\"" + ci.alias + "\""
             outerColumns += concat(renderOuterColumn(ci, queryBuilderContext, Map.empty, false, true, queryContext))
           }
       }
@@ -790,13 +800,15 @@ b. Dim Driven
           outerColumns += PAGINATION_ROW_COUNT
         }
         aliasColumnMapOfRequestCols += (PostgresQueryGenerator.ROW_COUNT_ALIAS -> PAGINATION_ROW_COUNT_COL)
+        outerAliases += "\"" + PostgresQueryGenerator.ROW_COUNT_ALIAS + "\""
       }
 
       if(includePagination) {
-        outerColumns+=ROW_NUMBER_ALIAS
+        outerAliases += ROW_NUMBER_ALIAS
+        //outerColumns+=ROW_NUMBER_ALIAS
       }
 
-      val finalQueryString = String.format(queryStringTemplate, outerColumns.mkString(", "), dimQueryString, queryBuilderContext.getSubqueryAlias, outerWhereClause)
+      val finalQueryString = String.format(queryStringTemplate, outerAliases.mkString(", "), outerColumns.mkString(", "), dimQueryString, queryBuilderContext.getSubqueryAlias, queryBuilderContext.getSubqueryAlias, outerWhereClause)
       //there should be no pagination in the dimension sql since we disabled paginiation generation in above dimensionSql call
       val queryString = addOuterPaginationWrapper(finalQueryString
         , queryContext.requestModel.maxRows

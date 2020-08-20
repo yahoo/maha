@@ -699,14 +699,18 @@ class DefaultQueryPipelineFactoryTest extends FunSuite with Matchers with Before
     val drivingQuery = pipeline.queryChain.drivingQuery.asString
 //    println(drivingQuery)
     val expectedQuery = """SELECT  *
-                          |      FROM (SELECT ao0.id "Advertiser ID", ao0."Advertiser Status" "Advertiser Status", Count(*) OVER() TOTALROWS, ROWNUM as ROW_NUMBER
-                          |            FROM
-                          |                (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
-                          |            FROM advertiser_oracle
-                          |            WHERE (id = 213)
-                          |             ) ao0
-                          |           )
-                          |             WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
+                          |      FROM (
+                          |       SELECT "Advertiser ID", "Advertiser Status", "TOTALROWS", ROWNUM AS ROW_NUMBER
+                          |                FROM(SELECT ao0.id "Advertiser ID", ao0."Advertiser Status" "Advertiser Status", Count(*) OVER() TOTALROWS
+                          |                    FROM
+                          |                  (SELECT  DECODE(status, 'ON', 'ON', 'OFF') AS "Advertiser Status", id
+                          |              FROM advertiser_oracle
+                          |              WHERE (id = 213)
+                          |               ) ao0
+                          |
+                          |
+                          |                    ))
+                          |                    WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100""".stripMargin
 
     drivingQuery should equal (expectedQuery) (after being whiteSpaceNormalised)
 
