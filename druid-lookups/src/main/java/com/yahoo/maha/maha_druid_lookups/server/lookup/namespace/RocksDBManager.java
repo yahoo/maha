@@ -21,6 +21,7 @@ import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
+import org.eclipse.jetty.util.log.Log;
 import org.rocksdb.*;
 import org.zeroturnaround.zip.ZipUtil;
 
@@ -267,6 +268,7 @@ public class RocksDBManager {
         final File file = new File(path);
         if(file.exists()) {
             FileUtils.forceDelete(file);
+            LOG.info("Cleaned up [%s]", path);
         }
     }
 
@@ -313,12 +315,16 @@ public class RocksDBManager {
     private void downloadRocksDBInstanceFromHDFS(final String hdfsPath,
                                                  final String localPath) throws IOException {
 
+        LOG.info("Downloading RocksDB instance from [%s] to [%s]", hdfsPath, localPath);
         fileSystem.copyToLocalFile(new Path(hdfsPath), new Path(localPath));
+        LOG.info("Downloaded RocksDB instance from [%s] to [%s]", hdfsPath, localPath);
     }
 
     private void unzipFile(final String localZippedFileNameWithPath) throws IOException {
+        LOG.info("Unzipping RocksDB instance [%s]", localZippedFileNameWithPath);
         ZipUtil.unpack(new File(localZippedFileNameWithPath),
                 new File(FilenameUtils.removeExtension(localZippedFileNameWithPath)));
+        LOG.info("Unzipped RocksDB instance [%s]", localZippedFileNameWithPath);
         cleanup(localZippedFileNameWithPath);
     }
 
