@@ -160,8 +160,9 @@ class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndA
         }
     }
     testNingThreads.foreach(t=> t.join())
-    assert(filterExceptionCount == 2)
-    assert(connectionExceptionCount == 3)
+    assert(filterExceptionCount >= 1)
+    assert(connectionExceptionCount >= 3)
+    assert(filterExceptionCount + connectionExceptionCount == 5)
 
     val result = Try(asyncHttpClient.prepareGet(targetURI.toASCIIString()).execute().get())
     assert(result.isFailure)
