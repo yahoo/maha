@@ -21,7 +21,6 @@ import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.eclipse.jetty.util.log.Log;
 import org.rocksdb.*;
 import org.zeroturnaround.zip.ZipUtil;
 
