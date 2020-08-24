@@ -37,7 +37,7 @@ trait PostgresQueryCommon extends  BaseQueryGenerator[WithPostgresEngine] {
   final protected[this] val PAGINATION_WRAPPER: String = "SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (%s) %s %s) D ) %s WHERE %s"
   final protected[this] val OUTER_PAGINATION_WRAPPER: String = "%s WHERE %s"
   final protected[this] val OUTER_PAGINATION_WRAPPER_WITH_FILTERS: String = "%s AND %s"
-  final protected[this] val PAGINATION_WRAPPER_UNION: String = "SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (%s) D ) %s"
+  final protected[this] val PAGINATION_WRAPPER_UNION: String = "SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (%s) D ) %s %s"
   final protected[this] val PAGINATION_ROW_COUNT_COL = ColumnContext.withColumnContext { implicit cc =>
     DimCol(PostgresQueryGenerator.ROW_COUNT_ALIAS, IntType())
   }
@@ -156,6 +156,17 @@ trait PostgresQueryCommon extends  BaseQueryGenerator[WithPostgresEngine] {
   protected[this] def addPaginationWrapper(queryString: String, mr: Int, si: Int, includePagination: Boolean
                                            , queryBuilderContext: QueryBuilderContext): String = {
     if(includePagination) {
+      val (stopKeyPredicate, paginationPredicates) = createPaginationPredicates(mr, si, includePagination)
+      //"SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (%s) %s %s) D ) %s WHERE %s"
+      String.format(PAGINATION_WRAPPER, queryString, queryBuilderContext.getSubqueryAlias, stopKeyPredicate
+        , queryBuilderContext.getSubqueryAlias, paginationPredicates.mkString(" AND "))
+    } else {
+      queryString
+    }
+  }
+
+  protected[this] def createPaginationPredicates(mr: Int, si: Int, includePagination: Boolean): (String, List[String]) = {
+    if(includePagination) {
       val paginationPredicates: ListBuffer[String] = new ListBuffer[String]()
       val minPosition: Int = if (si < 0) 1 else si + 1
       paginationPredicates += ("ROWNUM >= " + minPosition)
@@ -167,12 +178,16 @@ trait PostgresQueryCommon extends  BaseQueryGenerator[WithPostgresEngine] {
           s"LIMIT $maxPosition"
         } else  s""
       }
-      //"SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (%s) %s %s) D ) %s WHERE %s"
-      String.format(PAGINATION_WRAPPER, queryString, queryBuilderContext.getSubqueryAlias, stopKeyPredicate
-        , queryBuilderContext.getSubqueryAlias, paginationPredicates.toList.mkString(" AND "))
-    } else {
-      queryString
+
+      (stopKeyPredicate, paginationPredicates.toList)
+    } else{
+      ("", List.empty)
     }
+  }
+
+  protected[this] def paginationWhereClause(predicates: List[String]): String = {
+    if(predicates.isEmpty) ""
+    else predicates.mkString("WHERE ", " AND ", "")
   }
 
   def renderColumnName(column: Column): String = {

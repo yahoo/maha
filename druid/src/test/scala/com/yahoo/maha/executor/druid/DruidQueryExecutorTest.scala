@@ -1889,7 +1889,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
             |
             |
             |                  ))
-            |                  ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+            |                  ) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
             |      FROM (
             |          SELECT "Keyword ID", "Keyword Value"
             |              FROM(SELECT t0.id "Keyword ID", t0.value "Keyword Value"
@@ -1978,7 +1978,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
              |
              |
              |                  ))
-             |                  ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+             |                  ) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
              |      FROM (
              |          SELECT "Keyword ID", "Keyword Value"
              |              FROM(SELECT t0.id "Keyword ID", t0.value "Keyword Value"
@@ -2764,7 +2764,7 @@ class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterA
             |               )
             |
             |                  ))
-            |                  ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+            |                  ) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 100) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
             |      FROM (
             |          SELECT "Ad Group ID", "Campaign ID", "Campaign Name"
             |              FROM(SELECT ago1.id "Ad Group ID", co0.id "Campaign ID", co0.campaign_name "Campaign Name"

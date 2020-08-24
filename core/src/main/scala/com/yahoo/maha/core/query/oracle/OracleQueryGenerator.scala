@@ -747,7 +747,8 @@ b. Dim Driven
             , String.format(
               //if(includePagination)
               PAGINATION_WRAPPER_UNION
-              , String.format(queryStringTemplate, outerAliases.mkString(", "), outerColumns.mkString(", "), dimQueryIn, outerWhereClause)
+              , String.format(queryStringTemplate, outerAliases.mkString(", "), outerColumns.mkString(", "), dimQueryIn, outerWhereClause),
+              paginationWhereClause(createPaginationPredicates(maxRows, 0, includePagination)._2)
             )
             , addPaginationWrapper(String.format(queryStringTemplate, outerAliases.mkString(", "), outerColumns.mkString(", "),dimQueryNotIn, outerWhereClause),maxRows, 0, includePagination)
           )

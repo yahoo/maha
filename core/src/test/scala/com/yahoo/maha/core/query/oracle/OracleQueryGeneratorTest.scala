@@ -5432,7 +5432,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |               )
          |
          |                  ))
-         |                  ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+         |                  ) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 10) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
          |      FROM (
          |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
          |              FROM(SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID", '2' AS "Country WOEID"
@@ -5747,7 +5747,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |               )
          |
          |                  ))
-         |                  ) D )) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
+         |                  ) D ) WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 20) UNION ALL (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  *
          |      FROM (
          |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
          |              FROM(SELECT ago2.advertiser_id "Advertiser ID", ago2."Ad Group Status" "Ad Group Status", ago2.id "Ad Group ID", ao0.currency "Advertiser Currency", COALESCE(co1.device_id, 'UNKNOWN') "Campaign Device ID", ago2.campaign_id "Campaign ID"
