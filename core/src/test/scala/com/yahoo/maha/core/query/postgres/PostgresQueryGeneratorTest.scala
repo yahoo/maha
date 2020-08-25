@@ -5493,7 +5493,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |               )
          |
          |                  ) sqalias1 ) sqalias2
-         |            ) D ) sqalias3) UNION ALL (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  *
+         |            ) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 10) UNION ALL (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  *
          |      FROM (
          |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
          |              FROM(SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID", '2' AS "Country WOEID"
@@ -5811,7 +5811,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
          |               )
          |
          |                  ) sqalias1 ) sqalias2
-         |            ) D ) sqalias3) UNION ALL (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  *
+         |            ) D ) sqalias3 WHERE ROWNUM >= 1 AND ROWNUM <= 20) UNION ALL (SELECT * FROM (SELECT D.*, ROW_NUMBER() OVER() AS ROWNUM FROM (SELECT * FROM (SELECT  *
          |      FROM (
          |          SELECT "Advertiser ID", "Ad Group Status", "Ad Group ID", "Advertiser Currency", "Campaign Device ID", "Campaign ID"
          |              FROM(SELECT agp2.advertiser_id "Advertiser ID", agp2."Ad Group Status" "Ad Group Status", agp2.id "Ad Group ID", ap0.currency "Advertiser Currency", COALESCE(cp1.device_id, 'UNKNOWN') "Campaign Device ID", agp2.campaign_id "Campaign ID"
