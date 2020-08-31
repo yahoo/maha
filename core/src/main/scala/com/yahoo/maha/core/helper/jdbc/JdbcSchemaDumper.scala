@@ -117,8 +117,6 @@ object JdbcSchemaDumper extends Logging {
       val tablePkSet: mutable.Map[String, SortedSet[String]] = new mutable.HashMap[String, SortedSet[String]]()
       val tableFkMap: mutable.Map[String, Map[String, String]] = new mutable.HashMap[String, Map[String, String]]()
       val tablePrimaryKeyMetadataMap: mutable.Map[String, IndexedSeq[PrimaryKeyMetadata]] = new mutable.HashMap[String, IndexedSeq[PrimaryKeyMetadata]]
-      val forwardMap: mutable.Map[String, SortedSet[String]] = new mutable.HashMap[String, SortedSet[String]]()
-      val backwardMap: mutable.Map[String, mutable.HashSet[String]] = new mutable.HashMap[String, mutable.HashSet[String]]().withDefault(d => new mutable.HashSet[String]())
       val tableColMetaMap: mutable.Map[String, IndexedSeq[ColumnMetadata]] = new mutable.HashMap[String, IndexedSeq[ColumnMetadata]]()
 
       tables.foreach { tn =>
@@ -148,11 +146,6 @@ object JdbcSchemaDumper extends Logging {
         }
         tableFkMap.put(tn, fkMap.toMap)
         tablePrimaryKeyMetadataMap.put(tn, pkMeta.toIndexedSeq)
-
-        forwardMap.put(tn, fkMap.values.to[SortedSet])
-        val bwMap: Map[String, mutable.HashSet[String]] = fkMap.values.toSet[String].map(tn => tn -> backwardMap(tn)).toMap
-        bwMap.foreach(_._2.add(tn))
-        backwardMap ++= bwMap
 
         /**
          * <P>Each column description has the following columns:
@@ -230,28 +223,27 @@ object JdbcSchemaDumper extends Logging {
       }
 
       TableMetadata(tables.to[SortedSet], tablePrimaryKeyMetadataMap.toMap
-        , tablePkSet.toMap, tableFkMap.toMap, forwardMap.toMap, backwardMap.mapValues(_.to[SortedSet]).toMap
-        , tableColMetaMap.toMap
+        , tablePkSet.toMap, tableFkMap.toMap, tableColMetaMap.toMap
       )
     }
   }
 
-  def buildLevels(tableMeta: TableMetadata): Map[String, DimLevel] = {
+  def buildLevels(tableDependencyMap: TableDependencyMap, tableMetadata: TableMetadata): Map[String, DimLevel] = {
     val tLevels = new mutable.HashMap[String, DimLevel]
     val workingSet = new mutable.HashSet[String]
     val forwardMap: mutable.Map[String, mutable.HashSet[String]] = new mutable.HashMap[String, mutable.HashSet[String]]().withDefault(d => new mutable.HashSet[String]())
     val backwardMap: mutable.Map[String, mutable.HashSet[String]] = new mutable.HashMap[String, mutable.HashSet[String]]().withDefault(d => new mutable.HashSet[String]())
 
-    tableMeta.forwardMap.foreach {
+    tableDependencyMap.forwardMap.foreach {
       case (tn, dset) => forwardMap.put(tn, forwardMap(tn) ++= dset)
     }
-    tableMeta.backwardMap.foreach {
+    tableDependencyMap.backwardMap.foreach {
       case (tn, dset) => backwardMap.put(tn, backwardMap(tn) ++= dset)
     }
 
     var level: DimLevel = LevelOne
 
-    workingSet ++= tableMeta.tables
+    workingSet ++= tableMetadata.tables
 
     while (workingSet.nonEmpty) {
       val workingSetMap = workingSet.map(tn => tn -> forwardMap(tn))
@@ -276,7 +268,8 @@ object JdbcSchemaDumper extends Logging {
     tableMetadataTry.flatMap {
       tm =>
         Try {
-          SchemaDump(tm, buildLevels(tm))
+          val deps = TableDependencyMap.from(tm)
+          SchemaDump(tm, deps, buildLevels(deps, tm))
         }
     }
   }
