@@ -13,6 +13,7 @@
         <constructor-arg name="mahaService" ref="mahaService"/>
         <constructor-arg name="baseRequest" ref="baseRequest"/>
         <constructor-arg name="requestValidator" ref="noopRequestValidator"/>
+        <constructor-arg name="debugUserListCSV" value=""/>
     </bean>
 
     <bean id="noopRequestValidator" class="com.yahoo.maha.api.jersey.NoopRequestValidator"/>

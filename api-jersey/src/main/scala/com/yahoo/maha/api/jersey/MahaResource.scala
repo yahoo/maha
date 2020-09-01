@@ -24,8 +24,9 @@ import scala.util.Try
 
 @Path("/registry")
 @Component
-class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestValidator: RequestValidator) extends Logging {
+class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestValidator: RequestValidator, debugUserListCSV: String = "") extends Logging {
 
+  private[this] val debugUsers: Set[String] = debugUserListCSV.split(",").toSet
   private[this] val defaultRequestCoordinator = DefaultRequestCoordinator(mahaService)
   private[this] val mahaRequestProcessorFactory = MahaSyncRequestProcessorFactory(defaultRequestCoordinator
     , mahaService
@@ -99,7 +100,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestVa
   @Consumes(Array(MediaType.APPLICATION_JSON))
   def query(@PathParam("registryName") registryName: String,
             @PathParam("schema") schema: String,
-            @QueryParam("debug") @DefaultValue("false") debug: Boolean,
+            @QueryParam("debug") @DefaultValue("false") requestDebug: Boolean,
             @QueryParam("forceEngine") forceEngine: String,
             @QueryParam("forceRevision") forceRevision: Int,
             @QueryParam("testName") testName: String,
@@ -117,6 +118,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestVa
 
     val userId: String = Option(MDC.get(MahaConstants.USER_ID)).getOrElse("unknown")
     val requestId: String = Option(MDC.get(MahaConstants.REQUEST_ID)).getOrElse(UUID.randomUUID().toString)
+    val debug: Boolean = if(requestDebug) requestDebug else debugUsers(userId)
     val (reportingRequest: ReportingRequest, rawJson: Array[Byte]) = createReportingRequest(
       requestId
       , userId
