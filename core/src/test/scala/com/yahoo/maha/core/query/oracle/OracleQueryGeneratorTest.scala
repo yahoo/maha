@@ -6683,14 +6683,15 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
                           }"""
     val request: ReportingRequest = getReportingRequestSync(jsonString)
     val registry = defaultRegistry
-    val requestModel = getRequestModel(request, registry, revision = Option(1))
+    val requestModel = getRequestModel(request, registry, revision = Some(1))
     assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
 
-    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
-    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
-    val pipeline = queryPipelineTry.toOption.get
 
-    val result = pipeline.queryChain.drivingQuery.asString
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
+    val resultPipeline = queryPipelineTry.get
+
+    val result = resultPipeline.queryChain.drivingQuery.asString
 
     /**
      * Demonstrate fix where outer Columns is empty, but outer Aliases is not. (line 4 of query)
