@@ -738,8 +738,11 @@ b. Dim Driven
         outerColumns += PAGINATION_ROW_COUNT
       }
 
+      val safeOuterAliases = joinColsSafely(outerAliases.toSet)
+      val safeOuterColumns = joinColsSafely(outerColumns.toSet)
+
       dimQueryNotInOption.fold {
-        addPaginationWrapper(String.format(queryStringTemplate, outerAliases.mkString(", "), outerColumns.mkString(", "), dimQueryIn, outerWhereClause), maxRows, 0, includePagination)
+        addPaginationWrapper(String.format(queryStringTemplate, safeOuterAliases, safeOuterColumns, dimQueryIn, outerWhereClause), maxRows, 0, includePagination)
       } {
         dimQueryNotIn =>
           val unionTemplate = s" (%s) UNION ALL (%s) "
@@ -811,7 +814,10 @@ b. Dim Driven
         //outerColumns+=ROW_NUMBER_ALIAS
       }
 
-      val finalQueryString = String.format(queryStringTemplate, outerAliases.mkString(", "), outerColumns.mkString(", "), dimQueryString, outerWhereClause)
+      val safeOuterAliases = outerAliases.mkString(", ") //as the above clause is hardcoded to True, no need for if-else.
+      val safeOuterColumns = joinColsSafely(outerColumns.toSet)
+
+      val finalQueryString = String.format(queryStringTemplate, safeOuterAliases, safeOuterColumns, dimQueryString, outerWhereClause)
       //there should be no pagination in the dimension sql since we disabled paginiation generation in above dimensionSql call
       val queryString = addOuterPaginationWrapper(finalQueryString
         , queryContext.requestModel.maxRows
@@ -827,6 +833,14 @@ b. Dim Driven
         additionalColumns(queryContext)
       )
     }
+  }
+
+  def joinColsSafely(names: Set[String]): String = {
+    if(names.isEmpty) {
+      logger.debug(s"Outer columns is empty.  State: $names")
+      "*"
+    }
+    else names.mkString(", ")
   }
 
   private[this] def applyDataTypeCleanup(alias: String, column: Column, queryContext: QueryContext): String = {

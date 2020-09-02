@@ -6660,4 +6660,61 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
+
+  test("validate non-outer aliased cols") {
+    import DefaultQueryPipelineFactoryTest._
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Campaign ID"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Advertiser Currency", "operator": "=", "value": "TWD"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                          ],
+                          "includeRowCount" : false,
+                          "forceFactDriven": true,
+                          "additionalParameters": {
+                             "debug":true
+                          }
+                          }"""
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = getRequestModel(request, registry, revision = Option(1))
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val pipeline = queryPipelineTry.toOption.get
+
+    val result = pipeline.queryChain.drivingQuery.asString
+
+    /**
+     * Demonstrate fix where outer Columns is empty, but outer Aliases is not. (line 4 of query)
+     * SELECT   FROM
+     * becomes
+     * SELECT * FROM
+     */
+
+    val expected =
+      s"""
+         | SELECT  *
+         |      FROM (
+         |          SELECT ROWNUM AS ROW_NUMBER
+         |              FROM(SELECT *
+         |                  FROM
+         |                (SELECT  id
+         |            FROM advertiser_oracle
+         |            WHERE (id = 213) AND (currency = 'TWD')
+         |             ) ao0
+         |
+         |
+         |                  ))
+         |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
+       """.stripMargin
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
 }
