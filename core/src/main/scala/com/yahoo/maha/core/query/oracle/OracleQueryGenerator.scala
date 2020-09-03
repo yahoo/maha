@@ -738,8 +738,8 @@ b. Dim Driven
         outerColumns += PAGINATION_ROW_COUNT
       }
 
-      val safeOuterAliases = joinColsSafely(outerAliases.toSet)
-      val safeOuterColumns = joinColsSafely(outerColumns.toSet)
+      val safeOuterAliases = joinColsSafely(outerAliases)
+      val safeOuterColumns = joinColsSafely(outerColumns)
 
       dimQueryNotInOption.fold {
         addPaginationWrapper(String.format(queryStringTemplate, safeOuterAliases, safeOuterColumns, dimQueryIn, outerWhereClause), maxRows, 0, includePagination)
@@ -750,10 +750,10 @@ b. Dim Driven
             , String.format(
               //if(includePagination)
               PAGINATION_WRAPPER_UNION
-              , String.format(queryStringTemplate, outerAliases.mkString(", "), outerColumns.mkString(", "), dimQueryIn, outerWhereClause),
+              , String.format(queryStringTemplate, safeOuterAliases, safeOuterColumns, dimQueryIn, outerWhereClause),
               paginationWhereClause(createPaginationPredicates(maxRows, 0, includePagination)._2)
             )
-            , addPaginationWrapper(String.format(queryStringTemplate, outerAliases.mkString(", "), outerColumns.mkString(", "),dimQueryNotIn, outerWhereClause),maxRows, 0, includePagination)
+            , addPaginationWrapper(String.format(queryStringTemplate, safeOuterAliases, safeOuterColumns,dimQueryNotIn, outerWhereClause),maxRows, 0, includePagination)
           )
       }
     }
@@ -814,8 +814,8 @@ b. Dim Driven
         //outerColumns+=ROW_NUMBER_ALIAS
       }
 
-      val safeOuterAliases = outerAliases.mkString(", ") //as the above clause is hardcoded to True, no need for if-else.
-      val safeOuterColumns = joinColsSafely(outerColumns.toSet)
+      val safeOuterAliases = joinColsSafely(outerAliases)
+      val safeOuterColumns = joinColsSafely(outerColumns)
 
       val finalQueryString = String.format(queryStringTemplate, safeOuterAliases, safeOuterColumns, dimQueryString, outerWhereClause)
       //there should be no pagination in the dimension sql since we disabled paginiation generation in above dimensionSql call
@@ -835,7 +835,7 @@ b. Dim Driven
     }
   }
 
-  def joinColsSafely(names: Set[String]): String = {
+  def joinColsSafely(names: mutable.LinkedHashSet[String]): String = {
     if(names.isEmpty) {
       logger.debug(s"Outer columns is empty.  State: $names")
       "*"
