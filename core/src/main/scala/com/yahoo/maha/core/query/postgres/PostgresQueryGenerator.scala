@@ -735,19 +735,22 @@ b. Dim Driven
         outerColumns += PAGINATION_ROW_COUNT
       }
 
+      val safeOuterAliases = joinColsSafely(outerAliases)
+      val safeOuterColumns = joinColsSafely(outerColumns)
+
       dimQueryNotInOption.fold {
-        addPaginationWrapper(String.format(queryStringTemplate, outerAliases.mkString(", "), outerColumns.mkString(", "), dimQueryIn, queryBuilderContext.getSubqueryAlias, queryBuilderContext.getSubqueryAlias, outerWhereClause)
+        addPaginationWrapper(String.format(queryStringTemplate, safeOuterAliases, safeOuterColumns, dimQueryIn, queryBuilderContext.getSubqueryAlias, queryBuilderContext.getSubqueryAlias, outerWhereClause)
           , maxRows, 0, includePagination, queryBuilderContext)
       } {
         dimQueryNotIn =>
           val unionTemplate = s" (%s) UNION ALL (%s) "
           String.format(unionTemplate
             , String.format(PAGINATION_WRAPPER_UNION
-              , String.format(queryStringTemplate, outerAliases.mkString(", "), outerColumns.mkString(", "), dimQueryIn, queryBuilderContext.getSubqueryAlias, queryBuilderContext.getSubqueryAlias, outerWhereClause)
+              , String.format(queryStringTemplate, safeOuterAliases, safeOuterColumns, dimQueryIn, queryBuilderContext.getSubqueryAlias, queryBuilderContext.getSubqueryAlias, outerWhereClause)
               , queryBuilderContext.getSubqueryAlias
               , paginationWhereClause(createPaginationPredicates(maxRows, 0, includePagination)._2)
             )
-            , addPaginationWrapper(String.format(queryStringTemplate, outerAliases.mkString(", "), outerColumns.mkString(", "),dimQueryNotIn, queryBuilderContext.getSubqueryAlias, queryBuilderContext.getSubqueryAlias, outerWhereClause)
+            , addPaginationWrapper(String.format(queryStringTemplate, safeOuterAliases, safeOuterColumns,dimQueryNotIn, queryBuilderContext.getSubqueryAlias, queryBuilderContext.getSubqueryAlias, outerWhereClause)
               ,maxRows, 0, includePagination, queryBuilderContext)
           )
       }
@@ -809,7 +812,10 @@ b. Dim Driven
         //outerColumns+=ROW_NUMBER_ALIAS
       }
 
-      val finalQueryString = String.format(queryStringTemplate, outerAliases.mkString(", "), outerColumns.mkString(", "), dimQueryString, queryBuilderContext.getSubqueryAlias, queryBuilderContext.getSubqueryAlias, outerWhereClause)
+      val safeOuterAliases = joinColsSafely(outerAliases)
+      val safeOuterColumns = joinColsSafely(outerColumns)
+
+      val finalQueryString = String.format(queryStringTemplate, safeOuterAliases, safeOuterColumns, dimQueryString, queryBuilderContext.getSubqueryAlias, queryBuilderContext.getSubqueryAlias, outerWhereClause)
       //there should be no pagination in the dimension sql since we disabled paginiation generation in above dimensionSql call
       val queryString = addOuterPaginationWrapper(finalQueryString
         , queryContext.requestModel.maxRows
@@ -825,6 +831,14 @@ b. Dim Driven
         additionalColumns(queryContext)
       )
     }
+  }
+
+  def joinColsSafely(names: mutable.LinkedHashSet[String]): String = {
+    if(names.isEmpty) {
+      logger.debug(s"Outer columns is empty.  State: $names")
+      "*"
+    }
+    else names.mkString(", ")
   }
 
   private[this] def applyDataTypeCleanup(alias: String, column: Column, queryContext: QueryContext): String = {
