@@ -211,8 +211,10 @@ class MahaResourceTest {
     val httpResponse: HttpResponse = httpClient.execute(httpPost)
     assertEquals(s"should return status 200, ${httpResponse.getStatusLine}", 200, httpResponse.getStatusLine.getStatusCode)
     val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
-    
-    assert(responseJson.contains("""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200,"debug":{}},"rows":[[213,200,100,125]],"curators":{}}"""), jsonRequest)
+    val expectedJson = """{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200,"debug":{"""
+    val expectedJson2 = ""","rows":[[213,200,100,125]],"curators":{}}"""
+    assert(responseJson.contains(expectedJson), jsonRequest)
+    assert(responseJson.contains(expectedJson2), jsonRequest)
   }
 
   @Test
@@ -243,8 +245,10 @@ class MahaResourceTest {
     val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
 
     //assert(responseJson.contains("""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200,"debug":{}},"rows":[[213,200,100,125]],"curators":{}}"""), responseJson)
-    val expectedJson = """{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200,"debug":{"testName":"tn1","labels":["lb1","lb2"]}},"rows":[[213,200,100,125]],"curators":{}}"""
+    val expectedJson = """{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200,"debug":{"testName":"tn1","labels":["lb1","lb2"],"engineStats":[{"engine":"Oracle","tableName":"student_grade_sheet","queryTime":"""
+    val expectedJson2 = ""","rows":[[213,200,100,125]],"curators":{}}"""
     assert(responseJson.contains(expectedJson), responseJson)
+    assert(responseJson.contains(expectedJson2), responseJson)
   }
 
   @Test
@@ -300,8 +304,10 @@ class MahaResourceTest {
     val httpResponse: HttpResponse = httpClient.execute(httpPost)
     assertEquals(s"should return status 200, ${httpResponse.getStatusLine}", 200, httpResponse.getStatusLine.getStatusCode)
     val responseJson: String = EntityUtils.toString(httpResponse.getEntity)
-    
-    assert(responseJson.contains("""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200,"debug":{}},"rows":[[213,200,100,125]],"curators":{}}"""), responseJson)
+    val expectedJson = """{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200,"debug":{"engineStats":[{"engine":"Oracle","tableName":"student_grade_sheet","queryTime":"""
+    val expectedJson2 = ""","rows":[[213,200,100,125]],"curators":{}}"""
+    assert(responseJson.contains(expectedJson), responseJson)
+    assert(responseJson.contains(expectedJson2), responseJson)
   }
 
   @Test
