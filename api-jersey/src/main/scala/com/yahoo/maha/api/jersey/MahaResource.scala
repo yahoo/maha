@@ -109,6 +109,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestVa
             @Context containerRequestContext: ContainerRequestContext,
             @Suspended response: AsyncResponse) : Unit = {
 
+    val requestStartTime = System.currentTimeMillis()
     info(s"registryName: $registryName, schema: $schema, forceEngine: $forceEngine, forceRevision: $forceRevision")
     val schemaOption: Option[Schema] = Schema.withNameInsensitiveOption(schema)
 
@@ -133,7 +134,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestVa
     val bucketParams: BucketParams = BucketParams(UserInfo(userId, Try(MDC.get(MahaConstants.IS_INTERNAL).toBoolean).getOrElse(false)), forceRevision = Option(forceRevision))
 
     val mahaRequestContext: MahaRequestContext = MahaRequestContext(registryName
-      , bucketParams, reportingRequest, rawJson, Map.empty, requestId, userId)
+      , bucketParams, reportingRequest, rawJson, Map.empty, requestId, userId, requestStartTime = requestStartTime)
     requestValidator.validate(mahaRequestContext, containerRequestContext)
     val mahaRequestProcessor: MahaSyncRequestProcessor = mahaRequestProcessorFactory
       .create(mahaRequestContext, MahaServiceConstants.MahaRequestLabel)
