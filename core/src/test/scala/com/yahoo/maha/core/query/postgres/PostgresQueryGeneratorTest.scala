@@ -6548,4 +6548,62 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     result should equal (expected) (after being whiteSpaceNormalised)
     testQuery(result)
   }
+
+  test("validate non-outer aliased cols in postgres") {
+    import DefaultQueryPipelineFactoryTest._
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Campaign ID"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "213"},
+                              {"field": "Advertiser Currency", "operator": "=", "value": "TWD"},
+                              {"field": "Day", "operator": "between", "from": "$toDate", "to": "$toDate"}
+                          ],
+                          "sortBy": [
+                          ],
+                          "includeRowCount" : false,
+                          "forceFactDriven": true,
+                          "additionalParameters": {
+                             "debug":true
+                          }
+                          }"""
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = getRequestModel(request, registry, revision = Some(1))
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
+    val resultPipeline = queryPipelineTry.get
+
+    val result = resultPipeline.queryChain.drivingQuery.asString
+
+    /**
+     * Demonstrate fix where outer Columns is empty, but outer Aliases is not. (line 4 of query)
+     * SELECT   FROM
+     * becomes
+     * SELECT * FROM
+     */
+
+    val expected =
+      s"""
+         | SELECT  *
+         |      FROM (
+         |          SELECT ROW_NUMBER() OVER() AS ROWNUM
+         |              FROM(SELECT *
+         |                  FROM
+         |                (SELECT  id
+         |            FROM advertiser_postgres
+         |            WHERE (id = 213) AND (currency = 'TWD')
+         |             ) ap0
+         |
+         |
+         |                  ) sqalias1 ) sqalias2
+         |             WHERE ROWNUM >= 1 AND ROWNUM <= 200
+       """.stripMargin
+    result should equal (expected)(after being whiteSpaceNormalised)
+  }
 }
