@@ -2,9 +2,10 @@ package com.yahoo.maha.core.request
 
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class FieldExtendedTest extends FunSuite with Matchers {
+class FieldExtendedTest extends AnyFunSuite with Matchers {
 
   test("Verify same success returned for optional and non-optional FieldExtended") {
     val json: String =

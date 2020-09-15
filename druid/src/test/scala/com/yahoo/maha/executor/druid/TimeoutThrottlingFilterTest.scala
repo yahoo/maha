@@ -13,7 +13,9 @@ import org.asynchttpclient.{DefaultAsyncHttpClient, DefaultAsyncHttpClientConfig
 import org.http4s.HttpService
 import org.http4s.dsl.io._
 import org.http4s.server.blaze.BlazeBuilder
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.BeforeAndAfterAll
 
 import scala.collection.mutable
 import scala.util.Try
@@ -21,7 +23,7 @@ import scala.util.Try
 /**
  * Created by pranavbhole on 28/06/17.
  */
-class TimeoutThrottlingFilterTest extends FunSuite with Matchers with BeforeAndAfterAll with Logging {
+class TimeoutThrottlingFilterTest extends AnyFunSuite with Matchers with BeforeAndAfterAll with Logging {
 
   var server: org.http4s.server.Server[IO] = null
 

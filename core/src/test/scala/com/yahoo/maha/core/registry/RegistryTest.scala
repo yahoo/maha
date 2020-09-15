@@ -9,12 +9,13 @@ import com.yahoo.maha.core._
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact.{Fact, FactCol, PublicFact, PublicFactCol, PublicFactTable}
 import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Created by jians on 10/21/15.
  */
-class RegistryTest extends FunSuite with Matchers {
+class RegistryTest extends AnyFunSuite with Matchers {
 
   CoreSchema.register()
 

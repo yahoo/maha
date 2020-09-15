@@ -5,12 +5,13 @@ package com.yahoo.maha.service.config
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.scalaz.JsonScalaz._
-import org.scalatest.{Matchers, FunSuite}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Created by pranavbhole on 31/05/17.
  */
-class BaseJsonModelsTest extends FunSuite with Matchers {
+class BaseJsonModelsTest extends AnyFunSuite with Matchers {
 
   test("successfully parse json JsonBucketingConfig") {
     val jsonString = """{

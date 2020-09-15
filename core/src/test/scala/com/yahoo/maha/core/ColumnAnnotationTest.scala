@@ -5,12 +5,13 @@ package com.yahoo.maha.core
 import com.yahoo.maha.core.BaseExpressionTest.PRESTO_TIMESTAMP_TO_FORMATTED_DATE
 import com.yahoo.maha.core.HiveExpression._
 import org.json4s.JObject
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
   * Created by hiral on 9/14/17.
   */
-class ColumnAnnotationTest extends FunSuite with Matchers {
+class ColumnAnnotationTest extends AnyFunSuite with Matchers {
   test("successfully find HiveShardingExpression with instance") {
     val set: Set[ColumnAnnotation] = Set(HiveShardingExpression(null))
     set.contains(HiveShardingExpression.instance) === true

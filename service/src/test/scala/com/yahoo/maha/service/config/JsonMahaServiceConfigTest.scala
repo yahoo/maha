@@ -2,7 +2,8 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.service.config
 
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 import org.json4s._
 import org.json4s.scalaz.JsonScalaz._
 import org.json4s.jackson.JsonMethods._
@@ -11,7 +12,7 @@ import org.json4s.jackson.JsonMethods._
 /**
   * Created by hiral on 5/25/17.
   */
-class JsonMahaServiceConfigTest extends FunSuite with Matchers {
+class JsonMahaServiceConfigTest extends AnyFunSuite with Matchers {
 
   test("successfully parse json") {
     val jsonString = """{

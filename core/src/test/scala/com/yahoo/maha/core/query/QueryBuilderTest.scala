@@ -1,8 +1,9 @@
 package com.yahoo.maha.core.query
 
-import org.scalatest.{FunSuiteLike, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class QueryBuilderTest extends FunSuiteLike with Matchers{
+class QueryBuilderTest extends AnyFunSuite with Matchers{
   test("Create a QueryBuilder") {
     val qb : QueryBuilder = new QueryBuilder(initSize = 100, orderBySize = 10)
     assert(qb.getGroupByClause == "")

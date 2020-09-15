@@ -2,12 +2,12 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.lookup
 
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
 /**
  * Created by hiral on 3/31/16.
  */
-class LongRangeLookupTest extends FunSuite {
+class LongRangeLookupTest extends AnyFunSuite {
   
   val list : IndexedSeq[(LongRange, Double)] = IndexedSeq(LongRange(10,20) -> 1.0, LongRange(21, 30) -> 1.1, LongRange(31, 40) -> 1.2)
   val lkp = LongRangeLookup(list)

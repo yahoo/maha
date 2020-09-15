@@ -4,12 +4,13 @@
 package com.yahoo.maha.worker.state.actor
 
 import com.yahoo.maha.core.OracleEngine
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /*
     Created by pranavbhole on 8/30/18
 */
-class WorkerStateActorTest extends FunSuite with Matchers {
+class WorkerStateActorTest extends AnyFunSuite with Matchers {
 
   test("Test WorkerStateActor") {
     val engineState = EngineState(OracleEngine)

@@ -10,7 +10,8 @@ import com.yahoo.maha.service.{DefaultMahaServiceConfigContext, MahaServiceConfi
 import com.zaxxer.hikari.HikariDataSource
 import org.json4s.JValue
 import org.json4s.jackson.JsonMethods._
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Created by pranavbhole on 31/05/17.

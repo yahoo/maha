@@ -3,14 +3,15 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core._
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.util.Try
 
 /**
  * Created by hiral on 2/18/16.
  */
-class SingleEngineQueryTest extends FunSuite with Matchers with BaseQueryGeneratorTest with SharedDimSchema with BaseQueryContextTest with BaseQueryChainTest {
+class SingleEngineQueryTest extends AnyFunSuite with Matchers with BaseQueryGeneratorTest with SharedDimSchema with BaseQueryContextTest with BaseQueryChainTest {
 
 
   test("successfully run dim only query") {

@@ -3,12 +3,13 @@ package com.yahoo.maha.core.query.postgres
 import com.yahoo.maha.core.{PostgresEngine, ColumnInfo, Column, Engine}
 import com.yahoo.maha.core.fact.Fact
 import com.yahoo.maha.core.query._
-import org.scalatest.{Matchers, FunSuite}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Created by pranavbhole on 15/12/17.
  */
-class PostgresQueryCommonTest extends FunSuite with Matchers {
+class PostgresQueryCommonTest extends AnyFunSuite with Matchers {
 
   class TestQueryCommon extends PostgresQueryCommon {
 

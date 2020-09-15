@@ -24,7 +24,9 @@ import org.apache.druid.query.Result
 import org.apache.druid.query.scan.ScanResultValue
 import org.http4s.server.blaze.BlazeBuilder
 import org.json4s.JsonAST._
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.BeforeAndAfterAll
 import org.mockito.Mockito._
 import org.mockito.Matchers._
 
@@ -36,7 +38,7 @@ class TestAuthHeaderProvider extends AuthHeaderProvider {
   override def getAuthHeaders = Map("c" -> "d")
 }
 
-class DruidQueryExecutorTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema with TestWebService {
+class DruidQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema with TestWebService {
 
   var server: org.http4s.server.Server[IO] = null
 

@@ -14,14 +14,14 @@ import com.yahoo.maha.core.{Engine, OracleEngine, RequestModelResult}
 import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
 import com.yahoo.maha.service.{CuratorAndRequestResult, MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
 import scala.util.Try
 
 /**
  * Created by pranavbhole on 06/04/18.
  */
-class JsonStreamingOutputTest extends FunSuite {
+class JsonStreamingOutputTest extends AnyFunSuite {
 
   val jsonRequest = s"""{
                           "cube": "student_performance",

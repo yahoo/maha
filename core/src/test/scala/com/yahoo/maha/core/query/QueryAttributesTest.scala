@@ -1,8 +1,9 @@
 package com.yahoo.maha.core.query
 
-import org.scalatest.{FunSuiteLike, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class QueryAttributesTest extends FunSuiteLike with Matchers{
+class QueryAttributesTest extends AnyFunSuite with Matchers{
   test("QueryAttribute Creation") {
     val longAttrib : LongAttribute = new LongAttribute(1)
     assert(longAttrib.toString == "1")

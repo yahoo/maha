@@ -1,8 +1,9 @@
 package com.yahoo.maha.service.error
 
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class MahaServiceExceptionTest extends FunSuite with Matchers {
+class MahaServiceExceptionTest extends AnyFunSuite with Matchers {
   test("MahaServiceExceptionTest: MahaServiceBadRequestException") {
     val ex : MahaServiceBadRequestException = MahaServiceBadRequestException(message = "Got a bad request exception!")
     assert(ex.getMessage.contains("MahaServiceBadRequestException") && ex.getMessage.contains("Got a bad request exception!"))

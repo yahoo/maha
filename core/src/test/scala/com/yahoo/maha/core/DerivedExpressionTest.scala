@@ -8,12 +8,13 @@ import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.fact._
 import org.apache.druid.jackson.DefaultObjectMapper
 import org.json4s.JsonAST.JObject
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Created by hiral on 10/13/15.
  */
-class DerivedExpressionTest extends FunSuite with Matchers {
+class DerivedExpressionTest extends AnyFunSuite with Matchers {
 
   test("successfully derive dependent columns from HiveDerivedExpression") {
     import HiveExpression._

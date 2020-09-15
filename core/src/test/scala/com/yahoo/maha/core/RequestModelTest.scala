@@ -16,14 +16,15 @@ import com.yahoo.maha.core.registry.{Registry, RegistryBuilder}
 import com.yahoo.maha.core.request._
 import org.joda.time.{DateTime, DateTimeZone}
 import org.json4s.JObject
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.util.{Random, Try}
 
 /**
  * Created by jians on 10/23/15.
  */
-class RequestModelTest extends FunSuite with Matchers {
+class RequestModelTest extends AnyFunSuite with Matchers {
   
   CoreSchema.register()
 

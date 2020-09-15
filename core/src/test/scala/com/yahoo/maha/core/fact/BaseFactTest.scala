@@ -9,12 +9,13 @@ import com.yahoo.maha.core.ddl.HiveDDLAnnotation
 import com.yahoo.maha.core.dimension._
 import com.yahoo.maha.core.request.{AsyncRequest, RequestType, SyncRequest}
 import org.joda.time.{DateTime, DateTimeZone}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Created by jians on 10/20/15.
  */
-trait BaseFactTest extends FunSuite with Matchers {
+trait BaseFactTest extends AnyFunSuite with Matchers {
 
   protected[this] val fromDate = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC).minusDays(7))
   protected[this] val toDate = DailyGrain.toFormattedString(DateTime.now(DateTimeZone.UTC))
