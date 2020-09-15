@@ -9,7 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.yahoo.maha.core.query.{InMemRowList, QueryAttribute, QueryAttributes, QueryPipelineResult, QueryRowList, QueryStatsAttribute, RowList}
 import com.yahoo.maha.core.request.{ReportingRequest, RowCountQuery}
 import com.yahoo.maha.core.{ColumnInfo, DimColumnInfo, Engine, FactColumnInfo, RequestModelResult}
-import com.yahoo.maha.service.RequestCoordinatorResult
+import com.yahoo.maha.service.{MahaRequestContext, RequestCoordinatorResult}
 import com.yahoo.maha.service.curators.{Curator, CuratorError, CuratorResult, DefaultCurator, RowCountCurator}
 import com.yahoo.maha.service.datasource.{IngestionTimeUpdater, NoopIngestionTimeUpdater}
 import org.json4s.JValue
@@ -25,8 +25,18 @@ object JsonOutputFormat {
   val defaultRenderSet: Set[String] = Set(DefaultCurator.name)
 }
 
-case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
-                            ingestionTimeUpdaterMap: Map[Engine, IngestionTimeUpdater] = Map.empty) {
+trait DebugRenderer {
+  def render(mahaRequestContext: MahaRequestContext, jsonGenerator: JsonGenerator): Unit
+}
+
+class NoopDebugRenderer extends DebugRenderer {
+  def render(mahaRequestContext: MahaRequestContext, jsonGenerator: JsonGenerator): Unit = {}
+}
+
+case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult
+                            , ingestionTimeUpdaterMap: Map[Engine, IngestionTimeUpdater] = Map.empty
+                            , debugRenderer: Option[DebugRenderer] = None
+                           ) {
 
 
   def writeStream(outputStream: OutputStream): Unit = {
@@ -271,6 +281,9 @@ case class JsonOutputFormat(requestCoordinatorResult: RequestCoordinatorResult,
             }
             jsonGenerator.writeEndArray()
         }
+      }
+      if(debugRenderer.isDefined) {
+        debugRenderer.get.render(requestCoordinatorResult.mahaRequestContext, jsonGenerator)
       }
       jsonGenerator.writeEndObject()
     }

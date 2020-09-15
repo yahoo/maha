@@ -13,6 +13,8 @@
         <constructor-arg name="mahaService" ref="mahaService"/>
         <constructor-arg name="baseRequest" ref="baseRequest"/>
         <constructor-arg name="requestValidator" ref="requestValidator"/>
+        <constructor-arg name="mahaRequestContextBuilder" ref="mahaRequestContextBuilder"/>
+        <constructor-arg name="debugRenderer" ref="debugRenderer"/>
         <constructor-arg name="debugUserListCSV" value="unknown"/>
     </bean>
 

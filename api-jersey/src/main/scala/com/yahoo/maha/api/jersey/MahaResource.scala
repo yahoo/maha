@@ -13,6 +13,7 @@ import com.yahoo.maha.core.request.{BaseRequest, ReportingRequest, RequestContex
 import com.yahoo.maha.core.{Schema, _}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.service._
+import com.yahoo.maha.service.output.{DebugRenderer, NoopDebugRenderer}
 import com.yahoo.maha.service.utils.MahaConstants
 import grizzled.slf4j.Logging
 import org.apache.commons.io.IOUtils
@@ -24,7 +25,13 @@ import scala.util.Try
 
 @Path("/registry")
 @Component
-class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestValidator: RequestValidator, debugUserListCSV: String = "") extends Logging {
+class MahaResource(mahaService: MahaService
+                   , baseRequest: BaseRequest
+                   , requestValidator: RequestValidator
+                   , mahaRequestContextBuilder: MahaRequestContextBuilder
+                   , debugRenderer: DebugRenderer = new NoopDebugRenderer
+                   , debugUserListCSV: String = ""
+                  ) extends Logging {
 
   private[this] val debugUsers: Set[String] = debugUserListCSV.split(",").toSet
   private[this] val defaultRequestCoordinator = DefaultRequestCoordinator(mahaService)
@@ -32,6 +39,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestVa
     , mahaService
     , mahaService.mahaRequestLogWriter
     , mahaServiceMonitor = DefaultMahaServiceMonitor)
+  private[this] val defaultDebugRenderer = Option(debugRenderer)
 
 
   @GET
@@ -133,14 +141,14 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestVa
 
     val bucketParams: BucketParams = BucketParams(UserInfo(userId, Try(MDC.get(MahaConstants.IS_INTERNAL).toBoolean).getOrElse(false)), forceRevision = Option(forceRevision))
 
-    val mahaRequestContext: MahaRequestContext = MahaRequestContext(registryName
-      , bucketParams, reportingRequest, rawJson, Map.empty, requestId, userId, requestStartTime = requestStartTime)
+    val mahaRequestContext: MahaRequestContext = mahaRequestContextBuilder.build(registryName
+      , bucketParams, reportingRequest, rawJson, requestId, userId, requestStartTime = requestStartTime, containerRequestContext)
     requestValidator.validate(mahaRequestContext, containerRequestContext)
     val mahaRequestProcessor: MahaSyncRequestProcessor = mahaRequestProcessorFactory
       .create(mahaRequestContext, MahaServiceConstants.MahaRequestLabel)
 
     mahaRequestProcessor.onSuccess((requestCoordinatorResult: RequestCoordinatorResult) => {
-      response.resume(new JsonStreamingOutput(requestCoordinatorResult))
+      response.resume(new JsonStreamingOutput(requestCoordinatorResult, debugRenderer = defaultDebugRenderer))
     })
 
     mahaRequestProcessor.onFailure((ge: GeneralError) => {
