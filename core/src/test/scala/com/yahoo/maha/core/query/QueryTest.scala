@@ -5,12 +5,13 @@ package com.yahoo.maha.core.query
 import com.yahoo.maha.core.query.oracle.BaseOracleQueryGeneratorTest
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{OracleEngine, RequestModel}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Created by pranavbhole on 06/12/16.
  */
-class QueryTest extends FunSuite with Matchers with BaseOracleQueryGeneratorTest {
+class QueryTest extends AnyFunSuite with Matchers with BaseOracleQueryGeneratorTest {
   def query: Query = {
     val jsonString =
               s"""{

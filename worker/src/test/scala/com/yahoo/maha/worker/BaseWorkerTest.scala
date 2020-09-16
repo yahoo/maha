@@ -5,7 +5,8 @@ package com.yahoo.maha.worker
 
 import com.yahoo.maha.service.BaseMahaServiceTest
 import org.joda.time.DateTime
-import org.scalatest.{BeforeAndAfterAll, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
 
 /*
     Created by pranavbhole on 8/29/18

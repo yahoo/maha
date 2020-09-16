@@ -6,12 +6,12 @@ import com.yahoo.maha.core.query.Version
 import com.yahoo.maha.core.registry.Registry
 import com.yahoo.maha.core.{DruidEngine, Engine, HiveEngine, OracleEngine}
 import org.mockito.Mockito._
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
 /**
   * Created by surabhip on 8/29/16.
   */
-class BucketSelectorTest extends FunSuite {
+class BucketSelectorTest extends AnyFunSuite {
 
   val registry = mock(classOf[Registry])
   when(registry.defaultPublicFactRevisionMap).thenReturn(Map("test-cube" -> 1, "test-cube-2" -> 1).toMap)

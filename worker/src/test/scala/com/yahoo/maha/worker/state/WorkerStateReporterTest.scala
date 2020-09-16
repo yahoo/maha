@@ -5,7 +5,8 @@ package com.yahoo.maha.worker.state
 
 import com.yahoo.maha.core.{DruidEngine, OracleEngine}
 import com.yahoo.maha.worker.state.actor._
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -13,7 +14,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 /*
     Created by pranavbhole on 8/30/18
 */
-class WorkerStateReporterTest extends  FunSuite with Matchers {
+class WorkerStateReporterTest extends AnyFunSuite with Matchers {
 
   val workerStateReporter = WorkerStateReporter("test-config")
 

@@ -4,12 +4,13 @@ package com.yahoo.maha.utils
 
 import com.yahoo.maha.core._
 import org.joda.time.{DateTime, DateTimeZone}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Created by pranavbhole on 18/04/16.
  */
-class DaysUtilsTest extends FunSuite with Matchers {
+class DaysUtilsTest extends AnyFunSuite with Matchers {
   test("fake truncated hour, followed by real hour") {
     val catcher = intercept[IllegalArgumentException] {
       val truncated = DaysUtils.truncateHourFromGivenHourString(20171101)

@@ -4,12 +4,13 @@ package com.yahoo.maha.service.config.dynamic
 
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
   * Created by panditsurabhi on 24/09/18.
   */
-class DynamicConfigurationUtilsTest extends FunSuite with Matchers {
+class DynamicConfigurationUtilsTest extends AnyFunSuite with Matchers {
   implicit val formats = org.json4s.DefaultFormats
 
 

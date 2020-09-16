@@ -10,13 +10,13 @@ import com.yahoo.maha.core.request._
 import org.apache.commons.lang3.StringUtils.EMPTY
 import org.joda.time.DateTimeZone
 import org.json4s.scalaz.JsonScalaz
-import org.scalatest.FlatSpec
+import org.scalatest.flatspec.AnyFlatSpec
 import scalaz.{IList, ValidationNel}
 
 /**
  * Created by jians on 10/5/15.
  */
-class ReportingRequestTest extends FlatSpec {
+class ReportingRequestTest extends AnyFlatSpec {
 
   implicit class IListExists(ilist: IList[JsonScalaz.Error]) {
     def exists(f : scala.Function1[JsonScalaz.Error, scala.Boolean]): Boolean  = {

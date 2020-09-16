@@ -4,12 +4,13 @@ package com.yahoo.maha.core
 
 import com.yahoo.maha.core.dimension.{ConstDimCol, DimCol, HivePartDimCol}
 import com.yahoo.maha.core.fact.{ConstFactCol, DruidConstDerFactCol, HiveDerFactCol, NoopRollup}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Created by shengyao on 2/9/16.
  */
-class ColumnTest extends FunSuite with Matchers {
+class ColumnTest extends AnyFunSuite with Matchers {
   test("register duplicate column in one column context should fail") {
     val thrown = intercept[IllegalArgumentException] {
       ColumnContext.withColumnContext {implicit cc : ColumnContext =>

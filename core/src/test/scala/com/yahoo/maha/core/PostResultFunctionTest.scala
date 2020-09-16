@@ -4,11 +4,12 @@ package com.yahoo.maha.core
 
 import com.yahoo.maha.core.DruidPostResultFunction.START_OF_THE_WEEK
 import com.yahoo.maha.core.query.{PostResultRowData, Row}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.mutable.ArrayBuffer
 
-class PostResultFunctionTest extends FunSuite with Matchers {
+class PostResultFunctionTest extends AnyFunSuite with Matchers {
 
   test("START_OF_THE_WEEK postresult column test") {
     ColumnContext.withColumnContext {implicit cc : ColumnContext =>

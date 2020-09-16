@@ -8,9 +8,11 @@ import cats.effect.IO
 import com.yahoo.maha.core.query.NumberTransformer
 import grizzled.slf4j.Logging
 import org.http4s.server.blaze.BlazeBuilder
-import org.scalatest._
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class HttpUtilsTest extends FunSuite with Matchers with BeforeAndAfterAll with Logging with TestWebService {
+class HttpUtilsTest extends AnyFunSuite with Matchers with BeforeAndAfterAll with Logging with TestWebService {
   val maxConnectionsPerHost:Int = 5
   val maxConnections:Int=50
   val connectionTimeout:Int=5000

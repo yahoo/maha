@@ -5,9 +5,10 @@ import java.util.TimeZone
 import com.yahoo.maha.core.DruidDerivedFunction._
 import org.joda.time.DateTimeZone
 import org.json4s.JObject
-import org.scalatest.{FunSuiteLike, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class DerivedFunctionTest extends FunSuiteLike with Matchers {
+class DerivedFunctionTest extends AnyFunSuite with Matchers {
   test("Create a DECODE_DIM failure cases") {
     val minLengthCatch = intercept[IllegalArgumentException] {
       new DECODE_DIM("fieldName", "tooFewArgs")

@@ -9,7 +9,9 @@ import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.request.ReportingRequest
 import com.yahoo.maha.core.{DefaultPartitionColumnRenderer, RequestModel, _}
 import com.yahoo.maha.executor.{MockDruidQueryExecutor, MockHiveQueryExecutor, MockOracleQueryExecutor}
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.BeforeAndAfterAll
 
 import scala.util.Try
 
@@ -43,7 +45,7 @@ object QueryPipelineWithFallbackTest {
 
 }
 
-class QueryPipelineWithFallbackTest extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema with BaseQueryContextTest {
+class QueryPipelineWithFallbackTest extends AnyFunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema with BaseQueryContextTest {
   private[this] def getDruidQueryGenerator() : DruidQueryGenerator = {
     new DruidQueryGenerator(new SyncDruidQueryOptimizer(), 40000)
   }

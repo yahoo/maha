@@ -10,12 +10,13 @@ import com.yahoo.maha.core.DailyGrain
 import com.yahoo.maha.jdbc.JdbcConnection
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.joda.time.{DateTime, DateTimeZone}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /*
     Created by pranavbhole on 8/29/18
 */
-trait BaseJobServiceTest extends FunSuite with Matchers {
+trait BaseJobServiceTest extends AnyFunSuite with Matchers {
 
   protected var dataSource: Option[HikariDataSource] = None
   protected var jdbcConnection: Option[JdbcConnection] = None

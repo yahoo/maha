@@ -6,7 +6,8 @@ package com.yahoo.maha.job.service
 import com.yahoo.maha.core._
 import com.yahoo.maha.job.service.JobStatus.JobStatus
 import org.joda.time.DateTime
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -15,7 +16,7 @@ import scala.concurrent.duration._
 /*
     Created by pranavbhole on 8/30/18
 */
-class JobMetadataTest extends FunSuite with Matchers {
+class JobMetadataTest extends AnyFunSuite with Matchers {
 
   class JobMetadataTest extends JobMetadata {
     def insertJob(job: Job): Future[Boolean] = {

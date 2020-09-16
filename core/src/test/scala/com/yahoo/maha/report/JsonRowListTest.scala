@@ -14,12 +14,13 @@ import com.yahoo.maha.core.query._
 import com.yahoo.maha.core.query.oracle.OracleQueryGenerator
 import com.yahoo.maha.core.registry.RegistryBuilder
 import com.yahoo.maha.core.request.ReportingRequest
-import org.scalatest.{BeforeAndAfterAll, FunSuite}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.funsuite.AnyFunSuite
 
 /**
  * Created by hiral on 5/6/16.
  */
-class JsonRowListTest extends FunSuite with BaseQueryGeneratorTest with SharedDimSchema with BeforeAndAfterAll {
+class JsonRowListTest extends AnyFunSuite with BaseQueryGeneratorTest with SharedDimSchema with BeforeAndAfterAll {
 
   override protected def beforeAll(): Unit = {
     OracleQueryGenerator.register(queryGeneratorRegistry,DefaultPartitionColumnRenderer)

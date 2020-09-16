@@ -5,7 +5,8 @@ package com.yahoo.maha.report
 import java.io.{Closeable, IOException}
 
 import org.mockito.Mockito._
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 /**
   * Created by hiral on 3/9/18.
   */
@@ -19,7 +20,7 @@ class FailCloseable extends Closeable {
     throw new IOException("fail")
   }
 }
-class SafeCloseableTest extends FunSuite with Matchers {
+class SafeCloseableTest extends AnyFunSuite with Matchers {
   def successWork(closeable: Closeable): Unit = {
     //success
   }

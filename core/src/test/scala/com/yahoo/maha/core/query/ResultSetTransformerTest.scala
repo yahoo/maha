@@ -1,9 +1,10 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core._
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class ResultSetTransformerTest extends FunSuite with Matchers{
+class ResultSetTransformerTest extends AnyFunSuite with Matchers{
   test("Create a ResultSetTransformer") {
     val rst = DateTransformer
     val bd = BigDecimal(10)

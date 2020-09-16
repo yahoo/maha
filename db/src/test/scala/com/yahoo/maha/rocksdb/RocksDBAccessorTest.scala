@@ -6,14 +6,16 @@ import java.util.concurrent.TimeUnit
 
 import com.yahoo.maha.serde.{LongSerDe, StringSerDe}
 import org.junit.Assert._
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.BeforeAndAfterAll
 
 import scala.collection.mutable
 
 /**
  * Created by surabhip on 3/10/16.
  */
-class RocksDBAccessorTest extends FunSuite with Matchers with BeforeAndAfterAll {
+class RocksDBAccessorTest extends AnyFunSuite with Matchers with BeforeAndAfterAll {
 
   private val rocksDBAccessor: RocksDBAccessor[String, String] = new RocksDBAccessorBuilder("testdb", Some("/tmp")).addKeySerDe(StringSerDe).addValSerDe(StringSerDe).toRocksDBAccessor
 

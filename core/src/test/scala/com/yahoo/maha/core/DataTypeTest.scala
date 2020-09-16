@@ -2,11 +2,12 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core
 
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 /**
  * Created by shengyao on 2/10/16.
  */
-class DataTypeTest extends FunSuite with Matchers {
+class DataTypeTest extends AnyFunSuite with Matchers {
   test("IntType should not have negative length") {
     val thrown1 = intercept[IllegalArgumentException] {
       IntType(-1)

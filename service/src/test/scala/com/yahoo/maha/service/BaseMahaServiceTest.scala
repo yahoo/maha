@@ -17,7 +17,7 @@ import grizzled.slf4j.Logging
 import org.apache.log4j.MDC
 import org.http4s.server.blaze.BlazeBuilder
 import org.joda.time.{DateTime, DateTimeZone}
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 import cats.effect.IO
 import org.http4s._
 import org.http4s.dsl.io._
@@ -25,7 +25,7 @@ import org.http4s.dsl.io._
 /**
  * Created by pranavbhole on 21/03/18.
  */
-trait BaseMahaServiceTest extends FunSuite with Logging {
+trait BaseMahaServiceTest extends AnyFunSuite with Logging {
   protected var dataSource: Option[HikariDataSource] = None
   protected var jdbcConnection: Option[JdbcConnection] = None
   protected val closer : Closer = Closer.create()
