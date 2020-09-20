@@ -2,12 +2,12 @@
 // Licensed under the terms of the Apache License 2.0. Please see LICENSE file in project root for terms.
 package com.yahoo.maha.core.lookup
 
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
 /**
  * Created by hiral on 3/31/16.
  */
-class LongRangeTest extends FunSuite{
+class LongRangeTest extends AnyFunSuite{
   val range = LongRange(10, 20)
   test("successfully test an element in range") {
     assert(range.inRange(10))

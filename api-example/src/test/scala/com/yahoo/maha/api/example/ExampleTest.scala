@@ -3,12 +3,12 @@
 package com.yahoo.maha.api.example
 
 import com.yahoo.maha.api.example.ExampleSchema.{StudentSchema, WikiSchema}
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
 /**
  * Created by pranavbhole on 24/10/17.
  */
-class ExampleTest extends FunSuite {
+class ExampleTest extends AnyFunSuite {
 
   test("Test for Example Test") {
     val mahaService = ExampleMahaService.getMahaService

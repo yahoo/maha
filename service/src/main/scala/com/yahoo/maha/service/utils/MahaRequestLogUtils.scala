@@ -47,13 +47,18 @@ trait BaseMahaRequestLogBuilder {
   def setJobIdString(jobIdStr: String)
 }
 
-trait CuratorMahaRequestLogBuilder extends BaseMahaRequestLogBuilder
+trait CuratorMahaRequestLogBuilder extends BaseMahaRequestLogBuilder {
+  def copy(curator: Curator): CuratorMahaRequestLogBuilder
+}
 
 trait MahaRequestLogBuilder extends BaseMahaRequestLogBuilder {
   def curatorLogBuilder(curator: Curator): CuratorMahaRequestLogBuilder
 }
 
-case class CuratorMahaRequestLogHelper(delegate: BaseMahaRequestLogBuilder) extends CuratorMahaRequestLogBuilder {
+case class CuratorMahaRequestLogHelper(delegate: MahaRequestLogBuilder) extends CuratorMahaRequestLogBuilder {
+  def copy(curator: Curator): CuratorMahaRequestLogBuilder = {
+    delegate.curatorLogBuilder(curator)
+  }
   override def logQueryPipeline(queryPipeline: QueryPipeline): Unit =
     delegate.logQueryPipeline(queryPipeline)
 

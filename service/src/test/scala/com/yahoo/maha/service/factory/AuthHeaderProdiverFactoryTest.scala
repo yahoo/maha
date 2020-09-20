@@ -3,9 +3,10 @@ package com.yahoo.maha.service.factory
 import com.yahoo.maha.executor.druid.NoopAuthHeaderProvider
 import com.yahoo.maha.service.{DefaultMahaServiceConfigContext, MahaServiceConfigContext}
 import org.json4s.jackson.JsonMethods.parse
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class AuthHeaderProdiverFactoryTest extends FunSuite with Matchers {
+class AuthHeaderProdiverFactoryTest extends AnyFunSuite with Matchers {
   test("shouldCreateValidNoopAuthHeaderProvider") {
     val jsonDef: String =
       s"""

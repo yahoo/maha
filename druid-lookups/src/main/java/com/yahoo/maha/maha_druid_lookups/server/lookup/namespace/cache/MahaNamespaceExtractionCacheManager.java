@@ -210,9 +210,9 @@ public abstract class MahaNamespaceExtractionCacheManager<U> {
             long waitForFirstRun
     ) {
         if (scheduleOrUpdate(id, namespace)) {
-            log.debug("Scheduled new namespace [%s]: %s", id, namespace);
+            log.info("Scheduled new namespace [%s]: %s", id, namespace);
         } else {
-            log.debug("Namespace [%s] already running: %s", id, namespace);
+            log.info("Namespace [%s] already running: %s", id, namespace);
         }
 
         final NamespaceImplData namespaceImplData = implData.get(id);

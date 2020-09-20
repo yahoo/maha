@@ -3,12 +3,12 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.core.dimension.DimCol
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
 /**
  * Created by vivekch on 2/24/16.
  */
-class HiveLiteralMapperTest extends FunSuite {
+class HiveLiteralMapperTest extends AnyFunSuite {
 
   val HiveLiteralMapper = new HiveLiteralMapper
 

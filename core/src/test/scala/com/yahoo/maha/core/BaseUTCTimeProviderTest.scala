@@ -5,12 +5,12 @@ package com.yahoo.maha.core
 import com.yahoo.maha.jdbc._
 import org.joda.time.{DateTime, DateTimeZone, Instant}
 import org.junit.Assert._
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
 /**
  * Created by hiral on 4/1/16.
  */
-class BaseUTCTimeProviderTest extends FunSuite {
+class BaseUTCTimeProviderTest extends AnyFunSuite {
   val baseUTCTimeProvider = new BaseUTCTimeProvider {}
 
   test("Case: Timezone: UTC - datetime between should pass through") {

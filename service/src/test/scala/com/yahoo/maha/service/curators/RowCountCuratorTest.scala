@@ -103,12 +103,12 @@ class RowCountCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val rowCountCurator = RowCountCurator()
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
-    val rowCountCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = rowCountCurator
+    val rowCountCuratorResult: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = rowCountCurator
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     assert(rowCountCuratorResult.isRight)
 
-    val parRequestCuratorResult = rowCountCuratorResult.right.get.get(1000)
+    val parRequestCuratorResult = rowCountCuratorResult.right.get.head.get(1000)
     assert(parRequestCuratorResult.isRight)
   }
 
@@ -154,12 +154,12 @@ class RowCountCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val rowCountCurator = RowCountCurator()
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
-    val rowCountCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = rowCountCurator
+    val rowCountCuratorResult: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = rowCountCurator
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     assert(rowCountCuratorResult.isRight)
 
-    val parRequestCuratorResult = rowCountCuratorResult.right.get.get(1000)
+    val parRequestCuratorResult = rowCountCuratorResult.right.get.head.get(1000)
     assert(parRequestCuratorResult.isRight)
   }
 
@@ -203,13 +203,13 @@ class RowCountCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val rowCountCurator = RowCountCurator()
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
-    val rowCountCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = rowCountCurator
+    val rowCountCuratorResult: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = rowCountCurator
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     assert(rowCountCuratorResult.isRight)
     val parReq = rowCountCuratorResult.right.get
 
-    val result = parReq.get(1000)
+    val result = parReq.head.get(1000)
     val parReqOption = result.right.get.parRequestResultOption
     assert(parReqOption.isDefined)
 
@@ -358,7 +358,7 @@ class RowCountCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val rowCountCurator = RowCountCurator()
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
-    val rowCountCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = rowCountCurator
+    val rowCountCuratorResult: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = rowCountCurator
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     assert(rowCountCuratorResult.isLeft)
@@ -406,7 +406,7 @@ class RowCountCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val rowCountCurator = RowCountCurator()
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
-    val rowCountCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = rowCountCurator
+    val rowCountCuratorResult: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = rowCountCurator
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     assert(rowCountCuratorResult.isLeft)
@@ -454,7 +454,7 @@ class RowCountCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val rowCountCurator = RowCountCurator(new BadTestRequestModelValidator)
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
 
-    val rowCountCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = rowCountCurator
+    val rowCountCuratorResult: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = rowCountCurator
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper, NoConfig, curatorInjector)
 
     assert(rowCountCuratorResult.isLeft)
@@ -508,12 +508,12 @@ class RowCountCuratorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val rowCountConfig: RowCountConfig = parseRowCountConfig.toOption.get.asInstanceOf[RowCountConfig]
 
     val curatorInjector = new CuratorInjector(2, mahaService, mahaRequestLogHelper, Set.empty)
-    val rowCountCuratorResult: Either[CuratorError, ParRequest[CuratorResult]] = rowCountCurator
+    val rowCountCuratorResult: Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = rowCountCurator
       .process(Map.empty, mahaRequestContext, mahaService, curatorMahaRequestLogHelper,rowCountConfig, curatorInjector)
 
     assert(rowCountCuratorResult.isRight)
 
-    val parRequestCuratorResult = rowCountCuratorResult.right.get.get(1000) //Should be CuratorResult Object
+    val parRequestCuratorResult = rowCountCuratorResult.right.get.head.get(1000) //Should be CuratorResult Object
     assert(parRequestCuratorResult.isRight)
   }
 }

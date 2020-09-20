@@ -3,12 +3,13 @@
 package com.yahoo.maha.core
 
 import org.apache.druid.jackson.DefaultObjectMapper
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Created by hiral on 10/12/15.
  */
-class ExpressionTest extends FunSuite with Matchers {
+class ExpressionTest extends AnyFunSuite with Matchers {
   
   val objectMapper = new DefaultObjectMapper()
 

@@ -12,11 +12,10 @@ import com.yahoo.maha.service.error.MahaServiceExecutionException
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.output.{JsonOutputFormat, StringStream}
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
-import org.apache.druid.common.config.NullHandling
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.scalatest.BeforeAndAfterAll
-import org.scalatest.Matchers._
+import org.scalatest.matchers.should.Matchers._
 
 class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll {
 
@@ -158,7 +157,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
-    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
+    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name).head.requestResult
 
     val requestResultString = defaultCuratorRequestResult.queryPipelineResult.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
 
@@ -215,7 +214,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
-    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
+    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name).head.requestResult
 
     val requestResultString = defaultCuratorRequestResult.queryPipelineResult.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
 
@@ -360,7 +359,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
-    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
+    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name).head.requestResult
 
     val defaultExpectedSet = Set(
       "Row(Map(Student ID -> 0, Class ID -> 1, Section ID -> 2, Total Marks -> 3),ArrayBuffer(213, 200, 100, 125))",
@@ -412,7 +411,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
-    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
+    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name).head.requestResult
 
     val defaultExpectedSet = Set(
       "Row(Map(Student ID -> 0, Section ID -> 1, Total Marks -> 2),ArrayBuffer(213, 100, 305))",
@@ -473,7 +472,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
-    val timeShiftCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(TimeShiftCurator.name)
+    val timeShiftCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(TimeShiftCurator.name).head.requestResult
 
     val expectedSeq = IndexedSeq(
       "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 199, 200, 175, 0, 100.0))",
@@ -537,7 +536,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
-    val timeShiftCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(TimeShiftCurator.name)
+    val timeShiftCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(TimeShiftCurator.name).head.requestResult
 
     val expectedSeq = IndexedSeq(
       "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(214, 198, 311, 180, 0, 100.0))",
@@ -602,7 +601,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
-    val timeShiftCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(TimeShiftCurator.name)
+    val timeShiftCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(TimeShiftCurator.name).head.requestResult
 
     val expectedSeq = IndexedSeq(
       "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 199, 200, 175, 0, 100.0))",
@@ -668,7 +667,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
-    val timeShiftCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(TimeShiftCurator.name)
+    val timeShiftCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(TimeShiftCurator.name).head.requestResult
 
     val expectedSeq = IndexedSeq(
       "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 200, 100, 125, 135, -7.41))",
@@ -734,7 +733,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
-    val timeShiftCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(TimeShiftCurator.name)
+    val timeShiftCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(TimeShiftCurator.name).head.requestResult
 
     val expectedSeq = IndexedSeq(
       "Row(Map(Total Marks Prev -> 4, Section ID -> 2, Total Marks Pct Change -> 5, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 199, 200, 175, 0, 100.0))",
@@ -903,7 +902,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
     assert(requestCoordinatorResult.failureResults.size === 1)
     assert(requestCoordinatorResult.failureResults.contains(FailingCurator.name))
-    assert(requestCoordinatorResult.failureResults(FailingCurator.name).error.message === "failed")
+    assert(requestCoordinatorResult.failureResults(FailingCurator.name).head.error.message === "failed")
   }
 
   test("successfully return result when par request for curator result returns error") {
@@ -953,7 +952,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
     assert(requestCoordinatorResult.failureResults.size === 1)
     assert(requestCoordinatorResult.failureResults.contains(FailingCurator.name))
-    assert(requestCoordinatorResult.failureResults(FailingCurator.name).error.message === "failed")
+    assert(requestCoordinatorResult.failureResults(FailingCurator.name).head.error.message === "failed")
   }
 
   test("successfully return result when par request for request result returns error") {
@@ -1003,7 +1002,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
     assert(requestCoordinatorResult.failureResults.size === 1)
     assert(requestCoordinatorResult.failureResults.contains(FailingCurator.name))
-    assert(requestCoordinatorResult.failureResults(FailingCurator.name).error.message === "failed")
+    assert(requestCoordinatorResult.failureResults(FailingCurator.name).head.error.message === "failed")
   }
 
   test("successfully return result when default curator process returns error") {
@@ -1099,7 +1098,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
-    val drillDownCuratorResult: RequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name)
+    val drillDownCuratorResult: RequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name).head.requestResult
     val expectedSet = Set(
       "Row(Map(Year -> 0, Remarks -> 1, Student ID -> 2, Total Marks -> 3),ArrayBuffer(Freshman, some comment 1, 213, 125))",
       "Row(Map(Year -> 0, Remarks -> 1, Student ID -> 2, Total Marks -> 3),ArrayBuffer(Freshman, some comment 2, 213, 180))",
@@ -1161,7 +1160,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
-    val drillDownCuratorResult: RequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name)
+    val drillDownCuratorResult: RequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name).head.requestResult
     val expectedSet = Set(
       "Row(Map(Remarks -> 0, Student ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 1, 213, 125))"
     )
@@ -1169,6 +1168,134 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     var cnt = 0
     drillDownCuratorResult.queryPipelineResult.rowList.foreach( row => {
       
+      assert(expectedSet.contains(row.toString))
+      cnt+=1
+    })
+
+    assert(expectedSet.size == cnt)
+  }
+
+  test("Test successful processing of Drilldown curator with primary key and no dims") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : {
+                                "dimension": "Remarks",
+                                "enforceFilters": true
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Section ID"},
+                            {"field": "Top Student ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "214"}
+                          ],
+                          "includeRowCount": false
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = ReportingRequest.enableDebug(reportingRequestResult.toOption.get)
+
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+    assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
+    assert(requestCoordinatorResult.successResults.contains(DrilldownCurator.name), requestCoordinatorResult.failureResults)
+    val drillDownCuratorResult: RequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name).head.requestResult
+    val expectedSet = Set(
+      "Row(Map(Remarks -> 0, Section ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 1, 311, 225))"
+      , "Row(Map(Remarks -> 0, Section ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 2, 311, 180))"
+      , "Row(Map(Remarks -> 0, Section ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 3, 311, 175))"
+    )
+
+    var cnt = 0
+    drillDownCuratorResult.queryPipelineResult.rowList.foreach( row => {
+
+      assert(expectedSet.contains(row.toString))
+      cnt+=1
+    })
+
+    assert(expectedSet.size == cnt)
+  }
+
+  test("Test successful processing of Drilldown curator with filters") {
+
+    //the Student ID filter in drill down should be ignored in favor of the same filter in outer query
+    val jsonRequest =
+      s"""{
+                          "cube": "student_performance",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : {
+                                "dimension": "Remarks",
+                                "enforceFilters": true,
+                                "filters": [{
+                                    "field": "Remarks",
+                                    "operator": "IN",
+                                    "values": ["some comment 1", "some comment 2"]
+                                }, {"field": "Student ID", "operator": "=", "value": "100"}]
+                              }
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Section ID"},
+                            {"field": "Top Student ID"},
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "214"}
+                          ],
+                          "includeRowCount": false
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = ReportingRequest.enableDebug(reportingRequestResult.toOption.get)
+
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true))
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+    assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
+    assert(requestCoordinatorResult.successResults.contains(DrilldownCurator.name), requestCoordinatorResult.failureResults)
+    val drillDownCuratorResult: RequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name).head.requestResult
+    val expectedSet = Set(
+      "Row(Map(Remarks -> 0, Section ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 1, 311, 225))"
+      , "Row(Map(Remarks -> 0, Section ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 2, 311, 180))"
+    )
+
+    var cnt = 0
+    drillDownCuratorResult.queryPipelineResult.rowList.foreach( row => {
+
       assert(expectedSet.contains(row.toString))
       cnt+=1
     })
@@ -1221,7 +1348,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
-    val drillDownCuratorResult: RequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name)
+    val drillDownCuratorResult: RequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name).head.requestResult
     val expectedSet = Set(
       "Row(Map(Remarks -> 0, Student ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 1, 213, 125))",
       "Row(Map(Remarks -> 0, Student ID -> 1, Total Marks -> 2),ArrayBuffer(some comment 2, 213, 180))",
@@ -1280,7 +1407,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
-    val drillDownError: CuratorError = requestCoordinatorResult.failureResults(DrilldownCurator.name)
+    val drillDownError: CuratorError = requestCoordinatorResult.failureResults(DrilldownCurator.name).head
     assert(drillDownError.error.message === """requirement failed: Primary key of most granular dim MUST be present in requested cols to join against : Student ID""")
   }
 
@@ -1326,7 +1453,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
-    val drillDownCuratorError: CuratorError = requestCoordinatorResult.failureResults(DrilldownCurator.name)
+    val drillDownCuratorError: CuratorError = requestCoordinatorResult.failureResults(DrilldownCurator.name).head
     assert(drillDownCuratorError.error.message.contains("Gender"))
   }
 
@@ -1371,7 +1498,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
-    val totalMetricsCuratorResult: RequestResult = requestCoordinatorResult.successResults(TotalMetricsCurator.name)
+    val totalMetricsCuratorResult: RequestResult = requestCoordinatorResult.successResults(TotalMetricsCurator.name).head.requestResult
     val expectedSet = Set("Row(Map(Total Marks -> 0),ArrayBuffer(480))")
 
     var cnt = 0
@@ -1426,7 +1553,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
-    val totalMetricsCuratorResult: RequestResult = requestCoordinatorResult.successResults(TotalMetricsCurator.name)
+    val totalMetricsCuratorResult: RequestResult = requestCoordinatorResult.successResults(TotalMetricsCurator.name).head.requestResult
     val expectedSet = Set("Row(Map(Total Marks -> 0),ArrayBuffer(480))")
 
     var cnt = 0
@@ -1477,8 +1604,8 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
 
     val requestCoordinatorResult: RequestCoordinatorResult = requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper).right.get.get().right.get
-    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name)
-    val rowcountCuratorRequestResult: CuratorError = requestCoordinatorResult.failureResults(RowCountCurator.name)
+    val defaultCuratorRequestResult: RequestResult = requestCoordinatorResult.successResults(DefaultCurator.name).head.requestResult
+    val rowcountCuratorRequestResult: CuratorError = requestCoordinatorResult.failureResults(RowCountCurator.name).head
 
     val defaultExpectedSet = Set(
       "Row(Map(Section ID -> 2, Student Name -> 4, Student ID -> 0, Total Marks -> 3, Class ID -> 1),ArrayBuffer(213, 200, 100, 99, ACTIVE))"
@@ -1577,7 +1704,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
 
-    val expectedJson = s"""{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}}"""
+    val expectedJson = s"""{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{"engineStats":[{"engine":"Oracle","tableName":"student_grade_sheet_again","queryTime":"""
     
 
     assert(result.contains(expectedJson))
@@ -1640,7 +1767,6 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
     val expectedJson = s"""{"message":"MahaServiceBadRequestException: requirement failed: Default revision not found for cube student_performance222 in the registry"}"""
     
-
     assert(result.contains(expectedJson))
   }
 
@@ -1677,7 +1803,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                         }"""
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
-    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
+    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = false)))
 
     // Revision 1 is druid + oracle case
     val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(10))
@@ -1696,7 +1822,8 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
     assert(requestCoordinatorResult.successResults.contains(DrilldownCurator.name))
 
-    val drillDownCuratorResult = requestCoordinatorResult.curatorResult(DrilldownCurator.name)
+    val drillDownCuratorAndRequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name).head
+    val drillDownCuratorResult = drillDownCuratorAndRequestResult.curatorResult
 
     val drillDownReportingRequest = drillDownCuratorResult.requestModelReference.model.reportingRequest
 
@@ -1712,7 +1839,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
 
 
-    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Performance Factor","fieldType":"FACT"}],"maxRows":200,"debug":{}},"rows":[[213,125,"ACTIVE",200,1.0]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[198,213,180],[199,213,175],[200,213,125]]}}}}"""
+    val expectedJson = s"""{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Student Name","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Performance Factor","fieldType":"FACT"}],"maxRows":200},"rows":[[213,125,"ACTIVE",200,1.0]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000},"rows":[[198,213,180],[199,213,175],[200,213,125]]}}}}"""
 
     assert(result === expectedJson)
   }
@@ -1769,7 +1896,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
     assert(requestCoordinatorResult.failureResults.contains(DrilldownCurator.name))
 
-    val drillDownCuratorResult = requestCoordinatorResult.failureResults(DrilldownCurator.name)
+    val drillDownCuratorResult = requestCoordinatorResult.failureResults(DrilldownCurator.name).head
     assert(drillDownCuratorResult.error.message.contains("requirement failed: Request must apply filters or enforce ReportingRequest input filters!  Check enforceFilters parameter value."))
   }
 
@@ -1802,7 +1929,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                         }"""
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
-    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
+    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = false)))
 
     // Revision 1 is druid + oracle case
     val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(10))
@@ -1821,7 +1948,8 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
     assert(requestCoordinatorResult.successResults.contains(DrilldownCurator.name))
 
-    val drillDownCuratorResult = requestCoordinatorResult.curatorResult(DrilldownCurator.name)
+    val drillDownCuratorAndRequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name).head
+    val drillDownCuratorResult = drillDownCuratorAndRequestResult.curatorResult
 
     val drillDownReportingRequest = drillDownCuratorResult.requestModelReference.model.reportingRequest
 
@@ -1837,8 +1965,227 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
 
 
-    val expectedJson = s"""{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200,"debug":{}},"rows":[[213,305,100],[213,175,200]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[null,0,305],[null,0,175]]}}}}"""
+    val expectedJson = s"""{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200},"rows":[[213,305,100],[213,175,200]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000},"rows":[[null,0,305],[null,0,175]]}}}}"""
 
+    assert(result === expectedJson)
+  }
+
+  test("DrillDown Curator should work correctly with multiple drilldown requests)") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance2",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : [{
+                                "enforceFilters": true,
+                                "dimension": "Section Status",
+                                "cube": "student_performance2",
+                                "facts": [{"field": "Marks Obtained"}],
+                                "additiveFacts": true
+                              },
+                              {
+                                "enforceFilters": true,
+                                "dimension": "Section Start Year",
+                                "cube": "student_performance2",
+                                "facts": [{"field": "Marks Obtained"}],
+                                "additiveFacts": false
+                              }]
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Total Marks"},
+                            {"field": "Section ID"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                          "includeRowCount": false
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = false)))
+
+    // Revision 1 is druid + oracle case
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(10))
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+
+    assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
+    assert(requestCoordinatorResult.successResults.contains(DrilldownCurator.name))
+
+    //this checks first request
+    val drillDownCuratorAndRequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name).head
+    val drillDownCuratorResult = drillDownCuratorAndRequestResult.curatorResult
+
+    val drillDownReportingRequest = drillDownCuratorResult.requestModelReference.model.reportingRequest
+
+    assert(drillDownReportingRequest.sortBy.size == 1)
+    assert(drillDownReportingRequest.sortBy.map(_.field).contains("Total Marks"))
+
+    //this checks second request
+    val drillDownCuratorAndRequestResult2 = requestCoordinatorResult.successResults(DrilldownCurator.name).last
+    val drillDownCuratorResult2 = drillDownCuratorAndRequestResult2.curatorResult
+
+    val drillDownReportingRequest2 = drillDownCuratorResult2.requestModelReference.model.reportingRequest
+
+    assert(drillDownReportingRequest2.sortBy.isEmpty)
+
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
+
+    val stringStream =  new StringStream()
+
+    jsonStreamingOutput.writeStream(stringStream)
+    val result = stringStream.toString()
+    val expectedJson = """{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200},"rows":[[213,305,100],[213,175,200]],"curators":{"drilldown":{"results":[{"index":0,"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Marks Obtained","fieldType":"FACT"}],"maxRows":1000},"rows":[[null,0,305,305],[null,0,175,175]]},{"index":1,"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Start Year","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Marks Obtained","fieldType":"FACT"}],"maxRows":1000},"rows":[[0,0,305],[0,0,175]]}]}}}"""
+    assert(result === expectedJson)
+  }
+
+  test("DrillDown Curator should work correctly with multiple drilldown requests with some failed)") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance2",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : [{
+                                "enforceFilters": true,
+                                "dimension": "Section Status",
+                                "cube": "student_performance2"
+                              },
+                              {
+                                "enforceFilters": true,
+                                "dimension": "Section Start Year",
+                                "cube": "student_performance222"
+                              }]
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Student ID"},
+                            {"field": "Total Marks"},
+                            {"field": "Section ID"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                          "includeRowCount": false
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = false)))
+
+    // Revision 1 is druid + oracle case
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(10))
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+
+    assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
+    assert(requestCoordinatorResult.successResults.contains(DrilldownCurator.name))
+
+    val drillDownCuratorAndRequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name).head
+    val drillDownCuratorResult = drillDownCuratorAndRequestResult.curatorResult
+
+    val drillDownReportingRequest = drillDownCuratorResult.requestModelReference.model.reportingRequest
+
+    assert(drillDownReportingRequest.sortBy.size == 1)
+    assert(drillDownReportingRequest.sortBy.map(_.field).contains("Total Marks"))
+
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
+
+    val stringStream =  new StringStream()
+
+    jsonStreamingOutput.writeStream(stringStream)
+    val result = stringStream.toString()
+
+
+
+    val expectedJson = """{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200},"rows":[[213,305,100],[213,175,200]],"curators":{"drilldown":{"results":[{"index":0,"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000},"rows":[[null,0,305],[null,0,175]]}],"errors":[{"index":1,"message":"MahaServiceBadRequestException: requirement failed: Default revision not found for cube student_performance222 in the registry"}]}}}""".stripMargin
+    assert(result === expectedJson)
+  }
+
+  test("DrillDown Curator should fail with no most granular key") {
+
+    val jsonRequest = s"""{
+                          "cube": "student_performance2",
+                          "curators" : {
+                            "drilldown" : {
+                              "config" : [{
+                                "enforceFilters": true,
+                                "dimension": "Section Status",
+                                "cube": "student_performance2"
+                              }]
+                            }
+                          },
+                          "selectFields": [
+                            {"field": "Total Marks"}
+                          ],
+                          "sortBy": [
+                            {"field": "Total Marks", "order": "Desc"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                            {"field": "Student ID", "operator": "=", "value": "213"}
+                          ],
+                          "includeRowCount": false
+                        }"""
+    val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
+    require(reportingRequestResult.isSuccess)
+    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = false)))
+
+    // Revision 1 is druid + oracle case
+    val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(10))
+
+    val mahaRequestContext = MahaRequestContext(REGISTRY,
+      bucketParams,
+      reportingRequest,
+      jsonRequest.getBytes,
+      Map.empty, "rid", "uid")
+    val mahaRequestLogHelper = MahaRequestLogHelper(mahaRequestContext, mahaServiceConfig.mahaRequestLogWriter)
+
+    val requestCoordinator: RequestCoordinator = DefaultRequestCoordinator(mahaService)
+
+    val requestCoordinatorResult: RequestCoordinatorResult = getRequestCoordinatorResult(requestCoordinator.execute(mahaRequestContext, mahaRequestLogHelper))
+
+    assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
+    assert(requestCoordinatorResult.failureResults.contains(DrilldownCurator.name))
+
+    val drillDownError = requestCoordinatorResult.failureResults(DrilldownCurator.name).head
+
+    assert(drillDownError.error.message === "no primary key alias found in request", drillDownError.error)
+
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
+
+    val stringStream =  new StringStream()
+
+    jsonStreamingOutput.writeStream(stringStream)
+    val result = stringStream.toString()
+
+    val expectedJson = """{"header":{"cube":"student_performance2","fields":[{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":200},"rows":[[480]],"curators":{"drilldown":{"error":{"message":"MahaServiceBadRequestException: No primary key alias found in request"}}}}""".stripMargin
     assert(result === expectedJson)
   }
 
@@ -1871,7 +2218,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                         }"""
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
-    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
+    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = false)))
 
     // Revision 1 is druid + oracle case
     val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(10))
@@ -1890,7 +2237,8 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
     assert(requestCoordinatorResult.successResults.contains(DrilldownCurator.name))
 
-    val drillDownCuratorResult = requestCoordinatorResult.curatorResult(DrilldownCurator.name)
+    val drillDownCuratorAndRequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name).head
+    val drillDownCuratorResult = drillDownCuratorAndRequestResult.curatorResult
 
     val drillDownReportingRequest = drillDownCuratorResult.requestModelReference.model.reportingRequest
 
@@ -1906,7 +2254,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
 
 
-    val expectedJson = s"""{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200,"debug":{}},"rows":[],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[]}}}}"""
+    val expectedJson = s"""{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200},"rows":[],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000},"rows":[]}}}}"""
 
     assert(result === expectedJson)
   }
@@ -1941,7 +2289,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
                         }"""
     val reportingRequestResult = ReportingRequest.deserializeSyncWithFactBias(jsonRequest.getBytes, schema = StudentSchema)
     require(reportingRequestResult.isSuccess)
-    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = true)))
+    val reportingRequest = reportingRequestResult.toOption.get.copy(additionalParameters = Map(Parameter.Debug -> DebugValue(value = false)))
 
     // Revision 1 is druid + oracle case
     val bucketParams = BucketParams(UserInfo("uid", isInternal = true), forceRevision = Some(10))
@@ -1960,7 +2308,8 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
     assert(requestCoordinatorResult.successResults.contains(DefaultCurator.name))
     assert(requestCoordinatorResult.successResults.contains(DrilldownCurator.name))
 
-    val drillDownCuratorResult = requestCoordinatorResult.curatorResult(DrilldownCurator.name)
+    val drillDownCuratorAndRequestResult = requestCoordinatorResult.successResults(DrilldownCurator.name).head
+    val drillDownCuratorResult = drillDownCuratorAndRequestResult.curatorResult
 
     val drillDownReportingRequest = drillDownCuratorResult.requestModelReference.model.reportingRequest
 
@@ -1976,7 +2325,7 @@ class RequestCoordinatorTest extends BaseMahaServiceTest with BeforeAndAfterAll 
 
 
 
-    val expectedJson = s"""{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200,"debug":{}},"rows":[[213,175,200]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000,"debug":{}},"rows":[[null,0,175]]}}}}"""
+    val expectedJson = s"""{"header":{"cube":"student_performance2","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Section ID","fieldType":"DIM"}],"maxRows":200},"rows":[[213,175,200]],"curators":{"drilldown":{"result":{"header":{"cube":"student_performance2","fields":[{"fieldName":"Section Status","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"}],"maxRows":1000},"rows":[[null,0,175]]}}}}"""
 
     assert(result === expectedJson)
   }

@@ -6,14 +6,16 @@ import java.sql.{Date, ResultSet, Timestamp}
 import java.util.UUID
 
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.BeforeAndAfterAll
 
 import scala.util.Try
 
 /**
   * Created by hiral on 1/26/16.
   */
-class JdbcConnectionTest extends FunSuite with Matchers with BeforeAndAfterAll {
+class JdbcConnectionTest extends AnyFunSuite with Matchers with BeforeAndAfterAll {
   private var dataSource: HikariDataSource = null
   private var jdbcConnection: JdbcConnection = null
   private val staticTimestamp = System.currentTimeMillis()

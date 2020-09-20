@@ -13,6 +13,7 @@ import com.yahoo.maha.core.request.{BaseRequest, ReportingRequest, RequestContex
 import com.yahoo.maha.core.{Schema, _}
 import com.yahoo.maha.parrequest2.GeneralError
 import com.yahoo.maha.service._
+import com.yahoo.maha.service.output.{DebugRenderer, NoopDebugRenderer}
 import com.yahoo.maha.service.utils.MahaConstants
 import grizzled.slf4j.Logging
 import org.apache.commons.io.IOUtils
@@ -24,13 +25,21 @@ import scala.util.Try
 
 @Path("/registry")
 @Component
-class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestValidator: RequestValidator) extends Logging {
+class MahaResource(mahaService: MahaService
+                   , baseRequest: BaseRequest
+                   , requestValidator: RequestValidator
+                   , mahaRequestContextBuilder: MahaRequestContextBuilder
+                   , debugRenderer: DebugRenderer = new NoopDebugRenderer
+                   , debugUserListCSV: String = ""
+                  ) extends Logging {
 
+  private[this] val debugUsers: Set[String] = debugUserListCSV.split(",").toSet
   private[this] val defaultRequestCoordinator = DefaultRequestCoordinator(mahaService)
   private[this] val mahaRequestProcessorFactory = MahaSyncRequestProcessorFactory(defaultRequestCoordinator
     , mahaService
     , mahaService.mahaRequestLogWriter
     , mahaServiceMonitor = DefaultMahaServiceMonitor)
+  private[this] val defaultDebugRenderer = Option(debugRenderer)
 
 
   @GET
@@ -99,7 +108,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestVa
   @Consumes(Array(MediaType.APPLICATION_JSON))
   def query(@PathParam("registryName") registryName: String,
             @PathParam("schema") schema: String,
-            @QueryParam("debug") @DefaultValue("false") debug: Boolean,
+            @QueryParam("debug") @DefaultValue("false") requestDebug: Boolean,
             @QueryParam("forceEngine") forceEngine: String,
             @QueryParam("forceRevision") forceRevision: Int,
             @QueryParam("testName") testName: String,
@@ -108,6 +117,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestVa
             @Context containerRequestContext: ContainerRequestContext,
             @Suspended response: AsyncResponse) : Unit = {
 
+    val requestStartTime = System.currentTimeMillis()
     info(s"registryName: $registryName, schema: $schema, forceEngine: $forceEngine, forceRevision: $forceRevision")
     val schemaOption: Option[Schema] = Schema.withNameInsensitiveOption(schema)
 
@@ -117,6 +127,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestVa
 
     val userId: String = Option(MDC.get(MahaConstants.USER_ID)).getOrElse("unknown")
     val requestId: String = Option(MDC.get(MahaConstants.REQUEST_ID)).getOrElse(UUID.randomUUID().toString)
+    val debug: Boolean = if(requestDebug) requestDebug else debugUsers(userId)
     val (reportingRequest: ReportingRequest, rawJson: Array[Byte]) = createReportingRequest(
       requestId
       , userId
@@ -130,14 +141,14 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestVa
 
     val bucketParams: BucketParams = BucketParams(UserInfo(userId, Try(MDC.get(MahaConstants.IS_INTERNAL).toBoolean).getOrElse(false)), forceRevision = Option(forceRevision))
 
-    val mahaRequestContext: MahaRequestContext = MahaRequestContext(registryName
-      , bucketParams, reportingRequest, rawJson, Map.empty, requestId, userId)
+    val mahaRequestContext: MahaRequestContext = mahaRequestContextBuilder.build(registryName
+      , bucketParams, reportingRequest, rawJson, requestId, userId, requestStartTime = requestStartTime, containerRequestContext)
     requestValidator.validate(mahaRequestContext, containerRequestContext)
     val mahaRequestProcessor: MahaSyncRequestProcessor = mahaRequestProcessorFactory
       .create(mahaRequestContext, MahaServiceConstants.MahaRequestLabel)
 
     mahaRequestProcessor.onSuccess((requestCoordinatorResult: RequestCoordinatorResult) => {
-      response.resume(new JsonStreamingOutput(requestCoordinatorResult))
+      response.resume(new JsonStreamingOutput(requestCoordinatorResult, debugRenderer = defaultDebugRenderer))
     })
 
     mahaRequestProcessor.onFailure((ge: GeneralError) => {
@@ -185,6 +196,7 @@ class MahaResource(mahaService: MahaService, baseRequest: BaseRequest, requestVa
             case DruidEngine => ReportingRequest.forceDruid(withDebug)
             case HiveEngine => ReportingRequest.forceHive(withDebug)
             case PrestoEngine => ReportingRequest.forcePresto(withDebug)
+            case PostgresEngine => ReportingRequest.forcePostgres(withDebug)
             case _ => withDebug
           }
         } else {

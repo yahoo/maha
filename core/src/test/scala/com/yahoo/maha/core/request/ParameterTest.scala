@@ -6,14 +6,15 @@ import com.yahoo.maha.core.request.ReportFormatType.CSVFormat
 import com.yahoo.maha.core.{Engine, HiveEngine}
 import org.json4s._
 import org.json4s.jackson.JsonMethods
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.mutable.HashMap
 
 /**
  * Created by huizhang on 11/18/16.
  */
-class ParameterTest extends FunSuite with Matchers {
+class ParameterTest extends AnyFunSuite with Matchers {
 
   test("SerializeParameters should serialize a map of parameters into a List") {
     val map_parameters = new HashMap[Parameter, ParameterValue[_]]

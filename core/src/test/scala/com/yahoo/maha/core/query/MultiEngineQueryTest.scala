@@ -3,12 +3,13 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core.{DruidEngine, OracleEngine}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Created by hiral on 2/18/16.
  */
-class MultiEngineQueryTest extends FunSuite with Matchers with BaseQueryGeneratorTest with SharedDimSchema with BaseQueryContextTest with BaseQueryChainTest {
+class MultiEngineQueryTest extends AnyFunSuite with Matchers with BaseQueryGeneratorTest with SharedDimSchema with BaseQueryContextTest with BaseQueryChainTest {
 
   test("successfully run multi engine query") {
     val model = getRequestModel(combinedQueryJson)

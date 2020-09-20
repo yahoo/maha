@@ -5,7 +5,8 @@ package com.yahoo.maha.service.factory
 import com.yahoo.maha.core.query.druid.{AsyncDruidQueryOptimizer, SyncDruidQueryOptimizer}
 import com.yahoo.maha.service.{DefaultMahaServiceConfigContext, MahaServiceConfigContext}
 import org.json4s.jackson.JsonMethods._
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Created by pranavbhole on 31/05/17.

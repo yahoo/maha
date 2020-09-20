@@ -11,6 +11,8 @@
     <bean id="baseRequest" class="com.yahoo.maha.api.jersey.example.ExampleRequest" factory-method="getRequest"/>
     <bean id="exceptionHandler" class="com.yahoo.maha.api.jersey.GenericExceptionMapper" scope="singleton" />
     <bean id="requestValidator" class="com.yahoo.maha.api.jersey.NoopRequestValidator"/>
+    <bean id="debugRenderer" class="com.yahoo.maha.service.output.NoopDebugRenderer"/>
+    <bean id="mahaRequestContextBuilder" class="com.yahoo.maha.api.jersey.DefaultMahaRequestContextBuilder"/>
     <import resource="classpath:maha-jersey-context.xml" />
 
 </beans>

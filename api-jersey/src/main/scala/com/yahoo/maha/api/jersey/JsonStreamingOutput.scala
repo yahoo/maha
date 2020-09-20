@@ -3,17 +3,17 @@
 package com.yahoo.maha.api.jersey
 
 import java.io.OutputStream
-import javax.ws.rs.core.StreamingOutput
 
+import javax.ws.rs.core.StreamingOutput
 import com.yahoo.maha.core._
 import com.yahoo.maha.service.RequestCoordinatorResult
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
-import com.yahoo.maha.service.output.JsonOutputFormat
+import com.yahoo.maha.service.output.{DebugRenderer, JsonOutputFormat}
 
-class JsonStreamingOutput(override val requestCoordinatorResult: RequestCoordinatorResult,
-                               override val ingestionTimeUpdaterMap : Map[Engine, IngestionTimeUpdater] = Map.empty
-                              ) extends JsonOutputFormat(requestCoordinatorResult, ingestionTimeUpdaterMap) with StreamingOutput {
-
+class JsonStreamingOutput(override val requestCoordinatorResult: RequestCoordinatorResult
+                          , override val ingestionTimeUpdaterMap: Map[Engine, IngestionTimeUpdater] = Map.empty
+                          , override val debugRenderer: Option[DebugRenderer] = None
+                         ) extends JsonOutputFormat(requestCoordinatorResult, ingestionTimeUpdaterMap, debugRenderer) with StreamingOutput {
 
   override def write(outputStream: OutputStream): Unit = {
     writeStream(outputStream)

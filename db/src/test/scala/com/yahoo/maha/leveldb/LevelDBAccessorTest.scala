@@ -4,14 +4,16 @@ package com.yahoo.maha.leveldb
 
 import com.yahoo.maha.serde.StringSerDe
 import org.junit.Assert._
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.mutable
 
 /**
  * Created by surabhip on 3/10/16.
  */
-class LevelDBAccessorTest extends FunSuite with Matchers with BeforeAndAfterAll {
+class LevelDBAccessorTest extends AnyFunSuite with Matchers with BeforeAndAfterAll {
 
   private val levelDBAccessor: LevelDBAccessor[String, String] = new LevelDBAccessorBuilder("testdb", Some("/tmp")).addKeySerDe(StringSerDe).addValSerDe(StringSerDe).toLevelDBAccessor
 

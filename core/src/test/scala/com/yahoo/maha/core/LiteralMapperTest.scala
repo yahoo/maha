@@ -1,9 +1,10 @@
 package com.yahoo.maha.core
 
 import com.yahoo.maha.core.dimension.DimCol
-import org.scalatest.{FunSuiteLike, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class LiteralMapperTest extends FunSuiteLike with Matchers {
+class LiteralMapperTest extends AnyFunSuite with Matchers {
   test("Test DruidLiteralMapper ") {
     val druidMapper = new DruidLiteralMapper
 

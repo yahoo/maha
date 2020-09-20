@@ -1,8 +1,9 @@
 package com.yahoo.maha.core
 
-import org.scalatest.{FunSuiteLike, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class EngineTest extends FunSuiteLike with Matchers{
+class EngineTest extends AnyFunSuite with Matchers{
   test("Ensure a valid return in Engine.from(String)") {
     val p = Engine.from("presto")
     assert(p.get.equals(PrestoEngine))

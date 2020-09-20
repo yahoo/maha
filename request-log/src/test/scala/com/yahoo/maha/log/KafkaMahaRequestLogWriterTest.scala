@@ -17,7 +17,9 @@ import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.common.security.auth.SecurityProtocol
 import org.apache.kafka.common.utils.Time
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.BeforeAndAfterAll
 
 import scala.collection.JavaConverters._
 import org.mockito.Mockito._
@@ -29,7 +31,7 @@ import scala.concurrent.ExecutionException
 /**
  * Created by pranavbhole on 16/08/17.
  */
-class KafkaMahaRequestLogWriterTest extends FunSuite with Matchers with BeforeAndAfterAll with Logging {
+class KafkaMahaRequestLogWriterTest extends AnyFunSuite with Matchers with BeforeAndAfterAll with Logging {
 
   private[this] val fromDate = "2016-02-07"
   private[this] val toDate = "2016-02-12"

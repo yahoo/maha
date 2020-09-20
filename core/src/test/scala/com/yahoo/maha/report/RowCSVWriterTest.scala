@@ -5,7 +5,8 @@ package com.yahoo.maha.report
 import java.io._
 
 import com.yahoo.maha.core.query.Row
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -13,7 +14,7 @@ import scala.collection.mutable.ArrayBuffer
   * Created by Ravi on 01/29/2016
   */
 
-class RowCSVWriterTest extends FunSuite with Matchers {
+class RowCSVWriterTest extends AnyFunSuite with Matchers {
 
   /**
     * Test the isNumeric function of RowCSVWriter. isNumeric should return true for all numbers.

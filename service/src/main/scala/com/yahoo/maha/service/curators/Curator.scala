@@ -16,12 +16,13 @@ import org.json4s.scalaz.JsonScalaz
 import scala.util.Try
 import scalaz.{NonEmptyList, Validation}
 
-case class CuratorError(curator: Curator, curatorConfig: CuratorConfig, error: GeneralError)
+case class CuratorError(curator: Curator, curatorConfig: CuratorConfig, error: GeneralError, index: Option[Int] = None)
   extends GeneralError(error.stage, error.message, error.throwableOption)
 case class CuratorResult(curator: Curator
                          , curatorConfig: CuratorConfig
                          , parRequestResultOption: Option[ParRequestResult]
                          , requestModelReference: RequestModelResult
+                         , index: Option[Int] = None
                         )
 
 trait CuratorConfig
@@ -29,44 +30,62 @@ object NoConfig extends CuratorConfig
 
 trait Curator extends Ordered[Curator] {
   def name: String
+
   def level: Int
+
   def priority: Int
-  def process(resultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]]
+
+  def process(resultMap: Map[String, Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]]
               , mahaRequestContext: MahaRequestContext
               , mahaService: MahaService
               , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
               , curatorConfig: CuratorConfig
               , curatorInjector: CuratorInjector
-             ) : Either[CuratorError, ParRequest[CuratorResult]]
+             ): Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]
+
   def compare(that: Curator) = {
-    if(this.level == that.level) {
+    if (this.level == that.level) {
       Integer.compare(this.priority, that.priority)
     } else Integer.compare(this.level, that.level)
   }
+
   def isSingleton: Boolean
+
   def requiresDefaultCurator: Boolean
+
   def parseConfig(config: CuratorJsonConfig): Validation[NonEmptyList[JsonScalaz.Error], CuratorConfig] = {
     import scalaz.syntax.validation._
     NoConfig.successNel
   }
+
   protected def requestModelValidator: CuratorRequestModelValidator
+
   protected def curatorResultPostProcessor: CuratorResultPostProcessor = NoopCuratorResultPostProcessor
+
   protected def withResult(label: String, parallelServiceExecutor: ParallelServiceExecutor
-                                , curatorResult: CuratorResult): Either[CuratorError, ParRequest[CuratorResult]] = {
-    new Right(parallelServiceExecutor.immediateResult(label, new Right(curatorResult)))
+                           , curatorResult: CuratorResult): Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = {
+    new Right(IndexedSeq(parallelServiceExecutor.immediateResult(label, new Right(curatorResult))))
   }
-  protected def withError(curatorConfig: CuratorConfig, error: GeneralError): Either[CuratorError, ParRequest[CuratorResult]] = {
+
+  protected def withError(curatorConfig: CuratorConfig, error: GeneralError): Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = {
     new Left(CuratorError(this, curatorConfig, error))
   }
+
   protected def withRequestResultError(curatorConfig: CuratorConfig, error: GeneralError): Either[CuratorError, RequestResult] = {
     new Left(CuratorError(this, curatorConfig, error))
   }
+
   protected def withParResult(label: String
-                              , parResult: ParRequest[CuratorResult]): Either[CuratorError, ParRequest[CuratorResult]] = {
-    new Right(parResult)
+                              , parResult: ParRequest[CuratorResult]): Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = {
+    new Right(IndexedSeq(parResult))
   }
-  protected def withParRequestError(curatorConfig: CuratorConfig, error: GeneralError): Either[GeneralError, CuratorResult] = {
+
+  protected def withParRequestError[T](curatorConfig: CuratorConfig, error: GeneralError): Either[GeneralError, T] = {
     new Left(CuratorError(this, curatorConfig, error))
+  }
+
+  protected def withParRequestError[T](curatorConfig: CuratorConfig, error: GeneralError, idx: Int): Either[GeneralError, T] = {
+    new Left(CuratorError(this, curatorConfig, error, Option(idx)))
   }
 }
 
@@ -104,13 +123,13 @@ case class DefaultCurator(protected val requestModelValidator: CuratorRequestMod
   override val isSingleton: Boolean = false
   override val requiresDefaultCurator: Boolean = false
 
-  override def process(resultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]]
+  override def process(resultMap: Map[String, Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]]
                        , mahaRequestContext: MahaRequestContext
                        , mahaService: MahaService
                        , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
                        , curatorConfig: CuratorConfig
                        , curatorInjector: CuratorInjector
-                      ) : Either[CuratorError, ParRequest[CuratorResult]] = {
+                      ) : Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = {
 
     val parallelServiceExecutor = mahaService.getParallelServiceExecutor(mahaRequestContext)
     val parRequestLabel = "processDefaultCurator"
@@ -231,13 +250,13 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
       .leftMap[JsonScalaz.Error](t => JsonScalaz.UncategorizedError("parseRowCountConfigValidation", t.getMessage, List.empty)).toValidationNel
   }
 
-  override def process(resultMap: Map[String, Either[CuratorError, ParRequest[CuratorResult]]]
+  override def process(resultMap: Map[String, Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]]]
                          , mahaRequestContext: MahaRequestContext
                          , mahaService: MahaService
                          , mahaRequestLogBuilder: CuratorMahaRequestLogBuilder
                          , curatorConfig: CuratorConfig
                          , curatorInjector: CuratorInjector
-                        ) : Either[CuratorError, ParRequest[CuratorResult]] = {
+                        ) : Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = {
     val parallelServiceExecutor = mahaService.getParallelServiceExecutor(mahaRequestContext)
     val parRequestLabel = "processTotalRows"
 
@@ -394,7 +413,7 @@ case class RowCountCurator(protected val requestModelValidator: CuratorRequestMo
                                      , rowCountRequestTry: Try[ReportingRequest]
                                      , curatorConfig: CuratorConfig
                                      , requestModelResult: RequestModelResult
-                                    ): Either[CuratorError, ParRequest[CuratorResult]] = {
+                                    ): Either[CuratorError, IndexedSeq[ParRequest[CuratorResult]]] = {
     if (rowCountRequestTry.isFailure) {
       val exception = rowCountRequestTry.failed.get
       val message = "total rows request failed to generate"

@@ -13,13 +13,15 @@ import com.yahoo.maha.core.lookup.LongRangeLookup
 import com.yahoo.maha.core.query.{BaseQueryGeneratorTest, SharedDimSchema}
 import com.yahoo.maha.core.registry.{Registry, RegistryBuilder}
 import com.yahoo.maha.core.request.{AsyncRequest, SyncRequest}
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.BeforeAndAfterAll
 
 /**
  * Created by hiral on 1/19/16.
  */
 trait BasePrestoQueryGeneratorTest
-  extends FunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema {
+  extends AnyFunSuite with Matchers with BeforeAndAfterAll with BaseQueryGeneratorTest with SharedDimSchema {
 
   override protected def beforeAll(): Unit = {
     PrestoQueryGenerator.register(queryGeneratorRegistry, DefaultPartitionColumnRenderer, TestPrestoUDFRegistrationFactory())

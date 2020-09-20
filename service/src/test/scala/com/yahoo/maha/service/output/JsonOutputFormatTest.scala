@@ -4,6 +4,7 @@ package com.yahoo.maha.service.output
 
 import java.util.Date
 
+import com.fasterxml.jackson.core.JsonGenerator
 import com.yahoo.maha.core.bucketing.{BucketParams, UserInfo}
 import com.yahoo.maha.core.query.{CompleteRowList, QueryAttributes, QueryPipelineResult, QueryRowList}
 import com.yahoo.maha.core.request.{ReportingRequest, RowCountQuery}
@@ -13,7 +14,7 @@ import com.yahoo.maha.service.curators._
 import com.yahoo.maha.service.datasource.IngestionTimeUpdater
 import com.yahoo.maha.service.example.ExampleSchema.StudentSchema
 import com.yahoo.maha.service.utils.MahaRequestLogHelper
-import com.yahoo.maha.service.{BaseMahaServiceTest, CuratorInjector, MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
+import com.yahoo.maha.service.{BaseMahaServiceTest, CuratorAndRequestResult, CuratorInjector, MahaRequestContext, ParRequestResult, RequestCoordinatorResult, RequestResult}
 import org.json4s.JsonAST.{JInt, JObject}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should
@@ -113,6 +114,15 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     override val isSingleton = false
   }
 
+  class TestDebugRenderer extends DebugRenderer {
+    override def render(mahaRequestContext: MahaRequestContext, jsonGenerator: JsonGenerator): Unit = {
+      jsonGenerator.writeFieldName("debug")
+      jsonGenerator.writeBoolean(true)
+    }
+  }
+
+  val debugRenderer = Option(new TestDebugRenderer)
+
   test("Test JsonOutputFormat with DefaultCurator, totalRow Option, empty curator result") {
 
     val rowList = CompleteRowList(query)
@@ -134,12 +144,15 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val curatorResult = CuratorResult(defaultCurator, NoConfig, Option(parRequestResult), requestModelResult)
 
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator)
-      , Map(DefaultCurator.name -> curatorResult)
-      , Map.empty, Map(DefaultCurator.name -> curatorResult.parRequestResultOption.get.prodRun.get().right.get)
+      , Map.empty
+      , Map(DefaultCurator.name -> IndexedSeq(CuratorAndRequestResult(curatorResult
+        , curatorResult.parRequestResultOption.get.prodRun.get().right.get)))
       , mahaRequestContext)
 
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult
-      , Map(OracleEngine -> TestOracleIngestionTimeUpdater(OracleEngine, "testSource")))
+      , Map(OracleEngine -> TestOracleIngestionTimeUpdater(OracleEngine, "testSource"))
+      , debugRenderer
+    )
 
     val stringStream = new StringStream()
 
@@ -187,13 +200,12 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val curatorResults = IndexedSeq(curatorResult1, curatorResult2)
 
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator, testCurator)
-      , Map(DefaultCurator.name -> curatorResult1, curatorResult2.curator.name -> curatorResult2)
       , Map.empty
-      , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get
-        , "TestCurator" -> curatorResult2.parRequestResultOption.get.prodRun.get().right.get
+      , Map(DefaultCurator.name -> IndexedSeq(CuratorAndRequestResult(curatorResult1, curatorResult1.parRequestResultOption.get.prodRun.get().right.get))
+        , "TestCurator" -> IndexedSeq(CuratorAndRequestResult(curatorResult2, curatorResult2.parRequestResultOption.get.prodRun.get().right.get))
       )
       , mahaRequestContext)
-    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult, debugRenderer = Option(new NoopDebugRenderer))
 
     val stringStream = new StringStream()
 
@@ -229,9 +241,8 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val curatorResults = IndexedSeq(curatorResult1, curatorResult2)
 
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator, failingCurator)
-      , Map(DefaultCurator.name -> curatorResult1)
-      , Map(failingCurator.name -> curatorResult2.left.get)
-      , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get)
+      , Map(failingCurator.name -> IndexedSeq(curatorResult2.left.get))
+      , Map(DefaultCurator.name -> IndexedSeq(CuratorAndRequestResult(curatorResult1, curatorResult1.parRequestResultOption.get.prodRun.get().right.get)))
       , mahaRequestContext)
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 
@@ -267,9 +278,8 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val curatorResults = IndexedSeq(curatorResult1)
 
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator)
-      , Map(DefaultCurator.name -> curatorResult1)
       , Map.empty
-      , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get)
+      , Map(DefaultCurator.name -> IndexedSeq(CuratorAndRequestResult(curatorResult1, curatorResult1.parRequestResultOption.get.prodRun.get().right.get)))
       , mahaRequestContext)
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 
@@ -304,18 +314,17 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val curatorResults = IndexedSeq(curatorResult1)
 
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator)
-      , Map(DefaultCurator.name -> curatorResult1)
       , Map.empty
-      , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get)
+      , Map(DefaultCurator.name -> IndexedSeq(CuratorAndRequestResult(curatorResult1, curatorResult1.parRequestResultOption.get.prodRun.get().right.get)))
       , mahaRequestContext)
-    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
+    val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult, debugRenderer = debugRenderer)
 
     val stringStream = new StringStream()
 
     jsonStreamingOutput.writeStream(stringStream)
     val result = stringStream.toString()
     stringStream.close()
-    assert(result === """{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200,"debug":{"testName":"test1","labels":["lb1","lb2","lb3"]},"pagination":{"Druid":{"pagingIdentifiers":{"wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9":4}}}},"rows":[[123,234,345,99,"Test Result",1]],"curators":{}}""")
+    assert(result === """{"header":{"cube":"student_performance","fields":[{"fieldName":"Student ID","fieldType":"DIM"},{"fieldName":"Class ID","fieldType":"DIM"},{"fieldName":"Section ID","fieldType":"DIM"},{"fieldName":"Total Marks","fieldType":"FACT"},{"fieldName":"Sample Constant Field","fieldType":"CONSTANT"},{"fieldName":"ROW_COUNT","fieldType":"CONSTANT"}],"maxRows":200,"debug":{"testName":"test1","labels":["lb1","lb2","lb3"],"debug":true},"pagination":{"Druid":{"pagingIdentifiers":{"wikipedia_2012-12-29T00:00:00.000Z_2013-01-10T08:00:00.000Z_2013-01-10T08:13:47.830Z_v9":4}}}},"rows":[[123,234,345,99,"Test Result",1]],"curators":{}}""")
   }
 
   test("Test JsonOutputFormat with RowCountCurator while rowList is empty") {
@@ -372,10 +381,10 @@ class JsonOutputFormatTest extends BaseMahaServiceTest with BeforeAndAfterAll {
     val curatorResult2 = CuratorResult(rowCountCurator, NoConfig, Option(parRequestResult), requestModelResult)
 
     val requestCoordinatorResult = RequestCoordinatorResult(IndexedSeq(defaultCurator, rowCountCurator)
-      , Map(DefaultCurator.name -> curatorResult1, RowCountCurator.name -> curatorResult2)
       , Map.empty
-      , Map(DefaultCurator.name -> curatorResult1.parRequestResultOption.get.prodRun.get().right.get,
-            RowCountCurator.name -> curatorResult2.parRequestResultOption.get.prodRun.get().right.get)
+      , Map(DefaultCurator.name -> IndexedSeq(CuratorAndRequestResult(curatorResult1, curatorResult1.parRequestResultOption.get.prodRun.get().right.get)),
+            RowCountCurator.name -> IndexedSeq(CuratorAndRequestResult(curatorResult2, curatorResult2.parRequestResultOption.get.prodRun.get().right.get))
+      )
       , mahaRequestContext)
     val jsonStreamingOutput = JsonOutputFormat(requestCoordinatorResult)
 

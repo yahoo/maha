@@ -3,12 +3,13 @@
 package com.yahoo.maha.core.query
 
 import com.yahoo.maha.core.{Engine, OracleEngine}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Created by hiral on 2/9/16.
  */
-class QueryExecutorContextTest extends FunSuite with Matchers {
+class QueryExecutorContextTest extends AnyFunSuite with Matchers {
 
   test("successfully register a query executor") {
     val qe = new QueryExecutor {

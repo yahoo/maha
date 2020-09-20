@@ -9,10 +9,12 @@ import java.time.Instant
 import com.yahoo.maha.core.{Column, ColumnAnnotation, ColumnContext, DataType, DateType, DecType, FilterOperation, IntType, StrType, TimestampType}
 import org.joda.time.DateTime
 import org.mockito.Mockito._
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.BeforeAndAfterAll
 
 
-class ColumnValueExtractorTest extends FunSuite with Matchers with BeforeAndAfterAll {
+class ColumnValueExtractorTest extends AnyFunSuite with Matchers with BeforeAndAfterAll {
 
   val columnValueExtractor = new ColumnValueExtractor
   test("test getBigDecimalSafely") {
