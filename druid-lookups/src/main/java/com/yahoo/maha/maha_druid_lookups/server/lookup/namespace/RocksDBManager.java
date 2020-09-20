@@ -129,8 +129,8 @@ public class RocksDBManager {
             FileUtils.forceMkdir(file);
         }
 
-        final String localZippedFileNameWithPath = String.format("%s/%s/rocksdb_%s.zip",
-                localStorageDirectory, extractionNamespace.getNamespace(), loadTime);
+        final String localZippedFileNameWithPath = String.format("%s/%s/%s/rocksdb_%s.zip",
+                localStorageDirectory, extractionNamespace.getNamespace(), loadTime, UUID.randomUUID().toString());
         LOG.error(String.format("localZippedFileNameWithPath [%s]", localZippedFileNameWithPath));
 
         final String localPath = FilenameUtils.removeExtension(localZippedFileNameWithPath);
