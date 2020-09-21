@@ -97,7 +97,7 @@ public class RocksDBExtractionNamespaceCacheFactoryFlatBufferTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "product_ad_fb_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null);
+                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false);
 
             map.put("status", FlatBufferValue.of("OFF"));
             map.put("last_updated", FlatBufferValue.of("1480733203506"));
@@ -150,7 +150,7 @@ public class RocksDBExtractionNamespaceCacheFactoryFlatBufferTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "product_ad_fb_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopCacheActionRunner", null);
+                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.NoopCacheActionRunner", null, false);
 
             noopObj.getCachePopulator("product_ad_fb_lookup", extractionNamespace, "32309719080", new HashMap<>());
             noopObj.updateCache(extractionNamespace, new HashMap<>(), "32309719080", productAdWrapper.toByteArr(flatBufferBuilderFromKafka.dataBuffer()));
@@ -193,7 +193,7 @@ public class RocksDBExtractionNamespaceCacheFactoryFlatBufferTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "product_ad_fb_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null);
+                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false);
 
             map.put("last_updated", FlatBufferValue.of("1480733203504"));
             map.put("status",  FlatBufferValue.of("OFF"));
@@ -247,7 +247,7 @@ public class RocksDBExtractionNamespaceCacheFactoryFlatBufferTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "product_ad_fb_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null);
+                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false);
 
             byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "title", Optional.empty());
 
@@ -279,7 +279,7 @@ public class RocksDBExtractionNamespaceCacheFactoryFlatBufferTest {
 
             RocksDBExtractionNamespace extractionNamespace = new RocksDBExtractionNamespace(
                     "product_ad_fb_lookup", "blah", "blah", new Period(), "", true, false, "ad_lookup", "last_updated", null
-                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null);
+                    , "com.yahoo.maha.maha_druid_lookups.server.lookup.namespace.entity.CacheActionRunnerFlatBuffer", null, false);
 
             byte[] value = obj.getCacheValue(extractionNamespace, new HashMap<>(), "32309719080", "title", Optional.empty());
 
