@@ -210,6 +210,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 ", lastUpdatedTime=" + lastUpdatedTime +
                 ", cacheActionRunner=" + cacheActionRunner +
                 ", overrideLookupServiceHosts=" + overrideLookupServiceHosts +
+                ", randomLocalPathSuffixEnabled=" + randomLocalPathSuffixEnabled +
                 '}';
     }
 
@@ -229,7 +230,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 Objects.equals(tsColumn, that.tsColumn) &&
                 Objects.equals(missingLookupConfig, that.missingLookupConfig) &&
                 Objects.equals(cacheActionRunnerName, that.cacheActionRunnerName) &&
-                Objects.equals(overrideLookupServiceHosts, that.overrideLookupServiceHosts);
+                Objects.equals(overrideLookupServiceHosts, that.overrideLookupServiceHosts) &&
+                Objects.equals(randomLocalPathSuffixEnabled, that.randomLocalPathSuffixEnabled);
     }
 
     @Override
@@ -246,6 +248,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 tsColumn,
                 missingLookupConfig,
                 cacheActionRunnerName,
-                overrideLookupServiceHosts);
+                overrideLookupServiceHosts,
+                randomLocalPathSuffixEnabled);
     }
 }
