@@ -44,6 +44,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     private String tsColumn = "last_updated";
     @JsonProperty
     private final MissingLookupConfig missingLookupConfig;
+    @JsonProperty
+    private boolean randomLocalPathSuffixEnabled = false;
 
     private Long lastUpdatedTime = -1L;
 
@@ -70,6 +72,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                                       @NotNull @JsonProperty(value = "lookupName", required = true) final String lookupName,
                                       @Nullable @JsonProperty(value = "tsColumn", required = false) final String tsColumn,
                                       @NotNull @JsonProperty(value = "missingLookupConfig", required = false) final MissingLookupConfig missingLookupConfig,
+                                      @JsonProperty(value = "randomLocalPathSuffixEnabled", required = false) final boolean randomLocalPathSuffixEnabled,
                                       @JsonProperty(value = "cacheActionRunner", required = false) final String cacheActionRunnerName,
                                       @JsonProperty(value = "overrideLookupServiceHosts", required = false) final String overrideLookupServiceHosts) {
         this.rocksDbInstanceHDFSPath = Preconditions.checkNotNull(rocksDbInstanceHDFSPath, "rocksDbInstanceHDFSPath");
@@ -82,6 +85,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         this.lookupAuditingEnabled = lookupAuditingEnabled;
         this.lookupName = lookupName;
         this.tsColumn = tsColumn;
+        this.randomLocalPathSuffixEnabled = randomLocalPathSuffixEnabled;
 
         //cacheActionRunner = "."
         try {
@@ -169,6 +173,10 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
 
     public String getTsColumn() {
         return tsColumn;
+    }
+
+    public boolean isRandomLocalPathSuffixEnabled() {
+        return randomLocalPathSuffixEnabled;
     }
 
     public String getCacheActionRunnerName() { return cacheActionRunnerName; }
