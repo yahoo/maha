@@ -44,6 +44,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
     private String tsColumn = "last_updated";
     @JsonProperty
     private final MissingLookupConfig missingLookupConfig;
+    @JsonProperty
+    private boolean randomLocalPathSuffixEnabled = false;
 
     private Long lastUpdatedTime = -1L;
 
@@ -71,7 +73,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                                       @Nullable @JsonProperty(value = "tsColumn", required = false) final String tsColumn,
                                       @NotNull @JsonProperty(value = "missingLookupConfig", required = false) final MissingLookupConfig missingLookupConfig,
                                       @JsonProperty(value = "cacheActionRunner", required = false) final String cacheActionRunnerName,
-                                      @JsonProperty(value = "overrideLookupServiceHosts", required = false) final String overrideLookupServiceHosts) {
+                                      @JsonProperty(value = "overrideLookupServiceHosts", required = false) final String overrideLookupServiceHosts,
+                                      @JsonProperty(value = "randomLocalPathSuffixEnabled", required = false) final boolean randomLocalPathSuffixEnabled) {
         this.rocksDbInstanceHDFSPath = Preconditions.checkNotNull(rocksDbInstanceHDFSPath, "rocksDbInstanceHDFSPath");
         this.lookupAuditingHDFSPath = Preconditions.checkNotNull(lookupAuditingHDFSPath, "lookupAuditingHDFSPath");
         this.namespace = Preconditions.checkNotNull(namespace, "namespace");
@@ -82,6 +85,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         this.lookupAuditingEnabled = lookupAuditingEnabled;
         this.lookupName = lookupName;
         this.tsColumn = tsColumn;
+        this.randomLocalPathSuffixEnabled = randomLocalPathSuffixEnabled;
 
         //cacheActionRunner = "."
         try {
@@ -171,6 +175,10 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
         return tsColumn;
     }
 
+    public boolean isRandomLocalPathSuffixEnabled() {
+        return randomLocalPathSuffixEnabled;
+    }
+
     public String getCacheActionRunnerName() { return cacheActionRunnerName; }
 
     public BaseCacheActionRunner getCacheActionRunner() {
@@ -202,6 +210,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 ", lastUpdatedTime=" + lastUpdatedTime +
                 ", cacheActionRunner=" + cacheActionRunner +
                 ", overrideLookupServiceHosts=" + overrideLookupServiceHosts +
+                ", randomLocalPathSuffixEnabled=" + randomLocalPathSuffixEnabled +
                 '}';
     }
 
@@ -221,7 +230,8 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 Objects.equals(tsColumn, that.tsColumn) &&
                 Objects.equals(missingLookupConfig, that.missingLookupConfig) &&
                 Objects.equals(cacheActionRunnerName, that.cacheActionRunnerName) &&
-                Objects.equals(overrideLookupServiceHosts, that.overrideLookupServiceHosts);
+                Objects.equals(overrideLookupServiceHosts, that.overrideLookupServiceHosts) &&
+                Objects.equals(randomLocalPathSuffixEnabled, that.randomLocalPathSuffixEnabled);
     }
 
     @Override
@@ -238,6 +248,7 @@ public class RocksDBExtractionNamespace implements ExtractionNamespace {
                 tsColumn,
                 missingLookupConfig,
                 cacheActionRunnerName,
-                overrideLookupServiceHosts);
+                overrideLookupServiceHosts,
+                randomLocalPathSuffixEnabled);
     }
 }

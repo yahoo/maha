@@ -14,5 +14,6 @@ public class RocksDBSnapshot {
     public RocksDB rocksDB;
     public String kafkaConsumerGroupId;
     public ConcurrentMap<Integer, Long> kafkaPartitionOffset;
+    public boolean isRandomLocalPathSuffixEnabled;
 
 }

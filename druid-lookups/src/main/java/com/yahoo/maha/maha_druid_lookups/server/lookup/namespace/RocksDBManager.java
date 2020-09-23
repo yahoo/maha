@@ -129,8 +129,8 @@ public class RocksDBManager {
             FileUtils.forceMkdir(file);
         }
 
-        final String localZippedFileNameWithPath = String.format("%s/%s/%s/rocksdb_%s.zip",
-                localStorageDirectory, extractionNamespace.getNamespace(), loadTime, UUID.randomUUID().toString());
+        final String localZippedFileNameWithPath = String.format("%s/%s/%srocksdb_%s.zip",
+                localStorageDirectory, extractionNamespace.getNamespace(), loadTime, getLocalPathSuffix(extractionNamespace.isRandomLocalPathSuffixEnabled()));
         LOG.error(String.format("localZippedFileNameWithPath [%s]", localZippedFileNameWithPath));
 
         final String localPath = FilenameUtils.removeExtension(localZippedFileNameWithPath);
@@ -161,6 +161,10 @@ public class RocksDBManager {
         return startNewInstance(extractionNamespace, loadTime, hdfsPath, localZippedFileNameWithPath, localPath);
     }
 
+    private String getLocalPathSuffix(boolean enabled) {
+        return enabled ? UUID.randomUUID().toString() + "/" : "";
+    }
+
     private String useSnapshotInstance(final RocksDBExtractionNamespace extractionNamespace,
                                        final String loadTime,
                                        final String localPath,
@@ -170,6 +174,7 @@ public class RocksDBManager {
         RocksDBSnapshot rocksDBSnapshot = OBJECT_MAPPER.readValue(snapShotFile, RocksDBSnapshot.class);
         rocksDBSnapshot.dbPath = localPath;
         rocksDBSnapshot.rocksDB = openRocksDB(rocksDBSnapshot.dbPath);
+        rocksDBSnapshot.isRandomLocalPathSuffixEnabled = extractionNamespace.isRandomLocalPathSuffixEnabled();
 
         rocksDBSnapshotMap.put(extractionNamespace.getNamespace(), rocksDBSnapshot);
 
@@ -193,6 +198,7 @@ public class RocksDBManager {
         RocksDBSnapshot rocksDBSnapshot = new RocksDBSnapshot();
         rocksDBSnapshot.dbPath = localPath;
         rocksDBSnapshot.rocksDB = openRocksDB(rocksDBSnapshot.dbPath);
+        rocksDBSnapshot.isRandomLocalPathSuffixEnabled = extractionNamespace.isRandomLocalPathSuffixEnabled();
 
         // kafka topic is not empty then add listener for the topic
         if (!Strings.isNullOrEmpty(extractionNamespace.getKafkaTopic())) {
@@ -279,7 +285,18 @@ public class RocksDBManager {
             OBJECT_MAPPER.writeValue(new File(rocksDBSnapshot.dbPath + SNAPSHOT_FILE_NAME), rocksDBSnapshot);
         }
 
-        rocksDBSnapshotMap.entrySet().forEach(entry -> entry.getValue().rocksDB.close());
+        rocksDBSnapshotMap.entrySet().forEach(entry -> {
+            RocksDBSnapshot snapshot = entry.getValue();
+            snapshot.rocksDB.close();
+
+            if (snapshot.isRandomLocalPathSuffixEnabled) {
+                try {
+                    cleanup(snapshot.dbPath);
+                } catch (IOException e) {
+                    LOG.error(e, "Exception while cleaning up %s", snapshot.dbPath);
+                }
+            }
+        });
 
         if(fileSystem != null) {
             fileSystem.close();
