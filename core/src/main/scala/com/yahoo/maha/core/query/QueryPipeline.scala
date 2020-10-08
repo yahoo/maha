@@ -598,6 +598,24 @@ object DefaultQueryPipelineFactory extends Logging {
     bestDimensionCandidates
   }
 
+  def findBestDimCandidatesForDimOnlyQuery(requestModel: RequestModel, dimMapping: Map[String, SortedSet[DimensionBundle]], queryPipelineContext: QueryPipelineContext): SortedSet[DimensionBundle] = {
+    val bestDimensionCandidates = new mutable.TreeSet[DimensionBundle]
+    val iter = dimMapping.iterator
+    while (iter.hasNext) {
+      val (name, bundles) = iter.next()
+      queryPipelineContext.dimOnlyQueryEnginePreferenceList.map( preferredEngine  => {
+        val resOption = bundles.filter(_.dim.engine == preferredEngine)
+        if (resOption.nonEmpty) {
+          if (!bestDimensionCandidates.contains(resOption.head)) {
+            bestDimensionCandidates +=resOption.head
+          }
+        }
+       }
+      )
+    }
+    bestDimensionCandidates
+  }
+
   def findDimCandidatesMapping(requestModel: RequestModel): Map[String, SortedSet[DimensionBundle]] = {
     val dimCandidates = requestModel.dimensionsCandidates
     val schema = requestModel.schema
@@ -707,7 +725,11 @@ object DefaultQueryPipelineFactory extends Logging {
   }
 }
 
-case class QueryPipelineContext(offHeapRowListConfigOption: Option[OffHeapRowListConfig] = None)
+/*
+ Right now we can only specify one default Fact Engine for dim+fact queries, but for dim only query it pick up default fact engine,
+ Adding new setting called dimOnlyQueryEnginePreferenceMap stating the preferences for dim engines to select as best dim candidates for Dim only query
+ */
+case class QueryPipelineContext(offHeapRowListConfigOption: Option[OffHeapRowListConfig] = None, dimOnlyQueryEnginePreferenceList: List[Engine] = List(OracleEngine, PrestoEngine, HiveEngine))
 
 class DefaultQueryPipelineFactory(defaultFactEngine: Engine = OracleEngine, druidMultiQueryEngineList: Seq[Engine] = DefaultQueryPipelineFactory.druidMultiQueryEngineList, queryPipelineContext: QueryPipelineContext = QueryPipelineContext())(implicit val queryGeneratorRegistry: QueryGeneratorRegistry) extends QueryPipelineFactory with Logging {
 
@@ -858,8 +880,12 @@ OuterGroupBy operation has to be applied only in the following cases
     DefaultQueryPipelineFactory.findBestFactCandidate(requestModel, forceDisqualifySet, dimEngines, queryGeneratorRegistry)
   }
 
-  protected def findBestDimCandidates(requestModel: RequestModel, factEngine: Engine, dimMapping: Map[String, SortedSet[DimensionBundle]]): SortedSet[DimensionBundle] = {
-    DefaultQueryPipelineFactory.findBestDimCandidates(factEngine, requestModel, dimMapping, druidMultiQueryEngineList)
+  protected def findBestDimCandidates(requestModel: RequestModel, factEngine: Engine, dimMapping: Map[String, SortedSet[DimensionBundle]], factBestCandidateOption: Option[FactBestCandidate]): SortedSet[DimensionBundle] = {
+    if(factBestCandidateOption.isEmpty) {
+      DefaultQueryPipelineFactory.findBestDimCandidatesForDimOnlyQuery(requestModel, dimMapping, queryPipelineContext)
+    } else {
+      DefaultQueryPipelineFactory.findBestDimCandidates(factEngine, requestModel, dimMapping, druidMultiQueryEngineList)
+    }
   }
 
   protected def findDimCandidatesMapping(requestModel: RequestModel): Map[String, SortedSet[DimensionBundle]] = {
@@ -1073,7 +1099,7 @@ OuterGroupBy operation has to be applied only in the following cases
       val dimEngines: Set[Engine] = dimensionCandidatesMapping.flatMap(_._2.map(_.dim.engine)).toSet
       val factBestCandidateOption =
         requestModel.bestCandidates.map(_ => findBestFactCandidate(requestModel, forceDisqualifyEngine, dimEngines))
-      val dimensionCandidates = findBestDimCandidates(requestModel, factBestCandidateOption.map(_.fact.engine).getOrElse(defaultFactEngine), dimensionCandidatesMapping).filter(db => {
+      val dimensionCandidates = findBestDimCandidates(requestModel, factBestCandidateOption.map(_.fact.engine).getOrElse(defaultFactEngine), dimensionCandidatesMapping, factBestCandidateOption).filter(db => {
         val queryGenerator = queryGeneratorRegistry.getDefaultGenerator(db.dim.engine)
         !queryGenerator.isDefined || queryGenerator.get.validateEngineConstraints(requestModel)
       })
