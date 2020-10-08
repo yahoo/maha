@@ -910,10 +910,13 @@ OuterGroupBy operation has to be applied only in the following cases
             val values = irl.keys.toList.map(_.toString)
             val filter = InFilter(field, values)
             val injectedFactBestCandidate = factOnlyInjectFilter(factBestCandidateOption.get, filter)
-            val query = getFactQuery(injectedFactBestCandidate, requestModel, indexAlias, List(indexAlias), queryGenVersion, Some(bestDimCandidates))
+            // druid subsequentQuery should use startIndex = 0 to prevent wrongly row drop
+            val factRequestModel = requestModel.copy(startIndex = 0)
+            val query = getFactQuery(injectedFactBestCandidate, factRequestModel, indexAlias, List(indexAlias), queryGenVersion, Some(bestDimCandidates))
             irl.addSubQuery(query)
             query
         }
+
         new QueryPipelineBuilder(
           MultiEngineQuery(
             dimQuery,

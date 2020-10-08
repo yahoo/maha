@@ -3164,4 +3164,71 @@ class DruidQueryExecutorTest extends AnyFunSuite with Matchers with BeforeAndAft
         }
     }
   }
+
+  test("test use of startIndex for multiEngineQuery") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Keyword ID"},
+                            {"field": "Impressions"},
+                            {"field": "Keyword Value"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "=", "value": "$fromDate"},
+                            {"field": "Advertiser ID", "operator": "=", "value": "213"}
+                          ],
+                          "paginationStartIndex":2,
+                          "rowsPerPage":100,
+                          "forceDimensionDriven":true
+                        }"""
+
+    val request: ReportingRequest = ReportingRequest.enableDebug(getReportingRequestSync(jsonString))
+    val registry = defaultRegistry
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+    val altQueryGeneratorRegistry = new QueryGeneratorRegistry
+    altQueryGeneratorRegistry.register(DruidEngine, getDruidQueryGenerator()) //do not include local time filter
+    altQueryGeneratorRegistry.register(OracleEngine, new OracleQueryGenerator(DefaultPartitionColumnRenderer))
+    val queryPipelineFactoryLocal = new DefaultQueryPipelineFactory(druidMultiQueryEngineList = List(defaultFactEngine))(altQueryGeneratorRegistry)
+    val queryPipelineTry = queryPipelineFactoryLocal.from(requestModel.toOption.get, QueryAttributes.empty)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+    val query = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+
+    withDruidQueryExecutor("http://localhost:6667/mock/druidPlusOraclegroupby") {
+      druidExecutor =>
+        val oracleExecutor = new MockOracleQueryExecutor(
+          { rl =>
+            val row = rl.newRow
+            row.addValue("Keyword ID", 14)
+            row.addValue("Keyword Value", "one")
+            rl.addRow(row)
+            val row2 = rl.newRow
+            row2.addValue("Keyword ID", 13)
+            row2.addValue("Keyword Value", "two")
+            rl.addRow(row2)
+          })
+        val queryExecContext: QueryExecutorContext = new QueryExecutorContext
+        queryExecContext.register(druidExecutor)
+        queryExecContext.register(oracleExecutor)
+
+        val result = queryPipelineTry.toOption.get.execute(queryExecContext)
+        assert(result.isSuccess)
+
+        //paginationStartIndex = 2 shouldn't drop any impression values
+        val expectedSet = Set(
+          "Row(Map(Keyword ID -> 0, Impressions -> 1, Keyword Value -> 2),ArrayBuffer(14, 10669, one))"
+          , "Row(Map(Keyword ID -> 0, Impressions -> 1, Keyword Value -> 2),ArrayBuffer(13, 106, two))"
+        )
+
+        var count = 0
+        result.get.rowList.foreach {
+          row =>
+            assert(expectedSet.contains(row.toString))
+            count += 1
+        }
+        assert(expectedSet.size == count)
+    }
+  }
 }
