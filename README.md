@@ -2,6 +2,8 @@
 
 [Google Group: Maha-Users](https://groups.google.com/forum/#!forum/maha-users) 
 
+[Maha Release Notes](RELEASE_NOTES.md)
+
 # Maha
 A centralised library for building reporting APIs on top of multiple data stores to exploit them for what they do best.
 
