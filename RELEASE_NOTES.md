@@ -1,4 +1,4 @@
-#Release Notes:
+# Release Notes:
 #### We publish release notes for  Major Maha Version Updates which has backward incompatible changes or some major feature enhancement or major bug fixes:
 
 #### [Maha - 6.22](https://bintray.com/yahoo/maven/maha-service/6.22)
