@@ -17,7 +17,8 @@
   "filterExpressions":[
     { "field": "Day", "operator": "between", "from": "{from_date}", "to": "{to_date}" },
     { "field":"Advertiser ID", "operator":"=", "value":"12345" },
-    { "field":"Campaign Name", "operator":"like", "value":"yahoo" }
+    { "field":"Campaign Name", "operator":"like", "value":"yahoo" },
+    { "field":"Campaign Name", "operator":"<>", "value":"-3" }
   ],
   "sortBy": [
     { "field": "Impressions", "order": "Asc" }

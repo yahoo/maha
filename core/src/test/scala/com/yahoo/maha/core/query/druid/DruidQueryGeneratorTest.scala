@@ -2205,7 +2205,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
 
     val filterjson = s""""filter":{"type":"and","fields":[{"type":"selector","dimension":"statsDate","value":"${fromDate.replace("-", "")}"},{"type":"selector","dimension":"advertiser_id","value":"12345"}]}"""
-    val havingJson = s""""having":{"type":"and","havingSpecs":[{"type":"or","havingSpecs":[{"type":"or","havingSpecs":[{"type":"equalTo","aggregation":"Clicks","value":1},{"type":"equalTo","aggregation":"Clicks","value":2}]},{"type":"equalTo","aggregation":"Impressions","value":2}]}]}"""
+    val havingJson = s""""having":{"type":"and","havingSpecs":[{"type":"or","havingSpecs":[{"type":"equalTo","aggregation":"Impressions","value":2},{"type":"or","havingSpecs":[{"type":"equalTo","aggregation":"Clicks","value":1},{"type":"equalTo","aggregation":"Clicks","value":2}]}]}]}"""
 
     assert(result.contains(filterjson), result)
     assert(result.contains(havingJson), result)
@@ -3657,7 +3657,9 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
-                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                            {"field": "Campaign Name", "operator": "IsNotNull"},
+                            {"field": "Campaign Name", "operator": "<>", "value": "-3"}
                           ],
                           "sortBy": [
                             {"field": "Campaign Name", "order": "Asc"}
@@ -3673,7 +3675,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     println(result)
-    val expected = s""""limitSpec":{"type":"default","columns":[{"dimension":"Campaign Name","direction":"ascending","dimensionOrder":{"type":"lexicographic"}}],"limit":1020}""".stripMargin
+    val expected = s""""limitSpec":{"type":"default","columns":[{"dimension":"Campaign Name","direction":"ascending","dimensionOrder":{"type":"lexicographic"}}],"limit":2020}""".stripMargin
     assert(result.contains(expected))
   }
 

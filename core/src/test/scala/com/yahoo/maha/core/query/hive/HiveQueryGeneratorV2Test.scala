@@ -352,7 +352,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[HiveQuery].asString
-
+println(result)
     assert(result.contains("(lower(campaign_name) LIKE lower('%yahoo%'))"))
     val expected =
       s"""

@@ -462,7 +462,7 @@ trait SharedDimSchema {
         Set(
           PubCol("id", "Campaign ID", InEquality)
           , PubCol("advertiser_id", "Advertiser ID", InEquality)
-          , PubCol("campaign_name", "Campaign Name", InEqualityLikeNotLike)
+          , PubCol("campaign_name", "Campaign Name", InNotInEqualityNotEqualsLikeNotLikeNullNotNull)
           , PubCol("campaign_name_ext", "Campaign Name Ext", InEqualityLikeNotLike)
           , PubCol("Campaign Status", "Campaign Status", InNotInEquality)
           , PubCol("device_id", "Campaign Device ID", InEquality)

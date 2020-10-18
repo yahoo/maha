@@ -378,7 +378,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
   }
   
   def getFactRowsCostEstimate(dimensionsCandidates: SortedSet[DimensionCandidate], factCandidate: FactCandidate, reportingRequest: ReportingRequest,
-                              entitySet: Set[PublicDimension], filters: mutable.Map[String, Filter], isDebug: Boolean): FactRowsCostEstimate = {
+                              entitySet: Set[PublicDimension], filters: mutable.Map[String, List[Filter]], isDebug: Boolean): FactRowsCostEstimate = {
     val factDimList = getDimList(factCandidate)
     val schemaRequiredEnityAndFilter = entitySet.map(pd => (pd.grainKey, filters(pd.primaryKeyByAlias)))
 
@@ -398,7 +398,7 @@ case class Registry private[registry](dimMap: Map[(String, Int), PublicDimension
   
   def getDimCardinalityEstimate(dimensionsCandidates: SortedSet[DimensionCandidate], 
                                 reportingRequest: ReportingRequest,entitySet: Set[PublicDimension],
-                                filters: mutable.Map[String, Filter],isDebug:Boolean): Option[Long] = {
+                                filters: mutable.Map[String, List[Filter]],isDebug:Boolean): Option[Long] = {
     val schemaRequiredEntity = entitySet.map(_.grainKey)
     val highestLevelDim = dimensionsCandidates.lastOption
     val grainKey =  schemaRequiredEntity.headOption.map(s => s"$s-").getOrElse("") + highestLevelDim.map(_.dim.grainKey).getOrElse("")
