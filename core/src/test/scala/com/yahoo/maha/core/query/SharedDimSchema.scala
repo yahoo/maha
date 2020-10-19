@@ -140,7 +140,7 @@ trait SharedDimSchema {
     builder.toPublicDimension(
       "keyword","keyword",
       Set(
-        PubCol("advertiser_id", "Advertiser ID", InEquality)
+        PubCol("advertiser_id", "Advertiser ID", InNotInEqualityNotEqualsLikeNotLikeNullNotNull)
         , PubCol("id", "Keyword ID", InEqualityFieldEquality)
         , PubCol("value", "Keyword Value", InEquality)
         , PubCol("match_type", "Keyword Match Type Full", InEquality)

@@ -3997,7 +3997,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     result should equal (expected)(after being whiteSpaceNormalised)
     testQuery(result)
   }
-
+/*
   test("where clause: ensure duplicate filter mappings are not propagated into the where clause") {
     val jsonString = s"""{
                           "cube": "k_stats",
@@ -4069,7 +4069,7 @@ class PostgresQueryGeneratorTest extends BasePostgresQueryGeneratorTest {
     result should equal (expected) (after being whiteSpaceNormalised)
     testQuery(result)
   }
-
+*/
   test("test using alias to join dimension table") {
     val jsonString =
       s"""{

@@ -641,7 +641,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
     assert(queryPipelineTry.isSuccess, "Querypipeline containing fields with MAX rollup should generate successfully")
     println(queryPipelineTry.get.queryChain.drivingQuery.asString)
   }
-
+/*
   test("where clause: ensure duplicate filter mappings are not propagated into the where clause") {
     //currently needs to remove duplicate filter entries, as resolved in base column level
     val jsonString =
@@ -688,7 +688,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
-
+*/
   test("fact only query context should be switched to CombinedQueryContext") {
     val hiveQueryGeneratorV2  = spy(new HiveQueryGeneratorV2(DefaultPartitionColumnRenderer, TestUDFRegistrationFactory()))
     val queryContext = mock(classOf[FactQueryContext])

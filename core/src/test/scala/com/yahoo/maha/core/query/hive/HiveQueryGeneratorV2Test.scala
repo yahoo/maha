@@ -546,7 +546,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
-
+/*
   test("where clause: ensure duplicate filter mappings are not propagated into the where clause") {
     //currently needs to remove duplicate filter entries, as resolved in base column level
     val jsonString =
@@ -593,7 +593,7 @@ class HiveQueryGeneratorV2Test extends BaseHiveQueryGeneratorTest {
       """.stripMargin
     result should equal(expected)(after being whiteSpaceNormalised)
   }
-
+*/
   test("Duplicate registration of the generator") {
     val failRegistry = new QueryGeneratorRegistry
     val dummyHiveQueryGenerator = new QueryGenerator[WithHiveEngine] {

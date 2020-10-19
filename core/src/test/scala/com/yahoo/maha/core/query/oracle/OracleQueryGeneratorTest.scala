@@ -3950,7 +3950,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
 
     result should equal (expected)(after being whiteSpaceNormalised)
   }
-
+/*
   test("where clause: ensure duplicate filter mappings are not propagated into the where clause") {
     val jsonString = s"""{
                           "cube": "k_stats",
@@ -4021,7 +4021,7 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
       """.stripMargin
     result should equal (expected) (after being whiteSpaceNormalised)
   }
-
+*/
   test("test using alias to join dimension table") {
     val jsonString =
       s"""{
@@ -6717,5 +6717,77 @@ class OracleQueryGeneratorTest extends BaseOracleQueryGeneratorTest {
          |                   WHERE ROW_NUMBER >= 1 AND ROW_NUMBER <= 200
        """.stripMargin
     result should equal (expected)(after being whiteSpaceNormalised)
+  }
+
+  test("Multiple filters on same column") {
+    val jsonString = s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                              {"field": "Keyword ID"},
+                              {"field": "Impressions"},
+                              {"field": "Device ID"},
+                              {"field": "Network Type"},
+                              {"field": "Pricing Type"},
+                              {"field": "Campaign Status"}
+                          ],
+                          "filterExpressions": [
+                              {"field": "Advertiser ID", "operator": "=", "value": "12345"},
+                              {"field": "Advertiser ID", "operator": "IsNotNull"},
+                              {"field": "Day", "operator": "between", "from": "$fromDate", "to": "$toDate"},
+                              {"field": "Source", "operator": "=", "value": "1" },
+                              {"field": "Source", "operator": "=", "value": "3" }
+                          ],
+                          "sortBy": [
+                              {"field": "Campaign Status", "order": "ASC"}
+                          ],
+                          "forceDimensionDriven": true,
+                          "paginationStartIndex":20,
+                          "rowsPerPage":100
+                          }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val registry = defaultRegistry
+    val requestModel = getRequestModel(request, registry)
+    assert(requestModel.isSuccess, requestModel.errorMessage("Building request model failed"))
+
+
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, "dim fact sync dimension driven query with requested fields in multiple dimensions should not fail")
+    val result =  queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[OracleQuery].asString
+
+    val expected =
+      s"""
+         |SELECT *
+         |FROM (SELECT t3.id "Keyword ID", coalesce(f0."impressions", 1) "Impressions", COALESCE(f0.device_id, 'UNKNOWN') "Device ID", COALESCE(f0.network_type, 'NONE') "Network Type", COALESCE(f0.pricing_type, 'NONE') "Pricing Type", co1."Campaign Status" "Campaign Status"
+         |      FROM (SELECT /*+ PUSH_PRED PARALLEL_INDEX(cb_campaign_k_stats 4) CONDITIONAL_HINT1 CONDITIONAL_HINT2 CONDITIONAL_HINT3 */
+         |                   CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END device_id, DECODE(network_type, 'TEST_PUBLISHER', 'Test Publisher', 'CONTENT_SYNDICATION', 'Content Syndication', 'EXTERNAL', 'Yahoo Partners', 'INTERNAL', 'Yahoo Properties', 'NONE') network_type, CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END pricing_type, campaign_id, keyword_id, SUM(impressions) AS "impressions"
+         |            FROM fact2 FactAlias
+         |            WHERE (advertiser_id = 12345) AND (stats_source = 1) AND (stats_source = 3) AND (advertiser_id IS NOT NULL) AND (stats_date >= trunc(to_date('$fromDate', 'YYYY-MM-DD')) AND stats_date <= trunc(to_date('$toDate', 'YYYY-MM-DD')))
+         |            GROUP BY CASE WHEN (device_id IN (1)) THEN 'Desktop' WHEN (device_id IN (2)) THEN 'Tablet' WHEN (device_id IN (3)) THEN 'SmartPhone' WHEN (device_id IN (-1)) THEN 'UNKNOWN' ELSE 'UNKNOWN' END, DECODE(network_type, 'TEST_PUBLISHER', 'Test Publisher', 'CONTENT_SYNDICATION', 'Content Syndication', 'EXTERNAL', 'Yahoo Partners', 'INTERNAL', 'Yahoo Properties', 'NONE'), CASE WHEN (pricing_type IN (1)) THEN 'CPC' WHEN (pricing_type IN (6)) THEN 'CPV' WHEN (pricing_type IN (2)) THEN 'CPA' WHEN (pricing_type IN (-10)) THEN 'CPE' WHEN (pricing_type IN (-20)) THEN 'CPF' WHEN (pricing_type IN (7)) THEN 'CPCV' WHEN (pricing_type IN (3)) THEN 'CPM' ELSE 'NONE' END, campaign_id, keyword_id
+         |
+         |           ) f0
+         |           RIGHT OUTER JOIN
+         |               ( (SELECT * FROM (SELECT D.*, ROWNUM AS ROW_NUMBER FROM (SELECT * FROM (SELECT  id, parent_id, advertiser_id
+         |            FROM targetingattribute
+         |            WHERE (advertiser_id = 12345) AND (advertiser_id IS NOT NULL)
+         |             ) WHERE ROWNUM <= 120) D ) WHERE ROW_NUMBER >= 21 AND ROW_NUMBER <= 120) t3
+         |           INNER JOIN
+         |            (SELECT  id, campaign_id, advertiser_id
+         |            FROM ad_group_oracle
+         |            WHERE (advertiser_id = 12345) AND (advertiser_id IS NOT NULL)
+         |             ) ago2
+         |              ON( t3.advertiser_id = ago2.advertiser_id AND t3.parent_id = ago2.id )
+         |               INNER JOIN
+         |            (SELECT /*+ CampaignHint */ DECODE(status, 'ON', 'ON', 'OFF') AS "Campaign Status", id, advertiser_id
+         |            FROM campaign_oracle
+         |            WHERE (advertiser_id = 12345) AND (advertiser_id IS NOT NULL)
+         |             ) co1
+         |              ON( ago2.advertiser_id = co1.advertiser_id AND ago2.campaign_id = co1.id )
+         |               )  ON (f0.keyword_id = t3.id)
+         |
+ |)
+         |   ORDER BY "Campaign Status" ASC NULLS LAST
+      """.stripMargin
+    result should equal (expected) (after being whiteSpaceNormalised)
   }
 }

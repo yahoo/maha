@@ -2094,7 +2094,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
       """\{"queryType":"groupBy","dataSource":\{"type":"table","name":"fact1"\},"intervals":\{"type":"intervals","intervals":\[".*"\]\},"virtualColumns":\[\],"filter":\{"type":"and","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\},\{"type":"selector","dimension":"statsDate","value":".*"\}\]\},\{"type":"or","fields":\[\{"type":"or","fields":\[\{"type":"selector","dimension":"price_type","value":"7"\},\{"type":"selector","dimension":"price_type","value":"6"\},\{"type":"selector","dimension":"price_type","value":"8"\}\]\}\]\}\]\},"granularity":\{"type":"all"\},"dimensions":\[\{"type":"default","dimension":"advertiser_id","outputName":"Advertiser ID","outputType":"STRING"\}\],"aggregations":\[\],"postAggregations":\[\],"limitSpec":\{"type":"default","columns":\[\],"limit":120\},"context":\{"groupByStrategy":"v2","applyLimitPushDown":"false","uncoveredIntervalsLimit":1,"groupByIsSingleThreaded":true,"timeout":5000,"queryId":".*"\},"descending":false\}""".stripMargin
     result should fullyMatch regex json
   }
-
+/*
   test("where clause: ensure duplicate filter mappings are not propagated into the where clause") {
     val jsonString =
       s"""{
@@ -2129,7 +2129,7 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     result should fullyMatch regex json
   }
-
+*/
   test("Or filter expression with dimension AND fact filters should render properly") {
     val jsonString =
       s"""{
@@ -3657,6 +3657,37 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
                           ],
                           "filterExpressions": [
                             {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
+                            {"field": "Advertiser ID", "operator": "=", "value": "12345"}
+                          ],
+                          "sortBy": [
+                            {"field": "Campaign Name", "order": "Asc"}
+                          ],
+                          "paginationStartIndex":20,
+                          "rowsPerPage":0
+                        }"""
+
+    val request: ReportingRequest = getReportingRequestSync(jsonString)
+    val requestModel = getRequestModel(request, getDefaultRegistry())
+    val queryPipelineTry = generatePipeline(requestModel.toOption.get)
+    assert(queryPipelineTry.isSuccess, queryPipelineTry.errorMessage("Fail to get the query pipeline"))
+
+    val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
+    println(result)
+    val expected = s""""limitSpec":{"type":"default","columns":[{"dimension":"Campaign Name","direction":"ascending","dimensionOrder":{"type":"lexicographic"}}],"limit":1020}""".stripMargin
+    assert(result.contains(expected))
+  }
+
+  test("Multiple filters on same column") {
+    val jsonString =
+      s"""{
+                          "cube": "k_stats",
+                          "selectFields": [
+                            {"field": "Campaign ID"},
+                            {"field": "Campaign Name"},
+                            {"field": "Impressions"}
+                          ],
+                          "filterExpressions": [
+                            {"field": "Day", "operator": "in", "values": ["$fromDate", "$toDate"]},
                             {"field": "Advertiser ID", "operator": "=", "value": "12345"},
                             {"field": "Campaign Name", "operator": "IsNotNull"},
                             {"field": "Campaign Name", "operator": "<>", "value": "-3"}
@@ -3675,11 +3706,8 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
 
     val result = queryPipelineTry.toOption.get.queryChain.drivingQuery.asInstanceOf[DruidQuery[_]].asString
     println(result)
-    val expected = s""""limitSpec":{"type":"default","columns":[{"dimension":"Campaign Name","direction":"ascending","dimensionOrder":{"type":"lexicographic"}}],"limit":2020}""".stripMargin
-    assert(result.contains(expected))
     val expectedFilter = s""""filter":{"type":"and","fields":[{"type":"not","field":{"type":"selector","dimension":"Campaign Name","value":"-3"}},{"type":"not","field":{"type":"selector","dimension":"Campaign Name"}}]}"""
     assert(result.contains(expectedFilter))
   }
-
 }
 
