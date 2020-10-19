@@ -428,7 +428,7 @@ class HiveQueryGeneratorV1Test extends BaseHiveQueryGeneratorTest {
          |JOIN (
          |SELECT campaign_name AS mang_campaign_name, id c1_id
          |FROM campaing_hive
-         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345) AND (lower(campaign_name) LIKE lower('%yahoo%'))
+         |WHERE ((load_time = '%DEFAULT_DIM_PARTITION_PREDICTATE%' ) AND (shard = 'all' )) AND (advertiser_id = 12345) AND (campaign_name <> '-3') AND (lower(campaign_name) LIKE lower('%yahoo%'))
          |)
          |c1
          |ON

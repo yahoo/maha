@@ -3677,6 +3677,8 @@ class DruidQueryGeneratorTest extends BaseDruidQueryGeneratorTest {
     println(result)
     val expected = s""""limitSpec":{"type":"default","columns":[{"dimension":"Campaign Name","direction":"ascending","dimensionOrder":{"type":"lexicographic"}}],"limit":2020}""".stripMargin
     assert(result.contains(expected))
+    val expectedFilter = s""""filter":{"type":"and","fields":[{"type":"not","field":{"type":"selector","dimension":"Campaign Name","value":"-3"}},{"type":"not","field":{"type":"selector","dimension":"Campaign Name"}}]}"""
+    assert(result.contains(expectedFilter))
   }
 
 }
